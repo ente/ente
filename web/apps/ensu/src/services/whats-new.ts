@@ -13,8 +13,7 @@ export interface PendingDesktopWhatsNew {
 }
 
 export const getPendingDesktopWhatsNew = ():
-    | PendingDesktopWhatsNew
-    | undefined => {
+    PendingDesktopWhatsNew | undefined => {
     if (!isTauriRuntime()) return undefined;
 
     const seenVersion = readSeenVersion();

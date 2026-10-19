@@ -253,15 +253,15 @@ class _AppBarComponentState extends State<AppBarComponent> {
             showExpandedBackButton: widget.showExpandedBackButton,
           ),
           ...widget.slivers,
-          _AppBarCollapseSpacer(collapseExtent: metrics.collapseExtent),
+          AppBarCollapseSpacer(collapseExtent: metrics.collapseExtent),
         ],
       ),
     );
   }
 }
 
-class _AppBarCollapseSpacer extends StatelessWidget {
-  const _AppBarCollapseSpacer({required this.collapseExtent});
+class AppBarCollapseSpacer extends StatelessWidget {
+  const AppBarCollapseSpacer({super.key, required this.collapseExtent});
 
   final double collapseExtent;
 

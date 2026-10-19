@@ -53,15 +53,10 @@ class _VideoCropPageState extends State<VideoCropPage> {
         builder: (_, _) => VideoEditorMainActions(
           children: [
             _buildCropButton(context, CropValue.free),
-            const SizedBox(width: 24),
             _buildCropButton(context, CropValue.ratio_1_1),
-            const SizedBox(width: 24),
             _buildCropButton(context, CropValue.ratio_9_16),
-            const SizedBox(width: 24),
             _buildCropButton(context, CropValue.ratio_16_9),
-            const SizedBox(width: 24),
             _buildCropButton(context, CropValue.ratio_3_4),
-            const SizedBox(width: 24),
             _buildCropButton(context, CropValue.ratio_4_3),
           ],
         ),

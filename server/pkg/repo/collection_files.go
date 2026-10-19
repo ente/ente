@@ -58,8 +58,9 @@ func (repo *CollectionRepository) DoAllFilesExistInGivenCollections(fileIDs []in
         FROM collection_files 
         WHERE file_id = ANY ($1) 
         AND is_deleted = false 
+        AND action IS DISTINCT FROM $3
         AND collection_id = ANY ($2)`,
-		pq.Array(fileIDs), pq.Array(cIDs))
+		pq.Array(fileIDs), pq.Array(cIDs), ente.ActionRemove)
 
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -99,8 +100,8 @@ func (repo *CollectionRepository) VerifyAllFileIDsExistsInCollection(ctx context
 		return nil
 	}
 	fileIdMap := make(map[int64]bool)
-	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id FROM collection_files WHERE collection_id = $1 AND is_deleted = $2 AND file_id = ANY ($3)`,
-		cID, false, pq.Array(fileIDs))
+	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id FROM collection_files WHERE collection_id = $1 AND is_deleted = $2 AND file_id = ANY ($3) AND action IS DISTINCT FROM $4`,
+		cID, false, pq.Array(fileIDs), ente.ActionRemove)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -117,7 +118,7 @@ func (repo *CollectionRepository) VerifyAllFileIDsExistsInCollection(ctx context
 	}
 	for _, fileID := range fileIDs {
 		if _, ok := fileIdMap[fileID]; !ok {
-			return stacktrace.Propagate(fmt.Errorf("fileID %d not found in collection %d", fileID, cID), "")
+			return stacktrace.Propagate(ente.ErrPermissionDenied, "fileID %d not found in collection %d", fileID, cID)
 		}
 	}
 	return nil

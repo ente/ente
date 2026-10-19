@@ -67,8 +67,7 @@ export type SpaceLoginResult =
       };
 
 export type SpaceLoginPasskeyStatusResult =
-    | SpaceLoginResult
-    | { status: "pending" };
+    SpaceLoginResult | { status: "pending" };
 
 let pendingSpaceLoginCredentials: SpaceLoginInput | undefined;
 

@@ -33,8 +33,33 @@ pub struct EncryptedChatPayload {
     pub header: String,
 }
 
+#[derive(Default)]
+pub struct Sha256Hasher(Sha256);
+
+impl Sha256Hasher {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn update(&mut self, bytes: impl AsRef<[u8]>) {
+        self.0.update(bytes);
+    }
+
+    pub fn finalize(self) -> [u8; 32] {
+        self.0.finalize().into()
+    }
+}
+
 pub fn sha256(bytes: &[u8]) -> [u8; 32] {
-    Sha256::digest(bytes).into()
+    sha256_parts(&[bytes])
+}
+
+pub fn sha256_parts(parts: &[&[u8]]) -> [u8; 32] {
+    let mut hash = Sha256Hasher::new();
+    for bytes in parts {
+        hash.update(bytes);
+    }
+    hash.finalize()
 }
 
 pub fn generate_chat_key() -> String {
@@ -150,6 +175,37 @@ fn attachment_key(chat_key_b64: &str, session_uuid: &str) -> Result<Key> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn streaming_sha256_matches_known_vectors() {
+        for (input, expected) in [
+            (
+                "",
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+            (
+                "abc",
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            ),
+            (
+                "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+                "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
+            ),
+        ] {
+            for chunk_size in [1, 7, 64] {
+                let mut hash = Sha256Hasher::new();
+                for chunk in input.as_bytes().chunks(chunk_size) {
+                    hash.update(chunk);
+                }
+                let digest: String = hash
+                    .finalize()
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect();
+                assert_eq!(digest, expected);
+            }
+        }
+    }
 
     #[test]
     fn payload_roundtrip() {

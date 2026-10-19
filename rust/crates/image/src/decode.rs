@@ -483,14 +483,18 @@ fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsStr;
+    use std::{ffi::OsStr, io::Cursor};
 
     use image::hooks::decoding_hook_registered;
     use image::{ColorType, ImageEncoder, ImageFormat, codecs::png::PngEncoder};
     use moxcms::ColorProfile;
+    use tiff::{
+        encoder::{TiffEncoder, colortype},
+        tags::ExtraSamples,
+    };
 
     use super::{
-        bytes_look_like_heif, decode_image_from_bytes, init_image_decoders,
+        bytes_look_like_heif, decode_image_from_bytes, decode_tiff_from_bytes, init_image_decoders,
         should_attempt_tiff_fallback,
     };
 
@@ -505,6 +509,51 @@ mod tests {
         assert!(!should_attempt_tiff_fallback(Some(ImageFormat::Jpeg)));
         assert!(!should_attempt_tiff_fallback(Some(ImageFormat::Png)));
         assert!(!should_attempt_tiff_fallback(Some(ImageFormat::Avif)));
+    }
+
+    #[test]
+    fn tiff_primary_and_fallback_decoders_keep_rgb_samples_in_order() {
+        let rgb = [255, 0, 0, 0, 255, 128];
+        let mut encoded = Cursor::new(Vec::new());
+        {
+            let mut encoder = TiffEncoder::new(&mut encoded).unwrap();
+            encoder
+                .new_image::<colortype::RGB8>(2, 1)
+                .unwrap()
+                .write_data(&rgb)
+                .unwrap();
+        }
+        let bytes = encoded.into_inner();
+
+        let fallback = decode_tiff_from_bytes(&bytes).unwrap();
+        assert_eq!(fallback.image.into_rgb8().into_raw(), rgb);
+
+        let primary = decode_image_from_bytes(&bytes).unwrap();
+        assert_eq!(primary.dimensions.width, 2);
+        assert_eq!(primary.dimensions.height, 1);
+        assert_eq!(primary.rgb, rgb);
+    }
+
+    #[test]
+    fn tiff_unspecified_extra_sample_keeps_rgb_channels() {
+        let mut encoded = Cursor::new(Vec::new());
+        {
+            let mut encoder = TiffEncoder::new(&mut encoded).unwrap();
+            let mut image = encoder.new_image::<colortype::RGB8>(1, 1).unwrap();
+            image.extra_samples(&[ExtraSamples::Unspecified]).unwrap();
+            image.write_data(&[17, 34, 51, 68]).unwrap();
+        }
+        let bytes = encoded.into_inner();
+
+        assert_eq!(
+            decode_tiff_from_bytes(&bytes)
+                .unwrap()
+                .image
+                .into_rgb8()
+                .into_raw(),
+            [17, 34, 51]
+        );
+        assert_eq!(decode_image_from_bytes(&bytes).unwrap().rgb, [17, 34, 51]);
     }
 
     #[test]

@@ -4,8 +4,8 @@ const FullScreenBreakpoint = 491;
 
 export const collectionDialogFullScreenQuery = `(width < ${FullScreenBreakpoint}px)`;
 
-export const collectionDialogSurfaceStroke = "#e0e0e0";
-export const collectionDialogSurfaceStrokeDark = "rgba(255 255 255 / 0.12)";
+const collectionDialogSurfaceStroke = "#e0e0e0";
+const collectionDialogSurfaceStrokeDark = "rgba(255 255 255 / 0.12)";
 
 export const collectionDialogPaperSx: SxProps<Theme> = (theme) => ({
     position: "relative",

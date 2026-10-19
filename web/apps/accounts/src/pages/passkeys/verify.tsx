@@ -469,9 +469,7 @@ const RedirectingApp: React.FC<RedirectingAppProps> = ({ onRetry }) => (
 );
 
 type LockerErrorCode =
-    | "LOCKER_REGISTRATION_DISABLED"
-    | "LOCKER_ROLLOUT_LIMIT"
-    | undefined;
+    "LOCKER_REGISTRATION_DISABLED" | "LOCKER_ROLLOUT_LIMIT" | undefined;
 
 interface LockerErrorPayload {
     code: string;

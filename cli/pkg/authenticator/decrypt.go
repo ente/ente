@@ -65,7 +65,7 @@ func DecryptExport(inputPath string, outputPath string, password string) error {
 		return nil
 	}
 
-	if err := os.WriteFile(outputFile, decryptedData, 0644); err != nil {
+	if err := os.WriteFile(outputFile, decryptedData, 0600); err != nil {
 		return fmt.Errorf("error writing file: %v", err)
 	}
 

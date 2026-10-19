@@ -67,6 +67,7 @@ class ComponentTheme {
         labelMedium: TextStyles.mini,
         labelSmall: TextStyles.tiny,
       ),
+      popupMenuTheme: PopupMenuThemeData(color: colors.fillLight),
       dialogTheme: DialogThemeData(
         backgroundColor: colors.fillLight,
         surfaceTintColor: Colors.transparent,

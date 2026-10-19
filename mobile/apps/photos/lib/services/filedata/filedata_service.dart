@@ -15,6 +15,8 @@ import "package:photos/utils/file_key.dart";
 import "package:photos/utils/gzip.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
+const _maxMLDataBytes = 4 * 1024 * 1024;
+
 class FileDataService {
   static final Computer _computer = Computer.shared();
   final _logger = Logger("FileDataService");
@@ -166,17 +168,27 @@ Future<Map<int, FileDataEntity>> _decryptFileDataComputer(
 ) async {
   final result = <int, FileDataEntity>{};
   final inputs = args["inputs"] as List<_DecoderInput>;
+  final logger = Logger("FileDataService");
   for (final input in inputs) {
-    final decodedJson = decryptAndUnzipJsonSync(
-      input.decryptionKey,
-      encryptedData: input.data.encryptedData,
-      header: input.data.decryptionHeader,
-    );
-    result[input.data.fileID] = FileDataEntity.fromRemote(
-      input.data.fileID,
-      input.data.type,
-      decodedJson,
-    );
+    try {
+      final decodedJson = decryptAndUnzipJsonSync(
+        input.decryptionKey,
+        encryptedData: input.data.encryptedData,
+        header: input.data.decryptionHeader,
+        maxOutputBytes: _maxMLDataBytes,
+      );
+      result[input.data.fileID] = FileDataEntity.fromRemote(
+        input.data.fileID,
+        input.data.type,
+        decodedJson,
+      );
+    } on FormatException catch (e, s) {
+      logger.warning(
+        "Ignoring unparseable ML data for file id ${input.data.fileID}",
+        e,
+        s,
+      );
+    }
   }
   return result;
 }

@@ -240,7 +240,8 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
     }
     return faceIdToCrop.isEmpty ? null : faceIdToCrop;
   } catch (e, s) {
-    if (e is! TaskQueueTimeoutException &&
+    if (e is! UnsupportedFaceThumbnailException &&
+        e is! TaskQueueTimeoutException &&
         e is! TaskQueueOverflowException &&
         e is! TaskQueueCancelledException) {
       if (fetchAttempt <= _retryLimit) {

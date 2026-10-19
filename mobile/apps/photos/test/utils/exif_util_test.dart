@@ -3,6 +3,33 @@ import "package:photos/module/metadata/exif.dart";
 import "package:test/test.dart";
 
 void main() {
+  group("formatExifExposureTime", () {
+    test("preserves invalid exposure values without throwing", () {
+      for (final ratio in [
+        Ratio(0, 1),
+        Ratio(1, 0),
+        Ratio(0, 0),
+        Ratio(-1, 125),
+      ]) {
+        final tag = _ifdTag(IfdRatios([ratio]), printable: ratio.toString());
+
+        expect(formatExifExposureTime(tag), ratio.toString());
+      }
+    });
+
+    test("keeps valid shutter speeds formatted in seconds", () {
+      for (final (ratio, expected) in [
+        (Ratio(1, 125), "1/125"),
+        (Ratio(2, 1), "2s"),
+        (Ratio(3, 2), "1.5s"),
+      ]) {
+        final tag = _ifdTag(IfdRatios([ratio]));
+
+        expect(formatExifExposureTime(tag), expected);
+      }
+    });
+  });
+
   group("getDateTimeInDeviceTimezone", () {
     for (final (name, input, offset, dateTime, offsetTime, time) in [
       (

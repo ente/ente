@@ -2,10 +2,7 @@ package controller
 
 import (
 	"context"
-	"crypto/md5"
 	"database/sql"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -70,11 +67,7 @@ const InternalUserMaxFileSize = int64(1024 * 1024 * 1024 * 20)
 
 const MaxUploadURLsLimit = 50
 
-const (
-	minMultipartPartSize  = int64(5 * 1024 * 1024)
-	maxMultipartPartSize  = int64(5 * 1024 * 1024 * 1024)
-	maxMultipartPartCount = 10000
-)
+const maxMultipartPartCount = 10000
 const (
 	DeletedObjectQueueLock = "deleted_objects_queue_lock"
 )
@@ -381,7 +374,7 @@ func (c *FileController) GetUploadURLWithMetadata(ctx context.Context, userID in
 	if !isFileSizeAllowed {
 		return ente.UploadURL{}, stacktrace.Propagate(ente.ErrBadRequest, "contentLength exceeds max file size %d", MaxFileSize)
 	}
-	checksum, err := normalizeMD5String(req.ContentMD5)
+	checksum, err := ente.NormalizeMD5(req.ContentMD5)
 	if err != nil {
 		return ente.UploadURL{}, err
 	}
@@ -1177,8 +1170,8 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	if req.PartMD5s != nil && len(req.PartMD5s) == 0 {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(ente.ErrBadRequest, "partMd5s must not be empty")
 	}
-	if err := validateMultipartPartLength(req.ContentLength, req.PartLength); err != nil {
-		return ente.MultipartUploadURLs{}, err
+	if err := ente.ValidateMultipartPartLength(req.ContentLength, req.PartLength); err != nil {
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(ente.ErrBadRequest, "%v", err)
 	}
 	partCount := calculateMultipartPartCount(req.ContentLength, req.PartLength)
 	if partCount > maxMultipartPartCount {
@@ -1191,7 +1184,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		}
 		normalizedChecksums = make([]string, partCount)
 		for i, checksum := range req.PartMD5s {
-			normalized, err := normalizeMD5String(checksum)
+			normalized, err := ente.NormalizeMD5(checksum)
 			if err != nil {
 				return ente.MultipartUploadURLs{}, err
 			}
@@ -1276,24 +1269,6 @@ func (c *FileController) getPartURL(s3Client s3.S3, objectKey string, partNumber
 	return url, nil
 }
 
-func normalizeMD5String(value string) (string, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return "", stacktrace.Propagate(ente.ErrBadRequest, "contentMD5 must not be empty")
-	}
-	decoded, err := base64.StdEncoding.DecodeString(trimmed)
-	if err != nil {
-		decoded, err = hex.DecodeString(trimmed)
-		if err != nil {
-			return "", stacktrace.Propagate(ente.ErrBadRequest, "contentMD5 must be base64 or hex encoded")
-		}
-	}
-	if len(decoded) != md5.Size {
-		return "", stacktrace.Propagate(ente.ErrBadRequest, "contentMD5 must be exactly 16 bytes")
-	}
-	return base64.StdEncoding.EncodeToString(decoded), nil
-}
-
 func calculateMultipartPartCount(contentLength int64, partLength int64) int {
 	if partLength <= 0 {
 		return 0
@@ -1320,17 +1295,4 @@ func computePartLengths(contentLength int64, partLength int64, partCount int) []
 		remaining -= length
 	}
 	return lengths
-}
-
-func validateMultipartPartLength(contentLength int64, partLength int64) error {
-	if partLength <= 0 {
-		return stacktrace.Propagate(ente.ErrBadRequest, "partLength must be greater than 0")
-	}
-	if partLength > maxMultipartPartSize {
-		return stacktrace.Propagate(ente.ErrBadRequest, "partLength exceeds 5GB limit")
-	}
-	if contentLength > partLength && partLength < minMultipartPartSize {
-		return stacktrace.Propagate(ente.ErrBadRequest, "partLength must be at least 5MB when more than one part is required")
-	}
-	return nil
 }

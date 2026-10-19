@@ -225,11 +225,7 @@ export const toPathOrZipEntry = (fsUploadItem: FileSystemUploadItem) =>
         : fsUploadItem.path;
 
 export type UploadPhase =
-    | "preparing"
-    | "readingMetadata"
-    | "uploading"
-    | "cancelling"
-    | "done";
+    "preparing" | "readingMetadata" | "uploading" | "cancelling" | "done";
 
 export type UploadResult =
     | { type: "unsupported" }

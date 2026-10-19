@@ -7,12 +7,14 @@ Future<T?> routeToPage<T extends Object>(
   BuildContext context,
   Widget page, {
   bool forceCustomPageRoute = false,
+  bool useFadeTransition = false,
 }) {
   if (Platform.isAndroid || forceCustomPageRoute) {
     return Navigator.of(context).push(_buildPageRoute(page));
   } else {
     return Navigator.of(context).push(
       SwipeableRouteBuilder(
+        useFadeTransition: useFadeTransition,
         pageBuilder: (context, animation, secondaryAnimation) {
           return page;
         },
@@ -53,11 +55,15 @@ PageRouteBuilder<T> _buildPageRoute<T extends Object>(Widget page) {
 
 class SwipeableRouteBuilder<T> extends PageRoute<T> {
   final RoutePageBuilder pageBuilder;
+  final bool useFadeTransition;
   // Cupertino preserves the iOS back-swipe gesture.
   final PageTransitionsBuilder matchingBuilder =
       const CupertinoPageTransitionsBuilder();
 
-  SwipeableRouteBuilder({required this.pageBuilder});
+  SwipeableRouteBuilder({
+    required this.pageBuilder,
+    this.useFadeTransition = false,
+  });
 
   @override
   Null get barrierColor => null;
@@ -78,7 +84,9 @@ class SwipeableRouteBuilder<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 300);
+  Duration get transitionDuration => useFadeTransition
+      ? const Duration(milliseconds: 200)
+      : const Duration(milliseconds: 300);
 
   @override
   Widget buildTransitions(
@@ -87,13 +95,16 @@ class SwipeableRouteBuilder<T> extends PageRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    return matchingBuilder.buildTransitions<T>(
+    final transition = matchingBuilder.buildTransitions<T>(
       this,
       context,
-      animation,
-      secondaryAnimation,
+      useFadeTransition ? kAlwaysCompleteAnimation : animation,
+      useFadeTransition ? kAlwaysDismissedAnimation : secondaryAnimation,
       child,
     );
+    return useFadeTransition
+        ? FadeTransition(opacity: animation, child: transition)
+        : transition;
   }
 
   @override

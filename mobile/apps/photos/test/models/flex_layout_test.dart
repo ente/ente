@@ -57,15 +57,40 @@ void main() {
     expect(_occupiedWidth(row), closeTo(404, 1e-9));
   });
 
-  test("can exceed Comfort's item cap to avoid a portrait orphan", () {
-    final rows = _rows(List.filled(4, 9 / 16));
+  test("bounds candidate rows at the responsive width breakpoints", () {
+    for (final (width, targetHeight, expectedMaximum) in [
+      (599.9, 320.0, 3),
+      (600.0, 320.0, 4),
+      (1007.9, 320.0, 4),
+      (1008.0, 320.0, 5),
+    ]) {
+      final atLimitRatio =
+          (width - 2 * (expectedMaximum - 1)) /
+          (expectedMaximum * targetHeight);
+      final itemCount = expectedMaximum + 1;
+      final ratio = (width - 2 * (itemCount - 1)) / (itemCount * targetHeight);
+      expect(
+        _rows(
+          List.filled(expectedMaximum, atLimitRatio),
+          width: width,
+          targetHeight: targetHeight,
+        ).single.itemWidths,
+        hasLength(expectedMaximum),
+      );
 
-    expect(rows, hasLength(1));
-    expect(rows.single.itemWidths, hasLength(4));
-    expect(_occupiedWidth(rows.single), closeTo(402, 1e-9));
+      final rows = _rows(
+        List.filled(itemCount, ratio),
+        width: width,
+        targetHeight: targetHeight,
+      );
+      expect(
+        rows.map((row) => row.itemWidths.length),
+        everyElement(lessThanOrEqualTo(expectedMaximum)),
+      );
+    }
   });
 
-  test("avoids cramped landscape rows without imposing a count cap", () {
+  test("avoids cramped landscape rows", () {
     const ratios = [0.75, 0.75, 2.0, 2.0, 2.0, 2.0, 2.0, 0.4, 0.4, 0.4];
     final compactRows = _rows(ratios, targetHeight: 224);
 
@@ -91,7 +116,7 @@ void main() {
     expect(wideLandscapeRow.itemWidths, hasLength(5));
   });
 
-  test("fills a final row until its configurable maximum height", () {
+  test("fills a final row up to its maximum height", () {
     final fitted = _rows([0.75, 0.75], targetHeight: 200).single;
     expect(fitted.height, closeTo(400 / 1.5, 1e-9));
     expect(_occupiedWidth(fitted), closeTo(402, 1e-9));
@@ -99,15 +124,6 @@ void main() {
     final capped = _rows([0.75, 0.75], width: 1024, targetHeight: 320).single;
     expect(capped.height, 512);
     expect(_occupiedWidth(capped), lessThan(1024));
-
-    final relaxed = _rows(
-      [0.75, 0.75],
-      width: 1024,
-      targetHeight: 320,
-      maximumHeightFactor: 2,
-    ).single;
-    expect(relaxed.height, 640);
-    expect(relaxed.height, greaterThan(capped.height));
   });
 
   test(
@@ -134,6 +150,12 @@ void main() {
   );
 
   test("normalizes invalid ratios and handles empty groups", () {
+    expect(FlexLayoutCalculator.aspectRatioForDimensions(0, 100), 1);
+    expect(FlexLayoutCalculator.aspectRatioForDimensions(100, 0), 1);
+    expect(FlexLayoutCalculator.aspectRatioForDimensions(-1, 100), 1);
+    expect(FlexLayoutCalculator.aspectRatioForDimensions(4, 3), 4 / 3);
+    expect(FlexLayoutCalculator.aspectRatioForDimensions(1, 100), 1 / 3);
+    expect(FlexLayoutCalculator.aspectRatioForDimensions(100, 1), 4);
     final rows = _rows([0, double.nan, double.infinity, 0.01, 100]);
 
     expect(rows.last.lastIndex, 4);
@@ -143,30 +165,18 @@ void main() {
     );
     expect(_rows([]), isEmpty);
   });
-
-  test("rejects invalid tuning", () {
-    expect(() => _rows([1], maximumHeightFactor: 0.9), throwsArgumentError);
-    expect(
-      () => _rows([1], minimumNonFinalSingletonAspectRatio: 0),
-      throwsArgumentError,
-    );
-  });
 }
 
 List<JustifiedRowLayout> _rows(
   List<double> ratios, {
   double width = 402,
   double? targetHeight,
-  double maximumHeightFactor = 1.6,
-  double minimumNonFinalSingletonAspectRatio = 0.75,
 }) {
   return FlexLayoutCalculator.computeRows(
     aspectRatios: ratios,
     availableWidth: width,
     targetRowHeight: targetHeight ?? (width < 600 ? 200 : 320),
     spacing: 2,
-    maximumRowHeightFactor: maximumHeightFactor,
-    minimumNonFinalSingletonAspectRatio: minimumNonFinalSingletonAspectRatio,
   );
 }
 

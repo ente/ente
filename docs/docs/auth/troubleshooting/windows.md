@@ -5,6 +5,18 @@ description: Troubleshoot Windows Hello and login errors in Ente Auth
 
 # Windows Troubleshooting
 
+## Ente Auth cannot start because MSVCP140.dll is missing {#missing-msvcp140-dll}
+
+This error indicates that a Microsoft Visual C++ runtime dependency needed by the app is missing or unavailable.
+
+1. Open Microsoft's [supported Visual C++ Redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170).
+2. Install or repair the supported Redistributable that matches the architecture of the Ente Auth build you installed. The package must match the app's architecture, which may differ from the operating system's architecture.
+3. Follow the installer's instructions, restart Windows if requested, and try opening Ente Auth again.
+
+On a shared or managed computer, ask your administrator to install or repair the runtime. Do not download individual DLL files from third-party sites, and do not delete Auth's data to address this error.
+
+If you are unsure which package is needed or the error remains, contact [support@ente.com](mailto:support@ente.com) with your Windows version, Auth version, and the exact error message.
+
 ## Windows Hello Prompt Does Not Appear
 
 Ente Auth uses Windows Hello when an action requires system authentication.

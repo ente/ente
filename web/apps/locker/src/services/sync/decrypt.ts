@@ -425,8 +425,7 @@ const decryptFileToLockerItem = async (
         }
 
         const info = pubMagicMetadata?.info as
-            | { type?: string; data?: Record<string, unknown> }
-            | undefined;
+            { type?: string; data?: Record<string, unknown> } | undefined;
 
         const infoType =
             typeof info?.type === "string"

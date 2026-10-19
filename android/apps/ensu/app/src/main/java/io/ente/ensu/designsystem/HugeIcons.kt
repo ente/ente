@@ -12,6 +12,7 @@ object HugeIcons {
     val Folder01Icon = R.drawable.hugeicon_folder01
     val Delete01Icon = R.drawable.hugeicon_delete01
     val Edit01Icon = R.drawable.hugeicon_edit01
+    val ImagePlusIcon = R.drawable.hugeicon_image_plus
     val Menu01Icon = R.drawable.hugeicon_menu01
     val PlusSignIcon = R.drawable.hugeicon_plus_sign
     val PackageIcon = R.drawable.hugeicon_package

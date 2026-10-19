@@ -17,12 +17,14 @@ import 'package:locker/core/errors.dart';
 import 'package:locker/events/backup_updated_event.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/configuration.dart';
+import 'package:locker/services/feature_flag_service.dart';
 import "package:locker/services/files/sync/metadata_updater_service.dart";
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/files/sync/models/file_magic.dart';
 import 'package:locker/services/files/upload/models/backup_item.dart';
 import 'package:locker/services/files/upload/models/backup_item_status.dart';
 import 'package:locker/services/files/upload/models/upload_url.dart';
+import 'package:locker/services/files/upload/multipart_uploader.dart';
 import "package:locker/utils/crypto_helper.dart";
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,11 +32,8 @@ import "package:uuid/uuid.dart";
 
 class FileUploader {
   static const kMaximumConcurrentUploads = 4;
-  static const kMaximumConcurrentVideoUploads = 2;
-  static const kMaximumThumbnailCompressionAttempts = 2;
   static const kMaximumUploadAttempts = 4;
   static const kMaxFileSize10Gib = 10737418240;
-  static const kBlockedUploadsPollFrequency = Duration(seconds: 2);
   static const kFileUploadTimeout = Duration(minutes: 50);
   static const k20MBStorageBuffer = 20 * 1024 * 1024;
   static const _lastStaleFileCleanupTime = "lastStaleFileCleanupTime";
@@ -42,16 +41,13 @@ class FileUploader {
   final _logger = Logger("FileUploader");
   final _dio = Network.instance.getDio();
   final _enteDio = Network.instance.enteDio;
+  final _multipartUploader = MultipartUploader();
   final LinkedHashMap<String, FileUploadItem> _queue =
       LinkedHashMap<String, FileUploadItem>();
   final LinkedHashMap<String, BackupItem> _allBackups =
       LinkedHashMap<String, BackupItem>();
-  final kSafeBufferForLockExpiry = const Duration(hours: 4).inMicroseconds;
-  final kBGTaskDeathTimeout = const Duration(seconds: 5).inMicroseconds;
 
   LinkedHashMap<String, BackupItem> get allBackups => _allBackups;
-
-  int _totalCountInUploadSession = 0;
 
   int _uploadCounter = 0;
   late SharedPreferences _prefs;
@@ -77,7 +73,6 @@ class FileUploader {
     Collection collection, {
     String? fileName,
   }) {
-    _totalCountInUploadSession++;
     final String path = file.path;
     final completer = Completer<EnteFile>();
     _queue[path] = FileUploadItem(
@@ -156,10 +151,6 @@ class FileUploader {
     }
   }
 
-  int getCurrentSessionUploadCount() {
-    return _totalCountInUploadSession;
-  }
-
   void clearQueue(final Error reason) {
     final List<String> uploadsToBeRemoved = [];
     _queue.entries
@@ -175,35 +166,10 @@ class FileUploader {
       );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
     }
-    _totalCountInUploadSession = 0;
-  }
-
-  void removeFromQueueWhere(final bool Function(File) fn, final Error reason) {
-    final List<String> uploadsToBeRemoved = [];
-    _queue.entries
-        .where((entry) => entry.value.status == UploadStatus.notStarted)
-        .forEach((pendingUpload) {
-          if (fn(pendingUpload.value.file)) {
-            uploadsToBeRemoved.add(pendingUpload.key);
-          }
-        });
-    for (final id in uploadsToBeRemoved) {
-      _queue.remove(id)?.completer.completeError(reason);
-      _allBackups[id] = _allBackups[id]!.copyWith(
-        status: BackupItemStatus.retry,
-        error: reason,
-      );
-      Bus.instance.fire(BackupUpdatedEvent(_allBackups));
-    }
-    _logger.info(
-      'number of enteries removed from queue ${uploadsToBeRemoved.length}',
-    );
-    _totalCountInUploadSession -= uploadsToBeRemoved.length;
   }
 
   void _pollQueue() {
     if (_queue.isEmpty) {
-      _totalCountInUploadSession = 0;
       return;
     }
     if (_uploadCounter < kMaximumConcurrentUploads) {
@@ -339,11 +305,17 @@ class FileUploader {
       _checkIfWithinFileCountLimit();
       await _checkIfWithinStorageLimit(file);
       final encryptedFile = File(encryptedFilePath);
+      final useMultipart =
+          FeatureFlagService.instance.multipartUpload &&
+          sourceFileSize > MultipartUploader.partSize;
 
       final fileAttributes = await CryptoUtil.encryptFileWithMd5(
         file.path,
         encryptedFilePath,
         key: key,
+        multiPartChunkSizeInBytes: useMultipart
+            ? MultipartUploader.partSize
+            : null,
       );
       encFileSize = await encryptedFile.length();
 
@@ -371,7 +343,7 @@ class FileUploader {
       final thumbnailMd5 = await computeMd5(encryptedThumbnailPath);
       final fileMd5 = fileAttributes.fileMd5;
 
-      if (fileMd5 == null || fileMd5.isEmpty) {
+      if (!useMultipart && (fileMd5 == null || fileMd5.isEmpty)) {
         throw Exception('File MD5 hash is null or empty');
       }
 
@@ -390,16 +362,33 @@ class FileUploader {
         thumbnailMd5,
       );
 
-      final fileUploadURL = await _getUploadURL(
-        contentLength: encFileSize,
-        md5: fileMd5,
-      );
-      final fileObjectKey = await _putFile(
-        fileUploadURL,
-        encryptedFile,
-        encFileSize,
-        fileMd5,
-      );
+      final String fileObjectKey;
+      if (useMultipart) {
+        final urls = MultipartUploadURLs.fromMap(
+          await _requestUploadURL('/files/multipart-upload-url', {
+            'contentLength': encFileSize,
+            'partLength': MultipartUploader.partSize,
+            'partMd5s': fileAttributes.partMd5s!,
+          }),
+        );
+        fileObjectKey = await _multipartUploader.upload(
+          encryptedFile,
+          encFileSize,
+          fileAttributes.partMd5s!,
+          urls,
+        );
+      } else {
+        final fileUploadURL = await _getUploadURL(
+          contentLength: encFileSize,
+          md5: fileMd5!,
+        );
+        fileObjectKey = await _putFile(
+          fileUploadURL,
+          encryptedFile,
+          encFileSize,
+          fileMd5,
+        );
+      }
 
       final enteFile = EnteFile.fromFile(file, fileName: fileName);
 
@@ -687,12 +676,21 @@ class FileUploader {
     required int contentLength,
     required String md5,
   }) async {
+    return UploadURL.fromMap(
+      await _requestUploadURL('/files/upload-url', {
+        'contentLength': contentLength,
+        'contentMD5': md5,
+      }),
+    );
+  }
+
+  Future<Map<String, dynamic>> _requestUploadURL(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
     try {
-      final response = await _enteDio.post(
-        "/files/upload-url",
-        data: {"contentLength": contentLength, "contentMD5": md5},
-      );
-      return UploadURL.fromMap((response.data as Map).cast<String, dynamic>());
+      final response = await _enteDio.post(endpoint, data: data);
+      return (response.data as Map).cast<String, dynamic>();
     } on DioException catch (e, s) {
       if (_isFileLimitReachedResponse(e.response)) {
         throw FileLimitReachedError();
@@ -840,6 +838,4 @@ class FileUploadItem {
   });
 }
 
-enum UploadStatus { notStarted, inProgress, inBackground, completed }
-
-enum ProcessType { background, foreground }
+enum UploadStatus { notStarted, inProgress }

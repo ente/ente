@@ -4,10 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/review_service.dart";
+import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/notification/update/change_log_entry.dart';
 import 'package:photos/ui/notification/update/change_log_strings.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-enum ChangeLogPageAction { openReferrals }
+Future<void> showChangeLogSheet(BuildContext context) async {
+  await showBottomSheetComponent<void>(
+    context: context,
+    builder: (context) => const ChangeLogPage(),
+  );
+}
 
 class ChangeLogPage extends StatefulWidget {
   const ChangeLogPage({super.key});
@@ -30,42 +37,71 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
     final l10n = context.strings;
     final colors = context.componentColors;
     final isLocalGallery = isLocalGalleryMode;
+    final continueButton = ButtonComponent(
+      variant: isLocalGallery
+          ? ButtonComponentVariant.primary
+          : ButtonComponentVariant.secondary,
+      size: ButtonComponentSize.large,
+      label: l10n.continueLabel,
+      shouldSurfaceExecutionStates: false,
+      onTap: () async {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+    );
     return BottomSheetComponent(
       header: _ChangeLogHeader(title: l10n.whatsNew),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       actionsTopSpacing: Spacing.lg,
       content: _getChangeLog(),
       actions: [
-        ButtonComponent(
-          variant: ButtonComponentVariant.primary,
-          size: ButtonComponentSize.large,
-          label: l10n.continueLabel,
-          shouldSurfaceExecutionStates: false,
-          onTap: () async {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        ButtonComponent(
-          variant: ButtonComponentVariant.secondary,
-          size: ButtonComponentSize.large,
-          label: isLocalGallery ? l10n.rateUs : 'Gift 10 GB',
-          leading: isLocalGallery
-              ? Icon(Icons.favorite_rounded, color: colors.primary)
-              : HugeIcon(
-                  icon: HugeIcons.strokeRoundedGift,
-                  color: colors.textBase,
-                  size: IconSizes.small,
+        continueButton,
+        Theme(
+          data: Theme.of(context).copyWith(
+            extensions: [
+              ComponentColorTokens(
+                ComponentTheme.colorsForApp(
+                  ComponentApp.locker,
+                  brightness: Theme.of(context).brightness,
                 ),
-          shouldSurfaceExecutionStates: false,
-          onTap: () async {
-            if (isLocalGallery) {
-              await ReviewService.launch();
-            } else if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop(ChangeLogPageAction.openReferrals);
-            }
-          },
+              ),
+            ],
+          ),
+          child: ButtonComponent(
+            variant: isLocalGallery
+                ? ButtonComponentVariant.secondary
+                : ButtonComponentVariant.primary,
+            size: ButtonComponentSize.large,
+            label: isLocalGallery ? l10n.rateUs : l10n.meetEnteLocker,
+            leading: isLocalGallery
+                ? Icon(Icons.favorite_rounded, color: colors.primary)
+                : const EnteAppIcon(app: ComponentApp.locker),
+            shouldSurfaceExecutionStates: false,
+            onTap: () async {
+              if (isLocalGallery) {
+                await ReviewService.launch();
+              } else {
+                final navigator = Navigator.of(context);
+                final route = ModalRoute.of(context);
+                bool launched;
+                try {
+                  launched = await launchUrlString(
+                    'https://ente.com/locker/get',
+                    mode: LaunchMode.externalApplication,
+                  );
+                } catch (_) {
+                  launched = false;
+                }
+                if (!context.mounted || route?.isCurrent != true) return;
+                if (launched) {
+                  navigator.pop();
+                } else {
+                  showShortToast(context, l10n.somethingWentWrong);
+                }
+              }
+            },
+          ),
         ),
       ],
     );

@@ -1,6 +1,8 @@
 import "dart:async";
 
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/memories/just_audio_memory_music_player.dart";
@@ -143,6 +145,26 @@ class MemoryAudioScope extends InheritedNotifier<MemoryMusicController> {
 
   bool get isMusicMuted => notifier?.isMuted ?? _isMusicMuted;
 
+  void activateMusic(
+    String memoryID, {
+    required bool currentItemIsVideo,
+    bool viewerActionPaused = false,
+  }) {
+    final controller = this.controller;
+    if (controller == null) return;
+    unawaited(controller.setViewerActionPaused(viewerActionPaused));
+    unawaited(
+      controller.activateMemory(
+        memoryID,
+        currentItemIsVideo: currentItemIsVideo,
+      ),
+    );
+  }
+
+  void setMusicViewerActionPaused(bool paused) {
+    unawaited(controller?.setViewerActionPaused(paused));
+  }
+
   static MemoryAudioScope? maybeOf(BuildContext context, {bool listen = true}) {
     return listen
         ? context.dependOnInheritedWidgetOfExactType<MemoryAudioScope>()
@@ -154,4 +176,61 @@ class MemoryAudioScope extends InheritedNotifier<MemoryMusicController> {
       _isMusicMuted != oldWidget._isMusicMuted ||
       isVideoMuted != oldWidget.isVideoMuted ||
       super.updateShouldNotify(oldWidget);
+}
+
+class MemoryAudioMuteButton extends StatelessWidget {
+  final MemoryAudioScope memoryAudio;
+  final bool mutesVideoAudio;
+
+  const MemoryAudioMuteButton(
+    this.memoryAudio, {
+    this.mutesVideoAudio = false,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isMuted = mutesVideoAudio
+        ? memoryAudio.isVideoMuted
+        : memoryAudio.isMusicMuted;
+    return SizedBox.square(
+      dimension: 48,
+      child: IconButton(
+        tooltip: isMuted
+            ? context.strings.unmuteAudio
+            : context.strings.muteAudio,
+        padding: const EdgeInsets.all(7),
+        style: IconButton.styleFrom(
+          shape: const CircleBorder(),
+          minimumSize: const Size.square(48),
+          maximumSize: const Size.square(48),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          overlayColor: Colors.transparent,
+        ),
+        onPressed: () => unawaited(
+          mutesVideoAudio
+              ? memoryAudio.toggleVideoMuted()
+              : memoryAudio.toggleMusicMuted(),
+        ),
+        icon: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: Color(0x66000000),
+            shape: BoxShape.circle,
+          ),
+          child: SizedBox.square(
+            dimension: 34,
+            child: Center(
+              child: HugeIcon(
+                icon: isMuted
+                    ? HugeIcons.strokeRoundedVolumeOff
+                    : HugeIcons.strokeRoundedVolumeHigh,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

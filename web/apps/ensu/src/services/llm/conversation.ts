@@ -29,6 +29,7 @@ export const prepareDesktopConversation = async (
         historyQuery?: string;
         groundingCandidates?: unknown;
         maxTokens: number;
+        resolutionToken?: string;
     },
     provider: Pick<LlmProvider, "generateChatStream">,
     callbacks: { isCurrent: () => boolean; onProgress: () => void },
@@ -84,3 +85,16 @@ export const prepareDesktopConversation = async (
         unlisten();
     }
 };
+
+export const resolveDesktopSourceFollowup = (input: {
+    sessionUuid: string;
+    path: string[];
+    question: string;
+    enabledStableIds: string[];
+    enabledNoteCollectionIds: string[];
+    cancellationEpoch: number;
+    candidates?: unknown;
+}): Promise<string> =>
+    invoke<string>("conversation_resolve_followup", {
+        input: { ...input, token: crypto.randomUUID() },
+    });

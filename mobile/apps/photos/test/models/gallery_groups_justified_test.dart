@@ -12,8 +12,6 @@ import "package:photos/models/gallery/fixed_extent_section_layout.dart";
 import "package:photos/models/gallery/gallery_groups.dart";
 import "package:photos/models/gallery/justified_grid_row.dart";
 import "package:photos/models/gallery/justified_layout.dart";
-import "package:photos/models/gallery/justified_layout_strategy.dart";
-import "package:photos/models/gallery/justified_layout_tuning.dart";
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/settings/local_settings.dart";
@@ -49,11 +47,6 @@ void main() {
 
   setUp(() async {
     await localSettings.setGalleryLayoutType(GalleryLayoutType.justified);
-    await localSettings.setJustifiedLayoutStrategy(
-      JustifiedLayoutStrategy.comfortLarge,
-    );
-    await localSettings.resetFlexLayoutTuning();
-    await localSettings.resetComfortLargeLayoutTuning();
     await localSettings.setPhotoGridSize(4);
   });
 
@@ -120,14 +113,23 @@ void main() {
           );
         }
 
-        for (final file in expectedFiles) {
-          final fileOffset = groups.getOffsetOfFile(file);
-          expect(fileOffset, isNotNull);
-          expect(groups.getFileAtScrollOffset(fileOffset!), same(file));
-          expect(
-            groups.getOffsetOfGroupContainingFile(file),
-            closeTo(justifiedSection.minOffset, 1e-9),
-          );
+        for (final row in justifiedSection.rows) {
+          for (var index = row.firstIndex; index <= row.lastIndex; index++) {
+            final file = expectedFiles[index];
+            final fileOffset = groups.getOffsetOfFile(file);
+            expect(
+              fileOffset,
+              closeTo(justifiedSection.bodyMinOffset + row.minOffset, 1e-9),
+            );
+            expect(
+              groups.getFileAtScrollOffset(fileOffset!),
+              same(expectedFiles[row.firstIndex]),
+            );
+            expect(
+              groups.getOffsetOfGroupContainingFile(file),
+              closeTo(justifiedSection.minOffset, 1e-9),
+            );
+          }
         }
 
         expectedFirstChildIndex = justifiedSection.lastIndex + 1;
@@ -136,7 +138,7 @@ void main() {
     }
   });
 
-  test("routes justified galleries through the selected strategy", () async {
+  test("justified uses Flex with its production defaults", () {
     final files = List.generate(
       4,
       (index) => _file(
@@ -146,124 +148,28 @@ void main() {
         height: 16,
       ),
     );
-    await localSettings.setPhotoGridSize(2);
-    await localSettings.setComfortLargeLayoutTuningValue(
-      ComfortLargeLayoutTuningField.targetHeightScale,
-      1,
-    );
-    GalleryGroups groups() => _galleryGroups(
+    final groups = _galleryGroups(
       files: files,
       groupType: GroupType.none,
       groupHeaderExtent: GalleryGroups.spacing,
       widthAvailable: 402,
     );
-    final comfortLarge = groups().groupLayouts.single as JustifiedSectionLayout;
-    expect(comfortLarge.rows.map((row) => row.itemWidths.length), [2, 2]);
-    await localSettings.setJustifiedLayoutStrategy(
-      JustifiedLayoutStrategy.flex,
-    );
-    await localSettings.setFlexLayoutTuningValue(
-      FlexLayoutTuningField.targetHeightScale,
-      1,
-    );
-    final flex = groups().groupLayouts.single as JustifiedSectionLayout;
-    expect(flex.rows.single.itemWidths, hasLength(4));
-  });
-
-  test("routes Flex with its non-final singleton tuning", () async {
-    final files = List<EnteFile>.generate(
-      3,
-      (index) => _file(
-        index: index,
-        creationTime: DateTime(2026, 8, 19).microsecondsSinceEpoch,
-        width: 16,
-        height: 9,
-      ),
-    );
-    await localSettings.setPhotoGridSize(2);
-    await localSettings.setJustifiedLayoutStrategy(
-      JustifiedLayoutStrategy.flex,
-    );
-
-    JustifiedSectionLayout section() =>
-        _galleryGroups(
-              files: files,
-              groupType: GroupType.none,
-              groupHeaderExtent: GalleryGroups.spacing,
-              widthAvailable: 402,
-            ).groupLayouts.single
-            as JustifiedSectionLayout;
-
-    expect(section().rows.map((row) => row.itemWidths.length), [1, 1, 1]);
-    await localSettings.setFlexLayoutTuningValue(
-      FlexLayoutTuningField.minimumNonFinalSingletonAspectRatio,
-      2,
-    );
-    final constrainedRows = section().rows;
-    expect(constrainedRows.map((row) => row.itemWidths.length), [2, 1]);
-  });
-
-  test("keeps layout tuning separate for Flex and Comfort Large", () async {
-    final file = _file(
-      index: 0,
-      creationTime: DateTime(2026, 8, 19).microsecondsSinceEpoch,
-      width: 1,
-      height: 1,
-    );
-    await localSettings.setPhotoGridSize(2);
-    double rowHeight() {
-      final section =
-          _galleryGroups(
-                files: [file],
-                groupType: GroupType.none,
-                groupHeaderExtent: GalleryGroups.spacing,
-                widthAvailable: 1024,
-              ).groupLayouts.single
-              as JustifiedSectionLayout;
-      return section.rows.single.height;
-    }
-
-    expect(
-      rowHeight(),
-      320 * ComfortLargeLayoutTuning.defaults.targetHeightScale,
-    );
-
-    await localSettings.setComfortLargeLayoutTuningValue(
-      ComfortLargeLayoutTuningField.targetHeightScale,
-      1.25,
-    );
-    expect(rowHeight(), 400);
-
-    await localSettings.setJustifiedLayoutStrategy(
-      JustifiedLayoutStrategy.flex,
-    );
-    final defaultFlexHeight =
-        320 *
-        FlexLayoutTuning.defaults.targetHeightScale *
-        FlexLayoutTuning.defaults.maximumHeightFactor;
-    expect(rowHeight(), defaultFlexHeight);
-    await localSettings.setFlexLayoutTuningValue(
-      FlexLayoutTuningField.maximumHeightFactor,
-      2,
-    );
-    expect(rowHeight(), 320 * FlexLayoutTuning.defaults.targetHeightScale * 2);
+    final section = groups.groupLayouts.single as JustifiedSectionLayout;
+    expect(section.rows.map((row) => row.itemWidths.length), [3, 1]);
+    _expectRowsCoverFiles(section, files.length);
   });
 
   test(
     "headerless justified remains one continuous group past grid chunks",
-    () async {
-      await localSettings.setComfortLargeLayoutTuningValue(
-        ComfortLargeLayoutTuningField.targetHeightScale,
-        1,
-      );
+    () {
       const fileCount = 100;
       final files = List<EnteFile>.generate(
         fileCount,
         (index) => _file(
           index: index,
           creationTime: DateTime(2026, 8, 19).microsecondsSinceEpoch,
-          width: 3,
-          height: 2,
+          width: 2,
+          height: 3,
         ),
         growable: false,
       );
@@ -288,11 +194,10 @@ void main() {
       expect(section.bodyMinOffset, GalleryGroups.spacing);
       _expectRowsCoverFiles(section, fileCount);
 
-      final rowAcrossLegacyBoundary = section.rows.singleWhere(
-        (row) => row.firstIndex <= 39 && row.lastIndex >= 40,
+      expect(
+        section.rows.any((row) => row.firstIndex < 20 && row.lastIndex >= 20),
+        isTrue,
       );
-      expect(rowAcrossLegacyBoundary.firstIndex, 39);
-      expect(rowAcrossLegacyBoundary.lastIndex, 41);
 
       for (final row in section.rows) {
         final firstFileInRow = files[row.firstIndex];
@@ -308,7 +213,7 @@ void main() {
   );
 
   test(
-    "caps the target height only when the grid-derived target is taller",
+    "caps the Justified target independently of the remembered Grid count",
     () async {
       final file = _file(
         index: 0,
@@ -328,15 +233,11 @@ void main() {
         return section.rows.single.height;
       }
 
-      await localSettings.setPhotoGridSize(2);
-      await localSettings.setComfortLargeLayoutTuningValue(
-        ComfortLargeLayoutTuningField.targetHeightScale,
-        1,
-      );
-      expect(rowHeight(), 320);
+      await localSettings.setPhotoGridSize(3);
+      expect(rowHeight(), closeTo(320 * 1.12 * 1.6, 1e-9));
 
       await localSettings.setPhotoGridSize(4);
-      expect(rowHeight(), (1024 - 3 * GalleryGroups.spacing) / 4);
+      expect(rowHeight(), closeTo(320 * 1.12 * 1.6, 1e-9));
     },
   );
 
@@ -368,11 +269,16 @@ void main() {
     final context = tester.element(
       find.byKey(const ValueKey("justified-builder-context")),
     );
-    final rowWidget =
-        section.builder(context, section.bodyFirstIndex) as JustifiedGridRow;
-    final galleryTiles = rowWidget.children.map(
-      (child) => (child as RepaintBoundary).child! as GalleryFileWidget,
-    );
+    final galleryTiles = [
+      for (
+        var index = section.bodyFirstIndex;
+        index <= section.lastIndex;
+        index++
+      )
+        for (final child
+            in (section.builder(context, index) as JustifiedGridRow).children)
+          (child as RepaintBoundary).child! as GalleryFileWidget,
+    ];
 
     expect(galleryTiles, hasLength(files.length));
     expect(
@@ -441,37 +347,28 @@ void main() {
     expect(groups.getOffsetOfFile(replacement), originalGeometry?.rowOffset);
   });
 
-  test(
-    "a layout override keeps an embedded gallery on the fixed grid",
-    () async {
-      await localSettings.setJustifiedLayoutStrategy(
-        JustifiedLayoutStrategy.flex,
-      );
-      final files = List<EnteFile>.generate(
-        12,
-        (index) => _file(
-          index: index,
-          creationTime: DateTime(2026, 8, 19).microsecondsSinceEpoch,
-          width: 400,
-          height: 100,
-        ),
-        growable: false,
-      );
+  test("a layout override keeps an embedded gallery on the fixed grid", () {
+    final files = List<EnteFile>.generate(
+      12,
+      (index) => _file(
+        index: index,
+        creationTime: DateTime(2026, 8, 19).microsecondsSinceEpoch,
+        width: 400,
+        height: 100,
+      ),
+      growable: false,
+    );
 
-      final groups = _galleryGroups(
-        files: files,
-        groupType: GroupType.none,
-        groupHeaderExtent: GalleryGroups.spacing,
-        layoutTypeOverride: GalleryLayoutType.grid,
-      );
+    final groups = _galleryGroups(
+      files: files,
+      groupType: GroupType.none,
+      groupHeaderExtent: GalleryGroups.spacing,
+      layoutTypeOverride: GalleryLayoutType.grid,
+    );
 
-      expect(groups.layoutType, GalleryLayoutType.grid);
-      expect(
-        groups.groupLayouts,
-        everyElement(isA<FixedExtentSectionLayout>()),
-      );
-    },
-  );
+    expect(groups.layoutType, GalleryLayoutType.grid);
+    expect(groups.groupLayouts, everyElement(isA<FixedExtentSectionLayout>()));
+  });
 }
 
 GalleryGroups _galleryGroups({
@@ -492,7 +389,6 @@ GalleryGroups _galleryGroups({
     groupHeaderExtent: groupHeaderExtent,
     showSelectAll: false,
     layoutTypeOverride: layoutTypeOverride,
-    justifiedLayoutAvailable: true,
   );
 }
 

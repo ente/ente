@@ -117,7 +117,6 @@ void main() {
 
       expect(await handoffFile.readAsString(), 'current cache bytes');
       expect(await staleLocalPath.readAsString(), 'stale local bytes');
-      expect(cacheRelativePath(handoffFile), startsWith('open_handoff'));
       expect(
         cacheRelativePath(handoffFile),
         startsWith(p.join('open_handoff', '321')),

@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:photos/ui/viewer/gallery/hooks/album_actions_sheet.dart";
 
 class GalleryAppBarIconButtonSurface extends StatelessWidget {
   const GalleryAppBarIconButtonSurface({required this.icon, super.key});
@@ -44,6 +45,36 @@ Widget galleryAppBarPopupMenuAction<T>({
     child: Tooltip(
       message: tooltip,
       child: GalleryAppBarIconButtonSurface(icon: icon),
+    ),
+  );
+}
+
+Widget galleryAppBarActionsSheetAction<T>({
+  required Widget icon,
+  required String tooltip,
+  required FutureOr<List<EntePopupMenuOption<T>>> Function() optionsBuilder,
+  required FutureOr<void> Function(T) onSelected,
+}) {
+  return Builder(
+    builder: (context) => IconButtonComponent(
+      tooltip: tooltip,
+      icon: icon,
+      variant: IconButtonComponentVariant.unfilled,
+      size: kMinInteractiveDimension,
+      iconSize: IconSizes.medium,
+      shouldSurfaceExecutionStates: false,
+      onTap: () async {
+        final options = await optionsBuilder();
+        if (!context.mounted || options.isEmpty) {
+          return;
+        }
+
+        final selected = await showAlbumActionsSheet<T>(context, options);
+        if (!context.mounted || selected == null) {
+          return;
+        }
+        await onSelected(selected);
+      },
     ),
   );
 }

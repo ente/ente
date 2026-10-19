@@ -8,6 +8,7 @@ import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 enum TextInputComponentMessageType { helper, error, alert, success }
 
@@ -18,6 +19,7 @@ class TextInputComponent extends StatefulWidget {
     super.key,
     this.controller,
     this.focusNode,
+    this.groupId,
     this.label,
     this.message,
     this.hintText,
@@ -57,6 +59,7 @@ class TextInputComponent extends StatefulWidget {
 
   final TextEditingController? controller;
   final FocusNode? focusNode;
+  final Object? groupId;
   final String? label;
   final String? message;
   final String? hintText;
@@ -145,7 +148,8 @@ class _TextInputComponentState extends State<TextInputComponent> {
   @override
   void didUpdateWidget(covariant TextInputComponent oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isDisabled != widget.isDisabled) {
+    if (oldWidget.isDisabled != widget.isDisabled ||
+        oldWidget.groupId != widget.groupId) {
       _configureGroupId();
     }
     if (oldWidget.submitNotifier != widget.submitNotifier) {
@@ -209,7 +213,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
   }
 
   void _configureGroupId() {
-    _groupId = _defaultGroupId;
+    _groupId = widget.groupId ?? _defaultGroupId;
     if (widget.isDisabled) {
       _groupId = _disabledGroupId;
     }
@@ -220,6 +224,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
     final colors = context.componentColors;
     final message = widget.message;
     final messageColor = _messageColor(colors);
+    final messageIcon = _messageIcon(messageColor);
     final prefix = _buildPrefix();
     final suffix = _buildSuffix(colors);
     final suffixTap = _suffixTapHandler;
@@ -347,10 +352,9 @@ class _TextInputComponentState extends State<TextInputComponent> {
         if (message != null) ...[
           const SizedBox(height: Spacing.sm),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_messageIcon(messageColor) != null) ...[
-                _messageIcon(messageColor)!,
+              if (messageIcon != null) ...[
+                messageIcon,
                 const SizedBox(width: Spacing.sm),
               ],
               Expanded(
@@ -472,7 +476,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
       return () {
         _controller.clear();
         if (widget.shouldUnfocusOnClearOrSubmit) {
-          FocusScope.of(context).unfocus();
+          _focusNode.unfocus();
         }
       };
     }
@@ -516,13 +520,13 @@ class _TextInputComponentState extends State<TextInputComponent> {
       return Icon(widget.messageIcon, size: IconSizes.small, color: color);
     }
     return switch (widget.messageType) {
-      TextInputComponentMessageType.alert => Icon(
-        Icons.warning_amber_rounded,
+      TextInputComponentMessageType.alert => HugeIcon(
+        icon: HugeIcons.strokeRoundedAlert02,
         size: IconSizes.small,
         color: color,
       ),
-      TextInputComponentMessageType.success => Icon(
-        Icons.check_circle_outline_rounded,
+      TextInputComponentMessageType.success => HugeIcon(
+        icon: HugeIcons.strokeRoundedTick02,
         size: IconSizes.small,
         color: color,
       ),
@@ -575,7 +579,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
       if (widget.textInputAction == TextInputAction.next) {
         _focusNode.nextFocus();
       } else if (widget.shouldUnfocusOnClearOrSubmit) {
-        FocusScope.of(context).unfocus();
+        _focusNode.unfocus();
       }
       return;
     }
@@ -597,7 +601,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
     });
 
     if (widget.shouldUnfocusOnClearOrSubmit) {
-      FocusScope.of(context).unfocus();
+      _focusNode.unfocus();
     }
 
     try {

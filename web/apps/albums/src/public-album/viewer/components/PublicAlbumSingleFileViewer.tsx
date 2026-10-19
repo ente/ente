@@ -558,6 +558,7 @@ export const PublicAlbumSingleFileViewer: React.FC<
                 onClose={handleViewerClose}
                 files={viewerFiles}
                 initialIndex={0}
+                autoPlayMutedVideos
                 disableEscapeClose
                 disableGestureClose
                 disableDownload={!enableDownload}

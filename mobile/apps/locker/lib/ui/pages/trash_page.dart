@@ -3,7 +3,6 @@ import "dart:async";
 import 'package:ente_components/ente_components.dart';
 import "package:ente_events/event_bus.dart";
 import 'package:ente_strings/ente_strings.dart';
-import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
@@ -14,6 +13,7 @@ import 'package:locker/services/trash/models/trash_file.dart';
 import 'package:locker/services/trash/trash_service.dart';
 import "package:locker/ui/components/delete_confirmation_sheet.dart";
 import 'package:locker/ui/components/item_list_view.dart';
+import "package:locker/ui/components/locker_progress_dialog.dart";
 import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:locker/utils/error_sheet.dart";
@@ -85,13 +85,8 @@ class _TrashPageState extends State<TrashPage> {
     }
 
     final dialog = mounted
-        ? createProgressDialog(
-            context,
-            context.strings.clearingTrash,
-            isDismissible: false,
-          )
+        ? await showLockerProgressDialog(context, context.strings.clearingTrash)
         : null;
-    await dialog?.show();
     try {
       await TrashService.instance.emptyTrash();
       await dialog?.hide();

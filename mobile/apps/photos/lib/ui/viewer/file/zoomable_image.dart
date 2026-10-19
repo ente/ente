@@ -218,59 +218,36 @@ class _ZoomableImageState extends State<ZoomableImage> {
     } else {
       _loadLocalImage(context);
     }
-    Widget content;
-
-    if (_imageProvider != null) {
-      content = ImageZoomViewer(
-        imageProvider: _imageProvider!,
-        controller: _imageZoomController,
-        imageSizeHint: _photo.width > 0 && _photo.height > 0
-            ? Size(_photo.width.toDouble(), _photo.height.toDouble())
-            : null,
-        heroTag: widget.tagPrefix! + _photo.tag,
-        backgroundDecoration: widget.backgroundDecoration,
-        initialFit: widget.shouldCover ? BoxFit.cover : BoxFit.contain,
-        // Collage already owns its transform with an outer InteractiveViewer.
-        gesturesEnabled: !widget.shouldCover,
-        onInteractionLockChanged: _onInteractionLockChanged,
-        onImageFrameReady: () => _imageFrameReady.value = true,
-        loadingBuilder: (context, event) {
-          // Match the loading state to the image's on-screen size during the
-          // hero animation.
-          final screenSize = MediaQuery.sizeOf(context);
-          final fittedSize = _photo.width > 0 && _photo.height > 0
-              ? applyBoxFit(
-                  BoxFit.contain,
-                  Size(_photo.width.toDouble(), _photo.height.toDouble()),
-                  screenSize,
-                ).destination
-              : screenSize;
-
-          return Center(
-            child: SizedBox(
-              width: fittedSize.width,
-              height: fittedSize.height,
-              child: widget.isFromMemories
-                  ? const _DelayedLoadingIndicator()
-                  : const EnteLoadingWidget(color: Colors.white),
-            ),
+    final content = ImageZoomViewer(
+      imageProvider: _imageProvider,
+      controller: _imageZoomController,
+      imageSizeHint: _photo.width > 0 && _photo.height > 0
+          ? Size(_photo.width.toDouble(), _photo.height.toDouble())
+          : null,
+      heroTag: widget.tagPrefix! + _photo.tag,
+      backgroundDecoration: widget.backgroundDecoration,
+      initialFit: widget.shouldCover ? BoxFit.cover : BoxFit.contain,
+      // Collage already owns its transform with an outer InteractiveViewer.
+      gesturesEnabled: !widget.shouldCover,
+      useHeroImageAsPlaceholder: !_showingThumbnailFallback,
+      onInteractionLockChanged: _onInteractionLockChanged,
+      onImageFrameReady: () => _imageFrameReady.value = true,
+      loadingBuilder: (context, event) {
+        if (_showingThumbnailFallback) {
+          return ThumbnailWidget(
+            _photo,
+            rawThumbnail: true,
+            thumbnailSize: thumbnailLargeSize,
+            fit: BoxFit.contain,
           );
-        },
-      );
-    } else if (_showingThumbnailFallback) {
-      content = Center(
-        child: ThumbnailWidget(
-          _photo,
-          rawThumbnail: true,
-          thumbnailSize: thumbnailLargeSize,
-          fit: BoxFit.contain,
-        ),
-      );
-    } else {
-      content = widget.isFromMemories
-          ? const _DelayedLoadingIndicator()
-          : const EnteLoadingWidget(color: Colors.white);
-    }
+        }
+        return Center(
+          child: widget.isFromMemories
+              ? const _DelayedLoadingIndicator()
+              : const EnteLoadingWidget(color: Colors.white),
+        );
+      },
+    );
 
     final GestureDragUpdateCallback? verticalDragCallback =
         _interactionLocked ||

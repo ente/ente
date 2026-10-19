@@ -21,6 +21,14 @@ The recipient must be an active member of your [family plan](/photos/features/ac
 4. Choose Viewer, Collaborator, or Admin for the selection. You can also assign roles per album.
 5. Tap the **Share** button.
 
+![Family members list with face avatars and readable names for James (admin), Dad, Maya, and Mom on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-family-members.png){width=320px}
+
+![Share albums action highlighted on Maya partner member sheet with family faces visible on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-albums-entry-callout.png){width=320px}
+
+![Select all highlighted with Role Viewer and Share while sharing albums with Maya on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-select-all-callout.png){width=320px}
+
+![Share 1 album button highlighted while sharing albums with Maya on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-share-btn-callout.png){width=320px}
+
 Uncategorized is always shared as Viewer, even if you choose a different role for the selection.
 
 The albums appear among the recipient's shared albums. New photos added to them remain available to the recipient as they are backed up.
@@ -30,6 +38,12 @@ See [Collaboration](/photos/features/sharing-and-collaboration/collaboration#per
 ## Share new albums automatically
 
 Open the same **Share albums** page and enable **Library sharing**. Choose the default role to use for albums shared automatically.
+
+![Library sharing toggle highlighted ON while sharing with Maya on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-toggle-callout.png){width=320px}
+
+![Enable library sharing dialog with Maya and default Viewer role on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-enable.png){width=320px}
+
+![Enable button highlighted on Enable library sharing dialog for Maya on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-enable-callout.png){width=320px}
 
 Ente shares your current albums and automatically shares new albums you create. It skips:
 
@@ -45,6 +59,8 @@ Quick Link albums must be [converted to regular albums](/photos/features/sharing
 Automatic sharing runs in the mobile app. If you create albums on web or desktop, open Ente Photos on your phone and let it sync to share them automatically.
 
 ## Manage library sharing
+
+![Library sharing toggle highlighted ON on Sharing with Maya screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-manage-callout.png){width=320px}
 
 On a family member's **Share albums** page, you can:
 

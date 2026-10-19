@@ -1975,16 +1975,25 @@ mod tests {
             let bytes = Arc::clone(&bytes);
             let active = Arc::clone(&active);
             let max_active = Arc::clone(&max_active);
-            TestServer::spawn(move |stream| {
-                let current = active.fetch_add(1, Ordering::SeqCst) + 1;
-                max_active.fetch_max(current, Ordering::SeqCst);
-                thread::sleep(Duration::from_millis(50));
-                handle_no_range_test_request(
-                    stream,
-                    Arc::clone(&bytes),
-                    Arc::new(AtomicUsize::new(0)),
+            TestServer::spawn(move |mut stream| {
+                let Some(request) = read_test_request(&stream) else {
+                    return;
+                };
+                let is_get = request.line.starts_with("GET ");
+                if is_get {
+                    let current = active.fetch_add(1, Ordering::SeqCst) + 1;
+                    max_active.fetch_max(current, Ordering::SeqCst);
+                    thread::sleep(Duration::from_millis(50));
+                }
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    bytes.len()
                 );
-                active.fetch_sub(1, Ordering::SeqCst);
+                let _ = stream.write_all(response.as_bytes());
+                if is_get {
+                    let _ = stream.write_all(bytes.as_slice());
+                    active.fetch_sub(1, Ordering::SeqCst);
+                }
             })
         };
 

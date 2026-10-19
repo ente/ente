@@ -8,8 +8,10 @@ class GalleryAppBarConfig {
   const GalleryAppBarConfig({
     required this.sliverBuilder,
     required this.geometryBuilder,
+    this.extendBodyForCollapse = false,
   });
 
+  final bool extendBodyForCollapse;
   final WidgetBuilder sliverBuilder;
   final GalleryAppBarGeometryBuilder geometryBuilder;
 

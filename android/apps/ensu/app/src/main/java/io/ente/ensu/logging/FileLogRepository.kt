@@ -7,6 +7,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -72,9 +73,13 @@ class FileLogRepository(
         val line = formatLine(entry)
         ioScope.launch {
             writeMutex.withLock {
-                val file = todayLogFile()
-                file.parentFile?.mkdirs()
-                file.appendText(line)
+                try {
+                    val file = todayLogFile()
+                    file.parentFile?.mkdirs()
+                    file.appendText(line)
+                } catch (e: IOException) {
+                    Log.w(resolvedTag, "Failed to write log file", e)
+                }
             }
         }
     }

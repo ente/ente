@@ -43,6 +43,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             transcriber = transcriber,
             deviceCapabilityProvider = deviceCapabilityProvider,
             knowledgeEmbedding = configDefaults.knowledgeEmbedding,
+            nativeLibraryDir = application.applicationInfo.nativeLibraryDir,
         )
     private val chatRepository = ChatRepository(application, credentialStore)
     private val knowledgeProvider = (application as EnsuApplication).knowledgeProvider
@@ -55,7 +56,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             llmProvider = llmProvider,
             knowledgeProvider = knowledgeProvider,
             assetStore = assetStore,
-            transcriber = transcriber,
             deviceCapabilityProvider = deviceCapabilityProvider,
             configDefaults = configDefaults,
             logRepository = logRepository,

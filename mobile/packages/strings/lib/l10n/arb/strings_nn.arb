@@ -4,14 +4,9 @@
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
-  "addANewEmail": "Legg til ei ny e-postadresse",
   "addingToFavorites": "Legger til i favorittar …",
   "adjust": "Juster",
   "advanced": "Avansert",
-  "albumOwner": "Eigar",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "aNewVersionOfEnteIsAvailable": "Ein ny versjon av Ente er tilgjengeleg.",
   "archive": "Arkiv",
   "@archive": {
@@ -87,10 +82,6 @@
   "discover_selfies": "Selfiar",
   "discover_sunset": "Solnedgang",
   "done": "Ferdig",
-  "doThisLater": "Gjer dette seinare",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
   "downloading": "Lastar ned …",
   "draw": "Klistremerke",
   "dropSupportEmail": "Send ein e-post til {supportEmail} frå e-postadressa du registrerte deg med",

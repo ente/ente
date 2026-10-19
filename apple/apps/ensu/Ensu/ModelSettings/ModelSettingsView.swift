@@ -17,6 +17,10 @@ struct ModelSettingsView: View {
     @State private var toastMessage: String?
     @State private var toastTask: Task<Void, Never>?
 
+    private var usesSmallModel: Bool {
+        ModelSettingsStore.modelPolicy.defaultModel.id == "lfm-350m"
+    }
+
     private let modelChoices: [ModelChoice] = {
         let policy = ModelSettingsStore.modelPolicy
         let defaultModel = policy.defaultModel
@@ -110,16 +114,20 @@ struct ModelSettingsView: View {
                     VStack(spacing: EnsuSpacing.sm) {
                         field(
                             label: "Context length",
-                            hint: "8192",
+                            hint: usesSmallModel ? "2048" : "8192",
                             text: $contextLength,
                             error: contextError,
                             keyboardType: .numberPad
                         )
 
-                        Text("Response length adjusts automatically to the context length.")
-                            .font(EnsuTypography.small)
-                            .foregroundStyle(EnsuColor.textMuted)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(
+                            usesSmallModel
+                                ? "Context is limited to 2,048 tokens on this device. Response length adjusts automatically."
+                                : "Response length adjusts automatically to the context length."
+                        )
+                        .font(EnsuTypography.small)
+                        .foregroundStyle(EnsuColor.textMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                         Text("Leave blank to use model defaults")
                             .font(EnsuTypography.small)

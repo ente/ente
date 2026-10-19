@@ -232,7 +232,7 @@ const OptionsForm: React.FC<OptionsFormProps> = ({
                         rel="noopener"
                         color="inherit"
                     >
-                        What do these options mean?
+                        {t("fix_creation_time_options_help")}
                     </Link>
                 </Typography>
             )}

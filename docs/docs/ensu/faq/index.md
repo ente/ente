@@ -95,6 +95,10 @@ Yes. Ensu supports image attachments on iOS, Android, and desktop. You can attac
 
 Image attachments are not supported on the web version at this time.
 
+### Can Ensu tell me who a person in a photo is? {#identify-person-in-photo}
+
+Ensu can describe an attached photo, but it cannot look up a person online or perform reverse image search. It may guess a name, so do not rely on it to identify someone from a photo.
+
 ### Can I talk to Ensu instead of typing? {#voice-input}
 
 Yes, on iOS and Android. Tap the microphone in the chat composer and speak your prompt. Ensu transcribes it locally on your device, so your voice input is not sent to Ente or any external transcription service.
@@ -103,9 +107,9 @@ This voice input feature is not available on the web and desktop version.
 
 ### Can Ensu use my notes? {#local-notes}
 
-Yes, on iOS, Android, and desktop. Open **Settings → Your Notes** and add a folder containing Markdown files. Ensu indexes the notes locally so it can use relevant passages in its answers and show the source notes it used.
+Yes, on iOS, Android, and desktop. Ensu does not connect directly to a notes provider. It reads Markdown files stored in a folder on your device. If your notes app stores its files that way, open **Settings → Your Notes** and add that folder.
 
-Ensu does not modify the original files, and removing the folder from Ensu does not delete them. Your Notes is not available on the web version yet.
+Ensu indexes the notes locally so it can use relevant passages in its answers and show the source notes it used. It does not modify the original files, and removing a folder from Ensu does not delete them. Your Notes is not available on the web version yet.
 
 ### What are Ensu Packs? {#ensu-packs}
 
@@ -130,7 +134,7 @@ The gap between local and cloud models is closing every day. As smaller models i
 
 ### Does Ensu remember previous conversations? {#conversation-history}
 
-Within a single chat session, Ensu remembers what you have talked about and can refer back to it. However, if the conversation gets very long, older parts may fall out of the model's context window (the amount of text it can hold in memory at once), and it may lose track of things said much earlier.
+Within a single chat session, Ensu remembers what you have talked about and can refer back to it. In long text conversations, Ensu saves summaries of earlier messages to help with follow-up questions when those messages no longer fit in the model's context window. It may still miss details, so repeat anything important when needed.
 
 Across different sessions, Ensu does not carry over memory. Each session is independent, so the model will not recall something you discussed in a previous chat.
 

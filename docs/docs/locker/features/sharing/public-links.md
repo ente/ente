@@ -22,6 +22,8 @@ When you create a public link:
 
 ## Creating a public link
 
+![Public link sheet with Copy link, Share link, and Delete link](https://docs-assets.ente.com/screenshots/locker-public-link.png){width=320px}
+
 ### For an item
 
 1. Long press on the item you want to share

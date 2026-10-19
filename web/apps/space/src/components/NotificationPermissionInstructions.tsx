@@ -36,7 +36,7 @@ export const SpaceNotificationPermissionInstructions: React.FC<
           ? [
                 "Open Settings",
                 'Tap "Notifications"',
-                'Tap "Ente Space" and turn on "Allow Notifications"',
+                'Tap "Space" and turn on "Allow Notifications"',
             ]
           : [
                 "Open your browser's site settings for Space",

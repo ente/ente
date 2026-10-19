@@ -6,6 +6,8 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:photos/core/event_bus.dart";
+import "package:photos/events/collection_updated_event.dart";
 import "package:photos/models/api/memory_share/memory_share.dart";
 import "package:photos/models/button_result.dart";
 import "package:photos/models/collection/collection.dart";
@@ -45,6 +47,34 @@ class _AllLinksPageState extends State<AllLinksPage> {
 
   final List<Collection> _selectedQuickLinks = [];
   final Set<int> _selectedMemoryShareIDs = {};
+  late final StreamSubscription<CollectionUpdatedEvent>
+  _collectionUpdatesSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _collectionUpdatesSubscription = Bus.instance
+        .on<CollectionUpdatedEvent>()
+        .listen((_) {
+          final deletedLinks = widget.quickLinks.where((link) {
+            final collection = CollectionsService.instance.getCollectionByID(
+              link.id,
+            );
+            return collection == null || collection.isDeleted;
+          }).toSet();
+          if (deletedLinks.isEmpty) return;
+          setState(() {
+            widget.quickLinks.removeWhere(deletedLinks.contains);
+            _selectedQuickLinks.removeWhere(deletedLinks.contains);
+          });
+        });
+  }
+
+  @override
+  void dispose() {
+    _collectionUpdatesSubscription.cancel();
+    super.dispose();
+  }
 
   bool get _hasSelection =>
       _selectedQuickLinks.isNotEmpty || _selectedMemoryShareIDs.isNotEmpty;
@@ -59,6 +89,7 @@ class _AllLinksPageState extends State<AllLinksPage> {
           CollectionWithThumbnail(c, thumbnail),
           tagPrefix: _quickLinkHeroTagPrefix,
         ),
+        useFadeTransition: true,
       ),
     );
   }
@@ -70,6 +101,7 @@ class _AllLinksPageState extends State<AllLinksPage> {
       if (!_hasSelection) {
         await HapticFeedback.mediumImpact();
       }
+      if (!mounted || !widget.quickLinks.contains(c)) return;
       _selectedQuickLinks.add(c);
     }
     setState(() {});

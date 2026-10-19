@@ -1,13 +1,11 @@
 import "dart:async";
+import "dart:math" as math;
 
-import "package:ente_components/theme/text_styles.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/banners/banner_action_button.dart";
 
 class OfflineSettingsBanner extends StatefulWidget {
   final VoidCallback onGetStarted;
@@ -19,6 +17,21 @@ class OfflineSettingsBanner extends StatefulWidget {
 }
 
 class _OfflineSettingsBannerState extends State<OfflineSettingsBanner> {
+  static const _bannerHeight = 116.0;
+  static const _cardRadius = Radii.lg;
+  static const _contentLeftPadding = 18.0;
+  static const _contentTopPadding = 16.0;
+  static const _contentBottomPadding = 12.0;
+  static const _titleMaxWidth = 280.0;
+  static const _bodyTextMaxWidth = 232.0;
+  static const _duckWidth = 88.0;
+  static const _duckTextReservedWidth = 102.0;
+  static const _closeTextReservedWidth = 58.0;
+  static const _duckRightInset = 20.0;
+  static const _duckBottomInset = 0.0;
+  static const _closeInset = 8.0;
+  static const _ctaIconGap = 4.0;
+  static const _maxTextScaleFactor = 1.3;
   bool _dismissed = false;
 
   @override
@@ -28,98 +41,154 @@ class _OfflineSettingsBannerState extends State<OfflineSettingsBanner> {
       return const SizedBox.shrink();
     }
 
-    final textTheme = getEnteTextTheme(context);
     final l10n = context.strings;
-    final titleStyle = TextStyles.display3.copyWith(color: Colors.white);
+    final colors = context.componentColors;
+    final textDirection = Directionality.of(context);
 
-    return GestureDetector(
-      onTap: widget.onGetStarted,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 190),
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [
-              Color.fromRGBO(21, 21, 21, 1),
-              Color.fromRGBO(43, 43, 43, 1),
-            ],
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _DotsPainter())),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: _maxTextScaleFactor,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final titleWidth = math
+              .min(
+                _titleMaxWidth,
+                constraints.maxWidth -
+                    _contentLeftPadding -
+                    _closeTextReservedWidth,
+              )
+              .clamp(120.0, _titleMaxWidth);
+          final bodyTextWidth = math
+              .min(
+                _bodyTextMaxWidth,
+                constraints.maxWidth -
+                    _contentLeftPadding -
+                    _duckTextReservedWidth,
+              )
+              .clamp(120.0, _bodyTextMaxWidth);
+
+          return GestureDetector(
+            onTap: widget.onGetStarted,
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: _bannerHeight),
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_cardRadius),
+                color: colors.fillLight,
+                border: Border.all(color: colors.strokeFaint),
+              ),
+              child: Stack(
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.offlineSettingsBannerTitle,
-                          style: titleStyle,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _onDismiss,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: contentLight,
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(4),
-                            child: HugeIcon(
-                              icon: HugeIcons.strokeRoundedCancel01,
-                              color: contentDark,
-                              size: 18,
-                              strokeWidth: 2.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 235),
-                    child: Text(
-                      l10n.offlineSettingsBannerDesc,
-                      style: textTheme.smallMuted.copyWith(
-                        color: Colors.white.withValues(alpha: 0.5),
+                  Positioned(
+                    right: _duckRightInset,
+                    bottom: _duckBottomInset,
+                    child: IgnorePointer(
+                      child: Image.asset(
+                        "assets/ducky_settings.png",
+                        width: _duckWidth,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 40),
-                  BannerActionButton(
-                    label: l10n.getStarted,
-                    onTap: widget.onGetStarted,
-                    variant: BannerActionButtonVariant.primary,
-                    stickTagToLightTheme: true,
-                    showTag: true,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      _contentLeftPadding,
+                      _contentTopPadding,
+                      16,
+                      _contentBottomPadding,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight:
+                            _bannerHeight -
+                            _contentTopPadding -
+                            _contentBottomPadding,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: titleWidth),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.offlineSettingsBannerTitle,
+                                style: TextStyles.large.copyWith(
+                                  color: colors.textBase,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: bodyTextWidth,
+                                ),
+                                child: Text(
+                                  l10n.offlineSettingsBannerDesc,
+                                  style: TextStyles.mini.copyWith(
+                                    color: colors.textLight,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: bodyTextWidth,
+                                ),
+                                child: GestureDetector(
+                                  onTap: widget.onGetStarted,
+                                  behavior: HitTestBehavior.opaque,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          l10n.getStarted,
+                                          style: TextStyles.bodyBold.copyWith(
+                                            color: colors.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: _ctaIconGap),
+                                        Text(
+                                          textDirection == TextDirection.rtl
+                                              ? "\u2190"
+                                              : "\u2192",
+                                          style: TextStyles.bodyBold.copyWith(
+                                            color: colors.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: _closeInset,
+                    right: _closeInset,
+                    child: IconButtonComponent(
+                      tooltip: l10n.close,
+                      variant: IconButtonComponentVariant.circular,
+                      shouldSurfaceExecutionStates: false,
+                      onTap: _onDismiss,
+                      icon: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedCancel01,
+                        size: IconSizes.small,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            Positioned(
-              right: 16,
-              bottom: 0,
-              child: IgnorePointer(
-                child: Image.asset(
-                  "assets/ducky_settings.png",
-                  height: 110,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -130,34 +199,4 @@ class _OfflineSettingsBannerState extends State<OfflineSettingsBanner> {
     });
     unawaited(localSettings.setLocalGallerySettingsBannerDismissed(true));
   }
-}
-
-class _DotsPainter extends CustomPainter {
-  static const double _dotRadius = 2.0;
-  static const double _horizontalSpacing = 24.0;
-  static const double _verticalSpacing = 24.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.03)
-      ..style = PaintingStyle.fill;
-
-    final horizontalCount = (size.width / _horizontalSpacing).ceil() + 1;
-    final verticalCount = (size.height / _verticalSpacing).ceil() + 1;
-
-    for (int row = 0; row < verticalCount; row++) {
-      for (int col = 0; col < horizontalCount; col++) {
-        final x = col * _horizontalSpacing + (_horizontalSpacing / 2);
-        final y = row * _verticalSpacing + (_verticalSpacing / 2);
-
-        if (x <= size.width + _dotRadius && y <= size.height + _dotRadius) {
-          canvas.drawCircle(Offset(x, y), _dotRadius, paint);
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

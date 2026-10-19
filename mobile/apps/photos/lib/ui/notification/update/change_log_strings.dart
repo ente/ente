@@ -62,892 +62,968 @@ class ChangeLogStrings {
     'en': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Preview strip in the viewer',
+          title: 'New look for your gallery',
           description:
-              'Thumbnails at the bottom of the viewer let you jump between photos and videos faster.',
+              'See photos in their original proportions with the new mosaic layout.',
         ),
         ChangeLogEntryStrings(
-          title: 'Share photos of a person',
+          title: 'Pinch to change gallery layout',
           description:
-              'Share photos of a person with a link that can automatically include new photos of them.',
+              'You can now pinch in or out to switch layouts and choose how many photos fit on your screen.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Image editor improvements',
+          description:
+              'Add text to your photos with a choice of fonts, colors, backgrounds, and alignment. You can now straighten tilted photos too.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fresh look for albums and more',
+          description:
+              'Redesigned albums and simpler menus for your photo actions.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Set photos as wallpaper',
-          description: 'Set a photo as your home screen, lock screen, or both.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Hold for 2× playback',
-          description: 'Press and hold a video to watch it at 2× speed.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'And more!',
+          title: 'Faster backup preparation',
           description:
-              'More efficient gallery scrolling and back buttons that are easier to tap.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'And more!',
-          description:
-              'More efficient gallery scrolling, back buttons that are easier to tap, and improved backups.',
+              'Ente now prepares your photos and videos for upload more quickly.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Now in Korean',
+          description: 'You can now use Ente Photos in Korean.',
         ),
         ChangeLogEntryStrings(
           title: 'And more!',
           description:
-              'More efficient gallery scrolling and back buttons that are easier to tap.',
+              'Memory Lane on your home screen, smoother photo transitions between gallery and viewer, clearer map markers, more reliable filters in hidden albums.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'And more!',
+          description:
+              'Memory Lane on your home screen, smoother photo transitions between gallery and viewer, clearer map markers.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'ca': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Franja de previsualitzacions al visor',
+          title: 'Nou aspecte per a la teva galeria',
           description:
-              'Les miniatures de la part inferior del visor et permeten saltar més ràpidament entre fotos i vídeos.',
+              'Mira les fotos amb les proporcions originals amb el nou disseny en mosaic.',
         ),
         ChangeLogEntryStrings(
-          title: 'Comparteix les fotos d’una persona',
+          title: 'Ajunta els dits per canviar la disposició de la galeria',
           description:
-              'Comparteix les fotos d’una persona amb un enllaç que pot incloure automàticament fotos noves seves.',
+              'Ara pots ajuntar o separar dos dits per canviar de disposició i triar quantes fotos caben a la pantalla.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Millores a l’editor d’imatges',
+          description:
+              'Afegeix text a les fotos i tria entre diversos tipus de lletra, colors, fons i opcions d’alineació. Ara també pots redreçar les fotos inclinades.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nou aspecte per als àlbums i més',
+          description:
+              'Àlbums redissenyats i menús més senzills per a les accions amb les fotos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Estableix fotos com a fons de pantalla',
+          title: 'Preparació més ràpida de les còpies de seguretat',
           description:
-              'Estableix una foto com a fons de la pantalla d’inici, de bloqueig o de totes dues.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Mantén premut per reproduir a 2×',
-          description: 'Mantén premut un vídeo per veure’l a velocitat 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'I més coses!',
-          description:
-              'Desplaçament més eficient per la galeria i botons Enrere més fàcils de tocar.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'I més coses!',
-          description:
-              'Desplaçament més eficient per la galeria, botons Enrere més fàcils de tocar i còpies de seguretat millorades.',
+              'Ara Ente prepara les fotos i els vídeos més ràpidament per pujar-los.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ara en coreà',
+          description: 'Ara pots fer servir Ente Photos en coreà.',
         ),
         ChangeLogEntryStrings(
           title: 'I més coses!',
           description:
-              'Desplaçament més eficient per la galeria i botons Enrere més fàcils de tocar.',
+              'Camí dels records a la pantalla d’inici, transicions de fotos més fluides entre la galeria i el visor, marcadors del mapa més clars, filtres més fiables als àlbums ocults.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'I més coses!',
+          description:
+              'Camí dels records a la pantalla d’inici, transicions de fotos més fluides entre la galeria i el visor, marcadors del mapa més clars.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'cs': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Pás náhledů v prohlížeči',
+          title: 'Nový vzhled vaší galerie',
           description:
-              'Miniatury ve spodní části prohlížeče umožňují rychleji přecházet mezi fotografiemi a videi.',
+              'Prohlížejte si fotografie v původních proporcích díky novému mozaikovému rozložení.',
         ),
         ChangeLogEntryStrings(
-          title: 'Sdílení fotografií osoby',
+          title: 'Změna rozložení galerie stažením prstů',
           description:
-              'Sdílejte fotografie osoby pomocí odkazu, který může automaticky zahrnovat její nové fotografie.',
+              'Nyní můžete stažením nebo roztažením dvou prstů přepínat rozložení a zvolit, kolik fotografií se vejde na obrazovku.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Vylepšení editoru obrázků',
+          description:
+              'Přidávejte k fotografiím text s výběrem písem, barev, pozadí a zarovnání. Nyní můžete také narovnat nakloněné fotografie.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nový vzhled alb a další změny',
+          description:
+              'Přepracovaná alba a jednodušší nabídky pro práci s fotografiemi.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Nastavení fotografií jako tapety',
+          title: 'Rychlejší příprava zálohování',
           description:
-              'Nastavte fotografii jako tapetu domovské obrazovky, zamykací obrazovky nebo obou.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Podržením přehrajete 2× rychleji',
-          description:
-              'Stisknutím a podržením videa ho můžete sledovat 2× rychleji.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'A mnohem více!',
-          description:
-              'Efektivnější posouvání v galerii a tlačítka Zpět, na která se snáze klepá.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'A mnohem více!',
-          description:
-              'Efektivnější posouvání v galerii, tlačítka Zpět, na která se snáze klepá, a vylepšené zálohování.',
+              'Ente nyní rychleji připravuje vaše fotografie a videa k nahrání.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nyní i v korejštině',
+          description: 'Ente Photos nyní můžete používat v korejštině.',
         ),
         ChangeLogEntryStrings(
           title: 'A mnohem více!',
           description:
-              'Efektivnější posouvání v galerii a tlačítka Zpět, na která se snáze klepá.',
+              'Vzpomínání na domovské obrazovce, plynulejší přechody fotografií mezi galerií a prohlížečem, přehlednější značky na mapě, spolehlivější filtry ve skrytých albech.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'A mnohem více!',
+          description:
+              'Vzpomínání na domovské obrazovce, plynulejší přechody fotografií mezi galerií a prohlížečem, přehlednější značky na mapě.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'de': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Vorschauleiste in der Fotoansicht',
+          title: 'Neuer Look für deine Galerie',
           description:
-              'Über die Miniaturansichten am unteren Rand kannst du schneller zwischen Fotos und Videos wechseln.',
+              'Sieh dir Fotos mit dem neuen Mosaiklayout in ihren ursprünglichen Proportionen an.',
         ),
         ChangeLogEntryStrings(
-          title: 'Fotos einer Person teilen',
+          title: 'Galerie-Layout durch Zusammenziehen zweier Finger ändern',
           description:
-              'Teile die Fotos einer Person über einen Link, der neue Fotos von ihr automatisch aufnehmen kann.',
+              'Du kannst jetzt zwei Finger zusammenziehen oder auseinanderziehen, um das Layout zu wechseln und auszuwählen, wie viele Fotos auf deinen Bildschirm passen.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Verbesserungen im Bildeditor',
+          description:
+              'Füge deinen Fotos Text hinzu und wähle Schriftart, Farbe, Hintergrund und Ausrichtung. Jetzt kannst du auch schiefe Fotos gerade ausrichten.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Frischer Look für Alben und mehr',
+          description:
+              'Neu gestaltete Alben und einfachere Menüs für deine Fotoaktionen.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Fotos als Hintergrund festlegen',
+          title: 'Schnellere Vorbereitung der Datensicherung',
           description:
-              'Lege ein Foto als Hintergrund für den Startbildschirm, den Sperrbildschirm oder beide fest.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Für 2× Wiedergabe gedrückt halten',
-          description:
-              'Halte ein Video gedrückt, um es mit 2× Geschwindigkeit anzusehen.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Und mehr!',
-          description:
-              'Effizienteres Scrollen in der Galerie und Zurück-Schaltflächen, die sich leichter antippen lassen.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Und mehr!',
-          description:
-              'Effizienteres Scrollen in der Galerie, Zurück-Schaltflächen, die sich leichter antippen lassen, und verbesserte Datensicherungen.',
+              'Ente bereitet deine Fotos und Videos jetzt schneller für das Hochladen vor.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Jetzt auf Koreanisch',
+          description: 'Du kannst Ente Photos jetzt auf Koreanisch nutzen.',
         ),
         ChangeLogEntryStrings(
           title: 'Und mehr!',
           description:
-              'Effizienteres Scrollen in der Galerie und Zurück-Schaltflächen, die sich leichter antippen lassen.',
+              'Erinnerungen auf deinem Startbildschirm, flüssigere Fotoübergänge zwischen Galerie und Fotoansicht, deutlichere Kartenmarkierungen und zuverlässigere Filter in versteckten Alben.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Und mehr!',
+          description:
+              'Erinnerungen auf deinem Startbildschirm, flüssigere Fotoübergänge zwischen Galerie und Fotoansicht und deutlichere Kartenmarkierungen.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'es': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Tira de vistas previas en el visor',
+          title: 'Nuevo aspecto para tu galería',
           description:
-              'Las miniaturas de la parte inferior del visor te permiten saltar más rápido entre fotos y vídeos.',
+              'Ve las fotos con sus proporciones originales con el nuevo diseño de mosaico.',
         ),
         ChangeLogEntryStrings(
-          title: 'Compartir fotos de una persona',
+          title: 'Junta los dedos para cambiar el diseño de la galería',
           description:
-              'Comparte las fotos de una persona con un enlace que puede incluir automáticamente nuevas fotos suyas.',
+              'Ahora puedes juntar o separar dos dedos para cambiar de diseño y elegir cuántas fotos caben en la pantalla.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Mejoras en el editor de imágenes',
+          description:
+              'Añade texto a tus fotos y elige entre distintas fuentes, colores, fondos y opciones de alineación. Ahora también puedes enderezar las fotos inclinadas.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nuevo aspecto para los álbumes y más',
+          description:
+              'Álbumes rediseñados y menús más sencillos para las acciones con tus fotos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Usar fotos como fondo de pantalla',
+          title: 'Preparación más rápida de las copias de seguridad',
           description:
-              'Establece una foto como fondo de la pantalla de inicio, de la pantalla de bloqueo o de ambas.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Mantén pulsado para reproducir a 2×',
-          description:
-              'Mantén pulsado un vídeo para verlo a una velocidad de 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: '¡Y mucho más!',
-          description:
-              'Desplazamiento más eficiente por la galería y botones Atrás más fáciles de tocar.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '¡Y mucho más!',
-          description:
-              'Desplazamiento más eficiente por la galería, botones Atrás más fáciles de tocar y copias de seguridad mejoradas.',
+              'Ahora Ente prepara tus fotos y vídeos más rápido para subirlos.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ahora en coreano',
+          description: 'Ahora puedes usar Ente Photos en coreano.',
         ),
         ChangeLogEntryStrings(
           title: '¡Y mucho más!',
           description:
-              'Desplazamiento más eficiente por la galería y botones Atrás más fáciles de tocar.',
+              'Jardín de recuerdos en tu pantalla de inicio, transiciones de fotos más fluidas entre la galería y el visor, marcadores del mapa más claros y filtros más fiables en los álbumes ocultos.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '¡Y mucho más!',
+          description:
+              'Jardín de recuerdos en tu pantalla de inicio, transiciones de fotos más fluidas entre la galería y el visor y marcadores del mapa más claros.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'fr': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Bandeau d’aperçus dans la visionneuse',
+          title: 'Nouveau look pour votre galerie',
           description:
-              'Les vignettes au bas de la visionneuse vous permettent de passer plus rapidement d’une photo ou vidéo à l’autre.',
+              'Affichez vos photos dans leurs proportions d’origine grâce à la nouvelle disposition en mosaïque.',
         ),
         ChangeLogEntryStrings(
-          title: 'Partager les photos d’une personne',
+          title: 'Pincez pour changer la disposition de la galerie',
           description:
-              'Partagez les photos d’une personne avec un lien qui peut inclure automatiquement ses nouvelles photos.',
+              'Vous pouvez maintenant rapprocher ou écarter deux doigts pour changer de disposition et choisir combien de photos tiennent à l’écran.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Améliorations de l’éditeur d’images',
+          description:
+              'Ajoutez du texte à vos photos en choisissant les polices, les couleurs, les arrière-plans et l’alignement. Vous pouvez désormais aussi redresser les photos inclinées.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nouveau look pour les albums et plus encore',
+          description:
+              'Des albums repensés et des menus simplifiés pour vos actions sur les photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Définir des photos comme fond d’écran',
+          title: 'Préparation des sauvegardes plus rapide',
           description:
-              'Définissez une photo comme fond de l’écran d’accueil, de l’écran de verrouillage ou des deux.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Maintenir pour lire à 2×',
-          description:
-              'Appuyez longuement sur une vidéo pour la regarder à vitesse 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Et plus encore !',
-          description:
-              'Défilement plus efficace dans la galerie et boutons de retour plus faciles à toucher.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Et plus encore !',
-          description:
-              'Défilement plus efficace dans la galerie, boutons de retour plus faciles à toucher et sauvegardes améliorées.',
+              'Ente prépare désormais plus rapidement vos photos et vidéos pour leur envoi.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Désormais en coréen',
+          description: 'Vous pouvez désormais utiliser Ente Photos en coréen.',
         ),
         ChangeLogEntryStrings(
           title: 'Et plus encore !',
           description:
-              'Défilement plus efficace dans la galerie et boutons de retour plus faciles à toucher.',
+              'Souvenirs sur votre écran d’accueil, transitions photo plus fluides entre la galerie et la visionneuse, repères plus clairs sur la carte et filtres plus fiables dans les albums masqués.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Et plus encore !',
+          description:
+              'Souvenirs sur votre écran d’accueil, transitions photo plus fluides entre la galerie et la visionneuse et repères plus clairs sur la carte.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'it': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Striscia di anteprime nel visualizzatore',
+          title: 'Nuovo look per la tua galleria',
           description:
-              'Le miniature nella parte inferiore del visualizzatore ti consentono di passare più velocemente da una foto o un video all’altro.',
+              'Guarda le foto nelle loro proporzioni originali con il nuovo layout a mosaico.',
         ),
         ChangeLogEntryStrings(
-          title: 'Condividi le foto di una persona',
+          title: 'Pizzica per cambiare il layout della galleria',
           description:
-              'Condividi le foto di una persona con un link che può includere automaticamente le sue nuove foto.',
+              'Ora puoi avvicinare o allontanare due dita per cambiare layout e scegliere quante foto entrano nello schermo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Miglioramenti all’editor di immagini',
+          description:
+              'Aggiungi testo alle tue foto scegliendo caratteri, colori, sfondi e allineamento. Ora puoi anche raddrizzare le foto inclinate.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nuovo look per gli album e non solo',
+          description:
+              'Album ridisegnati e menu più semplici per le azioni sulle tue foto.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Imposta foto come sfondo',
+          title: 'Preparazione dei backup più rapida',
           description:
-              'Imposta una foto come sfondo della schermata Home, della schermata di blocco o di entrambe.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Tieni premuto per la riproduzione a 2×',
-          description: 'Tieni premuto un video per guardarlo a velocità 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'E non è tutto!',
-          description:
-              'Scorrimento più efficiente della galleria e pulsanti Indietro più facili da toccare.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'E non è tutto!',
-          description:
-              'Scorrimento più efficiente della galleria, pulsanti Indietro più facili da toccare e backup migliorati.',
+              'Ora Ente prepara più rapidamente le tue foto e i tuoi video per il caricamento.',
           isOnlineOnly: true,
-          isIOSOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'E non è tutto!',
+          title: 'Ora in coreano',
+          description: 'Ora puoi usare Ente Photos in coreano.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'E molto altro!',
           description:
-              'Scorrimento più efficiente della galleria e pulsanti Indietro più facili da toccare.',
+              'Volti nel tempo nella schermata iniziale, transizioni delle foto più fluide tra galleria e visualizzatore, indicatori più chiari sulla mappa e filtri più affidabili negli album nascosti.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'E molto altro!',
+          description:
+              'Volti nel tempo nella schermata iniziale, transizioni delle foto più fluide tra galleria e visualizzatore e indicatori più chiari sulla mappa.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'ja': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'ビューアーのプレビューストリップ',
-          description: 'ビューアー下部のサムネイルから、写真やビデオへすばやく移動できます。',
+          title: 'ギャラリーが新しい見た目に',
+          description: '新しいモザイクレイアウトで、写真を元の縦横比のまま表示できます。',
         ),
         ChangeLogEntryStrings(
-          title: '人物の写真を共有',
-          description: '人物の写真をリンクで共有できます。リンクにはその人物の新しい写真を自動で追加できます。',
+          title: 'ピンチ操作でギャラリーのレイアウトを変更',
+          description:
+              '2本の指でつまんだり広げたりして、レイアウトを切り替えたり、画面に表示する写真の枚数を選んだりできるようになりました。',
+        ),
+        ChangeLogEntryStrings(
+          title: '画像エディターの改善',
+          description:
+              'フォント、色、背景、配置を選んで写真にテキストを追加できます。傾いた写真をまっすぐに補正することもできるようになりました。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'アルバムなどのデザインを一新',
+          description: 'アルバムを再デザインし、写真を操作するメニューをよりシンプルにしました。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '写真を壁紙に設定',
-          description: '写真をホーム画面、ロック画面、またはその両方の壁紙に設定できます。',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '長押しで2×再生',
-          description: 'ビデオを長押しすると、2×の速度で再生できます。',
-        ),
-        ChangeLogEntryStrings(
-          title: 'ほかにも！',
-          description: 'ギャラリーのスクロール効率が向上し、「戻る」ボタンがタップしやすくなりました。',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'ほかにも！',
-          description: 'ギャラリーのスクロール効率が向上し、「戻る」ボタンがタップしやすくなり、バックアップも改善しました。',
+          title: 'バックアップの準備がより高速に',
+          description: 'Enteが写真や動画のアップロード準備をより速く行えるようになりました。',
           isOnlineOnly: true,
-          isIOSOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'ほかにも！',
-          description: 'ギャラリーのスクロール効率が向上し、「戻る」ボタンがタップしやすくなりました。',
+          title: '韓国語に対応',
+          description: 'Ente Photosを韓国語で使えるようになりました。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'さらに！',
+          description:
+              'ホーム画面にMemory Laneが登場。ギャラリーとビューアー間での写真の切り替えがよりスムーズになり、地図のマーカーが見やすく、非表示アルバムのフィルターもより確実に動作するようになりました。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'さらに！',
+          description:
+              'ホーム画面にMemory Laneが登場。ギャラリーとビューアー間での写真の切り替えがよりスムーズになり、地図のマーカーも見やすくなりました。',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
+        ),
+      ],
+    ),
+    'ko': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: '새로워진 갤러리',
+          description: '새로운 모자이크 레이아웃으로 사진을 원래 비율 그대로 감상하세요.',
+        ),
+        ChangeLogEntryStrings(
+          title: '손가락을 오므려 갤러리 레이아웃 바꾸기',
+          description: '이제 두 손가락을 오므리거나 벌려 레이아웃을 바꾸고 화면에 표시할 사진 수를 선택할 수 있어요.',
+        ),
+        ChangeLogEntryStrings(
+          title: '이미지 편집기 개선',
+          description:
+              '글꼴, 색상, 배경, 정렬 방식을 선택해 사진에 텍스트를 추가하세요. 이제 기울어진 사진의 수평도 맞출 수 있어요.',
+        ),
+        ChangeLogEntryStrings(
+          title: '새로워진 앨범과 메뉴',
+          description: '앨범 디자인이 새로워지고 사진 작업 메뉴가 더 간편해졌어요.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '더 빨라진 백업 준비',
+          description: '이제 Ente가 사진과 동영상의 업로드 준비를 더 빠르게 마쳐요.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '이제 한국어로도 사용하세요',
+          description: '이제 Ente Photos를 한국어로 사용할 수 있어요.',
+        ),
+        ChangeLogEntryStrings(
+          title: '그 밖에도!',
+          description:
+              '홈 화면의 추억의 길, 갤러리와 뷰어 사이의 더 부드러운 사진 전환, 더 명확한 지도 마커, 숨김 앨범에서 더 안정적으로 작동하는 필터를 만나보세요.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '그 밖에도!',
+          description:
+              '홈 화면의 추억의 길, 갤러리와 뷰어 사이의 더 부드러운 사진 전환, 더 명확한 지도 마커를 만나보세요.',
+          isLocalGalleryOnly: true,
         ),
       ],
     ),
     'nl': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Voorbeeldstrook in de viewer',
+          title: 'Nieuwe look voor je galerij',
           description:
-              "Miniaturen onderaan de viewer laten je sneller tussen foto's en video's springen.",
+              'Bekijk foto’s in hun oorspronkelijke verhoudingen met de nieuwe mozaïekindeling.',
         ),
         ChangeLogEntryStrings(
-          title: "Foto's van een persoon delen",
+          title: 'Knijp om de galerijindeling te wijzigen',
           description:
-              "Deel foto's van een persoon via een link die automatisch nieuwe foto's van die persoon kan bevatten.",
+              'Je kunt nu twee vingers naar elkaar toe of uit elkaar bewegen om van indeling te wisselen en te kiezen hoeveel foto’s op je scherm passen.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Verbeteringen in de afbeeldingseditor',
+          description:
+              'Voeg tekst toe aan je foto’s met een keuze uit lettertypen, kleuren, achtergronden en uitlijning. Je kunt nu ook scheve foto’s rechtzetten.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Frisse look voor albums en meer',
+          description:
+              'Vernieuwde albums en eenvoudigere menu’s voor je fotoacties.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: "Foto's als achtergrond instellen",
+          title: 'Snellere voorbereiding van back-ups',
           description:
-              'Stel een foto in als achtergrond van je startscherm, vergrendelscherm of beide.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Vasthouden voor afspelen op 2×',
-          description:
-              'Houd een video ingedrukt om deze op 2× snelheid te bekijken.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'En meer!',
-          description:
-              'Efficiënter scrollen door de galerij en terugknoppen die makkelijker zijn aan te tikken.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'En meer!',
-          description:
-              'Efficiënter scrollen door de galerij, terugknoppen die makkelijker zijn aan te tikken en verbeterde back-ups.',
+              'Ente bereidt je foto’s en video’s nu sneller voor op het uploaden.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nu in het Koreaans',
+          description: 'Je kunt Ente Photos nu in het Koreaans gebruiken.',
         ),
         ChangeLogEntryStrings(
           title: 'En meer!',
           description:
-              'Efficiënter scrollen door de galerij en terugknoppen die makkelijker zijn aan te tikken.',
+              'Herinneringen op je startscherm, vloeiendere foto-overgangen tussen galerij en fotoviewer, duidelijkere kaartmarkeringen en betrouwbaardere filters in verborgen albums.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'En meer!',
+          description:
+              'Herinneringen op je startscherm, vloeiendere foto-overgangen tussen galerij en fotoviewer en duidelijkere kaartmarkeringen.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'no': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Forhåndsvisningsstripe i visningen',
+          title: 'Nytt utseende for galleriet ditt',
           description:
-              'Miniatyrbilder nederst i visningen gjør at du kan hoppe raskere mellom bilder og videoer.',
+              'Se bilder i de opprinnelige proporsjonene med det nye mosaikkoppsettet.',
         ),
         ChangeLogEntryStrings(
-          title: 'Del bilder av en person',
+          title: 'Endre gallerioppsettet ved å knipe',
           description:
-              'Del bilder av en person med en lenke som automatisk kan ta med nye bilder av personen.',
+              'Du kan nå føre to fingre sammen eller fra hverandre for å bytte oppsett og velge hvor mange bilder som får plass på skjermen.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Forbedret bilderedigering',
+          description:
+              'Legg til tekst på bildene dine og velg skrifttyper, farger, bakgrunner og tekstjustering. Nå kan du også rette opp skjeve bilder.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Friskt utseende for album og mer',
+          description:
+              'Album med nytt design og enklere menyer for handlinger med bildene dine.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Bruk bilder som bakgrunn',
+          title: 'Raskere klargjøring for sikkerhetskopiering',
           description:
-              'Bruk et bilde som bakgrunn på startskjermen, låseskjermen eller begge.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Hold inne for 2× avspilling',
-          description: 'Trykk og hold på en video for å se den i 2× hastighet.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Og mer!',
-          description:
-              'Mer effektiv rulling i galleriet og tilbakeknapper som er enklere å trykke på.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Og mer!',
-          description:
-              'Mer effektiv rulling i galleriet, tilbakeknapper som er enklere å trykke på og bedre sikkerhetskopiering.',
+              'Ente klargjør nå bildene og videoene dine raskere for opplasting.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nå på koreansk',
+          description: 'Du kan nå bruke Ente Photos på koreansk.',
         ),
         ChangeLogEntryStrings(
           title: 'Og mer!',
           description:
-              'Mer effektiv rulling i galleriet og tilbakeknapper som er enklere å trykke på.',
+              'Memory Lane på startskjermen, jevnere bildeoverganger mellom galleriet og bildeviseren, tydeligere kartmarkører og mer pålitelige filtre i skjulte album.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Og mer!',
+          description:
+              'Memory Lane på startskjermen, jevnere bildeoverganger mellom galleriet og bildeviseren og tydeligere kartmarkører.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'pl': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Pasek podglądu w przeglądarce',
+          title: 'Nowy wygląd Twojej galerii',
           description:
-              'Miniatury u dołu przeglądarki pozwalają szybciej przechodzić między zdjęciami i filmami.',
+              'Oglądaj zdjęcia w oryginalnych proporcjach dzięki nowemu układowi mozaiki.',
         ),
         ChangeLogEntryStrings(
-          title: 'Udostępnianie zdjęć osoby',
+          title: 'Zsuń palce, aby zmienić układ galerii',
           description:
-              'Udostępniaj zdjęcia osoby za pomocą linku, który może automatycznie uwzględniać jej nowe zdjęcia.',
+              'Teraz możesz zsuwać lub rozsuwać dwa palce, aby zmieniać układ i wybierać, ile zdjęć mieści się na ekranie.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ulepszenia edytora obrazów',
+          description:
+              'Dodawaj tekst do zdjęć, wybierając czcionki, kolory, tła i wyrównanie. Teraz możesz też prostować przekrzywione zdjęcia.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Odświeżony wygląd albumów i nie tylko',
+          description:
+              'Przeprojektowane albumy i prostsze menu działań na zdjęciach.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ustawianie zdjęć jako tapety',
+          title: 'Szybsze przygotowanie kopii zapasowych',
           description:
-              'Ustaw zdjęcie jako tapetę ekranu głównego, ekranu blokady lub obu.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Przytrzymaj, aby odtwarzać 2× szybciej',
-          description:
-              'Naciśnij i przytrzymaj film, aby oglądać go 2× szybciej.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'I jeszcze więcej!',
-          description:
-              'Wydajniejsze przewijanie galerii i łatwiejsze do naciśnięcia przyciski Wstecz.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'I jeszcze więcej!',
-          description:
-              'Wydajniejsze przewijanie galerii, łatwiejsze do naciśnięcia przyciski Wstecz i ulepszone tworzenie kopii zapasowych.',
+              'Ente teraz szybciej przygotowuje Twoje zdjęcia i filmy do przesłania.',
           isOnlineOnly: true,
-          isIOSOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'I jeszcze więcej!',
+          title: 'Teraz po koreańsku',
+          description: 'Możesz teraz korzystać z Ente Photos po koreańsku.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'I wiele więcej!',
           description:
-              'Wydajniejsze przewijanie galerii i łatwiejsze do naciśnięcia przyciski Wstecz.',
+              'Memory Lane na ekranie głównym, płynniejsze przejścia zdjęć między galerią a przeglądarką zdjęć, wyraźniejsze znaczniki na mapie i bardziej niezawodne filtry w ukrytych albumach.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'I wiele więcej!',
+          description:
+              'Memory Lane na ekranie głównym, płynniejsze przejścia zdjęć między galerią a przeglądarką zdjęć i wyraźniejsze znaczniki na mapie.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'pt_BR': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Faixa de prévias no visualizador',
+          title: 'Novo visual para sua galeria',
           description:
-              'As miniaturas na parte inferior do visualizador permitem alternar mais rapidamente entre fotos e vídeos.',
+              'Veja as fotos nas proporções originais com o novo layout em mosaico.',
         ),
         ChangeLogEntryStrings(
-          title: 'Compartilhe fotos de uma pessoa',
+          title: 'Junte os dedos para mudar o layout da galeria',
           description:
-              'Compartilhe fotos de uma pessoa com um link que pode incluir automaticamente novas fotos dela.',
+              'Agora você pode juntar ou afastar dois dedos para mudar o layout e escolher quantas fotos cabem na tela.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Melhorias no editor de imagens',
+          description:
+              'Adicione texto às suas fotos escolhendo fontes, cores, fundos e alinhamento. Agora você também pode endireitar fotos inclinadas.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Novo visual para os álbuns e mais',
+          description:
+              'Álbuns redesenhados e menus mais simples para as ações nas suas fotos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Defina fotos como papel de parede',
+          title: 'Preparação mais rápida do backup',
           description:
-              'Defina uma foto como papel de parede da tela inicial, da tela de bloqueio ou de ambas.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Segure para reproduzir em 2×',
-          description:
-              'Mantenha um vídeo pressionado para assisti-lo em velocidade 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'E muito mais!',
-          description:
-              'Rolagem mais eficiente na galeria e botões Voltar mais fáceis de tocar.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'E muito mais!',
-          description:
-              'Rolagem mais eficiente na galeria, botões Voltar mais fáceis de tocar e backups aprimorados.',
+              'Agora o Ente prepara suas fotos e vídeos mais rapidamente para o envio.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Agora em coreano',
+          description: 'Agora você pode usar o Ente Photos em coreano.',
         ),
         ChangeLogEntryStrings(
           title: 'E muito mais!',
           description:
-              'Rolagem mais eficiente na galeria e botões Voltar mais fáceis de tocar.',
+              'Banner de Memória na sua tela inicial, transições de fotos mais suaves entre a galeria e o visualizador, marcadores mais claros no mapa e filtros mais confiáveis nos álbuns ocultos.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'E muito mais!',
+          description:
+              'Banner de Memória na sua tela inicial, transições de fotos mais suaves entre a galeria e o visualizador e marcadores mais claros no mapa.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'pt_PT': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Faixa de pré-visualizações no visualizador',
+          title: 'Novo visual para a sua galeria',
           description:
-              'As miniaturas na parte inferior do visualizador permitem alternar mais rapidamente entre fotografias e vídeos.',
+              'Veja as fotografias nas proporções originais com o novo esquema em mosaico.',
         ),
         ChangeLogEntryStrings(
-          title: 'Partilhar fotografias de uma pessoa',
+          title: 'Junte os dedos para mudar o esquema da galeria',
           description:
-              'Partilhe fotografias de uma pessoa através de uma ligação que pode incluir automaticamente novas fotografias dessa pessoa.',
+              'Agora pode juntar ou afastar dois dedos para mudar o esquema e escolher quantas fotografias cabem no ecrã.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Melhorias no editor de imagens',
+          description:
+              'Adicione texto às suas fotografias, escolhendo tipos de letra, cores, fundos e alinhamento. Agora também pode endireitar fotografias inclinadas.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Novo visual para os álbuns e mais',
+          description:
+              'Álbuns redesenhados e menus mais simples para as ações nas suas fotografias.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Definir fotografias como fundo',
+          title: 'Preparação mais rápida das cópias de segurança',
           description:
-              'Defina uma fotografia como fundo do ecrã principal, do ecrã de bloqueio ou de ambos.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Manter premido para reproduzir a 2×',
-          description: 'Mantenha um vídeo premido para o ver à velocidade 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'E muito mais!',
-          description:
-              'Deslocamento mais eficiente na galeria e botões Voltar mais fáceis de tocar.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'E muito mais!',
-          description:
-              'Deslocamento mais eficiente na galeria, botões Voltar mais fáceis de tocar e cópias de segurança melhoradas.',
+              'O Ente prepara agora as suas fotografias e vídeos mais rapidamente para o carregamento.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Agora em coreano',
+          description: 'Agora pode utilizar o Ente Photos em coreano.',
         ),
         ChangeLogEntryStrings(
           title: 'E muito mais!',
           description:
-              'Deslocamento mais eficiente na galeria e botões Voltar mais fáceis de tocar.',
+              'Memory Lane no seu ecrã principal, transições de fotografias mais suaves entre a galeria e o visualizador, marcadores mais claros no mapa e filtros mais fiáveis nos álbuns ocultos.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'E muito mais!',
+          description:
+              'Memory Lane no seu ecrã principal, transições de fotografias mais suaves entre a galeria e o visualizador e marcadores mais claros no mapa.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'ro': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Bandă de previzualizare în vizualizator',
+          title: 'Aspect nou pentru galeria ta',
           description:
-              'Miniaturile din partea de jos a vizualizatorului te ajută să treci mai repede între fotografii și videoclipuri.',
+              'Vezi fotografiile în proporțiile originale cu noul aranjament mozaic.',
         ),
         ChangeLogEntryStrings(
-          title: 'Partajează fotografiile unei persoane',
+          title: 'Apropie degetele pentru a schimba aranjamentul galeriei',
           description:
-              'Partajează fotografiile unei persoane cu un link care poate include automat fotografii noi cu aceasta.',
+              'Acum poți apropia sau depărta două degete pentru a schimba aranjamentul și a alege câte fotografii încap pe ecran.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Îmbunătățiri ale editorului de imagini',
+          description:
+              'Adaugă text pe fotografii, alegând fonturi, culori, fundaluri și alinierea. Acum poți și să îndrepți fotografiile înclinate.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Aspect nou pentru albume și nu numai',
+          description:
+              'Albume reproiectate și meniuri mai simple pentru acțiunile asupra fotografiilor.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Setează fotografii ca fundal',
+          title: 'Pregătirea mai rapidă a copiilor de rezervă',
           description:
-              'Setează o fotografie ca fundal pentru ecranul principal, ecranul de blocare sau ambele.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Ține apăsat pentru redare la 2×',
-          description:
-              'Ține apăsat pe un videoclip pentru a-l viziona la viteza 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Și altele!',
-          description:
-              'Derulare mai eficientă în galerie și butoane Înapoi mai ușor de atins.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Și altele!',
-          description:
-              'Derulare mai eficientă în galerie, butoane Înapoi mai ușor de atins și copii de rezervă îmbunătățite.',
+              'Ente pregătește acum mai rapid fotografiile și videoclipurile tale pentru încărcare.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Acum în coreeană',
+          description: 'Acum poți folosi Ente Photos în coreeană.',
         ),
         ChangeLogEntryStrings(
           title: 'Și altele!',
           description:
-              'Derulare mai eficientă în galerie și butoane Înapoi mai ușor de atins.',
+              'Memory Lane pe ecranul principal, tranziții mai fluide ale fotografiilor între galerie și vizualizator, marcaje mai clare pe hartă și filtre mai fiabile în albumele ascunse.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Și altele!',
+          description:
+              'Memory Lane pe ecranul principal, tranziții mai fluide ale fotografiilor între galerie și vizualizator și marcaje mai clare pe hartă.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'ru': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Лента превью в режиме просмотра',
+          title: 'Новый облик вашей галереи',
           description:
-              'Миниатюры в нижней части экрана просмотра позволяют быстрее переходить между фото и видео.',
+              'Смотрите фотографии в исходных пропорциях с новой мозаичной раскладкой.',
         ),
         ChangeLogEntryStrings(
-          title: 'Делитесь фотографиями человека',
+          title: 'Сведите пальцы, чтобы изменить раскладку галереи',
           description:
-              'Делитесь фотографиями человека по ссылке, в которую могут автоматически добавляться его новые фотографии.',
+              'Теперь вы можете сводить или разводить два пальца, чтобы переключать раскладки и выбирать, сколько фотографий помещается на экране.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Улучшения редактора изображений',
+          description:
+              'Добавляйте текст на фотографии, выбирая шрифты, цвета, фон и выравнивание. Теперь можно также выпрямлять наклонённые фотографии.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Новый облик альбомов и не только',
+          description:
+              'Обновлённый дизайн альбомов и более простые меню действий с фотографиями.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Устанавливайте фото как обои',
+          title: 'Более быстрая подготовка резервного копирования',
           description:
-              'Установите фотографию на главный экран, экран блокировки или на оба экрана.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Удерживайте для воспроизведения 2×',
-          description:
-              'Нажмите и удерживайте видео, чтобы смотреть его со скоростью 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'И многое другое!',
-          description:
-              'Более эффективная прокрутка галереи и кнопки «Назад», на которые проще нажимать.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'И многое другое!',
-          description:
-              'Более эффективная прокрутка галереи, кнопки «Назад», на которые проще нажимать, и улучшенное резервное копирование.',
+              'Теперь Ente быстрее подготавливает ваши фотографии и видео к загрузке.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Теперь на корейском',
+          description:
+              'Теперь Ente Photos можно использовать на корейском языке.',
         ),
         ChangeLogEntryStrings(
           title: 'И многое другое!',
           description:
-              'Более эффективная прокрутка галереи и кнопки «Назад», на которые проще нажимать.',
+              'Линия воспоминаний на главном экране, более плавные переходы фотографий между галереей и экраном просмотра, более чёткие маркеры на карте и более надёжные фильтры в скрытых альбомах.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'И многое другое!',
+          description:
+              'Линия воспоминаний на главном экране, более плавные переходы фотографий между галереей и экраном просмотра и более чёткие маркеры на карте.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'tr': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Fotoğraf görüntüleyicide önizleme şeridi',
+          title: 'Galeriniz için yeni görünüm',
           description:
-              'Görüntüleyicinin altındaki küçük resimler, fotoğraflar ve videolar arasında daha hızlı geçiş yapmanızı sağlar.',
+              'Yeni mozaik düzeniyle fotoğraflarınızı özgün oranlarında görün.',
         ),
         ChangeLogEntryStrings(
-          title: 'Bir kişinin fotoğraflarını paylaşın',
+          title: 'Galeri düzenini değiştirmek için parmaklarınızı birleştirin',
           description:
-              'Bir kişinin fotoğraflarını, o kişinin yeni fotoğraflarını otomatik olarak ekleyebilen bir bağlantıyla paylaşın.',
+              'Artık iki parmağınızı birleştirerek veya ayırarak düzenler arasında geçiş yapabilir ve ekranınıza kaç fotoğraf sığacağını seçebilirsiniz.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Görsel düzenleyicide iyileştirmeler',
+          description:
+              'Yazı tipi, renk, arka plan ve hizalama seçenekleriyle fotoğraflarınıza metin ekleyin. Artık eğik fotoğrafları da düzeltebilirsiniz.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Albümler ve daha fazlası için yeni görünüm',
+          description:
+              'Yeniden tasarlanan albümler ve fotoğraf işlemleriniz için daha sade menüler.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Fotoğrafları duvar kâğıdı yapın',
+          title: 'Daha hızlı yedekleme hazırlığı',
           description:
-              'Bir fotoğrafı ana ekranınızın, kilit ekranınızın veya her ikisinin duvar kâğıdı olarak ayarlayın.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '2× oynatma için basılı tutun',
-          description:
-              'Bir videoyu 2× hızda izlemek için videoya basılı tutun.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Ve daha fazlası!',
-          description:
-              'Galeride daha verimli kaydırma ve daha kolay dokunulan Geri düğmeleri.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Ve daha fazlası!',
-          description:
-              'Galeride daha verimli kaydırma, daha kolay dokunulan Geri düğmeleri ve iyileştirilmiş yedeklemeler.',
+              'Ente artık fotoğraf ve videolarınızı yüklemeye daha hızlı hazırlıyor.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Artık Korece de var',
+          description: 'Ente Photos’u artık Korece kullanabilirsiniz.',
         ),
         ChangeLogEntryStrings(
           title: 'Ve daha fazlası!',
           description:
-              'Galeride daha verimli kaydırma ve daha kolay dokunulan Geri düğmeleri.',
+              'Ana ekranınızda Memory Lane, galeri ile görüntüleyici arasında daha akıcı fotoğraf geçişleri, daha belirgin harita işaretçileri ve gizli albümlerde daha güvenilir filtreler.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ve daha fazlası!',
+          description:
+              'Ana ekranınızda Memory Lane, galeri ile görüntüleyici arasında daha akıcı fotoğraf geçişleri ve daha belirgin harita işaretçileri.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'uk': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Стрічка попереднього перегляду у вікні перегляду',
+          title: 'Новий вигляд вашої галереї',
           description:
-              'Мініатюри внизу вікна перегляду дають змогу швидше переходити між фото й відео.',
+              'Переглядайте фотографії в оригінальних пропорціях із новою мозаїчною розкладкою.',
         ),
         ChangeLogEntryStrings(
-          title: 'Діліться фотографіями людини',
+          title: 'Зведіть пальці, щоб змінити розкладку галереї',
           description:
-              'Діліться фотографіями людини за посиланням, до якого можуть автоматично додаватися її нові фотографії.',
+              'Тепер ви можете зводити або розводити два пальці, щоб перемикати розкладки й вибирати, скільки фотографій вміщується на екрані.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Покращення редактора зображень',
+          description:
+              'Додавайте текст до фотографій, обираючи шрифти, кольори, тло й вирівнювання. Тепер можна також вирівнювати нахилені фотографії.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Новий вигляд альбомів і не тільки',
+          description:
+              'Оновлений дизайн альбомів і простіші меню дій із фотографіями.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Установлюйте фото як шпалери',
+          title: 'Швидша підготовка резервного копіювання',
           description:
-              'Установіть фотографію як шпалери головного екрана, екрана блокування або обох.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Утримуйте для відтворення у 2×',
-          description:
-              'Натисніть і утримуйте відео, щоб дивитися його зі швидкістю 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'І не тільки!',
-          description:
-              'Ефективніше прокручування галереї та кнопки «Назад», яких легше торкатися.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'І не тільки!',
-          description:
-              'Ефективніше прокручування галереї, кнопки «Назад», яких легше торкатися, і поліпшене резервне копіювання.',
+              'Тепер Ente швидше готує ваші фотографії та відео до завантаження.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Тепер корейською',
+          description:
+              'Тепер Ente Photos можна використовувати корейською мовою.',
         ),
         ChangeLogEntryStrings(
           title: 'І не тільки!',
           description:
-              'Ефективніше прокручування галереї та кнопки «Назад», яких легше торкатися.',
+              'Лінія спогадів на головному екрані, плавніші переходи фотографій між галереєю та вікном перегляду, чіткіші позначки на мапі й надійніші фільтри в прихованих альбомах.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'І не тільки!',
+          description:
+              'Лінія спогадів на головному екрані, плавніші переходи фотографій між галереєю та вікном перегляду й чіткіші позначки на мапі.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'vi': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Dải xem trước trong trình xem',
-          description:
-              'Hình thu nhỏ ở cuối trình xem giúp bạn chuyển nhanh hơn giữa các ảnh và video.',
+          title: 'Diện mạo mới cho thư viện',
+          description: 'Xem ảnh với tỷ lệ gốc bằng bố cục khảm mới.',
         ),
         ChangeLogEntryStrings(
-          title: 'Chia sẻ ảnh của một người',
+          title: 'Chụm hai ngón tay để đổi bố cục thư viện',
           description:
-              'Chia sẻ ảnh của một người bằng liên kết có thể tự động bao gồm ảnh mới của họ.',
+              'Giờ đây, bạn có thể chụm hoặc tách hai ngón tay để chuyển đổi bố cục và chọn số ảnh hiển thị trên màn hình.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Cải tiến trình chỉnh sửa ảnh',
+          description:
+              'Thêm văn bản vào ảnh với các lựa chọn về phông chữ, màu sắc, nền và căn chỉnh. Giờ đây, bạn cũng có thể làm thẳng những bức ảnh bị nghiêng.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Diện mạo mới cho album và hơn thế nữa',
+          description:
+              'Album được thiết kế lại cùng các menu đơn giản hơn cho những thao tác với ảnh.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Đặt ảnh làm hình nền',
+          title: 'Chuẩn bị sao lưu nhanh hơn',
           description:
-              'Đặt một ảnh làm hình nền màn hình chính, màn hình khóa hoặc cả hai.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Nhấn giữ để phát ở tốc độ 2×',
-          description: 'Nhấn và giữ video để xem ở tốc độ 2×.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Và còn nhiều hơn thế!',
-          description:
-              'Cuộn thư viện hiệu quả hơn và các nút Quay lại dễ nhấn hơn.',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: 'Và còn nhiều hơn thế!',
-          description:
-              'Cuộn thư viện hiệu quả hơn, các nút Quay lại dễ nhấn hơn và tính năng sao lưu được cải thiện.',
+              'Ente giờ đây mất ít thời gian hơn để chuẩn bị ảnh và video của bạn cho việc tải lên.',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Đã có tiếng Hàn',
+          description:
+              'Giờ đây, bạn có thể sử dụng Ente Photos bằng tiếng Hàn.',
         ),
         ChangeLogEntryStrings(
           title: 'Và còn nhiều hơn thế!',
           description:
-              'Cuộn thư viện hiệu quả hơn và các nút Quay lại dễ nhấn hơn.',
+              'Kỷ niệm trên màn hình chính, chuyển cảnh ảnh mượt mà hơn giữa thư viện và trình xem, các điểm đánh dấu trên bản đồ rõ ràng hơn, bộ lọc trong album ẩn hoạt động đáng tin cậy hơn.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Và còn nhiều hơn thế!',
+          description:
+              'Kỷ niệm trên màn hình chính, chuyển cảnh ảnh mượt mà hơn giữa thư viện và trình xem, các điểm đánh dấu trên bản đồ rõ ràng hơn.',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'zh_CN': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '查看器中的预览条',
-          description: '查看器底部的缩略图可让你更快地在照片和视频之间跳转。',
+          title: '图库焕然一新',
+          description: '全新的拼贴布局让照片以原始比例显示。',
         ),
         ChangeLogEntryStrings(
-          title: '分享某个人的照片',
-          description: '通过链接分享某个人的照片，链接中可自动加入此人的新照片。',
+          title: '双指捏合，更改图库布局',
+          description: '现在，您可以通过双指捏合或张开来切换布局，并选择屏幕上显示的照片数量。',
+        ),
+        ChangeLogEntryStrings(
+          title: '图片编辑器改进',
+          description: '为照片添加文字，自由选择字体、颜色、背景和对齐方式。现在还可以拉直倾斜的照片。',
+        ),
+        ChangeLogEntryStrings(
+          title: '相册等界面焕新',
+          description: '重新设计的相册，以及更简洁的照片操作菜单。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '将照片设为壁纸',
-          description: '将照片设为主屏幕、锁定屏幕或两者的壁纸。',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '长按以2×速度播放',
-          description: '长按视频即可用2×速度观看。',
-        ),
-        ChangeLogEntryStrings(
-          title: '还有更多！',
-          description: '图库滚动更高效，返回按钮更易于点击。',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '还有更多！',
-          description: '图库滚动更高效，返回按钮更易于点击，备份也有所改进。',
+          title: '备份准备更快',
+          description: 'Ente 现在能更快地为照片和视频做好上传准备。',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '现已支持韩语',
+          description: '现在可以使用韩语版 Ente Photos 了。',
         ),
         ChangeLogEntryStrings(
           title: '还有更多！',
-          description: '图库滚动更高效，返回按钮更易于点击。',
+          description: '主屏幕上的回忆长廊、图库与查看器之间更流畅的照片过渡、更清晰的地图标记，以及隐藏相册中更可靠的筛选功能。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '还有更多！',
+          description: '主屏幕上的回忆长廊、图库与查看器之间更流畅的照片过渡，以及更清晰的地图标记。',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),
     'zh_TW': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '檢視器中的預覽列',
-          description: '檢視器底部的縮圖可讓您更快地在照片與影片之間切換。',
+          title: '圖片庫煥然一新',
+          description: '全新的拼貼版面配置讓照片以原始比例顯示。',
         ),
         ChangeLogEntryStrings(
-          title: '分享某個人的照片',
-          description: '透過連結分享某個人的照片，連結中可自動加入此人的新照片。',
+          title: '雙指捏合，變更圖片庫版面配置',
+          description: '現在，你可以透過雙指捏合或張開來切換版面配置，並選擇螢幕上顯示的照片數量。',
+        ),
+        ChangeLogEntryStrings(
+          title: '圖片編輯器改善',
+          description: '為照片加入文字，自由選擇字型、顏色、背景和對齊方式。現在也可以拉直傾斜的照片。',
+        ),
+        ChangeLogEntryStrings(
+          title: '相簿等介面煥新',
+          description: '重新設計的相簿，以及更簡潔的照片操作選單。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '將照片設為桌布',
-          description: '將照片設為主畫面、鎖定畫面或兩者的桌布。',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '長按以2×速度播放',
-          description: '長按影片即可用2×速度觀看。',
-        ),
-        ChangeLogEntryStrings(
-          title: '還有更多！',
-          description: '圖片庫捲動更有效率，返回按鈕更容易點按。',
-          isAndroidOnly: true,
-        ),
-        ChangeLogEntryStrings(
-          title: '還有更多！',
-          description: '圖片庫捲動更有效率，返回按鈕更容易點按，備份也有所改善。',
+          title: '備份準備更快速',
+          description: 'Ente 現在能更快地為照片和影片做好上傳準備。',
           isOnlineOnly: true,
-          isIOSOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '現已支援韓文',
+          description: '現在可以使用韓文版 Ente Photos 了。',
         ),
         ChangeLogEntryStrings(
           title: '還有更多！',
-          description: '圖片庫捲動更有效率，返回按鈕更容易點按。',
+          description: '主畫面上的懷舊小徑、圖片庫與檢視器之間更流暢的照片轉場、更清楚的地圖標記，以及隱藏相簿中更可靠的篩選功能。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '還有更多！',
+          description: '主畫面上的懷舊小徑、圖片庫與檢視器之間更流暢的照片轉場，以及更清楚的地圖標記。',
           isLocalGalleryOnly: true,
-          isIOSOnly: true,
         ),
       ],
     ),

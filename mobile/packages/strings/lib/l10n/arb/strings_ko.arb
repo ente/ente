@@ -1,4 +1,28 @@
 {
+  "bringMemoriesTogether": "추억을 한곳에 모아 보세요",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "계정 만들기",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "사진에 접근할 수 있도록 권한을 허용해 주세요. 얼굴 인식으로 사진을 정리하며, 모든 처리는 기기에서만 이루어집니다.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "사진과 동영상을 정리하세요. 모든 추억을 한곳에.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
+  "wallpaper": "배경 화면",
+  "setWallpaper": "배경 화면으로 설정",
+  "wallpaperHome": "홈 화면",
+  "wallpaperLock": "잠금 화면",
+  "wallpaperBoth": "홈과 잠금 화면",
+  "wallpaperSet": "배경 화면 설정됨",
+  "wallpaperFailed": "배경 화면 설정 실패",
+  "wallpaperUnavailable": "이 장비에서는 배경 화면을 바꿀 수 없습니다",
   "about": "소개",
   "acceptTrustInvite": "초대 수락",
   "account": "계정",
@@ -19,44 +43,209 @@
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
   },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{{count}공유 파일에 대해서는 지원되지 않는 작업입니다} other{{count}공유 파일들에 대해서는 지원되지 않는 작업입니다}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "actionNotSupportedOnFavouritesAlbum": "즐겨 찾기 앨범에서는 이 작업을 수행할 수 없습니다",
+  "activeLinksWillShowUpHere": "활성 링크가 여기에 표시됩니다",
+  "activeSessions": "활성화 된 장비",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
   "add": "추가",
-  "addAdmin": "관리자 추가",
+  "addAlbumWidgetPrompt": "홈 화면에 앨범 widget을 추가하여 여기서 사용자 지정하세요.",
   "addANameAndPhoto": "이름과 사진 추가",
-  "addANewEmail": "새 이메일 추가",
   "addCode": "코드 추가하기",
-  "addCollaborator": "협업자 추가",
+  "addedAMemoryTo": "{albumName}에 추억을 추가했습니다",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "{emailOrName} 님이 추가함",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedFilesToPerson": "{count, plural, one{{personName} 님에게 파일 {count}개를 추가했습니다} other{{personName} 님에게 파일 {count}개를 추가했습니다}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "{albumName}에 {count}개의 추억을 추가했습니다",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedSuccessfullyTo": "{albumName}에 성공적으로 추가되었습니다",
+  "@addedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "addedToAlbums": "{count, plural, one{{count}개의 앨범에 성공적으로 추가됨} other{{count}개의 앨범에 성공적으로 추가됨}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addedToQueue": "대기에 추가됨",
   "addEmail": "이메일 추가",
+  "addFamilyMember": "가족 구성원 추가",
+  "addFiles": "파일 추가",
+  "addFromDevice": "장비에서 추가",
+  "addingPhotos": "사진 추가",
   "addingToFavorites": "즐겨 찾기에 추가 중...",
+  "addItem": "{count, plural, one{항목 추가} other{항목 추가}}",
+  "@addItem": {
+    "description": "Page title while adding one or more items to album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "addLocation": "위치 추가",
+  "addLocationButton": "추가",
+  "addMember": "멤버 추가",
+  "addMemoriesWidgetPrompt": "홈 화면에 '추억' widget을 추가하여 이곳에서 맞춤 설정해 보세요.",
   "addMore": "더 추가",
+  "addName": "이름 추가",
   "addNew": "새로 추가",
   "@addNew": {
     "description": "Text to add a new item (location tag, album, caption etc)"
   },
   "addNewEmail": "새 이메일 추가",
-  "addParticipants": "참여자 추가",
-  "addTag": "태그 추가",
-  "addToCollection": "컬렉션에 추가",
-  "addViewer": "뷰어 추가",
-  "advanced": "고급",
-  "albumLayout": "앨범 레이아웃",
-  "albumOwner": "소유자",
-  "@albumOwner": {
-    "description": "Role of the album owner"
+  "addOnPageSubtitle": "추가 기능 정보",
+  "addOns": "추가 기능",
+  "addOnValidTill": "{storageAmount} 는 {endDate}까지 유효합니다",
+  "@addOnValidTill": {
+    "placeholders": {
+      "endDate": {},
+      "storageAmount": {}
+    }
   },
+  "addPage": "페이지 추가",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
+  "addPeopleWidgetPrompt": "홈 화면에 '사람' widget을 추가하여 이곳에서 맞춤 설정하세요.",
+  "addPerson": "사람 추가",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "addPhotos": "사진 추가",
+  "addSelected": "선택 항목 추가",
+  "addTag": "태그 추가",
+  "addTo": "다음으로 추가",
+  "addToAlbum": "앨범에 추가",
+  "addToCollection": "컬렉션에 추가",
+  "addToEnte": "Ente에 추가",
+  "addToHiddenAlbum": "숨김 앨범에 추가",
+  "addToPerson": "사람에 추가",
+  "@addToPerson": {
+    "description": "Action label to add selected files to an existing person."
+  },
+  "addTrustedContact": "신뢰할 수 있는 연락처 추가",
+  "addTrustedPerson": "신뢰할 수 있는 사람 추가",
+  "addUpTo5MembersFree": "최대 5명의 멤버를 무료로 추가하세요",
+  "addYourPhotosNow": "지금 사진을 추가하세요",
+  "adjust": "편집",
+  "adjustCrop": "구도 조정",
+  "admin": "관리자",
+  "admiringThem": "감탄 {name}",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "고급",
+  "aerialViews": "항공 시점",
+  "after1Day": "1일 뒤",
+  "after1Hour": "1시간 뒤",
+  "after1Month": "1개월 뒤",
+  "after1Week": "1주일 뒤",
+  "after1Year": "1년 뒤",
+  "albumDescriptionHint": "이 앨범에 대한 설명을 입력하세요",
+  "albumEditsWillNotBeSaved": "이 앨범에 대한 수정 사항은 저장되지 않습니다.",
+  "albumLayout": "앨범 레이아웃",
+  "albumName": "앨범 이름",
+  "albums": "앨범",
+  "albumsCount": "{count, plural, one{{count}개 앨범} other{{count}개 앨범}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumsOnDevicePermissionCta": "액세스 허용",
+  "albumsOnEnteEmptyCta": "백업할 앨범 선택",
+  "albumsOnEnteEmptyTitle": "추억을 백업하세요",
+  "albumsSharedEmptyTitle": "추억을 공유해 주세요",
+  "albumsWidgetDesc": "홈 화면에 표시할 앨범을 선택하세요.",
+  "albumTitle": "앨범 제목",
   "albumUpdated": "앨범 업데이트 됨",
   "algorithm": "알고리즘",
+  "align": "정렬",
   "all": "모든 항목",
+  "allClear": "✨ 모두 이상 없음",
   "allFilesAlreadyMarkedAsImportant": "모든 항목이 이미 중요로 표시되어 있습니다",
+  "allMemoriesPreserved": "모든 추억이 보존되었습니다",
+  "allow": "허용",
+  "allowAccessToYourPhotos": "사진에 대한 접근을 허용하세요",
   "allowAddingPhotos": "사진 추가 허용",
   "@allowAddingPhotos": {
     "description": "Switch button to enable uploading photos to a public link"
   },
+  "allowAppToOpenSharedAlbumLinks": "App 공유 앨범 링크를 열 수 있도록 허용",
   "allowDownloads": "다운로드 허용",
+  "allowJoining": "참여 허용",
   "allowJoiningAlbum": "앨범에 참여 허용",
-  "allTabEmptyHint": "아직 텅 비었습니다. +를 눌러 코드를 추가하거나 휴지통을 열어 하나를 복원하세요.",
+  "allowJoiningDescription": "앨범을 볼 수 있는 사람 중 Ente 계정이 있는 사람은 앨범에 참여하고 업데이트를 받을 수 있습니다",
+  "allowPermBody": "Ente가 라이브러리를 표시하고 백업할 수 있도록 설정에서 사진 접근을 허용해 주세요.",
+  "allowPermTitle": "사진에 대한 접근 허용",
+  "allPersonGroupingWillReset": "이 사람에 대한 모든 grouping 이 초기화되며, 이 사람과 관련하여 제공된 모든 추천 항목도 사라집니다",
+  "allTabEmptyHint": "아직 텅 비었습니다. + 눌러 코드를 추가하거나 휴지통을 열어 하나를 복원하세요.",
   "@allTabEmptyHint": {
     "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
+  "allWillShiftRangeBasedOnFirst": "이 사진이 해당 그룹의 첫 번째 사진입니다. 선택된 다른 사진들은 이 새로운 날짜를 기준으로 자동으로 이동합니다",
+  "almostDone": "거의 다 됐어요...",
+  "alreadyAdded": "이미 추가되었습니다",
+  "alreadyHaveAnAccount": "이미 계정이 있으신가요?",
+  "analysis": "분석",
+  "analyzingPhotosLocally": "사진을 내부에서 분석하는 중...",
+  "and1Other": "및 1명",
   "androidBiometricHint": "신원 확인",
   "@androidBiometricHint": {
     "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
@@ -69,8 +258,28 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
-  "appIcon": "앱 아이콘",
-  "appLock": "어플 잠금",
+  "andXOthers": "및 {count}명",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aNewVersionOfEnteIsAvailable": "Ente의 새 버전이 출시되었습니다.",
+  "aNewVersionOfEnteLockerIsAvailable": "A new version of Ente Locker is available.",
+  "anythingElse": "더 필요한 게 있으신가요?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
+  "appearance": "외관",
+  "appIcon": "아이콘",
+  "appleId": "애플 ID",
+  "applePhotosUnsupportedResource": "이 파일을 Apple 사진 앱에 저장할 수 없습니다. Ente에서는 계속해서 확인할 수 있습니다.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
+  "appLock": "잠금",
   "@appLock": {
     "description": "App lock setting title"
   },
@@ -81,17 +290,57 @@
   "appLockNotEnabled": "App 잠금 설정되지 않음",
   "appLockNotEnabledDescription": "설정 > App 잠금에서 App 잠금을 활성화해주세요",
   "appLockOfflineModeWarning": "백업 없이 진행하는 것을 선택하셨습니다. App 잠금 방법을 잊어버리신 경우, 데이터에 접근하실 수 없게 됩니다.",
+  "apply": "적용",
+  "applyCodeTitle": "코드 적용",
+  "appstoreSubscription": "Appstore 구독",
+  "appVersion": "버전 {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
+  "architecture": "아이콘 디자인",
+  "archive": "보관",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
+  "archiveAlbum": "앨범 보관",
+  "archiveCollectionName": "보관",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archivedItemsWillShowUpHere": "보관된 항목이 여기에 표시됩니다",
+  "archiving": "보관 중...",
+  "areThey": "이것들은 ",
   "areYouSure": "확실하십니까?",
   "@areYouSure": {
     "description": "Confirmation dialog title"
   },
+  "areYouSureDeleteFiles": "이 파일들을 삭제하시겠습니까?",
+  "areYouSureRemoveThisFaceFromPerson": "이 사람에게서 이 얼굴을 정말로 삭제하시겠습니까?",
+  "areYouSureRemoveThisPersonTag": "이 인물 태그를 정말로 삭제하시겠습니까?",
   "areYouSureThatYouWantToLeaveTheFamily": "가족 요금제에서 떠나시겠습니까?",
+  "areYouSureYouWantToCancel": "정말로 취소하시겠습니까?",
+  "areYouSureYouWantToChangeYourPlan": "정말로 요금제를 변경하시겠습니까?",
+  "areYouSureYouWantToExit": "정말로 종료하시겠습니까?",
+  "areYouSureYouWantToIgnoreThesePersons": "정말로 이 사람들을 무시하시겠습니까?",
+  "areYouSureYouWantToIgnoreThisPerson": "정말로 이 사람을 무시하시겠습니까?",
   "areYouSureYouWantToLogout": "로그아웃 하시겠습니까?",
   "@areYouSureYouWantToLogout": {
     "description": "Confirmation message before logout"
   },
+  "areYouSureYouWantToRenew": "Are you sure you want to renew?",
+  "areYouSureYouWantToResetThisPerson": "정말로 이 사람을 초기화하시겠습니까?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "사람에 이 사람들을 다시 표시하시겠습니까?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "사람에 이 사람을 다시 표시하시겠습니까?",
+  "artisticPortraits": "예술적인 인물 사진",
+  "askAQuestion": "문의하기",
+  "askCancelReason": "구독이 취소되었습니다. 취소 사유를 공유해 주시겠어요?",
+  "attachLogs": "로그 첨부",
+  "attachLogsHelper": "문제를 더 빠르게 진단하는 데 도움이 됩니다",
   "authenticateGeneric": "인증 절차를 거쳐주세요",
-  "authenticationFailedPleaseTryAgain": "인증절차 실패, 다시 시도해주세요",
+  "authenticating": "인증 중...",
+  "authenticationFailedPleaseTryAgain": "인증 절차 실패, 다시 시도해주세요",
   "@authenticationFailedPleaseTryAgain": {
     "description": "Error message when authentication fails"
   },
@@ -99,22 +348,45 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount}개 인증 코드} other{{formattedCount}개 인증 코드}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "authToChangeEmailVerificationSetting": "이메일 검증을 변경하시려면 인증 절차를 거쳐주세요",
   "authToChangeLockscreenSetting": "화면 잠금 설정을 변경하시려면 인증 절차를 거쳐주세요",
   "authToChangeYourEmail": "이메일을 변경하려면 인증 절차를 거쳐주세요",
   "authToChangeYourPassword": "암호를 변경하려면 인증 절차를 거쳐주세요",
+  "authToConfigureTwofactorAuthentication": "Two-factor 인증을 설정하려면 인증을 수행해 주십시오",
   "authToExportCodes": "코드를 내보내려면 인증 절차를 거쳐주세요",
-  "authToInitiateSignIn": "백업을 위해 로그인 상태를 초기화하려면 인증 절차를 거쳐주세요",
+  "authToInitiateAccountDeletion": "잠금을 해제하여 계정을 삭제하세요",
+  "authToInitiateSignIn": "백업을 위해 로그인 상태를 초기화하려면 인증 절차를 거쳐주세요.",
   "authToManageLegacy": "신뢰할 수 있는 연락처를 관리하려면 인증해 주세요",
+  "authToManageLegacyKit": "Legacy kits를 관리하려면 인증하십시오",
   "authToSetBackupPassword": "백업 비밀번호를 설정하려면 인증하세요",
   "authToUpdateBackupPassword": "백업 비밀번호를 변경하려면 인증하세요",
+  "authToViewPasskey": "패스키를 보려면 인증해 주세요",
   "authToViewPasskeyGeneric": "패스키를 보려면 인증 절차를 거쳐주세요",
   "authToViewSecrets": "비밀 부분을 확인하려면 인증 절차를 거쳐주세요",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
+  "authToViewTrashedFiles": "휴지통에 있는 파일을 보려면 인증해 주세요",
   "authToViewYourActiveSessions": "활성화된 Session을 확인하시려면 인증 절차를 거쳐주세요",
+  "authToViewYourHiddenFiles": "숨김 파일을 보려면 인증해 주세요",
+  "authToViewYourMemories": "추억을 보려면 인증해 주세요",
   "authToViewYourRecoveryKey": "당신의 복구 키를 확인하려면 인증 절차를 거쳐주세요",
+  "autoAddPeople": "사람에 자동 추가",
+  "autoAddToAlbum": "앨범에 자동 추가",
+  "autoCastDialogBody": "여기에서 사용 가능한 Cast 기기를 확인할 수 있습니다.",
+  "autoCastiOSPermission": "설정에서 Ente Photos의 Local 네트워크 권한이 있는지 확인하세요.",
   "autoLock": "자동 잠금",
   "@autoLock": {
     "description": "Auto lock setting title"
@@ -123,13 +395,132 @@
   "@autoLockFeatureDescription": {
     "description": "Description of auto lock feature"
   },
+  "autoLogoutMessage": "기술적인 문제로 인해 로그아웃 되었습니다. 불편을 드려 죄송합니다.",
+  "automaticallyAnalyzeAndSplitGrouping": "그룹을 자동으로 분석하여 여러 사람이 있는지 확인하고, 이들을 다시 분리합니다. 이 과정에는 몇 초 정도 소요될 수 있습니다.",
+  "autoPair": "자동 등록",
+  "autoUploadFromThisDeviceFolder": "이 기기 폴더에서 자동 업로드",
+  "autumnColors": "가을의 절경",
+  "babySmiles": "아기의 미소",
+  "backedUpAutomatically": "자동으로 백업 됨",
+  "backedUpFolders": "백업 된 폴더",
+  "background": "배경 화면",
+  "backgroundWithThem": "{name}과 함께하는 아름다운 풍경",
+  "@backgroundWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "backingUpLastSevenDaysPhotos": "지난 7일간의 사진 백업 중",
+  "backup": "백업",
+  "backupAndSync": "백업 및 동기화",
+  "backupAndSyncDesc": "자동 백업, 동기화 상태, 그리고 업로드",
   "backupCreated": "백업을 생성했습니다!",
+  "backupFailed": "백업 실패",
+  "backupFile": "백업 파일",
   "backupFolderLabel": "백업 폴더:",
   "backupLocationChoiceDescription": "백업을 어디에 저장하고 싶으십니까?",
+  "backupMode": "백업 모드",
+  "backupModeBackingUpItems": "{count, plural, one{{formattedCount}개 항목 백업 중} other{{formattedCount}개 항목 백업 중}}",
+  "@backupModeBackingUpItems": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12546"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "12,546"
+      }
+    }
+  },
+  "backupModeCheckingForMoreItems": "추가 항목 확인 중",
+  "backupModeFinishYourBackup": "백업을 완료하세요",
+  "backupModeKeepAppOpen": "화면 열린 상태 유지",
+  "backupModeNoBackupInProgress": "백업이 진행 중이지 않습니다",
+  "backupModeNoBackupInProgressDescription": "백업을 시작한 다음 백업 모드로 돌아가십시오.",
+  "backupModePlugInPhone": "휴대전화를 충전기에 연결하세요. 백업 시 배터리가 소모됩니다.",
+  "backupModePreservingYourMemories": "소중한 추억 간직하기",
+  "backupModeScreenDimmingDescription": "배터리를 절약하기 위해 화면이 어두워집니다. 언제든지 화면을 누르면 다시 돌아옵니다.",
+  "backupModeScreenWillDim": "배터리를 절약하기 위해 화면이 자동으로 어두워집니다",
+  "backupModeSettingsDescription": "백업을 완료하려면 화면을 계속 열어 두세요",
+  "backupModeStart": "백업 모드 시작",
+  "backupModeStayInEnte": "Ente를 계속 실행해 주세요. 화면을 전환하면 백업이 일시 중지됩니다.",
+  "backupModeTapToWakeScreen": "화면을 깨우려면 누르세요",
+  "backupOnlyNewPhotos": "새로운 사진만 백업",
+  "backupOnlyNewPhotosAllFoldersSelected": "현재 모든 폴더가 백업 대상으로 선택되어 있습니다.\n\n지금 바로 진행하거나 선택된 폴더를 업데이트할 수 있습니다.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "현재 백업 대상으로 선택된 폴더가 없습니다.\n\n지금 그대로 진행하거나 선택된 폴더를 업데이트할 수 있습니다.",
+  "backupOnlyNewPhotosNoFoldersSelectedRequire": "현재 백업할 폴더가 선택되지 않았습니다.\n\n계속하려면 폴더를 선택해 주세요.",
+  "backupOnlyNewPhotosWarningBody": "현재 {formattedDate} 이후의 사진만 백업하고 있습니다. 모든 사진을 백업하려면 설정을 변경해 주세요.",
+  "@backupOnlyNewPhotosWarningBody": {
+    "description": "Warning shown when backup-only-new is enabled and user changes folders.",
+    "placeholders": {
+      "formattedDate": {
+        "type": "String",
+        "example": "Jan 5, 2026"
+      }
+    }
+  },
+  "backupOverMobileData": "데이터를 사용해서 백업",
   "backupPasswordCleared": "백업 비밀번호를 지웠습니다",
   "backupPasswordHint": "백업을 이 비밀번호로 암호화합니다.",
+  "backupSettings": "백업 설정",
+  "backupStatus": "백업 상태",
+  "backupStatusDescription": "백업한 항목이 여기에 표시됩니다",
+  "backupToEnte": "Ente에 백업",
+  "backupVideos": "동영상 백업",
+  "beach": "모래와 바다",
+  "birthday": "생일",
+  "birthdayJoy": "생일의 즐거움",
+  "birthdays": "생일",
+  "black": "검은색",
+  "blockLegacyKitRecoveryMessage": "현재의 복구 시도를 차단하십시오.\n그들이 새로운 복구 시도를 시작할 수 있다는 점에 유의하십시오",
   "blog": "블로그",
+  "blurred": "흐림",
   "bothIssuerAndAccountCanNotBeEmpty": "발행인과 계정을 모두 비워둘 수 없습니다",
+  "bringYourFamilyAlong": "가족을 초대하세요",
+  "browseHelpPages": "도움말 페이지 둘러보기",
+  "brushColor": "브러시 색상",
+  "byAgreeing": "계속하면 <terms>서비스 약관</terms> 및 <policy>개인정보 처리방침</policy>에 동의하게 됩니다.",
+  "cachedData": "Cache 데이터",
+  "calculating": "계산 중...",
+  "camera": "카메라",
+  "campingMoments": "Campfire 순간들",
+  "cancel": "취소",
+  "back": "뒤로 가기",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "cancelInvite": "초대 취소",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "이 초대를 삭제하면 마음이 바뀌었을 때 새 초대를 보내야 합니다.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "먼저 {paymentProvider}에서 기존 구독을 취소해 주세요",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "복구 취소",
+  "cancelRecoveryDesc": "{email} 계정의 복구를 취소하시겠습니까?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "구독 취소",
+  "candidLaughter": "웃음이 터진 순간",
   "cannotAddMoreFilesAfterBecomingViewer": "{name}님은 뷰어가 된 후에는 더 이상 컬렉션에 항목을 추가할 수 없습니다.",
   "@cannotAddMoreFilesAfterBecomingViewer": {
     "description": "Warning message when changing a collaborator to viewer",
@@ -140,38 +531,102 @@
       }
     }
   },
+  "cannotDeleteSharedFiles": "공유된 파일은 삭제할 수 없습니다",
   "cannotMoveToSharedAlbums": "공유 앨범으로 이동 할 수 없습니다",
+  "cannotMoveToSharedAlbumsMessage": "공유 앨범에는 항목을 이동할 수 없고 추가만 할 수 있습니다. 대신 추가하시겠습니까?",
   "canNotOpenBody": "죄송합니다, 이 앨범은 여기서 열 수 없습니다.",
   "canNotOpenTitle": "이 앨범을 열 수 없습니다",
+  "cannotUpdateRecoveryTime": "복구 대기 기간을 변경할 수 없습니다",
+  "cannotUpdateRecoveryTimeMessage": "진행 중인 복구 요청이 있는 동안에는 복구 대기 기간을 변경할 수 없습니다. 요청을 거절하거나 복구가 완료될 때까지 기다려 주세요.",
+  "canOnlyCreateLinkForFilesOwnedByYou": "내가 소유한 파일만 링크를 만들 수 있습니다",
   "canOnlyRemoveFilesOwnedByYou": "당신이 소유한 사진만 제거 할 수 있습니다",
+  "castAlbum": "앨범 캐스트",
+  "castInstruction": "연결할 기기에서 {castUrl}에 접속하세요.",
+  "@castInstruction": {
+    "description": "Instructions shown when pairing a device to play an album on TV.",
+    "placeholders": {
+      "castUrl": {
+        "type": "String",
+        "example": "https://cast.ente.com"
+      }
+    }
+  },
+  "castIPMismatchBody": "TV와 같은 네트워크에 연결되어 있는지 확인해 주세요.",
+  "castIPMismatchTitle": "앨범을 캐스트하지 못했습니다",
+  "castSessions": "캐스트 세션",
+  "cat": "고양이",
+  "centerPoint": "중심점",
   "changeEmail": "이메일 변경",
   "@changeEmail": {
     "description": "Change email button label"
   },
+  "changeLocationOfSelectedItems": "선택한 항목의 위치를 변경하시겠습니까?",
   "changePassword": "비밀번호 변경",
+  "changePasswordTitle": "암호 변경",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
   "changePermissions": "권한 변경",
-  "changePermissionsQuestion": "권한 변경?",
+  "changeYourReferralCode": "추천 코드 변경",
   "checkForUpdates": "업데이트 확인",
   "checkInboxAndSpamFolder": "검증을 위해 메일 보관함을 (또는 스팸 메일 보관함) 확인해주세요",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
   },
   "checking": "확인 중...",
+  "checkingModels": "모델 확인 중...",
   "checkStatus": "상태 확인",
   "@checkStatus": {
     "description": "Check status button label"
   },
+  "chooseARecoveryTime": "복구 대기 기간 선택",
   "chooseBackupLocation": "백업 위치 선택",
   "chooseFromAnExistingContact": "기존 연락처에서 선택",
   "chooseIcon": "아이콘 선택",
+  "chooseYourPlan": "요금제 선택",
+  "city": "도시에서",
+  "citySunsets": "도시의 노을",
+  "claimedByYou": "내가 받은 용량",
+  "cleanedUpSimilarImages": "{size}의 공간을 확보했습니다",
+  "@cleanedUpSimilarImages": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cleanUncategorized": "분류되지 않음 정리",
+  "cleanUncategorizedDescription": "다른 앨범에도 있는 파일을 '분류되지 않음'에서 모두 제거합니다",
+  "cleanupComplete": "정리 완료",
+  "cleanupHiddenFiles": "숨긴 파일 정리",
+  "cleanupHiddenFilesDescription": "숨긴 앨범의 일부 파일이 숨기지 않은 앨범에도 있어서 숨김 영역 밖에서 보입니다. 정리하면 숨기지 않은 앨범에서 해당 파일이 제거됩니다.",
   "clearAllFilters": "모든 필터 지우기",
   "clearBackupFolder": "백업 폴더 비우게",
   "clearBackupPassword": "백업 비밀번호 지우기",
+  "clearCaches": "캐시 지우기",
   "clearingTrash": "휴지통 비우는 중...",
+  "clearSelection": "선택 해제",
+  "clickToInstallOurBestVersionYet": "눌러서 역대 최고의 버전을 설치하세요",
   "close": "닫기",
+  "closeBy": "가까움",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmBody": "모든 구성원이 공유 저장 공간에 접근할 수 없게 됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "closeFamilyConfirmTitle": "가족 요금제를 해지하시겠습니까?",
+  "closeFamilyPlan": "가족 요금제 해지",
+  "closest": "가장 가까움",
+  "cloudOnly": "오프라인 사본 제거",
+  "clusteringProgress": "그룹화 진행률",
+  "coastalCliffs": "바닷가 절벽",
+  "codeAppliedPageTitle": "코드 적용됨",
+  "codeChangeLimitReached": "죄송합니다. 코드 변경 횟수 한도에 도달했습니다.",
+  "codeCopiedToClipboard": "코드가 클립보드에 복사되었습니다",
   "codeIssuerHint": "발행인",
   "collabLinkSectionDescription": "Ente 계정이 없는 사람도 사진을 추가 할 수 있게 허용",
-  "collaborator": "협업자",
+  "collaborator": "공동 작업자",
+  "collageLayout": "레이아웃",
+  "collageSaved": "콜라주가 갤러리에 저장되었습니다",
   "collectionCannotBeDeleted": "이 컬렉션은 삭제할 수 없습니다",
   "collectionCannotBeEdited": "이 컬렉션은 편집할 수 없습니다",
   "collectionCannotBeShared": "이 컬렉션은 공유할 수 없습니다",
@@ -180,41 +635,152 @@
   "collectionLabel": "컬렉션",
   "collectionRenamedSuccessfully": "컬렉션 이름이 성공적으로 변경되었습니다",
   "collections": "컬렉션",
+  "collectionsDeletedSuccessfully": "{count, plural, one{컬렉션 {count}개가 삭제되었습니다} other{컬렉션 {count}개가 삭제되었습니다}}",
+  "@collectionsDeletedSuccessfully": {
+    "description": "Success message when collections are deleted",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionUpdated": "컬렉션이 업데이트되었습니다",
   "collectPhotos": "사진을 모으다",
+  "color": "색상",
+  "colorfulMarkets": "활기찬 시장",
+  "commentAndReact": "댓글 및 반응",
+  "commentedOnAPhoto": "님이 사진에 댓글을 남겼습니다",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "님이 동영상에 댓글을 남겼습니다",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "님이 회원님의 사진에 댓글을 남겼습니다",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "님이 회원님의 동영상에 댓글을 남겼습니다",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentHint": "따뜻한 한마디를 남겨 보세요!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "댓글",
+  "commentsCount": "{count, plural, =0{댓글 없음} one{댓글 {count}개} other{댓글 {count}개}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "compactMode": "조밀하게 보기",
+  "comparingImageDetails": "이미지 세부 정보 비교 중...",
+  "concertNights": "콘서트의 밤",
   "confirm": "확인",
   "@confirm": {
     "description": "Confirm button label"
+  },
+  "confirm2FADisable": "2단계 인증을 비활성화하시겠습니까?",
+  "confirmAddingTrustedContact": "{email}님을 신뢰할 수 있는 연락처로 추가하려고 합니다. 회원님이 {numOfDays}일 동안 부재중이면 이 연락처가 회원님의 계정을 복구할 수 있습니다.",
+  "@confirmAddingTrustedContact": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmAddingTrustedContacts": "{count}명을 신뢰할 수 있는 연락처로 추가하려고 합니다. 회원님이 {numOfDays}일 동안 부재중이면 이 연락처들이 회원님의 계정을 복구할 수 있습니다.",
+  "@confirmAddingTrustedContacts": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "numOfDays": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "confirmDeleteAccountAcrossApps": "Ente Photos, Ente Auth, Ente Locker 전체에서 내 데이터가 삭제된다는 것을 이해합니다.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
   },
   "confirmPassword": "암호 확인",
   "@confirmPassword": {
     "description": "Confirm password field label"
   },
+  "confirmPlanChange": "요금제 변경 확인",
   "confirmRecoveryKey": "복구 키 확인",
   "confirmUpdatingkey": "비밀 키를 업데이트하시겠어요?",
   "confirmYourRecoveryKey": "복구 키 확인",
+  "congratulations": "축하합니다!",
+  "connectToDevice": "기기에 연결",
   "contactDetails": "연락처 정보",
   "contactDetailsHint": "전화번호, 이메일 또는 기타 연락처 정보",
   "contactName": "연락처 이름",
   "contactNameHint": "긴급 연락처의 전체 이름",
   "contactNotes": "연락처에 대한 메시지",
   "contactNotesHint": "이 사람에게 연락할 때 공유할 중요한 정보",
+  "contacts": "연락처",
   "contactSupport": "지원 문의",
   "@contactSupport": {
     "description": "Contact support button label"
   },
+  "contactUs": "문의하기",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
+  },
+  "contactToManageSubscription": "{provider} 구독을 관리하려면 support@ente.com으로 문의해 주세요.",
+  "@contactToManageSubscription": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "continueInMailApp": "메일 앱에서 계속",
   "continueLabel": "계속",
   "@continueLabel": {
     "description": "Continue button label"
   },
+  "continueWithoutAccount": "계정 없이 계속",
+  "convertToAlbum": "앨범으로 변환",
   "copied": "복사 됨",
   "copiedNextToClipboard": "클립보드에 다음번 코드 복사 됨",
   "copiedToClipboard": "클립보드에 복사 됨",
+  "copyAllToClipboard": "모두 클립보드에 복사",
   "copyEmailAddress": "이메일 주소 복사",
   "@copyEmailAddress": {
     "description": "Button to copy email address to clipboard"
   },
+  "copyEmbedHtml": "임베드 HTML 복사",
   "copyLink": "링크 복사",
+  "copypasteThisCodentoYourAuthenticatorApp": "이 코드를\n인증 앱에 복사하여 붙여넣으세요",
+  "couldNotBackUpTryLater": "데이터를 백업할 수 없습니다.\n나중에 다시 시도하겠습니다.",
+  "couldNotFreeUpSpace": "공간을 확보할 수 없습니다",
+  "couldNotLoadAlbums": "앨범을 불러올 수 없습니다",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "couldNotLoadLikes": "좋아요를 불러올 수 없습니다",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "couldNotLoadSelectedPhoto": "선택한 사진을 불러올 수 없습니다",
+  "@couldNotLoadSelectedPhoto": {
+    "description": "Toast when the selected contact photo cannot be loaded"
+  },
   "couldNotOpenFile": "항목을 열 수 없습니다: {error}",
   "@couldNotOpenFile": {
     "description": "Error message when item cannot be opened",
@@ -225,25 +791,67 @@
       }
     }
   },
+  "couldNotUpdateSubscription": "구독을 업데이트할 수 없습니다",
+  "count": "개수",
+  "cozyCafes": "아늑한 카페 한구석",
+  "craftingMemoriesFirstHalf": "추억을",
+  "craftingMemoriesSecondHalf": "만드는 중",
   "crashAndErrorReporting": "충돌 & 에러 보고",
+  "crashReporting": "충돌 보고",
   "create": "만들기",
+  "createAccount": "계정 만들기",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
   "createAccountTitle": "계정 생성",
+  "createAlbum": "앨범 만들기",
+  "createAlbumActionHint": "길게 눌러 사진을 선택한 후 +를 눌러 앨범을 만드세요",
+  "createAnEnteAccount": "Ente 계정 만들기",
+  "createAnotherKit": "다른 키트 만들기",
   "createBackupNow": "지금 백업 생성",
+  "createCollaborativeLink": "협업 링크 만들기",
+  "createCollage": "콜라주 만들기",
   "createCollection": "컬렉션 만들기",
+  "createdOn": "생성일자 {date}",
+  "@createdOn": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Apr 1, 2026"
+      }
+    }
+  },
+  "createKit": "키트 만들기",
+  "createLegacyKit": "레거시 키트 만들기",
   "createNewTag": "새 태그 만들기",
   "createPublicLink": "공개 링크 만들기",
+  "createStream": "스트림 생성",
   "creatingLink": "링크 생성 중...",
+  "creatingStream": "스트림 생성 중",
   "credentialName": "계정",
   "credentialNameHint": "서비스 이름",
   "credentialNotes": "추가 메모",
-  "credentialNotesHint": "복구 방법, 보안 질문 등",
+  "credentialNotesHint": "복구 방법, 보안 질문, 등...",
   "criticalUpdateAvailable": "중요 업데이트 있음",
+  "crop": "잘라내기",
+  "cropAndRotate": "자르기 및 회전",
+  "curatedMemories": "엄선된 추억",
   "currentBackupFolder": "현재 백업 폴더:",
+  "currentlyRunning": "현재 실행 중",
+  "currentUsageNote": "현재 사용량: {amount}. 0으로 설정하면 제한이 없습니다.",
+  "@currentUsageNote": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
   "custom": "사용자 정의",
   "@custom": {
     "description": "Label for setting custom value for link expiry"
   },
-  "customEndpoint": "{endpoint}에 접속됨",
+  "customEndpoint": "{endpoint}에 연결 되었습니다",
   "@customEndpoint": {
     "description": "Text showing user is connected to a custom endpoint",
     "placeholders": {
@@ -256,17 +864,31 @@
   "customOrder": "사용자 정의 순서",
   "darkTheme": "어두운",
   "data": "데이터",
+  "day": "일",
+  "dayToday": "오늘",
   "dayYesterday": "어제",
+  "declineTrustInvite": "초대 거부",
   "decrypting": "해독 중...",
+  "decryptingVideo": "동영상 복호화 중...",
   "deduplicateCodes": "중복된 코드 제거",
+  "deduplicateFiles": "중복 파일",
   "delete": "삭제",
   "@delete": {
     "description": "Delete button label"
   },
-  "deleteCodeAuthMessage": "코드 삭제를 위해 인증절차를 거쳐주세요",
+  "deleteAccount": "계정 삭제",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "앨범 삭제",
+  "deleteAlbumDialog": "이 앨범에 있는 사진(및 동영상)을 해당 사진이 포함된 <bold>모든</bold> 다른 앨범에서도 삭제하시겠습니까?",
+  "deleteAlbumQuestion": "앨범을 삭제하시겠습니까?",
+  "deleteAlbumsDialogBody": "비어 있는 앨범이 모두 삭제됩니다. 앨범 목록을 깔끔하게 정리하고 싶을 때 유용합니다.",
+  "deleteAll": "전체 삭제",
+  "deleteCodeAuthMessage": "코드 삭제를 위해 인증 절차를 거쳐주세요",
   "deleteCodeMessage": "정말 이 코드를 삭제하시겠습니까? 이 동작은 되돌릴 수 없습니다.",
   "deleteCodeTitle": "코드를 삭제할까요?",
-  "deleteCollectionDialogBody": "{collectionName}이(가) 영구적으로 삭제됩니다.",
+  "deleteCollectionDialogBody": "{collectionName}이 영구적으로 삭제됩니다.",
   "@deleteCollectionDialogBody": {
     "description": "Confirmation message body for deleting a single collection",
     "placeholders": {
@@ -280,21 +902,147 @@
   "@deleteCollectionFromEverywhere": {
     "description": "Checkbox label asking whether to delete collection items everywhere"
   },
+  "deleteComment": "댓글 삭제",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
+  "deleteCommentConfirmation": "회원님의 댓글 \"{comment}\"이(가) 영구 삭제됩니다",
+  "@deleteCommentConfirmation": {
+    "description": "Confirmation message when deleting a comment",
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
+  },
+  "deletedComment": "(삭제 됨)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "deletedFromEnte": "Ente에서 삭제",
+  "deletedItemsStayHereForThirtyDays": "삭제 된 파일은 여기 30일 간 보관 됩니다",
   "deleteDuplicates": "중복 제거",
+  "deleteEmptyAlbums": "빈 앨범 삭제",
+  "deleteEmptyAlbumsWithQuestionMark": "빈 앨범을 삭제하시겠습니까?",
+  "deleteEnteAccount": "Ente 계정 삭제",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
+  "deleteFiles": "파일 삭제",
+  "deleteFromBoth": "양 쪽 모두 삭제",
+  "deleteFromDevice": "장비에서 삭제",
+  "deleteFromDeviceQuestion": "장비에서 삭제 하시겠습니까?",
+  "deleteFromEnte": "Ente에서 삭제",
+  "deleteHiddenFilesFromDevice": "장비에서 숨긴 파일 삭제",
+  "deleteHiddenFilesFromDeviceDescription": "기기에서 숨긴 파일의 로컬 사본 삭제",
+  "deleteItemCount": "{count, plural, one{항목 {count}개 삭제} other{항목 {count}개 삭제}}",
+  "@deleteItemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteItemsQuestion": "{count, plural, one{항목을 삭제하시겠습니까?} other{항목 {count}개를 삭제하시겠습니까?}}",
+  "@deleteItemsQuestion": {
+    "description": "Delete confirmation title for one or more selected items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteLegacyKitMessage": "공유한 시트는 더 이상 복구에 사용할 수 없게 됩니다",
   "deleteLink": "링크 삭제",
   "deleteLinkQuestion": "링크를 삭제하시겠습니까?",
+  "deleteLocation": "위치 삭제",
+  "deleteMemoryLinkMessage": "링크를 삭제하면 이 링크를 공유받은 사람들은 더 이상 접근할 수 없습니다.",
+  "deleteMultipleAlbumDialog": "이 앨범 {count}개에 있는 사진(및 동영상)을 해당 사진이 포함된 <bold>모든</bold> 다른 앨범에서도 삭제하시겠습니까?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteMultipleAlbumsQuestion": "이 앨범들을 삭제하시겠습니까?",
+  "deleteMultipleCollectionsDialogBody": "{count, plural, one{컬렉션 {count}개가 영구 삭제됩니다.} other{컬렉션 {count}개가 영구 삭제됩니다.}}",
+  "@deleteMultipleCollectionsDialogBody": {
+    "description": "Confirmation message body for deleting multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "deleteNotSupportedForSharedFiles": "공유된 파일은 삭제할 수 없습니다",
+  "deleteOnDeviceFiles": "기기에 있는 파일 삭제",
+  "deletePhotos": "사진 삭제",
+  "deletePhotosWithSize": "사진 {count}장 삭제 ({size})",
+  "@deletePhotosWithSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteProgress": "삭제 중 {currentlyDeleting} / {totalCount}",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteReasonBehaviour": "앱이나 기능이 예상대로 작동하지 않습니다",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "더 마음에 드는 다른 서비스를 찾았습니다",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "필요한 핵심 기능이 없습니다",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "해당하는 이유가 목록에 없습니다",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
+  },
   "deleteSharedAlbum": "공유 앨범을 제거 하시겠습니까?",
+  "deleteSharedAlbumDialogBody": "모든 사람에게서 앨범이 삭제됩니다\n\n이 앨범에서 다른 사람이 소유한 공유 사진에 더 이상 접근할 수 없게 됩니다",
   "deleteShareLinkConfirmation": "이 링크를 가진 사람들은 더 이상 항목에 접근할 수 없게 됩니다.",
+  "deleteSuggestions": "삭제 제안",
+  "deleteSuggestionsDesc": "삭제 제안된 항목 보기",
+  "deleteSuggestionSent": "삭제 제안을 보냈습니다",
   "deleteTagMessage": "태그를 지우시겠습니까? 되돌리실 수 없습니다.",
   "deleteTagTitle": "태그를 지우시겠습니까?",
+  "deleteUnparseableCodeMessage": "이 코드가 Auth에서 영구 삭제됩니다. 휴지통으로 이동되지 않습니다.",
+  "deleteUnparseableCodeTitle": "인식할 수 없는 코드를 삭제하시겠습니까?",
+  "deleteWithCount": "삭제 ({count})",
+  "@deleteWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deletingDash": "삭제 중 -",
   "deletingFile": "항목 삭제 중...",
+  "deletingFiles": "삭제 중...",
   "deletingShareLink": "링크 삭제 중...",
+  "description": "설명",
   "deselectAll": "모두 선택 해제",
+  "desertDreams": "사막의 꿈",
+  "designedForFamilies": "가족을 위한 설계",
+  "details": "세부 정보",
+  "detailsAboutTheIssue": "문제에 대한 세부 정보",
   "developerSettings": "개발자 설정",
   "@developerSettings": {
     "description": "Label for developer settings"
   },
   "developerSettingsWarning": "정말로 개발자 설정을 수정하시겠습니까?",
+  "deviceInfo": "기기 정보",
   "deviceLock": "기기 잠금",
   "@deviceLock": {
     "description": "Device lock option title"
@@ -303,27 +1051,65 @@
   "@deviceLockEnablePreSteps": {
     "description": "Instructions for enabling device lock"
   },
+  "deviceNotFound": "기기를 찾을 수 없습니다",
+  "didYouKnow": "알고 계셨나요?",
   "digits": "자릿수",
+  "disableBackup": "백업 비활성화",
   "disableDownloadWarningBody": "뷰어는 외부 도구를 사용해서 사진을 복사하거나 Capture 할 수 있습니다",
+  "disableDownloadWarningTitle": "참고해 주세요",
+  "disableLinkMessage": "\"{albumName}\"에 접근하는 공개 링크가 제거됩니다.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "2단계 인증 비활성화",
+  "disablingTwofactorAuthentication": "2단계 인증 비활성화 중...",
   "discardChanges": "취소",
+  "discardEditsQuestion": "편집 내용을 취소하시겠습니까?",
   "discover": "발견",
   "@discover": {
     "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
   },
-  "discover_pets": "반려 동물",
+  "discover_babies": "아기",
+  "discover_celebrations": "기념일",
+  "discover_food": "음식",
+  "discover_greenery": "초록 풍경",
+  "discover_hills": "언덕",
+  "discover_identity": "신분증",
+  "discover_memes": "밈",
+  "discover_notes": "메모",
+  "discover_pets": "애완 동물",
   "discover_qr_codes": "QR 코드",
+  "discover_receipts": "영수증",
+  "discover_screenshots": "스크린샷",
+  "discover_selfies": "셀카",
+  "discover_sunset": "노을",
+  "discover_visiting_cards": "명함",
+  "discover_wallpapers": "배경 화면",
+  "dismiss": "닫기",
+  "distanceInKMUnit": "km",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "documentSearchHint": "문서 검색",
   "documentsHint": "문서",
+  "doesGroupContainMultiplePeople": "이 그룹에 여러 인물이 포함되어 있습니까?",
+  "dog": "강아지",
   "done": "완료",
   "doNotSignOut": "로그아웃 하지 않기",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
   },
   "dontHaveAnAccount": "계정이 없으신가요?",
-  "doThisLater": "나중에 하기",
-  "@doThisLater": {
-    "description": "Do this later button label"
+  "dontSave": "저장 안 함",
+  "doubleTapToViewHiddenCode": "코드를 보시려면 해당 칸을 두 번 눌러주세요",
+  "download": "다운로드",
+  "downloadApplicationUpdate": "업데이트 다운로드",
+  "downloadDecryptionFailedMessage": "이 항목을 다운로드할 수 없습니다. 저희에게 문의해 주시면 도와드리겠습니다.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
   },
-  "doubleTapToViewHiddenCode": "코드를 보시려면 해당 란을 더블탭해주세요",
   "downloadFailed": "다운로드 실패",
   "downloading": "다운로드 중...",
   "downloadingProgress": "다운로드 중... {percentage}%",
@@ -336,29 +1122,123 @@
       }
     }
   },
+  "downloadPhotos": "사진 다운로드",
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName}은(는) 이미 기기의 {albumName} 앨범에 있습니다",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSkippedInSelectionMultipleFiles": "파일 {fileCount}개가 이미 기기에 있어 다운로드를 건너뛰었습니다",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSkippedInSelectionSingleFile": "{fileName}이(가) 이미 기기의 {albumName} 앨범에 있어 다운로드를 건너뛰었습니다",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
   "downloadUpdate": "다운로드",
+  "doYouWantToDiscardTheEditsYouHaveMade": "편집한 내용을 취소하시겠습니까?",
+  "draw": "그리기",
+  "dropSupportEmail": "등록된 이메일 주소로 {supportEmail}에 메일을 보내 주세요",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "duplicateCodes": "중복된 코드",
+  "duplicateFileCountWithStorageSaved": "{count, plural, one{중복 파일 {count}개} other{중복 파일 {count}개}}를 정리하여 {storageSaved}를 절약했습니다!",
+  "@duplicateFileCountWithStorageSaved": {
+    "description": "The text to display when the user has successfully cleaned up duplicate files",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "duplicateItemsGroup": "파일 {count}개, 각 {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "earned": "획득",
+  "earnFreeStorage": "무료 저장 공간 받기",
   "earnMoreSpace": "공간을 확보하다!",
   "edit": "수정",
-  "editCodeAuthMessage": "코드 수정을 위해 인증절차를 거쳐주세요",
+  "editAutoAddPeople": "자동 추가 인물 편집",
+  "editCodeAuthMessage": "코드 수정을 위해 인증 절차를 거쳐주세요",
+  "editContact": "연락처 편집",
+  "editDetails": "세부 정보 편집",
+  "editEmailAlreadyLinked": "이 이메일은 이미 {name}에 연결되어 있습니다.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "editItem": "항목 편집",
   "editLocation": "위치 편집",
+  "editNotSupportedForSharedFiles": "공유된 파일은 편집할 수 없습니다",
   "editOrder": "순서 변경",
+  "editPerson": "인물 편집",
   "editSecret": "비밀 편집",
   "@editSecret": {
     "description": "Title shown when editing an existing secret"
   },
+  "editsSaved": "편집 내용이 저장되었습니다",
+  "editsToLocationWillOnlyBeSeenWithinEnte": "위치 편집 내용은 Ente 안에서만 표시됩니다",
+  "editStorageLimit": "저장 공간 한도 편집",
   "editTag": "태그 수정하기",
+  "editTime": "시간 편집",
   "eligible": "가능하다",
   "email": "이메일",
   "@email": {
     "description": "Email field label"
   },
+  "emailAddress": "이메일 주소",
   "emailAlreadyRegistered": "이미 등록된 이메일입니다.",
   "@emailAlreadyRegistered": {
     "description": "Error message when email is already registered"
   },
-  "emailChangedTo": "{newEmail}로 메일이 변경되었습니다",
+  "emailChangedTo": "이메일이 {newEmail}로 변경되었습니다",
   "@emailChangedTo": {
     "description": "Message when email has been changed",
     "placeholders": {
@@ -370,13 +1250,32 @@
     }
   },
   "emailHint": "이메일을 입력하세요",
-  "emailNoEnteAccount": "{email}은(는) Ente 계정이 없습니다.\n\n항목을 공유하려면 초대장을 보내세요.",
+  "emailNeedsEnteAccountForFamily": "{email}님은 Ente 계정이 없습니다.\n\n초대를 보낸 후, 상대방이 Ente 계정을 만들면 가족에 추가하세요.",
+  "@emailNeedsEnteAccountForFamily": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "emailNoEnteAccount": "{email}는 Ente 계정이 없습니다.\n\n항목을 공유하려면 초대장을 보내세요.",
   "@emailNoEnteAccount": {
     "placeholders": {
       "email": {}
     }
   },
-  "emailUsMessage": "{email}로 이메일을 보내주세요.",
+  "emailNoEnteAccountPhotos": "{email}님은 Ente 계정이 없습니다.\n\n사진을 공유하려면 초대를 보내세요.",
+  "@emailNoEnteAccountPhotos": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "emailNotRegistered": "등록되지 않은 이메일입니다",
+  "@emailNotRegistered": {
+    "description": "Error message when email is not registered"
+  },
+  "emailUsMessage": "{email}로 이메일을 보내주세요",
   "@emailUsMessage": {
     "placeholders": {
       "email": {
@@ -390,28 +1289,70 @@
   "@emailYourLogs": {
     "description": "Title for emailing logs dialog"
   },
+  "embracingThem": "{name}님과의 포옹",
+  "@embracingThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "emergencyContact": "긴급 연락처",
+  "empty": "비어 있음",
   "emptyTrash": "휴지통 비우기",
   "emptyTrashConfirmation": "휴지통의 모든 항목을 영구적으로 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+  "emptyTrashQuestion": "휴지통을 비우시겠습니까?",
+  "enable": "활성화",
   "enableAutomaticBackups": "자동 백업",
-  "enableBackupsIosInstruction": "iOS에서 백업을 켜려면, 파일 앱에서 폴더를 고릅니다 (예를 들어 \"내 iPhone\").",
+  "enableBackupsIosInstruction": "Ios 에서 백업을 켜려면, 파일에서 폴더를 고릅니다 (예를 들어 \"내 아이폰\").",
   "enableComment": "댓글 및 반응",
+  "enableDownloadsToAllowJoining": "참여를 허용하려면 다운로드를 활성화하세요.",
+  "enabled": "활성화됨",
+  "enableMaps": "지도 활성화",
   "encrypted": "암호화됨",
+  "encryptingBackup": "백업 암호화 중...",
   "encryptionKeys": "암호화 키",
   "@encryptionKeys": {
     "description": "Encryption keys title"
   },
-  "endpointUpdatedMessage": "엔드포인트가 성공적으로 업데이트됨",
+  "endpointUpdatedMessage": "Endpoint가 성공적으로 업데이트 됨",
   "@endpointUpdatedMessage": {
     "description": "Success message when endpoint is updated"
   },
+  "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
+  "enteLocker": "Ente Locker",
+  "@enteLocker": {
+    "description": "Product name"
+  },
+  "entePhotos": "Ente Photos",
+  "@entePhotos": {
+    "description": "Product name"
+  },
+  "enterAlbumName": "앨범 이름 입력",
+  "enterAnEmailAddress": "이메일 주소 입력",
+  "enterAppLockPassword": "앱 잠금 비밀번호 입력",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "앱 잠금 PIN 입력",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
+  "enterAValidEmailAddress": "올바른 이메일 주소를 입력하세요",
+  "enterCode": "코드 입력",
+  "enterCodeDescription": "친구가 알려준 코드를 입력하면 두 사람 모두 무료 저장 공간을 받을 수 있습니다",
   "enterCodeHint": "Authenticator에 적힌 6 자리 코드를 입력해주세요",
   "@enterCodeHint": {
     "description": "Hint for entering 2FA code"
   },
   "enterCollectionName": "컬렉션 이름을 입력하세요",
+  "enterDateOfBirthHint": "생년월일 입력",
   "enterDetailsManually": "속성을 수동으로 입력하기",
   "enterEmail": "이메일 입력",
+  "enterFileName": "파일 이름 입력",
+  "enterName": "이름 입력",
   "enterNameOrEmailToShareWith": "공유할 이름 또는 이메일을 입력하세요",
   "enterNewEmailHint": "새 이메일 주소를 입력하세요",
   "@enterNewEmailHint": {
@@ -428,7 +1369,7 @@
   },
   "enterPasswordToAegisVault": "Aegis 저장소의 비밀번호 입력",
   "enterPasswordToDecrypt2FASBackup": "비밀번호를 입력하여 2FAS 백업 복호화",
-  "enterPasswordToDecryptAndOTP": "비밀번호를 입력하여 andOTP 백업 복호화",
+  "enterPasswordToDecryptAndOTP": "복호화 및 Otp 백업을 위해 비밀번호를 입력하세요",
   "enterPasswordToEncrypt": "데이터 암호화를 위한 암호 입력",
   "@enterPasswordToEncrypt": {
     "description": "Prompt to enter password for encryption"
@@ -437,7 +1378,15 @@
   "@enterRecoveryKeyHint": {
     "description": "Hint for entering recovery key"
   },
+  "enterReferralCode": "추천 코드 입력",
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "인증 앱에 표시된\n6자리 코드를 입력하세요",
+  "enterThePasswordFor": "다음 계정의 암호를 입력하세요",
+  "@enterThePasswordFor": {
+    "description": "Text shown before email on login password verification page"
+  },
   "enterValidEmail": "올바른 이메일 주소를 입력하세요.",
+  "enterValidEmailDetailed": "올바른 이메일 주소가 아닌 것 같습니다. 올바른 이메일 주소를 입력해 주세요",
+  "enterYourNewEmailAddress": "새 이메일 주소를 입력하세요",
   "enterYourPassword": "암호 입력",
   "enterYourPasswordHint": "암호 입력",
   "@enterYourPasswordHint": {
@@ -450,10 +1399,11 @@
   },
   "errorGenericBody": "가져오는 중 예상치 못한 오류가 발생했습니다.",
   "errorGenericTitle": "오류 발생",
-  "errorInvalidQRCodeBody": "스캔한 QR코드가 유효한 2단계 인증 계정이 아닙니다.",
+  "errorInvalidQRCodeBody": "QR 코드가 유효한 2 단계 인증 계정이 아닙니다.",
   "errorNoQRCode": "QR 코드를 찾을 수 없음",
   "errorOpeningFile": "항목을 여는 중 오류 발생",
-  "expiredLinkInfo": "이 링크가 만료되었습니다. 새 만료 시간을 선택하거나 링크 만료를 비활성화해 주세요.",
+  "exif": "EXIF",
+  "expiredLinkInfo": "이 링크가 만료되었습니다. 새 만료 시간을 선택하거나 링크 만료를 비활성화 해주세요.",
   "export": "내보내기",
   "exportCodes": "코드 내보내기",
   "exportDialogDesc": "내보낸 파일은 선택하신 암호로 암호화됩니다.",
@@ -462,17 +1412,154 @@
     "description": "Button to export logs"
   },
   "exportWarningDesc": "내보낸 파일은 민감한 정보들을 담고 있습니다. 안전하게 보관해주세요.",
-  "failedToDecrypt2FASExport": "2FAS 파일을 복호화할 수 없습니다",
-  "failedToDecryptAegisVault": "Aegis 저장소를 복호화할 수 없습니다",
-  "failedToDecryptAndOTPBackup": "andOTP 백업 복호화 실패",
+  "exportYourData": "데이터 내보내기",
+  "extraPhotosFound": "추가 사진을 찾았습니다",
+  "faceNotClusteredYet": "아직 얼굴이 분류되지 않았습니다. 나중에 다시 확인해 주세요",
+  "facesTimelineAppBarTitle": "추억의 길",
+  "@facesTimelineAppBarTitle": {
+    "description": "Faces timeline page title shown in the app bar"
+  },
+  "facesTimelineBannerTitle": "추억의 길",
+  "@facesTimelineBannerTitle": {
+    "description": "Title for the Memory Lane suggestion banner shown on a person's page"
+  },
+  "facesTimelineCaptionYearsAgo": "{count, plural, zero{지금} one{#년 전} other{#년 전}}",
+  "@facesTimelineCaptionYearsAgo": {
+    "description": "Caption for frames when birthdate is unknown, expressing time difference",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Years ago"
+      }
+    }
+  },
+  "facesTimelineCaptionYearsOld": "{name}님 {count, plural, one{{count}살} other{{count}살}} 때",
+  "@facesTimelineCaptionYearsOld": {
+    "description": "Caption for frames when birthdate is known, describing the person's age",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "Number of years old"
+      },
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      }
+    }
+  },
+  "memoryLaneAgeCaption": "{name}님 {count, plural, one{{age}살} other{{age}살}} 때",
+  "@memoryLaneAgeCaption": {
+    "description": "Memory Lane age caption. The age placeholder is rendered as a separate, larger text widget; count selects the plural form.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "age": {
+        "type": "String",
+        "description": "Placeholder for the separately styled age number; retain this placeholder in every plural form."
+      }
+    }
+  },
+  "memoryLaneCaptionYearsAgo": "{name}님 {count, plural, one{{number}년 전} other{{number}년 전}}",
+  "@memoryLaneCaptionYearsAgo": {
+    "description": "Memory Lane caption in elapsed years. Always keep the number, including for one.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "number": {
+        "type": "String",
+        "description": "Placeholder rendered as a separate, larger number; retain in every plural form."
+      }
+    }
+  },
+  "facesTimelinePlaybackPause": "일시정지",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "재생",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
+  "facesTimelineUnavailable": "추억의 길을 준비하는 중...",
+  "@facesTimelineUnavailable": {
+    "description": "Fallback message when the Memory Lane cannot be displayed yet"
+  },
+  "faceThumbnailGenerationFailed": "얼굴 썸네일을 생성할 수 없습니다",
+  "failedToApplyCode": "코드를 적용하지 못했습니다",
+  "failedToCancel": "취소하지 못했습니다",
+  "failedToDecrypt2FASExport": "2FAS 파일을 복호화 할 수 없습니다",
+  "failedToDecryptAegisVault": "Aegis 저장소를 복호화 할 수 없습니다",
+  "failedToDecryptAndOTPBackup": "Otp 백업 복호화 실패",
+  "failedToDeleteComment": "댓글을 삭제하지 못했습니다",
+  "@failedToDeleteComment": {
+    "description": "Toast when comment deletion fails"
+  },
   "failedToDownloadOrDecrypt": "항목을 다운로드하지 못했습니다",
-  "failedToLoadCollections": "컬렉션 로드 실패: {error}",
+  "failedToDownloadVideo": "동영상을 다운로드하지 못했습니다",
+  "failedToFetchActiveSessions": "활성 세션을 가져오지 못했습니다",
+  "@failedToFetchActiveSessions": {
+    "description": "In session page, warn user (in toast) that active sessions could not be fetched."
+  },
+  "failedToFetchOriginalForEdit": "편집할 원본을 가져오지 못했습니다",
+  "failedToFetchReferralDetails": "추천 정보를 가져올 수 없습니다. 나중에 다시 시도해 주세요.",
+  "failedToInvite": "{email}님을 초대하지 못했습니다",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "멤버 {count}명을 초대하지 못했습니다",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "failedToLikeAlbums": "{count, plural, one{앨범 {count}개에 좋아요를 누르지 못했습니다} other{앨범 {count}개에 좋아요를 누르지 못했습니다}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedToLikeComment": "댓글에 좋아요를 누르지 못했습니다",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
+  "failedToLoadAlbums": "앨범을 불러오지 못했습니다",
+  "failedToLoadCollections": "컬렉션 불러오기 실패: {error}",
   "@failedToLoadCollections": {
     "description": "Error message when loading collections fails",
     "placeholders": {
       "error": {
         "type": "String",
         "example": "Network error"
+      }
+    }
+  },
+  "failedToRefreshStripeSubscription": "구독을 새로 고치지 못했습니다",
+  "failedToRenew": "갱신하지 못했습니다",
+  "failedToSaveFilesOffline": "{count, plural, one{파일 {count}개를 오프라인에 저장하지 못했습니다} other{파일 {count}개를 오프라인에 저장하지 못했습니다}}",
+  "@failedToSaveFilesOffline": {
+    "description": "Failure message when files could not be saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -486,17 +1573,36 @@
       }
     }
   },
+  "failedToUpdateLike": "좋아요를 업데이트하지 못했습니다",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToVerifyPaymentStatus": "결제 상태를 확인하지 못했습니다",
+  "family": "가족",
+  "familyMoments": "가족과 함께한 시간",
   "faq": "FAQ",
   "@faq": {
     "description": "FAQ link label"
   },
-  "featureBackupCodes": "종단간 암호화\n백업 및 동기화",
+  "faqs": "자주 묻는 질문",
+  "fasterUploads": "더 빠른 업로드",
+  "favorite": "즐겨 찾기",
+  "feastingWithThem": "{name}님과 함께한 식사",
+  "@feastingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "featureBackupCodes": "End to end 암호화\n백업 및 동기화",
   "featureOpenSource": "보안 전문가들이 검사한\n오픈 소스",
   "featurePassAutomatically": "긴급 상황 시 자동으로 전달하세요",
   "featureSaveImportant": "중요한 문서와 자격 증명을 저장하세요",
   "featureSearchEtc": "검색, 태그, 공유\n다음 코드 등 수많은 기능",
   "featureShareAnytime": "언제든지 공유하세요",
-  "fieldCopiedToClipboard": "{fieldName}이(가) 클립보드에 복사되었습니다",
+  "feed": "피드",
+  "feedToEngageWithFamily": "가족과 소통하는 피드",
+  "festivities": "축제 분위기",
+  "fieldCopiedToClipboard": "{fieldName}가 클립보드에 복사 되었습니다",
   "@fieldCopiedToClipboard": {
     "description": "Message when a field is copied to clipboard",
     "placeholders": {
@@ -506,16 +1612,197 @@
       }
     }
   },
+  "fileAnalysisFailed": "파일을 분석할 수 없습니다",
   "fileDeletedSuccessfully": "항목이 성공적으로 삭제되었습니다",
+  "fileInfoAddDescHint": "설명 추가...",
   "fileMarkedAsImportant": "항목이 중요로 표시되었습니다",
+  "fileNameTooLong": "파일 이름이 너무 깁니다. 더 짧은 이름을 입력해 주세요.",
+  "@fileNameTooLong": {
+    "description": "Validation error when a renamed file exceeds the filesystem filename length limit"
+  },
+  "fileNotUploadedYet": "아직 업로드되지 않은 파일입니다",
   "fileRemovedFromImportant": "항목이 중요에서 제거되었습니다",
+  "files": "파일",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
   "filesAddedByYouWillBeRemovedFromTheCollection": "귀하가 추가한 항목이 컬렉션에서 제거됩니다",
-  "fileUpdatedSuccessfully": "항목이 성공적으로 업데이트되었습니다!",
+  "filesAlreadyLinkedToPerson": "{count, plural, one{파일 {count}개가 이미 {personName}에 연결되어 있습니다} other{파일 {count}개가 이미 {personName}에 연결되어 있습니다}}",
+  "@filesAlreadyLinkedToPerson": {
+    "description": "Toast shown when selected files are already manually tagged to the selected person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "filesAvailableOffline": "{count, plural, one{파일 {count}개를 오프라인에 저장했습니다} other{파일 {count}개를 오프라인에 저장했습니다}}",
+  "@filesAvailableOffline": {
+    "description": "Success message when files are saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesAvailableOfflinePartial": "{successCount, plural, one{파일 {successCount}개를 오프라인에 저장했습니다} other{파일 {successCount}개를 오프라인에 저장했습니다}}, {failureCount, plural, one{{failureCount}개 실패} other{{failureCount}개 실패}}",
+  "@filesAvailableOfflinePartial": {
+    "description": "Partial success message for offline save",
+    "placeholders": {
+      "failureCount": {
+        "type": "int",
+        "example": "1"
+      },
+      "successCount": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "fileSavedToGallery": "파일이 갤러리에 저장되었습니다",
+  "filesCanBeRestoredFromTrash": "{count, plural, one{백업되지 않은 항목입니다. 휴지통에서 복원할 수 있습니다.} other{백업되지 않은 항목입니다. 휴지통에서 복원할 수 있습니다.}}",
+  "@filesCanBeRestoredFromTrash": {
+    "description": "Delete confirmation message for device-only items that will be moved to trash.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "filesDeleted": "파일이 삭제되었습니다",
+  "filesDeletedPermanently": "{count, plural, one{항목 {count}개가 영구 삭제되었습니다} other{항목 {count}개가 영구 삭제되었습니다}}",
+  "@filesDeletedPermanently": {
+    "description": "Success message when items are permanently deleted from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesInAlbumSafelyOnEnte": "{count, plural, one{앨범의 이 항목은 Ente에 백업되어 있으므로, 기기에 있는 사본을 삭제해도 잃지 않고 공간을 확보할 수 있습니다.} other{앨범의 항목 {formattedNumber}개가 모두 Ente에 백업되어 있으므로, 기기에 있는 사본을 삭제해도 잃지 않고 공간을 확보할 수 있습니다.}}",
+  "@filesInAlbumSafelyOnEnte": {
+    "description": "Explains that device copies for files in an album can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesMarkedAsImportant": "{count, plural, one{항목 {count}개를 중요 항목으로 표시했습니다} other{항목 {count}개를 중요 항목으로 표시했습니다}}",
+  "@filesMarkedAsImportant": {
+    "description": "Success message when items are marked as important",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesRemovedFromOffline": "{count, plural, one{파일 {count}개를 오프라인에서 제거했습니다} other{파일 {count}개를 오프라인에서 제거했습니다}}",
+  "@filesRemovedFromOffline": {
+    "description": "Success message when offline copies are removed",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "filesRestoredSuccessfully": "{count, plural, one{항목 {count}개가 복원되었습니다} other{항목 {count}개가 복원되었습니다}}",
+  "@filesRestoredSuccessfully": {
+    "description": "Success message when items are restored from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesSafelyOnEnte": "{count, plural, one{이 항목은 Ente에 백업되어 있으므로, 기기에 있는 사본을 삭제해도 잃지 않고 공간을 확보할 수 있습니다.} other{항목 {formattedNumber}개가 모두 Ente에 백업되어 있으므로, 기기에 있는 사본을 삭제해도 잃지 않고 공간을 확보할 수 있습니다.}}",
+  "@filesSafelyOnEnte": {
+    "description": "Explains that device copies can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesSavedToGallery": "파일이 갤러리에 저장되었습니다",
+  "filesSelected": "{count, plural, =0{선택된 항목 없음} one{항목 {count}개 선택됨} other{항목 {count}개 선택됨}}",
+  "@filesSelected": {
+    "description": "Number of items selected for upload",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "fileTypes": "파일 유형",
+  "fileUpdatedSuccessfully": "항목이 성공적으로 업데이트 되었습니다!",
+  "filter": "필터",
   "filters": "필터",
-  "focusOnSearchBar": "앱 구동시 곧바로 검색하기",
+  "findingSimilarImages": "유사한 이미지 찾는 중...",
+  "findSimilarImages": "유사한 이미지 찾기",
+  "findThemQuickly": "빠르게 찾아보세요",
+  "@findThemQuickly": {
+    "description": "Subtitle to indicate that the user can find people quickly by name"
+  },
+  "fireworks": "불꽃놀이 피날레",
+  "flip": "뒤집기",
+  "flowers": "활짝 핀 꽃들",
+  "focusOnSearchBar": "App 구동 시 곧바로 검색하기",
+  "font": "글꼴",
+  "food": "맛있는 음식",
+  "forestTrails": "숲길 산책",
+  "forgotPassword": "암호를 잊으셨나요",
+  "@forgotPassword": {
+    "description": "Forgot password link label"
+  },
   "forgotRecoveryKey": "복구키를 잊었나요?",
   "free10GB": "<bold-green>ente</bold-green> Photos에서 10GB 무료로 이용",
-  "freeStorageOffer": "<bold-green>ente</bold-green> Photos에서 10% 할인받기",
+  "freeStorageOffer": "<bold-green>ente</bold-green> Photos에서 10% 할인 받기",
+  "freeStorageOfferDescription": "\"AUTH\" 코드를 사용하면 첫해 10% 할인",
+  "freeTrial": "무료 체험",
+  "freeUpAmount": "{sizeInMBorGB} 확보",
+  "@freeUpAmount": {
+    "placeholders": {
+      "sizeInMBorGB": {}
+    }
+  },
+  "freeUpDeviceSpace": "기기 공간 확보",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{백업된 파일 {count}개} other{백업된 파일 {count}개}}가 이 기기에서 영구 삭제됩니다.",
+  "@freeUpDeviceSpaceConfirmDesc": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "freeUpDeviceSpaceDesc": "백업된 항목을 제거합니다.",
+  "freeUpDeviceSpaceDescICloud": "Icloud 공유 앨범의 파일은 삭제할 수 없습니다",
+  "@freeUpDeviceSpaceDescICloud": {
+    "description": "Here 'cleared' means 'deleted' from the device"
+  },
+  "freeUpSpace": "공간 확보",
+  "gallery": "갤러리",
+  "galleryMemoryLimitInfo": "갤러리에는 추억이 최대 1000개까지 표시됩니다",
   "general": "일반 설정",
   "generatingEncryptionKeys": "암호화 키 생성 중...",
   "@generatingEncryptionKeys": {
@@ -525,12 +1812,50 @@
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
+  "getAnotherPartOfKitFrom": "다음 사람에게서 키트의 다른 부분을 받으세요",
+  "getInTouch": "문의하기",
   "getStarted": "시작하기",
-  "giveUsAStarOnGithub": "GitHub에서 별을 찍어주세요",
-  "hearUsWhereOptionalTitle": "Ente에 대해 어떻게 알게 되셨나요? (선택사항)",
+  "gettingReady": "준비 중",
+  "gettingStarted": "시작하기",
+  "gettingStartedDesc": "Locker를 설치하고 계정을 만든 다음 첫 번째 항목을 저장하세요",
+  "giveUsAStarOnGithub": "Github 에서 별점을 주세요",
+  "goldenHourPortraits": "골든 아워의 얼굴들",
+  "googlePlayId": "Google Play ID",
+  "goToUrl": "{url}(으)로 이동",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "grantFullAccessPrompt": "설정 앱에서 모든 사진에 대한 접근을 허용해 주세요",
+  "grantGalleryPermissionDesc": "얼굴 인식으로 사진에 접근하고 정리할 수 있도록 권한을 허용해 주세요. 모든 처리는 기기에서 이루어집니다.",
+  "grantGalleryPermissionTitle": "좋아하는 사진을 찾아봐요",
+  "grantPermission": "권한 허용",
+  "grantPermissionDesc": "얼굴 인식으로 라이브러리를 정리할 수 있도록 Ente가 라이브러리에 접근하도록 허용해 주세요. 모든 처리는 기기에서 이루어집니다.",
+  "greenery": "초록빛 일상",
+  "grid": "격자",
+  "groupBy": "그룹 기준",
+  "groupByDay": "일",
+  "groupByMonth": "월",
+  "groupByWeek": "주",
+  "groupByYear": "연도",
+  "groupSelfies": "우리 모두",
+  "guestView": "게스트 보기",
+  "guestViewEnablePreSteps": "게스트 보기를 사용하려면 시스템 설정에서 기기 암호나 화면 잠금을 설정해 주세요.",
+  "happyBirthday": "생일 축하합니다! 🥳",
+  "hearUsWhereOptionalTitle": "Ente에 대해 어떻게 알게 되셨나요? (선택 사항)",
   "@hearUsWhereOptionalTitle": {
     "description": "Title asking how user heard about Ente"
   },
+  "hearUsWhereTitle": "Ente를 어떻게 알게 되셨나요?",
+  "help": "도움말",
+  "helpAndSupport": "도움말 및 지원",
+  "hidden": "숨김",
+  "hiddenItemsWillShowUpHere": "숨긴 항목이 여기에 표시됩니다",
+  "hide": "숨기기",
   "hideContent": "내용 숨기기",
   "@hideContent": {
     "description": "Hide content setting title"
@@ -543,32 +1868,120 @@
   "@hideContentDescriptioniOS": {
     "description": "Description of hide content feature on iOS"
   },
+  "hideFromMemories": "추억에서 숨기기",
+  "hideSharedItemsFromHomeGallery": "홈 갤러리에서 공유된 항목 숨기기",
+  "hiding": "숨기는 중...",
+  "hikingWithThem": "{name}님과 함께한 하이킹",
+  "@hikingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "hintForDesktop": "수정이나 삭제를 원하시면 코드를 오른 클릭 해주세요.",
   "hintForMobile": "수정이나 삭제를 원하시면 코드를 길게 눌러주세요.",
+  "historicSites": "역사의 흔적",
+  "homeEmptyStateLegacyDescription": "레거시를 설정하면 회원님이 부재중일 때 소중한 사람들이 중요한 정보에 접근할 수 있습니다",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
+  "hoorayyyy": "야호!",
+  "hostedAtOsmFrance": "OSM France에서 호스팅",
   "howItWorks": "작동 원리",
   "@howItWorks": {
     "description": "How it works button label"
   },
   "howToViewShareeVerificationID": "설정 화면에서 이메일 주소를 길게 누르고 두 기기의 ID가 일치하는지 확인하도록 요청해 주세요.",
+  "iCloudUnavailable": "iCloud를 사용할 수 없음",
+  "ignore": "무시",
+  "ignored": "무시됨",
+  "ignorePerson": "인물 무시",
+  "imageEditorAlignCenter": "가운데 정렬",
+  "imageEditorAlignLeft": "왼쪽 정렬",
+  "imageEditorAlignRight": "오른쪽 정렬",
+  "imageEditorBackgroundColor": "배경 색상",
+  "imageEditorBlue": "파란색",
+  "imageEditorBold": "굵게",
+  "imageEditorBrightness": "밝기",
+  "imageEditorContrast": "대비",
+  "imageEditorCustomColor": "사용자 지정 색상",
+  "imageEditorDuplicate": "복제",
+  "imageEditorEnterText": "텍스트 입력",
+  "imageEditorExposure": "노출",
+  "imageEditorFade": "페이드",
+  "imageEditorGreen": "초록색",
+  "imageEditorHue": "색조",
+  "imageEditorItalic": "기울임꼴",
+  "imageEditorNoBackground": "배경 없음",
+  "@imageEditorNoBackground": {
+    "description": "Text background style with no visible background"
+  },
+  "imageEditorOrange": "주황색",
+  "imageEditorPink": "분홍색",
+  "imageEditorPurple": "보라색",
+  "imageEditorRed": "빨간색",
+  "imageEditorSaturation": "채도",
+  "imageEditorSolidBackground": "단색 배경",
+  "@imageEditorSolidBackground": {
+    "description": "Text background style with a fully opaque color"
+  },
+  "imageEditorTeal": "청록색",
+  "imageEditorTemperature": "색온도",
+  "imageEditorText": "텍스트",
+  "@imageEditorText": {
+    "description": "Tool for adding text to a photo"
+  },
+  "imageEditorTextColor": "텍스트 색상",
+  "imageEditorTint": "틴트",
+  "imageEditorTranslucentBackground": "반투명 배경",
+  "@imageEditorTranslucentBackground": {
+    "description": "Text background style with a half-transparent color"
+  },
+  "imageEditorWhite": "흰색",
+  "imageNotAnalyzed": "분석되지 않은 이미지",
+  "immediate": "즉시",
   "immediately": "즉시",
   "@immediately": {
     "description": "Immediately option for auto lock timing"
   },
-  "import2FasGuide": "2FAS의 옵션에서 \"설정 -> 백업 -> 내보내기\"를 이용하세요.\n\n백업이 암호화되었다면, 백업의 복호화를 위해 암호를 입력해야 할 수도 있습니다.",
-  "importAccountPageTitle": "계정 상세정보 입력",
+  "import2FasGuide": "2FAS의 옵션에서 \"설정 -> 백업 -> 내보내기\"를 이용하세요.\n\n백업이 암호화되었다면, 백업의 복호화를 위해 암호를 입력해야 할 수도 있습니다",
+  "importAccountPageTitle": "계정 정보 입력",
   "importAegisGuide": "Aegis의 설정에서 \"보관함 내보내기\"를 이용하세요.\n\n보관함이 암호화된 경우, 보관함의 복호화를 위해 보관함 비밀번호를 입력해야 할 수도 있습니다.",
-  "importAndOTPGuide": "andOTP 설정에서 \"백업\"을 이용해 백업을 내보냅니다.\n\n백업이 암호화된 경우, 복호화를 위해 백업 비밀번호를 입력해야 합니다.",
+  "importAndOTPGuide": "설정의 \"백업\" 옵션을 사용하여 Otp 백업을 내보내세요.\n\n백업이 암호화되어 있는 경우, 복호화를 위해 백업 비밀번호를 입력해야 합니다.",
   "important": "중요",
+  "importantNotSupportedForSharedFiles": "공유된 파일은 중요 항목으로 표시할 수 없습니다",
   "importBitwardenGuide": "Bitwarden의 도구에서 \"보관함 내보내기\"를 선택하여 암호화되지 않은 JSON 파일을 불러오세요.",
   "importCodeDelimiterInfo": "코드는 쉼표 혹은 줄 단위로 구분할 수 있습니다",
   "importCodes": "코드 가져오기",
   "importEnteEncGuide": "Ente에서 내보낸 암호화된 JSON 파일 선택하기",
   "importEnterSetupKey": "설정 키 입력",
   "importFailureDesc": "선택하신 파일을 분석할 수 없습니다.",
+  "importFileTooLarge": "선택한 파일이 너무 큽니다. 최대 크기: {size}.",
+  "@importFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "10 MiB"
+      }
+    }
+  },
   "importFromGallery": "갤러리에서 가져오기",
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Google Authenticator에서 코드 1개를 가져오시겠습니까?} other{Google Authenticator에서 코드 {codeCount}개를 가져오시겠습니까?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "Google Authenticator에서 \"계정 이전\" 옵션을 사용하여 계정을 QR 코드로 내보낸 다음, QR 코드를 스캔하거나 이미지에서 가져오세요.",
   "importInstruction": "다음의 포맷에 맞춰 여러분의 코드가 들어있는 파일을 선택해주세요",
   "importLabel": "불러오기",
   "importLastpassGuide": "Lastpass Authenticator의 설정에서 \"계정 이전하기\" 옵션 중 \"파일로 계정 내보내기\"를 이용하세요. 다운로드 된 JSON 파일을 불러오세요.",
+  "importOpenAuthenticatorGuide": "Open Authenticator 설정의 \"백업\" 아래 옵션을 사용하여 백업을 만든 다음 공유하거나 내보내세요.\n\n백업을 만들 때 설정한 백업 비밀번호를 입력해야 합니다.",
+  "importOtpAuthGuide": "OTP Auth에서 암호화된 백업을 내보낸 다음 .otpauthdb 또는 .otpauthdp 파일을 선택하세요. 단일 계정 .otpauth 내보내기 파일도 지원됩니다.",
+  "importProtonAuthGuide": "Proton Authenticator 설정의 \"내보내기\" 옵션을 사용하여 코드를 내보내세요.\n\n내보낸 파일이 비밀번호로 보호되어 있다면 복호화하기 위해 비밀번호를 입력해야 합니다.",
   "importRaivoGuide": "Raivo의 설정에서 \"Zip 파일로 OTP 내보내기\"를 이용해주세요.\n\nZip 파일의 압축을 풀고 JSON 파일을 가져오세요.",
   "importSelectAppExport": "{appName} 의 내보낸 파일 선택하기",
   "@importSelectAppExport": {
@@ -604,14 +2017,19 @@
   },
   "incorrectRecoveryKeyBody": "입력한 복구 키가 틀립니다",
   "incorrectRecoveryKeyTitle": "잘못 된 복구 키",
+  "indexingPausedStatusDescription": "처리가 일시 중지되었습니다. 기기가 준비되면 자동으로 다시 시작됩니다. 배터리 잔량, 배터리 상태, 발열 상태가 정상 범위에 있을 때 기기가 준비된 것으로 간주됩니다.",
+  "info": "정보",
   "informationDescription": "사랑하는 사람들과 정보를 저장하고 공유하세요.",
+  "informationTypes": "정보 유형",
+  "informationTypesDesc": "문서, 메모, 카드, 비밀번호 및 기타 항목 유형",
   "initialBackupCreated": "초기 백업을 생성했습니다!",
+  "inOrder": "순서대로",
   "insecureDevice": "보안이 허술한 기기",
   "@insecureDevice": {
     "description": "Insecure device warning title"
   },
   "invalidEmailAddress": "잘못된 이메일 주소",
-  "invalidEmailMessage": "유효한 이메일 주소를 입력해주세요",
+  "invalidEmailMessage": "유효한 이메일 주소를 입력해주세요.",
   "@invalidEmailMessage": {
     "description": "Message for invalid email error dialog"
   },
@@ -619,23 +2037,46 @@
   "@invalidEmailTitle": {
     "description": "Title for invalid email error dialog"
   },
-  "invalidEndpoint": "유효하지 않은 엔드포인트",
+  "invalidEndpoint": "유효하지 않은 endpoint",
   "@invalidEndpoint": {
     "description": "Error message when endpoint is invalid"
   },
-  "invalidEndpointMessage": "죄송합니다, 입력하신 엔드포인트가 유효하지 않습니다. 유효한 엔드포인트를 입력하시고 다시 시도해주세요.",
+  "invalidEndpointMessage": "죄송합니다, 입력하신 endpoint 가 유효하지 않습니다. 유효한 endpoint를 입력하시고 다시 시도해주세요.",
   "@invalidEndpointMessage": {
     "description": "Detailed error message when endpoint is invalid"
   },
   "invalidKey": "유효하지 않은 키",
+  "invalidProtonExportMessage": "선택한 파일은 올바른 Proton Authenticator 내보내기 파일이 아닙니다.",
+  "invalidProtonExportTitle": "잘못된 Proton 내보내기 파일",
   "invalidQRCode": "맞지 않는 QR 코드",
   "invalidRecoveryKey": "입력하신 복구 키가 유효하지 않습니다. 24 단어가 입력됐는지, 그리고 철자가 모두 정확한지 확인해주세요.\n\n구형 복구 코드를 입력하신 경우, 64 자가 맞는지, 그리고 문자가 각각 맞는지 확인해주세요.",
+  "invalidReferralCode": "잘못된 코드",
+  "invite": "초대",
+  "inviteLimitReached": "초대를 5개 추가했습니다. 다른 초대를 추가하려면 하나를 제거하세요",
+  "inviteMembers": "멤버 초대",
+  "inviteResent": "초대를 다시 보냈습니다",
+  "invitesSentCount": "{count, plural, one{초대를 보냈습니다} other{초대를 보냈습니다}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "inviteToEnte": "Ente에 초대",
   "ok": "확인",
   "@ok": {
     "description": "Generic OK button label"
   },
   "iosOnMyDeviceNotSupported": "\"내 iPhone\"을 곧바로 이용할 수 없습니다. 그 안에 있는 폴더를 선택하거나 만드세요.",
+  "itemCount": "{count, plural, one{항목 {count}개} other{항목 {count}개}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "itemWillBeRemovedFromThisAlbum": "이 항목이 이 앨범에서 제거됩니다",
   "items": "{count}개 항목",
   "@items": {
     "description": "Number of items in a collection",
@@ -643,6 +2084,17 @@
       "count": {
         "type": "int",
         "example": "5"
+      }
+    }
+  },
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "항목에 영구 삭제까지 남은 일수가 표시됩니다",
+  "itemsStored": "저장된 항목",
+  "itemsWillBeDeletedFromAllCollections": "{count, plural, one{이 항목이 모든 컬렉션에서 삭제됩니다. 휴지통에서 복구할 수 있습니다.} other{이 항목들이 모든 컬렉션에서 삭제됩니다. 휴지통에서 복구할 수 있습니다.}}",
+  "@itemsWillBeDeletedFromAllCollections": {
+    "description": "Confirmation message explaining that deleted items leave every collection and remain recoverable from Trash.",
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },
@@ -655,23 +2107,328 @@
   "@iUnderStand": {
     "description": "Text for the button to confirm the user understands the warning"
   },
+  "join": "참여",
+  "joinAlbum": "앨범 참여",
+  "joinAlbumConfirmationDialogBody": "앨범에 참여하면 참여자들에게 회원님의 이메일이 표시됩니다.",
+  "joinAlbumSubtext": "사진을 보고 추가하려면",
+  "joinAlbumSubtextViewer": "공유 앨범에 추가하려면",
+  "keepOffline": "오프라인으로 유지",
+  "keepPhotos": "사진 유지",
+  "kiloMeterUnit": "km",
+  "lakeside": "고요한 호숫가",
   "language": "언어",
+  "lastMonth": "지난달",
+  "lastUpdated": "마지막 업데이트",
+  "lastWeek": "지난주",
+  "lastYearsTrip": "작년 여행",
+  "layout": "레이아웃",
   "layoutGrouped": "그룹",
+  "layoutJustified": "균등 배치",
+  "layoutJustifiedComfort": "균등 배치 · 여유",
+  "layoutJustifiedFlex": "균등 배치 · 유동",
+  "layoutMasonry": "벽돌형",
   "layoutTrip": "여행",
+  "leave": "나가기",
+  "leaveAlbum": "앨범 나가기",
   "leaveCollection": "컬렉션 나가기",
+  "leaveCollectionSuccessfully": "컬렉션에서 나갔습니다",
   "leaveFamily": "가족 그룹 떠나기",
-  "legacy": "레거시",
+  "leaveFamilyPlan": "가족 요금제 나가기",
+  "@leaveFamilyPlan": {
+    "description": "Button label for leaving family plan",
+    "type": "text"
+  },
+  "leaveSharedAlbum": "공유 앨범에서 나가시겠습니까?",
+  "left": "나감",
+  "leftCollectionsSuccessfully": "{count, plural, one{컬렉션 {count}개에서 나갔습니다} other{컬렉션 {count}개에서 나갔습니다}}",
+  "@leftCollectionsSuccessfully": {
+    "description": "Success message when leaving collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "legacy": "기존",
+  "legacyAccounts": "레거시 계정",
+  "legacyCongratulationsMessage": "레거시 설정을 완료했습니다.\n중요한 정보를 저장해 보세요.",
+  "legacyDesc": "신뢰할 수 있는 연락처, 레거시 키트, 계정 복구 계획",
+  "legacyEmptyStateDescription": "회원님이 부재중일 때 레거시를 통해 소중한 사람들이 Locker에 있는 정보에 접근할 수 있습니다.",
+  "legacyIntroCard1": "카드 3장을 드립니다",
+  "legacyIntroCard2": "신뢰하는 3명에게\n나눠 주세요",
+  "legacyIntroCard3": "3장 중 2장만 있으면 Locker의 정보를 열 수 있습니다",
+  "legacyIntroTitle": "회원님이 부재중일 때 소중한 사람들이 중요한 정보에 접근할 수 있도록 하세요.",
+  "legacyInvite": "{email}님이 회원님을 신뢰할 수 있는 연락처로 초대했습니다",
+  "@legacyInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "family@example.com"
+      }
+    }
+  },
+  "legacyKitAllSetDescription": "언제든지 레거시 키트를 더 만들거나 접근 권한을 취소할 수 있습니다.",
+  "legacyKitAllSetTitle": "레거시 키트가 준비되었습니다!",
+  "legacyKitEmptyDescription": "신뢰하는 사람들이 함께 회원님의 계정을 복구할 수 있도록 하세요",
+  "legacyKitMaxReached": "레거시 키트는 최대 5개까지 만들 수 있습니다.",
+  "legacyKitRecoveryAttemptInProgress": "복구 시도 진행 중",
+  "legacyKitRecoveryAttemptMessage": "이 레거시 키트로 복구가 시작되었으며, {availableAt}에 계정에 접근할 수 있게 됩니다.\n\n그 전까지는 언제든지 복구를 거부할 수 있습니다.",
+  "@legacyKitRecoveryAttemptMessage": {
+    "placeholders": {
+      "availableAt": {
+        "type": "String",
+        "example": "April 7, 2026 7:34 PM"
+      }
+    }
+  },
+  "legacyKitRecoveryInProgress": "복구 진행 중",
+  "legacyKitRecoveryWarning": "누군가 레거시 키트를 사용하여 회원님의 계정을 복구하려고 합니다",
+  "legacyKits": "레거시 키트",
+  "legacyPageDesc": "레거시를 사용하면 회원님이 부재중일 때 신뢰할 수 있는 연락처가 회원님의 계정에 접근할 수 있습니다.",
+  "legacyPageDesc2": "신뢰할 수 있는 연락처는 계정 복구를 시작할 수 있으며, 30일 이내에 차단되지 않으면 암호를 재설정하고 회원님의 계정에 접근할 수 있습니다.",
+  "letsTryThatAgain": "다시 시도해 볼까요",
   "lightTheme": "라이트",
-  "linkCopiedToClipboard": "링크가 클립보드에 복사되었습니다",
+  "like": "좋아요",
+  "likeAll": "모두 좋아요",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "likedAComment": "님이 댓글에 좋아요를 눌렀습니다",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAPhoto": "님이 사진에 좋아요를 눌렀습니다",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "님이 답글에 좋아요를 눌렀습니다",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "님이 동영상에 좋아요를 눌렀습니다",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "님이 회원님의 댓글에 좋아요를 눌렀습니다",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourPhoto": "님이 회원님의 사진에 좋아요를 눌렀습니다",
+  "@likedYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "님이 회원님의 답글에 좋아요를 눌렀습니다",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "님이 회원님의 동영상에 좋아요를 눌렀습니다",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likesCount": "{count, plural, one{좋아요 {count}개} other{좋아요 {count}개}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "librarySharingAllCurrentAlbumsShared": "현재 모든 앨범이 공유되고 있습니다",
+  "librarySharingBannerDescription": "모든 앨범 공유하기",
+  "librarySharingDisable": "비활성화",
+  "librarySharingDisableDescription": "이미 공유한 앨범은 앞으로 추가하는 사진을 포함하여 {recipient}님과 계속 공유됩니다. 새 앨범은 자동으로 공유되지 않습니다.\n\n앨범 공유를 중지하려면 앨범을 누르고 \"{stopSharingLabel}\"을(를) 선택하세요.",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingDisableTitle": "라이브러리 공유를 비활성화하시겠습니까?",
+  "librarySharingEnableDescription": "기존 앨범과 앞으로 만드는 모든 앨범이 {recipient}님과 자동으로 공유됩니다.",
+  "@librarySharingEnableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "librarySharingEnableTitle": "라이브러리 공유를 활성화하시겠습니까?",
+  "librarySharingFailedAlbumCount": "{count, plural, one{앨범 {count}개를 업데이트할 수 없습니다.} other{앨범 {count}개를 업데이트할 수 없습니다.}}",
+  "@librarySharingFailedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingFailedDescription": "선택한 앨범을 업데이트할 수 없습니다.",
+  "librarySharingFailedTitle": "공유 실패",
+  "librarySharingHiddenAlbumsDescription": "숨긴 앨범은 공유되지 않습니다. 언제든지 앨범 공유를 중지할 수 있습니다.",
+  "librarySharingMemberSubtitle": "{count, plural, =0{공유된 앨범 없음 • {storageUsage}} one{앨범 {count}개 공유됨 • {storageUsage}} other{앨범 {count}개 공유됨 • {storageUsage}}}",
+  "@librarySharingMemberSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "storageUsage": {
+        "type": "String",
+        "example": "2 GB"
+      }
+    }
+  },
+  "librarySharingMixed": "혼합",
+  "librarySharingNoAlbumsToShare": "아직 공유할 앨범이 없습니다",
+  "librarySharingPreviouslyUnsharedDescription": "{count, plural, one{이전에 이 앨범의 공유를 중지했기 때문에 다시 공유되지 않았습니다.} other{이전에 이 앨범들의 공유를 중지했기 때문에 다시 공유되지 않았습니다.}}",
+  "@librarySharingPreviouslyUnsharedDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingPreviouslyUnsharedTitle": "{count, plural, one{앨범 {count}개가 공유되지 않았습니다} other{앨범 {count}개가 공유되지 않았습니다}}",
+  "@librarySharingPreviouslyUnsharedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingRetryFailedAlbums": "실패한 앨범 다시 시도",
+  "librarySharingRole": "역할",
+  "librarySharingRoles": "역할",
+  "librarySharingShareAlbumCount": "{count, plural, one{앨범 {count}개 공유} other{앨범 {count}개 공유}}",
+  "@librarySharingShareAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingShareAlbums": "앨범 공유",
+  "librarySharingSharedAlbumCount": "{count, plural, =0{공유된 앨범 없음} one{앨범 {count}개 공유됨} other{앨범 {count}개 공유됨}}",
+  "@librarySharingSharedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingShareWith": "공유 대상",
+  "librarySharingSharingWith": "공유 중인 대상",
+  "librarySharingStopSharing": "공유 중지",
+  "librarySharingStopSharingDescription": "{count, plural, one{상대방이 이 앨범에 더 이상 접근할 수 없으며, 상대방이 추가한 사진도 함께 사라집니다. 나중에 다시 공유할 수 있습니다.} other{상대방이 이 앨범들에 더 이상 접근할 수 없으며, 상대방이 추가한 사진도 함께 사라집니다. 나중에 다시 공유할 수 있습니다.}}",
+  "@librarySharingStopSharingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingStopSharingTitle": "{count, plural, one{앨범 {count}개의 공유를 중지하시겠습니까?} other{앨범 {count}개의 공유를 중지하시겠습니까?}}",
+  "@librarySharingStopSharingTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingTitle": "라이브러리 공유",
+  "librarySharingUpdateRoles": "역할 업데이트",
+  "limit": "한도",
+  "linkCopiedToClipboard": "링크가 클립보드에 복사 되었습니다",
   "linkDeletedSuccessfully": "링크가 성공적으로 삭제되었습니다",
+  "linkDeviceLimit": "기기 한도",
   "linkEnabled": "활성화됨",
   "linkExpired": "만료됨",
+  "linkExpiresOn": "링크가 {expiryTime}에 만료됩니다",
+  "@linkExpiresOn": {
+    "placeholders": {
+      "expiryTime": {}
+    }
+  },
+  "linkExpiry": "링크 만료",
   "linkHasExpired": "링크가 만료되었습니다",
+  "linkLabel": "링크",
   "linkNeverExpires": "만료 안 함",
-  "localBackupDailyManualCopy": "앱을 실행할 때 하루에 하나씩 로컬 백업을 생성합니다. 수동으로 백업하려면 \"지금 백업\"을 이용하세요. 백업 파일은 최대 5개 유지됩니다.",
-  "localBackupSidebarTitle": "로컬 백업",
+  "linkRequestLimitExceeded": "이 앨범은 너무 많은 기기에서 조회되었습니다",
+  "linkSettings": "링크 설정",
+  "links": "링크",
+  "list": "목록",
+  "livePhotos": "Live Photos",
+  "loadingExifData": "EXIF 데이터 불러오는 중...",
+  "loadingGallery": "갤러리 불러오는 중...",
+  "loadingModel": "모델 다운로드 중...",
+  "loadingYourPhotos": "사진 불러오는 중...",
+  "loadMessage1": "가족과 구독을 공유할 수 있습니다",
+  "loadMessage2": "지금까지 {memoriesCountInMillions}백만 개 이상의 추억을 보존했습니다",
+  "@loadMessage2": {
+    "placeholders": {
+      "memoriesCountInMillions": {
+        "type": "int"
+      }
+    }
+  },
+  "loadMessage3": "데이터 사본 3개를 보관하며, 그중 하나는 지하 낙진 대피소에 있습니다",
+  "loadMessage4": "저희의 모든 앱은 오픈 소스입니다",
+  "loadMessage5": "저희의 소스 코드와 암호화 방식은 외부 감사를 받았습니다",
+  "loadMessage6": "소중한 사람들과 앨범 링크를 공유할 수 있습니다",
+  "loadMessage7": "모바일 앱은 백그라운드에서 실행되어 새로 찍은 사진을 암호화하고 백업합니다",
+  "loadMessage8": "{webUrl}에서 편리하게 업로드할 수 있습니다",
+  "@loadMessage8": {
+    "description": "Loading screen message about the web uploader.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
+  "loadMessage9": "XChaCha20Poly1305로 데이터를 안전하게 암호화합니다",
+  "localBackupDailyManualCopy": "App을 실행할 때 하루에 한 번 내부 백업을 생성합니다. 수동으로 백업하려면 \"지금 백업\"을 이용하세요. 백업 파일은 최대 5개 유지됩니다.",
+  "localBackupSidebarTitle": "내부 백업",
+  "localGallery": "로컬 갤러리",
+  "localIndexing": "로컬 처리",
+  "localSyncErrorMessage": "로컬 사진 동기화가 예상보다 오래 걸려 문제가 생긴 것 같습니다. 지원팀에 문의해 주세요",
+  "location": "위치",
+  "locationName": "위치 이름",
+  "locationPickerTip": "사진 정보 화면에서 해당 사진을 중심으로 위치를 추가할 수도 있습니다",
+  "@locationPickerTip": {
+    "description": "Helper tip text shown in the location picker that refers to the photo info screen."
+  },
+  "locations": "위치",
+  "locationTagFeatureDescription": "위치 태그는 사진을 중심으로 일정 반경 안에서 찍은 모든 사진을 묶어 줍니다",
   "locationUpdatedAndBackupCreated": "위치를 변경하고 초기 백업을 생성했습니다!",
   "lockButtonLabel": "잠금",
+  "lockerRecordsCount": "{count, plural, one{기록 {formattedCount}개} other{기록 {formattedCount}개}}",
+  "@lockerRecordsCount": {
+    "description": "Delete impact row for Locker data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "loggingOut": "로그아웃하는 중...",
   "@loggingOut": {
     "description": "Message shown while logging out"
@@ -680,60 +2437,266 @@
   "@logInLabel": {
     "description": "Log in button label"
   },
-  "loginSessionExpired": "세션 만료됨",
+  "loginSessionExpired": "만료됨",
   "@loginSessionExpired": {
     "description": "Login session expired title"
   },
-  "loginSessionExpiredDetails": "세션이 만료되었습니다. 다시 로그인해주세요.",
+  "loginSessionExpiredDetails": "만료되었습니다. 다시 로그인해주세요.",
   "@loginSessionExpiredDetails": {
     "description": "Login session expired details"
   },
-  "loginTerms": "로그인을 누름으로써, 나는 <u-terms>사용자 약관</u-terms>과 <u-policy>개인정보 취급방침</u-policy>에 동의합니다.",
+  "loginTerms": "로그인을 누름으로써, 나는 <u-terms>사용자 약관</u-terms>과 <u-policy>개인정보 취급방침</u-policy>에 동의합니다",
   "@loginTerms": {
     "description": "Terms agreement text for login"
   },
+  "loginToEnte": "Ente에 로그인",
+  "loginToExistingAccount": "기존 계정으로 로그인",
   "loginWithAuthAccount": "Auth 계정으로 로그인",
   "loginWithTOTP": "TOTP로 로그인 하기",
   "@loginWithTOTP": {
     "description": "Login with TOTP button label"
   },
   "logout": "로그아웃",
+  "logs": "로그",
+  "logsDialogBody": "문제 해결을 돕기 위해 로그를 전송합니다. 특정 파일의 문제를 추적할 수 있도록 파일 이름이 포함된다는 점에 유의해 주세요.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
   "logsDialogBodyLocker": "문제를 해결하기 위해 로그가 전송됩니다.",
   "@logsDialogBodyLocker": {
     "description": "Dialog body text for sending logs in Locker app (without file name warning)"
   },
-  "longPressAnEmailToVerifyEndToEndEncryption": "이메일을 길게 눌러 종단간 암호화를 확인하세요.",
+  "logsNotCopiedDownloadNote": "로그가 복사되지 않았습니다. 로그를 내보내서 이메일에 첨부해 주세요.",
+  "longPressAnEmailToVerifyEndToEndEncryption": "이메일을 길게 눌러 종 단 간 암호화를 확인하세요.",
+  "lookBackOnYourMemories": "추억을 되돌아보세요 🌄",
+  "lookingForVisualSimilarities": "시각적 유사성을 찾는 중...",
+  "loopVideoOff": "반복 재생 켜기",
+  "loopVideoOn": "반복 재생 끄기",
+  "lostDevice": "기기를 분실하셨나요?",
   "lostDeviceTitle": "기기를 잃어버리셨나요?",
   "@lostDeviceTitle": {
     "description": "Lost device title"
   },
   "machineLearning": "머신 러닝",
+  "machineLearningBannerSubtitle": "마법 검색 및 얼굴 인식용",
   "magic": "마법",
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "관리",
   "manageDeviceStorage": "장비 cache 관리",
+  "manageDeviceStorageDesc": "로컬 저장 공간 검토 및 정리",
+  "manageFamily": "가족 관리",
   "manageLink": "링크 관리",
-  "manageParticipants": "관리",
+  "managePaymentMethod": "결제 수단 관리",
+  "manageSubscription": "구독 관리",
   "manualSort": "사용자 정의",
+  "map": "지도",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "지도",
+  "mapsPrivacyNotice": "지도와 위치를 표시하기 위해 대략적인 좌표가 OpenStreetMap과 같이 개인정보를 중시하는 제3자에게 전송됩니다.",
   "markingAsImportant": "중요로 표시 중...",
+  "me": "나",
+  "mediaManagementHintMessage": "설정에서 Ente의 미디어 관리 권한을 켜면 확인 메시지가 더 이상 표시되지 않습니다.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
+  "mediaManagementHintTitle": "삭제할 때마다 확인하기 번거로우신가요?",
+  "@mediaManagementHintTitle": {
+    "description": "Title of a sheet prompting Android users to enable media management permission."
+  },
+  "meetEnteLocker": "Ente Locker를 만나 보세요",
+  "@meetEnteLocker": {
+    "description": "Button in the Photos changelog that opens the Ente Locker website"
+  },
+  "members": "멤버",
+  "memberStorageUsed": "{amount} 사용",
+  "@memberStorageUsed": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "memories": "추억",
+  "memoriesReadyNotificationTitle": "추억을 다시 만나 보세요 ✨",
+  "memoriesReadyNotificationBody": "회원님의 휴대폰에서 직접 엄선했습니다",
+  "memoriesWidgetDesc": "홈 화면에서 보고 싶은 추억의 종류를 선택하세요.",
+  "memoryCount": "{count, plural, =0{추억 없음} one{추억 {formattedCount}개} other{추억 {formattedCount}개}}",
+  "@memoryCount": {
+    "description": "The text to display the number of memories",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "1",
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "11.513, 11,511"
+      }
+    }
+  },
+  "memoryLaneCardTitle": "{nameEndsWithS, select, true{{name}님의 추억의 길} other{{name}님의 추억의 길}}",
+  "@memoryLaneCardTitle": {
+    "description": "Title for a person's Memory Lane, used on the home screen card, viewer page, and shared link",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "description": "Person's name"
+      },
+      "nameEndsWithS": {
+        "type": "String",
+        "description": "true if the trimmed name ends in s or S; false otherwise"
+      }
+    }
+  },
+  "memoryLink": "추억 링크",
+  "memoryShareLinkDescription": "이 링크는 7일 후 자동으로 만료됩니다.",
   "merchandise": "제품",
-  "minimizeAppOnCopy": "복사 후 어플을 최소화하기",
-  "minimizeToTrayOnClose": "닫을 때 트레이로 최소화",
+  "merge": "병합",
+  "mergedPhotos": "병합된 사진",
+  "mergeWithExisting": "기존 항목과 병합",
+  "mergeWithPersonDescription": "두 얼굴 그룹의 모든 사진이 {name}(으)로 병합됩니다.",
+  "@mergeWithPersonDescription": {
+    "description": "Description for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "mergeWithPersonTitle": "{name}과(와) 병합하시겠습니까?",
+  "@mergeWithPersonTitle": {
+    "description": "Title for confirming a merge with an existing person.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Jamie Long"
+      }
+    }
+  },
+  "menubarMode": "메뉴 막대 모드",
+  "message": "메시지",
+  "minimizeAppOnCopy": "복사 후 최소화하기",
+  "minimizeToTrayOnClose": "닫을 때 최소화",
+  "minutesCountShort": "{count}분",
+  "@minutesCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "mixedGrouping": "여러 사람이 섞인 그룹입니까?",
+  "mlConsent": "머신 러닝 활성화",
+  "mlConsentConfirmation": "이해했으며, 머신 러닝을 활성화하겠습니다",
+  "mlConsentDescription": "머신 러닝을 활성화하면 Ente가 회원님과 공유된 파일을 포함한 파일에서 얼굴 형태 등의 정보를 추출합니다.\n\n이 작업은 기기에서 이루어지며, 생성된 생체 정보는 모두 종단간 암호화됩니다.",
+  "mlConsentPrivacy": "이 기능에 대한 자세한 내용은 여기를 눌러 개인정보 처리방침을 확인하세요",
+  "mlCouldNotProcessItems": "{count, plural, one{항목 {count}개를 처리할 수 없습니다} other{항목 {count}개를 처리할 수 없습니다}}",
+  "@mlCouldNotProcessItems": {
+    "description": "Title shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlIndexingDescription": "모든 항목이 처리될 때까지 머신 러닝으로 인해 대역폭과 배터리 사용량이 늘어날 수 있습니다. 더 빠르게 처리하려면 데스크톱 앱을 사용해 보세요. 모든 결과는 자동으로 동기화됩니다.",
+  "mlItemsCouldNotBeProcessed": "{count, plural, one{항목 {count}개를 머신 러닝으로 처리할 수 없습니다. 저희에게 문의해 주시면 도와드리겠습니다.} other{항목 {count}개를 머신 러닝으로 처리할 수 없습니다. 저희에게 문의해 주시면 도와드리겠습니다.}}",
+  "@mlItemsCouldNotBeProcessed": {
+    "description": "Description shown when machine learning could not process one or more items",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mlProcessingIssueReachOut": "저희에게 문의해 주시면 도와드리겠습니다.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
+  "mlProgressBannerDescription": "얼굴, 사물 등을 감지하기 위해 기기에서 사진을 처리하고 있습니다",
+  "mlProgressBannerStatus": "사진 {total}장 중 {indexed}장 처리됨",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "mlProgressBannerTitle": "잠시만 기다려 주세요!",
   "moderateStrength": "보통",
   "@moderateStrength": {
     "description": "Moderate password strength label"
   },
+  "modifyYourQueryOrTrySearchingFor": "검색어를 수정하거나 다음을 검색해 보세요",
+  "moments": "순간",
+  "month": "월",
+  "monthly": "월간",
+  "@monthly": {
+    "description": "The text to display for monthly plans",
+    "type": "text"
+  },
+  "moon": "달빛 아래에서",
+  "more": "더보기",
+  "moreDetails": "자세히 보기",
+  "moreFrom": "Ente의 다른 앱",
+  "@moreFrom": {
+    "description": "Heading shown above links to other Ente apps"
+  },
+  "moreOptions": "옵션 더보기",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
   "mostFrequentlyUsed": "자주 사용됨",
+  "mostRecent": "최근 항목",
   "mostRecentlyUsed": "최근에 사용됨",
-  "moveMultipleToTrashMessage": "항목 {count}개를 휴지통으로 이동하시겠습니까?",
+  "mostRelevant": "관련성 높은 순",
+  "mountains": "언덕 너머",
+  "movedSuccessfullyTo": "{albumName}(으)로 이동했습니다",
+  "@movedSuccessfullyTo": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "movedToTrash": "휴지통으로 이동했습니다",
+  "moveItem": "{count, plural, one{항목 이동} other{항목 이동}}",
+  "@moveItem": {
+    "description": "Page title while moving one or more items to an album",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "moveMultipleToTrashMessage": "항목(들) {count}개를 휴지통으로 이동하시겠습니까?",
   "@moveMultipleToTrashMessage": {
     "placeholders": {
       "count": {}
     }
   },
+  "moveSelectedPhotosToOneDate": "선택한 사진을 한 날짜로 이동",
+  "moveToAlbum": "앨범으로 이동",
+  "moveToHiddenAlbum": "숨긴 앨범으로 이동",
+  "moveToTrashQuestion": "휴지통으로 이동하시겠습니까?",
+  "movingFilesToAlbum": "파일을 앨범으로 이동하는 중...",
+  "muteAudio": "음소거",
   "name": "이름",
+  "nDays": "{count}일",
+  "@nDays": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
   "networkConnectionRefusedErr": "Ente에 접속할 수 없습니다, 잠시 후에 다시 시도해주세요. 에러가 반복되는 경우, 저희 지원 팀에 문의해주세요.",
   "@networkConnectionRefusedErr": {
     "description": "Error message shown when the app cannot connect to Ente due to connection refused"
@@ -743,36 +2706,108 @@
     "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
   },
   "never": "안 함",
+  "newAlbum": "새 앨범",
   "newCollection": "새 컬렉션",
+  "newest": "최신순",
+  "newLocation": "새 위치",
+  "newPhotosEmoji": " 새 사진 📸",
+  "newRange": "새 범위",
   "next": "다음",
   "@next": {
     "description": "Next button label"
   },
   "nextTotpTitle": "다음",
+  "nHours": "{count}시간",
+  "@nHours": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "nightLights": "네온 불빛의 밤",
   "no": "아니오",
+  "noAppToOpenFileDownloadInstead": "이 파일을 미리 볼 수 있는 앱이 없습니다. 다운로드한 후 다른 앱으로 열 수 있습니다.",
+  "@noAppToOpenFileDownloadInstead": {
+    "description": "Message shown when Android cannot find an app to open or preview a file"
+  },
   "noChangesWereMade": "변경 사항이 없습니다",
   "noCollections": "컬렉션 없음",
   "noDefaultBackupFolder": "기본 백업 폴더를 만들 수 없습니다.",
+  "noDeleteSuggestion": "삭제 제안 없음",
+  "noDeviceFound": "기기를 찾을 수 없습니다",
   "noDeviceLimit": "없음",
   "@noDeviceLimit": {
     "description": "Text to indicate that there is limit on number of devices"
   },
+  "noDeviceThatCanBeDeleted": "이 기기에 삭제할 수 있는 파일이 없습니다",
   "noDuplicates": "✨ 중복 없음",
+  "noEmailAppBody": "메시지를 복사하여 아무 이메일 서비스에서나 {email}(으)로 보내 주세요.",
+  "@noEmailAppBody": {
+    "description": "No-mail-app fallback subtitle with the target email address",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "noEmailAppFound": "이메일 앱을 찾을 수 없습니다",
+  "noExifData": "EXIF 데이터 없음",
+  "noFacesFound": "얼굴을 찾을 수 없습니다",
   "noFilesFound": "항목이 없습니다",
+  "noHiddenFilesOnDevice": "기기에 숨긴 파일이 없습니다",
+  "noImagesWithLocation": "위치 정보가 있는 이미지가 없습니다",
   "noInternetConnection": "인터넷 연결 없음",
   "@noInternetConnection": {
     "description": "No internet connection error message"
   },
   "noItemsMatchSelectedFilters": "선택한 필터와 일치하는 항목이 없습니다",
+  "noLikesYet": "아직 좋아요가 없습니다",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "noLimit": "제한 없음",
+  "noLimitSet": "한도가 설정되지 않음",
+  "noLocation": "위치 없음",
+  "@noLocation": {
+    "description": "Search result label for files owned by the user with missing location metadata"
+  },
+  "noLocationTag": "위치 태그 없음",
+  "@noLocationTag": {
+    "description": "Search result label for files that do not have a manual location tag"
+  },
+  "noMatchesFound": "일치하는 항목이 없습니다!",
+  "noPaymentAppFound": "결제 앱을 찾을 수 없습니다",
+  "noPhotosFoundHere": "여기에 사진이 없습니다",
+  "noRecoveryKeyNoDecryption": "종단간 암호화 프로토콜의 특성상 암호나 복구 키 없이는 데이터를 복호화할 수 없습니다",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
   "noRecoveryKeyTitle": "복구 키가 없으세요?",
   "@noRecoveryKeyTitle": {
     "description": "No recovery key title"
   },
   "noResult": "결과 없음",
+  "noResultsFound": "결과가 없습니다",
+  "noMatchingResultsFound": "일치하는 결과가 없습니다",
+  "noSessionsFound": "세션이 없습니다!",
+  "noSimilarImagesFound": "유사한 이미지가 없습니다",
+  "noSuggestionsForPerson": "{personName}에 대한 제안이 없습니다",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
   "noSystemLockFound": "시스템 잠금 찾을 수 없음",
   "@noSystemLockFound": {
     "description": "Error when no system lock is found"
   },
+  "notBackedUp": "백업되지 않음",
   "note": "메모",
   "noteContent": "내용",
   "noteContentHint": "중요한 생각이나 지침을 적어두세요",
@@ -791,16 +2826,111 @@
     }
   },
   "nothingToSeeHere": "여기에는 아무것도 없습니다",
+  "nothingToCleanUp": "정리할 항목이 없습니다",
+  "nothingToTidyUpHere": "여기에는 정리할 항목이 없습니다",
+  "notifications": "알림",
+  "notifyMe": "알림 받기",
+  "notPersonLabel": "{name}이(가) 아닌가요?",
+  "@notPersonLabel": {
+    "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
+    "placeholders": {
+      "name": {
+        "content": "{name}",
+        "type": "String"
+      }
+    }
+  },
   "notSupportedForHOTP": "HOTP는 지원하지 않습니다",
+  "notThisPerson": "이 인물이 아닌가요?",
   "ocrGenericDetectError": "사진에서 문자를 발견하지 못 했음",
   "ocrImageDecodeFailedError": "사진 파일 읽을 수 없음",
   "ocrImageNotFoundError": "사진 파일 찾을 수 없음",
   "ocrModelsNetworkRequiredError": "처음 사용에는 OCR 모델은 받기 위해 인터넷 연결이 필요합니다",
   "ocrModelsPrepareFailed": "OCR 모델 준비 실패",
   "ocrNoTextDetected": "문자가 발견되지 않았습니다",
+  "of_": "/",
+  "offlineEnableBackupTagLabel": "10GB 무료!",
+  "offlineFacesBannerSubtitle": "가입하면 인물을 태그하고 나중에 쉽게 찾을 수 있습니다.",
+  "offlineFacesBannerTitle": "이 얼굴들을 저장하시겠습니까?",
+  "offlineHomeSignupBannerAction": "지금 백업",
+  "offlineHomeSignupBannerDescription": "3곳에 암호화된 백업을 보관하여 추억을 안전하게 지킵니다.",
+  "offlineHomeSignupBannerTitle": "추억을 영원히 지키세요",
+  "offlineKeyUnavailableMessage": "Ente Auth가 오프라인 코드의 키에 접근할 수 없습니다.",
   "offlineModeWarning": "백업 없이 진행하는 것을 선택하셨습니다. 코드의 안전성을 위해 별도의 백업 대책을 마련해주세요.",
+  "offlineNameFaceBannerSubtitle": "가입하면 태그를 지정하고 해당 인물의 사진을 나중에 쉽게 찾을 수 있습니다.",
+  "offlineNameFaceBannerTitle": "이 얼굴에 이름을 붙여 주세요",
+  "offlineSettingsBannerDesc": "영지식 암호화로 추억은 온전히 회원님만의 것입니다.",
+  "offlineSettingsBannerTitle": "저희는 회원님의 사진을 볼 수 없습니다. 절대로요.",
+  "onboardingDesc": "사진과 동영상을 저장하세요. 모든 추억을 한곳에.",
+  "onboardingTitle": "잊고 싶지 않은 모든 것을 위해",
+  "onDevice": "기기",
+  "@onDevice": {
+    "description": "The text displayed above folders/albums stored on device",
+    "type": "text"
+  },
+  "oneAccountAcrossEnteApps": "하나의 계정으로 Ente Photos, Ente Auth, Ente Locker를 모두 사용할 수 있습니다.",
+  "@oneAccountAcrossEnteApps": {
+    "description": "Explains that account deletion affects all Ente apps"
+  },
+  "oneLineAboutTheIssue": "문제에 대한 한 줄 설명",
+  "onEnte": "<branding>ente</branding>에 있음",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "코드를 변경하려면 {familyAdminEmail}에게 문의해 주세요.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
+  "onlyThem": "이 인물만",
+  "onlyUploadedFilesCanBeAddedToPerson": "업로드된 파일만 인물에 추가할 수 있습니다",
+  "@onlyUploadedFilesCanBeAddedToPerson": {
+    "description": "Shown when user tries to manually tag files that are not uploaded yet."
+  },
+  "onTheRoad": "다시 길 위에서",
+  "onThisDay": "이날",
+  "onThisDayMemories": "이날의 추억",
+  "onThisDayNotificationExplanation": "지난 몇 년간 오늘 날짜의 추억",
+  "oops": "이런",
+  "@oops": {
+    "description": "Oops error title"
+  },
+  "oopsCouldNotSaveEdits": "이런",
   "oopsSomethingWentWrong": "문제가 생겼습니다",
-  "orPickAnExistingOne": "또는 기존 항목 선택",
+  "openAlbumInBrowser": "브라우저에서 앨범 열기",
+  "openAlbumInBrowserTitle": "이 앨범에 사진을 추가하려면 웹 앱을 사용해 주세요",
+  "openFile": "파일 열기",
+  "openLink": "링크 열기",
+  "openSettings": "설정 열기",
+  "openstreetmapContributors": "OpenStreetMap 기여자",
+  "optionalAsShortAsYouLike": "선택 사항이며, 원하는 만큼 짧게 작성해도 됩니다...",
+  "organization": "정리",
+  "organizationDesc": "컬렉션, 즐겨 찾기, 검색 등 항목을 정리하는 다양한 방법",
+  "orRemoveYourself": "또는 {email}님의 신뢰할 수 있는 연락처에서 나를 제거하세요",
+  "@orRemoveYourself": {
+    "description": "Text shown before remove contact button in ready state",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otherDetectedFaces": "감지된 다른 얼굴",
+  "others": "기타",
+  "pair": "페어링",
+  "pairUsingCode": "코드로 페어링",
+  "pairWithAutoDesc": "자동 페어링은 Cast를 지원하는 기기에서만 작동합니다.",
+  "pairWithCodeDesc": "PIN으로 페어링하면 앨범을 보고 싶은 어떤 화면에서든 사용할 수 있습니다.",
+  "panorama": "파노라마",
+  "parsingError": "구문 분석 오류",
+  "partyWithThem": "{name}님과 함께한 파티",
+  "@partyWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "passkey": "패스키",
   "passkeyAuthTitle": "패스키 검증",
   "@passkeyAuthTitle": {
@@ -819,9 +2949,11 @@
     "description": "Password changed successfully message"
   },
   "passwordEmptyError": "비밀번호는 비어있을 수 없습니다",
-  "passwordForDecryptingExport": "복호화시 이용할 비밀번호",
+  "passwordForDecryptingExport": "복호화 할 때 이용할 비밀번호",
   "passwordHint": "암호",
   "passwordLock": "비밀번호 잠금",
+  "passwordsDontMatch": "암호가 일치하지 않습니다",
+  "passwordsMatch": "암호가 일치합니다",
   "passwordStrength": "암호 보안 강도: {passwordStrengthValue}",
   "@passwordStrength": {
     "description": "Text to indicate the password strength",
@@ -839,14 +2971,124 @@
   "@passwordWarning": {
     "description": "Warning about password storage"
   },
+  "pastYearsMemories": "지난 몇 년간의 추억",
+  "pay": "결제",
+  "paymentDetails": "결제 정보",
+  "paymentFailed": "결제 실패",
+  "paymentFailedMessage": "결제에 실패했습니다. 지원팀에 문의해 주시면 도와드리겠습니다!",
+  "paymentFailedTalkToProvider": "요금이 청구되었다면 {providerName} 지원팀에 문의해 주세요",
+  "@paymentFailedTalkToProvider": {
+    "description": "The text to display when the payment failed",
+    "type": "text",
+    "placeholders": {
+      "providerName": {
+        "example": "AppStore|PlayStore",
+        "type": "String"
+      }
+    }
+  },
+  "pending": "대기 중",
+  "pendingSync": "동기화 대기 중",
   "pendingSyncs": "경고",
   "pendingSyncsWarningBody": "코드 몇 개가 백업 되어있지 않습니다.\n\n로그아웃하기 전 해당 코드들을 백업하셨는지 확인해주세요.",
+  "people": "인물",
+  "peopleAutoAddDesc": "선택한 인물의 사진을 이 앨범에 자동으로 추가합니다",
+  "@peopleAutoAddDesc": {
+    "description": "The message the copy should convey is that photos or videos containing the selected people's faces will be automatically added to this album"
+  },
+  "peopleWidgetDesc": "홈 화면에서 보고 싶은 인물을 선택하세요.",
   "period": "기간",
+  "permanentlyDelete": "영구 삭제",
+  "permanentlyDeleteFilesBody": "{count, plural, one{이 항목은} other{이 항목 {count}개는}} 영구 삭제되며 복구할 수 없습니다.",
+  "@permanentlyDeleteFilesBody": {
+    "description": "Confirmation body for permanent deletion from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "permanentlyDeleteYourEnteAccount": "Ente 계정을 영구 삭제하시겠습니까?",
+  "@permanentlyDeleteYourEnteAccount": {
+    "description": "Heading for final account deletion confirmation"
+  },
+  "permDeleteWarning": "휴지통의 모든 항목이 영구 삭제됩니다\n\n이 작업은 되돌릴 수 없습니다",
   "personalNote": "메모",
   "personalNoteDescription": "생각과 지침을 적어두세요.",
+  "personIsAge": "{name}님이 {age}살이 되었어요!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name}님이 곧 {age}살이 됩니다",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "pets": "털복숭이 친구들",
   "photoGridSize": "사진 Grid 크기",
+  "photoLibraryAddPermissionRequired": "Ente가 사진과 동영상을 Apple 사진 앱에 저장하려면 권한이 필요합니다. 설정에서 접근을 허용할 수 있습니다.",
+  "photoLibraryAddPermissionRestricted": "이 기기에서는 사진 보관함 접근이 제한되어 있습니다.",
+  "photoOrder": "사진 순서",
+  "photoViewerFilmstripLabel": "사진 선택기",
+  "@photoViewerFilmstripLabel": {
+    "description": "Accessibility label for the thumbnail filmstrip in the photo viewer"
+  },
+  "photoViewerFilmstripPosition": "사진 {total}장 중 {current}번째",
+  "@photoViewerFilmstripPosition": {
+    "description": "Accessibility position within the thumbnail filmstrip in the photo viewer",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "photos": "사진",
+  "photosAddedByYouWillBeRemovedFromTheAlbum": "회원님이 추가한 사진이 앨범에서 제거됩니다",
+  "photosAndVideosCount": "{count, plural, one{사진 및 동영상 {formattedCount}개} other{사진 및 동영상 {formattedCount}개}}",
+  "@photosAndVideosCount": {
+    "description": "Delete impact row for Photos data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "photosCount": "{count, plural, =0{사진 0장} one{사진 {count}장} other{사진 {count}장}}",
+  "@photosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "photosKeepRelativeTimeDifference": "사진 간의 상대적인 시간 차이가 유지됩니다",
+  "photosSharedByWillAppearHere": "{email}님이 공유한 사진이 여기에 표시됩니다.",
+  "@photosSharedByWillAppearHere": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "a@test.test"
+      }
+    }
+  },
   "physicalRecords": "물건",
   "physicalRecordsDescription": "실물 항목의 위치를 저장하세요.",
+  "pickCenterPoint": "중심점 선택",
+  "picnicDays": "피크닉의 추억",
+  "pin": "고정",
   "pinLock": "Pin 잠금",
   "@pinLock": {
     "description": "PIN lock option title"
@@ -868,14 +3110,46 @@
       }
     }
   },
+  "pinPerson": "인물 고정",
   "pinText": "고정",
   "plainHTML": "일반 HTML",
+  "plainText": "일반 텍스트",
+  "plansStartAt": "요금제는 월 {price}부터 시작합니다",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "playbackSpeed": "재생 속도",
+  "playfulKids": "장난꾸러기 아이들",
+  "playOriginal": "원본 재생",
+  "playstoreSubscription": "Play 스토어 구독",
+  "playStream": "스트림 재생",
   "pleaseCheckPasswordAndTryAgain": "비밀번호를 확인하시고 다시 시도해주세요.",
   "pleaseCheckYourInternetConnectionAndTryAgain": "인터넷 연결을 확인하시고 다시 시도해주세요.",
   "@pleaseCheckYourInternetConnectionAndTryAgain": {
     "description": "Message asking user to check internet connection"
   },
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "support@ente.com으로 문의해 주시면 기꺼이 도와드리겠습니다!",
+  "pleaseContactSupportIfTheProblemPersists": "문제가 계속되면 지원팀에 문의해 주세요",
+  "pleaseEmailUsAt": "{toEmail}(으)로 이메일을 보내 주세요",
+  "@pleaseEmailUsAt": {
+    "placeholders": {
+      "toEmail": {}
+    }
+  },
+  "pleaseEnterADescription": "설명을 입력해 주세요",
+  "pleaseEnterASubject": "제목을 입력해 주세요",
+  "pleaseGrantPermissions": "권한을 허용해 주세요",
   "pleaseLoginAgain": "다시 로그인하세요",
+  "pleaseNamePersonInPeopleSectionFirst": "먼저 인물 섹션에서 인물의 이름을 지정해 주세요",
+  "@pleaseNamePersonInPeopleSectionFirst": {
+    "description": "Shown when manual tagging requires at least one named person."
+  },
+  "pleaseSelectQuickLinksToRemove": "제거할 빠른 링크를 선택해 주세요",
   "pleaseSendTheLogsTo": "이 로그를 {toEmail} 쪽으로 보내주세요",
   "@pleaseSendTheLogsTo": {
     "description": "Message asking user to send logs to email address",
@@ -891,11 +3165,24 @@
     "description": "Message asking user to try again"
   },
   "pleaseVerifyDetails": "입력된 정보를 확인하고 다시 시도하세요",
+  "pleaseVerifyTheCodeYouHaveEntered": "입력한 코드를 확인해 주세요",
   "pleaseWait": "잠시만 기다려주세요...",
   "@pleaseWait": {
     "description": "Please wait message"
   },
+  "pleaseWaitDeletingAlbum": "앨범을 삭제하는 중입니다. 잠시 기다려 주세요",
+  "pleaseWaitForSometimeBeforeRetrying": "잠시 후 다시 시도해 주세요",
+  "pleaseWaitThisWillTakeAWhile": "잠시 기다려 주세요. 시간이 좀 걸릴 수 있습니다.",
+  "poolDays": "수영장에서의 하루",
+  "posingWithThem": "{name}님과 포즈를 취하며",
+  "@posingWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "preparingLogs": "로그를 준비하는 중...",
+  "preserveMore": "더 많이 보존하기",
+  "pressAndHoldToPlayVideoDetailed": "이미지를 길게 눌러 동영상을 재생하세요",
   "preview": "미리 보기",
   "previous": "이전",
   "privacy": "개인 정보",
@@ -903,9 +3190,32 @@
   "@privacyPolicyTitle": {
     "description": "Privacy policy title"
   },
+  "privateSpaceForEveryMember": "모든 멤버를 위한 개인 공간",
+  "proceed": "계속",
+  "processed": "처리됨",
+  "processingImport": "{folderName} 처리 중...",
+  "@processingImport": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "publicLink": "공개 링크",
+  "publicLinkAccessDescription": "링크가 있는 사람은 누구나 Ente 계정 없이 앨범을 열 수 있습니다.",
+  "publicLinkCollectDescription": "이 링크가 있는 사람은 누구나 앨범에 사진을 추가할 수 있습니다.",
   "publicLinkEnabled": "공개 링크 활성화됨",
+  "publicLinkViewDescription": "이 링크가 있는 사람은 누구나 앨범에 접근할 수 있습니다.",
   "qr": "QR",
   "qrCode": "QR 코드",
+  "questionmark": "?",
+  "queued": "대기 중",
+  "radius": "반경",
+  "rainyDays": "비 오는 날의 감성",
+  "raiseTicket": "문의 접수",
+  "@raiseTicket": {
+    "description": "Button text for raising a support tickets in case of unhandled errors during backup",
+    "type": "text"
+  },
+  "rateUs": "평가하기",
   "rateUsOnStore": "{storeName}에서 평가해주세요",
   "@rateUsOnStore": {
     "placeholders": {
@@ -913,12 +3223,54 @@
     }
   },
   "rawCodeData": "원시 코드 데이터",
+  "readyToBackupSubtitle": "사진이 백그라운드에서 동기화됩니다. 첫 백업은 시간이 다소 걸릴 수 있습니다.",
+  "readyToBackupTitle": "백업 준비 완료",
+  "reasonForLeaving": "떠나는 이유",
+  "@reasonForLeaving": {
+    "description": "Label for account deletion reason picker"
+  },
+  "reassignedToName": "회원님을 {name}(으)로 다시 지정했습니다",
+  "@reassignedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reassigningLoading": "다시 지정하는 중...",
+  "reassignMe": "\"나\" 다시 지정",
+  "receivedAlbumsLabel": "받은 앨범",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
+  },
+  "receiveRemindersOnBirthdays": "누군가의 생일에 알림 받기",
+  "recent": "최근",
+  "reclaimSpace": "{sizeInMBorGB} 확보",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
   "recordLocation": "위치",
   "recordLocationHint": "이 항목은 어디에 보관되어 있습니까?",
   "recordNameHint": "실물 항목의 이름",
   "recordNotes": "메모",
   "recordNotesHint": "항목에 대한 추가 정보",
   "recordSavedSuccessfully": "기록이 성공적으로 저장되었습니다",
+  "recordSavedToMultipleCollections": "기록을 {count, plural, one{컬렉션 {count}개} other{컬렉션 {count}개}}에 저장했습니다",
+  "@recordSavedToMultipleCollections": {
+    "description": "Success message when record is saved to multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "recover": "복구",
   "@recover": {
     "description": "Recover button label"
@@ -926,6 +3278,44 @@
   "recoverAccount": "계정 복구",
   "@recoverAccount": {
     "description": "Recover account button label"
+  },
+  "recoverAccountAfter": "{time} 이후 {email}님의 계정을 복구할 수 있습니다.",
+  "@recoverAccountAfter": {
+    "description": "Message when recovery is waiting",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recoverAccountDesc": "복구 절차를 시작하고 {days}일이 지나면 {email}님의 계정을 복구할 수 있습니다.",
+  "@recoverAccountDesc": {
+    "description": "Description for recover account page when recovery not started",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryInitiated": "복구가 시작됨",
+  "recoveryInitiatedDesc": "{days}일 후에 계정에 접근할 수 있습니다. 알림이 {email} 주소로 전송됩니다.",
+  "@recoveryInitiatedDesc": {
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      },
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
   },
   "recoveryKey": "복구 키",
   "@recoveryKey": {
@@ -947,11 +3337,35 @@
   "@recoveryKeySaveDescription": {
     "description": "Recovery key save description"
   },
+  "recoveryKeySaveShortDescription": "이 키를 안전한 곳에 보관해 주세요.",
   "recoveryKeySuccessBody": "좋습니다! 복구 키가 확인되었습니다. 확인 절차를 거쳐주셔서 감사합니다.\n\n잊지 마시고 꼭 복구 키를 안전하게 보관해주세요.",
   "recoveryKeyVerified": "복구 키 확인 됨",
   "recoveryKeyVerifyReason": "암호를 잃어버리셨을 경우, 복구 키만이 당신의 사진들을 복원할 유일한 방법이 됩니다. 설정 > 계정으로 들어가셔서 복구 키를 확인하세요.\n\n여기에 복구 키를 입력하셔서, 확인하셨던 복구 키가 정상인지 체크해보세요.",
+  "recoveryReady": "이제 새 암호를 설정하여 {email}님의 계정을 복구할 수 있습니다.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
   "recoverySuccessful": "복구 성공!",
-  "recreatePasswordBody": "현재 사용 중인 기기는 암호를 확인하기에 적합하지 않으나, 모든 기기에서 작동하는 방식으로 비밀번호를 다시 생성할 수 있습니다.\n\n복구 키를 사용하여 로그인하고 암호를 다시 생성해주세요. (원하시면 현재 사용 중인 암호와 같은 암호를 다시 사용하실 수 있습니다.)",
+  "recoveryTimeUpdated": "복구 시간이 업데이트되었습니다",
+  "@recoveryTimeUpdated": {
+    "description": "Toast message shown when recovery time is updated successfully"
+  },
+  "recoveryWaitTime": "복구 대기 시간",
+  "recoveryWaitTimeChangeWarning": "이 설정을 변경하면 진행 중인 모든 시도가 취소됩니다.",
+  "recoveryWaitTimeDescription": "레거시 키트를 스캔한 후 얼마나 지나야 계정 복구가 가능하도록 할까요?",
+  "recoveryWarning": "신뢰할 수 있는 연락처가 회원님의 계정에 접근하려고 합니다",
+  "recoveryWarningBody": "{email}님이 회원님의 계정을 복구하려고 합니다.",
+  "@recoveryWarningBody": {
+    "placeholders": {
+      "email": {}
+    }
+  },
+  "recreatePasswordBody": "현재 사용 중인 기기는 암호를 확인하기에 적합하지 않으나, 모든 기기에서 작동하는 방식으로 비밀번호를 다시 생성할 수 있습니다.\n\n복구 키를 사용하여 로그인하고 암호를 다시 생성해주세요. (원하시면 현재 사용 중인 암호와 같은 암호를 다시 사용하실 수 있습니다).",
   "@recreatePasswordBody": {
     "description": "Body text for recreate password dialog"
   },
@@ -959,10 +3373,48 @@
   "@recreatePasswordTitle": {
     "description": "Title for recreate password dialog"
   },
+  "recreateStream": "스트림 다시 생성",
+  "redo": "다시 실행",
   "reEnterPassword": "암호 다시 입력",
   "@reEnterPassword": {
     "description": "Re-enter password prompt"
   },
+  "reEnterPin": "PIN 다시 입력",
+  "@reEnterPin": {
+    "description": "Re-enter PIN prompt"
+  },
+  "referralCodeHint": "이 코드는 최대 3번까지 변경할 수 있습니다",
+  "referrals": "추천",
+  "referralsAreCurrentlyPaused": "추천 기능이 현재 일시 중지되었습니다",
+  "referralStats": "추천 통계",
+  "referralStep1": "1. 친구에게 코드를 공유하세요",
+  "referralStep2": "2. 친구가 가입하면 {storageInGB} GB를 무료로 받습니다",
+  "@referralStep2": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "referralStep3": "3. 친구가 업그레이드하면 회원님도 {storageInGB} GB를 무료로 받습니다",
+  "@referralStep3": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "referralStorageForBoth": "친구가 업그레이드하면 친구에게 {storageAmountInGB} GB + 회원님에게 {storageAmountInGB} GB.",
+  "@referralStorageForBoth": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "referralStorageInfo": "유료 구독자를 추천하면 보너스 저장 공간을 받습니다.\n\n저장 공간은 요금제 한도까지 사용할 수 있습니다. 받은 저장 공간을 모두 사용하려면 업그레이드하세요.",
+  "rejectRecovery": "복구 거부",
+  "rejectSuggestions": "제안 거부",
+  "related": "관련 항목",
+  "remindToEmptyDeviceTrash": "\"설정\" -> \"저장 공간\"에서 \"최근 삭제된 항목\"도 비워야 확보된 공간을 사용할 수 있습니다",
+  "remindToEmptyEnteTrash": "\"휴지통\"도 비워야 확보된 공간을 사용할 수 있습니다",
+  "remoteImages": "원격 이미지",
+  "remoteThumbnails": "원격 썸네일",
+  "remoteVideos": "원격 동영상",
   "remove": "제거",
   "removeAccess": "접근 권한 제거",
   "removeCollectionParticipantBody": "{userEmail}님이 이 공유 컬렉션에서 제거됩니다\n\n그들이 추가한 항목도 컬렉션에서 제거됩니다",
@@ -971,36 +3423,257 @@
       "userEmail": {}
     }
   },
+  "removeContact": "연락처 제거",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "이 연락처를 삭제하면 새 초대를 보내야 하며, 상대방이 다시 수락해야 합니다.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeContactPhoto": "연락처 사진 제거",
+  "removedItems": "{count, plural, one{항목 {count}개를 제거했습니다} other{항목 {count}개를 제거했습니다}}",
+  "@removedItems": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "removeDuplicates": "중복 항목",
+  "removeDuplicatesDesc": "완전히 동일한 중복 항목 제거",
   "removeFromAlbum": "앨범에서 삭제 됨",
   "removeFromAlbumTitle": "앨범에서 삭제?",
+  "removeFromFamily": "가족에서 제거",
+  "removeFromFavorite": "즐겨 찾기에서 제거",
+  "removeFromPersonQuestion": "인물에서 제거하시겠습니까?",
   "removeLink": "링크 제거",
+  "removeMemberConfirmBody": "{email}님은 공유 저장 공간에 더 이상 접근할 수 없게 됩니다.",
+  "@removeMemberConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "removeMemberConfirmTitle": "멤버를 제거하시겠습니까?",
   "removeParticipant": "참여자 제거",
   "@removeParticipant": {
     "description": "menuSectionTitle for removing a participant"
   },
+  "removePersonLabel": "인물 라벨 제거",
+  "removePersonTag": "인물 태그 제거",
+  "removePublicLink": "공개 링크 제거",
+  "removePublicLinkConfirmation": "\"{collectionName}\"에 접근하는 공개 링크가 제거됩니다.",
+  "@removePublicLinkConfirmation": {
+    "description": "Confirmation message when removing public link",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Collection"
+      }
+    }
+  },
+  "removePublicLinks": "공개 링크 제거",
+  "removeShareItemsWarning": "선택한 사진은 사진 소유자를 제외한 이 앨범의 모든 뷰어가 더 이상 볼 수 없게 됩니다.",
   "removeWithQuestionMark": "제거하시겠습니까?",
+  "removeYourselfDesc": "신뢰할 수 있는 연락처에서 나를 제거하면, 비활성 기간이 지난 후 {email}님의 계정에 접근할 수 없게 됩니다.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "removingFromFavorites": "즐겨 찾기에서 제거 중...",
   "removingFromImportant": "중요에서 제거 중...",
+  "rename": "이름 변경",
+  "renameAlbum": "앨범 이름 변경",
   "renameCollection": "컬렉션 이름 변경",
+  "renameFile": "파일 이름 변경",
+  "renewsOn": "구독이 {endDate}에 갱신됩니다",
+  "@renewsOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
+  "renewSubscription": "구독 갱신",
+  "repliedToAComment": "님이 댓글에 답글을 남겼습니다",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "님이 회원님의 댓글에 답글을 남겼습니다",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "reply": "답글",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "replyingTo": "{name}님에게 답글 작성 중",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "replyingToYou": "나에게 답글 작성 중",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
   "reportABug": "버그 제보",
   "@reportABug": {
     "description": "Label for reporting a bug"
   },
+  "reportAnIssue": "문제 신고",
+  "requestAFeature": "기능 요청",
+  "resendCode": "코드 재전송",
+  "resendInvite": "초대 재전송",
+  "reset": "초기화",
+  "resetIgnoredFiles": "무시된 파일 초기화",
+  "resetIgnoredFilesDescription": "무시된 파일을 초기화하여 Ente가 다시 업로드를 시도하도록 합니다.",
   "resetPasswordTitle": "암호 초기화",
   "@resetPasswordTitle": {
     "description": "Reset password title"
+  },
+  "resetToDefault": "기본값으로 초기화",
+  "restartAppToApplyChanges": "변경 사항을 적용하려면 앱을 다시 시작하세요",
+  "@resetToDefault": {
+    "description": "Button text to reset cover photo to default"
   },
   "restore": "복구",
   "@restore": {
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
   },
+  "restoredItems": "{count, plural, one{항목을 복원했습니다} other{항목 {count}개를 복원했습니다}}",
+  "@restoredItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreToAlbum": "앨범으로 복원",
+  "restoringFiles": "파일 복원 중...",
   "restoringItems": "복원 중...",
+  "resumableUploads": "이어서 업로드",
+  "retake": "다시 찍기",
   "retry": "다시 시도",
+  "review": "검토",
+  "reviewSuggestions": "제안 검토",
+  "revoke": "취소",
+  "revokeInvite": "초대 취소",
+  "@revokeInvite": {
+    "description": "Button label to revoke a pending trusted contact invite"
+  },
+  "revokeInviteConfirmBody": "{email}님에게 보낸 초대가 취소됩니다.",
+  "@revokeInviteConfirmBody": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "member@example.com"
+      }
+    }
+  },
+  "revokeInviteConfirmTitle": "초대를 취소하시겠습니까?",
+  "revokeLegacyKit": "레거시 키트 취소",
+  "right": "오른쪽",
+  "ritualAddedToAlbum": "앨범에 추가됨",
+  "ritualAddedToAlbumWithName": "{albumName}에 추가됨",
+  "@ritualAddedToAlbumWithName": {
+    "placeholders": {
+      "albumName": {
+        "type": "String",
+        "description": "The target album name"
+      }
+    }
+  },
+  "ritualAddToAlbumFailure": "앨범에 사진을 추가할 수 없습니다: {error}",
+  "@ritualAddToAlbumFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "description": "Error message for album add failure"
+      }
+    }
+  },
+  "ritualAddTooltip": "루틴 추가",
+  "ritualAlbumLabel": "앨범",
+  "ritualAlbumMissing": "루틴 앨범이 없습니다. 루틴을 편집하여 앨범을 설정하세요.",
+  "ritualAlbumNotSet": "앨범이 설정되지 않음",
+  "ritualAlbumSelectionPlaceholder": "앨범 선택",
+  "ritualBackToList": "루틴 목록으로 돌아가기",
+  "ritualCameraNotFound": "이 기기에서 카메라를 찾을 수 없습니다.",
+  "ritualCameraStartError": "카메라를 시작할 수 없습니다. 다시 시도해 주세요.",
+  "ritualCaptureAtLeastOne": "먼저 사진을 한 장 이상 찍어 주세요.",
+  "ritualCaptureError": "사진을 찍을 수 없습니다. 다시 시도해 주세요.",
+  "ritualChooseAlbumLabel": "앨범 선택",
+  "ritualChooseDaysLabel": "루틴 요일 선택",
+  "ritualCreateAction": "루틴 만들기",
+  "ritualCreateNewTitle": "새 루틴 만들기",
+  "ritualCreateYourOwn": "나만의 루틴 만들기",
+  "ritualCustomKeyboardLabel": "사용자 지정 (키보드)",
+  "ritualDefaultCameraTitle": "사진 찍기",
+  "ritualEdit": "루틴 편집",
+  "ritualEditorLabel": "루틴 편집기",
+  "ritualEmojiKeyboardHint": "눌러서 이모지 키보드 열기",
+  "ritualEmojiUseAction": "사용",
+  "ritualEnterDescription": "설명을 입력해 주세요",
+  "ritualEnterPrompt": "루틴을 입력하세요",
+  "ritualGetDailyReminders": "매일 알림 받기",
+  "ritualNoAlbumsYet": "아직 앨범이 없습니다",
+  "ritualNoMatchingAlbums": "일치하는 앨범이 없습니다",
+  "ritualNoPhotosYet": "아직 사진이 없습니다",
+  "ritualNotificationMessage": "지금 사진을 찍어 보세요",
+  "ritualNotificationsOffHint": "알림이 꺼져 있습니다. 요일을 눌러 알림을 켜세요.",
+  "ritualOpenCameraTooltip": "루틴 카메라 열기",
+  "ritualPhotoLimit": "최대 {maxPhotos, plural, one{#장까지 추가할 수 있습니다.} other{#장까지 추가할 수 있습니다.}}",
+  "@ritualPhotoLimit": {
+    "placeholders": {
+      "maxPhotos": {
+        "type": "int",
+        "description": "Maximum number of photos allowed"
+      }
+    }
+  },
+  "ritualPickEmojiTitle": "이모지 선택",
+  "ritualSearchEmpty": "루틴을 만들어 사진 찍는 습관을 이어 가세요.",
+  "ritualSelectAlbumTitle": "앨범 선택",
+  "ritualSendReminderLabel": "알림 보내기",
+  "ritualSetAlbumToLaunchCamera": "카메라를 실행하려면 이 루틴의 앨범을 설정하세요.",
+  "ritualShareUnavailable": "지금은 공유할 수 없습니다. 다시 시도해 주세요.",
+  "ritualStartNew": "새 루틴 시작",
+  "ritualStartNewDescription": "루틴을 만들고, 연속 기록을 쌓고, 진행 상황을 공유하세요.",
+  "ritualsTitle": "루틴",
+  "ritualUntitled": "제목 없는 루틴",
+  "ritualUpdate": "루틴 업데이트",
+  "riverCruises": "강 위의 풍경",
+  "roadtripWithThem": "{name}님과 함께한 로드 트립",
+  "@roadtripWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "rotate": "회전",
+  "sameperson": "같은 인물입니까?",
   "save": "저장",
   "@save": {
     "description": "Label for save button"
   },
+  "saveAsAnotherPerson": "다른 인물로 저장",
+  "saveChanges": "변경 사항 저장",
+  "saveChangesBeforeLeavingQuestion": "나가기 전에 변경 사항을 저장하시겠습니까?",
+  "saveCode": "코드 저장",
+  "saveCollage": "콜라주 저장",
+  "saveContact": "연락처 저장",
+  "saveCopy": "사본 저장",
+  "saveFileDescription": "중요한 파일을 업로드하세요.",
+  "saveFileTitle": "파일",
   "saveKey": "키 저장하기",
   "@saveKey": {
     "description": "Save key button label"
@@ -1013,12 +3686,64 @@
   "@saveOrSendDescription": {
     "description": "Description text asking user if they want to save to storage or share with other apps"
   },
+  "savePerson": "인물 저장",
+  "saveToEnte": "Ente에 저장",
   "saveToLocker": "Locker에 저장",
+  "saveYourRecoveryKeyIfYouHaventAlready": "아직 저장하지 않았다면 복구 키를 저장하세요",
+  "saving": "저장 중...",
+  "savingEdits": "편집 내용 저장 중...",
+  "savingOffline": "오프라인에 저장 중...",
   "scan": "촬영",
   "scanACode": "코드 촬영",
-  "scanAQrCode": "QR 코드 스캔",
+  "scanAQrCode": "QR 코드 촬영",
+  "scanCode": "코드 스캔",
+  "scanDocumentDescription": "중요한 문서를 스캔하세요.",
+  "scanDocumentTitle": "문서",
+  "scanFilenamePrefix": "스캔",
+  "@scanFilenamePrefix": {
+    "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
+  },
+  "scannerAutoCaptureOff": "자동 촬영 끄기",
+  "scannerAutoCaptureOn": "자동 촬영 켜기",
+  "scannerCaptureModeAuto": "자동",
+  "@scannerCaptureModeAuto": {
+    "description": "Label on the scanner capture-mode toggle while automatic capture is on"
+  },
+  "scannerCaptureModeManual": "수동",
+  "@scannerCaptureModeManual": {
+    "description": "Label on the scanner capture-mode toggle while capture is manual (automatic capture off)"
+  },
+  "scannerNotSupportedOnDevice": "이 기기에서는 문서 스캔을 지원하지 않습니다",
+  "scannerTorchOff": "플래시 끄기",
+  "scannerTorchOn": "플래시 켜기",
+  "scannerCapture": "촬영",
+  "scannerPreparing": "스캐너 준비 중...",
+  "scanProcessing": "스캔 처리 중...",
+  "scanPageOfTotal": "{total}페이지 중 {current}페이지",
+  "@scanPageOfTotal": {
+    "description": "Page position indicator in the document scanner review screen",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "scanSaved": "스캔이 저장되었습니다",
+  "scanThisBarcodeWithnyourAuthenticatorApp": "인증 앱으로\n이 바코드를 스캔하세요",
   "scheduleShare": "공유 예약",
   "search": "찾기",
+  "searchAlbums": "앨범 검색",
+  "searchAlbumsEmptySection": "앨범",
+  "searchAllPeople": "모든 인물 검색",
+  "searchAndDiscovery": "검색 및 발견",
+  "searchAndDiscoveryDesc": "얼굴, 위치, 설명 등",
+  "searchByAlbumNameHint": "앨범 이름",
+  "searchDiscoverEmptySection": "처리 및 동기화가 완료되면 여기에 이미지가 표시됩니다",
   "searchEmptyDescription": "다른 검색어를 시도해 보세요.",
   "searchEmptyTitle": "일치하는 항목이 없습니다",
   "searchEverywhereSubtitle": "모든 컬렉션과 파일에서 검색합니다.",
@@ -1032,15 +3757,123 @@
       }
     }
   },
+  "searchFileTypesAndNamesEmptySection": "파일 유형 및 이름",
   "searchHint": "검색...",
+  "searchHint1": "빠른 기기 내 검색",
+  "searchHint2": "사진 날짜, 설명",
+  "searchHint3": "앨범, 파일 이름 및 유형",
+  "searchHint4": "위치",
+  "searchHint5": "곧 출시: 얼굴 및 마법 검색 ✨",
+  "searchLocationEmptySection": "사진을 중심으로 일정 반경 안에서 찍은 사진을 묶어 보세요",
+  "searchPeopleEmptySection": "사람들을 초대하면 그들이 공유한 모든 사진을 여기에서 볼 수 있습니다",
+  "searchPersonsEmptySection": "처리 및 동기화가 완료되면 여기에 인물이 표시됩니다",
+  "searchResultCameraMake": "카메라 제조사",
+  "@searchResultCameraMake": {
+    "description": "Search result subtitle label for camera make matches"
+  },
+  "searchResultCameraModel": "카메라 모델",
+  "@searchResultCameraModel": {
+    "description": "Search result subtitle label for camera model matches"
+  },
+  "searchResultCount": "{count, plural, one{결과 {count}개를 찾았습니다} other{결과 {count}개를 찾았습니다}}",
+  "@searchResultCount": {
+    "description": "Text to tell user how many results were found for their search query",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
+  "searchResultDescription": "설명",
+  "@searchResultDescription": {
+    "description": "Search result subtitle label for description matches"
+  },
+  "searchResultFileExtension": "파일 확장자",
+  "@searchResultFileExtension": {
+    "description": "Search result subtitle label for file extension matches"
+  },
+  "searchResultFileName": "파일 이름",
+  "@searchResultFileName": {
+    "description": "Search result subtitle label for file name matches"
+  },
+  "searchResultPerson": "인물",
+  "@searchResultPerson": {
+    "description": "Search result subtitle label for person results"
+  },
+  "searchResultType": "유형",
+  "@searchResultType": {
+    "description": "Search result subtitle label for file type matches"
+  },
+  "searchResultUploadedBy": "업로드한 사람",
+  "@searchResultUploadedBy": {
+    "description": "Search result subtitle label for uploader results"
+  },
+  "searchSectionsLengthMismatch": "섹션 길이 불일치: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "searchSettings": "검색 설정",
+  "secondsCount": "{count, plural, one{{count}초} other{{count}초}}",
+  "@secondsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "secondsCountShort": "{count}초",
+  "@secondsCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
   "secret": "비밀",
   "secretCanNotBeEmpty": "비밀 키는 비워둘 수 없습니다",
   "security": "보안",
+  "securityDesc": "암호화, 복구 키, 앱 잠금 및 계정 보호",
   "seeAllCollections": "모든 컬렉션 보기",
+  "seePublicAlbumLinksInApp": "앱에서 공개 앨범 링크 보기",
+  "selectAlbumsToBackUpToEnte": "Ente에 백업할 앨범 선택",
+  "selectAlbumToLikePhoto": "이 사진에 좋아요를 누를 앨범을 선택하세요",
+  "@selectAlbumToLikePhoto": {
+    "description": "Instruction for liking photo"
+  },
+  "selectAlbumToLikeVideo": "이 동영상에 좋아요를 누를 앨범을 선택하세요",
+  "@selectAlbumToLikeVideo": {
+    "description": "Instruction for liking video"
+  },
   "selectAll": "모두 선택",
+  "selectAllShort": "전체",
+  "@selectAllShort": {
+    "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
+  },
+  "selectALocation": "위치 선택",
+  "selectALocationFirst": "먼저 위치를 선택하세요",
   "selectBackupFolder": "백업 폴더 선택",
+  "selectCoverPhoto": "표지 사진 선택",
   "selectDate": "날짜 선택",
   "selected": "선택됨",
+  "selectedAlbums": "{count}개 선택됨",
+  "@selectedAlbums": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "selectedCount": "{count, plural, one{{count}개 선택함} other{{count}개 선택함}}",
   "@selectedCount": {
     "description": "Number of items selected",
@@ -1051,29 +3884,133 @@
       }
     }
   },
+  "selectedFilesAreNotOnEnte": "선택한 파일이 Ente에 없습니다",
+  "selectedFilesBackedUpToEnte": "이 항목들이 모든 앨범에서 삭제됩니다. 휴지통에서 복구할 수 있습니다.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "selectedFilesSavedOnDeviceOnly": "백업되지 않은 항목입니다. 기기에서 영구 삭제하시겠습니까?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "선택한 항목이 영구 삭제되며 복구할 수 없습니다.",
+  "selectedItemsWillBeRemovedFromThisPerson": "선택한 항목이 이 인물에서 제거되지만, 라이브러리에서 삭제되지는 않습니다.",
+  "selectedPhotos": "{count}개 선택됨",
+  "@selectedPhotos": {
+    "description": "Display the number of selected photos",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "5",
+        "type": "int"
+      }
+    }
+  },
+  "selectedPhotosWithYours": "{count}개 선택됨 (내 항목 {yourCount}개)",
+  "@selectedPhotosWithYours": {
+    "description": "Display the number of selected photos, including the number of selected photos owned by the user",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "yourCount": {
+        "example": "2",
+        "type": "int"
+      }
+    }
+  },
   "selectExportFormat": "내보낼 포맷 선택",
   "selectFile": "파일 선택",
   "selectFolder": "폴더 선택",
+  "selectFolders": "폴더 선택",
+  "selectFoldersForBackup": "백업할 폴더 선택",
   "selectFolderToContinue": "계속하려면 폴더를 선택하세요",
+  "selectItemsToAdd": "추가할 항목 선택",
   "selectLanguage": "언어 선택",
+  "selectMailApp": "메일 앱 선택",
+  "selectMorePhotos": "사진 더 선택",
+  "selectOneDateAndTime": "날짜와 시간 하나 선택",
+  "selectOneDateAndTimeForAll": "모두에 적용할 날짜와 시간 하나 선택",
+  "selectPerson": "인물 선택",
+  "selectPersonToLinkToThisContact": "이 연락처를 자동으로 채울 인물을 선택하세요",
+  "selectReason": "이유 선택",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
+  },
+  "selectStartOfRange": "범위 시작 선택",
   "selectTime": "시간 선택",
+  "selectYourFace": "내 얼굴 선택",
+  "selfiesWithThem": "{name}님과 함께한 셀카",
+  "@selfiesWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "send": "보내기",
   "@send": {
     "description": "Label for send button"
   },
+  "sendCountInvites": "{count, plural, =0{초대 보내기} one{초대 {count}개 보내기} other{초대 {count}개 보내기}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "sendInvite": "초대 보내기",
   "sendLink": "링크 보내기",
   "sendLogsDescription": "이 로그를 전송하면 문제 해결을 위한 디버깅에 도움이 됩니다. 민감한 정보가 로그에 기록되지 않도록 주의를 기울이고 있지만, 공유하기 전에 해당 로그를 직접 확인하시기를 권장합니다.",
-  "serverEndpoint": "서버 엔드포인트",
+  "sendPhoto": "사진 보내기",
+  "@sendPhoto": {
+    "description": "Share a copy of the current photo using the system share sheet, as opposed to sending a viewing link"
+  },
+  "sendQrCode": "QR 코드 보내기",
+  "sendToEmail": "{email}님에게 보내기",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "sendVideo": "동영상 보내기",
+  "@sendVideo": {
+    "description": "Share a copy of the current video using the system share sheet, as opposed to sending a viewing link"
+  },
+  "serverEndpoint": "서버 endpoint",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
   },
-  "sessionExpired": "세션 만료",
+  "sessionExpired": "Session 만료",
   "@sessionExpired": {
     "description": "Error message when session has expired"
   },
+  "sessionIdMismatch": "세션 ID 불일치",
+  "@sessionIdMismatch": {
+    "description": "In passkey page, deeplink is ignored because of session ID mismatch."
+  },
+  "setAContactPhoto": "연락처 사진 설정",
+  "setAPassword": "암호 설정",
+  "setAs": "다음으로 설정",
+  "setAsMyDefaultChoice": "기본 선택으로 설정",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
   "setBackupFolder": "백업 폴더 설정",
   "setBackupPassword": "백업 비밀번호 설정",
+  "setCover": "표지 설정",
+  "@setCover": {
+    "description": "Text to set cover photo for an album"
+  },
+  "setLabel": "설정",
+  "@setLabel": {
+    "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
+  },
   "setNewPassword": "새 비밀번호 설정",
   "@setNewPassword": {
     "description": "Set new password title"
@@ -1086,19 +4023,110 @@
   "@setPasswordTitle": {
     "description": "Set password title"
   },
+  "setRadius": "반경 설정",
+  "setSelectedPhoto": "선택한 사진으로 설정",
   "settings": "설정",
+  "setupComplete": "설정 완료",
   "setupFirstAccount": "첫 번째 계정을\n설정하세요",
+  "setupLegacy": "레거시 설정",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
+  "setupLegacyDescription": "신뢰하는 3명을 선택하세요. 그중 2명이 함께하면 정보를 열 수 있으며, 1명만으로는 절대 열 수 없습니다.",
+  "setupYourLegacy": "레거시 설정하기",
   "share": "공유",
   "shareALink": "링크 공유",
+  "shareAnAlbum": "앨범 공유",
+  "shareCodeEarnStorage": "Ente에서 저장 공간을 두 배로 늘리세요",
   "shareCodes": "코드 공유하기",
   "shareCodesDuration": "코드 공유를 허용할 시간을 선택해주세요.",
+  "shareCollection": "컬렉션 공유",
+  "shared": "공유됨",
+  "sharedAlbumsLabel": "공유한 앨범",
+  "@sharedAlbumsLabel": {
+    "description": "Albums tab label for albums shared by you"
+  },
+  "sharedAlbumWithYou": "님이 {albumName} 앨범을 공유했습니다",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedPhotoNotifications": "새로운 공유 사진 및 앨범",
+  "sharedPhotoNotificationsExplanation": "회원님이 참여 중이거나 회원님과 공유된 앨범의 새 사진 및 앨범",
   "sharedWith": "공유 대상",
+  "shareItemCount": "{count, plural, one{항목 {count}개 공유} other{항목 {count}개 공유}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
+  "shareKey": "키 공유",
+  "shareLegacyDescription": "각 카드를 해당하는 사람에게 보내세요. 카드 한 장만으로는 아무것도 열 수 없습니다.",
   "shareLink": "링크 공유",
+  "shareMemory": "추억 공유",
+  "shareMyVerificationID": "ente.com 인증 ID입니다: {verificationID}",
+  "@shareMyVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareNotSupportedForSharedFiles": "공유된 파일은 공유할 수 없습니다",
+  "shareStorageWith5Members": "최대 5명의 멤버와 저장 공간 공유",
+  "shareTextConfirmOthersVerificationID": "안녕, 이게 네 ente.com 인증 ID가 맞는지 확인해 줄래? {verificationID}",
+  "@shareTextConfirmOthersVerificationID": {
+    "placeholders": {
+      "verificationID": {}
+    }
+  },
+  "shareTextRecommendUsingEnte": "원본 화질 그대로 파일을 쉽게 공유할 수 있게 Ente를 다운로드해 줘\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForFamily": "내 가족 요금제에 추가할 수 있게 Ente를 다운로드해 줘\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForPhotos": "원본 화질 그대로 사진과 동영상을 쉽게 공유할 수 있게 Ente를 다운로드해 줘\n\nhttps://ente.com",
+  "shareTextReferralInvite": "Ente Photos에서 20GB를 무료로 받으세요! https://ente.com/invite 에서 앱을 다운로드하고 코드 {referralCode}을 입력하세요.",
+  "@shareTextReferralInvite": {
+    "placeholders": {
+      "referralCode": {}
+    }
+  },
   "shareThisLink": "이 링크를 통해 누구나 항목에 접근할 수 있습니다. 언제든지 링크를 삭제하여 접근을 제거할 수 있습니다.",
+  "shareWithNonenteUsers": "Ente를 사용하지 않는 사람과 공유",
+  "shareYourFeedbackHere": "여기에 의견을 남겨 주세요",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
+  "shareYourLegacy": "레거시 공유하기",
+  "shareYourLegacyBannerDescription": "회원님이 부재중일 때 소중한 사람들이 중요한 정보에 접근할 수 있도록 하세요.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourLegacyBannerTitle": "레거시 공유하기",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourSubscription": "소중한 사람들과 구독 공유",
   "sharing": "공유 중...",
+  "sharingAndCollaboration": "공유 및 협업",
+  "sharingAndCollaborationDesc": "앨범, 링크 및 가족 요금제",
+  "shiftDatesAndTime": "날짜 및 시간 이동",
   "shouldHideCode": "코드 숨기기",
+  "shouldRemoveFilesSmartAlbumsDesc": "이전에 스마트 앨범에서 선택했던 인물과 관련된 파일을 제거하시겠습니까?",
+  "showIgnored": "무시된 항목 표시",
+  "showInMemories": "추억에 표시",
   "showLargeIcons": "큰 아이콘 보기",
-  "showQRAuthMessage": "QR 코드를 보기 위해 인증절차를 거쳐주세요",
+  "showLessFaces": "얼굴 적게 보기",
+  "showMemories": "추억 표시",
+  "showMoreFaces": "얼굴 더 보기",
+  "showPerson": "인물 표시",
+  "showQRAuthMessage": "QR 코드를 보기 위해 인증 절차를 거쳐주세요",
+  "showTextOnWidget": "위젯에 텍스트 표시",
+  "shuffle": "무작위 재생",
   "sigInBackupReminder": "Ente는 로그인 후에 자동으로 코드를 백업합니다.\n\n그래도 별도의 백업으로 코드를 내보낼 것을 권장합니다.",
   "signInToBackup": "코드를 백업하시려면 로그인해주세요",
   "signOutFromOtherDevices": "다른 기기들에서 로그아웃하기",
@@ -1109,17 +4137,53 @@
   "@signOutOtherBody": {
     "description": "Sign out other devices explanation"
   },
-  "signOutOtherDevices": "다른 기기들을 로그아웃시키기",
+  "signOutOtherDevices": "다른 기기에서 로그아웃",
   "@signOutOtherDevices": {
     "description": "Sign out other devices button label"
   },
   "signUp": "가입하기",
-  "signUpTerms": "나는 <u-terms>사용자 약관</u-terms>과 <u-policy>개인정보 취급방침</u-policy>에 동의합니다.",
+  "signUpTerms": "나는 <u-terms>사용자 약관</u-terms>과 <u-policy>개인정보 취급방침</u-policy>에 동의합니다",
   "@signUpTerms": {
     "description": "Terms agreement text for sign up"
   },
+  "similar": "유사",
+  "similarImages": "유사한 이미지",
+  "similarImagesCount": "유사한 이미지 {count}개",
+  "@similarImagesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "singIn": "로그인",
+  "singleFileDeleteFromDevice": "백업되지 않은 항목입니다. 기기에서 영구 삭제하시겠습니까?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "singleFileInBothLocalAndRemote": "이 항목은 기기와 Ente 모두에 있습니다.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "singleFileInRemoteOnly": "이 항목이 모든 앨범에서 삭제됩니다. 휴지통에서 복구할 수 있습니다.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
+  "skip": "건너뛰기",
+  "skippedFiles": "건너뛴 파일",
+  "sharedFilesSkipped": "일부 공유 파일을 읽을 수 없거나 이름이 같아서 건너뛰었습니다.",
+  "slideshow": "슬라이드쇼",
+  "slideshowSettings": "슬라이드쇼 설정",
+  "smartMemories": "스마트 추억",
+  "smartSuggestions": "스마트 제안",
+  "snowAdventures": "겨울 모험",
+  "socialNotifications": "좋아요 및 댓글",
+  "socialNotificationsExplanation": "회원님의 사진에 달린 좋아요와 참여 중인 앨범의 댓글",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "앨범을 공유하는 사람은 자신의 기기에서 동일한 ID를 볼 수 있어야 합니다.",
+  "someSelectedFilesBackedUpToEnte": "이 항목들은 기기와 Ente에 모두 있습니다.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
   "somethingWentWrong": "문제가 발생했습니다",
   "somethingWentWrongMessage": "뭔가 잘못된 것 같습니다, 다시 시도해주세요",
   "somethingWentWrongParsingCode": "{x} 코드를 분석할 수 없습니다.",
@@ -1128,7 +4192,12 @@
       "x": {}
     }
   },
+  "somethingWentWrongPleaseTryAgain": "문제가 발생했습니다. 다시 시도해 주세요",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
   "sorry": "죄송합니다",
+  "sorryBackupFailedDesc": "죄송합니다. 지금은 이 파일을 백업할 수 없습니다. 나중에 다시 시도하겠습니다.",
   "sorryCouldNotAddToFavorites": "즐겨 찾기에 추가 할 수 없습니다!",
   "sorryCouldNotRemoveFromFavorites": "즐겨 찾기에서 제거 할 수 없습니다!",
   "sorryTheCodeYouveEnteredIsIncorrect": "죄송합니다, 입력하신 코드가 맞지 않습니다",
@@ -1139,25 +4208,151 @@
   "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
     "description": "Error message for insecure device"
   },
+  "sorryWeHadToPauseYourBackups": "죄송합니다. 백업을 일시 중지해야 했습니다",
+  "sort": "정렬",
+  "sortAlbumsBy": "정렬 기준",
+  "sortAToZ": "A-Z",
+  "sortNewestFirst": "최신순",
+  "sortOldestFirst": "오래된 순",
+  "sortZToA": "Z-A",
+  "speed": "속도",
+  "sportsAction": "경기 시작",
+  "sportsWithThem": "{name}님과 함께한 스포츠",
+  "@sportsWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnThem": "주인공은 {name}님",
+  "@spotlightOnThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "spotlightOnYourself": "주인공은 나",
+  "stargazing": "별빛 아래에서",
+  "startBackup": "백업 시작",
+  "startRecovery": "복구 시작",
+  "startRecoveryDesc": "{email}님의 계정 복구를 시작하시겠습니까?",
+  "@startRecoveryDesc": {
+    "description": "Description for start recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "startWithAddingPhotosOrFamiliarFaces": "사진이나 익숙한 얼굴을\n추가하여 시작하세요",
+  "startWithLatestPhotos": "최신 사진부터 시작",
+  "status": "상태",
+  "sticker": "스티커",
+  "stopCastingBody": "캐스팅을 중지하시겠습니까?",
+  "stopCastingTitle": "캐스팅 중지",
+  "storage": "저장 공간",
+  "storageAndPlans": "저장 공간 및 요금제",
+  "storageAndPlansDesc": "요금제, 결제 및 저장 공간 사용량",
+  "storageBreakupFamily": "가족",
+  "storageBreakupYou": "나",
+  "@storageBreakupYou": {
+    "description": "Label to indicate how much storage you are using when you are part of a family plan"
+  },
+  "storageClaimed": "{storageAmountInGB} GB를 받았습니다!",
+  "@storageClaimed": {
+    "placeholders": {
+      "storageAmountInGB": {}
+    }
+  },
+  "storageLimit": "저장 공간 한도",
+  "storageLimitExceeded": "저장 공간 한도를 초과했습니다",
+  "storageLimitExplanation": "이 멤버가 사용할 수 있는 최대 저장 공간을 설정하세요. 한도에 도달하면 더 이상 업로드할 수 없습니다.",
+  "storageUsedOfTotal": "{total} 중 {used} 사용",
+  "@storageUsedOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String",
+        "example": "200 GB"
+      },
+      "used": {
+        "type": "String",
+        "example": "67 GB"
+      }
+    }
+  },
+  "straighten": "수평 맞추기",
+  "streamDetails": "스트림 세부 정보",
+  "streetArt": "거리 예술 이야기",
+  "streetFood": "길거리 음식 한입",
+  "strongPassword": "강력한 암호",
   "strongStrength": "강함",
   "@strongStrength": {
     "description": "Strong password strength label"
   },
+  "subAlreadyLinkedErrMessage": "회원님의 {id} 계정은 이미 다른 Ente 계정에 연결되어 있습니다.\n이 계정에서 {id} 계정을 사용하려면 지원팀에 문의해 주세요.",
+  "@subAlreadyLinkedErrMessage": {
+    "placeholders": {
+      "id": {}
+    }
+  },
+  "subject": "제목",
   "submit": "제출",
   "subscribe": "구독",
   "subscribeToChangeLinkSetting": "이 링크 설정을 바꾸려면 유료 구독이 필요합니다.",
   "subscribeToEnableSharing": "공유하기 위해서는 유료 구독이 필요합니다.",
+  "subscription": "구독",
   "subscriptionRequiredForSharing": "링크를 공유하려면 유료 구독이 필요합니다",
+  "subWillBeCancelledOn": "구독이 {endDate}에 취소됩니다",
+  "@subWillBeCancelledOn": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
   "success": "성공",
+  "successfullyArchived": "보관되었습니다",
+  "successfullyHid": "숨겨졌습니다",
+  "successfullyUnarchived": "보관이 해제되었습니다",
+  "successfullyUnhid": "숨김이 해제되었습니다",
+  "suggestDeletion": "삭제 제안",
+  "suggestDeletionDescription": "선택한 사진이 이 앨범에서 제거됩니다. 사진 소유자에게도 사진을 검토하고 삭제하라는 제안이 전달됩니다.",
   "suggestFeatures": "기능 제안",
+  "suggestions": "제안",
+  "sunrise": "지평선 너머로",
   "support": "지원",
   "supportEnte": "<bold-green>ente</bold-green> 지원",
+  "syncing": "동기화 중...",
+  "syncProgress": "추억 {completed}/{total}개 보존됨",
+  "@syncProgress": {
+    "description": "Text to tell user how many memories have been preserved",
+    "placeholders": {
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "syncStopped": "동기화 중지됨",
   "systemTheme": "시스템",
   "tag": "태그",
   "tags": "태그",
+  "tapToCopy": "눌러서 복사",
   "tapToUnlock": "잠금을 해제하려면 누르세요",
   "@tapToUnlock": {
     "description": "Message prompting user to tap to unlock"
+  },
+  "tapToUpload": "눌러서 업로드",
+  "@tapToUpload": {
+    "description": "Shown in upload icon widet, inside a tooltip."
+  },
+  "tapToUploadIsIgnoredDue": "눌러서 업로드하세요. 현재 다음 이유로 업로드가 무시되고 있습니다: {ignoreReason}",
+  "@tapToUploadIsIgnoredDue": {
+    "description": "Shown in upload icon widet, inside a tooltip.",
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
   },
   "tellUsWhatYouThink": "저희에게 의견을 말해주세요",
   "tempErrorContactSupportIfPersists": "뭔가 잘못된 것 같습니다. 잠시 후에 다시 시도해주세요. 에러가 반복되는 경우, 저희 지원 팀에 문의해주세요.",
@@ -1165,15 +4360,26 @@
   "@terminate": {
     "description": "Terminate button label"
   },
+  "terminateSession": "세션을 종료하시겠습니까?",
+  "@terminateSession": {
+    "description": "Title for terminate session dialog"
+  },
   "termsOfServicesTitle": "약관",
   "@termsOfServicesTitle": {
     "description": "Terms of service title"
   },
+  "thankYou": "감사합니다",
+  "thankYouForSubscribing": "구독해 주셔서 감사합니다!",
+  "theLinkYouAreTryingToAccessHasExpired": "접근하려는 링크가 만료되었습니다.",
   "theme": "테마",
+  "thePersonGroupsWillNotBeDisplayed": "이 인물 그룹은 더 이상 인물 섹션에 표시되지 않습니다. 사진은 그대로 유지됩니다.",
+  "thePersonWillNotBeDisplayed": "이 인물은 더 이상 인물 섹션에 표시되지 않습니다. 사진은 그대로 유지됩니다.",
   "theRecoveryKeyYouEnteredIsIncorrect": "입력하신 복구 키가 맞지 않습니다",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
   },
+  "theseItemsWillBeDeletedFromYourDevice": "이 항목들이 기기에서 삭제됩니다.",
+  "thisCanBeUsedToRecoverYourAccountIfYou": "2단계 인증 수단을 잃어버린 경우 이 코드로 계정을 복구할 수 있습니다",
   "thisDevice": "이 기기",
   "@thisDevice": {
     "description": "Label for current device"
@@ -1182,6 +4388,12 @@
   "@thisEmailIsAlreadyInUse": {
     "description": "Error message when email is already in use"
   },
+  "thisHelpsUsImproveEnte": "Ente를 개선하는 데 도움이 됩니다",
+  "@thisHelpsUsImproveEnte": {
+    "description": "Subtitle under account deletion reason prompt"
+  },
+  "thisImageHasNoExifData": "이 이미지에는 EXIF 데이터가 없습니다",
+  "thisIsMeExclamation": "이건 나예요!",
   "thisIsPersonVerificationId": "이것은 {email}의 확인 ID입니다",
   "@thisIsPersonVerificationId": {
     "placeholders": {
@@ -1192,22 +4404,52 @@
     }
   },
   "thisIsYourVerificationId": "이것은 귀하의 확인 ID입니다",
+  "thisMonth": "이번 달",
+  "thisWeek": "이번 주",
+  "thisWeekThroughTheYears": "해마다 이번 주",
+  "thisWeekXYearsAgo": "{count, plural, one{{count}년 전 이번 주} other{{count}년 전 이번 주}}",
+  "@thisWeekXYearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
   "thisWillLogYouOutOfTheFollowingDevice": "이 작업을 하시면 다음 기기에서 로그아웃하게 됩니다:",
   "@thisWillLogYouOutOfTheFollowingDevice": {
     "description": "Warning message for logging out of another device"
   },
+  "thisWillLogYouOutOfThisDevice": "이 기기에서 로그아웃됩니다!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
+  "thisWillMakeTheDateAndTimeOfAllSelected": "선택한 모든 사진의 날짜와 시간이 동일하게 변경됩니다.",
+  "thisYear": "올해",
+  "throughTheYears": "해마다 {dateFormat}",
+  "@throughTheYears": {
+    "placeholders": {
+      "dateFormat": {}
+    }
+  },
+  "throwbackWithThem": "{name}님과의 추억 여행",
+  "@throwbackWithThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "timePerPhoto": "사진당 시간",
   "title": "제목",
   "todaysLogs": "오늘의 로그",
-  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "어플 잠금을 활성화하시려면, 기기의 암호를 만들거나 시스템 설정에서 화면 잠금을 설정해주세요.",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "잠금을 활성화하시려면, 기기의 암호를 만들거나 시스템 설정에서 화면 잠금을 설정해주세요.",
   "tooManyIncorrectAttempts": "잘못된 시도 횟수가 너무 많습니다",
   "@tooManyIncorrectAttempts": {
     "description": "Message shown when too many incorrect attempts are made"
   },
-  "toResetVerifyEmail": "암호를 재설정하시려면, 먼저 이메일을 인증해주세요.",
+  "toResetVerifyEmail": "암호를 다시 설정 하려면, 먼저 이메일을 인증해주세요.",
   "@toResetVerifyEmail": {
     "description": "Message asking user to verify email before password reset"
   },
+  "totalSize": "전체 크기",
   "trash": "휴지통",
+  "restoreOrPermanentlyDeleteItems": "항목 복원 또는 영구 삭제",
   "trashClearedSuccessfully": "휴지통이 성공적으로 비워졌습니다",
   "trashCode": "코드를 삭제할까요?",
   "trashCodeMessage": "정말로 {account} 의 코드를 삭제할까요?",
@@ -1216,27 +4458,118 @@
       "account": {}
     }
   },
+  "trashDaysLeft": "{count, plural, =0{곧} one{{count}일} other{{count}일}}",
+  "@trashDaysLeft": {
+    "description": "Text to indicate number of days remaining before permanent deletion",
+    "placeholders": {
+      "count": {
+        "example": "1|2|3",
+        "type": "int"
+      }
+    }
+  },
   "trashIsEmpty": "휴지통이 비어 있습니다",
+  "trim": "자르기",
+  "tripInYear": "{year}년 여행",
+  "@tripInYear": {
+    "placeholders": {
+      "year": {}
+    }
+  },
+  "tripToLocation": "{location} 여행",
+  "@tripToLocation": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "tropicalParadise": "열대의 휴양지",
+  "troubleshooting": "문제 해결",
+  "troubleshootingDesc": "자주 발생하는 문제와 해결 방법",
+  "trustedContactAccepted": "{email}님을 신뢰할 수 있는 연락처로 추가했습니다. 상대방이 초대를 수락했습니다.",
+  "@trustedContactAccepted": {
+    "description": "Description shown when a trusted contact has accepted the invite",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContactInvitePending": "{email}님을 신뢰할 수 있는 연락처로 초대했습니다. 상대방이 아직 초대를 수락하지 않았습니다.",
+  "@trustedContactInvitePending": {
+    "description": "Description shown when a trusted contact invite is pending",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "trustedContacts": "신뢰할 수 있는 연락처",
+  "trustedContactsEmptyDescription": "다른 Ente 사용자를 신뢰할 수 있는 연락처로 지정하여 계정을 복구할 수 있도록 하세요",
+  "trustedContactStatusAccepted": "수락됨",
+  "@trustedContactStatusAccepted": {
+    "description": "Short status label shown for an accepted trusted contact"
+  },
+  "trustedContactStatusPending": "대기 중",
+  "@trustedContactStatusPending": {
+    "description": "Short status label shown for a pending trusted contact invite"
+  },
   "tryAgain": "다시 시도해주세요",
   "@tryAgain": {
     "description": "Try again button label"
   },
-  "twofactorAuthenticationSuccessfullyReset": "2FA가 성공적으로 초기화되었습니다",
+  "twofactor": "2단계 인증",
+  "twofactorAuthenticationHasBeenDisabled": "2단계 인증이 비활성화되었습니다",
+  "twofactorAuthenticationSuccessfullyReset": "이 단계 인증이 성공적으로 초기화되었습니다",
   "@twofactorAuthenticationSuccessfullyReset": {
     "description": "Message when two-factor authentication is successfully reset"
   },
-  "twoFactorAuthTitle": "2단계 인증",
+  "twoFactorAuthTitle": "이 단계 인증",
   "@twoFactorAuthTitle": {
     "description": "Two-factor authentication title"
   },
+  "twofactorSetup": "2단계 인증 설정",
+  "twoFAVerification": "2단계 인증 확인",
   "type": "유형",
+  "typeOfGallerGallerytypeIsNotSupportedForRename": "{galleryType} 유형의 갤러리는 이름을 변경할 수 없습니다",
+  "@typeOfGallerGallerytypeIsNotSupportedForRename": {
+    "placeholders": {
+      "galleryType": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
+  "unableToAccessYourCodes": "코드에 접근할 수 없습니다",
+  "unableToCheckForUpdatesRightNow": "지금은 업데이트를 확인할 수 없습니다",
+  "unableToExtractFileInformation": "이 파일에서 정보를 추출할 수 없습니다",
+  "unarchive": "보관 해제",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
+  "unarchiveAlbum": "앨범 보관 해제",
+  "unarchiving": "보관 해제 중...",
+  "unavailableReferralCode": "이미 사용 중인 코드입니다",
   "uncategorized": "분류되지 않음",
+  "uncategorizedItemsWillShowUpHere": "분류되지 않은 항목이 여기에 표시됩니다",
+  "undo": "실행 취소",
+  "unhide": "숨김 해제",
+  "unhideToAlbum": "앨범으로 숨김 해제",
+  "unhiding": "숨김 해제 중...",
+  "unhidingFilesToAlbum": "파일을 앨범으로 숨김 해제하는 중",
   "unimportant": "중요하지 않음",
   "unlock": "잠금 해제",
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
   },
   "unnamedCollection": "이름 없는 컬렉션",
+  "unnamedPeopleDoingSomethingTogether": "함께하는 순간",
+  "unnamedPeopleSpotlight": "익숙한 얼굴",
+  "unnamedPeopleThrowbackTogether": "함께한 추억 여행",
+  "unnamedPeopleYouAndThem": "두 사람",
+  "unmuteAudio": "음소거 해제",
+  "unpin": "고정 해제",
   "unpinnedCodeMessage": "{code} 고정 해제 완료",
   "@unpinnedCodeMessage": {
     "placeholders": {
@@ -1254,13 +4587,24 @@
       }
     }
   },
+  "unpinPerson": "인물 고정 해제",
   "unpinText": "고정 해제",
-  "unsavedNoteChangesDescription": "이 메모에 저장되지 않은 변경 사항이 있습니다. 지금 뒤로 가면 변경 사항이 손실됩니다.",
+  "unsavedChangesDescription": "저장하지 않은 변경 사항이 있습니다. 지금 돌아가면 변경 사항이 사라집니다.",
+  "unsavedNoteChangesDescription": "이 메모에 저장되지 않은 변경 사항이 있습니다. 지금 뒤로 가면 변경 사항을 잃습니다.",
   "unsavedNoteChangesTitle": "변경 사항을 취소하시겠습니까?",
+  "unselectAll": "모두 선택 해제",
   "untitled": "제목 없음",
   "updateAvailable": "업데이트 가능",
   "updateBackupPassword": "백업 비밀번호 변경",
-  "uploadedFilesProgress": "{completed}/{total}개 항목 업로드됨...",
+  "updated": "업데이트됨",
+  "updateSettings": "설정 업데이트",
+  "updateTime": "시간 업데이트",
+  "@updateTime": {
+    "description": "Button label to update the recovery time for a trusted contact"
+  },
+  "updatingFolderSelection": "폴더 선택 업데이트 중...",
+  "upgrade": "업그레이드",
+  "uploadedFilesProgress": "{completed}/{total}개 항목 업로드 됨...",
   "@uploadedFilesProgress": {
     "description": "Progress message showing uploaded items",
     "placeholders": {
@@ -1275,7 +4619,7 @@
     }
   },
   "uploadError": "업로드 오류",
-  "uploadFileCountLimitErrorBody": "파일 한도에 도달했습니다. 더 많은 저장 공간을 위해 유료 플랜으로 업그레이드해 주세요.",
+  "uploadFileCountLimitErrorBody": "파일 한도에 도달했습니다. 더 많은 저장 공간을 위해 유료 요금제로 업그레이드해 주세요.",
   "@uploadFileCountLimitErrorBody": {
     "description": "Body shown when uploads fail because the locker already has the maximum file count"
   },
@@ -1296,6 +4640,26 @@
   "@uploadFileTooLargeErrorTitle": {
     "description": "Title shown when uploads fail because the file exceeds the supported size"
   },
+  "uploadingFilesToAlbum": "파일을 앨범에 업로드하는 중...",
+  "uploadingMultipleMemories": "추억 {count}개 보존 중...",
+  "@uploadingMultipleMemories": {
+    "description": "Text to tell user how many memories are being preserved",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadingSingleMemory": "추억 1개 보존 중...",
+  "uploadIsIgnoredDueToIgnorereason": "다음 이유로 업로드가 무시되었습니다: {ignoreReason}",
+  "@uploadIsIgnoredDueToIgnorereason": {
+    "placeholders": {
+      "ignoreReason": {
+        "type": "String",
+        "example": "no network"
+      }
+    }
+  },
   "uploadStorageLimitErrorBody": "저장 공간이 부족합니다. 계속 업로드하려면 공간을 확보해 주세요.",
   "@uploadStorageLimitErrorBody": {
     "description": "Body shown when uploads fail due to running out of storage"
@@ -1304,6 +4668,21 @@
   "@uploadStorageLimitErrorTitle": {
     "description": "Title shown when uploads fail due to running out of storage"
   },
+  "uploadSubscriptionExpiredErrorBody": "Ente Photos 구독이 만료되었습니다. 계속 업로드하려면 구독을 갱신하세요.",
+  "@uploadSubscriptionExpiredErrorBody": {
+    "description": "Body shown when uploads fail because the Photos subscription is expired"
+  },
+  "uploadSubscriptionExpiredErrorTitle": "구독 만료됨",
+  "@uploadSubscriptionExpiredErrorTitle": {
+    "description": "Title shown when uploads fail because the Photos subscription is expired"
+  },
+  "usable": "사용 가능",
+  "usageFamily": "가족",
+  "usageYou": "나",
+  "useAsCover": "표지로 사용",
+  "usedSpace": "사용한 공간",
+  "usedYourCode": "회원님의 코드를 사용함",
+  "useMLToFindSimilarImages": "비슷해 보이는 항목 제거",
   "useOffline": "백업 없이 사용",
   "useRecoveryKey": "복구 키 사용",
   "@useRecoveryKey": {
@@ -1311,6 +4690,22 @@
   },
   "username": "사용자 이름",
   "usernameHint": "로그인 ID 또는 이메일",
+  "useSelectedPhoto": "선택한 사진 사용",
+  "usingStorage": "{amount} 사용 중",
+  "@usingStorage": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "20 GB"
+      }
+    }
+  },
+  "validTill": "{endDate}까지 유효",
+  "@validTill": {
+    "placeholders": {
+      "endDate": {}
+    }
+  },
   "verificationFailedPleaseTryAgain": "검증 실패, 다시 시도해주세요",
   "@verificationFailedPleaseTryAgain": {
     "description": "Verification failed error message"
@@ -1323,40 +4718,383 @@
   "@verifyEmail": {
     "description": "Verify email title"
   },
+  "verifyIDLabel": "인증",
+  "verifying": "인증 중...",
   "verifyingRecoveryKey": "복구 키 확인 중...",
   "verifyPassword": "비밀번호 확인",
   "@verifyPassword": {
     "description": "Verify password button label"
   },
+  "videoAlreadyInQueue": "동영상 파일이 이미 대기열에 있습니다",
+  "videoExportFailed": "동영상을 만들지 못했습니다. 다시 시도해 주세요.",
+  "videoExportSuccess": "동영상이 생성되었습니다: {path}",
+  "@videoExportSuccess": {
+    "description": "Toast shown when a video export completes, mentioning the filesystem path.",
+    "placeholders": {
+      "path": {
+        "description": "File path where the exported video was written",
+        "type": "String",
+        "example": "/tmp/ente_export.mp4"
+      }
+    }
+  },
+  "videoInfo": "동영상 정보",
+  "videoPreviewAlreadyExists": "동영상 미리 보기가 이미 있습니다",
+  "videos": "동영상",
+  "videoStreaming": "스트리밍 가능한 동영상",
+  "videoStreamingDescriptionLine1": "어떤 기기에서든 동영상을 즉시 재생하세요.",
+  "videoStreamingDescriptionLine2": "이 기기에서 동영상 스트림을 처리하도록 활성화합니다.",
+  "videoStreamingNote": "최근 60일 이내의 1분 미만 동영상만 이 기기에서 처리됩니다. 더 오래되었거나 긴 동영상은 데스크톱 앱에서 스트리밍을 활성화하세요.",
   "viewActiveSessions": "활성화된 Session 확인하기",
+  "viewAddOnButton": "애드온 보기",
+  "viewAllExifData": "모든 EXIF 데이터 보기",
+  "viewAllHelpTopics": "모든 도움말 주제 보기",
   "viewer": "뷰어",
+  "viewLargeFiles": "대용량 파일",
+  "viewLargeFilesDesc": "가장 많은 공간을 차지하는 항목 찾기",
+  "viewLogs": "로그 보기",
+  "@viewLogs": {
+    "description": "Button to view logs"
+  },
   "viewLogsAction": "로그 확인",
+  "viewPersonToUnlink": "연결을 해제하려면 {name} 보기",
+  "@viewPersonToUnlink": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "viewPlans": "요금제 보기",
   "viewRawCodes": "원시 코드 보기",
   "viewRecoveryKey": "복구 키 보기",
+  "vintageVibes": "빈티지 감성",
+  "visitWebToManage": "구독을 관리하려면 {webUrl}에 방문해 주세요",
+  "@visitWebToManage": {
+    "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
+    "placeholders": {
+      "webUrl": {
+        "type": "String",
+        "example": "photos.ente.com"
+      }
+    }
+  },
   "waitingForVerification": "검증 대기 중...",
   "@waitingForVerification": {
     "description": "Waiting for verification message"
   },
+  "waitingForWifi": "Wi-Fi 대기 중...",
   "warning": "경고",
+  "waterfalls": "폭포를 찾아서",
   "weakStrength": "약함",
   "@weakStrength": {
     "description": "Weak password strength label"
   },
   "weAreOpenSource": "저희는 오픈 소스로 운영됩니다!",
+  "weddingMoments": "빛나는 결혼식 날",
+  "weDontSupportEditingPhotosAndAlbumsThatYouDont": "아직 회원님이 소유하지 않은 사진과 앨범은 편집할 수 없습니다",
+  "weHaveSentCode": "{email} 주소로 코드를 보냈습니다",
+  "@weHaveSentCode": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "weHaveSentCodeTo": "{email} 주소로 코드를 보냈습니다",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "whatsNew": "새로운 기능",
+  "whyAreYouLeaving": "떠나시는 이유가 무엇인가요?",
+  "@whyAreYouLeaving": {
+    "description": "Heading asking why the user is deleting their account"
+  },
+  "widgets": "위젯",
+  "wildlife": "야생 속으로",
+  "wishThemAHappyBirthday": "{name}님의 생일을 축하해 주세요! 🎉",
+  "@wishThemAHappyBirthday": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "yearly": "연간",
+  "@yearly": {
+    "description": "The text to display for yearly plans",
+    "type": "text"
+  },
+  "yearsAgo": "{count, plural, one{{count}년 전} other{{count}년 전}}",
+  "@yearsAgo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yearShort": "년",
+  "@yearShort": {
+    "description": "Appears in pricing page (/yr)"
+  },
   "yes": "네",
+  "yesCancel": "예, 취소합니다",
   "yesConvertToViewer": "예, 뷰어로 변환합니다",
+  "yesDelete": "예, 삭제합니다",
+  "yesDeleteCollections": "예, {count, plural, one{컬렉션} other{컬렉션}}을 삭제합니다",
+  "@yesDeleteCollections": {
+    "description": "Button label for confirming deletion of one or more collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "yesDiscardChanges": "예, 변경 사항을 취소합니다",
+  "yesIgnore": "예, 무시합니다",
   "yesLogout": "네, 로그아웃하기",
   "@yesLogout": {
     "description": "Confirmation button for logout"
   },
   "yesRemove": "예, 제거합니다",
+  "yesRenew": "예, 갱신합니다",
+  "yesResetPerson": "예, 인물을 초기화합니다",
+  "yesShowPeople": "예, 인물을 표시합니다",
+  "yesShowPerson": "예, 인물을 표시합니다",
   "you": "나",
+  "youAndThem": "나와 {name}님",
+  "@youAndThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "youAreOnTheLatestVersion": "최신 버전을 사용 중이십니다",
+  "youCannotAddYourselfAsLegacyContact": "자신을 레거시 연락처로 추가할 수 없습니다",
+  "youCannotDowngradeToThisPlan": "이 요금제로 다운그레이드할 수 없습니다",
   "youCannotShareWithYourself": "자신과 공유할 수 없습니다",
+  "youHaveNoFileSuggestedForDeletion": "삭제 제안된 파일이 없습니다",
+  "youHaveSuccessfullyFreedUp": "{storageSaved}를 확보했습니다!",
+  "@youHaveSuccessfullyFreedUp": {
+    "description": "The text to display when the user has successfully freed up storage",
+    "type": "text",
+    "placeholders": {
+      "storageSaved": {
+        "example": "1.2 GB",
+        "type": "String"
+      }
+    }
+  },
+  "yourMap": "내 지도",
+  "yourPhotosLookUnique": "회원님의 사진은 모두 고유합니다",
+  "yourPlanSupportsFamily": "회원님의 요금제는 이미 가족을 지원합니다",
+  "yourPlanWasSuccessfullyDowngraded": "요금제가 다운그레이드되었습니다",
+  "yourPlanWasSuccessfullyUpgraded": "요금제가 업그레이드되었습니다",
+  "yourPurchaseWasSuccessful": "구매가 완료되었습니다",
+  "yourReferralCode": "내 추천 코드",
+  "yourSubscriptionHasExpired": "구독이 만료되었습니다",
+  "yourSubscriptionWasUpdatedSuccessfully": "구독이 업데이트되었습니다",
   "yourTrashIsEmpty": "휴지통이 비어 있습니다",
-  "yourVerificationCodeHasExpired": "검증 코드의 유효시간이 경과하였습니다",
+  "yourVerificationCodeHasExpired": "검증 코드의 유효 시간이 경과하였습니다",
   "@yourVerificationCodeHasExpired": {
     "description": "Error message when verification code has expired"
   },
-  "youveNoDuplicateCodesThatCanBeCleared": "정리해야 할 중복 코드가 없습니다"
+  "youveNoDuplicateCodesThatCanBeCleared": "정리해야 할 중복 코드가 없습니다",
+  "youveNoDuplicateFilesThatCanBeCleared": "정리할 수 있는 중복 파일이 없습니다",
+  "youveNoFilesInThisAlbumThatCanBeDeleted": "이 앨범에는 삭제할 수 있는 파일이 없습니다",
+  "zoomOutToSeePhotos": "축소하여 사진 보기",
+  "backupPausedFreeUpDeviceStorage": "백업이 일시 중지되었습니다. 다시 시작하려면 이 기기의 저장 공간을 확보하세요.",
+  "cameraPermissionRequired": "사진을 찍으려면 카메라 접근 권한이 필요합니다.",
+  "cameraPermissionSettings": "카메라 접근이 꺼져 있습니다. 계속하려면 설정에서 허용해 주세요.",
+  "cameraPermissionRestricted": "이 기기에서는 카메라 접근이 제한되어 있습니다.",
+  "legacyKitSheetGreeting": "{name}님, 이 문서를 안전하게 보관해 주세요.",
+  "@legacyKitSheetGreeting": {
+    "description": "Greeting printed at the top of a Legacy kit recovery sheet, addressed to the person holding it",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Mom"
+      }
+    }
+  },
+  "legacyKitSheetIntro": "제가 부재중이거나 계정에 접근할 수 없게 되면, 이 시트를 통해 제 사진, 문서 등을 복구할 수 있습니다.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "legacyKitSheetHowToRecover": "내 계정을 복구하는 방법",
+  "legacyKitSheetStepGetAnother": "이 시트는 {total}장 중 {index}번째입니다. {names}에게 시트를 요청하세요. 한 장만 더 있으면 됩니다.",
+  "@legacyKitSheetStepGetAnother": {
+    "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      },
+      "names": {
+        "type": "String",
+        "example": "Alex or Lawyer"
+      }
+    }
+  },
+  "legacyKitSheetNameJoinerOr": " 또는 ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "{url}에 방문하세요",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetStepScan": "시트 {count}장을 스캔하세요.",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "legacyKitSheetNeedHelp": "도움이 필요하신가요? {email} 주소로 문의하세요",
+  "@legacyKitSheetNeedHelp": {
+    "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "grantAccess": "접근 허용",
+  "sharePhotos": "사진 공유",
+  "sharePersonPhotos": "{name}님의 사진 공유",
+  "@sharePersonPhotos": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unnamedPersonAlbumName": "인물 사진 - {date}",
+  "@unnamedPersonAlbumName": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAllPersonPhotos": "모든 사진 공유",
+  "shareAllPersonPhotosDescription": "{name}님이 나온 모든 사진(앞으로 추가될 사진 포함)",
+  "@shareAllPersonPhotosDescription": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "personShareFailedTitle": "사진을 공유할 수 없습니다",
+  "personShareFailedBody": "공유 앨범을 만들 수 없습니다. 사진과 선택 항목은 변경되지 않았습니다. 다시 시도해 주세요.",
+  "personShareRollbackFailed": "공유가 완료되지 않았으며 \"{name}\" 앨범을 제거할 수 없습니다. 이 앨범은 앨범 목록에 남아 있으며 활성화된 공개 링크가 있을 수 있습니다. 다시 시도하기 전에 해당 앨범을 검토하거나 삭제하세요. 원본 사진은 안전합니다.",
+  "@personShareRollbackFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedByYou": "내가 공유함",
+  "sharedByOwner": "{owner}님이 공유함",
+  "@sharedByOwner": {
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "youAreViewer": "회원님은 뷰어입니다",
+  "youAreCollaborator": "회원님은 협업자입니다",
+  "youAreAdmin": "회원님은 관리자입니다",
+  "emptyAlbumShareMessage": "사람을 추가하여\n앨범을 함께 공유하세요",
+  "addPeople": "사람 추가",
+  "fromYourContacts": "연락처에서",
+  "chooseAccess": "접근 권한 선택",
+  "permissions": "권한",
+  "viewerRoleDescription": "사진 보기 및 다운로드",
+  "collaboratorRoleDescription": "+ 자신의 사진 추가",
+  "adminRoleDescription": "+ 사람 추가 및 제거",
+  "addAsViewers": "{count, plural, one{뷰어로 추가} other{뷰어로 추가}}",
+  "@addAsViewers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addAsCollaborators": "{count, plural, one{협업자로 추가} other{협업자로 추가}}",
+  "@addAsCollaborators": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addAsAdmins": "{count, plural, one{관리자로 추가} other{관리자로 추가}}",
+  "@addAsAdmins": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noEnteAccountWithThisEmail": "이 이메일로 가입된 Ente 계정이 없습니다.",
+  "shareALinkInline": "링크를 공유하세요.",
+  "personAlreadyHasAccess": "이 사람은 이미 접근 권한이 있습니다.",
+  "removePersonTitle": "{name}님을 제거하시겠습니까?",
+  "@removePersonTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removePersonBody": "{count, plural, =0{상대방은 즉시 이 앨범에 접근할 수 없게 됩니다.} one{상대방은 즉시 이 앨범에 접근할 수 없게 됩니다. 상대방이 추가한 사진 {count}장이 제거됩니다.} other{상대방은 즉시 이 앨범에 접근할 수 없게 됩니다. 상대방이 추가한 사진 {count}장이 제거됩니다.}}",
+  "@removePersonBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leaveAlbumTitle": "{album} 앨범에서 나가시겠습니까?",
+  "@leaveAlbumTitle": {
+    "placeholders": {
+      "album": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveAlbumBody": "{count, plural, =0{즉시 이 앨범에 접근할 수 없게 됩니다.} one{즉시 이 앨범에 접근할 수 없게 됩니다. 회원님이 추가한 사진 {count}장이 제거됩니다.} other{즉시 이 앨범에 접근할 수 없게 됩니다. 회원님이 추가한 사진 {count}장이 제거됩니다.}}",
+  "@leaveAlbumBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notEnoughStorageTitle": "저장 공간 부족",
+  "notEnoughStorageBody": "Ente에 새 사진을 추가할 공간이 부족합니다. 계속 추가하려면 공간을 확보하거나 업그레이드하세요."
 }

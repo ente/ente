@@ -1,7 +1,7 @@
-import "package:email_validator/email_validator.dart";
 import "package:ente_accounts/services/user_service.dart";
 import "package:ente_components/ente_components.dart";
 import 'package:ente_contacts/contacts.dart';
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_sharing/extensions/user_extension.dart";
 import "package:ente_sharing/models/user.dart";
 import "package:ente_sharing/user_avator_widget.dart";
@@ -113,7 +113,7 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
       shouldUnfocusOnClearOrSubmit: true,
       onChanged: (value) {
         _email = value.trim();
-        _emailIsValid = _isValidEmail(_email);
+        _emailIsValid = isValidEmail(_email);
         setState(() {});
       },
     );
@@ -390,10 +390,6 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
       return byName != 0 ? byName : a.email.compareTo(b.email);
     });
     return suggestedUsers;
-  }
-
-  bool _isValidEmail(String email) {
-    return EmailValidator.validate(email);
   }
 
   bool _isScheduledDateTimeValid() {

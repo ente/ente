@@ -3,14 +3,17 @@ import { Box } from "@mui/material";
 export const SpacePostPhotosBadge = ({
     count,
     inset = 10,
+    subtle = false,
 }: {
     count: number;
     inset?: number;
+    subtle?: boolean;
 }) =>
     count > 1 ? (
         <Box
             component="span"
-            aria-label={`${count} photos`}
+            aria-label={`${count} items`}
+            data-space-viewer-photos-badge
             sx={{
                 alignItems: "center",
                 color: "#FFFFFF",
@@ -28,8 +31,8 @@ export const SpacePostPhotosBadge = ({
         >
             <svg
                 aria-hidden
-                width={18}
-                height={18}
+                width={subtle ? 15 : 18}
+                height={subtle ? 15 : 18}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -46,3 +49,40 @@ export const SpacePostPhotosBadge = ({
             </svg>
         </Box>
     ) : null;
+
+export const SpacePostVideoBadge = ({
+    durationMs,
+    size,
+}: {
+    durationMs?: number;
+    size?: number;
+}) =>
+    durationMs == undefined ? null : (
+        <Box
+            component="span"
+            aria-label="Video"
+            sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 2,
+                pointerEvents: "none",
+                color: "#FFFFFF",
+                display: "flex",
+                filter: "drop-shadow(0 1px 3px rgba(0, 0, 0, 0.65))",
+                aspectRatio: "1",
+                width: size ?? "clamp(14px, 14%, 28px)",
+            }}
+        >
+            <svg
+                aria-hidden
+                width="100%"
+                height="100%"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+            >
+                <path d="M6 3v18l15-9z" />
+            </svg>
+        </Box>
+    );

@@ -1,8 +1,3 @@
-// Arm the durable canary before touching the driver and disarm it only after
-// session construction and warm-up. Three recorded failures quarantine the
-// model directory across restarts. The caller's model-slot lock serializes
-// access.
-
 #[cfg(all(
     not(target_os = "windows"),
     any(target_os = "android", target_os = "linux", test)
@@ -19,9 +14,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
     test
 ))]
 use std::{
+    collections::BTreeMap,
     fs::{self, OpenOptions},
     io::{self, Write},
     path::{Path, PathBuf},
+    sync::{Mutex, PoisonError},
 };
 
 // Bump to retry quarantined devices after major ONNX Runtime or Dawn changes.
@@ -40,6 +37,14 @@ const CANARY_FILE_PREFIX: &str = ".ente-webgpu-canary-v1.";
     test
 ))]
 const MAX_CONSECUTIVE_FAILURES: u32 = 3;
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "windows",
+    test
+))]
+static ACTIVE_CANARIES: Mutex<BTreeMap<PathBuf, u32>> = Mutex::new(BTreeMap::new());
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
 static WEBGPU_ENABLED: AtomicBool = AtomicBool::new(false);
@@ -149,6 +154,13 @@ pub(super) struct ArmedCanary {
         test
     ))]
     path: PathBuf,
+    #[cfg(any(
+        target_os = "android",
+        target_os = "linux",
+        target_os = "windows",
+        test
+    ))]
+    active: bool,
 }
 
 #[cfg(any(
@@ -165,12 +177,42 @@ pub(super) fn arm_canary(model_path: &str, model_namespace: &str) -> io::Result<
         )
     })?;
     let path = dir.join(format!("{CANARY_FILE_PREFIX}{model_namespace}"));
+    let mut active = ACTIVE_CANARIES
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let failures = read_failure_count(&path)?;
     persist_failure_count(&path, failures.saturating_add(1))?;
-    Ok(ArmedCanary { path })
+    *active.entry(path.clone()).or_default() += 1;
+    Ok(ArmedCanary { path, active: true })
 }
 
 impl ArmedCanary {
+    pub(super) fn defer(self) {
+        #[cfg(any(
+            target_os = "android",
+            target_os = "linux",
+            target_os = "windows",
+            test
+        ))]
+        {
+            let mut canary = self;
+            let mut active = ACTIVE_CANARIES
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            canary.active = false;
+            retire_canary(&mut active, &canary.path);
+            let result = read_failure_count(&canary.path).and_then(|failures| {
+                update_failure_count(&canary.path, failures.saturating_sub(1))
+            });
+            if let Err(error) = result {
+                log::warn!(
+                    "failed to defer WebGPU crash canary at '{}': {error}",
+                    canary.path.display()
+                );
+            }
+        }
+    }
+
     pub(super) fn disarm(self) {
         #[cfg(any(
             target_os = "android",
@@ -179,13 +221,68 @@ impl ArmedCanary {
             test
         ))]
         {
-            if let Err(error) = remove_file_durably(&self.path) {
+            let mut canary = self;
+            let mut active = ACTIVE_CANARIES
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            canary.active = false;
+            let remaining = retire_canary(&mut active, &canary.path);
+            if let Err(error) = update_failure_count(&canary.path, remaining) {
                 log::warn!(
                     "failed to disarm WebGPU crash canary at '{}': {error}",
-                    self.path.display()
+                    canary.path.display()
                 );
             }
         }
+    }
+}
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "windows",
+    test
+))]
+impl Drop for ArmedCanary {
+    fn drop(&mut self) {
+        if self.active {
+            let mut active = ACTIVE_CANARIES
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            retire_canary(&mut active, &self.path);
+        }
+    }
+}
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "windows",
+    test
+))]
+fn retire_canary(active: &mut BTreeMap<PathBuf, u32>, path: &Path) -> u32 {
+    let Some(count) = active.get_mut(path) else {
+        return 0;
+    };
+    *count -= 1;
+    let remaining = *count;
+    if remaining == 0 {
+        active.remove(path);
+    }
+    remaining
+}
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "windows",
+    test
+))]
+fn update_failure_count(path: &Path, failures: u32) -> io::Result<()> {
+    if failures == 0 {
+        remove_file_durably(path)
+    } else {
+        persist_failure_count(path, failures)
     }
 }
 
@@ -212,6 +309,9 @@ fn model_dir(model_path: &str) -> Option<PathBuf> {
     test
 ))]
 fn quarantined(dir: &Path) -> bool {
+    let _active = ACTIVE_CANARIES
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let Ok(entries) = fs::read_dir(dir) else {
         return true;
     };
@@ -373,6 +473,171 @@ mod tests {
         }
 
         assert!(quarantined(dir.path()));
+    }
+
+    #[test]
+    fn deferred_preloads_preserve_failures_until_quarantine() {
+        let dir = tempfile::tempdir().unwrap();
+        let model = model_path(dir.path());
+
+        for attempt in 1..=MAX_CONSECUTIVE_FAILURES {
+            assert!(!quarantined(dir.path()));
+            arm_canary(&model, "ocr-detection").unwrap().defer();
+            let canary = arm_canary(&model, "ocr-detection").unwrap();
+            assert_eq!(super::read_failure_count(&canary.path).unwrap(), attempt);
+            drop(canary);
+        }
+
+        assert!(quarantined(dir.path()));
+    }
+
+    #[test]
+    fn overlapping_success_and_deferral_clear_prior_failures() {
+        for prior_failures in 0..=2 {
+            let dir = tempfile::tempdir().unwrap();
+            let model = model_path(dir.path());
+            for _ in 0..prior_failures {
+                drop(arm_canary(&model, "ocr-detection").unwrap());
+            }
+            let inference = arm_canary(&model, "ocr-detection").unwrap();
+            let preload = arm_canary(&model, "ocr-detection").unwrap();
+            let path = preload.path.clone();
+
+            inference.disarm();
+
+            assert_eq!(super::read_failure_count(&path).unwrap(), 1);
+            preload.defer();
+            assert!(!path.exists());
+            assert!(!quarantined(dir.path()));
+        }
+    }
+
+    #[test]
+    fn deferring_preload_preserves_a_newer_attempt() {
+        let dir = tempfile::tempdir().unwrap();
+        let model = model_path(dir.path());
+        let first = arm_canary(&model, "ocr-detection").unwrap();
+        let preload = arm_canary(&model, "ocr-detection").unwrap();
+        first.disarm();
+        let newer = arm_canary(&model, "ocr-detection").unwrap();
+        let path = newer.path.clone();
+
+        preload.defer();
+
+        assert_eq!(super::read_failure_count(&path).unwrap(), 1);
+        let newest = arm_canary(&model, "ocr-detection").unwrap();
+        newer.disarm();
+        assert_eq!(super::read_failure_count(&path).unwrap(), 1);
+        drop(newest);
+        assert_eq!(super::read_failure_count(&path).unwrap(), 1);
+    }
+
+    #[test]
+    fn preload_deferral_preserves_a_later_inference_failure() {
+        for prior_failures in 0..=2 {
+            let dir = tempfile::tempdir().unwrap();
+            let model = model_path(dir.path());
+            for _ in 0..prior_failures {
+                drop(arm_canary(&model, "ocr-detection").unwrap());
+            }
+            let preload = arm_canary(&model, "ocr-detection").unwrap();
+            let inference = arm_canary(&model, "ocr-detection").unwrap();
+            let path = inference.path.clone();
+
+            preload.defer();
+            drop(inference);
+
+            assert_eq!(
+                super::read_failure_count(&path).unwrap(),
+                prior_failures + 1
+            );
+            assert_eq!(quarantined(dir.path()), prior_failures == 2);
+        }
+    }
+
+    #[test]
+    fn overlapping_deferrals_preserve_only_prior_failures() {
+        for prior_failures in 0..=2 {
+            let dir = tempfile::tempdir().unwrap();
+            let model = model_path(dir.path());
+            for _ in 0..prior_failures {
+                drop(arm_canary(&model, "ocr-detection").unwrap());
+            }
+            let first = arm_canary(&model, "ocr-detection").unwrap();
+            let second = arm_canary(&model, "ocr-detection").unwrap();
+            let path = first.path.clone();
+
+            first.defer();
+            second.defer();
+
+            assert_eq!(super::read_failure_count(&path).unwrap(), prior_failures);
+            assert!(!quarantined(dir.path()));
+        }
+    }
+
+    #[test]
+    fn successful_attempt_preserves_another_live_attempt() {
+        let dir = tempfile::tempdir().unwrap();
+        let model = model_path(dir.path());
+        let first = arm_canary(&model, "ocr-detection").unwrap();
+        let second = arm_canary(&model, "ocr-detection").unwrap();
+        let path = second.path.clone();
+
+        first.disarm();
+        drop(second);
+
+        assert_eq!(super::read_failure_count(&path).unwrap(), 1);
+        arm_canary(&model, "ocr-detection").unwrap().disarm();
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn failed_arm_persistence_does_not_register_an_active_attempt() {
+        let dir = tempfile::tempdir().unwrap();
+        let model = model_path(dir.path());
+        let namespace = "missing-directory/ocr-detection";
+        let path = dir
+            .path()
+            .join(format!("{}{namespace}", super::CANARY_FILE_PREFIX));
+
+        assert!(arm_canary(&model, namespace).is_err());
+
+        assert!(!super::ACTIVE_CANARIES.lock().unwrap().contains_key(&path));
+    }
+
+    #[test]
+    fn failed_deferral_retires_its_active_attempt() {
+        let dir = tempfile::tempdir().unwrap();
+        let model = model_path(dir.path());
+        let canary = arm_canary(&model, "ocr-detection").unwrap();
+        let path = canary.path.clone();
+        std::fs::write(&path, "invalid count").unwrap();
+
+        canary.defer();
+
+        assert!(quarantined(dir.path()));
+        assert!(!super::ACTIVE_CANARIES.lock().unwrap().contains_key(&path));
+        std::fs::remove_file(&path).unwrap();
+        arm_canary(&model, "ocr-detection").unwrap().disarm();
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn failed_disarm_retires_its_active_attempt() {
+        let dir = tempfile::tempdir().unwrap();
+        let model = model_path(dir.path());
+        let canary = arm_canary(&model, "ocr-detection").unwrap();
+        let path = canary.path.clone();
+        std::fs::remove_file(&path).unwrap();
+        std::fs::create_dir(&path).unwrap();
+
+        canary.disarm();
+
+        assert!(quarantined(dir.path()));
+        assert!(!super::ACTIVE_CANARIES.lock().unwrap().contains_key(&path));
+        std::fs::remove_dir(&path).unwrap();
+        arm_canary(&model, "ocr-detection").unwrap().disarm();
+        assert!(!path.exists());
     }
 
     #[test]

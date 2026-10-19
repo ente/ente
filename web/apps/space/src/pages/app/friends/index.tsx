@@ -1,3 +1,5 @@
+import { Box } from "@mui/material";
+import { FriendProfileSheet } from "components/FriendProfileSheet";
 import { SpaceFriendRequestCanceledToast } from "components/FriendRequestCanceledToast";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
@@ -12,7 +14,6 @@ import {
     loadCurrentFriendAvatarURL,
     loadCurrentFriendRequests,
     loadCurrentSpaceFriends,
-    removeCurrentSpaceFriend,
     requestFriendByUsername,
     type SpaceFriendRequest,
 } from "services/space";
@@ -37,6 +38,10 @@ const Page: React.FC = () => {
     const [isFriendsLoading, setIsFriendsLoading] = React.useState(true);
     const [showFriendRequestCanceledToast, setShowFriendRequestCanceledToast] =
         React.useState(false);
+    const selectedFriend = friends.find(
+        (friend) => friend.username == router.query.friend,
+    );
+    const isProfileExpanded = router.query.expanded == "1";
 
     useEffect(() => {
         if (profileLoadStatus == "ready" && !profile) {
@@ -85,143 +90,162 @@ const Page: React.FC = () => {
     return (
         <>
             <SpacePageMeta themeColor={spaceAppBackgroundColor} />
-            <FriendsScreen
-                friendRequests={friendRequests}
-                friends={friends}
-                isLoading={isFriendsLoading}
-                onLoadFriendAvatar={loadCurrentFriendAvatarURL}
-                onBack={() => void router.push(spaceRoutes.profile)}
-                onAddFriend={async (username) => {
-                    const actorSpaceId = profile.spaceId;
-                    if (!actorSpaceId) throw new Error("Missing space.");
-                    const status = await requestFriendByUsername({
-                        spaceUsername: username,
-                    });
-                    try {
-                        if (status == "friend") {
-                            clearSpaceFriendsCache();
-                            const [requests, friends] = await Promise.all([
-                                loadCurrentFriendRequests(actorSpaceId),
-                                loadCurrentSpaceFriends(actorSpaceId),
-                            ]);
-                            setFriendRequests(requests);
-                            setFriends(friends);
-                        } else {
-                            setFriendRequests(
-                                await loadCurrentFriendRequests(actorSpaceId),
+            {!(selectedFriend && isProfileExpanded) && (
+                <Box inert={Boolean(selectedFriend)}>
+                    <FriendsScreen
+                        friendRequests={friendRequests}
+                        friends={friends}
+                        isLoading={isFriendsLoading}
+                        onBack={() => void router.back(spaceRoutes.home)}
+                        onLoadFriendAvatar={loadCurrentFriendAvatarURL}
+                        onAddFriend={async (username) => {
+                            const actorSpaceId = profile.spaceId;
+                            if (!actorSpaceId)
+                                throw new Error("Missing space.");
+                            const status = await requestFriendByUsername({
+                                spaceUsername: username,
+                            });
+                            try {
+                                if (status == "friend") {
+                                    clearSpaceFriendsCache();
+                                    const [requests, friends] =
+                                        await Promise.all([
+                                            loadCurrentFriendRequests(
+                                                actorSpaceId,
+                                            ),
+                                            loadCurrentSpaceFriends(
+                                                actorSpaceId,
+                                            ),
+                                        ]);
+                                    setFriendRequests(requests);
+                                    setFriends(friends);
+                                } else {
+                                    setFriendRequests(
+                                        await loadCurrentFriendRequests(
+                                            actorSpaceId,
+                                        ),
+                                    );
+                                }
+                            } catch (error) {
+                                log.error(
+                                    "Failed to refresh friends after sending request",
+                                    error,
+                                );
+                            }
+                            return status;
+                        }}
+                        onOpenFriend={(friendID) => {
+                            const friend = friends.find(
+                                (candidate) =>
+                                    candidate.id == friendID ||
+                                    candidate.spaceId == friendID,
                             );
-                        }
-                    } catch (error) {
-                        log.error(
-                            "Failed to refresh friends after sending request",
-                            error,
-                        );
-                    }
-                    return status;
-                }}
-                onMessage={(friendID) => {
-                    const friend = friends.find(
-                        (candidate) => candidate.id == friendID,
-                    );
-                    if (friend?.spaceId) {
-                        void router.push(spaceRoutes.message(friend.spaceId));
-                    }
-                }}
-                onOpenFriend={(friendID) => {
-                    const friend = friends.find(
-                        (candidate) =>
-                            candidate.id == friendID ||
-                            candidate.spaceId == friendID,
-                    );
-                    if (friend)
-                        void router.push(
-                            spaceRoutes.friendPage,
-                            spaceRoutes.friend(friend.username),
-                        );
-                }}
-                profileLink={spaceInviteURL({
-                    spaceUsername: profile.username,
-                })}
-                username={profile.username}
-                onAcceptFriendRequest={async (requestID) => {
-                    const actorSpaceId = profile.spaceId;
-                    if (!actorSpaceId) return;
-                    try {
-                        await confirmCurrentFriendRequest(
-                            actorSpaceId,
-                            requestID,
-                        );
-                    } catch (error: unknown) {
-                        if (!isFriendRequestCanceledError(error)) throw error;
-                        setFriendRequests((currentRequests) =>
-                            currentRequests.filter(
-                                (request) => request.requestId != requestID,
-                            ),
-                        );
-                        setShowFriendRequestCanceledToast(true);
-                        return;
-                    }
-                    const loadedFriends =
-                        await loadCurrentSpaceFriends(actorSpaceId);
-                    setFriendRequests((currentRequests) =>
-                        currentRequests.filter(
-                            (request) => request.requestId != requestID,
-                        ),
-                    );
-                    setFriends(loadedFriends);
-                }}
-                onDeleteFriendRequest={async (requestID) => {
-                    const actorSpaceId = profile.spaceId;
-                    if (!actorSpaceId) return;
-                    const friendRequest = friendRequests.find(
-                        (request) => request.requestId == requestID,
-                    );
-
-                    try {
-                        await deleteCurrentFriendRequest(
-                            actorSpaceId,
-                            requestID,
-                        );
-                    } catch (error: unknown) {
-                        if (!isFriendRequestCanceledError(error)) throw error;
-                        clearSpaceFriendsCache();
-                        const [requests, friends] = await Promise.all([
-                            loadCurrentFriendRequests(actorSpaceId),
-                            loadCurrentSpaceFriends(actorSpaceId),
-                        ]);
-                        setFriendRequests(requests);
-                        setFriends(friends);
-                        setShowFriendRequestCanceledToast(
-                            !friendRequest ||
-                                !friends.some(
-                                    (friend) =>
-                                        friend.id == friendRequest.friend.id,
+                            if (friend)
+                                void router.push(
+                                    {
+                                        pathname: spaceRoutes.friends,
+                                        query: { friend: friend.username },
+                                    },
+                                    undefined,
+                                    { shallow: true, scroll: false },
+                                );
+                        }}
+                        profileLink={spaceInviteURL({
+                            spaceUsername: profile.username,
+                        })}
+                        username={profile.username}
+                        onAcceptFriendRequest={async (requestID) => {
+                            const actorSpaceId = profile.spaceId;
+                            if (!actorSpaceId) return false;
+                            try {
+                                await confirmCurrentFriendRequest(
+                                    actorSpaceId,
+                                    requestID,
+                                );
+                            } catch (error: unknown) {
+                                if (!isFriendRequestCanceledError(error))
+                                    throw error;
+                                setFriendRequests((currentRequests) =>
+                                    currentRequests.filter(
+                                        (request) =>
+                                            request.requestId != requestID,
+                                    ),
+                                );
+                                setShowFriendRequestCanceledToast(true);
+                                return false;
+                            }
+                            const loadedFriends =
+                                await loadCurrentSpaceFriends(actorSpaceId);
+                            setFriendRequests((currentRequests) =>
+                                currentRequests.filter(
+                                    (request) => request.requestId != requestID,
                                 ),
-                        );
-                        return;
+                            );
+                            setFriends(loadedFriends);
+                            return true;
+                        }}
+                        onDeleteFriendRequest={async (requestID) => {
+                            const actorSpaceId = profile.spaceId;
+                            if (!actorSpaceId) return;
+                            const friendRequest = friendRequests.find(
+                                (request) => request.requestId == requestID,
+                            );
+
+                            try {
+                                await deleteCurrentFriendRequest(
+                                    actorSpaceId,
+                                    requestID,
+                                );
+                            } catch (error: unknown) {
+                                if (!isFriendRequestCanceledError(error))
+                                    throw error;
+                                clearSpaceFriendsCache();
+                                const [requests, friends] = await Promise.all([
+                                    loadCurrentFriendRequests(actorSpaceId),
+                                    loadCurrentSpaceFriends(actorSpaceId),
+                                ]);
+                                setFriendRequests(requests);
+                                setFriends(friends);
+                                setShowFriendRequestCanceledToast(
+                                    !friendRequest ||
+                                        !friends.some(
+                                            (friend) =>
+                                                friend.id ==
+                                                friendRequest.friend.id,
+                                        ),
+                                );
+                                return;
+                            }
+                            setFriendRequests((currentRequests) =>
+                                currentRequests.filter(
+                                    (request) => request.requestId != requestID,
+                                ),
+                            );
+                        }}
+                    />
+                </Box>
+            )}
+            {selectedFriend && (
+                <FriendProfileSheet
+                    key={selectedFriend.id}
+                    expanded={isProfileExpanded}
+                    friend={selectedFriend}
+                    onClose={() => void router.back(spaceRoutes.friends)}
+                    onExpand={() =>
+                        void router.replace(
+                            {
+                                pathname: spaceRoutes.friends,
+                                query: {
+                                    friend: selectedFriend.username,
+                                    expanded: "1",
+                                },
+                            },
+                            spaceRoutes.friend(selectedFriend.username),
+                            { shallow: true, scroll: false },
+                        )
                     }
-                    setFriendRequests((currentRequests) =>
-                        currentRequests.filter(
-                            (request) => request.requestId != requestID,
-                        ),
-                    );
-                }}
-                onUnfriend={async (friendID) => {
-                    const actorSpaceId = profile.spaceId;
-                    if (!actorSpaceId) return;
-
-                    const friend = friends.find(
-                        (candidate) => candidate.id == friendID,
-                    );
-                    if (!friend?.spaceId) return;
-
-                    await removeCurrentSpaceFriend(
-                        actorSpaceId,
-                        friend.spaceId,
-                    );
-                    window.location.reload();
-                }}
-            />
+                />
+            )}
             {showFriendRequestCanceledToast && (
                 <SpaceFriendRequestCanceledToast
                     onClose={() => setShowFriendRequestCanceledToast(false)}

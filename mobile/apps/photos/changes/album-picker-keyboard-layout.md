@@ -1,1 +1,0 @@
-- Improve the album picker layout while searching with the keyboard open.

@@ -451,6 +451,19 @@ class LockerDB extends EnteBaseDatabase {
     await batch.commit();
   }
 
+  Future<int> getFileCount(Collection collection) async {
+    final result = await _db.rawQuery(
+      '''
+      SELECT COUNT(DISTINCT f.uploaded_file_id)
+      FROM $_filesTable f
+      INNER JOIN $_collectionFilesTable cf ON f.uploaded_file_id = cf.uploaded_file_id
+      WHERE cf.collection_id = ?
+    ''',
+      [collection.id],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   Future<List<EnteFile>> getFilesInCollection(Collection collection) async {
     final result = await _db.rawQuery(
       '''

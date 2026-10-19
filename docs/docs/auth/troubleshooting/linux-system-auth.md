@@ -47,7 +47,7 @@ if curl -fsSL "$policy_url" -o "$policy" &&
   printf "%s  %s\n" "$policy_sha256" "$policy" | sha256sum -c -; then
 
   # Use /etc on immutable distros (read-only /usr), /usr/share on traditional ones
-  if findmnt -n -o OPTIONS --target /usr/share/polkit-1/actions 2>/dev/null | grep -qw ro; then
+  if findmnt -n -o OPTIONS --target /usr/share/polkit-1/actions 2>/dev/null | tr ',' '\n' | grep -qx ro; then
      install_path="/etc/polkit-1/actions/com.ente.auth.policy"
   else
      install_path="/usr/share/polkit-1/actions/com.ente.auth.policy"
@@ -62,7 +62,10 @@ if curl -fsSL "$policy_url" -o "$policy" &&
   # Give polkit time to pick up the new action via inotify
   sleep 1
 
-  pkaction --action-id com.ente.auth.unlock --verbose
+  pkaction --action-id com.ente.auth.unlock --verbose || {
+    echo "Could not verify Ente Auth's Polkit action. Check the errors above." >&2
+    echo "If installation succeeded, wait briefly and rerun the pkaction command." >&2
+  }
 else
   echo "Policy download or checksum verification failed. Not installing."
 fi

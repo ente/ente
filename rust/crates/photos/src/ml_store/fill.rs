@@ -200,6 +200,7 @@ impl MlStore {
             return Ok(FillOutcome::Superseded);
         }
         state::mark_filled(&self.db, index)?;
+        self.indexes[index.position()].remove_legacy_files();
         Ok(FillOutcome::Completed)
     }
 }
@@ -218,8 +219,9 @@ mod tests {
     use super::{ClipSource, FillOutcome, FillReport, FillRow, FillSource};
     use crate::ml_db::{ClipEmbedding, ClusterSummary, MlDb};
     use crate::ml_store::tests::{
-        centroid, clips, empty, hot_position, index_path, live_count, lose_index_files, meta,
-        nearest, one_hot, open, open_in, open_with_unusable_clip_index,
+        all_exist, centroid, clips, create_usearch_files, empty, hot_position, index_path,
+        live_count, lose_index_files, meta, nearest, one_hot, open, open_in,
+        open_with_unusable_clip_index,
     };
     use crate::ml_store::{Error, FillState, Index, MlStore, Result};
 
@@ -423,7 +425,11 @@ mod tests {
         store.db().set_meta("clip.fill", "filling").unwrap();
         store.db().set_meta("clip.cursor", "3").unwrap();
         assert!(matches!(store.fill_clip_index(false), Err(Error::Index(_))));
-        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Filling);
+        assert!(matches!(
+            store.fill_state(Index::Clip),
+            Err(Error::Index(_))
+        ));
+        assert_eq!(meta(&store, "clip.fill").as_deref(), Some("filling"));
         assert_eq!(meta(&store, "clip.cursor").as_deref(), Some("3"));
     }
 
@@ -559,6 +565,22 @@ mod tests {
         assert_eq!(live_count(&store, Index::Clip), 3500);
         assert!(store.contains(Index::Clip, "1").unwrap());
         assert!(store.contains(Index::Clip, "3500").unwrap());
+    }
+
+    #[test]
+    fn superseded_fills_leave_legacy_usearch_files_in_place() {
+        let (directory, store) = open();
+        store.db().insert_clip_rows(&clips(1..=1500)).unwrap();
+        let clip = create_usearch_files(&directory, "ente.ml.vectordb.clip.usearch");
+        PAGE_HOOK.set(Some(Box::new(|store: &MlStore| {
+            store.db().delete_meta("clip.fill").unwrap();
+        })));
+        let report = store.fill::<HookedClipSource>(false);
+        PAGE_HOOK.take();
+
+        assert_eq!(report.unwrap().outcome, FillOutcome::Superseded);
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        assert!(all_exist(&clip));
     }
 
     #[test]

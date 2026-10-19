@@ -102,9 +102,11 @@ class _MemoryShareSelectionSheetState
       height: sheetHeight,
       child: GalleryBoundariesProvider(
         child: BottomSheetComponent(
+          // Rebuild the reporter so sheet layout changes refresh the boundary.
+          // ignore: prefer_const_constructors
           header: _MemoryShareSheetBoundary(
             position: BoundaryPosition.top,
-            child: _buildHeader(context, l10n),
+            child: const _MemoryShareSheetHeader(),
           ),
           showCloseButton: false,
           padding: const EdgeInsets.symmetric(vertical: Spacing.xl),
@@ -122,40 +124,6 @@ class _MemoryShareSelectionSheetState
             ),
           ),
           actions: _buildActions(l10n),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, StringsLocalizations l10n) {
-    final colors = context.componentColors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
-      child: SizedBox(
-        height: 38,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                l10n.shareMemory,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyles.h1Bold.copyWith(color: colors.textBase),
-              ),
-            ),
-            const SizedBox(width: Spacing.md),
-            IconButtonComponent(
-              key: const ValueKey("memory-share-close"),
-              tooltip: l10n.close,
-              variant: IconButtonComponentVariant.circular,
-              shouldSurfaceExecutionStates: false,
-              icon: const HugeIcon(
-                icon: HugeIcons.strokeRoundedCancel01,
-                size: IconSizes.small,
-              ),
-              onTap: () => Navigator.of(context).pop(),
-            ),
-          ],
         ),
       ),
     );
@@ -277,6 +245,46 @@ class _MemoryShareSelectionSheetState
 // The reference sheet is 634px on the 812px Share memory viewport.
 // Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=18629-312441&m=dev
 const double _figmaSheetHeightRatio = 634 / 812;
+
+class _MemoryShareSheetHeader extends StatelessWidget {
+  const _MemoryShareSheetHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.strings;
+    final colors = context.componentColors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+      child: SizedBox(
+        height: 38,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                l10n.shareMemory,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyles.h1Bold.copyWith(color: colors.textBase),
+              ),
+            ),
+            const SizedBox(width: Spacing.md),
+            IconButtonComponent(
+              key: const ValueKey("memory-share-close"),
+              tooltip: l10n.close,
+              variant: IconButtonComponentVariant.circular,
+              shouldSurfaceExecutionStates: false,
+              icon: const HugeIcon(
+                icon: HugeIcons.strokeRoundedCancel01,
+                size: IconSizes.small,
+              ),
+              onTap: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _MemoryShareSheetBoundary extends StatefulWidget {
   final BoundaryPosition position;

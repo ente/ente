@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"errors"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -19,8 +20,7 @@ func OpenURL(url string) error {
 		args = []string{url}
 	default: // "linux", "freebsd", "openbsd", "netbsd"
 		if isWSL() {
-			cmd = "cmd.exe"
-			args = []string{"/c", "start", url}
+			return errors.New("automatic browser opening is unavailable under WSL; open the printed URL manually")
 		} else {
 			cmd = "xdg-open"
 			args = []string{url}

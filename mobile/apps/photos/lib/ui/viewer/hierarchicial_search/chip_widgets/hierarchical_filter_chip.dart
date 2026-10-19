@@ -31,6 +31,7 @@ class HierarchicalFilterChip extends StatelessWidget {
         remove: remove,
         isApplied: filter.isApplied,
         avatarSize: faceAvatarSize,
+        retryKey: filter,
       );
     }
     if (filter is OnlyThemFilter) {

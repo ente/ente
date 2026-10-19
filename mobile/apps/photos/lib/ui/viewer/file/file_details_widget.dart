@@ -4,7 +4,6 @@ import "dart:io";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/components/divider_widget.dart";
 import "package:exif_reader/exif_reader.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -31,7 +30,6 @@ import "package:photos/ui/viewer/file_details/albums_item_widget.dart";
 import "package:photos/ui/viewer/file_details/creation_time_item_widget.dart";
 import 'package:photos/ui/viewer/file_details/exif_item_widgets.dart';
 import "package:photos/ui/viewer/file_details/file_info_faces_item_widget.dart";
-import "package:photos/ui/viewer/file_details/file_info_pets_item_widget.dart";
 import "package:photos/ui/viewer/file_details/file_properties_item_widget.dart";
 import "package:photos/ui/viewer/file_details/location_tags_widget.dart";
 import "package:photos/ui/viewer/file_details/preview_properties_item_widget.dart";
@@ -200,12 +198,6 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
         FacesItemWidget(file),
         const SizedBox(height: Spacing.xxl),
       ]);
-      if (flagService.petEnabled && localSettings.petRecognitionEnabled) {
-        fileDetailsTiles.addAll([
-          PetsItemWidget(file),
-          const FileDetailsDivider(),
-        ]);
-      }
     }
 
     fileDetailsTiles.addAll([
@@ -391,7 +383,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     }
 
     if (exif["EXIF ExposureTime"] != null) {
-      _exifData["exposureTime"] = _formatExposureTime(
+      _exifData["exposureTime"] = formatExifExposureTime(
         exif["EXIF ExposureTime"]!,
       );
     }
@@ -408,37 +400,6 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     return value.toStringAsFixed(2).replaceFirst(RegExp(r"\.?0+$"), "");
   }
 
-  String _formatExposureTime(IfdTag exposureTimeTag) {
-    final values = exposureTimeTag.values.toList();
-    if (values.isEmpty) {
-      return exposureTimeTag.toString();
-    }
-
-    final value = values[0];
-    if (value is! Ratio) {
-      return exposureTimeTag.toString();
-    }
-
-    final numerator = value.numerator;
-    final denominator = value.denominator;
-
-    if (denominator == 0) {
-      return exposureTimeTag.toString();
-    }
-
-    final double seconds = numerator / denominator;
-
-    if (seconds >= 1) {
-      if (seconds == seconds.roundToDouble()) {
-        return "${seconds.toInt()}s";
-      }
-      return "${seconds.toStringAsFixed(1)}s";
-    } else {
-      final reciprocal = (1 / seconds).round();
-      return "1/$reciprocal";
-    }
-  }
-
   IfdTag? _firstPositiveDimensionTag(
     Map<String, IfdTag> exif,
     List<String> keys,
@@ -450,19 +411,5 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       }
     }
     return null;
-  }
-}
-
-class FileDetailsDivider extends StatelessWidget {
-  const FileDetailsDivider({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const dividerPadding = EdgeInsets.symmetric(vertical: 9.5);
-    return const DividerWidget(
-      dividerType: DividerType.menu,
-      divColorHasBlur: false,
-      padding: dividerPadding,
-    );
   }
 }

@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	spaceMessageKindRegular     = "regular"
-	spaceMessageKindPostReply   = "post_reply"
-	spaceMessageKindPostLike    = "post_like"
-	spaceMessageKindFriendAdded = "friend_added"
+	spaceMessageKindRegular   = "regular"
+	spaceMessageKindPostReply = "post_reply"
 
 	spaceMessageNotificationKindPoke = "poke"
 
@@ -144,10 +142,6 @@ func (c *MessagesController) ListConversations(ctx context.Context, viewerSpace 
 	if err != nil {
 		return nil, err
 	}
-	pendingRequests, err := c.FriendsRepo.ListFriendRequestsForSpace(ctx, viewerSpace.SpaceID)
-	if err != nil {
-		return nil, err
-	}
 	friendResponses := make([]models.SpaceFriendResponse, 0, len(friends))
 	friendSpaceIDs := make([]string, 0, len(friends))
 	for _, friend := range friends {
@@ -177,18 +171,9 @@ func (c *MessagesController) ListConversations(ctx context.Context, viewerSpace 
 			UnreadActivities: unreadActivities,
 		}
 	}
-	requestResponses := make([]models.SpaceFriendRequestResponse, 0, len(pendingRequests))
-	for _, request := range pendingRequests {
-		requestResponses = append(requestResponses, models.SpaceFriendRequestResponse{
-			RequestID: request.RequestID,
-			Requester: toActorResponse(request.Requester, true),
-			CreatedAt: formatMicros(request.CreatedAt),
-		})
-	}
 	response := &models.ConversationsResponse{
-		Friends:         friendResponses,
-		PendingRequests: requestResponses,
-		ChatSummaries:   chatSummaries,
+		Friends:       friendResponses,
+		ChatSummaries: chatSummaries,
 	}
 	if latestPostCreatedAt > 0 {
 		response.LatestPostCreatedAt = formatMicros(latestPostCreatedAt)
@@ -219,6 +204,30 @@ func (c *MessagesController) ListThread(ctx context.Context, viewerSpace *repo.S
 }
 
 func (c *MessagesController) SetLike(ctx context.Context, actorSpace *repo.SpaceRecord, messageID string, like bool) (*models.LikeMessageResponse, error) {
+	message, err := c.messageReactionTarget(ctx, actorSpace, messageID)
+	if err != nil {
+		return nil, err
+	}
+	otherSpaceID := message.SenderSpaceID
+	var recipientUserID int64
+	if like {
+		otherSpace, err := c.SpacesRepo.GetSpaceByID(ctx, otherSpaceID)
+		if err != nil {
+			return nil, err
+		}
+		recipientUserID = otherSpace.OwnerID
+	}
+	changed, err := c.MessagesRepo.SetLikeWithChanged(ctx, message.MessageID, actorSpace.SpaceID, like)
+	if err != nil {
+		return nil, err
+	}
+	if like && changed {
+		go c.ActivityNotifier.OnSpaceMessageLiked(spaceActivityActor(actorSpace), recipientUserID)
+	}
+	return &models.LikeMessageResponse{Liked: like}, nil
+}
+
+func (c *MessagesController) messageReactionTarget(ctx context.Context, actorSpace *repo.SpaceRecord, messageID string) (*repo.SpaceMessageRecord, error) {
 	messageID = strings.TrimSpace(messageID)
 	if messageID == "" {
 		return nil, ente.NewBadRequestWithMessage("messageId is required")
@@ -236,29 +245,43 @@ func (c *MessagesController) SetLike(ctx context.Context, actorSpace *repo.Space
 	if message.RecipientSpaceID != actorSpace.SpaceID {
 		return nil, ente.NewBadRequestWithMessage("only the recipient can like a message")
 	}
-	otherSpaceID := message.SenderSpaceID
-	if _, err := c.FriendsRepo.GetShareForFriendAndSpace(ctx, actorSpace.SpaceID, otherSpaceID); err != nil {
+	if _, err := c.FriendsRepo.GetShareForFriendAndSpace(ctx, actorSpace.SpaceID, message.SenderSpaceID); err != nil {
 		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
 			return nil, ente.ErrPermissionDenied
 		}
 		return nil, err
 	}
-	var recipientUserID int64
-	if like {
-		otherSpace, err := c.SpacesRepo.GetSpaceByID(ctx, otherSpaceID)
-		if err != nil {
-			return nil, err
-		}
-		recipientUserID = otherSpace.OwnerID
-	}
-	changed, err := c.MessagesRepo.SetLikeWithChanged(ctx, messageID, actorSpace.SpaceID, like)
+	return message, nil
+}
+
+func (c *MessagesController) SetReaction(ctx context.Context, actorSpace *repo.SpaceRecord, messageID string, req models.SetMessageReactionRequest) (*models.LikeMessageResponse, error) {
+	senderCipher, err := decodeEncodedSpaceField("senderEncryptedReaction", req.SenderEncryptedReaction, 408, 304)
 	if err != nil {
 		return nil, err
 	}
-	if like && changed {
-		go c.ActivityNotifier.OnSpaceMessageLiked(spaceActivityActor(actorSpace), recipientUserID)
+	recipientCipher, err := decodeEncodedSpaceField("recipientEncryptedReaction", req.RecipientEncryptedReaction, 408, 304)
+	if err != nil {
+		return nil, err
 	}
-	return &models.LikeMessageResponse{Liked: like}, nil
+	if len(senderCipher) != 304 || len(recipientCipher) != 304 {
+		return nil, ente.NewBadRequestWithMessage("encrypted reactions must be 304 bytes")
+	}
+	message, err := c.messageReactionTarget(ctx, actorSpace, messageID)
+	if err != nil {
+		return nil, err
+	}
+	sender, err := c.SpacesRepo.GetSpaceByID(ctx, message.SenderSpaceID)
+	if err != nil {
+		return nil, err
+	}
+	added, err := c.MessagesRepo.SetReaction(ctx, message.MessageID, actorSpace.SpaceID, senderCipher, recipientCipher)
+	if err != nil {
+		return nil, err
+	}
+	if added {
+		go c.ActivityNotifier.OnSpaceMessageLiked(spaceActivityActor(actorSpace), sender.OwnerID)
+	}
+	return &models.LikeMessageResponse{Liked: true}, nil
 }
 
 func (c *MessagesController) Delete(ctx context.Context, senderSpace *repo.SpaceRecord, messageID string) error {
@@ -388,6 +411,7 @@ func toMessageResponse(message repo.SpaceMessageRecord) *models.MessageResponse 
 		RecipientSpaceID:    message.RecipientSpaceID,
 		MessageCipher:       encodeSpaceField(message.MessageCipher),
 		EncryptedMessageKey: encodeSpaceField(message.EncryptedMessageKey),
+		EncryptedReaction:   encodeSpaceField(message.EncryptedReaction),
 		Text:                message.Text,
 		Liked:               message.Liked,
 		ViewerLiked:         message.ViewerLiked,
@@ -444,6 +468,7 @@ func toMessageConversationActivityResponse(activity repo.SpaceMessageConversatio
 	if len(activity.EncryptedMessageKey) > 0 {
 		resp.EncryptedMessageKey = encodeSpaceField(activity.EncryptedMessageKey)
 	}
+	resp.EncryptedReaction = encodeSpaceField(activity.EncryptedReaction)
 	if activity.ReplyMessageID.Valid {
 		replyMessageID := activity.ReplyMessageID.String
 		resp.ReplyMessageID = &replyMessageID
@@ -452,5 +477,5 @@ func toMessageConversationActivityResponse(activity repo.SpaceMessageConversatio
 }
 
 func toUnreadMessageConversationActivityResponse(activity repo.SpaceMessageConversationActivityRecord) models.MessageConversationActivityResponse {
-	return toMessageConversationActivityMetadataResponse(activity)
+	return toMessageConversationActivityResponse(activity)
 }

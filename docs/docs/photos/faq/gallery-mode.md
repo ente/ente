@@ -65,6 +65,12 @@ There are three places to sign up:
 
 No. All your device photos remain on your device, and any ML processing (face recognition, search embeddings) done in gallery mode is preserved. Signing up adds cloud features on top of your existing local experience.
 
+### Will signed-in machine learning include photos I have not backed up? {#signed-in-indexing-scope}
+
+While signed in, face recognition and Magic search index photos backed up to Ente. Local photos that have not been backed up are not automatically included, even if you can see them in the device gallery.
+
+Gallery Mode provides local-photo indexing in the mobile app while signed out. There is currently no combined mode that indexes both an Ente library and unbacked local photos while signed in. See [which photos are indexed](/photos/features/search-and-discovery/machine-learning#which-photos-are-indexed).
+
 ### Can I go back to gallery mode after signing up? {#return-to-offline}
 
 Once you sign in to an Ente account, the app operates in signed-in mode. To return to gallery mode, you would need to sign out.

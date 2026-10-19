@@ -15,6 +15,8 @@ Please follow the following simple steps to keep a local copy of the photos and 
 
     ![Ente - Export data](export-1.png)
 
+    ![Ente Photos desktop Export data dialog with a destination folder chosen and the Start button ready](https://docs-assets.ente.com/screenshots/desktop-export-data.png){width=720px}
+
 3. Choose the destination folder by clicking on three dots icon.
 
 <div align="center">
@@ -28,6 +30,8 @@ Please follow the following simple steps to keep a local copy of the photos and 
 <div align="center">
 
 ![Ente - Export in progress](export-3.png){width=400px}
+
+![Ente Photos desktop Export data dialog highlighting the Start button](https://docs-assets.ente.com/screenshots/desktop-export-data-start-callout.png){width=720px}
 
 </div>
 

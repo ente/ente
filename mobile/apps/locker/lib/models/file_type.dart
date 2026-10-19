@@ -31,18 +31,3 @@ FileType getFileType(int fileType) {
       return FileType.other;
   }
 }
-
-String getHumanReadableString(FileType fileType) {
-  switch (fileType) {
-    case FileType.image:
-      return 'Images';
-    case FileType.video:
-      return 'Videos';
-    case FileType.livePhoto:
-      return 'Live Photos';
-    case FileType.other:
-      return 'Other Files';
-    case FileType.info:
-      return 'Information';
-  }
-}

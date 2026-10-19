@@ -845,6 +845,25 @@ test("Android lint configurations need approval when added, edited, or deleted",
     }
 });
 
+test("Gradle version bumps are exempt only when nothing else changes", (t) => {
+    const version = (n) => `versionName = "1.2.${n}"
+versionCode = findProperty("build")?.toString()?.toInt() ?: ${n}
+versionName '1.2.${n}-beta'
+versionCode ${n}
+`;
+    for (const path of [
+        "android/a/build.gradle",
+        "android/b/build.gradle.kts",
+    ]) {
+        const base = { [path]: version(1) };
+        assert.equal(scan(t, base, { [path]: version(2) }), "");
+        assert.match(
+            scan(t, base, { [path]: version(2) + 'apply(plugin = "other")\n' }),
+            /^1 guardrail file\n/,
+        );
+    }
+});
+
 test("Android lint scripts and checks need approval when edited", (t) => {
     assert.match(
         scan(

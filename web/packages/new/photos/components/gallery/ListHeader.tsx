@@ -32,7 +32,24 @@ export const GalleryItemsSummary: React.FC<GalleryItemsSummaryProps> = ({
     onDescriptionHeightChange,
 }) => (
     <Box sx={{ minWidth: 0 }}>
-        <Typography variant="h3" {...(nameProps ?? {})} onClick={onNameClick}>
+        <Typography
+            variant="h3"
+            {...(nameProps ?? {})}
+            sx={[
+                {
+                    fontFamily: '"Outfit Variable", Outfit, sans-serif',
+                    fontWeight: 600,
+                    fontSize: "24px",
+                    lineHeight: "32px",
+                },
+                ...(nameProps?.sx
+                    ? isSxArray(nameProps.sx)
+                        ? nameProps.sx
+                        : [nameProps.sx]
+                    : []),
+            ]}
+            onClick={onNameClick}
+        >
             {name}
         </Typography>
 
@@ -42,9 +59,18 @@ export const GalleryItemsSummary: React.FC<GalleryItemsSummaryProps> = ({
                 gap: 1.5,
                 // Keep the header height stable without an end icon.
                 minHeight: "24px",
+                mt: "4px",
             }}
         >
-            <Typography variant="small" sx={{ color: "text.muted" }}>
+            <Typography
+                variant="small"
+                sx={{
+                    color: "text.muted",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    lineHeight: "18px",
+                }}
+            >
                 {t("photos_count", { count: fileCount })}
             </Typography>
             {endIcon && (

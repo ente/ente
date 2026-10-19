@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -25,53 +27,108 @@ Future<void> pumpPopupMenu(
 }
 
 void main() {
+  for (final mode in [ThemeMode.light, ThemeMode.dark]) {
+    testWidgets('popup surface is continuous while opening in $mode', (
+      tester,
+    ) async {
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: boundaryKey,
+          child: MaterialApp(
+            theme: ComponentTheme.lightTheme(),
+            darkTheme: ComponentTheme.darkTheme(),
+            themeMode: mode,
+            home: Scaffold(
+              backgroundColor: Colors.blue,
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: EntePopupMenuButton<int>(
+                  optionsBuilder: () => const [
+                    EntePopupMenuOption(value: 0, label: 'First'),
+                    EntePopupMenuOption(value: 1, label: 'Second'),
+                    EntePopupMenuOption(value: 2, label: 'Third'),
+                    EntePopupMenuOption(value: 3, label: 'Fourth'),
+                  ],
+                  onSelected: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(EntePopupMenuButton<int>));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 160));
+
+      // The surface has expanded into the third row before its label fades in.
+      final thirdRow = tester.getTopLeft(
+        find.byKey(const ValueKey('ente-popup-menu-item-2')),
+      );
+      expect(
+        await pixelColor(tester, boundaryKey, thirdRow + const Offset(8, 8)),
+        mode == ThemeMode.dark
+            ? ColorTokens.dark.fillLight
+            : ColorTokens.light.fillLight,
+      );
+      await tester.pumpAndSettle();
+    });
+  }
+
   testWidgets('open popup icons follow theme changes without changing sizes', (
     tester,
   ) async {
     var optionsBuildCount = 0;
+    final boundaryKey = GlobalKey();
 
     Widget app(ThemeMode themeMode) {
-      return MaterialApp(
-        theme: ComponentTheme.lightTheme().copyWith(
-          iconTheme: const IconThemeData(size: 30),
-        ),
-        darkTheme: ComponentTheme.darkTheme().copyWith(
-          iconTheme: const IconThemeData(size: 30),
-        ),
-        themeMode: themeMode,
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.topLeft,
-            child: EntePopupMenuButton<String>(
-              optionsBuilder: () {
-                optionsBuildCount++;
-                return const [
-                  EntePopupMenuOption(
-                    value: 'sort',
-                    label: 'Sort',
-                    secondaryLabel: 'Count',
-                    leadingWidget: Icon(Icons.sort),
-                    secondaryTrailingWidget: Icon(Icons.info_outline, size: 12),
-                    isActive: true,
-                    activeTrailingWidget: HugeIcon(
-                      icon: HugeIcons.strokeRoundedArrowUp02,
-                      size: 12,
-                      strokeWidth: 3,
+      return RepaintBoundary(
+        key: boundaryKey,
+        child: MaterialApp(
+          theme: ComponentTheme.lightTheme().copyWith(
+            iconTheme: const IconThemeData(size: 30),
+          ),
+          darkTheme: ComponentTheme.darkTheme().copyWith(
+            iconTheme: const IconThemeData(size: 30),
+          ),
+          themeMode: themeMode,
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: EntePopupMenuButton<String>(
+                optionsBuilder: () {
+                  optionsBuildCount++;
+                  return const [
+                    EntePopupMenuOption(
+                      value: 'sort',
+                      label: 'Sort',
+                      secondaryLabel: 'Count',
+                      leadingWidget: Icon(Icons.sort),
+                      secondaryTrailingWidget: Icon(
+                        Icons.info_outline,
+                        size: 12,
+                      ),
+                      isActive: true,
+                      activeTrailingWidget: HugeIcon(
+                        icon: HugeIcons.strokeRoundedArrowUp02,
+                        size: 12,
+                        strokeWidth: 3,
+                      ),
                     ),
-                  ),
-                  EntePopupMenuOption(
-                    value: 'delete',
-                    label: 'Delete',
-                    leadingWidget: Icon(
-                      Icons.delete,
-                      color: Colors.red,
-                      size: 20,
+                    EntePopupMenuOption(
+                      value: 'delete',
+                      label: 'Delete',
+                      leadingWidget: Icon(
+                        Icons.delete,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      trailingWidget: Icon(Icons.chevron_right),
                     ),
-                    trailingWidget: Icon(Icons.chevron_right),
-                  ),
-                ];
-              },
-              onSelected: (_) {},
+                  ];
+                },
+                onSelected: (_) {},
+              ),
             ),
           ),
         ),
@@ -100,6 +157,13 @@ void main() {
       final colors = mode == ThemeMode.dark
           ? ColorTokens.dark
           : ColorTokens.light;
+      final firstRow = tester.getTopLeft(
+        find.byKey(const ValueKey('ente-popup-menu-item-0')),
+      );
+      expect(
+        await pixelColor(tester, boundaryKey, firstRow + const Offset(100, 8)),
+        colors.fillLight,
+      );
 
       for (final icon in [
         Icons.sort,
@@ -190,4 +254,26 @@ void main() {
     expect(selected, isNull);
     expect(find.text('Creating stream'), findsOneWidget);
   });
+}
+
+Future<Color> pixelColor(
+  WidgetTester tester,
+  GlobalKey boundaryKey,
+  Offset point,
+) async {
+  final boundary =
+      boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  return (await tester.runAsync(() async {
+    final image = await boundary.toImage();
+    final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    final offset = (point.dy.toInt() * image.width + point.dx.toInt()) * 4;
+    final color = Color.fromARGB(
+      bytes.getUint8(offset + 3),
+      bytes.getUint8(offset),
+      bytes.getUint8(offset + 1),
+      bytes.getUint8(offset + 2),
+    );
+    image.dispose();
+    return color;
+  }))!;
 }

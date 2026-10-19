@@ -50,7 +50,7 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
     }
     let text = text(bytes, state)?;
     let mut reader = NsReader::from_str(text.trim_end_matches('\0'));
-    reader.resolver_mut().set_max_declarations_per_element(64);
+    reader.resolver_mut().set_max_namespace_bindings(64);
     let mut stack: Vec<Frame> = Vec::new();
     let mut paths = Vec::new();
     let mut item_id = state
@@ -81,8 +81,7 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                 }
                 let (ns, local) = reader.resolver().resolve_element(element.name());
                 let ns = namespace_text(ns)?;
-                let name = std::str::from_utf8(local.as_ref())
-                    .map_err(|_| Error::Malformed("XML name"))?;
+                let name = local.as_ref();
                 if ns.len() + name.len() > state.limits.value_bytes {
                     return Err(Error::Limit("XML name"));
                 }
@@ -96,16 +95,13 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                 let mut language = stack.last().and_then(|f| f.language.clone());
                 for attribute in element.attributes() {
                     let attribute = attribute.map_err(|_| Error::Malformed("XML attribute"))?;
-                    if attribute.key.as_ref() == b"xml:lang" {
+                    if attribute.key.as_ref() == "xml:lang" {
                         if attribute.value.len() > state.limits.value_bytes {
                             return Err(Error::Limit("XML language"));
                         }
                         language = Some(
                             attribute
-                                .decoded_and_normalized_value(
-                                    XmlVersion::Implicit1_0,
-                                    reader.decoder(),
-                                )
+                                .normalized_value(XmlVersion::Implicit1_0)
                                 .map_err(|_| Error::Malformed("XML language"))?
                                 .into_owned(),
                         );
@@ -142,15 +138,14 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                 for attribute in element.attributes() {
                     state.entries(1)?;
                     let attribute = attribute.map_err(|_| Error::Malformed("XML attribute"))?;
-                    if attribute.key.as_ref() == b"xmlns"
-                        || attribute.key.as_ref().starts_with(b"xmlns:")
+                    if attribute.key.as_ref() == "xmlns"
+                        || attribute.key.as_ref().starts_with("xmlns:")
                     {
                         continue;
                     }
                     let (ans, aname) = reader.resolver().resolve_attribute(attribute.key);
                     let ans = namespace_text(ans)?;
-                    let aname = std::str::from_utf8(aname.as_ref())
-                        .map_err(|_| Error::Malformed("XML attribute name"))?;
+                    let aname = aname.as_ref();
                     let (ans, aname) = if ans == namespace::RDF && aname == "resource" {
                         let Some((ns, name)) = stack.last().and_then(|f| f.key.as_ref()) else {
                             continue;
@@ -168,7 +163,7 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                         return Err(Error::Limit("XML attribute"));
                     }
                     let value = attribute
-                        .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())
+                        .normalized_value(XmlVersion::Implicit1_0)
                         .map_err(|_| Error::Malformed("XML attribute value"))?;
                     let language = stack.last().and_then(|f| f.language.as_deref());
                     let parent = if let Some(structure) = &mut state.structure {
@@ -189,17 +184,14 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                 if stack.last().is_some_and(|f| f.key.is_none()) {
                     continue;
                 }
-                let text = text
-                    .xml_content(XmlVersion::Implicit1_0)
-                    .map_err(|_| Error::Malformed("XML text"))?;
+                let text = text.xml_content(XmlVersion::Implicit1_0);
                 append(&mut stack, &text, state)?;
             }
             Event::CData(text) => {
                 if stack.last().is_some_and(|f| f.key.is_none()) {
                     continue;
                 }
-                let text = text.decode().map_err(|_| Error::Malformed("XML CDATA"))?;
-                append(&mut stack, &text, state)?;
+                append(&mut stack, text.as_ref(), state)?;
             }
             Event::GeneralRef(entity) => {
                 let text = if let Some(c) = entity
@@ -209,11 +201,11 @@ pub(crate) fn read(bytes: &[u8], state: &mut State) -> Result<(), Error> {
                     c.to_string()
                 } else {
                     match entity.as_ref() {
-                        b"amp" => "&",
-                        b"lt" => "<",
-                        b"gt" => ">",
-                        b"apos" => "'",
-                        b"quot" => "\"",
+                        "amp" => "&",
+                        "lt" => "<",
+                        "gt" => ">",
+                        "apos" => "'",
+                        "quot" => "\"",
                         _ => return Err(Error::Unsupported("XML entity")),
                     }
                     .to_owned()
@@ -435,9 +427,7 @@ fn finish(
 
 fn namespace_text(ns: ResolveResult<'_>) -> Result<&str, Error> {
     match ns {
-        ResolveResult::Bound(ns) => {
-            std::str::from_utf8(ns.0).map_err(|_| Error::Malformed("XML namespace"))
-        }
+        ResolveResult::Bound(ns) => Ok(ns.0),
         ResolveResult::Unbound => Ok(""),
         ResolveResult::Unknown(_) => Err(Error::Malformed("undeclared XML namespace")),
     }

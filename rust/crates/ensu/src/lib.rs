@@ -7,5 +7,8 @@ pub mod model;
 pub mod notes;
 pub mod retrieval;
 
+#[cfg(target_os = "android")]
+mod platform;
+
 #[cfg(feature = "transcription")]
 pub mod transcription;

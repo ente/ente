@@ -8,8 +8,8 @@ pub enum ImageError {
 }
 
 #[uniffi::export]
-pub fn compress_attachment_image(data: Vec<u8>) -> Result<Vec<u8>, ImageError> {
-    image::compress_attachment_image(&data).map_err(|error| ImageError::Other {
+pub fn compress_attachment_image(data: &[u8]) -> Result<Vec<u8>, ImageError> {
+    image::compress_attachment_image(data).map_err(|error| ImageError::Other {
         detail: ente_core::error::chain(&error),
     })
 }

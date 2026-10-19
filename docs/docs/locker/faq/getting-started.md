@@ -36,6 +36,16 @@ Yes. Open [locker.ente.com](https://locker.ente.com) in your browser and sign in
 
 Public links to shared content can also be viewed in any web browser.
 
+### Can I upload a whole folder to Ente Locker? {#locker-folder-upload}
+
+Yes. Open [locker.ente.com](https://locker.ente.com) on a desktop and drag the folder onto the page. The file picker only selects files.
+
+Uploaded files are saved as separate Locker items. You can group them in a collection, similar to a folder. Empty files are skipped.
+
+The Locker mobile app's **File** option is for selecting files.
+
+Uploading the same files again can create separate items. Locker does not currently detect duplicate uploads; see [how to handle duplicate files](/locker/faq/organization#locker-duplicate-uploads).
+
 ## Account
 
 ### How do I create a new Ente account? {#locker-create-account}

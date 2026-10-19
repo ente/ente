@@ -12,6 +12,9 @@ env:
 jobs:
     test:
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                suite: [workspace, cli]
         timeout-minutes: 30
         defaults:
             run:
@@ -21,13 +24,8 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - name: Free runner disk space
-              run: sudo rm -rf /usr/share/dotnet
-
-            - name: Install Linux dependencies
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc libdbus-1-dev dbus gnome-keyring libglib2.0-bin
+            - name: Setup Linux for Rust
+              uses: ./.github/actions/setup-rust-linux
 
             - name: Setup go
               uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -61,6 +59,7 @@ jobs:
                       ~/.cache/.theseus/postgresql
 
             - run: cargo test --locked --workspace --exclude ente-cli-next --features museum,ente-ml/ml-assets
+              if: matrix.suite == 'workspace'
               # postgresql_embedded downloads its binaries from GitHub.
               # GITHUB_TOKEN raises the API rate limit for those downloads.
               env:
@@ -68,7 +67,9 @@ jobs:
 
             # Avoid unifying SQLCipher into other packages' SQLite tests.
             - run: cargo test --locked -p ente-cli-next --features museum
+              if: matrix.suite == 'cli'
               env:
                   GITHUB_TOKEN: ${{ github.token }}
 
             - run: apps/cli-next/scripts/test-with-keyring-linux.sh --features museum
+              if: matrix.suite == 'cli'

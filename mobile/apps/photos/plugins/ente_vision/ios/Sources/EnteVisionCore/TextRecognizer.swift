@@ -36,28 +36,22 @@ enum TextRecognitionError: Error {
     case imageNotFound
     case imageUndecodable
     case imageBitmapUnavailable
-    case cancelled
     case detectionFailed(Error)
     case recognitionFailed(Error)
 }
 
-final class TextRecognizer: @unchecked Sendable {
-    private let lock = NSLock()
-    private var activeRequests: [RequestKey: RequestState] = [:]
+final class TextRecognizer: Sendable {
     private let queue = DispatchQueue.global(qos: .userInitiated)
 
     func recognizeText(
         imagePath: String,
         includeAllConfidenceScores: Bool,
-        requestId: String?,
         completion: @escaping @Sendable (Result<TextRecognitionResult, TextRecognitionError>) -> Void
     ) {
         let minimumConfidence: Float = includeAllConfidenceScores ? 0 : Self.minimumConfidence
-        run(requestId: requestId, foreignError: { .recognitionFailed($0) }, completion: completion) {
-            [self] state in
-            let image = try loadOrientedImage(atPath: imagePath, state: state)
+        run(foreignError: { .recognitionFailed($0) }, completion: completion) {
+            let image = try Self.loadOrientedImage(atPath: imagePath)
             let request = Self.makeRecognizeTextRequest()
-            try attach(request, to: state)
             try VNImageRequestHandler(cgImage: image.bitmap, options: [:]).perform([request])
             let size = image.pixelSize
             let blocks = (request.results ?? []).compactMap { observation -> RecognizedTextBlock? in
@@ -83,17 +77,14 @@ final class TextRecognizer: @unchecked Sendable {
 
     func detectTextRegions(
         imagePath: String,
-        requestId: String?,
         completion: @escaping @Sendable (Result<TextRegionsResult, TextRecognitionError>) -> Void
     ) {
-        run(requestId: requestId, foreignError: { .detectionFailed($0) }, completion: completion) {
-            [self] state in
-            let image = try loadOrientedImage(atPath: imagePath, state: state)
+        run(foreignError: { .detectionFailed($0) }, completion: completion) {
+            let image = try Self.loadOrientedImage(atPath: imagePath)
             let detectionBitmap =
                 Self.downscaled(image.image, longestSide: Self.regionDetectionLongestSide) ?? image.bitmap
             let request = VNDetectTextRectanglesRequest()
             request.reportCharacterBoxes = false
-            try attach(request, to: state)
             try VNImageRequestHandler(cgImage: detectionBitmap, options: [:]).perform([request])
             let size = image.pixelSize
             let regions = (request.results ?? []).map { observation in
@@ -107,90 +98,23 @@ final class TextRecognizer: @unchecked Sendable {
         }
     }
 
-    func cancel(requestId: String) {
-        lock.lock()
-        let state = activeRequests.removeValue(forKey: .client(requestId))
-        state?.isCancelled = true
-        let request = state?.request
-        lock.unlock()
-        request?.cancel()
-    }
-
-    func cancelAll() {
-        lock.lock()
-        let states = Array(activeRequests.values)
-        activeRequests.removeAll()
-        for state in states {
-            state.isCancelled = true
-        }
-        let requests = states.compactMap(\.request)
-        lock.unlock()
-        for request in requests {
-            request.cancel()
-        }
-    }
-
     private func run<Value>(
-        requestId: String?,
         foreignError: @escaping @Sendable (Error) -> TextRecognitionError,
         completion: @escaping @Sendable (Result<Value, TextRecognitionError>) -> Void,
-        _ work: @escaping @Sendable (RequestState) throws -> Value
+        _ work: @escaping @Sendable () throws -> Value
     ) {
-        let state = begin(requestId: requestId)
         queue.async {
-            let outcome = Result { try work(state) }
+            let outcome = Result { try work() }
                 .mapError { $0 as? TextRecognitionError ?? foreignError($0) }
-            completion(self.finish(state, outcome))
+            completion(outcome)
         }
     }
 
-    private func begin(requestId: String?) -> RequestState {
-        let state = RequestState(key: requestId.map(RequestKey.client) ?? .anonymous(UUID()))
-        lock.lock()
-        let previous = activeRequests.updateValue(state, forKey: state.key)
-        previous?.isCancelled = true
-        let previousRequest = previous?.request
-        lock.unlock()
-        previousRequest?.cancel()
-        return state
-    }
-
-    private func attach(_ request: VNRequest, to state: RequestState) throws {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !state.isCancelled else { throw TextRecognitionError.cancelled }
-        state.request = request
-    }
-
-    private func checkNotCancelled(_ state: RequestState) throws {
-        lock.lock()
-        defer { lock.unlock() }
-        if state.isCancelled {
-            throw TextRecognitionError.cancelled
-        }
-    }
-
-    private func finish<Value>(
-        _ state: RequestState,
-        _ outcome: Result<Value, TextRecognitionError>
-    ) -> Result<Value, TextRecognitionError> {
-        lock.lock()
-        defer { lock.unlock() }
-        if activeRequests[state.key] === state {
-            activeRequests.removeValue(forKey: state.key)
-        }
-        state.request = nil
-        return state.isCancelled ? .failure(.cancelled) : outcome
-    }
-
-    private func loadOrientedImage(atPath path: String, state: RequestState) throws -> OrientedImage {
-        try checkNotCancelled(state)
+    private static func loadOrientedImage(atPath path: String) throws -> OrientedImage {
         guard FileManager.default.fileExists(atPath: path) else { throw TextRecognitionError.imageNotFound }
         guard let image = UIImage(contentsOfFile: path) else { throw TextRecognitionError.imageUndecodable }
-        try checkNotCancelled(state)
         let oriented = Self.orientedUp(image)
         guard let bitmap = oriented.cgImage else { throw TextRecognitionError.imageBitmapUnavailable }
-        try checkNotCancelled(state)
         return OrientedImage(image: oriented, bitmap: bitmap)
     }
 
@@ -262,21 +186,6 @@ final class TextRecognizer: @unchecked Sendable {
 
     private static let minimumConfidence: Float = 0.3
     private static let regionDetectionLongestSide: CGFloat = 1024
-}
-
-private enum RequestKey: Hashable {
-    case client(String)
-    case anonymous(UUID)
-}
-
-private final class RequestState: @unchecked Sendable {
-    let key: RequestKey
-    var request: VNRequest?
-    var isCancelled = false
-
-    init(key: RequestKey) {
-        self.key = key
-    }
 }
 
 private struct OrientedImage {

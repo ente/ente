@@ -113,7 +113,7 @@ impl From<ente_assets::AssetDownloadProgress> for AssetDownloadProgress {
     }
 }
 
-#[uniffi::export(callback_interface)]
+#[uniffi::export(foreign)]
 pub trait AssetDownloadCallback: Send + Sync {
     fn on_progress(&self, progress: AssetDownloadProgress);
 }
@@ -203,11 +203,19 @@ impl AssetStoreCore {
         existed && removed
     }
 
+    pub fn cleanup_obsolete_chat_models(&self, model_id: String) -> Result<(), AssetDownloadError> {
+        ente_ensu::model::cleanup_obsolete_mobile_llm_assets(&self.inner, &model_id).map_err(
+            |error| AssetDownloadError::Io {
+                detail: error.to_string(),
+            },
+        )
+    }
+
     #[uniffi::method(async_runtime = "tokio")]
     pub async fn download(
         &self,
         assets: Vec<Arc<Asset>>,
-        callback: Box<dyn AssetDownloadCallback>,
+        callback: Arc<dyn AssetDownloadCallback>,
         cancellation: Arc<CancellationToken>,
     ) -> Result<(), AssetDownloadError> {
         let assets = assets

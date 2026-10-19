@@ -1,6 +1,6 @@
+pub use ente_accounts::AccountSecrets;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
-use zeroize::ZeroizeOnDrop;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -58,46 +58,5 @@ impl FromStr for App {
 impl Account {
     pub fn account_key(&self) -> String {
         format!("{}:{}", self.email, self.app.client_package())
-    }
-}
-
-#[derive(Serialize, Deserialize, ZeroizeOnDrop)]
-pub struct AccountSecrets {
-    pub token: Vec<u8>,
-    pub master_key: Vec<u8>,
-    pub secret_key: Vec<u8>,
-    pub public_key: Vec<u8>,
-}
-
-impl fmt::Debug for AccountSecrets {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AccountSecrets")
-            .field("token", &"[REDACTED]")
-            .field("master_key", &"[REDACTED]")
-            .field("secret_key", &"[REDACTED]")
-            .field("public_key_len", &self.public_key.len())
-            .finish()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_account_secrets_debug_redacts_secret_material() {
-        let secrets = AccountSecrets {
-            token: vec![1, 2, 3],
-            master_key: vec![4, 5, 6],
-            secret_key: vec![7, 8, 9],
-            public_key: vec![10, 11, 12],
-        };
-
-        let debug = format!("{secrets:?}");
-        assert!(debug.contains("[REDACTED]"));
-        assert!(!debug.contains("[1, 2, 3]"));
-        assert!(!debug.contains("[4, 5, 6]"));
-        assert!(!debug.contains("[7, 8, 9]"));
-        assert!(debug.contains("public_key_len"));
     }
 }

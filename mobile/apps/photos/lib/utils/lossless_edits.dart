@@ -96,6 +96,7 @@ bool isTransformOnlyLossless(TransformConfigs t) {
       t.cropRect.right.isFinite &&
       t.cropRect.bottom.isFinite &&
       (t.angle != 0 || t.flipX || t.flipY) &&
+      !t.isTilted &&
       t.isRectangularCropper &&
       _isSameRect(t.cropRect, fullImageRect) &&
       _isSameDouble(t.scaleUser, 1) &&

@@ -237,34 +237,34 @@ packages:
     dependency: transitive
     description:
       name: camera
-      sha256: "87a27e0553e3432119c1c2f6e4b9a1bbf7d2c660552b910bfa59185a9facd632"
+      sha256: "3f30ca0ff376f91534f23afa2a7aea06ebb6c889fd9e260642437b37e3d9f753"
       url: "https://pub.dev"
     source: hosted
-    version: "0.11.2+1"
+    version: "0.12.1"
   camera_android_camerax:
     dependency: transitive
     description:
       name: camera_android_camerax
-      sha256: "8516fe308bc341a5067fb1a48edff0ddfa57c0d3cdcc9dbe7ceca3ba119e2577"
+      sha256: "47645ffd20c597cb0edab4de20f3c89447b7eca90425ee13683b746275b18e2b"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.30"
+    version: "0.7.5+1"
   camera_avfoundation:
     dependency: transitive
     description:
       name: camera_avfoundation
-      sha256: "11b4aee2f5e5e038982e152b4a342c749b414aa27857899d20f4323e94cb5f0b"
+      sha256: e409a731fad3fca10daa9567cf981720398659e6390f871a4e0f576058ff8940
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.23+2"
+    version: "0.10.3+1"
   camera_platform_interface:
     dependency: transitive
     description:
       name: camera_platform_interface
-      sha256: "7ac852d77699acee79f0d438b793feee26721841e50973576419ff5c6d95e9b7"
+      sha256: "9365babc7488a9e93d0ed6dcccd917619fb12ea6f9e601519e1191d4890ee2fe"
       url: "https://pub.dev"
     source: hosted
-    version: "2.13.0"
+    version: "2.14.0"
   camera_web:
     dependency: transitive
     description:
@@ -297,14 +297,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.4"
-  chewie:
-    dependency: transitive
-    description:
-      name: chewie
-      sha256: "44bcfc5f0dfd1de290c87c9d86a61308b3282a70b63435d5557cfd60f54a69ca"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.13.0"
   cli_config:
     dependency: transitive
     description:
@@ -582,8 +574,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "981a9e0f4a227023991af3332ef0e6ab6d14a1c2"
-      resolved-ref: "981a9e0f4a227023991af3332ef0e6ab6d14a1c2"
+      ref: b3f17aac6973b630aff663e4d9f7c6ee92334a62
+      resolved-ref: b3f17aac6973b630aff663e4d9f7c6ee92334a62
       url: "https://github.com/ente/ente_crypto_dart.git"
     source: git
     version: "1.0.0"
@@ -1031,10 +1023,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_rust_bridge
-      sha256: e87d6b9ee934dcd24a128ccb2bd91905d2d5fe5c06245d6a8f5477d4907a437a
+      sha256: ec69331e2335ab4d456c0a9fc700892c2c85b72b9c0cb39df3ecfe8833d5d5c8
       url: "https://pub.dev"
     source: hosted
-    version: "2.12.0"
+    version: "2.13.0"
   flutter_secure_storage:
     dependency: transitive
     description:
@@ -1095,8 +1087,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
-      resolved-ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
+      ref: "88b8b971521d4423eaa9b467d4b2baa4fd5e0962"
+      resolved-ref: "88b8b971521d4423eaa9b467d4b2baa4fd5e0962"
       url: "https://github.com/ente/flutter_sodium"
     source: git
     version: "0.2.0"
@@ -1712,15 +1704,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "13.12.6"
-  mobile_ocr:
-    dependency: transitive
-    description:
-      path: "."
-      ref: "0c68f88f20607cfcb10286422860350ccb024acd"
-      resolved-ref: "0c68f88f20607cfcb10286422860350ccb024acd"
-      url: "https://github.com/ente/mobile_ocr"
-    source: git
-    version: "1.0.0"
   mockito:
     dependency: transitive
     description:
@@ -2144,10 +2127,10 @@ packages:
     dependency: transitive
     description:
       name: pro_image_editor
-      sha256: d0cc9516c52e775de4b02ece96f69dd9c5eebf1f9c3060ecec9a58042038f786
+      sha256: "5db82a3570b8c56e13fe87041ca17aedc1a64e855e1f6c3c698456fd5c6b1082"
       url: "https://pub.dev"
     source: hosted
-    version: "11.23.0"
+    version: "13.3.1"
   process:
     dependency: transitive
     description:
@@ -2377,10 +2360,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences
-      sha256: "6e8bf70b7fef813df4e9a36f658ac46d107db4b4cfe1048b477d4e453a8159f5"
+      sha256: "2939ae520c9024cb197fc20dee269cd8cdbf564c8b5746374ec6cacdc5169e64"
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.3"
+    version: "2.5.4"
   shared_preferences_android:
     dependency: transitive
     description:
@@ -3148,5 +3131,5 @@ packages:
     source: hosted
     version: "0.2.4"
 sdks:
-  dart: ">=3.11.0-0 <4.0.0"
+  dart: ">=3.12.0 <4.0.0"
   flutter: ">=3.44.0"

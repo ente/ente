@@ -1,8 +1,6 @@
 use std::path::Path;
 use std::sync::{Mutex, OnceLock, PoisonError};
 
-use super::OcrError;
-use super::cancel::RequestGuard;
 use super::dictionary::load_dictionary;
 use super::tensor::{BgrNormalization, prepare_crops, write_bgr_planes};
 use crate::cv;
@@ -70,18 +68,29 @@ impl TextRecognizer {
         }
     }
 
-    pub(crate) fn recognize(
-        &self,
-        crops: &[&ImageU8],
-        request: &RequestGuard<'_>,
-    ) -> Result<Vec<Recognition>, OcrError> {
+    pub(crate) fn load(&self) -> MlResult<()> {
+        self.dictionary.entries()?;
+        self.session
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .load()
+    }
+
+    pub(crate) fn unload(&self) {
+        self.session
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .unload();
+    }
+
+    pub(crate) fn recognize(&self, crops: &[&ImageU8]) -> MlResult<Vec<Recognition>> {
         if crops.is_empty() {
             return Ok(Vec::new());
         }
         let dictionary = self.dictionary.entries()?;
         let mut lines = Vec::with_capacity(crops.len());
         let mut crop_indices = Vec::with_capacity(crops.len());
-        for batch in plan_batches(crops, request)? {
+        for batch in plan_batches(crops)? {
             for (&index, &content_width) in batch.indices.iter().zip(&batch.layout.content_widths) {
                 crop_indices.push(index);
                 lines.push(super::context::Line {
@@ -95,7 +104,6 @@ impl TextRecognizer {
         let mut pending: Vec<usize> = (0..lines.len()).collect();
         pending.sort_by_key(|&i| std::cmp::Reverse(lines[i].width));
         while !pending.is_empty() {
-            request.check()?;
             let width = choose_packed_width(&pending, &lines);
             let slots = width / 336;
             let mut selected = Vec::new();
@@ -111,9 +119,9 @@ impl TextRecognizer {
                 }
             });
             if selected.is_empty() {
-                return Err(
-                    MlError::Preprocess("line exceeds fixed packed canvas".to_owned()).into(),
-                );
+                return Err(MlError::Preprocess(
+                    "line exceeds fixed packed canvas".to_owned(),
+                ));
             }
             prepare_crops(|| {
                 for &index in &selected {
@@ -192,13 +200,9 @@ struct PlannedBatch {
     layout: BatchLayout,
 }
 
-fn plan_batches(
-    crops: &[&ImageU8],
-    request: &RequestGuard<'_>,
-) -> Result<Vec<PlannedBatch>, OcrError> {
+fn plan_batches(crops: &[&ImageU8]) -> MlResult<Vec<PlannedBatch>> {
     let mut batches = Vec::new();
     for indices in ascending_aspect_order(crops).chunks(REC_BATCH_SIZE) {
-        request.check()?;
         let batch: Vec<&ImageU8> = indices.iter().map(|&index| crops[index]).collect();
         let layout = BatchLayout::new(&batch)?;
         let initial_width = if batch.len() * layout.target_width as usize <= REC_BATCH_COLUMNS {
@@ -208,7 +212,6 @@ fn plan_batches(
         };
         let mut start = 0;
         while start < batch.len() {
-            request.check()?;
             let mut end = start;
             let mut target_width = initial_width;
             for &content_width in &layout.content_widths[start..] {
@@ -459,7 +462,6 @@ fn choose_packed_width(pending: &[usize], lines: &[super::context::Line]) -> usi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ocr::cancel::RequestRegistry;
     use crate::onnx::FloatTensorData;
     #[derive(Debug)]
     struct SequenceOutput<'a, T> {
@@ -575,12 +577,10 @@ mod tests {
 
     fn run_planned_batches(
         crops: &[&ImageU8],
-        request: &RequestGuard<'_>,
         mut infer_batch: impl FnMut(&[&ImageU8], &BatchLayout) -> MlResult<Vec<Recognition>>,
-    ) -> Result<Vec<Recognition>, OcrError> {
+    ) -> MlResult<Vec<Recognition>> {
         let mut results = vec![Recognition::default(); crops.len()];
-        for batch in plan_batches(crops, request)? {
-            request.check()?;
+        for batch in plan_batches(crops)? {
             let images: Vec<_> = batch.indices.iter().map(|&index| crops[index]).collect();
             let recognized = infer_batch(&images, &batch.layout)?;
             assert_eq!(recognized.len(), images.len());
@@ -901,39 +901,24 @@ mod tests {
     fn crops_are_batched_by_ascending_aspect_and_restored_to_input_order() {
         let widths = [80, 10, 60, 30, 70, 20, 50, 40];
         let crops: Vec<ImageU8> = widths.iter().map(|&w| solid(w, 10, [0; 3])).collect();
-        let registry = RequestRegistry::default();
-        let request = registry.begin(None);
         let mut batches = Vec::new();
 
-        let results =
-            run_planned_batches(&crops.iter().collect::<Vec<_>>(), &request, |batch, _| {
-                batches.push(batch.iter().map(|crop| crop.width).collect::<Vec<_>>());
-                Ok(batch
-                    .iter()
-                    .map(|crop| Recognition {
-                        text: crop.width.to_string(),
-                        ..Recognition::default()
-                    })
-                    .collect())
-            })
-            .unwrap();
+        let results = run_planned_batches(&crops.iter().collect::<Vec<_>>(), |batch, _| {
+            batches.push(batch.iter().map(|crop| crop.width).collect::<Vec<_>>());
+            Ok(batch
+                .iter()
+                .map(|crop| Recognition {
+                    text: crop.width.to_string(),
+                    ..Recognition::default()
+                })
+                .collect())
+        })
+        .unwrap();
 
         assert_eq!(batches, [vec![10, 20, 30, 40, 50, 60], vec![70, 80]]);
         let texts: Vec<String> = results.into_iter().map(|r| r.text).collect();
         let expected: Vec<String> = widths.iter().map(ToString::to_string).collect();
         assert_eq!(texts, expected);
-    }
-
-    #[test]
-    fn a_cancelled_request_stops_before_the_first_batch() {
-        let crop = solid(4, 4, [0; 3]);
-        let registry = RequestRegistry::default();
-        let request = registry.begin(Some("cancelled"));
-        registry.cancel("cancelled");
-
-        let error = run_planned_batches(&[&crop], &request, |_, _| unreachable!()).unwrap_err();
-
-        assert!(matches!(error, OcrError::Cancelled), "{error}");
     }
 
     fn legacy_tensor(batch: &[&ImageU8]) -> Vec<f32> {
@@ -1021,10 +1006,8 @@ mod tests {
             let original_layout = BatchLayout::new(&sorted).unwrap();
             let original_width = original_layout.target_width as usize;
             let mut expected_rows = expected.chunks_exact(original_width);
-            let registry = RequestRegistry::default();
-            let request = registry.begin(None);
             let mut shapes = Vec::new();
-            let results = run_planned_batches(&references, &request, |batch, layout| {
+            let results = run_planned_batches(&references, |batch, layout| {
                 assert!(batch.len() <= REC_BATCH_SIZE);
                 assert!(batch.len() * layout.target_width as usize <= REC_BATCH_COLUMNS);
                 shapes.push((batch.len(), layout.target_width));
@@ -1059,33 +1042,21 @@ mod tests {
     }
 
     #[test]
-    fn oversized_outlier_does_not_expand_narrow_crops_or_delay_cancellation() {
+    fn oversized_outlier_does_not_expand_narrow_crops() {
         let narrow = solid(320, 48, [127; 3]);
         let outlier = solid(4096, 1, [0; 3]);
         let crops = [&outlier, &narrow, &narrow, &narrow, &narrow, &narrow];
-        for cancel in [false, true] {
-            let registry = RequestRegistry::default();
-            let request = registry.begin(Some("mixed"));
-            let mut shapes = Vec::new();
-            let result = run_planned_batches(&crops, &request, |batch, layout| {
-                shapes.push((batch.len(), layout.target_width));
-                assert_eq!(
-                    layout.tensor(batch)?.len(),
-                    batch.len() * 3 * 48 * layout.target_width as usize
-                );
-                if cancel {
-                    registry.cancel("mixed");
-                }
-                Ok(vec![Recognition::default(); batch.len()])
-            });
-            if cancel {
-                assert!(matches!(result, Err(OcrError::Cancelled)));
-                assert_eq!(shapes, [(5, 320)]);
-            } else {
-                assert_eq!(result.unwrap().len(), crops.len());
-                assert_eq!(shapes, [(5, 320), (1, 7168)]);
-            }
-        }
+        let mut shapes = Vec::new();
+        let result = run_planned_batches(&crops, |batch, layout| {
+            shapes.push((batch.len(), layout.target_width));
+            assert_eq!(
+                layout.tensor(batch)?.len(),
+                batch.len() * 3 * 48 * layout.target_width as usize
+            );
+            Ok(vec![Recognition::default(); batch.len()])
+        });
+        assert_eq!(result.unwrap().len(), crops.len());
+        assert_eq!(shapes, [(5, 320), (1, 7168)]);
     }
 
     #[test]
@@ -1198,15 +1169,13 @@ mod tests {
     }
 
     #[test]
-    fn extreme_aspect_batches_are_bounded_and_cancellation_stops_the_next_split() {
+    fn extreme_aspect_batches_are_bounded() {
         let crop = solid(4096, 1, [0; 3]);
         let crops = [&crop; 6];
         let layout = BatchLayout::new(&crops).unwrap();
         assert!(matches!(layout.tensor(&crops), Err(MlError::Preprocess(_))));
-        let registry = RequestRegistry::default();
-        let request = registry.begin(None);
         let mut calls = 0;
-        run_planned_batches(&crops, &request, |batch, layout| {
+        run_planned_batches(&crops, |batch, layout| {
             calls += 1;
             assert_eq!(batch.len(), 1);
             assert_eq!(layout.tensor(batch)?.len(), 3 * 48 * 7168);
@@ -1214,16 +1183,5 @@ mod tests {
         })
         .unwrap();
         assert_eq!(calls, 6);
-
-        let request = registry.begin(Some("split"));
-        calls = 0;
-        let error = run_planned_batches(&crops, &request, |_, _| {
-            calls += 1;
-            registry.cancel("split");
-            Ok(vec![Recognition::default()])
-        })
-        .unwrap_err();
-        assert_eq!(calls, 1);
-        assert!(matches!(error, OcrError::Cancelled));
     }
 }

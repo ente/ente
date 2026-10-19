@@ -3,9 +3,14 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use ente_core::crypto::{SecretString, SecretVec};
+use ente_core::{
+    b64,
+    crypto::{SecretString, SecretVec},
+};
 
-#[derive(Clone, Serialize, Deserialize)]
+use crate::{Error, Result};
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyAttributes {
     pub kek_salt: String,
@@ -118,6 +123,40 @@ pub struct SrpAttributes {
     pub kek_salt: String,
     #[serde(rename = "isEmailMFAEnabled", default = "default_email_mfa_enabled")]
     pub is_email_mfa_enabled: bool,
+}
+
+impl SrpAttributes {
+    pub(crate) fn validate_setup(
+        &self,
+        srp_user_id: Uuid,
+        srp_salt: &[u8],
+        keys: &KeyAttributes,
+        operation: &str,
+    ) -> Result<()> {
+        let mut mismatches = Vec::new();
+        if self.srp_user_id != srp_user_id {
+            mismatches.push("srpUserID");
+        }
+        if self.srp_salt != b64::encode(srp_salt) {
+            mismatches.push("srpSalt");
+        }
+        if self.kek_salt != keys.kek_salt {
+            mismatches.push("kekSalt");
+        }
+        if self.mem_limit != keys.mem_limit {
+            mismatches.push("memLimit");
+        }
+        if self.ops_limit != keys.ops_limit {
+            mismatches.push("opsLimit");
+        }
+        if !mismatches.is_empty() {
+            return Err(Error::Protocol(format!(
+                "Remote SRP attributes mismatched after {operation}: {}",
+                mismatches.join(", ")
+            )));
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

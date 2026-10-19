@@ -1,1 +1,0 @@
-- Fixed Magic Search getting stuck after a failed search.

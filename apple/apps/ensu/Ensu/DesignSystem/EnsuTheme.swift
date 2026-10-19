@@ -15,6 +15,8 @@ enum EnsuColor {
     static let error = Color(hex: "#FF4444")
     static let success = Color(hex: "#4CAF50")
     static let stopButton = Color(hex: "#FF0000")
+    static let sendButton = Color(hex: "#E66A28")
+    static let sendButtonInactive = sendButton.opacity(0.45)
 
     static let toastBackground = Color(PlatformColor.dynamic(light: "#1A1A1A", dark: "#F8F5F0"))
     static let toastText = Color(PlatformColor.dynamic(light: "#F8F5F0", dark: "#1A1A1A"))

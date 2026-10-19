@@ -13,8 +13,8 @@ import 'package:ente_auth/ui/settings/data/data_settings_page.dart';
 import 'package:ente_auth/ui/settings/data/export_widget.dart';
 import 'package:ente_auth/ui/settings/developer_settings_widget.dart';
 import 'package:ente_auth/ui/settings/general_settings_page.dart';
-import 'package:ente_auth/ui/settings/more_from_ente_section.dart';
 import 'package:ente_auth/ui/settings/notification_banner_widget.dart';
+import 'package:ente_auth/ui/settings/search/settings_search_registry.dart';
 import 'package:ente_auth/ui/settings/security_settings_page.dart';
 import 'package:ente_auth/ui/settings/support_settings_page.dart';
 import 'package:ente_auth/ui/settings/theme_settings_page.dart';
@@ -24,12 +24,11 @@ import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/button_widget.dart';
 import 'package:ente_ui/components/settings/app_engagement_section.dart';
-import 'package:ente_ui/components/settings/app_version_widget.dart';
-import 'package:ente_ui/components/settings/social_icons_row.dart';
+import 'package:ente_ui/components/settings/more_from_ente_footer.dart';
+import 'package:ente_ui/pages/settings_search_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
@@ -167,25 +166,7 @@ class SettingsPage extends StatelessWidget {
     }
 
     contents.addAll([
-      const SizedBox(height: 40),
-      MoreFromEnteSection(
-        currentApp: ComponentApp.auth,
-        moreFromLabel: context.strings.moreFrom,
-        onAppTap: (app) {
-          launchUrlString(
-            moreFromEnteUri(
-              sourceApp: ComponentApp.auth,
-              destinationApp: app,
-            ).toString(),
-            mode: LaunchMode.externalApplication,
-          ).ignore();
-        },
-      ),
-      const SizedBox(height: 40),
-      const SocialIconsRow(),
-      const SizedBox(height: Spacing.md),
-      const AppVersionWidget(),
-      const SizedBox(height: Spacing.xxl),
+      const MoreFromEnteFooter(currentApp: ComponentApp.auth),
       const DeveloperSettingsWidget(),
       const NotificationBannerWidget(),
       const SizedBox(height: 60),
@@ -195,8 +176,65 @@ class SettingsPage extends StatelessWidget {
       title: l10n.settings,
       subtitle: email,
       backButton: _closeButton(context),
+      actions: [
+        IconButtonComponent(
+          tooltip: l10n.searchSettings,
+          variant: IconButtonComponentVariant.primary,
+          shouldSurfaceExecutionStates: false,
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedSearch01,
+            size: IconSizes.small,
+          ),
+          onTap: () => _openSearch(context),
+        ),
+      ],
       children: contents,
     );
+  }
+
+  Future<void> _openSearch(BuildContext context) async {
+    final completed = await pushAuthSettingsPage<bool>(
+      context,
+      Builder(
+        builder: (context) {
+          final items = SettingsSearchRegistry.getSearchableItems(
+            context,
+            onSignIn: _showBackupReminder,
+            onLogout: _logout,
+          );
+          return ColoredBox(
+            color: context.componentColors.backgroundBase,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width:
+                    AuthSettingsPageScaffold.maxContentWidth + 2 * Spacing.lg,
+                child: SettingsSearchPage(
+                  key: ValueKey(Localizations.localeOf(context)),
+                  items: items,
+                  suggestions: SettingsSearchRegistry.getSuggestions(
+                    context,
+                    items,
+                  ),
+                  onNavigate: (context, routeBuilder) async {
+                    final completed = await pushAuthSettingsPage<bool>(
+                      context,
+                      routeBuilder(context),
+                    );
+                    if (completed == true && context.mounted) {
+                      Navigator.of(context).pop(true);
+                    }
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (completed == true) {
+      scaffoldKey.currentState?.closeDrawer();
+    }
   }
 
   Widget _closeButton(BuildContext context) {

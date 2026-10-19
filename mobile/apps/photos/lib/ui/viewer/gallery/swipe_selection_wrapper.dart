@@ -41,6 +41,8 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
   double _currentPointerY = 0;
   double _currentPointerX = 0;
   int? _activePointer;
+  final _pointers = <int>{};
+  bool _multiplePointers = false;
   double? _cachedScreenHeight;
   double _accumulatedScrollDelta = 0;
 
@@ -89,6 +91,12 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
       swipeActiveNotifier: widget.swipeActiveNotifier,
       child: Listener(
         onPointerDown: (event) {
+          _pointers.add(event.pointer);
+          if (_pointers.length > 1) {
+            _multiplePointers = true;
+            _endPointerSelection();
+          }
+          if (_multiplePointers) return;
           _currentPointerX = event.position.dx;
           _currentPointerY = event.position.dy;
           _activePointer = event.pointer;
@@ -97,6 +105,7 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
               widget.selectedFiles?.files.isEmpty ?? false;
         },
         onPointerMove: (event) {
+          if (_multiplePointers) return;
           _currentPointerX = event.position.dx;
           _currentPointerY = event.position.dy;
           _activePointer = event.pointer;
@@ -132,23 +141,25 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
             _checkAndHandleAutoScroll(boundariesProvider);
           }
         },
-        onPointerUp: (_) {
-          _stopAutoScroll();
-          widget.swipeHelper?.endSelection();
-          widget.swipeActiveNotifier.value = false;
-          _initialMovementWasHorizontal = null;
-          _activePointer = null;
-        },
-        onPointerCancel: (_) {
-          _stopAutoScroll();
-          widget.swipeHelper?.endSelection();
-          widget.swipeActiveNotifier.value = false;
-          _initialMovementWasHorizontal = null;
-          _activePointer = null;
-        },
+        onPointerUp: (event) => _pointerEnded(event.pointer),
+        onPointerCancel: (event) => _pointerEnded(event.pointer),
         child: widget.child,
       ),
     );
+  }
+
+  void _pointerEnded(int pointer) {
+    _pointers.remove(pointer);
+    if (_pointers.isEmpty) _multiplePointers = false;
+    _endPointerSelection();
+  }
+
+  void _endPointerSelection() {
+    _stopAutoScroll();
+    widget.swipeHelper?.endSelection();
+    widget.swipeActiveNotifier.value = false;
+    _initialMovementWasHorizontal = null;
+    _activePointer = null;
   }
 
   double _calculateScrollSpeed(

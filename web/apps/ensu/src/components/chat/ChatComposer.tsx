@@ -12,13 +12,11 @@ import {
     CircularProgress,
     IconButton,
     LinearProgress,
-    Menu,
-    MenuItem,
     Stack,
     Typography,
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import React, { forwardRef, memo, useImperativeHandle, useRef } from "react";
+import { forwardRef, memo, useImperativeHandle, useRef } from "react";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
 
 interface IconProps {
@@ -41,12 +39,7 @@ interface ImageAttachment {
 }
 
 type SuggestedModelStatus =
-    | "checking"
-    | "missing"
-    | "preloading"
-    | "downloading"
-    | "ready"
-    | "error";
+    "checking" | "missing" | "preloading" | "downloading" | "ready" | "error";
 
 export type ChatComposerHandle = ChatInputHandle;
 
@@ -71,22 +64,21 @@ export interface ChatComposerProps {
     formatBytes: (size: number) => string;
     isGenerating: boolean;
     handleSend: (input: string) => void | Promise<void>;
+    onActivity: () => void;
     handleStopGeneration: () => void;
+    retrySources?: () => void;
+    sourcesLoading: boolean;
+    isPreparingMessage: boolean;
+    sourcesStatus?: string;
     showAttachmentPicker: boolean;
-    openAttachmentMenu: (event: React.MouseEvent<HTMLElement>) => void;
-    attachmentAnchor: HTMLElement | null;
-    closeAttachmentMenu: () => void;
-    handleAttachmentChoice: (choice: "image" | "document") => void;
+    openPhotoPicker: () => void;
     showImageAttachment: boolean;
     isImageAttachmentLimitReached: boolean;
-    getDocumentInputProps: () => React.InputHTMLAttributes<HTMLInputElement>;
-    getImageInputProps: () => React.InputHTMLAttributes<HTMLInputElement>;
     actionButtonSx: SxProps<Theme>;
-    drawerIconButtonSx: SxProps<Theme>;
+    drawerIconButtonSx: Exclude<SxProps<Theme>, readonly unknown[]>;
     smallIconProps: IconProps;
     compactIconProps: IconProps;
     actionIconProps: IconProps;
-    stopButtonColor: string;
 }
 
 export const ChatComposer = memo(
@@ -112,22 +104,21 @@ export const ChatComposer = memo(
             formatBytes,
             isGenerating,
             handleSend,
+            onActivity,
             handleStopGeneration,
+            retrySources,
+            sourcesLoading,
+            isPreparingMessage,
+            sourcesStatus,
             showAttachmentPicker,
-            openAttachmentMenu,
-            attachmentAnchor,
-            closeAttachmentMenu,
-            handleAttachmentChoice,
+            openPhotoPicker,
             showImageAttachment,
             isImageAttachmentLimitReached,
-            getDocumentInputProps,
-            getImageInputProps,
             actionButtonSx,
             drawerIconButtonSx,
             smallIconProps,
             compactIconProps,
             actionIconProps,
-            stopButtonColor,
         },
         ref,
     ) {
@@ -151,6 +142,7 @@ export const ChatComposer = memo(
             modelGateStatus === "preloading" ||
             modelGateStatus === "downloading";
         const disableAttachmentButton =
+            isPreparingMessage ||
             isGenerating ||
             isAttachingImages ||
             isModelPreparationActive ||
@@ -253,366 +245,358 @@ export const ChatComposer = memo(
             ) : null;
 
         return (
-            <>
+            <Box
+                sx={{
+                    px: 1,
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 16,
+                    zIndex: 5,
+                    pointerEvents: "none",
+                    width: "100%",
+                    boxSizing: "border-box",
+                }}
+            >
                 <Box
                     sx={{
-                        px: { xs: 2, md: 4 },
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 16,
-                        zIndex: 5,
-                        pointerEvents: "none",
+                        maxWidth: 900,
                         width: "100%",
+                        mx: "auto",
+                        pointerEvents: "auto",
                         boxSizing: "border-box",
                     }}
                 >
-                    <Box
-                        sx={{
-                            maxWidth: 900,
-                            width: "100%",
-                            mx: "auto",
-                            pointerEvents: "auto",
-                            boxSizing: "border-box",
-                        }}
-                    >
-                        {showModelGate ? (
-                            <>
-                                {showDownloadProgress &&
-                                    downloadStatus?.totalBytes && (
-                                        <Box
+                    {showModelGate ? (
+                        <>
+                            {showDownloadProgress &&
+                                downloadStatus?.totalBytes && (
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            justifyContent: "flex-end",
+                                            mb: 1,
+                                            px: 1,
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="mini"
                                             sx={{
-                                                display: "flex",
-                                                justifyContent: "flex-end",
-                                                mb: 1,
-                                                px: 1,
+                                                color: "text.muted",
+                                                fontVariantNumeric:
+                                                    "tabular-nums",
                                             }}
                                         >
-                                            <Typography
-                                                variant="mini"
-                                                sx={{
-                                                    color: "text.muted",
-                                                    fontVariantNumeric:
-                                                        "tabular-nums",
-                                                }}
-                                            >
-                                                {formatBytes(
-                                                    downloadStatus.bytesDownloaded ??
-                                                        0,
-                                                )}{" "}
-                                                /{" "}
-                                                {formatBytes(
-                                                    downloadStatus.totalBytes,
-                                                )}
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                <Stack
-                                    sx={{
-                                        px: 0,
-                                        py: 0,
-                                        gap: 0.5,
-                                        borderRadius: 2,
-                                        bgcolor: "background.paper",
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        boxShadow:
-                                            "0px 12px 32px rgba(0, 0, 0, 0.12)",
-                                        position: "relative",
-                                        overflow: "hidden",
-                                    }}
-                                >
-                                    {showDownloadProgress && (
-                                        <LinearProgress
-                                            variant={
-                                                downloadStatus?.totalBytes
-                                                    ? "determinate"
-                                                    : "indeterminate"
-                                            }
-                                            value={
-                                                downloadStatus?.totalBytes
-                                                    ? downloadStatus.percent
-                                                    : undefined
-                                            }
-                                            sx={{
-                                                position: "absolute",
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                height: 3,
-                                                borderRadius: "8px 8px 0 0",
-                                                pointerEvents: "none",
-                                            }}
-                                        />
-                                    )}
-                                    <Stack sx={{ px: 2, py: 2, gap: 1.5 }}>
-                                        <Typography variant="h3">
-                                            Download to begin using the Chat
+                                            {formatBytes(
+                                                downloadStatus.bytesDownloaded ??
+                                                    0,
+                                            )}{" "}
+                                            /{" "}
+                                            {formatBytes(
+                                                downloadStatus.totalBytes,
+                                            )}
                                         </Typography>
+                                    </Box>
+                                )}
+                            <Stack
+                                sx={{
+                                    px: 0,
+                                    py: 0,
+                                    gap: 0.5,
+                                    borderRadius: 2,
+                                    bgcolor: "background.paper",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    boxShadow:
+                                        "0px 12px 32px rgba(0, 0, 0, 0.12)",
+                                    position: "relative",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {showDownloadProgress && (
+                                    <LinearProgress
+                                        variant={
+                                            downloadStatus?.totalBytes
+                                                ? "determinate"
+                                                : "indeterminate"
+                                        }
+                                        value={
+                                            downloadStatus?.totalBytes
+                                                ? downloadStatus.percent
+                                                : undefined
+                                        }
+                                        sx={{
+                                            position: "absolute",
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: 3,
+                                            borderRadius: "8px 8px 0 0",
+                                            pointerEvents: "none",
+                                        }}
+                                    />
+                                )}
+                                <Stack sx={{ px: 2, py: 2, gap: 1.5 }}>
+                                    <Typography variant="h3">
+                                        Download to begin using the Chat
+                                    </Typography>
+                                    <Typography
+                                        variant="small"
+                                        sx={{ color: "text.muted" }}
+                                    >
+                                        {downloadStatusLabel ??
+                                            (modelGateStatus === "error"
+                                                ? "We couldn't load the model. Try downloading again."
+                                                : downloadSizeLabel)}
+                                    </Typography>
+                                    {modelGateError && (
                                         <Typography
-                                            variant="small"
+                                            variant="mini"
+                                            sx={{ color: "critical.main" }}
+                                        >
+                                            {modelGateError}
+                                        </Typography>
+                                    )}
+                                    <Button
+                                        variant="contained"
+                                        color="accent"
+                                        disabled={
+                                            modelGateStatus !== "missing" &&
+                                            modelGateStatus !== "error"
+                                        }
+                                        onClick={() =>
+                                            void handleDownloadModel()
+                                        }
+                                    >
+                                        {modelGateStatus === "checking"
+                                            ? "Checking..."
+                                            : modelGateStatus ===
+                                                    "preloading" ||
+                                                modelGateStatus ===
+                                                    "downloading"
+                                              ? "Loading..."
+                                              : modelGateStatus === "error"
+                                                ? "Retry"
+                                                : "Download"}
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </>
+                    ) : (
+                        <>
+                            {pendingImagePreviewRow}
+                            <Stack
+                                sx={{
+                                    px: 0,
+                                    py: 0,
+                                    gap: 0.5,
+                                    borderRadius: 2,
+                                    bgcolor: "background.paper",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    boxShadow:
+                                        "0px 12px 32px rgba(0, 0, 0, 0.12)",
+                                    position: "relative",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {showDownloadProgress && (
+                                    <LinearProgress
+                                        variant={
+                                            downloadStatus?.totalBytes
+                                                ? "determinate"
+                                                : "indeterminate"
+                                        }
+                                        value={
+                                            downloadStatus?.totalBytes
+                                                ? downloadStatus.percent
+                                                : undefined
+                                        }
+                                        sx={{
+                                            position: "absolute",
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            height: 3,
+                                            borderRadius: "8px 8px 0 0",
+                                            pointerEvents: "none",
+                                        }}
+                                    />
+                                )}
+                                {editingMessage && (
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
+                                            px: 1.5,
+                                            py: 0.5,
+                                            borderRadius: 2,
+                                            bgcolor: "fill.faint",
+                                            borderLeft: "3px solid",
+                                            borderLeftColor: "accent.main",
+                                        }}
+                                    >
+                                        <HugeiconsIcon
+                                            icon={Edit01Icon}
+                                            {...compactIconProps}
+                                        />
+                                        <Typography
+                                            variant="mini"
                                             sx={{ color: "text.muted" }}
                                         >
-                                            {downloadStatusLabel ??
-                                                (modelGateStatus === "error"
-                                                    ? "We couldn't load the model. Try downloading again."
-                                                    : downloadSizeLabel)}
+                                            Editing:
                                         </Typography>
-                                        {modelGateError && (
-                                            <Typography
-                                                variant="mini"
-                                                sx={{ color: "critical.main" }}
-                                            >
-                                                {modelGateError}
-                                            </Typography>
-                                        )}
-                                        <Button
-                                            variant="contained"
-                                            color="accent"
-                                            disabled={
-                                                modelGateStatus !== "missing" &&
-                                                modelGateStatus !== "error"
-                                            }
-                                            onClick={() =>
-                                                void handleDownloadModel()
-                                            }
+                                        <Typography
+                                            variant="mini"
+                                            sx={{
+                                                color: "text.base",
+                                                flex: 1,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                            }}
                                         >
-                                            {modelGateStatus === "checking"
-                                                ? "Checking..."
-                                                : modelGateStatus ===
-                                                        "preloading" ||
-                                                    modelGateStatus ===
-                                                        "downloading"
-                                                  ? "Loading..."
-                                                  : modelGateStatus === "error"
-                                                    ? "Retry"
-                                                    : "Download"}
-                                        </Button>
-                                    </Stack>
-                                </Stack>
-                            </>
-                        ) : (
-                            <>
-                                {pendingImagePreviewRow}
-                                <Stack
-                                    sx={{
-                                        px: 0,
-                                        py: 0,
-                                        gap: 0.5,
-                                        borderRadius: 2,
-                                        bgcolor: "background.paper",
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        boxShadow:
-                                            "0px 12px 32px rgba(0, 0, 0, 0.12)",
-                                        position: "relative",
-                                        overflow: "hidden",
-                                    }}
-                                >
-                                    {showDownloadProgress && (
-                                        <LinearProgress
-                                            variant={
-                                                downloadStatus?.totalBytes
-                                                    ? "determinate"
-                                                    : "indeterminate"
-                                            }
-                                            value={
-                                                downloadStatus?.totalBytes
-                                                    ? downloadStatus.percent
-                                                    : undefined
-                                            }
-                                            sx={{
-                                                position: "absolute",
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                height: 3,
-                                                borderRadius: "8px 8px 0 0",
-                                                pointerEvents: "none",
-                                            }}
-                                        />
-                                    )}
-                                    {editingMessage && (
-                                        <Box
-                                            sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 1,
-                                                px: 1.5,
-                                                py: 0.5,
-                                                borderRadius: 2,
-                                                bgcolor: "fill.faint",
-                                                borderLeft: "3px solid",
-                                                borderLeftColor: "accent.main",
-                                            }}
+                                            {editingMessage.text}
+                                        </Typography>
+                                        <IconButton
+                                            aria-label="Cancel edit"
+                                            sx={actionButtonSx}
+                                            onClick={handleCancelEdit}
                                         >
                                             <HugeiconsIcon
-                                                icon={Edit01Icon}
-                                                {...compactIconProps}
+                                                icon={Cancel01Icon}
+                                                {...smallIconProps}
                                             />
-                                            <Typography
-                                                variant="mini"
-                                                sx={{ color: "text.muted" }}
-                                            >
-                                                Editing:
-                                            </Typography>
-                                            <Typography
-                                                variant="mini"
+                                        </IconButton>
+                                    </Box>
+                                )}
+
+                                {pendingDocuments.length > 0 && (
+                                    <Box
+                                        sx={{
+                                            display: "grid",
+                                            gridTemplateColumns:
+                                                "repeat(2, minmax(0, 1fr))",
+                                            gap: 0.5,
+                                        }}
+                                    >
+                                        {pendingDocuments.map((doc) => (
+                                            <Box
+                                                key={doc.id}
                                                 sx={{
-                                                    color: "text.base",
-                                                    flex: 1,
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 1,
+                                                    px: 1.5,
+                                                    py: 0.75,
+                                                    borderRadius: 1.5,
+                                                    bgcolor: "fill.faint",
+                                                    minWidth: 0,
                                                 }}
                                             >
-                                                {editingMessage.text}
-                                            </Typography>
-                                            <IconButton
-                                                aria-label="Cancel edit"
-                                                sx={actionButtonSx}
-                                                onClick={handleCancelEdit}
-                                            >
-                                                <HugeiconsIcon
-                                                    icon={Cancel01Icon}
-                                                    {...smallIconProps}
-                                                />
-                                            </IconButton>
-                                        </Box>
-                                    )}
-
-                                    {pendingDocuments.length > 0 && (
-                                        <Box
-                                            sx={{
-                                                display: "grid",
-                                                gridTemplateColumns:
-                                                    "repeat(2, minmax(0, 1fr))",
-                                                gap: 0.5,
-                                            }}
-                                        >
-                                            {pendingDocuments.map((doc) => (
-                                                <Box
-                                                    key={doc.id}
+                                                <Typography
+                                                    variant="mini"
                                                     sx={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 1,
-                                                        px: 1.5,
-                                                        py: 0.75,
-                                                        borderRadius: 1.5,
-                                                        bgcolor: "fill.faint",
-                                                        minWidth: 0,
+                                                        flex: 1,
+                                                        color: "text.base",
+                                                        overflow: "hidden",
+                                                        textOverflow:
+                                                            "ellipsis",
+                                                        whiteSpace: "nowrap",
                                                     }}
                                                 >
-                                                    <Typography
-                                                        variant="mini"
-                                                        sx={{
-                                                            flex: 1,
-                                                            color: "text.base",
-                                                            overflow: "hidden",
-                                                            textOverflow:
-                                                                "ellipsis",
-                                                            whiteSpace:
-                                                                "nowrap",
-                                                        }}
-                                                    >
-                                                        {doc.name}
-                                                    </Typography>
-                                                    <Typography
-                                                        variant="mini"
-                                                        sx={{
-                                                            color: "text.muted",
-                                                        }}
-                                                    >
-                                                        {formatBytes(doc.size)}
-                                                    </Typography>
-                                                    <IconButton
-                                                        aria-label="Remove document"
-                                                        sx={actionButtonSx}
-                                                        onClick={() =>
-                                                            removePendingDocument(
-                                                                doc.id,
-                                                            )
-                                                        }
-                                                    >
-                                                        <HugeiconsIcon
-                                                            icon={Cancel01Icon}
-                                                            {...smallIconProps}
-                                                        />
-                                                    </IconButton>
-                                                </Box>
-                                            ))}
-                                        </Box>
-                                    )}
+                                                    {doc.name}
+                                                </Typography>
+                                                <Typography
+                                                    variant="mini"
+                                                    sx={{ color: "text.muted" }}
+                                                >
+                                                    {formatBytes(doc.size)}
+                                                </Typography>
+                                                <IconButton
+                                                    aria-label="Remove document"
+                                                    sx={actionButtonSx}
+                                                    onClick={() =>
+                                                        removePendingDocument(
+                                                            doc.id,
+                                                        )
+                                                    }
+                                                >
+                                                    <HugeiconsIcon
+                                                        icon={Cancel01Icon}
+                                                        {...smallIconProps}
+                                                    />
+                                                </IconButton>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                )}
 
-                                    <ChatInput
-                                        ref={inputRef}
-                                        actionIconProps={actionIconProps}
-                                        disableAttachmentButton={
-                                            disableAttachmentButton
-                                        }
-                                        drawerIconButtonSx={drawerIconButtonSx}
-                                        handleSend={handleSend}
-                                        handleStopGeneration={
-                                            handleStopGeneration
-                                        }
-                                        hasPendingAttachments={
-                                            pendingDocuments.length > 0 ||
-                                            pendingImages.length > 0
-                                        }
-                                        isDownloading={isDownloading}
-                                        isAttachingImages={isAttachingImages}
-                                        isGenerating={isGenerating}
-                                        isModelPreparationActive={
-                                            isModelPreparationActive
-                                        }
-                                        initialText={draftRef.current}
-                                        onTextChange={(text) => {
-                                            draftRef.current = text;
+                                {sourcesStatus && (
+                                    <Stack
+                                        direction="row"
+                                        sx={{
+                                            alignItems: "center",
+                                            px: 1.5,
+                                            gap: 1,
                                         }}
-                                        openAttachmentMenu={openAttachmentMenu}
-                                        showAttachmentPicker={
-                                            showAttachmentPicker
-                                        }
-                                        stopButtonColor={stopButtonColor}
-                                    />
-                                </Stack>
-                            </>
-                        )}
-                    </Box>
-                </Box>
-
-                {showAttachmentPicker && (
-                    <>
-                        <input {...getDocumentInputProps()} />
-                        <input {...getImageInputProps()} />
-                        <Menu
-                            anchorEl={attachmentAnchor}
-                            open={Boolean(attachmentAnchor)}
-                            onClose={closeAttachmentMenu}
-                            anchorOrigin={{
-                                vertical: "top",
-                                horizontal: "right",
-                            }}
-                            transformOrigin={{
-                                vertical: "bottom",
-                                horizontal: "right",
-                            }}
-                        >
-                            {showImageAttachment && (
-                                <MenuItem
-                                    disabled={isImageAttachmentLimitReached}
-                                    onClick={() =>
-                                        handleAttachmentChoice("image")
+                                        role="status"
+                                    >
+                                        <Typography
+                                            variant="small"
+                                            sx={{
+                                                flex: 1,
+                                                color: "text.muted",
+                                            }}
+                                        >
+                                            {sourcesStatus}
+                                        </Typography>
+                                        {retrySources && (
+                                            <Button
+                                                size="small"
+                                                onClick={retrySources}
+                                            >
+                                                Retry
+                                            </Button>
+                                        )}
+                                    </Stack>
+                                )}
+                                <ChatInput
+                                    ref={inputRef}
+                                    actionIconProps={actionIconProps}
+                                    disableAttachmentButton={
+                                        disableAttachmentButton ||
+                                        !showImageAttachment
                                     }
-                                >
-                                    Image
-                                </MenuItem>
-                            )}
-                        </Menu>
-                    </>
-                )}
-            </>
+                                    sourcesLoading={sourcesLoading}
+                                    isPreparingMessage={isPreparingMessage}
+                                    drawerIconButtonSx={drawerIconButtonSx}
+                                    handleSend={handleSend}
+                                    handleStopGeneration={handleStopGeneration}
+                                    hasPendingAttachments={
+                                        pendingDocuments.length > 0 ||
+                                        pendingImages.length > 0
+                                    }
+                                    isDownloading={isDownloading}
+                                    isAttachingImages={isAttachingImages}
+                                    isGenerating={isGenerating}
+                                    isModelPreparationActive={
+                                        isModelPreparationActive
+                                    }
+                                    initialText={draftRef.current}
+                                    onTextChange={(text) => {
+                                        draftRef.current = text;
+                                        onActivity();
+                                    }}
+                                    openPhotoPicker={openPhotoPicker}
+                                    showAttachmentPicker={showAttachmentPicker}
+                                />
+                            </Stack>
+                        </>
+                    )}
+                </Box>
+            </Box>
         );
     }),
 );

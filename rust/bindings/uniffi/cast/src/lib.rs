@@ -75,25 +75,25 @@ impl CastReceiver {
 
 #[uniffi::export]
 pub fn open_secret_box(
-    ciphertext: Vec<u8>,
-    nonce: Vec<u8>,
-    key: Vec<u8>,
+    ciphertext: &[u8],
+    nonce: &[u8],
+    key: &[u8],
 ) -> Result<Vec<u8>, CastCryptoError> {
-    let nonce = crypto::Nonce::try_from_slice(&nonce)?;
-    let key = crypto::Key::try_from_slice(&key)?;
-    Ok(crypto::secretbox::decrypt(&ciphertext, &nonce, &key)?)
+    let nonce = crypto::Nonce::try_from_slice(nonce)?;
+    let key = crypto::Key::try_from_slice(key)?;
+    Ok(crypto::secretbox::decrypt(ciphertext, &nonce, &key)?)
 }
 
 #[uniffi::export]
 pub fn decrypt_secret_stream(
-    encrypted_data: Vec<u8>,
-    header: Vec<u8>,
-    key: Vec<u8>,
+    encrypted_data: &[u8],
+    header: &[u8],
+    key: &[u8],
 ) -> Result<Vec<u8>, CastCryptoError> {
-    let header = crypto::Header::try_from_slice(&header)?;
-    let key = crypto::Key::try_from_slice(&key)?;
+    let header = crypto::Header::try_from_slice(header)?;
+    let key = crypto::Key::try_from_slice(key)?;
     Ok(crypto::stream::decrypt_file_data(
-        &encrypted_data,
+        encrypted_data,
         &header,
         &key,
     )?)

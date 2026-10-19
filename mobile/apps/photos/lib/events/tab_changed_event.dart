@@ -7,7 +7,14 @@ class TabChangedEvent extends Event {
   TabChangedEvent(this.selectedIndex, this.source);
 }
 
-enum TabChangedEventSource { tabBar, pageView, collectionsPage, backButton }
+enum TabChangedEventSource {
+  tabBar,
+  pageView,
+  collectionsPage,
+  backButton,
+  appMode,
+  mlConsent,
+}
 
 class TabDoubleTapEvent extends Event {
   final int selectedIndex;

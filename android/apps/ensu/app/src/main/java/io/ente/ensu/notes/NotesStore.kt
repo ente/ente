@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.compose.runtime.staticCompositionLocalOf
 import io.ente.ensu.bindings.GroundedExcerpt
 import io.ente.ensu.bindings.GroundedSource
+import io.ente.ensu.bindings.NotePassageLocator
 import io.ente.ensu.bindings.NoteSourceReference
 import io.ente.ensu.bindings.NotesCancellation
 import io.ente.ensu.bindings.NotesException
@@ -15,10 +16,12 @@ import io.ente.ensu.bindings.NotesProgress
 import io.ente.ensu.bindings.NotesProgressCallback
 import io.ente.ensu.bindings.NotesSummary
 import io.ente.ensu.bindings.notesLimits
+import io.ente.ensu.bindings.selectMixedGroundingCandidates
 import io.ente.ensu.bindings.withNotesCollectionLabel
 import io.ente.ensu.coroutines.runCatchingCancellable
 import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.llm.ModelMaintenance
+import io.ente.ensu.llm.ModelMemoryDeferred
 import io.ente.ensu.llm.withMaintenanceSuspended
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
@@ -67,6 +70,8 @@ data class NoteCollectionState(
 data class NotesState(
     val collections: List<NoteCollectionState> = emptyList(),
     val error: String? = null,
+    val inventoryReady: Boolean = false,
+    val disabledIds: Set<String> = emptySet(),
 )
 
 val LocalNotesStore = staticCompositionLocalOf<NotesStore?> { null }
@@ -103,8 +108,21 @@ class NotesStore(
     private var foreground = false
     private var loaded = false
     private var disabled = false
-    private val _state = MutableStateFlow(NotesState())
+    private val preferences =
+        context.applicationContext.getSharedPreferences("ensu_note_defaults", Context.MODE_PRIVATE)
+    private val _state =
+        MutableStateFlow(
+            NotesState(
+                disabledIds = preferences.getStringSet("disabled", emptySet()).orEmpty().toSet()
+            )
+        )
     val state: StateFlow<NotesState> = _state.asStateFlow()
+
+    fun setEnabled(id: String, enabled: Boolean) {
+        val disabledIds = state.value.disabledIds.let { if (enabled) it - id else it + id }
+        preferences.edit().putStringSet("disabled", disabledIds).apply()
+        _state.update { it.copy(disabledIds = disabledIds) }
+    }
 
     fun bootstrap(owner: CoroutineScope) {
         if (bootstrapJob != null) return
@@ -138,7 +156,7 @@ class NotesStore(
                         )
                     }
                 }
-                _state.value = NotesState(states)
+                _state.update { it.copy(collections = states, inventoryReady = true) }
                 loaded = true
                 scans.addAll(registrations.keys)
             } catch (e: CancellationException) {
@@ -151,10 +169,11 @@ class NotesStore(
                     throwable = e,
                 )
                 disabled = true
-                _state.value =
-                    NotesState(
+                _state.update {
+                    it.copy(
                         error = "Could not load Your Notes. Existing indexes have been preserved."
                     )
+                }
             }
             pump()
         }
@@ -162,6 +181,15 @@ class NotesStore(
 
     suspend fun awaitReady() {
         bootstrapJob?.join()
+    }
+
+    fun retryLoad() {
+        if (loaded || bootstrapJob?.isActive == true) return
+        val owner = scope ?: return
+        bootstrapJob = null
+        disabled = false
+        _state.update { it.copy(error = null) }
+        bootstrap(owner)
     }
 
     fun setForeground(value: Boolean) {
@@ -203,6 +231,7 @@ class NotesStore(
             withMaintenanceSuspended {
                 try {
                     val record = provider.add(tree)
+                    if (record.id !in registrations) setEnabled(record.id, true)
                     registrations[record.id] = record
                     _state.update {
                         it.copy(
@@ -259,10 +288,12 @@ class NotesStore(
         _state.update { it.copy(error = null) }
     }
 
-    suspend fun retrieve(query: List<Float>): List<NotesHit> =
+    suspend fun retrieve(query: List<Float>, enabledFolderIds: Set<String>): List<NotesHit> =
         withContext(Dispatchers.Main.immediate) {
             val records =
-                _state.value.collections.filter { it.eligible }.mapNotNull { registrations[it.id] }
+                _state.value.collections
+                    .filter { it.eligible && it.id in enabledFolderIds }
+                    .mapNotNull { registrations[it.id] }
             val hits = mutableListOf<NotesHit>()
             for (record in records) {
                 currentCoroutineContext().ensureActive()
@@ -271,15 +302,25 @@ class NotesStore(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (_: NotesException.RebuildRequired) {
-                    enqueue(record.id, rebuild = true, immediate = true)
-                    update(record.id) {
-                        it.copy(status = NotesStatus.Pending, indexAvailable = false)
-                    }
+                    requestRebuild(record.id)
                 } catch (error: Exception) {
                     fail(record.id, error)
                 }
             }
             hits
+        }
+
+    suspend fun reload(locator: NotePassageLocator): GroundedExcerpt? =
+        withContext(Dispatchers.Main.immediate) {
+            if (_state.value.collections.none { it.id == locator.collectionId && it.eligible })
+                return@withContext null
+            try {
+                val hit = provider.reload(locator) ?: return@withContext null
+                verify(selectMixedGroundingCandidates(emptyList(), listOf(hit), 1u)).singleOrNull()
+            } catch (_: NotesException.RebuildRequired) {
+                requestRebuild(locator.collectionId)
+                null
+            }
         }
 
     suspend fun verify(excerpts: List<GroundedExcerpt>): List<GroundedExcerpt> =
@@ -345,6 +386,11 @@ class NotesStore(
                 _state.update { it.copy(error = error) }
             }
         }
+    }
+
+    private fun requestRebuild(id: String) {
+        enqueue(id, rebuild = true, immediate = true)
+        update(id) { it.copy(status = NotesStatus.Pending, indexAvailable = false) }
     }
 
     private fun enqueue(
@@ -507,6 +553,14 @@ class NotesStore(
                 } finally {
                     if (!completed) {
                         when (failure) {
+                            is ModelMemoryDeferred -> {
+                                pending[id]?.let {
+                                    pending[id] = it.copy(due = System.currentTimeMillis() + 30_000)
+                                }
+                                update(id) {
+                                    it.copy(status = NotesStatus.Pending, progress = null)
+                                }
+                            }
                             null,
                             is NotesException.Cancelled -> {
                                 if (snapshot == null) scans.add(id)
@@ -526,13 +580,7 @@ class NotesStore(
                             }
                             is NotesException.RebuildRequired -> {
                                 if (snapshot == null) {
-                                    enqueue(id, rebuild = true, immediate = true)
-                                    update(id) {
-                                        it.copy(
-                                            status = NotesStatus.Pending,
-                                            indexAvailable = false,
-                                        )
-                                    }
+                                    requestRebuild(id)
                                 } else fail(id, failure)
                             }
                             is Exception -> fail(id, failure)

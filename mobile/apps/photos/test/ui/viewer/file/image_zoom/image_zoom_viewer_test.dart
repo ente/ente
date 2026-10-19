@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math" as math;
 import "dart:ui" as ui;
 
@@ -6,6 +7,8 @@ import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:photos/ui/viewer/file/gallery_photo_page_route.dart";
+import "package:photos/ui/viewer/file/hero_image.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 
 const _viewportSize = Size(400, 400);
@@ -53,6 +56,255 @@ void main() {
     await tester.pump();
 
     expect(readyCount, 1);
+  });
+
+  for (final decodeDuringFlight in [true, false]) {
+    testWidgets(
+      "a scrolled photo stays visible (early decode: $decodeDuringFlight)",
+      (tester) async {
+        final delayedImage = _DelayedImageProvider();
+        ImageProvider? imageProvider;
+        late StateSetter updateViewer;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ListView(
+              children: [
+                const SizedBox(height: 400),
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Hero(
+                    tag: "photo",
+                    createRectTween: imageHeroRectTween,
+                    flightShuttleBuilder: imageHeroFlightShuttleBuilder,
+                    child: Image(
+                      image: _DeterministicImageProvider(largerLandscapeImage),
+                      width: 160,
+                      height: 100,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 1000),
+              ],
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.drag(find.byType(ListView), const Offset(0, -300));
+        await tester.pump();
+        final sourceRect = tester.getRect(find.byType(Hero));
+        final navigator = Navigator.of(tester.element(find.byType(Hero)));
+        navigator.push(
+          GalleryPhotoPageRoute<void>(
+            tag: "photo",
+            sourceImage: largerLandscapeImage,
+            page: StatefulBuilder(
+              builder: (context, setState) {
+                updateViewer = setState;
+                return ImageZoomViewer(
+                  imageProvider: imageProvider,
+                  heroTag: "photo",
+                  loadingBuilder: _emptyLoadingBuilder,
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 40));
+        final viewer = find.byType(ImageZoomViewer);
+        final viewerHero = find.descendant(
+          of: viewer,
+          matching: find.byType(Hero),
+        );
+        final heroState = tester.state(viewerHero);
+        final destinationRect = tester.getRect(viewerHero);
+        final sourceImage = ImageHeroSource.maybeOf(
+          tester.element(viewer),
+          "photo",
+        )!.image!;
+        final flightImage = tester
+            .widget<RawImage>(find.byType(RawImage))
+            .image!;
+        expect(destinationRect.size.aspectRatio, closeTo(1.5, 0.0001));
+        expect(flightImage.isCloneOf(largerLandscapeImage), isTrue);
+        expect(tester.getRect(find.byType(HeroFlightImage)), isNot(sourceRect));
+        expect(
+          tester.getRect(find.byType(HeroFlightImage)),
+          isNot(destinationRect),
+        );
+
+        updateViewer(() => imageProvider = delayedImage);
+        await tester.pump();
+        if (decodeDuringFlight) {
+          delayedImage.complete(landscapeImage);
+          await tester.pump(const Duration(milliseconds: 20));
+          expect(tester.state(viewerHero), same(heroState));
+          expect(tester.getRect(viewerHero), destinationRect);
+          expect(
+            find.descendant(of: viewer, matching: find.byType(Image)),
+            findsNothing,
+          );
+          expect(
+            tester.widget<RawImage>(find.byType(RawImage)).image,
+            same(flightImage),
+          );
+        }
+        await tester.pumpAndSettle();
+        if (!decodeDuringFlight) {
+          delayedImage.fail();
+          await tester.pump();
+          expect(
+            tester.widget<RawImage>(find.byType(RawImage)).image,
+            same(sourceImage),
+          );
+          updateViewer(
+            () => imageProvider = _DeterministicImageProvider(landscapeImage),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(tester.state(viewerHero), same(heroState));
+        expect(find.byType(Image), findsOneWidget);
+        navigator.pop();
+        await tester.pumpAndSettle();
+        expect(flightImage.debugDisposed, isTrue);
+        expect(sourceImage.debugDisposed, isTrue);
+        expect(largerLandscapeImage.debugDisposed, isFalse);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets("an explicit thumbnail fallback replaces the Hero source", (
+    tester,
+  ) async {
+    var showingThumbnailFallback = false;
+    late StateSetter updateViewer;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ImageHeroSource(
+          tag: "photo",
+          image: landscapeImage,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              updateViewer = setState;
+              return ImageZoomViewer(
+                imageProvider: null,
+                heroTag: "photo",
+                useHeroImageAsPlaceholder: !showingThumbnailFallback,
+                loadingBuilder: (_, _) =>
+                    const Text("Large thumbnail fallback"),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    final heroState = tester.state(find.byType(Hero));
+    expect(
+      tester.widget<RawImage>(find.byType(RawImage)).image,
+      landscapeImage,
+    );
+    expect(find.text("Large thumbnail fallback"), findsNothing);
+
+    updateViewer(() => showingThumbnailFallback = true);
+    await tester.pump();
+
+    expect(find.text("Large thumbnail fallback"), findsOneWidget);
+    expect(find.byType(RawImage), findsNothing);
+    expect(tester.state(find.byType(Hero)), same(heroState));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    "a cold flight keeps its thumbnail mounted without duplicating it",
+    (tester) async {
+      final thumbnailKey = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Hero(
+            tag: "cold-photo",
+            placeholderBuilder: imageHeroPlaceholderBuilder,
+            flightShuttleBuilder: imageHeroFlightShuttleBuilder,
+            child: SizedBox(key: thumbnailKey, width: 160, height: 100),
+          ),
+        ),
+      );
+      final thumbnailElement = thumbnailKey.currentContext;
+      final navigator = Navigator.of(tester.element(find.byType(Hero)));
+      navigator.push(
+        GalleryPhotoPageRoute<void>(
+          tag: "cold-photo",
+          page: const Hero(
+            tag: "cold-photo",
+            flightShuttleBuilder: imageHeroFlightShuttleBuilder,
+            child: SizedBox(width: 400, height: 250),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(HeroFlightImage), findsOneWidget);
+      expect(thumbnailKey.currentContext, same(thumbnailElement));
+      expect(find.byKey(thumbnailKey, skipOffstage: false), findsOneWidget);
+      await tester.pumpAndSettle();
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(thumbnailKey.currentContext, same(thumbnailElement));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final galleryRoute in [false, true]) {
+    testWidgets("scopes the loading Hero to gallery routes: $galleryRoute", (
+      tester,
+    ) async {
+      final delayedImage = _DelayedImageProvider();
+      Widget viewer = ImageZoomViewer(
+        imageProvider: delayedImage,
+        heroTag: "photo",
+        loadingBuilder: (_, _) => const Text("Loading photo"),
+      );
+      if (galleryRoute) {
+        viewer = ImageHeroSource(
+          tag: "another-photo",
+          image: largerLandscapeImage,
+          child: viewer,
+        );
+      }
+      await tester.pumpWidget(MaterialApp(home: viewer));
+      expect(find.text("Loading photo"), findsOneWidget);
+      expect(find.byType(Hero), galleryRoute ? findsOneWidget : findsNothing);
+      expect(find.byType(RawImage), findsNothing);
+      delayedImage.complete(landscapeImage);
+      await tester.pumpAndSettle();
+      final hero = tester.widget<Hero>(find.byType(Hero));
+      expect(hero.flightShuttleBuilder, isNull);
+      expect(hero.createRectTween, isNull);
+      expect(find.byType(Image), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets("shows the photo without a Hero when motion is disabled", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: ImageZoomViewer(
+          imageProvider: _DeterministicImageProvider(landscapeImage),
+          heroTag: "photo",
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(Hero), findsNothing);
+    expect(find.byType(Image), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   group("double-tap focal zoom", () {
@@ -803,6 +1055,25 @@ Future<Color> _centerPixel(Finder boundaryFinder) async {
   );
   image.dispose();
   return color;
+}
+
+class _DelayedImageProvider extends ImageProvider<_DelayedImageProvider> {
+  final _frame = Completer<ImageInfo>();
+
+  void complete(ui.Image image) =>
+      _frame.complete(ImageInfo(image: image.clone()));
+
+  void fail() => _frame.completeError(StateError("Decode failed"));
+
+  @override
+  Future<_DelayedImageProvider> obtainKey(ImageConfiguration configuration) =>
+      SynchronousFuture(this);
+
+  @override
+  ImageStreamCompleter loadImage(
+    _DelayedImageProvider key,
+    ImageDecoderCallback decode,
+  ) => OneFrameImageStreamCompleter(_frame.future);
 }
 
 class _DeterministicImageProvider

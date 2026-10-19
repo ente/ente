@@ -6,8 +6,11 @@ import "package:photos/models/gallery/justified_layout.dart";
 
 // Selects the minimum-cost sequence from candidate row breaks across the group.
 class FlexLayoutCalculator {
+  static const double _minimumAspectRatio = 1 / 3;
+  static const double _maximumAspectRatio = 4;
+  static const double _minimumNonFinalSingletonAspectRatio = 0.75;
   static const double _minimumTappableExtent = 48;
-  static const double _defaultMaximumRowHeightFactor = 1.6;
+  static const double _maximumRowHeightFactor = 1.6;
   static const double _minimumLandscapeRowHeight = 96;
   static const int _minimumLandscapeDensityItemCount = 3;
   static const double _preferredTileWidthFactor = 0.6;
@@ -15,13 +18,24 @@ class FlexLayoutCalculator {
 
   const FlexLayoutCalculator._();
 
+  static double aspectRatioForDimensions(int width, int height) {
+    if (width <= 0 || height <= 0) return 1;
+    return (width / height)
+        .clamp(_minimumAspectRatio, _maximumAspectRatio)
+        .toDouble();
+  }
+
+  static int _maximumItemsPerRowFor(double availableWidth) {
+    if (availableWidth < 600) return 3;
+    if (availableWidth < 1008) return 4;
+    return 5;
+  }
+
   static List<JustifiedRowLayout> computeRows({
     required Iterable<double> aspectRatios,
     required double availableWidth,
     required double targetRowHeight,
     required double spacing,
-    required double minimumNonFinalSingletonAspectRatio,
-    double maximumRowHeightFactor = _defaultMaximumRowHeightFactor,
   }) {
     if (!availableWidth.isFinite || availableWidth <= 0) {
       throw ArgumentError.value(availableWidth, "availableWidth");
@@ -32,26 +46,12 @@ class FlexLayoutCalculator {
     if (!spacing.isFinite || spacing < 0) {
       throw ArgumentError.value(spacing, "spacing");
     }
-    if (!maximumRowHeightFactor.isFinite || maximumRowHeightFactor < 1) {
-      throw ArgumentError.value(
-        maximumRowHeightFactor,
-        "maximumRowHeightFactor",
-      );
-    }
-    if (!minimumNonFinalSingletonAspectRatio.isFinite ||
-        minimumNonFinalSingletonAspectRatio <= 0) {
-      throw ArgumentError.value(
-        minimumNonFinalSingletonAspectRatio,
-        "minimumNonFinalSingletonAspectRatio",
-      );
-    }
-
     final ratios = Float64List.fromList(aspectRatios.toList(growable: false));
     if (ratios.isEmpty) return const [];
     for (var i = 0; i < ratios.length; i++) {
       final ratio = ratios[i];
       ratios[i] = ratio.isFinite && ratio > 0
-          ? ratio.clamp(1 / 3, 4).toDouble()
+          ? ratio.clamp(_minimumAspectRatio, _maximumAspectRatio).toDouble()
           : 1;
     }
 
@@ -60,14 +60,16 @@ class FlexLayoutCalculator {
     final nextBreak = Uint32List(count);
     final maximumHeight = math.max(
       _minimumTappableExtent,
-      targetRowHeight * maximumRowHeightFactor,
+      targetRowHeight * _maximumRowHeightFactor,
     );
     final preferredTileWidth = targetRowHeight * _preferredTileWidthFactor;
+    final maximumCandidateRowLength = _maximumItemsPerRowFor(availableWidth);
 
     for (var start = count - 1; start >= 0; start--) {
       var ratioSum = 0.0;
       var minimumRatio = double.infinity;
-      for (var end = start; end < count; end++) {
+      final candidateEnd = math.min(count, start + maximumCandidateRowLength);
+      for (var end = start; end < candidateEnd; end++) {
         ratioSum += ratios[end];
         minimumRatio = math.min(minimumRatio, ratios[end]);
         final itemCount = end - start + 1;
@@ -77,7 +79,7 @@ class FlexLayoutCalculator {
         final isTail = end == count - 1;
         if (!isTail &&
             itemCount == 1 &&
-            ratios[start] < minimumNonFinalSingletonAspectRatio) {
+            ratios[start] < _minimumNonFinalSingletonAspectRatio) {
           continue;
         }
         final geometry = _rowGeometry(

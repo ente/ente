@@ -192,7 +192,7 @@ export const LikeAlbumSelectorModal: React.FC<LikeAlbumSelectorModalProps> = ({
                             </LikeAllButton>
                         </AlbumsHeader>
 
-                        <AlbumsList>
+                        <AlbumsList data-custom-scrollbar>
                             {albums.map((album) => {
                                 const isLiked = likedAlbumIDs.has(album.id);
                                 return (

@@ -3,10 +3,6 @@ use std::fs::{self, File, Metadata};
 use std::io::Read;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
-#[cfg(windows)]
-use std::os::windows::ffi::OsStringExt;
-#[cfg(windows)]
-use std::os::windows::io::AsRawHandle;
 use std::path::{Component, Path, PathBuf};
 
 use ente_ensu::notes::{
@@ -18,6 +14,9 @@ use crate::commands::common::ApiError;
 
 use super::registry::RegisteredCollection;
 use super::{NOTES_MAX_SCAN_ENTRIES, remove_owned_entry, source_scan_error, system_time_ms};
+
+#[cfg(any(windows, test))]
+mod scoped;
 
 pub(super) fn inventory_source_root(
     root: &Path,
@@ -232,59 +231,17 @@ fn scoped_open_error(error: rustix::io::Errno) -> ApiError {
 }
 
 #[cfg(windows)]
-fn open_collection_source(root: &Path, _document_id: &str, path: &Path) -> Result<File, ApiError> {
-    let file = File::open(path).map_err(source_file_error)?;
-    let final_path = final_windows_handle_path(&file)?;
-    if !windows_path_is_beneath(&final_path, root) {
-        return Err(ApiError::new(
-            "invalid_document",
-            "Source note escaped its collection",
-        ));
-    }
-    Ok(file)
+fn open_collection_source(root: &Path, document_id: &str, _path: &Path) -> Result<File, ApiError> {
+    scoped::open(root, document_id).map_err(windows_source_file_error)
 }
 
-#[cfg(windows)]
-#[expect(
-    unsafe_code,
-    reason = "Resolve the opened Windows handle to reject path escapes"
-)]
-fn final_windows_handle_path(file: &File) -> Result<PathBuf, ApiError> {
-    use std::ffi::OsString;
-    use windows_sys::Win32::Foundation::HANDLE;
-    use windows_sys::Win32::Storage::FileSystem::{
-        FILE_NAME_NORMALIZED, GetFinalPathNameByHandleW, VOLUME_NAME_DOS,
-    };
-
-    let handle = file.as_raw_handle() as HANDLE;
-    let flags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS;
-    let length = unsafe { GetFinalPathNameByHandleW(handle, std::ptr::null_mut(), 0, flags) };
-    if length == 0 {
-        return Err(source_file_error(std::io::Error::last_os_error()));
+#[cfg(any(windows, test))]
+fn windows_source_file_error(error: std::io::Error) -> ApiError {
+    if error.kind() == std::io::ErrorKind::PermissionDenied && error.raw_os_error().is_none() {
+        ApiError::new("invalid_document", "Source note path is not allowed")
+    } else {
+        source_file_error(error)
     }
-    let mut buffer = vec![0_u16; length as usize + 1];
-    let written = unsafe {
-        GetFinalPathNameByHandleW(handle, buffer.as_mut_ptr(), buffer.len() as u32, flags)
-    };
-    if written == 0 || written as usize >= buffer.len() {
-        return Err(source_file_error(std::io::Error::last_os_error()));
-    }
-    Ok(PathBuf::from(OsString::from_wide(
-        &buffer[..written as usize],
-    )))
-}
-
-#[cfg(windows)]
-fn windows_path_is_beneath(path: &Path, root: &Path) -> bool {
-    let path = path.to_string_lossy().to_ascii_lowercase();
-    let root = root
-        .to_string_lossy()
-        .trim_end_matches(['\\', '/'])
-        .to_ascii_lowercase();
-    path == root
-        || path
-            .strip_prefix(&root)
-            .is_some_and(|suffix| suffix.starts_with('\\') || suffix.starts_with('/'))
 }
 
 fn source_file_error(error: std::io::Error) -> ApiError {
@@ -398,6 +355,80 @@ pub(super) fn source_root_is_available(source_root: &Path) -> bool {
 mod tests {
     use super::super::TestDirectory;
     use super::*;
+
+    #[test]
+    fn windows_source_errors_distinguish_io_failures_from_escaped_paths() {
+        let denied = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "escaped path");
+        assert_eq!(
+            windows_source_file_error(denied).name,
+            Some("invalid_document")
+        );
+        for code in [5, 13] {
+            let error = std::io::Error::from_raw_os_error(code);
+            assert_eq!(windows_source_file_error(error).name, Some("source_io"));
+        }
+        let missing = std::io::Error::from(std::io::ErrorKind::NotFound);
+        assert_eq!(
+            windows_source_file_error(missing).name,
+            Some("source_changed")
+        );
+    }
+
+    #[test]
+    fn collection_reads_literal_reserved_windows_filenames() {
+        let temp = TestDirectory::new();
+        let root = fs::canonicalize(temp.path()).unwrap();
+        for name in ["con.md", "aux.notes.md", "com¹.md"] {
+            fs::write(root.join(name), name).unwrap();
+            let (_, bytes, source) = read_collection_source(&root, name).unwrap();
+            assert_eq!(bytes, name.as_bytes());
+            assert_eq!(source.document_id, name);
+        }
+        assert_eq!(inventory_source_root(&root, || Ok(())).unwrap().len(), 3);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn collection_read_rejects_directory_and_root_junction_swaps() {
+        let temp = TestDirectory::new();
+        let root = temp.path().join("root");
+        let outside = temp.path().join("outside");
+        fs::create_dir_all(root.join("nested")).unwrap();
+        fs::create_dir(&outside).unwrap();
+        fs::write(root.join("nested/note.md"), "inside").unwrap();
+        fs::write(outside.join("note.md"), "outside").unwrap();
+        let root = fs::canonicalize(root).unwrap();
+        assert_eq!(
+            read_collection_source(&root, "nested/note.md").unwrap().1,
+            b"inside"
+        );
+        fs::remove_file(root.join("nested/note.md")).unwrap();
+        fs::remove_dir(root.join("nested")).unwrap();
+        let junction = |path: &Path| {
+            assert!(
+                std::process::Command::new("cmd")
+                    .args(["/C", "mklink", "/J"])
+                    .arg(path)
+                    .arg(&outside)
+                    .status()
+                    .unwrap()
+                    .success()
+            );
+        };
+        junction(&root.join("nested"));
+        assert_eq!(
+            read_collection_source(&root, "nested/note.md")
+                .unwrap_err()
+                .name,
+            Some("invalid_document")
+        );
+        fs::rename(&root, temp.path().join("original-root")).unwrap();
+        junction(&root);
+        assert_eq!(
+            read_collection_source(&root, "note.md").unwrap_err().name,
+            Some("invalid_document")
+        );
+    }
 
     #[cfg(unix)]
     #[test]

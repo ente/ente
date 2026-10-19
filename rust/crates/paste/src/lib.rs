@@ -24,7 +24,7 @@ pub enum Error {
     #[error("base64 decode error: {0}")]
     Base64Decode(#[from] b64::DecodeError),
 
-    #[error("incorrect paste password")]
+    #[error("incorrect paste password or key")]
     IncorrectPassword,
 
     #[error("paste is unavailable")]
@@ -236,11 +236,19 @@ pub struct PasteSession {
 }
 
 impl PasteSession {
-    pub fn parse(input: &str) -> Result<Self> {
-        Ok(Self {
-            link: PasteLink::parse(input, None)?,
+    pub fn new(link: PasteLink) -> Self {
+        Self {
+            link,
             payload: None,
-        })
+        }
+    }
+
+    pub fn parse(input: &str) -> Result<Self> {
+        Ok(Self::new(PasteLink::parse(input, None)?))
+    }
+
+    pub fn has_payload(&self) -> bool {
+        self.payload.is_some()
     }
 
     pub async fn open(&mut self, client: &Client) -> Result<OpenPaste> {
@@ -758,13 +766,10 @@ mod tests {
             .await;
 
         let client = Client::new(server.url(), None).unwrap();
-        let mut session = PasteSession {
-            link: PasteLink {
-                access_token: access_token.to_string(),
-                key,
-            },
-            payload: None,
-        };
+        let mut session = PasteSession::new(PasteLink {
+            access_token: access_token.to_string(),
+            key,
+        });
 
         assert!(matches!(
             session.open(&client).await.unwrap(),

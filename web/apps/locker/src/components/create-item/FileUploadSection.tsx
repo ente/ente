@@ -2,10 +2,15 @@ import { CollectionChipRow } from "@/components/create-item/CollectionChipRow";
 import { lockerScrollAreaSx } from "@/components/create-item/create-item-dialog-styles";
 import { CreateCollectionRow } from "@/components/create-item/CreateCollectionRow";
 import { lockerItemIcon } from "@/components/items/locker-item-icons";
+import { NameInputDialog } from "@/components/ui/NameInputDialog";
 import type { LockerUploadProgress } from "@/services/uploads";
 import { lockerPrimaryButtonSx } from "@/styles/fields";
 import type { LockerCollection, LockerUploadCandidate } from "@/types";
-import { Cancel01Icon, FileUploadIcon } from "@hugeicons/core-free-icons";
+import {
+    Cancel01Icon,
+    Edit02Icon,
+    FileUploadIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
@@ -13,7 +18,6 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import {
     Box,
     ButtonBase,
-    CircularProgress,
     IconButton,
     LinearProgress,
     Stack,
@@ -35,7 +39,9 @@ import {
     dedupeCollectionNames,
     formatFileSize,
     normalizeCollectionName,
+    renamedUploadFileName,
     toggleCollectionName,
+    uploadFileExtension,
     uploadItemParentPath,
     uploadProgressValue,
     uploadQueueItemKey,
@@ -60,6 +66,7 @@ interface FileUploadSectionProps {
     onAddAvailableCollectionName: (name: string) => void;
     onSetCollectionNamesForAllItems: (names: string[]) => void;
     onRemoveItem: (fileKey: string) => void;
+    onRenameItem: (fileKey: string, name: string) => void;
     onUpload: () => Promise<void>;
 }
 
@@ -82,8 +89,16 @@ export function FileUploadSection({
     onAddAvailableCollectionName,
     onSetCollectionNamesForAllItems,
     onRemoveItem,
+    onRenameItem,
     onUpload,
 }: FileUploadSectionProps) {
+    const [renameItem, setRenameItem] = useState<LockerUploadCandidate | null>(
+        null,
+    );
+    const [renameValue, setRenameValue] = useState("");
+    const renamedName = renameItem
+        ? renamedUploadFileName(renameItem.file.name, renameValue)
+        : undefined;
     const [settledCompletedFileKeys, setSettledCompletedFileKeys] = useState<
         Set<string>
     >(() => new Set());
@@ -240,6 +255,25 @@ export function FileUploadSection({
 
     return (
         <Stack sx={{ flex: 1, minHeight: 0 }}>
+            <NameInputDialog
+                open={renameItem !== null}
+                title={t("rename_file")}
+                label={t("file_name")}
+                value={renameValue}
+                onChange={setRenameValue}
+                onClose={() => setRenameItem(null)}
+                error={
+                    renameItem !== null && !renamedName
+                        ? t("invalidUploadFileName")
+                        : undefined
+                }
+                disabled={!renamedName || uploading}
+                onSubmit={() => {
+                    if (!renameItem || !renamedName || uploading) return;
+                    onRenameItem(uploadQueueItemKey(renameItem), renamedName);
+                    setRenameItem(null);
+                }}
+            />
             <input
                 ref={fileInputRef}
                 type="file"
@@ -379,6 +413,23 @@ export function FileUploadSection({
                                         onAddCollectionName={(name: string) =>
                                             onAddCollectionName(fileKey, name)
                                         }
+                                        onRename={() => {
+                                            const name =
+                                                item.uploadName ??
+                                                item.file.name;
+                                            const extension =
+                                                uploadFileExtension(
+                                                    item.file.name,
+                                                );
+                                            setRenameValue(
+                                                name.slice(
+                                                    0,
+                                                    name.length -
+                                                        extension.length,
+                                                ),
+                                            );
+                                            setRenameItem(item);
+                                        }}
                                         canRemove={!uploading}
                                         onRemove={() => onRemoveItem(fileKey)}
                                     />
@@ -455,6 +506,7 @@ interface UploadItemCardProps {
     onAddCollectionName: (name: string) => void;
     canRemove: boolean;
     onRemove: () => void;
+    onRename: () => void;
 }
 
 const UploadItemCard = React.memo(function UploadItemCard({
@@ -475,6 +527,7 @@ const UploadItemCard = React.memo(function UploadItemCard({
     onAddCollectionName,
     canRemove,
     onRemove,
+    onRename,
 }: UploadItemCardProps) {
     return (
         <Stack
@@ -502,19 +555,32 @@ const UploadItemCard = React.memo(function UploadItemCard({
                     })}
                 >
                     {lockerItemIcon("file", {
-                        fileName: item.file.name,
+                        fileName: item.uploadName ?? item.file.name,
                         size: 24,
                         strokeWidth: 1.5,
                     })}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="small" noWrap>
-                        {item.file.name}
+                        {item.uploadName ?? item.file.name}
                     </Typography>
                     <Typography variant="mini" sx={{ color: "text.muted" }}>
                         {formatFileSize(item.file.size)}
                     </Typography>
                 </Box>
+                {!uploadInFlight && !isDone && (
+                    <IconButton
+                        aria-label={t("rename_file")}
+                        onClick={onRename}
+                        size="small"
+                    >
+                        <HugeiconsIcon
+                            icon={Edit02Icon}
+                            size={18}
+                            strokeWidth={1.5}
+                        />
+                    </IconButton>
+                )}
                 <Box
                     sx={{
                         width: 28,
@@ -525,13 +591,6 @@ const UploadItemCard = React.memo(function UploadItemCard({
                         flexShrink: 0,
                     }}
                 >
-                    {isUploading && (
-                        <CircularProgress
-                            size={18}
-                            thickness={4}
-                            sx={{ color: "text.muted" }}
-                        />
-                    )}
                     {isDone && (
                         <Box
                             sx={(theme) => ({

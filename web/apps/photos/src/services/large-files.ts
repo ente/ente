@@ -7,7 +7,6 @@ import {
     savedNormalCollections,
 } from "ente-new/photos/services/collection";
 import { savedCollectionFiles } from "ente-new/photos/services/photos-fdb";
-import { pullFiles } from "./pull";
 
 // Keep the 10 MB threshold aligned with mobile.
 const MIN_LARGE_FILE_SIZE = 10 * 1024 * 1024;
@@ -78,6 +77,7 @@ const matchesFilter = (file: EnteFile, filter: LargeFileFilter): boolean => {
 export const deleteSelectedLargeFiles = async (
     largeFiles: LargeFileItem[],
     onProgress: (progress: number) => void,
+    onRemoteFilesPull: () => Promise<void>,
 ): Promise<Set<string>> => {
     const selectedItems = largeFiles.filter((item) => item.isSelected);
     const filesToTrash = selectedItems.map((item) => item.file);
@@ -94,7 +94,7 @@ export const deleteSelectedLargeFiles = async (
     await moveToTrash(filesToTrash);
     tickProgress();
 
-    await pullFiles();
+    await onRemoteFilesPull();
     tickProgress();
 
     return new Set(selectedItems.map((item) => item.id));

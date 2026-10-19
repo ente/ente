@@ -1,4 +1,5 @@
-import 'package:ente_components/theme/colors.dart' show ComponentApp;
+import 'package:ente_components/theme/colors.dart'
+    show ColorTokens, ComponentApp;
 import 'package:ente_components/theme/text_styles.dart' as component;
 import 'package:ente_components/theme/theme.dart'
     show ComponentColorTokens, ComponentTheme;
@@ -9,6 +10,7 @@ import 'package:photos/theme/ente_theme.dart';
 final lightThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.light,
+  popupMenuTheme: PopupMenuThemeData(color: ColorTokens.light.fillLight),
   hintColor: const Color.fromRGBO(158, 158, 158, 1),
   primaryColor: const Color.fromRGBO(255, 110, 64, 1),
   primaryColorLight: const Color.fromRGBO(0, 0, 0, 0.541),
@@ -96,6 +98,7 @@ final lightThemeData = ThemeData(
 final darkThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.dark,
+  popupMenuTheme: PopupMenuThemeData(color: ColorTokens.dark.fillLight),
   primaryColorLight: const Color.fromRGBO(255, 255, 255, 0.702),
   iconTheme: const IconThemeData(color: Colors.white),
   primaryIconTheme: const IconThemeData(

@@ -18,7 +18,7 @@ dependencies:
   path_provider: 2.1.5
   sentry: 9.6.0
   sentry_flutter: 9.6.0
-  shared_preferences: 2.5.3
+  shared_preferences: 2.5.4
   uuid: 4.5.3
 
 dev_dependencies:

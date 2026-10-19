@@ -20,7 +20,9 @@ class GroupHeaderWidget extends StatefulWidget {
   final List<EnteFile> filesInGroup;
   final SelectedFiles? selectedFiles;
   final bool showSelectAll;
+  final bool? allSelectedOverride;
   final bool showGalleryLayoutSettingCTA;
+  final Widget? action;
   final bool showTrailingIcons;
   final bool isPinnedHeader;
   final bool fadeInTrailingIcons;
@@ -32,7 +34,9 @@ class GroupHeaderWidget extends StatefulWidget {
     required this.filesInGroup,
     required this.selectedFiles,
     required this.showSelectAll,
+    this.allSelectedOverride,
     this.showGalleryLayoutSettingCTA = false,
+    this.action,
     this.height,
     this.showTrailingIcons = true,
     this.isPinnedHeader = false,
@@ -61,7 +65,8 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   @override
   void didUpdateWidget(covariant GroupHeaderWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title) {
+    if (oldWidget.title != widget.title ||
+        oldWidget.allSelectedOverride != widget.allSelectedOverride) {
       _areAllFromGroupSelectedNotifier.value = _areAllFromGroupSelected();
     }
   }
@@ -113,6 +118,10 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
             ),
           ),
           Expanded(child: Container()),
+          if (widget.action != null && widget.showTrailingIcons) ...[
+            _fadeInTrailingIcon(widget.action!),
+            const SizedBox(width: 8),
+          ],
           !widget.showSelectAll
               ? const SizedBox.shrink()
               : widget.showTrailingIcons
@@ -181,11 +190,18 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   Widget _buildSelectionIcon(bool isSelected) {
-    final icon = SelectAllStatusIcon(
-      isSelected: isSelected,
-      size: _selectionIconSize,
-      unselectedColor: components.ComponentTheme.colorsOf(context).textLighter,
+    return _fadeInTrailingIcon(
+      SelectAllStatusIcon(
+        isSelected: isSelected,
+        size: _selectionIconSize,
+        unselectedColor: components.ComponentTheme.colorsOf(
+          context,
+        ).textLighter,
+      ),
     );
+  }
+
+  Widget _fadeInTrailingIcon(Widget icon) {
     if (!widget.fadeInTrailingIcons) {
       return icon;
     }
@@ -204,6 +220,7 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   bool _areAllFromGroupSelected() {
+    if (widget.allSelectedOverride != null) return widget.allSelectedOverride!;
     final selectedFiles = widget.selectedFiles?.files;
     if (selectedFiles == null || selectedFiles.isEmpty) return false;
     return widget.filesInGroup

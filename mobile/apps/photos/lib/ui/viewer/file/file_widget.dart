@@ -75,16 +75,6 @@ class FileWidget extends StatelessWidget {
         onTextSelectionStart: onTextSelectionStart,
       );
     } else if (file.fileType == FileType.video) {
-      // use old video widget on iOS simulator as the new one crashes while
-      // playing certain videos on iOS simulator
-      // if (kDebugMode && Platform.isIOS) {
-      //   return VideoWidgetChewie(
-      //     file,
-      //     tagPrefix: tagPrefix,
-      //     playbackCallback: playbackCallback,
-      //   );
-      // }
-
       return VideoWidget(
         file,
         tagPrefix: tagPrefix,

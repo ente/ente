@@ -204,6 +204,16 @@ void main() {
     expect(lastCall, isNull);
   });
 
+  test('processing sends the requested speed', () async {
+    await NativeVideoEditor.processVideo(
+      inputPath: input.path,
+      outputPath: '${directory.path}/output.mp4',
+      speed: 0.25,
+    );
+
+    expect(lastCall?.arguments, containsPair('speed', 0.25));
+  });
+
   test('processing result must match the requested output path', () async {
     processResultOverride = {
       'outputPath': '${directory.path}/wrong.mp4',

@@ -462,46 +462,31 @@ class ClusterFeedbackService<T> {
         return [];
       }
 
-      final clusterIDToVectorID = await _mlDataDBForCentroidVectorDb
-          .getClusterCentroidVectorIdMap(
-            clusterAvg.keys,
-            createIfMissing: false,
-          );
-      if (clusterIDToVectorID.isEmpty) {
-        return [];
-      }
-      final vectorIDToClusterID = {
-        for (final entry in clusterIDToVectorID.entries) entry.value: entry.key,
-      };
-
       final personIDToQueryClusters = <String, Set<String>>{};
-      final queryVectorIDs = <int>{};
+      final allQueryClusterIDs = <String>{};
       for (final entry in personIdToClusters.entries) {
         final validClusters = <String>{};
         for (final clusterID in entry.value) {
           if (!clusterAvg.containsKey(clusterID)) {
             continue;
           }
-          final vectorID = clusterIDToVectorID[clusterID];
-          if (vectorID == null) {
-            continue;
-          }
           validClusters.add(clusterID);
-          queryVectorIDs.add(vectorID);
+          allQueryClusterIDs.add(clusterID);
         }
         if (validClusters.isNotEmpty) {
           personIDToQueryClusters[entry.key] = validClusters;
         }
       }
-      if (personIDToQueryClusters.isEmpty || queryVectorIDs.isEmpty) {
+      if (personIDToQueryClusters.isEmpty || allQueryClusterIDs.isEmpty) {
         return [];
       }
 
-      late final Map<int, List<(int, double)>> rawMatchesByQueryVectorID;
+      late final Map<String, ClusterCentroidMatches> resultByQueryCluster;
       try {
-        rawMatchesByQueryVectorID = await _clusterCentroidVectorDB
-            .bulkSearchApproxClosestCentroidsForKeysWithinDistance(
-              queryVectorIDs,
+        resultByQueryCluster = await _clusterCentroidVectorDB
+            .bulkSearchNearestForClusters(
+              allQueryClusterIDs,
+              candidateClusterIDs: clusterAvg.keys.toSet(),
               count: _allPeopleSuggestionVectorResultCount,
               maxDistance: 0.65,
             );
@@ -525,31 +510,14 @@ class ClusterFeedbackService<T> {
       final queryClustersMissingFromVectorIndex = <String>{};
       for (final queryClusters in personIDToQueryClusters.values) {
         for (final queryClusterID in queryClusters) {
-          final queryVectorID = clusterIDToVectorID[queryClusterID];
-          if (queryVectorID == null) {
-            continue;
-          }
-          final hasRawMatchesForQuery = rawMatchesByQueryVectorID.containsKey(
-            queryVectorID,
-          );
-          final rawMatches =
-              rawMatchesByQueryVectorID[queryVectorID] ??
-              const <(int, double)>[];
-          if (!hasRawMatchesForQuery) {
+          final result = resultByQueryCluster[queryClusterID];
+          if (result == null) {
             queryClustersMissingFromVectorIndex.add(queryClusterID);
           }
           queryClusterNeedsFallbackSearch[queryClusterID] =
-              !hasRawMatchesForQuery ||
-              rawMatches.length >= _allPeopleSuggestionVectorResultCount;
-          final mappedMatches = <(String, double)>[];
-          for (final match in rawMatches) {
-            final matchedClusterID = vectorIDToClusterID[match.$1];
-            if (matchedClusterID == null) {
-              continue;
-            }
-            mappedMatches.add((matchedClusterID, match.$2));
-          }
-          queryClusterToMatches[queryClusterID] = mappedMatches;
+              result == null || result.reachedCount;
+          queryClusterToMatches[queryClusterID] =
+              result?.matches ?? const <(String, double)>[];
         }
       }
       if (queryClustersMissingFromVectorIndex.isNotEmpty) {
@@ -624,33 +592,32 @@ class ClusterFeedbackService<T> {
       }
 
       if (personIDToFallbackQueryClusters.isNotEmpty) {
-        final personIDToAllowedVectorIDs = <String, Set<int>>{};
+        final personIDToAllowedClusterIDs = <String, Set<String>>{};
 
-        Set<int> getAllowedVectorIDs(String personID) {
-          final cached = personIDToAllowedVectorIDs[personID];
+        Set<String> getAllowedClusterIDs(String personID) {
+          final cached = personIDToAllowedClusterIDs[personID];
           if (cached != null) {
             return cached;
           }
           final personClusters = personIDToQueryClusters[personID]!;
           final ignoredClusters = personIDToIgnoredClusters[personID]!;
-          final allowedVectorIDs = <int>{};
-          for (final entry in clusterIDToVectorID.entries) {
-            final clusterID = entry.key;
+          final allowedClusterIDs = <String>{};
+          for (final clusterID in clusterAvg.keys) {
             if (ignoredClusters.contains(clusterID) ||
                 personClusters.contains(clusterID)) {
               continue;
             }
-            allowedVectorIDs.add(entry.value);
+            allowedClusterIDs.add(clusterID);
           }
-          personIDToAllowedVectorIDs[personID] = allowedVectorIDs;
-          return allowedVectorIDs;
+          personIDToAllowedClusterIDs[personID] = allowedClusterIDs;
+          return allowedClusterIDs;
         }
 
         var fallbackQueryCount = 0;
         for (final entry in personIDToFallbackQueryClusters.entries) {
           final personID = entry.key;
-          final allowedVectorIDs = getAllowedVectorIDs(personID);
-          if (allowedVectorIDs.isEmpty) {
+          final allowedClusterIDs = getAllowedClusterIDs(personID);
+          if (allowedClusterIDs.isEmpty) {
             continue;
           }
 
@@ -668,12 +635,12 @@ class ClusterFeedbackService<T> {
             continue;
           }
 
-          List<List<(int, double)>> filteredMatchesByQuery;
+          List<List<(String, double)>> filteredMatchesByQuery;
           try {
             filteredMatchesByQuery = await _clusterCentroidVectorDB
-                .bulkSearchApproxClosestCentroidsWithinDistance(
+                .bulkSearchNearestAllowed(
                   queryVectors,
-                  allowedVectorIDs,
+                  allowedClusterIDs,
                   maxDistance: 0.65,
                   count: _allPeopleSuggestionVectorResultCount,
                 );
@@ -696,19 +663,8 @@ class ClusterFeedbackService<T> {
             if (filteredMatches.isEmpty) {
               continue;
             }
-
-            final mappedMatches = <(String, double)>[];
-            for (final match in filteredMatches) {
-              final matchedClusterID = vectorIDToClusterID[match.$1];
-              if (matchedClusterID == null) {
-                continue;
-              }
-              mappedMatches.add((matchedClusterID, match.$2));
-            }
-            if (mappedMatches.isNotEmpty) {
-              queryClusterToMatches[queryClusterID] = mappedMatches;
-              fallbackQueryCount++;
-            }
+            queryClusterToMatches[queryClusterID] = filteredMatches;
+            fallbackQueryCount++;
           }
         }
 
@@ -1542,12 +1498,12 @@ class ClusterFeedbackService<T> {
     try {
       if (!flagService.usearchForSuggestions) return;
       if (!flagService.hasGrantedMLConsent) return;
-      if (!await _clusterCentroidVectorDB.checkIfMigrationDone()) {
+      if (!await _clusterCentroidVectorDB.isReady()) {
         await _mlDataDBForCentroidVectorDb
             .checkMigrateFillClusterCentroidVectorDB();
       }
-      if (await _clusterCentroidVectorDB.checkIfMigrationDone()) {
-        await _clusterCentroidVectorDB.warmupApproxSearch();
+      if (await _clusterCentroidVectorDB.isReady()) {
+        await _clusterCentroidVectorDB.warmup();
       }
     } catch (e, s) {
       _logger.severe(
@@ -1563,7 +1519,7 @@ class ClusterFeedbackService<T> {
   Future<bool> _canUseClusterCentroidVectorDbForSuggestions() async {
     if (!flagService.usearchForSuggestions) return false;
     if (!flagService.hasGrantedMLConsent) return false;
-    if (await _clusterCentroidVectorDB.checkIfMigrationDone()) return true;
+    if (await _clusterCentroidVectorDB.isReady()) return true;
     unawaited(_prepareClusterCentroidVectorDbForSuggestions());
     return false;
   }
@@ -2002,30 +1958,6 @@ class ClusterFeedbackService<T> {
       return [];
     }
 
-    final relevantClusterIDs = <String>{}
-      ..addAll(validPersonClusters)
-      ..addAll(otherClusters);
-    final clusterIDToVectorID = await _mlDataDBForCentroidVectorDb
-        .getClusterCentroidVectorIdMap(
-          relevantClusterIDs,
-          createIfMissing: false,
-        );
-    if (clusterIDToVectorID.isEmpty) {
-      return [];
-    }
-
-    final baseAllowedVectorIDs = otherClusters
-        .map((clusterID) => clusterIDToVectorID[clusterID])
-        .whereType<int>()
-        .toSet();
-    if (baseAllowedVectorIDs.isEmpty) {
-      return [];
-    }
-
-    final vectorIDToClusterID = {
-      for (final entry in clusterIDToVectorID.entries) entry.value: entry.key,
-    };
-
     final orderedPersonClusterIDs = <String>[];
     final queryVectors = <List<double>>[];
     for (final personClusterID in validPersonClusters) {
@@ -2041,9 +1973,9 @@ class ClusterFeedbackService<T> {
     }
 
     final matchesPerQuery = await _clusterCentroidVectorDB
-        .bulkSearchApproxClosestCentroidsWithinDistance(
+        .bulkSearchNearestAllowed(
           queryVectors,
-          baseAllowedVectorIDs,
+          otherClusters,
           maxDistance: maxClusterDistance,
           count: perClusterResultCount,
         );
@@ -2058,10 +1990,7 @@ class ClusterFeedbackService<T> {
       final matches = matchesPerQuery[i];
 
       for (final match in matches) {
-        final suggestedClusterID = vectorIDToClusterID[match.$1];
-        if (suggestedClusterID == null) {
-          continue;
-        }
+        final suggestedClusterID = match.$1;
         if (ignoredClusters.contains(suggestedClusterID) ||
             validPersonClusters.contains(suggestedClusterID)) {
           continue;

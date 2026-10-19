@@ -59,12 +59,12 @@ class _PhysicalRecordsPageState
       return context.strings.physicalRecords;
     }
 
-    final controllerName = _nameController.text.trim();
+    final controllerName = _nameController.text;
     if (controllerName.isNotEmpty) {
       return controllerName;
     }
 
-    final dataName = (currentData?.name ?? '').trim();
+    final dataName = currentData?.name ?? '';
     if (dataName.isNotEmpty) {
       return dataName;
     }
@@ -80,24 +80,22 @@ class _PhysicalRecordsPageState
 
   @override
   bool validateForm() {
-    return _nameController.text.trim().isNotEmpty;
+    return _nameController.text.isNotEmpty;
   }
 
   @override
   bool get hasUnsavedChanges {
-    return _nameController.text.trim() != _initialName.trim() ||
-        _locationController.text.trim() != _initialLocation.trim() ||
-        _notesController.text.trim() != _initialNotes.trim();
+    return _nameController.text != _initialName ||
+        _locationController.text != _initialLocation ||
+        _notesController.text != _initialNotes;
   }
 
   @override
   PhysicalRecordData createInfoData() {
     return PhysicalRecordData(
-      name: _nameController.text.trim(),
-      location: _locationController.text.trim(),
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
+      name: _nameController.text,
+      location: _locationController.text,
+      notes: _notesController.text.isEmpty ? null : _notesController.text,
     );
   }
 
@@ -141,7 +139,7 @@ class _PhysicalRecordsPageState
   List<Widget> buildViewFields() {
     final fields = <Widget>[];
 
-    if (_locationController.text.trim().isNotEmpty) {
+    if (_locationController.text.isNotEmpty) {
       fields.add(
         buildViewField(
           label: context.strings.recordLocation,
@@ -150,7 +148,7 @@ class _PhysicalRecordsPageState
       );
     }
 
-    if (_notesController.text.trim().isNotEmpty) {
+    if (_notesController.text.isNotEmpty) {
       if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
       fields.add(
         buildViewField(

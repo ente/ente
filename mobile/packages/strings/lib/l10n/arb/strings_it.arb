@@ -1,4 +1,8 @@
 {
+  "bringMemoriesTogether": "Riunisci i tuoi ricordi",
+  "createMyAccount": "Crea il mio account",
+  "localGalleryPermissionDesc": "Concedi l’autorizzazione ad accedere e organizzare le tue foto con il riconoscimento facciale. Tutta l’elaborazione avviene sul tuo dispositivo.",
+  "onboardingOrganizeDesc": "Organizza le tue foto e i tuoi video. Tutti i ricordi in un unico posto.",
   "wallpaper": "Sfondo",
   "setWallpaper": "Imposta sfondo",
   "wallpaperHome": "Schermata Home",
@@ -44,28 +48,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Aggiungi",
-  "addAdmin": "Aggiungi amministratore",
-  "addAdmins": "{count, plural, =0{Aggiungi amministratore} one{Aggiungi amministratore} other{Aggiungi amministratori}}\n",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Aggiungi un widget album alla schermata iniziale per personalizzarlo qui.",
   "addANameAndPhoto": "Aggiungi un nome e una foto",
-  "addANewEmail": "Aggiungi una nuova email",
   "addCode": "Aggiungi codice",
-  "addCollaborator": "Aggiungi collaboratore",
-  "addCollaborators": "{count, plural, =0{Aggiungi collaboratore} one{Aggiungi collaboratore} other{Aggiungi collaboratori}}\n",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "ha aggiunto una memoria a {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -75,7 +60,6 @@
       }
     }
   },
-  "addedAs": "Aggiunto come",
   "addedBy": "Aggiunto da {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -142,7 +126,6 @@
   "addMember": "Aggiungi membro",
   "addMemoriesWidgetPrompt": "Aggiungi un widget memorie alla schermata iniziale per personalizzarlo qui.",
   "addMore": "Aggiungi altri",
-  "addMoreAdmins": "Aggiungi altri amministratori",
   "addName": "Aggiungi nome",
   "addNew": "Aggiungi nuovo",
   "@addNew": {
@@ -162,7 +145,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Aggiungi Partecipanti",
   "addPeopleWidgetPrompt": "Aggiungi un widget persone alla schermata iniziale per personalizzarlo qui.",
   "addPerson": "Aggiungi persona",
   "@addPerson": {
@@ -183,30 +165,10 @@
   "addTrustedContact": "Aggiungi contatto fidato",
   "addTrustedPerson": "Aggiungi una persona fidata",
   "addUpTo5MembersFree": "Aggiungi fino a 5 membri gratis",
-  "addViewer": "Aggiungi in sola lettura",
-  "addViewers": "{count, plural, =0{Aggiungi visualizzatore} one{Aggiungi visualizzatore} other{Aggiungi visualizzatori}}\n",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Aggiungi le tue foto ora",
   "adjust": "Regola",
   "adjustCrop": "Regola ritaglio",
   "admin": "Amministratore",
-  "admins": "Amministratori",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Amministratori e collaboratori possono aggiungere foto. Gli amministratori possono anche gestire foto e partecipanti.",
-  "adminsCanManagePhotosAndParticipants": "Gli amministratori possono gestire foto e partecipanti.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{Nessun amministratore è stato aggiunto} one{{count} amministratore aggiunto con successo} other{{count} amministratori aggiunto con successo}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Ammirando {name}",
   "@admiringThem": {
     "placeholders": {
@@ -224,20 +186,6 @@
   "albumEditsWillNotBeSaved": "Le tue modifiche a questo album non verranno salvate.",
   "albumLayout": "Disposizione album",
   "albumName": "Nome album",
-  "albumOwner": "Proprietario",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Nessun partecipante} one{{count} partecipante} other{{count} partecipanti}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Album",
   "albumsCount": "{count, plural, one{{count} album} other{{count} album}}",
   "@albumsCount": {
@@ -249,20 +197,9 @@
     }
   },
   "albumsOnDevicePermissionCta": "Consenti l'accesso",
-  "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Consenti a Ente di accedere e organizzare le tue foto con riconoscimento facciale",
-  "albumsOnDevicePermissionFeatureControlUploads": "Sei in controllo di ciò che viene caricato",
-  "albumsOnDevicePermissionFeatureLocalProcessing": "Tutta l'elaborazione avviene sul tuo dispositivo",
   "albumsOnEnteEmptyCta": "Seleziona album da eseguire il backup",
-  "albumsOnEnteEmptyFeatureAccessAnyDevice": "Accedili su qualsiasi dispositivo",
-  "albumsOnEnteEmptyFeaturePrivacy": "Privacy completa con crittografia end-to-end",
-  "albumsOnEnteEmptyFeatureShareLovedOnes": "Condividere con i propri cari - possono reagire e chattare, senza un account",
   "albumsOnEnteEmptyTitle": "Esegui il backup dei tuoi ricordi",
-  "albumsReceivedEmptyFeatureAcceptInvites": "Accetta inviti a visualizzare foto e video",
-  "albumsReceivedEmptyFeatureSaveToLibrary": "Salva memorie condivise nella tua libreria",
-  "albumsReceivedEmptyFeatureSharedByOthers": "Gli album condivisi da altri appariranno qui",
-  "albumsReceivedEmptyTitle": "Visualizza i ricordi condivisi\n con te",
-  "albumsSharedEmptyFeatureReactAndComment": "Possono visualizzare, reagire e aggiungere commenti, senza un account",
-  "albumsSharedEmptyFeatureShareLovedOnes": "Condividi le tue foto e video con i tuoi cari",
+  "albumsReceivedEmptyTitle": "Visualizza i ricordi condivisi con te",
   "albumsSharedEmptyTitle": "Condividi i tuoi ricordi",
   "albumsWidgetDesc": "Seleziona gli album che desideri vedere nella schermata principale.",
   "albumTitle": "Titolo album",
@@ -581,12 +518,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} non sarà più in grado di aggiungere altre foto a questo album\n\nSarà ancora in grado di rimuovere le foto esistenti aggiunte da lui o lei",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Impossibile eliminare i file condivisi",
   "cannotMoveToSharedAlbums": "Impossibile spostare negli album condivisi",
   "cannotMoveToSharedAlbumsMessage": "Gli elementi possono solo essere aggiunti agli album condivisi, non spostati. Aggiungerli?",
@@ -623,7 +554,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Modifica permessi",
-  "changePermissionsQuestion": "Cambio i permessi?",
   "changeYourReferralCode": "Cambia il tuo codice",
   "checkForUpdates": "Controlla aggiornamenti",
   "checkInboxAndSpamFolder": "Per favore, controlla la tua casella di posta (e lo spam) per completare la verifica",
@@ -682,17 +612,6 @@
   "codeIssuerHint": "Emittente",
   "collabLinkSectionDescription": "Lascia che le persone aggiungano foto senza un account Ente",
   "collaborator": "Collaboratore",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "I collaboratori possono aggiungere foto e video all'album condiviso.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Nessun collaboratore aggiunto} one{Aggiunto {count} collaboratore} other{Aggiunti {count} collaboratori}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Disposizione",
   "collageSaved": "Collage salvato nella galleria",
   "collectionCannotBeDeleted": "Questa raccolta non può essere eliminata",
@@ -1038,16 +957,6 @@
       }
     }
   },
-  "deleteMultipleFilesDialogBody": "{count, plural, one{{count} elemento sarà eliminato definitivamente.} other{{count} elementi saranno eliminati definitivamente.}}",
-  "@deleteMultipleFilesDialogBody": {
-    "description": "Confirmation message body for deleting multiple items",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
   "deleteNotSupportedForSharedFiles": "L'eliminazione non è supportata per i file condivisi",
   "deleteOnDeviceFiles": "Elimina sui file del dispositivo",
   "deletePhotos": "Elimina foto",
@@ -1179,10 +1088,6 @@
   },
   "dontHaveAnAccount": "Non hai un account?",
   "dontSave": "Non salvare",
-  "doThisLater": "Fallo più tardi",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
   "doubleTapToViewHiddenCode": "Puoi toccare due volte una voce per visualizzare il codice",
   "download": "Scarica",
   "downloadApplicationUpdate": "Scarica l'aggiornamento",
@@ -2221,11 +2126,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Gestisci",
   "manageDeviceStorage": "Gestisci cache dispositivo",
   "manageFamily": "Gestisci piano famiglia",
   "manageLink": "Gestisci link",
-  "manageParticipants": "Gestisci",
   "managePaymentMethod": "Gestisci i metodi di pagamento",
   "manageSubscription": "Gestisci abbonamento",
   "manualSort": "Personalizzato",
@@ -2389,7 +2292,7 @@
   },
   "nextTotpTitle": "successivo",
   "nightLights": "Notti al neon",
-  "noAlbumsOnThisDevice": "Nessun album\nsu questo dispositivo",
+  "noAlbumsOnThisDevice": "Nessun album su questo dispositivo",
   "noAppToOpenFileDownloadInstead": "Nessuna applicazione è disponibile per visualizzare in anteprima questo file. Puoi scaricarlo e aprirlo in un'altra app.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -2559,7 +2462,6 @@
   "optionalAsShortAsYouLike": "Facoltativo, breve quanto vuoi...",
   "organization": "Organizzazione",
   "organizationDesc": "Collezioni, preferiti, ricerca e modi per mantenere gli oggetti organizzati",
-  "orPickAnExistingOne": "Oppure scegline una esistente",
   "orRemoveYourself": "O rimuovi te stesso come contatto affidabile di {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2958,12 +2860,6 @@
   "remoteVideos": "Video remoti",
   "remove": "Rimuovi",
   "removeAccess": "Rimuovi accesso",
-  "removeAlbumParticipantBody": "{userEmail} verrà rimosso da questo album condiviso\n\nQualsiasi foto aggiunta dall'utente verrà rimossa dall'album",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} sara rimosso da questa raccolta condivisa\n\nAnche gli elementi aggiunti da questa persona saranno rimossi dalla raccolta",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -3385,7 +3281,6 @@
   "selectFile": "Seleziona file",
   "selectFolder": "Seleziona cartella",
   "selectFolders": "Seleziona cartelle",
-  "selectFoldersForBackup": "Seleziona cartelle per il backup",
   "selectFolderToContinue": "Seleziona una cartella per continuare",
   "selectItemsToAdd": "Seleziona gli elementi da aggiungere",
   "selectLanguage": "Seleziona lingua",
@@ -3483,7 +3378,6 @@
   "shareCodesDuration": "Seleziona la durata per la quale vuoi condividere i codici.",
   "shareCollection": "Condividi la collezione",
   "shared": "Condiviso",
-  "sharedAlbumSectionDescription": "Crea album condivisi e collaborativi con altri utenti di Ente, inclusi gli utenti con piani gratuiti.",
   "sharedAlbumsLabel": "Condiviso",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -3531,15 +3425,6 @@
   "shareTextRecommendUsingEnteForPhotos": "Scarica Ente così possiamo condividere foto e video in qualità originale\n\nhttps://ente.com",
   "shareThisLink": "Questo link permette a chiunque lo riceva di accedere al tuo elemento. Puoi rimuovere l'accesso in qualsiasi momento eliminando il link.",
   "shareWithNonenteUsers": "Condividi con utenti che non hanno un account Ente",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Condividi con persone specifiche} one{Condividi con {numberOfPeople} persona} other{Condividi con {numberOfPeople} persone}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourLegacyBannerDescription": "Aiuta i cari ad accedere a informazioni importanti, in tua assenza.",
   "@shareYourLegacyBannerDescription": {
     "description": "Description of the home banner prompting the user to set up Legacy"
@@ -3673,7 +3558,6 @@
   },
   "startSnappingYourPhotosWillShowUpHere": "Inizia a scattare, le tue foto appariranno qui",
   "startWithAddingPhotosOrFamiliarFaces": "Inizia con l'aggiunta di\nfoto o facce familiari",
-  "startWithLatestPhotos": "Inizia con le ultime foto",
   "status": "Stato",
   "sticker": "Etichetta",
   "stopCastingBody": "Vuoi interrompere la trasmissione?",
@@ -4120,16 +4004,6 @@
   "viewAllExifData": "Mostra tutti i dati EXIF",
   "viewAllHelpTopics": "Visualizza tutti gli argomenti di aiuto",
   "viewer": "Sola lettura",
-  "viewersSuccessfullyAdded": "{count, plural, =0{Nessun visualizzatore aggiunto} one{Aggiunto {count} visualizzatore} other{Aggiunti {count} visualizzatori}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "File di grandi dimensioni",
   "viewLogs": "Visualizza i log",
   "@viewLogs": {
@@ -4212,16 +4086,6 @@
   "yesDeleteCollections": "Sì, elimina {count, plural, one{raccolta} other{raccolte}}",
   "@yesDeleteCollections": {
     "description": "Button label for confirming deletion of one or more collections",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
-  "yesDeleteFiles": "Sì, elimina {count, plural, one{elemento} other{elementi}}",
-  "@yesDeleteFiles": {
-    "description": "Button label for confirming deletion of one or more items",
     "placeholders": {
       "count": {
         "type": "int",

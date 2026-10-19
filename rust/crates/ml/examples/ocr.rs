@@ -125,7 +125,6 @@ fn detect_text(
     let request = DetectTextRequest {
         image_path: image_path.to_string(),
         include_all_confidence_scores: all_confidences,
-        request_id: None,
     };
     let started = Instant::now();
     match dump_dir {
@@ -171,7 +170,6 @@ fn detect_regions(engine: &OcrEngine, image_path: &str, dump_dir: Option<&Path>)
     let started = Instant::now();
     let debug = engine.detect_text_regions_debug(&DetectRegionsRequest {
         image_path: image_path.to_string(),
-        request_id: None,
     })?;
     let elapsed_ms = started.elapsed().as_millis();
     let result = &debug.result;

@@ -1,0 +1,1 @@
+- Updated Link settings with sharing actions first and grouped access controls, and opened settings after creating a collection link.

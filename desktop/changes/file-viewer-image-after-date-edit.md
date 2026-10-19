@@ -1,1 +1,0 @@
-- Fixed the photo viewer showing the wrong image after changing a photo's date.

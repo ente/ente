@@ -11,8 +11,12 @@ import (
 	"testing"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/auth"
 	log "github.com/sirupsen/logrus"
 	logtest "github.com/sirupsen/logrus/hooks/test"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
@@ -157,6 +161,95 @@ func TestFCMSendDoesNotClassifyInvalidArgumentAsUnregistered(t *testing.T) {
 	err := c.send(context.Background(), "tok", map[string]string{"action": "sync"})
 	require.Error(t, err)
 	require.False(t, errors.Is(err, errUnregisteredToken))
+}
+
+func TestAlbumShareSendsOnlyAndroidSync(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "internal@example.com", CreationTime: 1})
+	_, err := db.Exec(`INSERT INTO remote_store(user_id,key_name,key_value) VALUES(1,'internalUser','true')`)
+	require.NoError(t, err)
+	require.NoError(t, (&repo.UserAuthRepository{DB: db}).AddToken(1, ente.Photos, "session", "", ""))
+	hash := auth.HashToken("session")
+	controller := &PushController{PushRepo: &repo.PushTokenRepository{DB: db}}
+	for _, platform := range []string{"ios", "android"} {
+		require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
+			FCMToken: platform + "-device", Platform: &platform,
+		}))
+	}
+	var messages []map[string]any
+	controller.fcm = &fcmClient{projectID: "test-project", httpClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		require.NoError(t, request.Context().Err())
+		var envelope struct {
+			Message map[string]any `json:"message"`
+		}
+		require.NoError(t, json.NewDecoder(request.Body).Decode(&envelope))
+		messages = append(messages, envelope.Message)
+		return jsonResponse(http.StatusOK, "{}"), nil
+	})}}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	controller.NotifyAlbumShare(ctx, []int64{1})
+	require.Equal(t, []map[string]any{{
+		"token":   "android-device",
+		"data":    map[string]any{"action": "sync"},
+		"android": map[string]any{"priority": "high", "ttl": "86400s"},
+	}}, messages)
+}
+
+func TestAlbumSharePrunesOnlyUnregisteredTokens(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "internal@example.com", CreationTime: 1})
+	_, err := db.Exec(`INSERT INTO remote_store(user_id,key_name,key_value) VALUES(1,'internalUser','true')`)
+	require.NoError(t, err)
+	require.NoError(t, (&repo.UserAuthRepository{DB: db}).AddToken(1, ente.Photos, "session", "", ""))
+	hash := auth.HashToken("session")
+	platform := "android"
+	controller := &PushController{PushRepo: &repo.PushTokenRepository{DB: db}}
+	responses := map[string]struct {
+		status int
+		body   string
+	}{
+		"active":           {http.StatusOK, "{}"},
+		"unregistered":     {http.StatusNotFound, fcmUnregisteredBody},
+		"unavailable":      {http.StatusServiceUnavailable, "unavailable"},
+		"unauthorized":     {http.StatusUnauthorized, "unauthorized"},
+		"invalid-argument": {http.StatusBadRequest, fcmInvalidArgumentBody},
+	}
+	for token := range responses {
+		require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
+			FCMToken: token, Platform: &platform,
+		}))
+	}
+	var attempted []string
+	controller.fcm = &fcmClient{projectID: "test-project", httpClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		var message wireMsg
+		require.NoError(t, json.NewDecoder(request.Body).Decode(&message))
+		attempted = append(attempted, message.Message.Token)
+		response := responses[message.Message.Token]
+		return jsonResponse(response.status, response.body), nil
+	})}}
+	controller.NotifyAlbumShare(context.Background(), []int64{1})
+	require.ElementsMatch(t, []string{"active", "unregistered", "unavailable", "unauthorized", "invalid-argument"}, attempted)
+	var unregisteredExists bool
+	require.NoError(t, db.QueryRow(`SELECT EXISTS(SELECT 1 FROM push_tokens WHERE fcm_token='unregistered')`).Scan(&unregisteredExists))
+	require.False(t, unregisteredExists)
+	attempted = nil
+	controller.NotifyAlbumShare(context.Background(), []int64{1})
+	require.ElementsMatch(t, []string{"active", "unavailable", "unauthorized", "invalid-argument"}, attempted)
+}
+
+func TestAlbumShareHonorsSilentMode(t *testing.T) {
+	previous := viper.GetBool("internal.silent")
+	viper.Set("internal.silent", true)
+	t.Cleanup(func() { viper.Set("internal.silent", previous) })
+	controller := &PushController{fcm: &fcmClient{}}
+	controller.NotifyAlbumShare(context.Background(), []int64{1})
 }
 
 func captureLogs(t *testing.T) *logtest.Hook {

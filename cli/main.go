@@ -8,6 +8,7 @@ import (
 	"github.com/ente/cli/pkg"
 	"github.com/ente/cli/pkg/secrets"
 	"github.com/ente/cli/utils/constants"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"os"
@@ -50,7 +51,14 @@ func main() {
 		}
 	}
 
-	skipInitCommands := map[string]struct{}{"version": {}, "docs": {}, "help": {}}
+	skipInitCommands := map[string]struct{}{
+		"version":                       {},
+		"docs":                          {},
+		"help":                          {},
+		"completion":                    {},
+		cobra.ShellCompRequestCmd:       {},
+		cobra.ShellCompNoDescRequestCmd: {},
+	}
 
 	var keyHolder *secrets.KeyHolder
 	shouldInit := len(os.Args) > 1

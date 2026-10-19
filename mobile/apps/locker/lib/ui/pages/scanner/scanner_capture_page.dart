@@ -41,6 +41,9 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
   int _analysisGeneration = 0;
 
   CameraController? _camera;
+  Animation<double>? _routeAnimation;
+  Future<void> _streamOperation = Future<void>.value();
+  bool _closing = false;
   _CameraStatus _status = _CameraStatus.starting;
   ScanCaptureRegion? _captureRegion;
   Size? _liveFrameSize;
@@ -77,9 +80,52 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     await SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
     ]);
-    if (!mounted) return;
+    if (!mounted || _closing) return;
+    _routeAnimation = ModalRoute.of(context)?.animation;
+    _routeAnimation?.addStatusListener(_onTransition);
     unawaited(_initScanner());
     unawaited(_startCamera());
+  }
+
+  void _onTransition(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      setState(_resetLiveTracking);
+      _autoCapture.reset();
+    }
+    unawaited(_updateImageStream());
+  }
+
+  Future<void> _updateImageStream() {
+    return _streamOperation = _streamOperation
+        .then((_) async {
+          final camera = _camera;
+          if (camera == null) return;
+          final scan =
+              !_closing &&
+              !_reviewActive &&
+              (_routeAnimation == null ||
+                  _routeAnimation!.status == AnimationStatus.completed);
+          try {
+            if (scan && !camera.value.isStreamingImages) {
+              await camera.startImageStream(_onFrame);
+            } else if (!scan && camera.value.isStreamingImages) {
+              await camera.stopImageStream();
+            }
+          } catch (error, stack) {
+            _logger.warning('Image stream unavailable', error, stack);
+            if (camera != _camera || !mounted || _closing) return;
+            try {
+              await _pauseCamera();
+            } finally {
+              if (mounted && !_closing) {
+                setState(() => _status = _CameraStatus.error);
+              }
+            }
+          }
+        })
+        .catchError((Object error, StackTrace stack) {
+          _logger.warning('Failed to release camera', error, stack);
+        });
   }
 
   Future<void> _initScanner() async {
@@ -94,11 +140,20 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
 
   @override
   void dispose() {
+    _routeAnimation?.removeStatusListener(_onTransition);
     _quadExpiry?.cancel();
     _frameClock.stop();
     WidgetsBinding.instance.removeObserver(this);
     _session.removeListener(_onSessionChanged);
-    unawaited(_camera?.dispose());
+    final camera = _camera;
+    _camera = null;
+    if (camera != null) {
+      unawaited(
+        _disposeCamera(camera).catchError((Object error, StackTrace stack) {
+          _logger.warning('Failed to release camera', error, stack);
+        }),
+      );
+    }
     unawaited(_session.disposeSession());
     for (final capture in _pending) {
       capture.spec?.image.dispose();
@@ -145,7 +200,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
     _autoCapture.reset();
     try {
       final cameras = await availableCameras();
-      if (!mounted || _reviewActive) return;
+      if (!mounted || _reviewActive || _closing) return;
       if (cameras.isEmpty) {
         setState(() => _status = _CameraStatus.error);
         return;
@@ -165,18 +220,17 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
       await controller.initialize();
       var retainedController = false;
       try {
-        if (!mounted || _reviewActive) return;
+        if (!mounted || _reviewActive || _closing) return;
         await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
-        if (!mounted || _reviewActive) return;
-        await controller.startImageStream(_onFrame);
-        if (!mounted || _reviewActive) return;
+        if (!mounted || _reviewActive || _closing) return;
         if (_torchOn) await _applyTorch(controller, true);
-        if (!mounted || _reviewActive) return;
+        if (!mounted || _reviewActive || _closing) return;
         setState(() {
           _camera = controller;
           _status = _CameraStatus.ready;
         });
         retainedController = true;
+        unawaited(_updateImageStream());
       } finally {
         if (!retainedController) {
           await controller.dispose();
@@ -205,12 +259,27 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
       _captureRegion = null;
     });
     _autoCapture.reset();
-    await camera.dispose();
+    await _disposeCamera(camera);
+  }
+
+  Future<void> _disposeCamera(CameraController camera) async {
+    try {
+      if (camera.value.isStreamingImages) {
+        await camera.stopImageStream();
+      }
+    } catch (error, stack) {
+      _logger.warning('Failed to stop image stream', error, stack);
+    } finally {
+      await camera.dispose();
+    }
   }
 
   void _onFrame(CameraImage image) {
     final camera = _camera;
-    if (_reviewActive ||
+    if (_closing ||
+        (_routeAnimation != null &&
+            _routeAnimation!.status != AnimationStatus.completed) ||
+        _reviewActive ||
         camera == null ||
         _analysisInFlight ||
         _takingPicture ||
@@ -256,6 +325,7 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
         );
       }
       if (!mounted ||
+          _closing ||
           camera != _camera ||
           generation != _analysisGeneration ||
           _takingPicture) {
@@ -656,6 +726,9 @@ class _ScannerCapturePageState extends State<ScannerCapturePage>
           PopScope<bool>(
             canPop: _retakePageId == null || _leavingAfterSave,
             onPopInvokedWithResult: (didPop, _) {
+              if (didPop) {
+                _closing = true;
+              }
               if (!didPop && _retakePageId != null && !_leavingAfterSave) {
                 unawaited(_closeRetake());
               }

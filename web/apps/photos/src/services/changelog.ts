@@ -1,6 +1,6 @@
 import type { Electron } from "ente-base/types/ipc";
 
-const changelogVersion = 15;
+const changelogVersion = 16;
 
 export const shouldShowWhatsNew = async (electron: Electron) => {
     const lastShownVersion = await electron.lastShownChangelogVersion();

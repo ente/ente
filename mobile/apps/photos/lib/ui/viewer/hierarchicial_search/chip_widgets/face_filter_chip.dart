@@ -9,6 +9,7 @@ class FaceFilterChip extends StatelessWidget {
   final VoidCallback remove;
   final bool isApplied;
   final double? avatarSize;
+  final Object? retryKey;
 
   const FaceFilterChip({
     required this.personId,
@@ -17,6 +18,7 @@ class FaceFilterChip extends StatelessWidget {
     required this.remove,
     required this.isApplied,
     this.avatarSize,
+    this.retryKey,
     super.key,
   });
 
@@ -27,6 +29,7 @@ class FaceFilterChip extends StatelessWidget {
         personId: personId,
         clusterID: clusterId,
         useFullFile: false,
+        retryKey: retryKey,
       ),
       state: isApplied
           ? FilterChipComponentState.selected

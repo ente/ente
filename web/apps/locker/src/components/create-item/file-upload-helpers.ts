@@ -108,3 +108,27 @@ export const formatFileSize = (bytes: number) => {
     }
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 };
+
+export const uploadFileExtension = (name: string) => {
+    const dot = name.lastIndexOf(".");
+    return dot > 0 ? name.slice(dot) : "";
+};
+
+export const renamedUploadFileName = (originalName: string, value: string) => {
+    const extension = uploadFileExtension(originalName);
+    let name = value.replace(/[/\\]|[^\u0020-\uFFFF]/g, "").trim();
+    if (extension && name.toLowerCase().endsWith(extension.toLowerCase())) {
+        name = name.slice(0, -extension.length).trim();
+    }
+    if (!name || name === "." || name === "..") return undefined;
+    name += extension;
+    return new TextEncoder().encode(name).length <= 255 ? name : undefined;
+};
+
+export const fileForUpload = (item: LockerUploadCandidate) =>
+    item.uploadName && item.uploadName !== item.file.name
+        ? new File([item.file], item.uploadName, {
+              type: item.file.type,
+              lastModified: item.file.lastModified,
+          })
+        : item.file;

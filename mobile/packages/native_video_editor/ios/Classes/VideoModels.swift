@@ -115,6 +115,7 @@ public struct VideoEditRequest: Sendable {
     public let trimEndMs: Int64?
     public let rotateDegrees: Int?
     public let crop: VideoCrop?
+    public let speed: Double
 
     public init(
         inputURL: URL,
@@ -122,7 +123,8 @@ public struct VideoEditRequest: Sendable {
         trimStartMs: Int64?,
         trimEndMs: Int64?,
         rotateDegrees: Int?,
-        crop: VideoCrop?
+        crop: VideoCrop?,
+        speed: Double
     ) throws {
         let inputURL = inputURL.standardizedFileURL.resolvingSymlinksInPath()
         let outputURL = outputURL.standardizedFileURL.resolvingSymlinksInPath()
@@ -130,7 +132,9 @@ public struct VideoEditRequest: Sendable {
             FileManager.default.fileExists(atPath: inputURL.path),
             (trimStartMs == nil) == (trimEndMs == nil),
             trimStartMs == nil || (trimStartMs! >= 0 && trimStartMs! < trimEndMs!),
-            rotateDegrees == nil || [0, 90, 180, 270].contains(rotateDegrees!)
+            rotateDegrees == nil || [0, 90, 180, 270].contains(rotateDegrees!),
+            speed.isFinite,
+            speed > 0
         else {
             throw VideoEditorError.invalidRequest("Invalid video processing request")
         }
@@ -140,6 +144,7 @@ public struct VideoEditRequest: Sendable {
         self.trimEndMs = trimEndMs
         self.rotateDegrees = rotateDegrees
         self.crop = crop
+        self.speed = speed
     }
 }
 

@@ -16,9 +16,7 @@ pub use queries::clusters::{ClusterCentroidRow, ClusterSummary};
 pub use queries::faces::{FACE_ML_VERSION, FaceDbInfoForClustering, FaceRow, FaceWithoutEmbedding};
 pub use queries::filedata::{FdStatus, PreviewInfo};
 pub use queries::persons::PersonToClusterIdToFaceIds;
-pub use queries::pets::{
-    PET_ML_VERSION, PetBodyRow, PetBodyVectorRow, PetFaceRow, PetFaceVectorRow, PetRowsForFiles,
-};
+pub use queries::pets::PET_ML_VERSION;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -84,7 +82,7 @@ pub(crate) mod tests {
     use std::path::Path;
 
     use super::queries::clip::tests::full_clip;
-    use super::queries::{caches, clip, clusters, faces, filedata, persons, pets};
+    use super::queries::{caches, clip, clusters, faces, filedata, persons};
     use super::{Error, MlDb, schema};
     use crate::db::Connection;
     use tempfile::TempDir;
@@ -185,12 +183,11 @@ pub(crate) mod tests {
         faces::tests::seed(&db);
         clusters::tests::seed(&db);
         persons::tests::seed(&db);
-        pets::tests::seed(&db);
         (directory, db)
     }
 
     #[test]
-    fn clear_non_pet_tables_leaves_pets_and_caches() {
+    fn clear_non_pet_tables_leaves_caches() {
         let (_directory, db) = seeded_all();
         db.clear_non_pet_tables().unwrap();
         assert_eq!(db.get_total_face_count().unwrap(), 0);
@@ -205,7 +202,6 @@ pub(crate) mod tests {
         );
         assert_eq!(db.count_clip_rows().unwrap(), 0);
         assert!(db.get_file_ids_with_fd_data(None).unwrap().is_empty());
-        assert_eq!(db.get_pet_indexed_file_count(1).unwrap(), 2);
         assert_eq!(
             db.get_face_id_used_for_person_or_cluster("p1").unwrap(),
             Some("1_0".to_string())
@@ -213,41 +209,6 @@ pub(crate) mod tests {
         assert_eq!(
             db.get_repeated_text_embedding_cache("dog").unwrap(),
             Some(vec![0.5f32, -1.0])
-        );
-    }
-
-    #[test]
-    fn clear_pet_tables_leaves_non_pet_tables() {
-        let (directory, db) = seeded_all();
-        let connection = Connection::open(directory.path().join("ente.ml.db")).unwrap();
-        let row_count = |table: &str| -> i64 {
-            connection
-                .query_row(&format!("SELECT COUNT(*) FROM {table}"), (), |row| {
-                    Ok(row.get(0)?)
-                })
-                .unwrap()
-        };
-        assert_eq!(row_count("pet_face_vector_id_map"), 2);
-        assert_eq!(row_count("pet_body_vector_id_map"), 1);
-        db.clear_pet_tables().unwrap();
-        assert_eq!(row_count("pet_face_vector_id_map"), 0);
-        assert_eq!(row_count("pet_body_vector_id_map"), 0);
-        assert_eq!(db.get_pet_indexed_file_count(0).unwrap(), 0);
-        assert_eq!(
-            db.get_pet_rows_for_files(&[1, 2, 3]).unwrap().faces.len(),
-            0
-        );
-        assert_eq!(db.get_total_face_count().unwrap(), 9);
-        assert_eq!(db.cluster_id_to_face_count().unwrap().len(), 6);
-        assert_eq!(db.get_person_cluster_ids("p1").unwrap().len(), 2);
-        assert_eq!(db.count_clip_rows().unwrap(), 4);
-        assert_eq!(
-            db.get_file_ids_with_fd_data(None).unwrap(),
-            HashSet::from([1, 2, 3])
-        );
-        assert_eq!(
-            db.get_face_id_used_for_person_or_cluster("p1").unwrap(),
-            Some("1_0".to_string())
         );
     }
 

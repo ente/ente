@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import "package:photos/models/account/two_factor.dart";
 import 'package:photos/services/account/user_service.dart';
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/lifecycle_event_handler.dart';
-import "package:pinput/pinput.dart";
 
 class TwoFactorAuthenticationPage extends StatefulWidget {
   final String sessionID;
@@ -20,6 +20,7 @@ class TwoFactorAuthenticationPage extends StatefulWidget {
 class _TwoFactorAuthenticationPageState
     extends State<TwoFactorAuthenticationPage> {
   final _pinController = TextEditingController();
+  final _pinFocusNode = FocusNode();
   String _code = "";
   late LifecycleEventHandler _lifecycleEventHandler;
 
@@ -43,6 +44,7 @@ class _TwoFactorAuthenticationPageState
   void dispose() {
     WidgetsBinding.instance.removeObserver(_lifecycleEventHandler);
     _pinController.dispose();
+    _pinFocusNode.dispose();
     super.dispose();
   }
 
@@ -50,126 +52,66 @@ class _TwoFactorAuthenticationPageState
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    return Scaffold(
-      backgroundColor: colors.backgroundBase,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colors.backgroundBase,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colors.iconColor,
-          onPressed: () {
-            Navigator.of(context).pop();
+    return OnboardingPageScaffold(
+      title: context.strings.twoFAVerification,
+      illustration: OnboardingIllustration.key,
+      minimumKeyboardHeaderHeight: OnboardingPageScaffold.compactHeaderHeight,
+      isBodyCentered: true,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.strings.enterThe6digitCodeFromnyourAuthenticatorApp,
+            style: TextStyles.body.copyWith(color: colors.textLight),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: Spacing.xxl),
+          PinInputComponent(
+            length: 6,
+            controller: _pinController,
+            focusNode: _pinFocusNode,
+            autofocus: true,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            onChanged: (String pin) {
+              setState(() {
+                _code = pin;
+              });
+            },
+            onCompleted: _verifyTwoFactorCode,
+          ),
+        ],
+      ),
+      actions: [
+        ButtonComponent(
+          label: context.strings.verify,
+          shouldShowSuccessState: false,
+          isDisabled: _code.length != 6,
+          onTap: _code.length == 6 ? () => _verifyTwoFactorCode(_code) : null,
+        ),
+        ButtonComponent(
+          label: context.strings.lostDevice,
+          variant: ButtonComponentVariant.link,
+          onTap: () async {
+            // ignore: unawaited_futures
+            UserService.instance.recoverTwoFactor(
+              context,
+              widget.sessionID,
+              TwoFactorType.totp,
+            );
           },
         ),
-        title: Text(
-          context.strings.twoFAVerification,
-          style: TextStyles.large.copyWith(color: colors.textBase),
-        ),
-        centerTitle: true,
-      ),
-      body: _getBody(),
-    );
-  }
-
-  Widget _getBody() {
-    final colors = context.componentColors;
-    final defaultPinTheme = PinTheme(
-      height: 52,
-      width: 48,
-      textStyle: TextStyles.body.copyWith(color: colors.textBase),
-      decoration: BoxDecoration(
-        border: Border.all(color: colors.strokeFaint),
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
-
-    final focusedPinTheme = defaultPinTheme.copyWith(
-      decoration: BoxDecoration(
-        border: Border.all(color: colors.primary, width: 2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
-
-    final submittedPinTheme = defaultPinTheme.copyWith(
-      textStyle: TextStyles.h1.copyWith(color: colors.primary),
-      decoration: BoxDecoration(
-        color: colors.primaryLight,
-        border: Border.all(color: colors.primary, width: 2),
-        borderRadius: BorderRadius.circular(20),
-      ),
-    );
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            Text(
-              context.strings.twoFAVerification,
-              style: TextStyles.body.copyWith(color: colors.textBase),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.strings.enterThe6digitCodeFromnyourAuthenticatorApp,
-              style: TextStyles.body.copyWith(color: colors.textLight),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Center(
-              child: Pinput(
-                length: 6,
-                onCompleted: (String code) {
-                  _verifyTwoFactorCode(code);
-                },
-                onChanged: (String pin) {
-                  setState(() {
-                    _code = pin;
-                  });
-                },
-                autofocus: true,
-                controller: _pinController,
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: focusedPinTheme,
-                submittedPinTheme: submittedPinTheme,
-                followingPinTheme: defaultPinTheme,
-              ),
-            ),
-            const Spacer(),
-            ButtonComponent(
-              label: context.strings.verify,
-              isDisabled: _code.length != 6,
-              onTap: _code.length == 6
-                  ? () => _verifyTwoFactorCode(_code)
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: ButtonComponent(
-                label: context.strings.lostDevice,
-                variant: ButtonComponentVariant.link,
-                size: ButtonComponentSize.small,
-                onTap: () async {
-                  // ignore: unawaited_futures
-                  UserService.instance.recoverTwoFactor(
-                    context,
-                    widget.sessionID,
-                    TwoFactorType.totp,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
   Future<void> _verifyTwoFactorCode(String code) async {
     await UserService.instance.verifyTwoFactor(context, widget.sessionID, code);
+    if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      _pinController.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pinFocusNode.requestFocus();
+      });
+    }
   }
 }

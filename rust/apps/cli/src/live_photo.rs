@@ -28,7 +28,8 @@ pub(crate) async fn extract_live_photo(zip_data: &[u8], output_path: &Path) -> R
     let mut video = None;
     for index in 0..archive.len() {
         let file = archive.by_index(index)?;
-        let (kind, extension) = parse_entry_name(file.name())?;
+        let name = file.name()?;
+        let (kind, extension) = parse_entry_name(&name)?;
         let entry = Entry {
             index,
             extension: extension.to_string(),

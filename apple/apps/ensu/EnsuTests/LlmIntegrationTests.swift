@@ -48,7 +48,8 @@ final class LlmIntegrationTests: XCTestCase {
         )
 
         let context = try model.newContext(
-            params: LlmContextParams(contextSize: 2048, nThreads: nil, nBatch: nil)
+            params: LlmContextParams(
+                contextSize: 2048, nThreads: nil, nThreadsGeneration: nil, nBatch: nil)
         )
 
         let request = LlmChatRequest(
@@ -98,7 +99,8 @@ final class LlmIntegrationTests: XCTestCase {
         )
 
         let context = try model.newContext(
-            params: LlmContextParams(contextSize: 2048, nThreads: nil, nBatch: nil)
+            params: LlmContextParams(
+                contextSize: 2048, nThreads: nil, nThreadsGeneration: nil, nBatch: nil)
         )
 
         let request = LlmChatRequest(

@@ -3,12 +3,14 @@
     "compilerOptions": {
         "paths": { "@/*": ["./src/*"] },
         "allowJs": true,
+        "allowImportingTsExtensions": true,
         "checkJs": true,
         "incremental": true,
         "exactOptionalPropertyTypes": false
     },
     "include": [
         "src",
+        "tests",
         "next-env.d.ts",
         "next.config.mjs",
         "../../packages/base/global-electron.d.ts",

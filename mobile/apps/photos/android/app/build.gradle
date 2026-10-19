@@ -1,8 +1,13 @@
 plugins {
+    id "com.google.gms.google-services" version "4.4.4" apply false
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.20'
+}
+
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
 }
 
 def localProperties = new Properties()
@@ -48,12 +53,6 @@ repositories {
     }
 }
 
-configurations.configureEach {
-    // mobile_ocr also declares Microsoft's stock AAR. The custom AAR exposes
-    // the same Java API and must be the sole source of libonnxruntime.so.
-    exclude group: 'com.microsoft.onnxruntime', module: 'onnxruntime-android'
-}
-
 android {
     namespace = "io.ente.photos"
 
@@ -80,6 +79,7 @@ android {
         multiDexEnabled true
         consumerProguardFiles 'proguard-rules.pro'
         ndk {
+            abiFilters.clear()
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
     }
@@ -98,29 +98,17 @@ android {
         independent {
             dimension "default"
             applicationIdSuffix ".independent"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         dev {
             dimension "default"
             applicationIdSuffix ".dev"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         playstore {
             dimension "default"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
         fdroid {
             dimension "default"
             applicationIdSuffix ".fdroid"
-            ndk {
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
         }
     }
 
@@ -131,10 +119,6 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            ndk {
-                abiFilters.clear()
-                abiFilters "arm64-v8a", "armeabi-v7a"
-            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile(
                 "proguard-android-optimize.txt",
@@ -143,6 +127,9 @@ android {
         debug {
           applicationIdSuffix '.debug'
           versionNameSuffix "-debug"
+          ndk {
+            abiFilters "x86_64"
+          }
           externalNativeBuild {
             cmake {
               arguments "-DANDROID_PACKAGE_NAME=${android.defaultConfig.applicationId}${applicationIdSuffix}"

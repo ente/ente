@@ -19,34 +19,41 @@ const _ffmpegTaskQueue = new PromiseQueue<Uint8Array<ArrayBuffer> | number>();
 
 const ffmpegLazy = (): Promise<FFmpeg> => (_ffmpeg ??= createFFmpeg());
 
-const createFFmpeg = async () => {
+const createFFmpeg = () => {
     const ffmpeg = new FFmpeg();
-    await ffmpeg.load({
-        coreURL: "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.js",
-        wasmURL: "https://assets.ente.com/ffmpeg-core-0.12.10/ffmpeg-core.wasm",
-    });
-    return ffmpeg;
+    const failed = (error: unknown): never => {
+        ffmpeg.terminate();
+        if (_ffmpeg === loading) _ffmpeg = undefined;
+        throw error;
+    };
+    const loading = ffmpeg
+        .load({
+            coreURL: "https://assets.ente.com/ffmpeg-core-9.0.2/ffmpeg-core.js",
+            wasmURL:
+                "https://assets.ente.com/ffmpeg-core-9.0.2/ffmpeg-core.wasm",
+        })
+        .then(() => ffmpeg)
+        .catch(failed);
+    const exec = ffmpeg.exec.bind(ffmpeg);
+    const probe = ffmpeg.ffprobe.bind(ffmpeg);
+    ffmpeg.exec = (...args) => exec(...args).catch(failed);
+    ffmpeg.ffprobe = (...args) => probe(...args).catch(failed);
+    return loading;
 };
 
 export const ffmpegExecWeb = async (
     command: FFmpegCommand,
     blob: Blob,
     outputFileExtension: string,
-): Promise<Uint8Array<ArrayBuffer>> => {
-    const ffmpeg = await ffmpegLazy();
-    return _ffmpegTaskQueue.add(() =>
-        ffmpegExec(ffmpeg, command, outputFileExtension, blob),
+): Promise<Uint8Array<ArrayBuffer>> =>
+    _ffmpegTaskQueue.add(async () =>
+        ffmpegExec(await ffmpegLazy(), command, outputFileExtension, blob),
     ) as Promise<Uint8Array<ArrayBuffer>>;
-};
 
-export const determineVideoDurationWeb = async (
-    blob: Blob,
-): Promise<number> => {
-    const ffmpeg = await ffmpegLazy();
-    return _ffmpegTaskQueue.add(() =>
-        ffprobeExecVideoDuration(ffmpeg, blob),
+export const determineVideoDurationWeb = async (blob: Blob): Promise<number> =>
+    _ffmpegTaskQueue.add(async () =>
+        ffprobeExecVideoDuration(await ffmpegLazy(), blob),
     ) as Promise<number>;
-};
 
 const ffmpegExec = async (
     ffmpeg: FFmpeg,
@@ -200,8 +207,7 @@ const ffprobeOutput = async (
 
     try {
         status = await ffmpeg.ffprobe(cmd);
-        // ffmpeg.wasm currently returns -1 on success.
-        if (status !== 0 && status != -1) {
+        if (status !== 0) {
             log.info(
                 `[wasm] ffprobe command failed with exit code ${status}: ${cmd.join(" ")}`,
             );
@@ -218,7 +224,7 @@ const ffprobeOutput = async (
         } catch (e) {
             // Output file might not even exist if the command did not succeed,
             // so only log on success.
-            if (status === 0 || status == -1) {
+            if (status === 0) {
                 log.error(`Failed to remove output ${outputPath}`, e);
             }
         }

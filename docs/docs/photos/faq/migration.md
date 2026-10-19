@@ -29,18 +29,21 @@ For example, `flower.jpeg` might be in one zip and `flower.json` in another. Thi
 
 **Best practice**: We [recommend](/photos/migration/from-google-photos/) unzipping all of your Google Takeout zips into a single parent folder, keeping subfolders as-is (do not flatten files), then importing that parent folder into Ente. This way, we can always correctly map photos and their metadata.
 
+### What if my Takeout download is unfinished or too large for my computer? {#takeout-download-incomplete}
+
+Download every ZIP part in the same Takeout export before importing. A `.crdownload` file is an unfinished Chrome download and may contain part of an archive with many photos. [Resume it or download that archive part again](https://support.google.com/chrome/answer/2898334/fix-file-download-errors?hl=en-GB). Renaming it to `.zip` does not complete the download.
+
+An external drive can provide space for the ZIPs and extracted files. Keep it connected while importing. It does not reduce the data you need to download from Google and upload to Ente.
+
+Once all parts are complete, follow the [Takeout import steps](/photos/migration/from-google-photos/) to combine their contents while keeping album subfolders. Keep the original export until you have checked the imported library and verified another backup.
+
+For an interrupted upload after the source has downloaded, see [retrying failed uploads](#can-i-retry-failed-uploads).
+
 ### Why are my Google Photos dates wrong after import? {#google-photos-dates-wrong}
 
-If the dates appear incorrect after importing from Google Takeout, it's usually because:
+Ente may not have matched a photo with its Google Takeout JSON sidecar. Use the current stable desktop app and combine all parts of the Takeout while preserving album subfolders.
 
-- The photo's Exif data has a different date than Google's metadata JSON
-- The JSON file wasn't matched with the photo during import
-
-To fix this:
-
-1. Make sure you unzipped all Google Takeout zips into one parent folder (with subfolders kept as-is)
-2. Import that parent folder (not individual zips)
-3. This ensures Ente can match JSON files with their photos
+Repeating an import can skip files already uploaded, so it does not automatically repair their dates. Keep your original Takeout and verify a separate backup before removing or reimporting anything. Follow the [date-repair guidance](/photos/faq/metadata-and-editing#google-photos-dates-wrong) for checking samples, correcting dates, and getting help with an affected-only reimport.
 
 ### Can I retry failed uploads?
 
@@ -92,6 +95,19 @@ Duplicates can occur:
 > [!NOTE]
 >
 > Special mention to l1br3770 for his [detailed guide](https://www.reddit.com/r/enteio/comments/1jyxk4b/howto_migration_from_google_photos_pitfalls/).
+
+### I imported Google Takeout, but the same photos are on my Android phone. How do I avoid uploading them again? {#takeout-android-existing-photos}
+
+Ente skips files that match an existing backup. If Google Photos compressed or edited a photo, the copy on your phone may be different and could upload again.
+
+To back up new phone photos without uploading your existing folders again:
+
+1. When you sign in to Ente on Android, choose to set up backup later.
+2. Let your Ente library sync to the app.
+3. Open `Settings > Backup > Backup settings` and turn on **Backup only new photos**.
+4. Open `Settings > Backup > Backed up folders` and select the folders where you save new photos, such as **Camera**.
+
+The setting uses the time you turn it on as the cutoff. Older photos in those folders will not be uploaded. See [Backup only new photos](/photos/faq/backup-and-sync#backup-only-new-photos) for details.
 
 ### Will Ente automatically clean up a messy, duplicate-filled library when I import it? {#dedup-before-import-messy-library}
 

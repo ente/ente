@@ -35,6 +35,21 @@ export const KnownFileTypeInfos: FileTypeInfo[] = [
         extension: "crw",
         mimeType: "image/x-canon-crw",
     },
+    {
+        fileType: FileType.image,
+        extension: "nrw",
+        mimeType: "image/x-nikon-nrw",
+    },
+    {
+        fileType: FileType.image,
+        extension: "pef",
+        mimeType: "image/x-pentax-pef",
+    },
+    {
+        fileType: FileType.image,
+        extension: "srw",
+        mimeType: "image/x-samsung-srw",
+    },
     { fileType: FileType.video, extension: "mov", mimeType: "video/quicktime" },
 ];
 

@@ -47,7 +47,9 @@ pub enum NotesError {
 pub use document::{
     NotesSourceDocument, PreparedNotesChunk, PreparedNotesDocument, prepare_notes_document,
 };
-pub use index::{NotesCollectionIndex, NotesCollectionIndexSummary, NotesSearchHit};
+pub use index::{
+    NotePassageLocator, NotesCollectionIndex, NotesCollectionIndexSummary, NotesSearchHit,
+};
 pub use indexing::{
     NotesDocumentLoad, NotesIndexInput, NotesIndexOutcome, NotesIndexProgress, NotesIndexingError,
     NotesRevisionStatus, index_notes_collection,

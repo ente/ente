@@ -15,6 +15,7 @@ import {
 import type { SystemStyleObject } from "@mui/system";
 import { t } from "i18next";
 import { useRef } from "react";
+import { uploadCompletionCounts } from "../upload-progress-stats";
 import { uploadSheetMediaQuery } from "./bottom-sheet";
 import type { DragPosition } from "./context";
 import { useUploadProgressContext } from "./context";
@@ -33,6 +34,19 @@ export function MinimizedUploadProgress() {
         useMinimizedUploadDrag(dragSurfaceRef);
     const progress = normalizePercent(percentComplete);
     const showUploadProgress = context.uploadPhase == "uploading";
+    const hasFailures =
+        uploadCompletionCounts(
+            context.finishedUploads,
+            context.preUploadSkippedFiles,
+        ).failed > 0;
+    let title = t("file_upload");
+    if (context.uploadPhase == "done" && hasFailures) {
+        title = t("failed_uploads");
+    } else if (showUploadProgress) {
+        title = t("uploaded_percent", { percent: progress });
+    } else if (context.uploadPhase == "done") {
+        title = uploadStatusText(context.uploadPhase);
+    }
 
     const setDragSurface = (surface: HTMLDivElement | null) => {
         dragSurfaceRef.current = surface;
@@ -47,7 +61,10 @@ export function MinimizedUploadProgress() {
         >
             <Paper
                 ref={setDragSurface}
-                sx={[minimizedPaperSx, minimizedPositionSx(dragPosition)]}
+                sx={[
+                    (theme) => minimizedPaperSx(theme, hasFailures),
+                    minimizedPositionSx(dragPosition),
+                ]}
             >
                 <Stack
                     direction="row"
@@ -56,7 +73,10 @@ export function MinimizedUploadProgress() {
                     <Box
                         {...dragHandleProps}
                         aria-hidden
-                        sx={minimizedDragIconSx}
+                        sx={[
+                            minimizedDragIconSx,
+                            hasFailures && failureForegroundSx,
+                        ]}
                     >
                         <HugeiconsIcon
                             icon={DragDropVerticalIcon}
@@ -65,15 +85,20 @@ export function MinimizedUploadProgress() {
                         />
                     </Box>
                     <Stack sx={{ flex: 1, minWidth: 0, gap: 0.5 }}>
-                        <Typography sx={minimizedTitleSx}>
-                            {showUploadProgress
-                                ? t("uploaded_percent", { percent: progress })
-                                : context.uploadPhase == "done"
-                                  ? uploadStatusText(context.uploadPhase)
-                                  : t("file_upload")}
-                        </Typography>
-                        <Typography sx={minimizedSubtitleSx}>
-                            {showUploadProgress || context.uploadPhase == "done"
+                        <Typography sx={minimizedTitleSx}>{title}</Typography>
+                        <Typography
+                            sx={[
+                                minimizedSubtitleSx,
+                                hasFailures && {
+                                    ...failureForegroundSx,
+                                    whiteSpace: "normal",
+                                    overflowWrap: "anywhere",
+                                },
+                            ]}
+                        >
+                            {showUploadProgress ||
+                            context.uploadPhase == "done" ||
+                            hasFailures
                                 ? uploadCountsText(context)
                                 : uploadStatusText(context.uploadPhase)}
                         </Typography>
@@ -81,14 +106,20 @@ export function MinimizedUploadProgress() {
                     <IconButton
                         aria-label={t("expand")}
                         onClick={handleExpand}
-                        sx={minimizedIconButtonSx}
+                        sx={[
+                            minimizedIconButtonSx,
+                            hasFailures && failureForegroundSx,
+                        ]}
                     >
                         <UnfoldMoreIcon sx={{ fontSize: 22 }} />
                     </IconButton>
                     <IconButton
                         aria-label={t("close")}
                         onClick={onClose}
-                        sx={minimizedIconButtonSx}
+                        sx={[
+                            minimizedIconButtonSx,
+                            hasFailures && failureForegroundSx,
+                        ]}
                     >
                         <CloseIcon sx={{ fontSize: 22 }} />
                     </IconButton>
@@ -115,22 +146,28 @@ const minimizedSnackbarSx = {
         bottom: "calc(32px + env(safe-area-inset-bottom, 0px))",
     },
 };
-const minimizedPaperSx = (theme: Theme): SystemStyleObject<Theme> => ({
+const minimizedPaperSx = (
+    theme: Theme,
+    hasFailures: boolean,
+): SystemStyleObject<Theme> => ({
     width: "min(400px, calc(100svw - 32px))",
     p: "16px 16px 16px 12px",
     borderRadius: "20px",
-    backgroundColor: "#fff",
+    backgroundColor: hasFailures ? "critical.main" : "#fff",
     backgroundImage: "none",
     boxShadow: "0px 4px 4px rgba(0 0 0 / 0.16)",
-    color: "text.base",
+    color: hasFailures ? "critical.contrastText" : "text.base",
     overflow: "hidden",
     [uploadSheetMediaQuery]: {
         width: "calc(100svw - 32px)",
         animation: `${minimizedRiseAnimation} 320ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
         "@media (prefers-reduced-motion: reduce)": { animation: "none" },
     },
-    ...theme.applyStyles("dark", { backgroundColor: "#2b2b2b" }),
+    ...theme.applyStyles("dark", {
+        backgroundColor: hasFailures ? "critical.main" : "#2b2b2b",
+    }),
 });
+const failureForegroundSx = { color: "inherit" };
 const minimizedDragIconSx = {
     display: "inline-flex",
     flexShrink: 0,

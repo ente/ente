@@ -1,1 +1,0 @@
-- Capitalize only the start of a sentence when naming a new album.

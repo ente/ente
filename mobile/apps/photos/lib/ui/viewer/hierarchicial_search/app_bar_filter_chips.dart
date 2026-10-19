@@ -10,7 +10,9 @@ import "package:photos/ui/viewer/hierarchicial_search/filter_options_bottom_shee
 import "package:photos/utils/hierarchical_search_util.dart";
 
 class AppBarFilterChips extends StatefulWidget {
-  const AppBarFilterChips({super.key});
+  const AppBarFilterChips({super.key, this.animateRecommendations = false});
+
+  final bool animateRecommendations;
 
   static const bottomPadding = 8.0;
 
@@ -31,7 +33,8 @@ class AppBarFilterChips extends StatefulWidget {
 }
 
 class _AppBarFilterChipsState extends State<AppBarFilterChips> {
-  final _filterChipKeys = <HierarchicalSearchFilter, GlobalKey>{};
+  var _filterChipKeys = <HierarchicalSearchFilter, GlobalKey>{};
+  List<HierarchicalSearchFilter> _previousRecommendations = const [];
   SearchFilterDataProvider? _searchFilterDataProvider;
   HierarchicalSearchFilter? _filterToRevealAfterApply;
 
@@ -87,13 +90,30 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
     final recommendations = getRecommendedFiltersForAppBar(
       searchFilterDataProvider,
     );
-    if (appliedFilters.isEmpty && recommendations.isEmpty) {
+    final oldKeys = _filterChipKeys;
+    _filterChipKeys = {
+      for (final filter in [...appliedFilters, ...recommendations])
+        filter:
+            oldKeys.remove(filter) ??
+            oldKeys.remove(
+              _previousRecommendations
+                  .where(
+                    (previous) =>
+                        oldKeys.containsKey(previous) &&
+                        filter.isSameFilter(previous),
+                  )
+                  .firstOrNull,
+            ) ??
+            GlobalKey(),
+    };
+    _previousRecommendations = recommendations;
+    final hasFilters = appliedFilters.isNotEmpty || recommendations.isNotEmpty;
+    if (!hasFilters && !widget.animateRecommendations) {
       return const SizedBox.shrink();
     }
 
     final chipHeight = AppBarFilterChips.chipHeight(context);
-
-    return Padding(
+    final chips = Padding(
       padding: const EdgeInsets.only(bottom: AppBarFilterChips.bottomPadding),
       child: SizedBox(
         width: double.infinity,
@@ -103,11 +123,12 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             children: [
-              _buildAllFiltersButton(
-                context,
-                searchFilterDataProvider,
-                chipHeight,
-              ),
+              if (hasFilters)
+                _buildAllFiltersButton(
+                  context,
+                  searchFilterDataProvider,
+                  chipHeight,
+                ),
               for (final filter in appliedFilters)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -123,6 +144,16 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
         ),
       ),
     );
+    return widget.animateRecommendations
+        ? AnimatedOpacity(
+            opacity: hasFilters ? 1 : 0,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
+            curve: Curves.easeInOut,
+            child: chips,
+          )
+        : chips;
   }
 
   Widget _buildAllFiltersButton(
@@ -155,19 +186,14 @@ class _AppBarFilterChipsState extends State<AppBarFilterChips> {
   }
 
   Widget _buildFilterChip(HierarchicalSearchFilter filter) {
-    final chipKey = _keyForFilter(filter);
     return KeyedSubtree(
-      key: chipKey,
+      key: _filterChipKeys[filter]!,
       child: HierarchicalFilterChip(
         filter: filter,
         apply: () => _applyFilter(filter),
         remove: () => _removeFilter(filter),
       ),
     );
-  }
-
-  GlobalKey _keyForFilter(HierarchicalSearchFilter filter) {
-    return _filterChipKeys[filter] ??= GlobalKey();
   }
 
   void _applyFilter(HierarchicalSearchFilter filter) {

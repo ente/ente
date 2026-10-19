@@ -15,6 +15,7 @@ class AppNavigationService {
       AppNavigationService._privateConstructor();
 
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  final routeObserver = RouteObserver<PageRoute<dynamic>>();
   final Logger _logger = Logger("AppNavigationService");
   // Serialize push initiation so multi-step external launches keep their
   // intended stack order even when navigator attachment is delayed by unlock.
@@ -25,12 +26,13 @@ class AppNavigationService {
   Future<T?> pushPage<T extends Object>(
     Widget page, {
     bool forceCustomPageRoute = false,
+    bool useFadeTransition = false,
   }) {
     final pushResult = Completer<T?>();
     final scheduledPush = _lastScheduledPush
         .catchError((Object _, StackTrace _) {})
         .then((_) async {
-          final navigator = await _waitForNavigator();
+          final navigator = await waitForNavigator();
           if (navigator == null) {
             _logger.warning(
               "Skipping navigation because app navigator is unavailable",
@@ -46,6 +48,7 @@ class AppNavigationService {
               navigator,
               page,
               forceCustomPageRoute: forceCustomPageRoute,
+              useFadeTransition: useFadeTransition,
             );
             unawaited(
               routeFuture.then(
@@ -76,6 +79,7 @@ class AppNavigationService {
     NavigatorState navigator,
     Widget page, {
     bool forceCustomPageRoute = false,
+    bool useFadeTransition = false,
   }) {
     if (Platform.isAndroid || forceCustomPageRoute) {
       return navigator.push(_buildPageRoute(page));
@@ -83,6 +87,7 @@ class AppNavigationService {
 
     return navigator.push(
       SwipeableRouteBuilder(
+        useFadeTransition: useFadeTransition,
         pageBuilder: (context, animation, secondaryAnimation) {
           return page;
         },
@@ -91,7 +96,7 @@ class AppNavigationService {
   }
 
   // The inner navigator may be unavailable while AppLock rebuilds after resume.
-  Future<NavigatorState?> _waitForNavigator() async {
+  Future<NavigatorState?> waitForNavigator() async {
     final binding = WidgetsBinding.instance;
     for (var attempt = 0; attempt < 120; attempt++) {
       final currentNavigator = navigator;

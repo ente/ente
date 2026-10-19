@@ -8,10 +8,7 @@ export type LockerItemType =
     | "file";
 
 export type LockerCollectionParticipantRole =
-    | "VIEWER"
-    | "COLLABORATOR"
-    | "ADMIN"
-    | "OWNER";
+    "VIEWER" | "COLLABORATOR" | "ADMIN" | "OWNER";
 
 export interface LockerCollectionParticipant {
     id: number;
@@ -80,6 +77,7 @@ export interface LockerCollection {
 
 export interface LockerUploadCandidate {
     file: File;
+    uploadName?: string;
     relativePath?: string;
     suggestedCollectionNames: string[];
 }

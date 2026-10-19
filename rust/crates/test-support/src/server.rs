@@ -14,7 +14,7 @@ use crate::{
 
 pub fn start(
     server_dir: &Path,
-    log_dir: &Path,
+    env: &[(&str, &str)],
     config_file: &Path,
     museum_port: u16,
     museum_bin: &Path,
@@ -50,9 +50,11 @@ pub fn start(
             "ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_VALUE",
             HARDCODED_OTT,
         )
-        .env("ENTE_JOBS_CRON_SKIP", "true");
+        .env("ENTE_JOBS_CRON_SKIP", "true")
+        .envs(env.iter().copied());
 
-    let mut museum = ChildProcess::spawn("museum", &mut command, log_dir)?;
+    let mut museum =
+        ChildProcess::spawn("museum", &mut command, &config_file.with_file_name("logs"))?;
     wait_for_museum(&mut museum, museum_port)?;
     Ok(museum)
 }

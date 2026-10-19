@@ -1,19 +1,29 @@
 // TODO: Move this code back into gallery.tsx.
 
-import { EnableML, FaceConsent } from "@/components/sidebar/MLSettings";
+import { FaceConsent } from "@/components/sidebar/preferences/MLSettings";
 import { useWrapAsyncOperation } from "@/components/utils/use-wrap-async";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import SortIcon from "@mui/icons-material/Sort";
 import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
     IconButton,
     Menu,
-    Paper,
     Stack,
     Tooltip,
     Typography,
 } from "@mui/material";
 import { CenteredFill, SpacedRow } from "ente-base/components/containers";
 import { OverflowMenuOption } from "ente-base/components/OverflowMenu";
+import {
+    v2CloseButtonSx,
+    v2HeaderRowSx,
+    v2PaperSx,
+    v2TitleSx,
+} from "ente-base/components/SingleInput.styles";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import {
     GalleryItemsHeaderAdapter,
@@ -188,7 +198,7 @@ export const PeopleEmptyState: React.FC = () => {
 
     switch (mlStatus?.phase) {
         case "disabled":
-            return <PeopleEmptyStateDisabled />;
+            return null;
         case "done":
             return (
                 <PeopleEmptyStateMessage>
@@ -221,33 +231,63 @@ const PeopleEmptyStateMessage: React.FC<React.PropsWithChildren> = ({
     </CenteredFill>
 );
 
-const PeopleEmptyStateDisabled: React.FC = () => {
-    const [showConsent, setShowConsent] = useState(false);
+export const PeopleConsentDialog: React.FC<
+    ModalVisibilityProps & { onEnabled: () => void }
+> = ({ open, onClose, onEnabled }) => {
+    const submittingRef = useRef(false);
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleClose = () => {
+        if (!submittingRef.current) onClose();
+    };
 
     const handleConsent = useWrapAsyncOperation(async () => {
-        await enableML();
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setSubmitting(true);
+        try {
+            await enableML();
+            onEnabled();
+            onClose();
+        } finally {
+            submittingRef.current = false;
+            setSubmitting(false);
+        }
     });
 
     return (
-        <Stack sx={{ alignItems: "center", flex: 1, overflow: "auto" }}>
-            <Paper
-                sx={{
-                    maxWidth: "390px",
-                    padding: "4px",
-                    // Prevent the card shadow from clipping.
-                    mt: 1,
-                    mb: "2rem",
-                }}
-            >
-                {!showConsent ? (
-                    <EnableML onEnable={() => setShowConsent(true)} />
-                ) : (
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            maxWidth={false}
+            slotProps={{ paper: { sx: v2PaperSx } }}
+            aria-labelledby="people-consent-title"
+        >
+            <Stack sx={{ p: "20px", gap: "20px" }}>
+                <Stack direction="row" sx={v2HeaderRowSx}>
+                    <DialogTitle
+                        id="people-consent-title"
+                        sx={{ ...v2TitleSx, "&&": { p: 0 } }}
+                    >
+                        {t("ml_search")}
+                    </DialogTitle>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={handleClose}
+                        disabled={submitting}
+                        sx={v2CloseButtonSx}
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Stack>
+                <DialogContent sx={{ "&&": { p: 0 } }}>
                     <FaceConsent
                         onConsent={handleConsent}
-                        onCancel={() => setShowConsent(false)}
+                        onCancel={handleClose}
+                        submitting={submitting}
                     />
-                )}
-            </Paper>
-        </Stack>
+                </DialogContent>
+            </Stack>
+        </Dialog>
     );
 };

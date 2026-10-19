@@ -164,7 +164,7 @@ museum:
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-      nginx.ingress.kubernetes.io/proxy-body-size: "50g"
+      nginx.ingress.kubernetes.io/proxy-body-size: "4m"
     hosts:
       - host: api.photos.example.com
         paths:

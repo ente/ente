@@ -15,9 +15,30 @@ class RustOcrBackend implements OcrBackend {
   static const _modelVersion = "pp-ocrv5-fixed-v1";
 
   final _engineLock = Lock();
+  final _retiredEngines = <OcrEngine>[];
   OcrEngine? _engine;
   String? _assetsDir;
   bool _includesRecognizer = false;
+
+  @override
+  Future<void> unloadModels() {
+    return _engineLock.synchronized(() async {
+      final engine = _engine;
+      if (engine != null) {
+        _retiredEngines.add(engine);
+        _engine = null;
+        _includesRecognizer = false;
+      }
+      if (_retiredEngines.isEmpty) return;
+      while (_retiredEngines.isNotEmpty) {
+        final retiredEngine = _retiredEngines.last;
+        await retiredEngine.unloadModels();
+        retiredEngine.dispose();
+        _retiredEngines.removeLast();
+      }
+      _logger.info("Unloaded Rust OCR models");
+    });
+  }
 
   @override
   Future<ModelPreparationStatus> prepareModels(
@@ -55,10 +76,19 @@ class RustOcrBackend implements OcrBackend {
       await setMlExecutionConfig(
         enableWebgpu: await webGpuExecutionPolicy.isEligible(),
       );
-      _engine = await OcrEngine.create(
+      final engine = await OcrEngine.create(
         assetsDir: assetsDir,
         includeRecognizer: includeRecognizer,
       );
+      try {
+        await engine.loadModels();
+      } catch (_) {
+        engine.dispose();
+        rethrow;
+      }
+      final previousEngine = _engine;
+      if (previousEngine != null) _retiredEngines.add(previousEngine);
+      _engine = engine;
       _includesRecognizer = includeRecognizer;
       final loadedModels = includeRecognizer
           ? "detector, classifier and recognizer"
@@ -78,14 +108,12 @@ class RustOcrBackend implements OcrBackend {
   Future<TextDetectionResult> detectText({
     required String imagePath,
     bool includeAllConfidenceScores = false,
-    String? requestId,
   }) async {
     final engine = await _recognitionEngine();
     try {
       final result = await engine.detectText(
         imagePath: imagePath,
         includeAllConfidenceScores: includeAllConfidenceScores,
-        requestId: requestId,
       );
       return textDetectionResultFromRust(result);
     } on RustOcrError catch (error) {
@@ -100,23 +128,14 @@ class RustOcrBackend implements OcrBackend {
   @override
   Future<TextRegionDetectionResult> detectTextRegions({
     required String imagePath,
-    String? requestId,
   }) async {
     final engine = await _detectionEngine();
     try {
-      final result = await engine.detectTextRegions(
-        imagePath: imagePath,
-        requestId: requestId,
-      );
+      final result = await engine.detectTextRegions(imagePath: imagePath);
       return textRegionDetectionResultFromRust(result);
     } on RustOcrError catch (error) {
       throw _failure(error, imagePath: imagePath, otherCode: "DETECTION_ERROR");
     }
-  }
-
-  @override
-  Future<void> cancelRequest(String requestId) async {
-    _engine?.cancel(requestId: requestId);
   }
 
   @override
@@ -248,10 +267,6 @@ OcrException ocrExceptionFromRustError(
       code: "IMAGE_DECODE_ERROR",
       message: "Failed to decode image: $message",
     ),
-    RustOcrError_Cancelled() => OcrException(
-      code: "CANCELLED",
-      message: message,
-    ),
     RustOcrError_CorruptModel() => OcrException(
       code: "MODEL_PREP_ERROR",
       message: message,
@@ -261,7 +276,6 @@ OcrException ocrExceptionFromRustError(
 }
 
 String _rustOcrErrorMessage(RustOcrError error) => switch (error) {
-  RustOcrError_Cancelled() => "OCR request was cancelled",
   RustOcrError_ImageNotFound(:final message) ||
   RustOcrError_InvalidImage(:final message) ||
   RustOcrError_CorruptModel(:final message) ||

@@ -1,3 +1,5 @@
+pub use log::warn;
+
 #[macro_export]
 macro_rules! setup {
     () => {
@@ -8,20 +10,20 @@ macro_rules! setup {
             Info,
         }
 
-        #[uniffi::export(callback_interface)]
+        #[uniffi::export(foreign)]
         pub trait RustLogSink: Send + Sync {
             fn log(&self, level: RustLogLevel, target: String, message: String);
         }
 
         #[uniffi::export]
-        pub fn init_rust_logging(sink: Box<dyn RustLogSink>) {
+        pub fn init_rust_logging(sink: std::sync::Arc<dyn RustLogSink>) {
             $crate::__log::set_boxed_logger(Box::new(UniffiLogger { sink }))
                 .expect("Rust logger already initialized");
             $crate::__log::set_max_level($crate::__log::LevelFilter::Info);
         }
 
         struct UniffiLogger {
-            sink: Box<dyn RustLogSink>,
+            sink: std::sync::Arc<dyn RustLogSink>,
         }
 
         impl $crate::__log::Log for UniffiLogger {

@@ -110,7 +110,7 @@ class BackgroundTasks {
                 BackgroundTaskConfig(
                   identifier: refresh,
                   kind: BackgroundTaskKind.refresh,
-                  frequency: Duration(minutes: Platform.isIOS ? 30 : 15),
+                  frequency: const Duration(minutes: 15),
                   initialDelay: kDebugMode
                       ? Duration.zero
                       : const Duration(minutes: 10),
@@ -126,22 +126,17 @@ class BackgroundTasks {
               BackgroundTaskConfig(
                 identifier: processing,
                 kind: BackgroundTaskKind.processing,
-                frequency: Platform.isIOS
-                    ? const Duration(minutes: 30)
-                    : const Duration(hours: 2),
+                frequency: const Duration(hours: 1),
                 initialDelay: Platform.isIOS && !kDebugMode
                     ? const Duration(minutes: 30)
                     : Duration.zero,
                 flexInterval: Platform.isAndroid
-                    ? const Duration(hours: 2)
+                    ? const Duration(hours: 1)
                     : null,
                 requiresNetwork: true,
                 requiresCharging: Platform.isAndroid,
-                requiresDeviceIdle: Platform.isAndroid,
                 runBudget: Platform.isIOS
-                    ? BgTaskUtils.taskTimeoutFor(
-                        BgTaskUtils.iOSBackgroundProcessingTask,
-                      )
+                    ? null
                     : BgTaskUtils.mlSelfStopFor(
                         BgTaskUtils.androidBackgroundProcessingTask,
                       ),
@@ -262,6 +257,8 @@ class BackgroundTasks {
           }
           task.throwIfStopping();
           await retireLegacySchedules();
+          final isIOSProcessing =
+              Platform.isIOS && task.identifier == processing;
           final taskName = task.identifier == processing
               ? (Platform.isIOS
                     ? BgTaskUtils.iOSBackgroundProcessingTask
@@ -279,22 +276,32 @@ class BackgroundTasks {
               );
             }),
           );
+          var timedOut = false;
           try {
-            final remainingBudget =
-                BgTaskUtils.taskTimeoutFor(taskName) - task.elapsed;
-            await runBackgroundTask(
+            final remainingBudget = isIOSProcessing
+                ? null
+                : BgTaskUtils.taskTimeoutFor(taskName) - task.elapsed;
+            final work = runBackgroundTask(
               taskName,
               TimeLogger(),
               control: control,
-              mlSelfStop: BgTaskUtils.mlSelfStopFor(taskName) - task.elapsed,
+              shouldStop: () => timedOut || task.isStopping,
+              mlSelfStop: isIOSProcessing
+                  ? null
+                  : BgTaskUtils.mlSelfStopFor(taskName) - task.elapsed,
               mlLockWait: BgTaskUtils.mlLockWaitFor(taskName),
-            ).timeout(
-              remainingBudget.isNegative ? Duration.zero : remainingBudget,
-              onTimeout: () async {
-                await BgTaskUtils.releaseResourcesForKill(taskName, prefs);
-                throw TimeoutException("Background task timed out");
-              },
             );
+            if (remainingBudget == null) {
+              await work;
+            } else {
+              await work.timeout(
+                remainingBudget.isNegative ? Duration.zero : remainingBudget,
+                onTimeout: () {
+                  timedOut = true;
+                  throw TimeoutException("Background task timed out");
+                },
+              );
+            }
             result = task.isStopping
                 ? BackgroundTaskResult.stopped
                 : BackgroundTaskResult.completed;

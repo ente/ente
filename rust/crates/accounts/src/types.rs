@@ -2,6 +2,8 @@ use ente_core::urls::PRODUCTION_API_ORIGIN;
 use serde::{Deserialize, Serialize};
 use zeroize::ZeroizeOnDrop;
 
+use crate::auth::KeyAttributes;
+
 pub const DEFAULT_API_ORIGIN: &str = PRODUCTION_API_ORIGIN;
 
 #[derive(Clone)]
@@ -75,6 +77,24 @@ impl std::fmt::Debug for AccountSecrets {
             .field("master_key", &"[REDACTED]")
             .field("secret_key", &"[REDACTED]")
             .field("public_key_len", &self.public_key.len())
+            .finish()
+    }
+}
+
+pub struct AuthenticatedAccount {
+    pub user_id: i64,
+    pub key_attributes: KeyAttributes,
+    pub secrets: AccountSecrets,
+    pub recovery_key: Option<String>,
+}
+
+impl std::fmt::Debug for AuthenticatedAccount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthenticatedAccount")
+            .field("user_id", &self.user_id)
+            .field("key_attributes", &self.key_attributes)
+            .field("secrets", &self.secrets)
+            .field("recovery_key", &"[REDACTED]")
             .finish()
     }
 }

@@ -1,4 +1,16 @@
 {
+  "bringMemoriesTogether": "Соберите свои воспоминания вместе",
+  "createMyAccount": "Создать мой аккаунт",
+  "localGalleryPermissionDesc": "Разрешите доступ к фотографиям и их организацию с помощью распознавания лиц. Вся обработка выполняется на вашем устройстве.",
+  "onboardingOrganizeDesc": "Организуйте свои фото и видео. Все воспоминания в одном месте.",
+  "wallpaper": "Обои",
+  "setWallpaper": "Установить как обои",
+  "wallpaperHome": "Домашний экран",
+  "wallpaperLock": "Блокировка экрана",
+  "wallpaperBoth": "Домашний экран и экран блокировки",
+  "wallpaperSet": "Обои установлены",
+  "wallpaperFailed": "Не удалось установить обои",
+  "wallpaperUnavailable": "Изменения обоев не допускаются на этом устройстве",
   "about": "О программе",
   "acceptTrustInvite": "Принять приглашение",
   "account": "Аккаунт",
@@ -36,28 +48,9 @@
     "description": "Title for active sessions page"
   },
   "add": "Добавить",
-  "addAdmin": "Добавить администратора",
-  "addAdmins": "{count, plural, =0{Добавить администратора} one{Добавить администратора} few{Добавить администраторов} many{Добавить администраторов} other{Добавить администраторов}}",
-  "@addAdmins": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Button text to add admins"
-  },
   "addAlbumWidgetPrompt": "Добавьте виджет альбома на главный экран, чтобы настроить его здесь.",
   "addANameAndPhoto": "Добавьте имя и фото",
-  "addANewEmail": "Добавьте новую электронную почту",
   "addCode": "Добавить код",
-  "addCollaborator": "Добавить соавтора",
-  "addCollaborators": "{count, plural, =0{Добавить соавтора} one{Добавить соавтора} few{Добавить соавторов} many{Добавить соавторов} other{Добавить соавторов}}",
-  "@addCollaborators": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addedAMemoryTo": "добавил(а) воспоминание в {albumName}",
   "@addedAMemoryTo": {
     "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
@@ -67,7 +60,6 @@
       }
     }
   },
-  "addedAs": "Добавлен как",
   "addedBy": "Добавлено {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -134,7 +126,6 @@
   "addMember": "Добавить участника",
   "addMemoriesWidgetPrompt": "Добавьте виджет воспоминаний на главный экран, чтобы настроить его здесь.",
   "addMore": "Добавить ещё",
-  "addMoreAdmins": "Добавить ещё администратора",
   "addName": "Добавить имя",
   "addNew": "Добавить новое",
   "@addNew": {
@@ -154,7 +145,6 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addParticipants": "Добавить участников",
   "addPeopleWidgetPrompt": "Добавьте виджет людей на главный экран, чтобы настроить его здесь.",
   "addPerson": "Добавить человека",
   "@addPerson": {
@@ -175,29 +165,10 @@
   "addTrustedContact": "Добавить доверенный контакт",
   "addTrustedPerson": "Добавить доверенное лицо",
   "addUpTo5MembersFree": "Добавьте до 5 участников бесплатно",
-  "addViewer": "Добавить зрителя",
-  "addViewers": "{count, plural, =0{Добавить зрителя} one{Добавить зрителя} few{Добавить зрителей} many{Добавить зрителей} other{Добавить зрителей}}",
-  "@addViewers": {
-    "placeholders": {
-      "count": {}
-    }
-  },
   "addYourPhotosNow": "Добавьте ваши фото",
   "adjust": "Отрегулировать",
+  "adjustCrop": "Настроить кадрирование",
   "admin": "Администратор",
-  "admins": "Администраторы",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Администраторы и соавторы могут добавлять фотографии, управлять существующими фотографиями и менять состав участников.",
-  "adminsCanManagePhotosAndParticipants": "Администраторы могут управлять фотографиями и участниками.",
-  "adminsSuccessfullyAdded": "{count, plural, =0{Администраторы не добавлены} one{Успешно добавлен {count} администратор} few{Успешно добавлено {count} администратора} many{Успешно добавлено {count} администраторов} other{Успешно добавлено {count} администратора}}",
-  "@adminsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of admins that were successfully added."
-  },
   "admiringThem": "Любуясь {name}",
   "@admiringThem": {
     "placeholders": {
@@ -215,20 +186,6 @@
   "albumEditsWillNotBeSaved": "Ваши правки в этом альбоме не будут сохранены.",
   "albumLayout": "Макет альбома",
   "albumName": "Название альбома",
-  "albumOwner": "Владелец",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Нет участников} one{{count} участник} few{{count} участника} many{{count} участников} other{{count} участника}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Альбомы",
   "albumsCount": "{count, plural, one{{count} альбом} few{{count} альбома} many{{count} альбомов} other{{count} альбома}}",
   "@albumsCount": {
@@ -240,20 +197,9 @@
     }
   },
   "albumsOnDevicePermissionCta": "Разрешить доступ",
-  "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Разрешите Ente доступ к вашим фото для их организации с помощью распознавания лиц",
-  "albumsOnDevicePermissionFeatureControlUploads": "Вы сами контролируете, что загружается",
-  "albumsOnDevicePermissionFeatureLocalProcessing": "Вся обработка происходит на вашем устройстве",
   "albumsOnEnteEmptyCta": "Выберите альбомы для резервного копирования",
-  "albumsOnEnteEmptyFeatureAccessAnyDevice": "Обращайтесь к ним любого устройства",
-  "albumsOnEnteEmptyFeaturePrivacy": "Полная конфиденциальность со сквозным шифрованием",
-  "albumsOnEnteEmptyFeatureShareLovedOnes": "Делитесь ими с близкими - они могут реагировать и общаться, без учетной записи",
   "albumsOnEnteEmptyTitle": "Сохраняйте воспоминания",
-  "albumsReceivedEmptyFeatureAcceptInvites": "Принимайте приглашения для просмотра фото и видео",
-  "albumsReceivedEmptyFeatureSaveToLibrary": "Сохраняйте общие воспоминания в свою библиотеку",
-  "albumsReceivedEmptyFeatureSharedByOthers": "Здесь появятся альбомы, которыми поделились с Вами",
   "albumsReceivedEmptyTitle": "Просматривайте воспоминания, которыми с вами поделились",
-  "albumsSharedEmptyFeatureReactAndComment": "Они могут просматривать, реагировать и добавлять комментарии, без учетной записи",
-  "albumsSharedEmptyFeatureShareLovedOnes": "Делитесь своими фотографиями и видео с близкими",
   "albumsSharedEmptyTitle": "Делитесь воспоминаниями",
   "albumsWidgetDesc": "Выберите альбомы, которые хотите видеть на главном экране.",
   "albumTitle": "Название альбома",
@@ -272,7 +218,9 @@
   },
   "allowAppToOpenSharedAlbumLinks": "Разрешить приложению открывать ссылки на общие альбомы",
   "allowDownloads": "Разрешить скачивание",
+  "allowJoining": "Разрешить присоединение",
   "allowJoiningAlbum": "Разрешить объединение альбомов",
+  "allowJoiningDescription": "Зрители альбома с аккаунтом Ente могут присоединиться к нему и получать обновления",
   "allowPermBody": "Пожалуйста, разрешите доступ к вашим фото через настройки устройства, чтобы Ente мог отображать и сохранять вашу библиотеку.",
   "allowPermTitle": "Разрешить доступ к фото",
   "allPersonGroupingWillReset": "Все группы этого человека будут сброшены, и вы потеряете все предложения для него",
@@ -389,6 +337,18 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} код аутентификатора} few{{formattedCount} кода аутентификатора} many{{formattedCount} кодов аутентификатора} other{{formattedCount} кода аутентификатора}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "authToChangeEmailVerificationSetting": "Пожалуйста, авторизуйтесь для изменения настроек подтверждения электронной почты",
   "authToChangeLockscreenSetting": "Пожалуйста, авторизуйтесь для изменения настроек экрана блокировки",
   "authToChangeYourEmail": "Пожалуйста, авторизуйтесь для смены электронной почты",
@@ -448,6 +408,33 @@
   "backupFile": "Резервное копирование файла",
   "backupFolderLabel": "Папка резервного копирования:",
   "backupLocationChoiceDescription": "Где вы хотите сохранить резервные копии?",
+  "backupMode": "Режим резервного копирования",
+  "backupModeBackingUpItems": "Резервное копирование: {count, plural, one{{formattedCount} элемент} few{{formattedCount} элемента} many{{formattedCount} элементов} other{{formattedCount} элемента}}",
+  "@backupModeBackingUpItems": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12546"
+      },
+      "formattedCount": {
+        "type": "String",
+        "example": "12,546"
+      }
+    }
+  },
+  "backupModeCheckingForMoreItems": "Проверка наличия других товаров",
+  "backupModeFinishYourBackup": "Завершите резервное копирование",
+  "backupModeKeepAppOpen": "Не закрывайте приложение",
+  "backupModeNoBackupInProgress": "Резервное копирование не выполняется",
+  "backupModeNoBackupInProgressDescription": "Начните резервное копирование, затем вернитесь в режим резервного копирования.",
+  "backupModePlugInPhone": "Подключите телефон к зарядке. Резервные копии расходуют заряд батареи.",
+  "backupModePreservingYourMemories": "Сохраните свои воспоминания",
+  "backupModeScreenDimmingDescription": "Экран приглушается для экономии заряда батареи. Коснитесь его в любом месте, чтобы вернуться к яркости.",
+  "backupModeScreenWillDim": "Экран автоматически приглушится для экономии заряда батареи",
+  "backupModeSettingsDescription": "Не закрывайте приложение, до завершения резервного копирования",
+  "backupModeStart": "Начать резервное копирование",
+  "backupModeStayInEnte": "Оставайтесь в Ente. Переключение между приложениями приостанавливает резервное копирование.",
+  "backupModeTapToWakeScreen": "Нажмите, чтобы разбудить экран",
   "backupOnlyNewPhotos": "Резервное копирование только новых фото",
   "backupOnlyNewPhotosAllFoldersSelected": "Сейчас все папки выбраны для резервного копирования.\n\nВы можете продолжить или обновить выбранные папки.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "В настоящее время ни одна папка не выбрана для резервного копирования.\n\nВы можете продолжить или обновить выбранные папки.",
@@ -474,8 +461,10 @@
   "birthday": "День рождения",
   "birthdayJoy": "Радость дня рождения",
   "birthdays": "Дни рождения",
+  "black": "Черный",
   "blockLegacyKitRecoveryMessage": "Заблокировать текущую попытку восстановления\nОбратите внимание, что они могут начать новую попытку восстановления",
   "blog": "Блог",
+  "blurred": "Размытый",
   "bothIssuerAndAccountCanNotBeEmpty": "И эмитент, и аккаунт не могут быть пустыми",
   "bringYourFamilyAlong": "Пригласите свою семью",
   "browseHelpPages": "Просмотреть справку",
@@ -486,6 +475,7 @@
   "camera": "Камера",
   "campingMoments": "Моменты у костра",
   "cancel": "Отмена",
+  "back": "Назад",
   "@cancel": {
     "description": "Cancel button label"
   },
@@ -530,12 +520,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} не сможет добавлять новые фото в этот альбом\n\nЭтот пользователь всё ещё сможет удалять существующие фото, добавленные им",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Нельзя удалить общие файлы",
   "cannotMoveToSharedAlbums": "Нельзя переместить в общие альбомы",
   "cannotMoveToSharedAlbumsMessage": "Элементы могут быть только добавлены в общие альбомы, а не перемещены. Хотите добавить вместо этого?",
@@ -572,7 +556,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Изменить разрешения",
-  "changePermissionsQuestion": "Изменить разрешения?",
   "changeYourReferralCode": "Изменить код",
   "checkForUpdates": "Проверить обновления",
   "checkInboxAndSpamFolder": "Пожалуйста, проверьте ваш почтовый ящик (и спам) для завершения верификации",
@@ -631,17 +614,6 @@
   "codeIssuerHint": "Эмитент",
   "collabLinkSectionDescription": "Разрешить людям добавлять фотографии без учётной записи Ente",
   "collaborator": "Соавтор",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Соавторы могут добавлять фото и видео в общий альбом.",
-  "collaboratorsSuccessfullyAdded": "{count, plural, =0{Добавлено 0 соавторов} one{Добавлен {count} соавтор} few{Добавлено {count} соавтора} many{Добавлено {count} соавторов} other{Добавлено {count} соавтора}}",
-  "@collaboratorsSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of collaborators that were successfully added."
-  },
   "collageLayout": "Макет",
   "collageSaved": "Коллаж сохранён в галерее",
   "collectionCannotBeDeleted": "Эта коллекция не может быть удалена",
@@ -652,10 +624,21 @@
   "collectionLabel": "Коллекция",
   "collectionRenamedSuccessfully": "Коллекция успешно переименована",
   "collections": "Коллекции",
+  "collectionsDeletedSuccessfully": "{count, plural, one{{count} коллекция успешно удалена} few{{count} коллекции успешно удалены} many{{count} коллекций успешно удалены} other{{count} коллекции успешно удалены}}",
+  "@collectionsDeletedSuccessfully": {
+    "description": "Success message when collections are deleted",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "collectionUpdated": "Коллекция обновлена",
   "collectPhotos": "Сбор фото",
   "color": "Цвет",
   "colorfulMarkets": "Красочный рынок",
+  "commentAndReact": "Комментарии и реакции",
   "commentedOnAPhoto": "прокомментировал(а) фото",
   "@commentedOnAPhoto": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
@@ -720,9 +703,19 @@
       }
     }
   },
+  "confirmDeleteAccountAcrossApps": "Я понимаю, что это приведет к удалению моих данных из Ente Photos, Ente Auth и Ente Locker.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
+  },
+  "confirmPassword": "Подтвердить пароль",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
   "confirmPlanChange": "Подтвердить смену тарифа",
+  "confirmRecoveryKey": "Подтвердить ключ восстановления",
   "confirmUpdatingkey": "Вы уверены, что хотите обновить секретный ключ?",
   "confirmYourRecoveryKey": "Подтвердите ваш ключ восстановления",
+  "congratulations": "Поздравляем!",
   "connectToDevice": "Подключиться к устройству",
   "contactDetails": "Контактные данные",
   "contactDetailsHint": "Номер телефона, email или другая контактная информация",
@@ -735,6 +728,10 @@
   "@contactSupport": {
     "description": "Contact support button label"
   },
+  "contactUs": "Свяжитесь с нами",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
+  },
   "contactToManageSubscription": "Пожалуйста, свяжитесь с нами по адресу support@ente.com для управления вашей подпиской {provider}.",
   "@contactToManageSubscription": {
     "placeholders": {
@@ -742,12 +739,20 @@
     }
   },
   "continueInMailApp": "Продолжить в приложении почты",
+  "continueLabel": "Продолжить",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
   "continueWithoutAccount": "Продолжить без аккаунта",
   "convertToAlbum": "Преобразовать в альбом",
   "copied": "Скопировано",
   "copiedNextToClipboard": "Следующий код скопирован в буфер обмена",
   "copiedToClipboard": "Скопировано",
   "copyAllToClipboard": "Скопировать всё в буфер обмена",
+  "copyEmailAddress": "Копировать адрес электронной почты",
+  "@copyEmailAddress": {
+    "description": "Button to copy email address to clipboard"
+  },
   "copyEmbedHtml": "Скопируйте HTML-код для вставки",
   "copyLink": "Скопировать ссылку",
   "copypasteThisCodentoYourAuthenticatorApp": "Скопируйте этот код\nв ваше приложение для аутентификации",
@@ -778,6 +783,8 @@
   "couldNotUpdateSubscription": "Не удалось обновить подписку",
   "count": "Количество",
   "cozyCafes": "Кофейный уголок",
+  "craftingMemoriesFirstHalf": "Создание",
+  "craftingMemoriesSecondHalf": "воспоминания",
   "crashAndErrorReporting": "Отчёт об ошибках",
   "crashReporting": "Отчёты об ошибках",
   "create": "Создать",
@@ -789,10 +796,22 @@
   "createAlbum": "Создать альбом",
   "createAlbumActionHint": "Нажмите и удерживайте, чтобы выбрать фото, и нажмите «+», чтобы создать альбом",
   "createAnEnteAccount": "Создать аккаунт Ente",
+  "createAnotherKit": "Создать другой набор",
   "createBackupNow": "Создайте резервную копию сейчас",
   "createCollaborativeLink": "Создать совместную ссылку",
   "createCollage": "Создать коллаж",
   "createCollection": "Создать коллекцию",
+  "createdOn": "Создано {date}",
+  "@createdOn": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Apr 1, 2026"
+      }
+    }
+  },
+  "createKit": "Создать набор",
+  "createLegacyKit": "Создать комплект Legacy",
   "createNewTag": "Создать новый тег",
   "createPublicLink": "Создать публичную ссылку",
   "createStream": "Создать прямую трансляцию",
@@ -893,6 +912,10 @@
   "deleteDuplicates": "Удалить повторяющиеся",
   "deleteEmptyAlbums": "Удалить пустые альбомы",
   "deleteEmptyAlbumsWithQuestionMark": "Удалить пустые альбомы?",
+  "deleteEnteAccount": "Удалить аккаунт Ente",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
   "deleteFiles": "Удалить файлы",
   "deleteFromBoth": "Удалить из обоих мест",
   "deleteFromDevice": "Удалить с устройства",
@@ -915,6 +938,7 @@
       }
     }
   },
+  "deleteLegacyKitMessage": "Общие листы больше не могут использоваться для восстановления",
   "deleteLink": "Удалить ссылку",
   "deleteLinkQuestion": "Удалить ссылку?",
   "deleteLocation": "Удалить местоположение",
@@ -926,6 +950,16 @@
     }
   },
   "deleteMultipleAlbumsQuestion": "Удалить эти альбомы?",
+  "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} коллекция будет удалена навсегда.} few{{count} коллекции будут удалены навсегда.} many{{count} коллекций будут удалены навсегда.} other{{count} коллекции будут удалены навсегда.}}",
+  "@deleteMultipleCollectionsDialogBody": {
+    "description": "Confirmation message body for deleting multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "deleteNotSupportedForSharedFiles": "Нельзя удалять общие файлы",
   "deleteOnDeviceFiles": "Удалить на устройстве",
   "deletePhotos": "Удалить фото",
@@ -947,10 +981,27 @@
       "totalCount": {}
     }
   },
+  "deleteReasonBehaviour": "Приложение или какая-то его функция работают не так, как я ожидаю",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "Я нашёл другой сервис, который мне больше нравится",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "Отсутствует необходимая функция",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "Другая причина",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
+  },
   "deleteSharedAlbum": "Удалить общий альбом?",
   "deleteSharedAlbumDialogBody": "Альбом будет удалён для всех\n\nВы потеряете доступ к общим фото в этом альбоме, принадлежащим другим",
   "deleteShareLinkConfirmation": "Люди с этой ссылкой больше не смогут получить доступ к элементу.",
   "deleteSuggestions": "Удалить предложенное",
+  "deleteSuggestionsDesc": "Просмотреть элементы, предлагаемые для удаления",
   "deleteSuggestionSent": "Предложение для удаления отправлено",
   "deleteTagMessage": "Вы уверены, что хотите удалить эту метку? Это действие необратимо.",
   "deleteTagTitle": "Удалить метку?",
@@ -969,10 +1020,16 @@
   "deletingFiles": "Удаление...",
   "deletingShareLink": "Удаление ссылки...",
   "description": "Описание",
+  "deselectAll": "Отменить выделение",
   "desertDreams": "Мечта пустыни",
   "designedForFamilies": "Создано для семей",
   "details": "Подробности",
   "detailsAboutTheIssue": "Детали проблемы",
+  "developerSettings": "Настройки для разработчиков",
+  "@developerSettings": {
+    "description": "Label for developer settings"
+  },
+  "developerSettingsWarning": "Вы уверены, что хотите изменить настройки для разработчиков?",
   "deviceInfo": "Информация об устройстве",
   "deviceLock": "Блокировка устройства",
   "@deviceLock": {
@@ -1037,6 +1094,10 @@
   "doubleTapToViewHiddenCode": "Вы можете нажать дважды на запись для просмотра кода",
   "download": "Скачать",
   "downloadApplicationUpdate": "Скачать обновление",
+  "downloadDecryptionFailedMessage": "Этот элемент не может быть загружен. Свяжитесь с нами, чтобы мы могли помочь.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
   "downloadFailed": "Скачивание не удалось",
   "downloading": "Скачивание...",
   "downloadingProgress": "Загрузка... {percentage}%",
@@ -1049,6 +1110,7 @@
       }
     }
   },
+  "downloadPhotos": "Скачивание фотографий",
   "downloadSkippedAlreadyAvailableOnDevice": "{fileName} уже доступен в альбоме {albumName} на вашем устройстве",
   "@downloadSkippedAlreadyAvailableOnDevice": {
     "description": "Toast shown in single-file download flow when the file already exists locally",
@@ -1127,11 +1189,13 @@
     }
   },
   "earned": "получено",
+  "earnFreeStorage": "Получить бесплатное хранилище",
   "earnMoreSpace": "Получите больше места!",
   "edit": "Редактировать",
   "editAutoAddPeople": "Редактировать автоматическое добавление людей",
   "editCodeAuthMessage": "Аутентификация для редактирования кода",
   "editContact": "Редактировать контакт",
+  "editDetails": "Редактировать сведения",
   "editEmailAlreadyLinked": "Этот адрес электронной почты уже связан с {name}.",
   "@editEmailAlreadyLinked": {
     "placeholders": {
@@ -1158,6 +1222,21 @@
     "description": "Email field label"
   },
   "emailAddress": "Адрес электронной почты",
+  "emailAlreadyRegistered": "Адрес электронной почты уже зарегистрирован.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
+  },
+  "emailChangedTo": "Адрес электронной почты изменен на {newEmail}",
+  "@emailChangedTo": {
+    "description": "Message when email has been changed",
+    "placeholders": {
+      "newEmail": {
+        "description": "The new email address",
+        "type": "String",
+        "example": "new@example.com"
+      }
+    }
+  },
   "emailHint": "Введите адрес вашей электронной почты",
   "emailNeedsEnteAccountForFamily": "У {email} нет учетной записи Ente.\n\nОтправьте приглашение и добавьте в свою семью после того, как пользователь создаст учетную запись на Ente.",
   "@emailNeedsEnteAccountForFamily": {
@@ -1193,6 +1272,11 @@
     }
   },
   "emailVerificationEnableWarning": "Чтобы избежать блокировки вашей учетной записи, обязательно сохраните копию вашего электронного письма 2FA за пределами Ente Auth, прежде чем активировать проверку электронной почты.",
+  "emailVerificationToggle": "Подтверждение адреса электронной почты",
+  "emailYourLogs": "Отправьте ваши логи по электронной почте",
+  "@emailYourLogs": {
+    "description": "Title for emailing logs dialog"
+  },
   "embracingThem": "Обнимая {name}",
   "@embracingThem": {
     "placeholders": {
@@ -1208,6 +1292,7 @@
   "enableAutomaticBackups": "Автоматическое резервное копирование",
   "enableBackupsIosInstruction": "Чтобы включить резервное копирование на iOS, выберите папку в меню «Файлы» (например, «На моем iPhone»).",
   "enableComment": "Комментарии и реакции",
+  "enableDownloadsToAllowJoining": "Разрешите загрузку файлов, чтобы разрешить присоединение.",
   "enabled": "Включено",
   "enableMaps": "Включить карты",
   "encrypted": "Зашифрованный",
@@ -1221,12 +1306,28 @@
     "description": "Success message when endpoint is updated"
   },
   "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
   "enteLocker": "Ente Locker",
   "@enteLocker": {
     "description": "Product name"
   },
+  "entePhotos": "Ente Photos",
+  "@entePhotos": {
+    "description": "Product name"
+  },
   "enterAlbumName": "Введите название альбома",
   "enterAnEmailAddress": "Введите адрес электронной почты",
+  "enterAppLockPassword": "Введите пароль блокировки приложения",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "Введите PIN-код блокировки приложения",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
   "enterAValidEmailAddress": "Введите действительный адрес электронной почты",
   "enterCode": "Введите код",
   "enterCodeDescription": "Введите код, предоставленный вашим другом, чтобы вы оба могли получить бесплатное хранилище",
@@ -1245,6 +1346,10 @@
   "@enterNewEmailHint": {
     "description": "Hint text for entering new email address"
   },
+  "enterNewPasswordToEncrypt": "Введите новый пароль, который мы сможем использовать для шифрования ваших данных",
+  "@enterNewPasswordToEncrypt": {
+    "description": "Prompt to enter new password for encryption"
+  },
   "enterNewTitle": "Введите новый заголовок",
   "enterPassword": "Введите пароль",
   "@enterPassword": {
@@ -1253,19 +1358,29 @@
   "enterPasswordToAegisVault": "Введите пароль для доступа к Aegis Vault",
   "enterPasswordToDecrypt2FASBackup": "Введите пароль для расшифровки резервной копии 2FAS",
   "enterPasswordToDecryptAndOTP": "Введите пароль для расшифровки резервной копии andOTP",
+  "enterPasswordToEncrypt": "Введите пароль, который мы сможем использовать для шифрования ваших данных",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
   "enterRecoveryKeyHint": "Введите ключ восстановления",
   "@enterRecoveryKeyHint": {
     "description": "Hint for entering recovery key"
   },
   "enterReferralCode": "Введите реферальный код",
   "enterThe6digitCodeFromnyourAuthenticatorApp": "Введите 6-значный код из\nвашего приложения для аутентификации",
+  "enterThePasswordFor": "Введите пароль для",
+  "@enterThePasswordFor": {
+    "description": "Text shown before email on login password verification page"
+  },
   "enterValidEmail": "Пожалуйста, введите действительный адрес электронной почты.",
+  "enterValidEmailDetailed": "Похоже, этот адрес электронной почты недействителен. Пожалуйста, введите действительный адрес электронной почты",
   "enterYourNewEmailAddress": "Введите ваш новый адрес электронной почты",
   "enterYourPassword": "Введите ваш пароль",
   "enterYourPasswordHint": "Введите пароль",
   "@enterYourPasswordHint": {
     "description": "Hint for password field"
   },
+  "enterYourRecoveryKey": "Введите ключ восстановления",
   "error": "Ошибка",
   "@error": {
     "description": "Generic error title"
@@ -1280,6 +1395,10 @@
   "export": "Экспорт",
   "exportCodes": "Экспортировать коды",
   "exportDialogDesc": "Зашифрованные экспортированные данные будут защищены паролем, который вы выберете.",
+  "exportLogs": "Экспортировать логи",
+  "@exportLogs": {
+    "description": "Button to export logs"
+  },
   "exportWarningDesc": "Экспортированный файл содержит конфиденциальную информацию. Пожалуйста, храните его в надежном месте.",
   "exportYourData": "Экспортировать ваши данные",
   "extraPhotosFound": "Найдены дополнительные фото",
@@ -1313,6 +1432,38 @@
       "name": {
         "type": "String",
         "description": "Person's name"
+      }
+    }
+  },
+  "memoryLaneAgeCaption": "{name} в возрасте {count, plural, one{{age} года} few{{age} лет} many{{age} лет} other{{age} года}}",
+  "@memoryLaneAgeCaption": {
+    "description": "Memory Lane age caption. The age placeholder is rendered as a separate, larger text widget; count selects the plural form.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "age": {
+        "type": "String",
+        "description": "Placeholder for the separately styled age number; retain this placeholder in every plural form."
+      }
+    }
+  },
+  "memoryLaneCaptionYearsAgo": "{name} {count, plural, one{{number} год назад} few{{number} года назад} many{{number} лет назад} other{{number} года назад}}",
+  "@memoryLaneCaptionYearsAgo": {
+    "description": "Memory Lane caption in elapsed years. Always keep the number, including for one.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "number": {
+        "type": "String",
+        "description": "Placeholder rendered as a separate, larger number; retain in every plural form."
       }
     }
   },
@@ -1390,6 +1541,16 @@
   },
   "failedToRefreshStripeSubscription": "Не удалось обновить подписку",
   "failedToRenew": "Не удалось продлить",
+  "failedToSaveFilesOffline": "{count, plural, one{Не удалось сохранить {count} файл для доступа без интернета} few{Не удалось сохранить {count} файла для доступа без интернета} many{Не удалось сохранить {count} файлов для доступа без интернета} other{Не удалось сохранить {count} файла для доступа без интернета}}",
+  "@failedToSaveFilesOffline": {
+    "description": "Failure message when files could not be saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "failedToUpdateFile": "Не удалось обновить элемент: {error}",
   "@failedToUpdateFile": {
     "description": "Error message when item update fails",
@@ -1407,6 +1568,10 @@
   "failedToVerifyPaymentStatus": "Не удалось проверить статус платежа",
   "family": "Семья",
   "familyMoments": "Время семьи",
+  "faq": "ЧаВо",
+  "@faq": {
+    "description": "FAQ link label"
+  },
   "faqs": "Часто задаваемые вопросы",
   "fasterUploads": "Ускоренная загрузка",
   "favorite": "В избранное",
@@ -1439,6 +1604,10 @@
   "fileDeletedSuccessfully": "Элемент успешно удалён",
   "fileInfoAddDescHint": "Добавить описание...",
   "fileMarkedAsImportant": "Элемент отмечен как важный",
+  "fileNameTooLong": "Имя файла слишком длинное. Попробуйте назвать его короче.",
+  "@fileNameTooLong": {
+    "description": "Validation error when a renamed file exceeds the filesystem filename length limit"
+  },
   "fileNotUploadedYet": "Файл ещё не загружен",
   "fileRemovedFromImportant": "Элемент удалён из важного",
   "files": "Файлы",
@@ -1457,6 +1626,30 @@
       "personName": {
         "type": "String",
         "example": "Alex"
+      }
+    }
+  },
+  "filesAvailableOffline": "{count, plural, one{{count} файл сохранён для доступа без интернета} few{{count} файла сохранено для доступа без интернета} many{{count} файлов сохранено для доступа без интернета} other{{count} файла сохранено для доступа без интернета}}",
+  "@filesAvailableOffline": {
+    "description": "Success message when files are saved offline",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "filesAvailableOfflinePartial": "{successCount, plural, one{Сохранён {successCount} файл для доступа без интернета} few{Сохранено {successCount} файла для доступа без интернета} many{Сохранено {successCount} файлов для доступа без интернета} other{Сохранено {successCount} файла для доступа без интернета}}, {failureCount, plural, one{не удалось сохранить {failureCount} файл} few{не удалось сохранить {failureCount} файла} many{не удалось сохранить {failureCount} файлов} other{не удалось сохранить {failureCount} файла}}",
+  "@filesAvailableOfflinePartial": {
+    "description": "Partial success message for offline save",
+    "placeholders": {
+      "failureCount": {
+        "type": "int",
+        "example": "1"
+      },
+      "successCount": {
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -1502,14 +1695,24 @@
       "count": {}
     }
   },
+  "freeUpDeviceSpaceDesc": "Удалите с устройства файлы, для которых созданы резервные копии.",
+  "freeUpDeviceSpaceDescICloud": "Файлы в общих альбомах iCloud нельзя удалить",
+  "@freeUpDeviceSpaceDescICloud": {
+    "description": "Here 'cleared' means 'deleted' from the device"
+  },
   "freeUpSpace": "Освободить место",
   "gallery": "Галерея",
   "galleryMemoryLimitInfo": "В галерее отображается до 1000 воспоминаний",
   "general": "Общие",
+  "generatingEncryptionKeys": "Генерация ключей шифрования...",
+  "@generatingEncryptionKeys": {
+    "description": "Generating encryption keys message"
+  },
   "generatingEncryptionKeysTitle": "Генерируем ключи шифрования...",
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
+  "getAnotherPartOfKitFrom": "Дополнительную часть комплекта можно получить здесь",
   "getInTouch": "Связь",
   "getStarted": "Начать",
   "gettingReady": "Идет подготовка",
@@ -1518,6 +1721,15 @@
   "giveUsAStarOnGithub": "Поставьте нам звезду на GitHub",
   "goldenHourPortraits": "Портреты в золотой час",
   "googlePlayId": "Идентификатор Google Play",
+  "goToUrl": "Перейти по ссылке {url}",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
   "grantFullAccessPrompt": "Пожалуйста, разрешите доступ ко всем фото в настройках устройства",
   "grantGalleryPermissionDesc": "Дайте разрешение на доступ и организуйте фото с распознаванием лица. Все происходит на вашем устройстве.",
   "grantGalleryPermissionTitle": "Давайте найдем ваши лучшие кадры",
@@ -1548,6 +1760,10 @@
   "@hideContent": {
     "description": "Hide content setting title"
   },
+  "hideContentDescriptionAndroid": "Скрывает содержимое приложения в переключателе приложений и отключает создание скриншотов",
+  "@hideContentDescriptionAndroid": {
+    "description": "Description of hide content feature on Android"
+  },
   "hideContentDescriptioniOS": "Скрывает содержимое приложения в переключателе приложений",
   "@hideContentDescriptioniOS": {
     "description": "Description of hide content feature on iOS"
@@ -1564,6 +1780,10 @@
   "hintForDesktop": "Щелкните правой кнопкой мыши по коду, чтобы редактировать его или удалить.",
   "hintForMobile": "Нажмите и удерживайте код, чтобы отредактировать или удалить его.",
   "historicSites": "Историческое место",
+  "homeEmptyStateLegacyDescription": "Создайте систему завещаний таким образом, чтобы ваши близкие могли получить доступ к важной информации в ваше отсутствие",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
   "hoorayyyy": "Ураааа!",
   "hostedAtOsmFrance": "Размещено на OSM France",
   "howItWorks": "Как это работает",
@@ -1575,7 +1795,15 @@
   "ignore": "Игнорировать",
   "ignored": "игнорируется",
   "ignorePerson": "Игнорировать людей",
+  "imageEditorBrightness": "Яркость",
+  "imageEditorContrast": "Контраст",
+  "imageEditorExposure": "Экспозиция",
+  "imageEditorFade": "Затухание",
+  "imageEditorHue": "Оттенок",
+  "imageEditorSaturation": "Насыщенность",
+  "imageEditorTemperature": "Температура",
   "imageNotAnalyzed": "Изображение не проанализировано",
+  "immediate": "Мгновенно",
   "immediately": "Немедленно",
   "@immediately": {
     "description": "Immediately option for auto lock timing"
@@ -1607,6 +1835,7 @@
   "importInstruction": "Пожалуйста, выберите файл, содержащий список ваших кодов в следующем формате",
   "importLabel": "Импорт",
   "importLastpassGuide": "Используйте опцию \"Перенести аккаунты\" в настройках Lastpass Authenticator и нажмите на \"Экспортировать учетные записи в файл\". Импортируйте загружённый JSON-файл.",
+  "importOtpAuthGuide": "Экспортируйте зашифрованную резервную копию из OTP Auth, затем выберите полученный файл .otpauthdb или .otpauthdp. Также поддерживаются файлы .otpauth, экспортированные для одной учётной записи.",
   "importProtonAuthGuide": "Используйте опцию «Экспорт» в настройках Proton Authenticator.\n\nЕсли ваш экспорт защищен паролем, вам потребуется ввести его для расшифровки.",
   "importRaivoGuide": "Используйте опцию «Экспорт OTP-кодов в Zip-архив» в настройках Raivo.\n\nРаспакуйте zip-архив и импортируйте JSON-файл.",
   "importSelectAppExport": "Выбрать файл экспорта {appName}",
@@ -1633,6 +1862,14 @@
     "description": "Error message when code is incorrect"
   },
   "incorrectDetails": "Неправильные данные",
+  "incorrectPasswordTitle": "Неверный пароль",
+  "@incorrectPasswordTitle": {
+    "description": "Title for incorrect password error"
+  },
+  "incorrectRecoveryKey": "Неверный ключ восстановления",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
   "incorrectRecoveryKeyBody": "Введённый вами ключ восстановления неверен",
   "incorrectRecoveryKeyTitle": "Неверный ключ восстановления",
   "indexingPausedStatusDescription": "Обработка приостановлена. Она автоматически возобновится, когда устройство будет готово. Устройство считается готовым, когда уровень заряда, состояние аккумулятора и его температура находятся в пределах нормы.",
@@ -1641,6 +1878,7 @@
   "informationTypes": "Типы информации",
   "informationTypesDesc": "Документы, заметки, карты, пароли и другие типы файлов",
   "initialBackupCreated": "Начальная резервная копия создана!",
+  "inOrder": "По порядку",
   "insecureDevice": "Небезопасное устройство",
   "@insecureDevice": {
     "description": "Insecure device warning title"
@@ -1654,8 +1892,19 @@
   "@invalidEmailTitle": {
     "description": "Title for invalid email error dialog"
   },
+  "invalidEndpoint": "Недействительная конечная точка",
+  "@invalidEndpoint": {
+    "description": "Error message when endpoint is invalid"
+  },
+  "invalidEndpointMessage": "Извините, введённый вами адрес сервера недействителен. Пожалуйста, введите действительный адрес сервера и попробуйте снова.",
+  "@invalidEndpointMessage": {
+    "description": "Detailed error message when endpoint is invalid"
+  },
+  "invalidKey": "Неверный ключ",
   "invalidProtonExportMessage": "Выбранный файл не является допустимым экспортом Proton Authenticator.",
   "invalidProtonExportTitle": "Неверный экспорт Proton",
+  "invalidQRCode": "Неверный QR-код",
+  "invalidRecoveryKey": "Введенный вами ключ восстановления недействителен. Убедитесь, что он содержит 24 слова, и проверьте правильность написания каждого символа.\n\nЕсли вы ввели старый код восстановления, убедитесь, что он состоит из 64 символов, и проверьте каждый из них.",
   "invalidReferralCode": "Неверный код",
   "invite": "Пригласить",
   "inviteLimitReached": "Вы добавили 5 приглашений. Удалите одно, чтобы добавить другое",
@@ -1682,6 +1931,7 @@
       "count": {}
     }
   },
+  "itemWillBeRemovedFromThisAlbum": "Этот элемент будет удален из этого альбома",
   "items": "{count} элементов",
   "@items": {
     "description": "Number of items in a collection",
@@ -1694,7 +1944,20 @@
   },
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "На элементах отображается количество дней, оставшихся до их безвозвратного удаления",
   "itemsStored": "Сохранено элементов",
+  "itemsWillBeDeletedFromAllCollections": "{count, plural, one{{count} элемент будет удалён из всех коллекций.} few{{count} элемента будут удалены из всех коллекций.} many{{count} элементов будут удалены из всех коллекций.} other{{count} элемента будут удалены из всех коллекций.}} Восстановление возможно из корзины.",
+  "@itemsWillBeDeletedFromAllCollections": {
+    "description": "Confirmation message explaining that deleted items leave every collection and remain recoverable from Trash.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "itemsWillBeRemovedFromAlbum": "Выбранные элементы будут удалены из этого альбома",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "Похоже, что-то пошло не так. Пожалуйста, повторите попытку через некоторое время. Если ошибка повторится, обратитесь в нашу службу поддержки.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
   "iUnderStand": "Я понимаю",
   "@iUnderStand": {
     "description": "Text for the button to confirm the user understands the warning"
@@ -1729,8 +1992,25 @@
   },
   "leaveSharedAlbum": "Покинуть общий альбом?",
   "left": "Влево",
+  "leftCollectionsSuccessfully": "{count, plural, one{Вы успешно покинули {count} коллекцию} few{Вы успешно покинули {count} коллекции} many{Вы успешно покинули {count} коллекций} other{Вы успешно покинули {count} коллекции}}",
+  "@leftCollectionsSuccessfully": {
+    "description": "Success message when leaving collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "legacy": "Наследие",
   "legacyAccounts": "Наследуемые аккаунты",
+  "legacyCongratulationsMessage": "Вы успешно настроили свою систему Legacy.\nНачните сохранять важную информацию.",
+  "legacyDesc": "Надежные контакты, Legacy-набор и план восстановления аккаунта",
+  "legacyEmptyStateDescription": "В ваше отсутствие Legacy поможет вашим близким получить доступ к вашей информации в Locker.",
+  "legacyIntroCard1": "Мы даем вам 3 карты",
+  "legacyIntroCard2": "Поделитесь ими с\n3 человека, которым вы доверяете",
+  "legacyIntroCard3": "Любые 2 из этих 3 человек могут разблокировать вашу информацию в Locker",
+  "legacyIntroTitle": "Помогите близким получить доступ к важной информации в ваше отсутствие.",
   "legacyInvite": "{email} пригласил вас стать доверенным контактом",
   "@legacyInvite": {
     "placeholders": {
@@ -1740,6 +2020,23 @@
       }
     }
   },
+  "legacyKitAllSetDescription": "Вы можете в любое время настроить Legacy-набор или отозвать доступ.",
+  "legacyKitAllSetTitle": "Ваш комплект Legacy полностью готов!",
+  "legacyKitEmptyDescription": "Дайте возможность людям, которым вы доверяете, объединиться для восстановления вашего аккаунта",
+  "legacyKitMaxReached": "Вы можете создать до 5 комплектов Legacy.",
+  "legacyKitRecoveryAttemptInProgress": "Попытка восстановления в процессе",
+  "legacyKitRecoveryAttemptMessage": "С помощью этого комплекта Legacy было инициировано восстановление. Доступ к учётной записи будет предоставлен {availableAt}.\n\nВы можете отклонить запрос на восстановление в любое время до этого момента.",
+  "@legacyKitRecoveryAttemptMessage": {
+    "placeholders": {
+      "availableAt": {
+        "type": "String",
+        "example": "April 7, 2026 7:34 PM"
+      }
+    }
+  },
+  "legacyKitRecoveryInProgress": "Восстановление в процессе",
+  "legacyKitRecoveryWarning": "Кто-то пытается восстановить доступ к вашей учётной записи с помощью комплекта Legacy",
+  "legacyKits": "Наборы наследия",
   "legacyPageDesc": "Наследие позволяет доверенным контактам получить доступ к вашему аккаунту в ваше отсутствие.",
   "legacyPageDesc2": "Доверенные контакты могут начать восстановление аккаунта. Если не отменить это в течение 30 дней, то они смогут сбросить пароль и получить доступ.",
   "letsTryThatAgain": "Давай попробуем ещё раз",
@@ -1790,6 +2087,56 @@
       }
     }
   },
+  "librarySharingAllCurrentAlbumsShared": "Вы уже поделились всеми текущими альбомами",
+  "librarySharingBannerDescription": "Поделитесь всеми своими альбомами",
+  "librarySharingDisable": "Отключить",
+  "librarySharingDisableDescription": "Альбомы, которыми вы уже поделились, останутся доступными для {recipient}, включая фотографии, которые вы в них добавите. Новые альбомы не будут автоматически становится общими.\n\nЧтобы прекратить общий доступ к альбому, коснитесь его и выберите «{stopSharingLabel}».",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingDisableTitle": "Отключить общий доступ к библиотеке?",
+  "librarySharingEnableDescription": "Ваши существующие альбомы, а также любые альбомы, которые вы создадите в будущем, будут автоматически переданы {recipient}.",
+  "@librarySharingEnableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "librarySharingEnableTitle": "Включить общий доступ к библиотеке?",
+  "librarySharingFailedAlbumCount": "{count, plural, one{Не удалось обновить {count} альбом.} few{Не удалось обновить {count} альбома.} many{Не удалось обновить {count} альбомов.} other{Не удалось обновить {count} альбома.}}",
+  "@librarySharingFailedAlbumCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "librarySharingFailedDescription": "Не удалось обновить выбранные альбомы.",
+  "librarySharingFailedTitle": "Поделиться не удалось",
+  "librarySharingHiddenAlbumsDescription": "Скрытые альбомы не будут доступны для просмотра. Вы можете прекратить доступ к любому альбому в любое время.",
+  "librarySharingMixed": "Смешанное",
+  "librarySharingNoAlbumsToShare": "Пока нет альбомов для общего доступа",
+  "librarySharingRetryFailedAlbums": "Повторить для проблемных альбомов",
+  "librarySharingRole": "Роль",
+  "librarySharingRoles": "Роли",
+  "librarySharingShareAlbums": "Поделиться альбомами",
+  "librarySharingShareWith": "Поделиться с",
+  "librarySharingSharingWith": "Общий доступ предоставлен",
+  "librarySharingStopSharing": "Закрыть доступ",
+  "librarySharingTitle": "Совместное использование библиотеки",
+  "librarySharingUpdateRoles": "Обновить роли",
   "limit": "Лимит",
   "linkCopiedToClipboard": "Ссылка скопирована в буфер обмена",
   "linkDeletedSuccessfully": "Ссылка успешно удалена",
@@ -1804,8 +2151,10 @@
   },
   "linkExpiry": "Срок действия ссылки",
   "linkHasExpired": "Срок действия ссылки истёк",
+  "linkLabel": "Ссылка",
   "linkNeverExpires": "Никогда",
   "linkRequestLimitExceeded": "Извините, этот альбом был просмотрен на слишком большом количестве устройств",
+  "linkSettings": "Настройки ссылки",
   "links": "Ссылки",
   "list": "Список",
   "livePhotos": "Живые фото",
@@ -1853,13 +2202,33 @@
   "locationTagFeatureDescription": "Тег местоположения группирует все фото, снятые в определённом радиусе от фото",
   "locationUpdatedAndBackupCreated": "Расположение обновлено и начальная резервная копия создана!",
   "lockButtonLabel": "Заблокировать",
+  "loggingOut": "Выход из системы...",
+  "@loggingOut": {
+    "description": "Message shown while logging out"
+  },
   "logInLabel": "Войти",
   "@logInLabel": {
     "description": "Log in button label"
   },
+  "loginSessionExpired": "Сессия истекла",
+  "@loginSessionExpired": {
+    "description": "Login session expired title"
+  },
+  "loginSessionExpiredDetails": "Срок действия вашей сессии истек. Пожалуйста, войдите в систему снова.",
+  "@loginSessionExpiredDetails": {
+    "description": "Login session expired details"
+  },
+  "loginTerms": "Нажимая кнопку «Войти», я соглашаюсь с <u-terms>условиями предоставления услуг</u-terms> и <u-policy>политикой конфиденциальности</u-policy>",
+  "@loginTerms": {
+    "description": "Terms agreement text for login"
+  },
   "loginToEnte": "Войти в Ente",
   "loginToExistingAccount": "Вход в существующий аккаунт",
   "loginWithAuthAccount": "Войти с помощью учетной записи Auth",
+  "loginWithTOTP": "Вход через TOTP",
+  "@loginWithTOTP": {
+    "description": "Login with TOTP button label"
+  },
   "logout": "Выйти",
   "logs": "Логи",
   "logsDialogBody": "Это отправит нам логи, чтобы помочь разобраться с вашей проблемой. Обратите внимание, что имена файлов будут включены для отслеживания проблем с конкретными файлами.",
@@ -1887,11 +2256,10 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Управлять",
   "manageDeviceStorage": "Управление кэшем устройства",
+  "manageDeviceStorageDesc": "Проверьте и очистите локальное хранилище",
   "manageFamily": "Управление семьёй",
   "manageLink": "Управлять ссылкой",
-  "manageParticipants": "Управлять",
   "managePaymentMethod": "Управлять методом оплаты",
   "manageSubscription": "Управление подпиской",
   "manualSort": "Пользовательская",
@@ -1940,6 +2308,7 @@
   },
   "memoryLink": "Ссылка на воспоминание",
   "memoryShareLinkDescription": "Срок действия этой ссылки автоматически истечёт через 7 дней.",
+  "merchandise": "Мерч",
   "merge": "Объединить",
   "mergedPhotos": "Объединённые фото",
   "mergeWithExisting": "Объединить с существующим",
@@ -1963,6 +2332,7 @@
       }
     }
   },
+  "menubarMode": "Режимы меню",
   "message": "Сообщение",
   "minimizeAppOnCopy": "Сворачивать приложение при копировании",
   "minimizeToTrayOnClose": "Сворачивать в трей при закрытии",
@@ -1972,6 +2342,10 @@
   "mlConsentDescription": "Если вы включите машинное обучение, Ente будет извлекать информацию такую, как геометрия лица, из файлов, включая те, которыми с вами поделились.\n\nЭтот процесс будет происходить на вашем устройстве, и любая сгенерированная биометрическая информация будет защищена сквозным шифрованием.",
   "mlConsentPrivacy": "Пожалуйста, нажмите здесь для получения подробностей об этой функции в нашей политике конфиденциальности",
   "mlIndexingDescription": "Обратите внимание, что машинное обучение увеличит использование трафика и батареи, пока все элементы не будут обработаны. Рассмотрите использование приложения для компьютера для более быстрой обработки. Результаты будут автоматически синхронизированы.",
+  "mlProcessingIssueReachOut": "Пожалуйста, свяжитесь с нами, чтобы мы могли вам помочь.",
+  "@mlProcessingIssueReachOut": {
+    "description": "Support prompt shown when machine learning could not process one or more items"
+  },
   "mlProgressBannerDescription": "Ваши фотографии обрабатываются на устройстве для обнаружения лиц, объектов и другого.",
   "mlProgressBannerStatus": "{indexed} из {total} фотографий обработано",
   "@mlProgressBannerStatus": {
@@ -1985,6 +2359,10 @@
     }
   },
   "mlProgressBannerTitle": "Подождите немного!",
+  "moderateStrength": "Средний",
+  "@moderateStrength": {
+    "description": "Moderate password strength label"
+  },
   "modifyYourQueryOrTrySearchingFor": "Измените запрос или попробуйте поискать",
   "moments": "Моменты",
   "month": "месяц",
@@ -1996,6 +2374,10 @@
   "moon": "В лунном свете",
   "more": "Ещё",
   "moreDetails": "Подробнее",
+  "moreFrom": "Больше от",
+  "@moreFrom": {
+    "description": "Heading shown above links to other Ente apps"
+  },
   "moreOptions": "Больше вариантов",
   "@moreOptions": {
     "description": "Button label for showing additional delete options."
@@ -2028,8 +2410,27 @@
   "moveSelectedPhotosToOneDate": "Переместите выбранные фото на одну дату",
   "moveToAlbum": "Переместить в альбом",
   "moveToHiddenAlbum": "Переместить в скрытый альбом",
+  "moveToTrashQuestion": "Переместить в корзину?",
   "movingFilesToAlbum": "Перемещение файлов в альбом...",
+  "muteAudio": "Отключить звук",
   "name": "Имя",
+  "nDays": "{count, plural, one{{count} день} few{{count} дня} many{{count} дней} other{{count} дня}}",
+  "@nDays": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "networkConnectionRefusedErr": "Не удаётся подключиться к Ente. Пожалуйста, повторите попытку через некоторое время. Если ошибка сохраняется, обратитесь в службу поддержки.",
+  "@networkConnectionRefusedErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to connection refused"
+  },
+  "networkHostLookUpErr": "Не удаётся подключиться к Ente. Пожалуйста, проверьте настройки сети и обратитесь в службу поддержки, если ошибка сохраняется.",
+  "@networkHostLookUpErr": {
+    "description": "Error message shown when the app cannot connect to Ente due to network host lookup failure"
+  },
   "never": "Никогда",
   "newAlbum": "Новый альбом",
   "newCollection": "Новая коллекция",
@@ -2042,9 +2443,18 @@
     "description": "Next button label"
   },
   "nextTotpTitle": "далее",
+  "nHours": "{count, plural, one{{count} час} few{{count} часа} many{{count} часов} other{{count} часа}}",
+  "@nHours": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
   "nightLights": "Неоновая ночь",
   "no": "Нет",
-  "noAlbumsOnThisDevice": "Нет альбомов\nна этом устройстве",
+  "noAlbumsOnThisDevice": "Нет альбомов на этом устройстве",
   "noAppToOpenFileDownloadInstead": "Нет приложения для предварительного просмотра этого файла. Вы можете скачать его и открыть с помощью другого приложения.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -2107,6 +2517,7 @@
     "description": "No recovery key title"
   },
   "noResult": "Ничего не найдено",
+  "noResultsFound": "Ничего не найдено",
   "noSessionsFound": "Сеансов не найдено!",
   "noSimilarImagesFound": "Подходящих фотографий не найдено",
   "noSuggestionsForPerson": "Нет предложений для {personName}",
@@ -2141,8 +2552,10 @@
     }
   },
   "nothingToSeeHere": "Здесь ничего нет",
+  "nothingToCleanUp": "Нечего очищать",
   "nothingToTidyUpHere": "Здесь очень вкусно",
   "notifications": "Уведомления",
+  "notifyMe": "Уведомить меня",
   "notPersonLabel": "Не {name}?",
   "@notPersonLabel": {
     "description": "Label to indicate that the person in the photo is not the person whose name is mentioned",
@@ -2168,6 +2581,7 @@
   "offlineHomeSignupBannerAction": "Создать резервную копию",
   "offlineHomeSignupBannerDescription": "Зашифрованные резервные копии в 3 местах, чтобы сохранить ваши воспоминания.",
   "offlineHomeSignupBannerTitle": "Защитите воспоминания навсегда",
+  "offlineKeyUnavailableMessage": "Ente Auth не имеет доступа к ключу для ваших офлайн-кодов.",
   "offlineModeWarning": "Вы решили продолжить без резервных копий. Пожалуйста, создайте резервные копии вручную, чтобы убедиться, что ваши коды в безопасности.",
   "offlineNameFaceBannerSubtitle": "Зарегистрируйтесь, чтобы пометить их и легко находить их фотографии позже.",
   "offlineNameFaceBannerTitle": "Назовите это лицо",
@@ -2179,6 +2593,10 @@
   "@onDevice": {
     "description": "The text displayed above folders/albums stored on device",
     "type": "text"
+  },
+  "oneAccountAcrossEnteApps": "У вас один аккаунт для Ente Photos, Ente Auth и Ente Locker.",
+  "@oneAccountAcrossEnteApps": {
+    "description": "Explains that account deletion affects all Ente apps"
   },
   "oneLineAboutTheIssue": "Одна строка о проблеме",
   "onEnte": "В <branding>ente</branding>",
@@ -2215,7 +2633,7 @@
   "openstreetmapContributors": "Участники OpenStreetMap",
   "optionalAsShortAsYouLike": "Необязательно, насколько коротко пожелаете...",
   "organization": "Организация",
-  "orPickAnExistingOne": "Или выберите существующую",
+  "organizationDesc": "Коллекции, избранное, поиск и способы организации элементов",
   "orRemoveYourself": "Или удалите себя из списка доверенных контактов {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2238,6 +2656,15 @@
     "placeholders": {
       "name": {}
     }
+  },
+  "passkey": "Ключ доступа",
+  "passkeyAuthTitle": "Проверка с помощью ключа доступа",
+  "@passkeyAuthTitle": {
+    "description": "Passkey authentication title"
+  },
+  "passKeyPendingVerification": "Верификация еще не завершена",
+  "@passKeyPendingVerification": {
+    "description": "Message when passkey verification is pending"
   },
   "password": "Пароль",
   "@password": {
@@ -2266,6 +2693,10 @@
   },
   "passwordToEncryptExport": "Пароль для шифрования экспорта",
   "passwordTooShort": "Пароль должен состоять как минимум из 8 символов.",
+  "passwordWarning": "Мы не храним этот пароль, поэтому, если вы его забудете, <underline>мы не сможем расшифровать ваши данные</underline>",
+  "@passwordWarning": {
+    "description": "Warning about password storage"
+  },
   "pastYearsMemories": "Воспоминания прошлых лет",
   "pay": "Оплатить",
   "paymentDetails": "Платёжные данные",
@@ -2294,6 +2725,20 @@
   "peopleWidgetDesc": "Выберите людей, которых хотите видеть на главном экране.",
   "period": "Период",
   "permanentlyDelete": "Удалить безвозвратно",
+  "permanentlyDeleteFilesBody": "{count, plural, one{{count} элемент будет безвозвратно удалён.} few{{count} элемента будут безвозвратно удалены.} many{{count} элементов будут безвозвратно удалены.} other{{count} элемента будут безвозвратно удалены.}} Восстановление невозможно.",
+  "@permanentlyDeleteFilesBody": {
+    "description": "Confirmation body for permanent deletion from trash",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "permanentlyDeleteYourEnteAccount": "Хотите навсегда удалить свой аккаунт Ente?",
+  "@permanentlyDeleteYourEnteAccount": {
+    "description": "Heading for final account deletion confirmation"
+  },
   "permDeleteWarning": "Все элементы в корзине будут удалены навсегда\n\nЭто действие нельзя отменить",
   "personalNote": "Заметка",
   "personalNoteDescription": "Записывайте мысли и инструкции.",
@@ -2313,8 +2758,39 @@
   },
   "pets": "Пушистые спутники",
   "photoGridSize": "Размер сетки фото",
+  "photoLibraryAddPermissionRequired": "Для сохранения фотографий и видео в Apple Photos программе Ente требуется разрешение. Вы можете разрешить доступ в настройках.",
+  "photoLibraryAddPermissionRestricted": "Доступ к фототеке на этом устройстве ограничен.",
+  "photoOrder": "Порядок фото",
+  "photoViewerFilmstripLabel": "Выбор фото",
+  "@photoViewerFilmstripLabel": {
+    "description": "Accessibility label for the thumbnail filmstrip in the photo viewer"
+  },
+  "photoViewerFilmstripPosition": "Фото {current} из {total}",
+  "@photoViewerFilmstripPosition": {
+    "description": "Accessibility position within the thumbnail filmstrip in the photo viewer",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "photos": "Фото",
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Добавленные вами фото будут удалены из альбома",
+  "photosAndVideosCount": "{count, plural, one{{formattedCount} фото и видео} other{{formattedCount} фото и видео}}",
+  "@photosAndVideosCount": {
+    "description": "Delete impact row for Photos data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
   "photosCount": "{count, plural, =0{0 фотографий} one{{count} фотография} few{{count} фотографии} many{{count} фотографий} other{{count} фотографии}}",
   "@photosCount": {
     "placeholders": {
@@ -2373,11 +2849,16 @@
       }
     }
   },
+  "playbackSpeed": "Скорость воспроизведения",
   "playfulKids": "Игра детей",
   "playOriginal": "Воспроизвести оригинал",
   "playstoreSubscription": "Подписка PlayStore",
   "playStream": "Воспроизвести поток",
   "pleaseCheckPasswordAndTryAgain": "Пожалуйста, проверьте свой пароль и попробуйте снова.",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "Проверьте подключение к Интернету и повторите попытку.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
   "pleaseContactSupportAndWeWillBeHappyToHelp": "Пожалуйста, свяжитесь с support@ente.com, и мы будем рады помочь!",
   "pleaseContactSupportIfTheProblemPersists": "Пожалуйста, обратитесь в поддержку, если проблема сохраняется",
   "pleaseEmailUsAt": "Пожалуйста, напишите нам на {toEmail}",
@@ -2395,6 +2876,20 @@
     "description": "Shown when manual tagging requires at least one named person."
   },
   "pleaseSelectQuickLinksToRemove": "Пожалуйста, выберите быстрые ссылки для удаления",
+  "pleaseSendTheLogsTo": "Пожалуйста, отправьте логи на \n{toEmail}",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
+  "pleaseTryAgain": "Пожалуйста, попробуйте снова",
+  "@pleaseTryAgain": {
+    "description": "Message asking user to try again"
+  },
   "pleaseVerifyDetails": "Пожалуйста, проверьте детали и попробуйте еще раз",
   "pleaseVerifyTheCodeYouHaveEntered": "Пожалуйста, проверьте введённый вами код",
   "pleaseWait": "Пожалуйста, подождите...",
@@ -2430,7 +2925,11 @@
       "folderName": {}
     }
   },
+  "publicLink": "Публичная ссылка",
+  "publicLinkAccessDescription": "Любой, у кого есть ссылка, может открыть альбом без аккаунта Ente.",
+  "publicLinkCollectDescription": "Любой, у кого есть эта ссылка, может добавить фотографии в ваш альбом.",
   "publicLinkEnabled": "Публичная ссылка включена",
+  "publicLinkViewDescription": "Любой, у кого есть эта ссылка, может получить доступ к вашему альбому.",
   "qr": "QR",
   "qrCode": "QR-код",
   "questionmark": "?",
@@ -2443,9 +2942,19 @@
     "type": "text"
   },
   "rateUs": "Оцените нас",
+  "rateUsOnStore": "Оцените нас в {storeName}",
+  "@rateUsOnStore": {
+    "placeholders": {
+      "storeName": {}
+    }
+  },
   "rawCodeData": "Необработанные кодовые данные",
   "readyToBackupSubtitle": "Ваши фотографии будут синхронизироваться в фоновом режиме. Первая резервная копия может занять некоторое время.",
   "readyToBackupTitle": "Готово к копированию",
+  "reasonForLeaving": "Причина ухода",
+  "@reasonForLeaving": {
+    "description": "Label for account deletion reason picker"
+  },
   "reassignedToName": "Вы переназначены на {name}",
   "@reassignedToName": {
     "placeholders": {
@@ -2462,12 +2971,32 @@
   },
   "receiveRemindersOnBirthdays": "Напоминания о днях рождения",
   "recent": "Недавние",
+  "reclaimSpace": "Освободить {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
   "recordLocation": "Местоположение",
   "recordLocationHint": "Где хранится этот предмет?",
   "recordNameHint": "Название реального предмета",
   "recordNotes": "Заметки",
   "recordNotesHint": "Дополнительная информация о предмете",
   "recordSavedSuccessfully": "Запись успешно сохранена",
+  "recordSavedToMultipleCollections": "Запись успешно сохранена в {count, plural, one{{count} коллекции} few{{count} коллекциях} many{{count} коллекциях} other{{count} коллекции}}",
+  "@recordSavedToMultipleCollections": {
+    "description": "Success message when record is saved to multiple collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "recover": "Восстановить",
   "@recover": {
     "description": "Recover button label"
@@ -2522,6 +3051,10 @@
   "@recoveryKeyCopiedToClipboard": {
     "description": "Recovery key copied message"
   },
+  "recoveryKeyOnForgotPassword": "Если вы забудете свой пароль, единственный способ восстановить данные — использовать этот ключ.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
   "recoveryKeySaved": "Ключ восстановления сохранён в папке Загрузки!",
   "@recoveryKeySaved": {
     "description": "Recovery key saved confirmation message"
@@ -2531,6 +3064,9 @@
     "description": "Recovery key save description"
   },
   "recoveryKeySaveShortDescription": "Пожалуйста, сохраните этот ключ в безопасном месте.",
+  "recoveryKeySuccessBody": "Отлично! Ваш ключ восстановления действителен. Спасибо за проверку.\n\nНе забудьте сохранить резервную копию ключа восстановления в надёжном месте.",
+  "recoveryKeyVerified": "Ключ восстановления подтверждён",
+  "recoveryKeyVerifyReason": "Ключ восстановления — единственный способ восстановить фотографии, если вы забыли пароль. Вы можете найти ключ восстановления в разделе «Настройки» > «Аккаунт».\n\nПожалуйста, введите здесь свой ключ восстановления, чтобы убедиться, что вы сохранили его правильно.",
   "recoveryReady": "Теперь вы можете восстановить аккаунт {email}, установив новый пароль.",
   "@recoveryReady": {
     "placeholders": {
@@ -2541,12 +3077,23 @@
     }
   },
   "recoverySuccessful": "Успешное восстановление!",
+  "recoveryTimeUpdated": "Время восстановления обновлено",
+  "@recoveryTimeUpdated": {
+    "description": "Toast message shown when recovery time is updated successfully"
+  },
+  "recoveryWaitTime": "Ожидание восстановления",
+  "recoveryWaitTimeChangeWarning": "Изменение этого параметра приведет к отмене всех текущих попыток.",
+  "recoveryWaitTimeDescription": "Как скоро можно восстановить учётную запись после сканирования комплекта Legacy?",
   "recoveryWarning": "Доверенный контакт пытается получить доступ к вашему аккаунту",
   "recoveryWarningBody": "{email} пытается восстановить ваш аккаунт.",
   "@recoveryWarningBody": {
     "placeholders": {
       "email": {}
     }
+  },
+  "recreatePasswordBody": "Нынешнее устройство недостаточно мощное для проверки вашего пароля, но мы можем сгенерировать его заново таким образом, чтобы он работал на всех устройствах.\n\nПожалуйста, войдите в систему, используя свой ключ восстановления, и сгенерируйте новый пароль (при желании вы можете использовать тот же самый пароль снова).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
   },
   "recreatePasswordTitle": "Пересоздать пароль",
   "@recreatePasswordTitle": {
@@ -2566,6 +3113,19 @@
   "referrals": "Рефералы",
   "referralsAreCurrentlyPaused": "Реферальная программа временно приостановлена",
   "referralStats": "Статистика рефералов",
+  "referralStep1": "1. Поделитесь своим кодом с друзьями",
+  "referralStep2": "2. Они получают {storageInGB} Гб бесплатно при регистрации",
+  "@referralStep2": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
+  "referralStep3": "3. Вы получите {storageInGB} Гб при обновлении",
+  "@referralStep3": {
+    "placeholders": {
+      "storageInGB": {}
+    }
+  },
   "referralStorageForBoth": "{storageAmountInGB} ГБ для них + {storageAmountInGB} ГБ для вас при переходе на платный тариф.",
   "@referralStorageForBoth": {
     "placeholders": {
@@ -2583,12 +3143,6 @@
   "remoteVideos": "Видео вне устройства",
   "remove": "Удалить",
   "removeAccess": "Отозвать доступ",
-  "removeAlbumParticipantBody": "{userEmail} будет удалён из этого общего альбома\n\nВсе фото, добавленные этим пользователем, также будут удалены из альбома",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} будет удалён из этой общей коллекции\n\nВсе добавленные им элементы также будут удалены из коллекции",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2603,6 +3157,17 @@
   "@removeContactDesc": {
     "description": "Description for remove contact confirmation dialog"
   },
+  "removeContactPhoto": "Удалить фото контакта",
+  "removedItems": "{count, plural, one{Удалён {count} элемент} few{Удалено {count} элемента} many{Удалено {count} элементов} other{Удалено {count} элемента}}",
+  "@removedItems": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "removeDuplicates": "Дубликаты",
+  "removeDuplicatesDesc": "Удалите точные дубликаты",
   "removeFromAlbum": "Удалить из альбома",
   "removeFromAlbumTitle": "Удалить из альбома?",
   "removeFromFamily": "Удалить из семьи",
@@ -2702,6 +3267,7 @@
     "description": "Reset password title"
   },
   "resetToDefault": "Вернуть стандартную",
+  "restartAppToApplyChanges": "Перезапустите приложение, чтобы применить эти изменения",
   "@resetToDefault": {
     "description": "Button text to reset cover photo to default"
   },
@@ -2710,10 +3276,19 @@
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
   },
+  "restoredItems": "{count, plural, one{Восстановлен {count} элемент} few{Восстановлено {count} элемента} many{Восстановлено {count} элементов} other{Восстановлено {count} элемента}}",
+  "@restoredItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "restoreToAlbum": "Восстановить в альбом",
   "restoringFiles": "Восстановление файлов...",
   "restoringItems": "Восстановление...",
   "resumableUploads": "Возобновляемые загрузки",
+  "retake": "Переснять",
   "retry": "Повторить",
   "review": "Предложения",
   "reviewSuggestions": "Посмотреть предложения",
@@ -2732,6 +3307,7 @@
     }
   },
   "revokeInviteConfirmTitle": "Отозвать приглашение?",
+  "revokeLegacyKit": "Отозвать комплект Legacy",
   "right": "Вправо",
   "ritualAddedToAlbum": "Добавлено в альбом",
   "ritualAddedToAlbumWithName": "Добавлено в {albumName}",
@@ -2759,6 +3335,7 @@
   "ritualAlbumSelectionPlaceholder": "Выбрать альбом",
   "ritualBackToList": "Назад к ритуалам",
   "ritualCameraNotFound": "Не найдено камер на этом устройстве.",
+  "ritualCameraStartError": "Не удаётся запустить камеру. Пожалуйста, попробуйте ещё раз.",
   "ritualCaptureAtLeastOne": "Сначала сделайте хотя бы одну фотографию.",
   "ritualCaptureError": "Не удалось сфотографировать. Пожалуйста, попробуйте еще раз.",
   "ritualChooseAlbumLabel": "Выбрать альбом",
@@ -2796,6 +3373,8 @@
   "ritualSendReminderLabel": "Отправить напоминание",
   "ritualSetAlbumToLaunchCamera": "Установите альбом для этого ритуала, чтобы запустить камеру.",
   "ritualShareUnavailable": "Не удалось поделиться. Пожалуйста, попробуйте еще раз.",
+  "ritualStartNew": "Начать новый ритуал",
+  "ritualStartNewDescription": "Создайте ритуал, наращивайте серию повторений и делитесь своими успехами.",
   "ritualsTitle": "Ритуалы",
   "ritualUntitled": "Ритуал без названия",
   "ritualUpdate": "Обновить ритуал",
@@ -2813,11 +3392,14 @@
     "description": "Label for save button"
   },
   "saveAsAnotherPerson": "Сохранить как другого человека",
+  "saveChanges": "Сохранить изменения",
   "saveChangesBeforeLeavingQuestion": "Сохранить изменения перед выходом?",
   "saveCode": "Сохранить код",
   "saveCollage": "Сохранить коллаж",
   "saveContact": "Сохранить контакт",
   "saveCopy": "Сохранить копию",
+  "saveFileDescription": "Загрузите важные файлы.",
+  "saveFileTitle": "Файл",
   "saveKey": "Сохранить ключ",
   "@saveKey": {
     "description": "Save key button label"
@@ -2831,6 +3413,7 @@
     "description": "Description text asking user if they want to save to storage or share with other apps"
   },
   "savePerson": "Сохранить человека",
+  "saveToEnte": "Сохранить в Ente",
   "saveToLocker": "Сохранить в Locker",
   "saveYourRecoveryKeyIfYouHaventAlready": "Сохраните ваш ключ восстановления, если вы ещё этого не сделали",
   "saving": "Сохранение...",
@@ -2840,13 +3423,49 @@
   "scanACode": "Сканировать QR-код",
   "scanAQrCode": "Сканировать QR-код",
   "scanCode": "Сканировать код",
+  "scanDocumentDescription": "Просканируйте важные документы.",
+  "scanDocumentTitle": "Документ",
+  "scanFilenamePrefix": "Сканировать",
+  "@scanFilenamePrefix": {
+    "description": "Prefix of the default filename for a scanned document PDF, e.g. 'Scan 13 Aug 2026, 14.30.pdf'"
+  },
+  "scannerAutoCaptureOff": "Выключить автоматический захват",
+  "scannerAutoCaptureOn": "Включить автоматический захват",
+  "scannerCaptureModeAuto": "Авто",
+  "@scannerCaptureModeAuto": {
+    "description": "Label on the scanner capture-mode toggle while automatic capture is on"
+  },
+  "scannerCaptureModeManual": "Ручной режим",
+  "@scannerCaptureModeManual": {
+    "description": "Label on the scanner capture-mode toggle while capture is manual (automatic capture off)"
+  },
+  "scannerNotSupportedOnDevice": "Сканирование документов на этом устройстве не поддерживается",
   "scannerTorchOff": "Выключить фонарик",
   "scannerTorchOn": "Включить фонарик",
+  "scannerCapture": "Захват",
+  "scannerPreparing": "Подготовка сканирования...",
+  "scanProcessing": "Обрабатывается сканирование...",
+  "scanPageOfTotal": "Страница {current} из {total}",
+  "@scanPageOfTotal": {
+    "description": "Page position indicator in the document scanner review screen",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "scanSaved": "Сканирование сохранено",
   "scanThisBarcodeWithnyourAuthenticatorApp": "Отсканируйте этот QR-код\nс помощью вашего приложения для аутентификации",
   "scheduleShare": "Запланировать публикацию",
   "search": "Поиск",
   "searchAlbums": "Поиск альбомов",
   "searchAlbumsEmptySection": "Альбомы",
+  "searchAllPeople": "Поиск всех людей",
   "searchAndDiscovery": "Поиск и обзор",
   "searchAndDiscoveryDesc": "Лица, места, описания и многое другое",
   "searchByAlbumNameHint": "Название альбома",
@@ -2934,6 +3553,7 @@
   "secret": "Секрет",
   "secretCanNotBeEmpty": "Секретный код не может быть пустым",
   "security": "Безопасность",
+  "securityDesc": "Шифрование, ключи восстановления, блокировка приложений и защита аккаунта",
   "seeAllCollections": "Смотреть все коллекции",
   "seePublicAlbumLinksInApp": "Просматривать публичные ссылки на альбомы в приложении",
   "selectAlbumsToBackUpToEnte": "Выберите альбомы для резервного копирования в Ente",
@@ -3013,7 +3633,6 @@
   "selectFile": "Выбрать файл",
   "selectFolder": "Выберите папку",
   "selectFolders": "Выберите папки",
-  "selectFoldersForBackup": "Выберите папки для резервного копирования",
   "selectFolderToContinue": "Выберите папку, чтобы продолжить",
   "selectItemsToAdd": "Выберите элементы для добавления",
   "selectLanguage": "Выберите язык",
@@ -3021,6 +3640,12 @@
   "selectMorePhotos": "Выбрать больше фото",
   "selectOneDateAndTime": "Выбрать одну дату и время",
   "selectOneDateAndTimeForAll": "Выберите одну дату и время для всех",
+  "selectPerson": "Выбрать человека",
+  "selectPersonToLinkToThisContact": "Выберите человека, для которого будет автоматически заполнено это контактное имя",
+  "selectReason": "Выберите причину",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
+  },
   "selectStartOfRange": "Выберите начало диапазона",
   "selectTime": "Выбрать время",
   "selectYourFace": "Выберите своё лицо",
@@ -3047,9 +3672,22 @@
   "sendLink": "Отправить ссылку",
   "sendLogsDescription": "Это отправит все журналы, чтобы помочь нам отладить вашу проблему. Хотя мы принимаем меры предосторожности, чтобы конфиденциальная информация не регистрировалась, мы рекомендуем вам просмотреть эти журналы, прежде чем делиться ими.",
   "sendQrCode": "Отправить QR-код",
+  "sendToEmail": "Отправить на {email}",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "serverEndpoint": "Конечная точка сервера",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
+  },
+  "sessionExpired": "Сессия истекла",
+  "@sessionExpired": {
+    "description": "Error message when session has expired"
   },
   "sessionIdMismatch": "Несоответствие ID сессии",
   "@sessionIdMismatch": {
@@ -3080,17 +3718,29 @@
   "@setNewPin": {
     "description": "Set new PIN title"
   },
+  "setPasswordTitle": "Установить пароль",
+  "@setPasswordTitle": {
+    "description": "Set password title"
+  },
   "setRadius": "Установить радиус",
+  "setSelectedPhoto": "Использовать выбранное фото",
   "settings": "Настройки",
   "setupComplete": "Настройка завершена",
   "setupFirstAccount": "Настройте свой аккаунт",
+  "setupLegacy": "Настроить Наследие",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
+  "setupLegacyDescription": "Выберите 3 человек, которым вы доверяете. Любые 2 из них вместе могут получить доступ к вашей информации - но не один из них.",
+  "setupYourLegacy": "Настроить Наследие",
   "share": "Поделиться",
   "shareALink": "Поделиться ссылкой",
   "shareAnAlbum": "Поделиться альбомом",
+  "shareCodeEarnStorage": "Удвойте объем вашего хранилища на Ente",
   "shareCodes": "Поделиться кодами",
   "shareCodesDuration": "Выберите продолжительность, на которую вы хотите поделиться кодами.",
+  "shareCollection": "Поделиться коллекцией",
   "shared": "Общий",
-  "sharedAlbumSectionDescription": "Создавайте общие и совместные альбомы с другими пользователями Ente, включая пользователей на бесплатных тарифах.",
   "sharedAlbumsLabel": "Общие",
   "@sharedAlbumsLabel": {
     "description": "Albums tab label for albums shared by you"
@@ -3109,6 +3759,7 @@
   "sharedWith": "Поделились с",
   "shareKey": "Поделиться ключом",
   "shareLink": "Поделиться ссылкой",
+  "shareMemory": "Поделиться воспоминаниями",
   "shareMyVerificationID": "Вот мой идентификатор подтверждения: {verificationID} для ente.com.",
   "@shareMyVerificationID": {
     "placeholders": {
@@ -3123,18 +3774,29 @@
       "verificationID": {}
     }
   },
+  "shareTextRecommendUsingEnte": "Скачайте Ente, чтобы мы могли легко обмениваться файлами оригинального качества\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForFamily": "Скачай Ente, чтобы я мог добавить тебя в свой семейный тариф\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForPhotos": "Скачай Ente, чтобы мы могли легко делиться фото и видео в оригинальном качестве\n\nhttps://ente.com",
+  "shareTextReferralInvite": "Получите 20 Гб бесплатно с помощью Ente Photos! Скачайте приложение по ссылке https://ente.com/invite and use code {referralCode}.",
+  "@shareTextReferralInvite": {
+    "placeholders": {
+      "referralCode": {}
+    }
+  },
   "shareThisLink": "Эта ссылка позволяет любому, кто её получит, получить доступ к вашему элементу. Вы можете удалить доступ в любое время, удалив ссылку.",
   "shareWithNonenteUsers": "Поделиться с пользователями, не использующими Ente",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Поделиться с отдельными людьми} one{Доступно {numberOfPeople} человеку} few{Доступно {numberOfPeople} людям} many{Доступно {numberOfPeople} людям} other{Доступно {numberOfPeople} людям}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
+  "shareYourFeedbackHere": "Поделитесь своим отзывом здесь",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
+  "shareYourLegacy": "Поделитесь своим наследием",
+  "shareYourLegacyBannerDescription": "Помогите близким получить доступ к важной информации в ваше отсутствие.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
+  "shareYourLegacyBannerTitle": "Поделитесь своим наследием",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
   },
   "shareYourSubscription": "Поделитесь своей подпиской с близкими",
   "sharing": "Отправка...",
@@ -3152,8 +3814,22 @@
   "showPerson": "Показать человека",
   "showQRAuthMessage": "Аутентификация для отображения QR-кода",
   "showTextOnWidget": "Показывать текст на виджете",
+  "shuffle": "Перемешать",
   "sigInBackupReminder": "Ente автоматически создаст резервную копию кодов после входа в систему.\n\nМы по-прежнему рекомендуем экспортировать коды в качестве дополнительного резервного копирования.",
   "signInToBackup": "Войдите в систему, чтобы создать резервную копию своих кодов",
+  "signOutFromOtherDevices": "Выйдите из системы на других устройствах",
+  "@signOutFromOtherDevices": {
+    "description": "Sign out from other devices title"
+  },
+  "signOutOtherBody": "Если вы подозреваете, что кто-то может знать ваш пароль, вы можете принудительно выйти из системы на всех остальных устройствах, использующих ваш аккаунт.",
+  "@signOutOtherBody": {
+    "description": "Sign out other devices explanation"
+  },
+  "signOutOtherDevices": "Выйдите из системы на других устройствах",
+  "@signOutOtherDevices": {
+    "description": "Sign out other devices button label"
+  },
+  "signUp": "Регистрация",
   "signUpTerms": "Я согласен с <u-terms>условиями предоставления услуг</u-terms> и <u-policy>политикой конфиденциальности</u-policy>",
   "@signUpTerms": {
     "description": "Terms agreement text for sign up"
@@ -3183,6 +3859,8 @@
   },
   "skip": "Пропустить",
   "skippedFiles": "Пропущенные файлы",
+  "slideshow": "Слайд-шоу",
+  "slideshowSettings": "Настройки слайд-шоу",
   "smartMemories": "Умные воспоминания",
   "smartSuggestions": "Умные рекомендации",
   "snowAdventures": "Зимнее приключение",
@@ -3201,10 +3879,18 @@
       "x": {}
     }
   },
+  "somethingWentWrongPleaseTryAgain": "Произошла ошибка, пожалуйста, попробуйте еще раз",
+  "@somethingWentWrongPleaseTryAgain": {
+    "description": "Generic error message"
+  },
   "sorry": "Извините",
   "sorryBackupFailedDesc": "К сожалению, мы не смогли сделать резервную копию этого файла сейчас, мы повторим попытку позже.",
   "sorryCouldNotAddToFavorites": "Извините, не удалось добавить в избранное!",
   "sorryCouldNotRemoveFromFavorites": "Извините, не удалось удалить из избранного!",
+  "sorryTheCodeYouveEnteredIsIncorrect": "Извините, введенный вами код неверный",
+  "@sorryTheCodeYouveEnteredIsIncorrect": {
+    "description": "Detailed error message when code is incorrect"
+  },
   "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "К сожалению, мы не смогли сгенерировать безопасные ключи на этом устройстве.\n\nПожалуйста, зарегистрируйтесь с другого устройства.",
   "@sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": {
     "description": "Error message for insecure device"
@@ -3244,7 +3930,6 @@
   },
   "startSnappingYourPhotosWillShowUpHere": "Начните снимать, и ваши фотографии появятся здесь",
   "startWithAddingPhotosOrFamiliarFaces": "Начните с добавления фотографий или знакомых лиц",
-  "startWithLatestPhotos": "Начните с последних фотографий",
   "status": "Статус",
   "sticker": "Стикер",
   "stopCastingBody": "Хотите остановить трансляцию?",
@@ -3283,6 +3968,16 @@
   "streetArt": "Уличное искусство",
   "streetFood": "Уличная еда",
   "strongPassword": "Надежный пароль",
+  "strongStrength": "Сильный",
+  "@strongStrength": {
+    "description": "Strong password strength label"
+  },
+  "subAlreadyLinkedErrMessage": "Ваш {id} уже связан с другим аккаунтом Ente.\nЕсли вы хотите использовать свой {id} с этой учетной записью, пожалуйста, свяжитесь с нашей службой поддержки.",
+  "@subAlreadyLinkedErrMessage": {
+    "placeholders": {
+      "id": {}
+    }
+  },
   "subject": "Тема",
   "submit": "Отправить",
   "subscribe": "Подписаться",
@@ -3303,6 +3998,7 @@
   "successfullyUnhid": "Успешно раскрыто",
   "suggestDeletion": "Предложить удалить",
   "suggestDeletionDescription": "Выбранные фотографии будут удалены из этого альбома. Владельцы фото также получат предложение для просмотра и удаления фотографий.",
+  "suggestFeatures": "Предложить идеи",
   "suggestions": "Предложения",
   "sunrise": "На горизонте",
   "support": "Поддержка",
@@ -3344,6 +4040,7 @@
     }
   },
   "tellUsWhatYouThink": "Расскажите нам, что вы думаете",
+  "tempErrorContactSupportIfPersists": "Похоже, что-то пошло не так. Пожалуйста, повторите попытку через некоторое время. Если ошибка повторится, обратитесь в нашу службу поддержки.",
   "terminate": "Завершить",
   "@terminate": {
     "description": "Terminate button label"
@@ -3362,11 +4059,23 @@
   "theme": "Тема",
   "thePersonGroupsWillNotBeDisplayed": "Группы людей больше не будут отображаться в разделе людей. Фотографии останутся нетронутыми.",
   "thePersonWillNotBeDisplayed": "Человек больше не будет отображаться в разделе людей. Фотографии останутся нетронутыми.",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Введенный вами ключ восстановления неверен",
+  "@theRecoveryKeyYouEnteredIsIncorrect": {
+    "description": "Detailed error message when recovery key is incorrect"
+  },
   "theseItemsWillBeDeletedFromYourDevice": "Эти элементы будут удалены с вашего устройства.",
   "thisCanBeUsedToRecoverYourAccountIfYou": "Это можно использовать для восстановления вашего аккаунта, если вы потеряете свой аутентификатор",
   "thisDevice": "Это устройство",
   "@thisDevice": {
     "description": "Label for current device"
+  },
+  "thisEmailIsAlreadyInUse": "Этот адрес электронной почты уже используется",
+  "@thisEmailIsAlreadyInUse": {
+    "description": "Error message when email is already in use"
+  },
+  "thisHelpsUsImproveEnte": "Это помогает нам улучшить Ente",
+  "@thisHelpsUsImproveEnte": {
+    "description": "Subtitle under account deletion reason prompt"
   },
   "thisImageHasNoExifData": "Это фото не имеет данных EXIF",
   "thisIsMeExclamation": "Это я!",
@@ -3389,6 +4098,14 @@
       "count": {}
     }
   },
+  "thisWillLogYouOutOfTheFollowingDevice": "Это приведет к выходу из системы на устройстве:",
+  "@thisWillLogYouOutOfTheFollowingDevice": {
+    "description": "Warning message for logging out of another device"
+  },
+  "thisWillLogYouOutOfThisDevice": "Это приведет к выходу из системы на устройстве!",
+  "@thisWillLogYouOutOfThisDevice": {
+    "description": "Warning message for logging out of current device"
+  },
   "thisWillMakeTheDateAndTimeOfAllSelected": "Это сделает дату и время всех выбранных фото одинаковыми.",
   "thisYear": "В этом году",
   "throughTheYears": "{dateFormat} сквозь годы",
@@ -3403,13 +4120,21 @@
       "name": {}
     }
   },
+  "timePerPhoto": "Время на фото",
   "title": "Заголовок",
   "todaysLogs": "Сегодняшние логи",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "Чтобы включить блокировку приложений, установите пароль устройства или блокировку экрана в настройках системы.",
   "tooManyIncorrectAttempts": "Слишком много неудачных попыток",
   "@tooManyIncorrectAttempts": {
     "description": "Message shown when too many incorrect attempts are made"
   },
+  "toResetVerifyEmail": "Для сброса пароля сначала подтвердите свой адрес электронной почты.",
+  "@toResetVerifyEmail": {
+    "description": "Message asking user to verify email before password reset"
+  },
   "totalSize": "Общий размер",
+  "trash": "Корзина",
+  "restoreOrPermanentlyDeleteItems": "Восстановить или навсегда удалить элементы",
   "trashClearedSuccessfully": "Корзина успешно очищена",
   "trashCode": "Удалить код?",
   "trashCodeMessage": "Вы уверены, что хотите удалить код для {account}?",
@@ -3466,6 +4191,15 @@
     }
   },
   "trustedContacts": "Доверенные контакты",
+  "trustedContactsEmptyDescription": "Назначьте другого пользователя Ente доверенным лицом для восстановления вашего аккаунта",
+  "trustedContactStatusAccepted": "Принято",
+  "@trustedContactStatusAccepted": {
+    "description": "Short status label shown for an accepted trusted contact"
+  },
+  "trustedContactStatusPending": "Ожидание",
+  "@trustedContactStatusPending": {
+    "description": "Short status label shown for a pending trusted contact invite"
+  },
   "tryAgain": "Попробовать снова",
   "@tryAgain": {
     "description": "Try again button label"
@@ -3492,6 +4226,7 @@
       }
     }
   },
+  "unableToAccessYourCodes": "Не удалось получить доступ к вашим кодам",
   "unableToCheckForUpdatesRightNow": "Не удалось проверить наличие обновлений прямо сейчас",
   "unableToExtractFileInformation": "Не удалось извлечь информацию из этого файла",
   "unarchive": "Извлечь из архива",
@@ -3500,6 +4235,7 @@
   },
   "unarchiveAlbum": "Извлечь альбом из архива",
   "unarchiving": "Извлечение...",
+  "unavailableReferralCode": "Этот код уже используется",
   "uncategorized": "Без категории",
   "uncategorizedItemsWillShowUpHere": "Элементы без категории будут отображаться здесь",
   "undo": "Отменить",
@@ -3517,6 +4253,7 @@
   "unnamedPeopleSpotlight": "Знакомое лицо",
   "unnamedPeopleThrowbackTogether": "Общие воспоминания",
   "unnamedPeopleYouAndThem": "Вы вдвоём",
+  "unmuteAudio": "Включить звук",
   "unpin": "Открепить",
   "unpinnedCodeMessage": "{code} откреплен",
   "@unpinnedCodeMessage": {
@@ -3537,6 +4274,7 @@
   },
   "unpinPerson": "Открепить человека",
   "unpinText": "Открепить",
+  "unsavedChangesDescription": "У вас есть несохраненные изменения. Если вы вернетесь назад, они будут потеряны.",
   "unsavedNoteChangesDescription": "У вас есть несохранённые изменения в этой заметке. Если вы вернётесь сейчас, они будут потеряны.",
   "unsavedNoteChangesTitle": "Отменить изменения?",
   "unselectAll": "Отменить выбор",
@@ -3629,6 +4367,7 @@
   "useAsCover": "Использовать для обложки",
   "usedSpace": "Использовано места",
   "usedYourCode": "использовали ваш код",
+  "useMLToFindSimilarImages": "Удалить похожие элементы",
   "useOffline": "Использовать без резервных копий",
   "useRecoveryKey": "Использовать ключ восстановления",
   "@useRecoveryKey": {
@@ -3652,9 +4391,17 @@
       "endDate": {}
     }
   },
+  "verificationFailedPleaseTryAgain": "Проверка не удалась, пожалуйста, попробуйте снова",
+  "@verificationFailedPleaseTryAgain": {
+    "description": "Verification failed error message"
+  },
   "verify": "Подтвердить",
   "@verify": {
     "description": "Verify button label"
+  },
+  "verifyEmail": "Подтвердить адрес электронной почты",
+  "@verifyEmail": {
+    "description": "Verify email title"
   },
   "verifyIDLabel": "Подтвердить",
   "verifying": "Проверка...",
@@ -3688,17 +4435,8 @@
   "viewAllExifData": "Посмотреть все данные EXIF",
   "viewAllHelpTopics": "Посмотреть все темы справки",
   "viewer": "Зритель",
-  "viewersSuccessfullyAdded": "{count, plural, =0{Добавлено 0 зрителей} one{Добавлен {count} зритель} few{Добавлено {count} зрителя} many{Добавлено {count} зрителей} other{Добавлено {count} зрителя}}",
-  "@viewersSuccessfullyAdded": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    },
-    "description": "Number of viewers that were successfully added."
-  },
   "viewLargeFiles": "Большие файлы",
+  "viewLargeFilesDesc": "Определить элементы, используя наибольшее количество места",
   "viewLogs": "Просмотреть логи",
   "@viewLogs": {
     "description": "Button to view logs"
@@ -3712,6 +4450,7 @@
   },
   "viewPlans": "Посмотреть тарифы",
   "viewRawCodes": "Просмотр необработанных кодов",
+  "viewRecoveryKey": "Посмотреть ключ восстановления",
   "vintageVibes": "Классический",
   "visitWebToManage": "Пожалуйста, посетите {webUrl} для управления вашей подпиской",
   "@visitWebToManage": {
@@ -3730,8 +4469,21 @@
   "waitingForWifi": "Ожидание Wi-Fi...",
   "warning": "Предупреждение",
   "waterfalls": "Водопад",
+  "weakStrength": "Слабый",
+  "@weakStrength": {
+    "description": "Weak password strength label"
+  },
+  "weAreOpenSource": "У нас открытый исходный код!",
   "weddingMoments": "Свадебное сияние",
   "weDontSupportEditingPhotosAndAlbumsThatYouDont": "Мы не поддерживаем редактирование фото и альбомов, которые вам пока не принадлежат",
+  "weHaveSentCode": "Мы отправили код на {email}",
+  "@weHaveSentCode": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "weHaveSentCodeTo": "Мы отправили код на {email}",
   "@weHaveSentCodeTo": {
     "description": "Text to indicate that we have sent a verification code to the user's email",
@@ -3744,6 +4496,10 @@
     }
   },
   "whatsNew": "Что нового",
+  "whyAreYouLeaving": "Почему вы уходите?",
+  "@whyAreYouLeaving": {
+    "description": "Heading asking why the user is deleting their account"
+  },
   "widgets": "Виджеты",
   "wildlife": "В дикой природе",
   "wishThemAHappyBirthday": "Поздравляем {name} с днем ​​рождения! 🎉",
@@ -3771,6 +4527,16 @@
   "yesCancel": "Да, отменить",
   "yesConvertToViewer": "Да, перевести в зрители",
   "yesDelete": "Да, удалить",
+  "yesDeleteCollections": "Да, удалить {count, plural, one{{count} коллекцию} few{{count} коллекции} many{{count} коллекций} other{{count} коллекции}}",
+  "@yesDeleteCollections": {
+    "description": "Button label for confirming deletion of one or more collections",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "yesDiscardChanges": "Да, отменить изменения",
   "yesIgnore": "Да, игнорировать",
   "yesLogout": "Да, выйти",
@@ -3790,6 +4556,7 @@
     }
   },
   "youAreOnTheLatestVersion": "Вы используете последнюю версию",
+  "youCannotAddYourselfAsLegacyContact": "Вы не можете добавить себя в качестве контактного лица для связи с предыдущими контактами",
   "youCannotDowngradeToThisPlan": "Вы не можете понизить до этого тарифа",
   "youCannotShareWithYourself": "Вы не можете поделиться с самим собой",
   "youHaveNoFileSuggestedForDeletion": "У вас нет файлов, которые были предложены для удаления",
@@ -3810,12 +4577,135 @@
   "yourPlanWasSuccessfullyDowngraded": "Ваш тариф успешно понижен",
   "yourPlanWasSuccessfullyUpgraded": "Ваш тариф успешно повышен",
   "yourPurchaseWasSuccessful": "Ваша покупка прошла успешно",
+  "yourReferralCode": "Ваш реферальный код",
   "yourSubscriptionHasExpired": "Срок действия вашей подписки истёк",
   "yourSubscriptionWasUpdatedSuccessfully": "Ваша подписка успешно обновлена",
   "yourTrashIsEmpty": "Ваша корзина пуста",
+  "yourVerificationCodeHasExpired": "Срок действия вашего кода подтверждения истёк",
+  "@yourVerificationCodeHasExpired": {
+    "description": "Error message when verification code has expired"
+  },
   "youveNoDuplicateCodesThatCanBeCleared": "У вас нет повторяющихся кодов, которые можно было бы удалить",
   "youveNoDuplicateFilesThatCanBeCleared": "У вас нет дубликатов файлов, которые можно удалить",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "В этом альбоме нет файлов, которые можно удалить",
   "zoomOutToSeePhotos": "Уменьшите масштаб, чтобы увидеть фото",
-  "grantAccess": "Предоставить доступ"
+  "backupPausedFreeUpDeviceStorage": "Резервное копирование приостановлено. Освободите место на этом устройстве, чтобы продолжить.",
+  "cameraPermissionRequired": "Для фотографирования необходим доступ к камере.",
+  "cameraPermissionSettings": "Доступ к камере отключен. Включите его в настройках, чтобы продолжить.",
+  "cameraPermissionRestricted": "Доступ к камере на этом устройстве ограничен.",
+  "legacyKitSheetGreeting": "Привет {name}, пожалуйста, сохрани это.",
+  "@legacyKitSheetGreeting": {
+    "description": "Greeting printed at the top of a Legacy kit recovery sheet, addressed to the person holding it",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Mom"
+      }
+    }
+  },
+  "legacyKitSheetIntro": "Если меня когда-нибудь не будет рядом или я потеряю доступ к своему аккаунту, этот лист поможет вам восстановить мои фотографии, документы и многое другое.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "legacyKitSheetHowToRecover": "Как восстановить мой аккаунт",
+  "legacyKitSheetNameJoinerOr": " или ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "Открыть {url}",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetStepScan": "Сканируйте листы {count}.",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "legacyKitSheetNeedHelp": "Нужна помощь? Напишите нам на {email}",
+  "@legacyKitSheetNeedHelp": {
+    "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "grantAccess": "Предоставить доступ",
+  "sharePhotos": "Поделиться фотографиями",
+  "sharePersonPhotos": "Поделиться фото, на которых есть {name}",
+  "@sharePersonPhotos": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unnamedPersonAlbumName": "Портрет - {date}",
+  "@unnamedPersonAlbumName": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAllPersonPhotos": "Поделитесь всеми фотографиями",
+  "shareAllPersonPhotosDescription": "Все фотографии {name} включая будущие фото",
+  "@shareAllPersonPhotosDescription": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "personShareFailedTitle": "Не удалось поделиться фотографиями",
+  "personShareFailedBody": "Не удалось создать общий альбом. Ваши фотографии и выбранные изображения остались без изменений. Пожалуйста, попробуйте еще раз.",
+  "personShareRollbackFailed": "Публикация не завершилась, и удалить альбом “{name}” не удалось. Он остаётся в разделе «Альбомы» и может содержать активную общедоступную ссылку. Просмотрите или удалите этот альбом там, прежде чем повторять попытку. Ваши исходные фотографии в безопасности.",
+  "@personShareRollbackFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedByYou": "Вы поделились",
+  "sharedByOwner": "Поделился {owner}",
+  "@sharedByOwner": {
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      }
+    }
+  },
+  "youAreViewer": "Вы смотрите",
+  "youAreCollaborator": "Вы соавтор",
+  "youAreAdmin": "Вы админ",
+  "emptyAlbumShareMessage": "Вы еще ни с кем не делились этим альбомом.",
+  "addPeople": "Добавить людей",
+  "fromYourContacts": "Из ваших контактов",
+  "chooseAccess": "Выберите доступ",
+  "permissions": "Разрешения",
+  "viewerRoleDescription": "Просмотреть и скачать фотографии",
+  "collaboratorRoleDescription": "Плюс добавляют свои собственные фотографии",
+  "adminRoleDescription": "Плюс добавление и удаление людей",
+  "noEnteAccountWithThisEmail": "Нет аккаунта Ente с таким адресом электронной почты.",
+  "shareALinkInline": "Поделиться ссылкой.",
+  "personAlreadyHasAccess": "У этого человека уже есть доступ.",
+  "notEnoughStorageTitle": "Недостаточно места для хранения",
+  "notEnoughStorageBody": "У вас недостаточно свободного места на Ente для добавления новых фотографий. Освободите место или обновите тариф, чтобы продолжать добавлять фотографии."
 }

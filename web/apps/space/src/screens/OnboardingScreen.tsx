@@ -70,7 +70,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 }) => {
     return (
         <Box
-            className="green-bg"
+            className="green-bg space-onboarding"
             component="main"
             sx={{
                 bgcolor: onboardingGreen,
@@ -82,7 +82,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             }}
         >
             <Box
-                className="green-bg"
+                className="green-bg space-onboarding-content"
                 sx={{
                     alignItems: "center",
                     bgcolor: onboardingGreen,
@@ -93,7 +93,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                     minHeight: "100svh",
                     mx: "auto",
                     overflow: "hidden",
-                    px: 2,
+                    pl: "max(16px, var(--space-ios-safe-area-left, 0px))",
+                    pr: "max(16px, var(--space-ios-safe-area-right, 0px))",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 422 },
                 }}
@@ -107,7 +108,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
                         gridTemplateColumns: "40px 1fr 40px",
                         height: 40,
                         maxWidth: { sm: 342 },
-                        mt: "clamp(24px, 5.5svh, 44px)",
+                        mt: "calc(clamp(24px, 5.5svh, 44px) + var(--space-ios-safe-area-top, 0px))",
                         width: "calc(100% - 16px)",
                     }}
                 >

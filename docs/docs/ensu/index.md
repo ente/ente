@@ -38,11 +38,15 @@ Download Ensu from [ente.com/ensu](https://ente.com/ensu) or pick a platform bel
 | macOS / Windows / Linux | [GitHub releases](https://github.com/ente/ente/releases?q=ensu)                                                                             |
 | Web                     | [ensu.ente.com](https://ensu.ente.com) (experimental)                                                                                       |
 
+On Android, you can also [add Ensu to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.ensu%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente%2Fente%22%2C%22author%22%3A%22ente%22%2C%22name%22%3A%22Ensu%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5Eensu%5C%22%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22%5Eensu-.%2A%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%7D%22%7D) to get updates directly from our GitHub releases.
+
 If you install the Android APK directly from GitHub releases, verify it against the published signing certificate. Learn more in [Verify the Ensu Android APK](/ensu/faq/android-apk-signature).
 
 The desktop apps auto-update on macOS, Linux, and Windows, so once installed you do not need to keep visiting the releases page.
 
 ## Send your first message
+
+![Populated Ensu web chat after sending a first message, with user bubble, streamed assistant reply, and composer](https://docs-assets.ente.com/screenshots/ensu-web-first-message.png){width=720px}
 
 1. Open Ensu.
 2. Type into the chat composer at the bottom of the screen.

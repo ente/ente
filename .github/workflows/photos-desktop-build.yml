@@ -100,7 +100,7 @@ jobs:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
             - name: Setup node
-              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 24
                   cache: "npm"
@@ -118,19 +118,6 @@ jobs:
             - name: Fetch binary dependencies and rebuild native modules
               run: npm run postinstall
 
-            - name: Create universal ffmpeg binaries for macOS
-              if: startsWith(matrix.os, 'macos')
-              # ffmpeg-static ships each macOS architecture separately; combine them with lipo.
-              run: |
-                  rm -f node_modules/ffmpeg-static/ffmpeg
-                  npm_config_arch=arm64 node node_modules/ffmpeg-static/install.js
-                  mv node_modules/ffmpeg-static/ffmpeg ffmpeg-arm64
-                  npm_config_arch=x64 node node_modules/ffmpeg-static/install.js
-                  mv node_modules/ffmpeg-static/ffmpeg ffmpeg-x64
-                  lipo -create ffmpeg-arm64 ffmpeg-x64 -output node_modules/ffmpeg-static/ffmpeg
-                  rm ffmpeg-arm64 ffmpeg-x64
-                  file node_modules/ffmpeg-static/ffmpeg
-
             - name: Install libarchive-tools for pacman build
               if: startsWith(matrix.os, 'ubuntu')
               run: sudo apt-get update && sudo apt-get install libarchive-tools
@@ -140,7 +127,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}

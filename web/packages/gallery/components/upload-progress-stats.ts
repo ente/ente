@@ -28,7 +28,7 @@ export type UploadStatKind = "inProgress" | FinishedStatKind;
 export const uploadStatColors: Record<FinishedStatKind, string> = {
     completed: "#08c225",
     skipped: "#2c83ff",
-    failed: "#ff8a1f",
+    failed: "var(--mui-palette-critical-main)",
 };
 
 // "failed" may be retryable; "skipped" cannot be uploaded.

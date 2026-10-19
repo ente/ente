@@ -5,7 +5,6 @@ import type {
     SearchOption,
     SidebarActionID,
 } from "ente-new/photos/services/search/types";
-import { wait } from "ente-utils/promise";
 import { t } from "i18next";
 
 interface SidebarAction {
@@ -18,10 +17,6 @@ interface SidebarAction {
 
 interface SidebarActionContext {
     onClose: () => void;
-    onShowCollectionSummary: (
-        collectionSummaryID: number,
-        isHidden?: boolean,
-    ) => Promise<void>;
     showAccount: () => void;
     showReferrals: () => void;
     showPreferences: () => void;
@@ -31,12 +26,6 @@ interface SidebarActionContext {
     onShowPlanSelector: () => void;
     onLogout: () => void;
     onShowWatchFolder: () => void;
-    pseudoIDs: {
-        uncategorized: number;
-        archive: number;
-        hidden: number;
-        trash: number;
-    };
     setPendingAccountAction: (a: SidebarActionID | undefined) => void;
     setPendingPreferencesAction: (a: SidebarActionID | undefined) => void;
     setPendingHelpAction: (a: SidebarActionID | undefined) => void;
@@ -46,7 +35,7 @@ interface SidebarActionContext {
 // Construct sidebar actions at call time so we always use initialized i18n
 // strings instead of whatever was available when this module was first loaded.
 const sidebarActions = (): SidebarAction[] => {
-    const shortcutsCategory = t("shortcuts", { defaultValue: "Shortcuts" });
+    const albumsCategory = t("albums");
     const preferencesCategory = t("preferences");
     const accountCategory = t("account");
     const helpCategory = t("help");
@@ -61,25 +50,25 @@ const sidebarActions = (): SidebarAction[] => {
         {
             id: "shortcuts.uncategorized",
             label: t("section_uncategorized"),
-            path: [shortcutsCategory, t("section_uncategorized")],
+            path: [albumsCategory, t("section_uncategorized")],
             keywords: ["uncategorized", "ungrouped"],
         },
         {
             id: "shortcuts.archive",
             label: t("section_archive"),
-            path: [shortcutsCategory, t("section_archive")],
+            path: [albumsCategory, t("section_archive")],
             keywords: ["archive", "archived"],
         },
         {
             id: "shortcuts.hidden",
             label: t("section_hidden"),
-            path: [shortcutsCategory, t("section_hidden")],
+            path: [albumsCategory, t("section_hidden")],
             keywords: ["hidden", "private"],
         },
         {
             id: "shortcuts.trash",
             label: t("section_trash"),
-            path: [shortcutsCategory, t("section_trash")],
+            path: [albumsCategory, t("section_trash")],
             keywords: ["trash", "bin", "deleted"],
         },
         {
@@ -330,27 +319,6 @@ export const performSidebarAction = async (
     ctx: SidebarActionContext,
 ): Promise<void> => {
     switch (actionID) {
-        case "shortcuts.uncategorized":
-            return ctx
-                .onShowCollectionSummary(ctx.pseudoIDs.uncategorized, false)
-                .then(() => ctx.onClose());
-        case "shortcuts.archive":
-            return ctx
-                .onShowCollectionSummary(ctx.pseudoIDs.archive, false)
-                .then(() => ctx.onClose());
-        case "shortcuts.hidden":
-            return (
-                ctx
-                    .onShowCollectionSummary(ctx.pseudoIDs.hidden, true)
-                    // Let focus settle before closing to avoid aria-hidden warnings.
-                    .then(() => wait(10))
-                    .then(() => ctx.onClose())
-            );
-        case "shortcuts.trash":
-            return ctx
-                .onShowCollectionSummary(ctx.pseudoIDs.trash, false)
-                .then(() => ctx.onClose());
-
         case "utility.account":
             ctx.showAccount();
             return Promise.resolve();
@@ -383,7 +351,6 @@ export const performSidebarAction = async (
 
         case "utility.export":
             ctx.onShowExport();
-            ctx.onClose();
             return Promise.resolve();
 
         case "utility.logout":

@@ -16,7 +16,7 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
-import "package:photos/ui/components/bottom_action_bar/selection_action_button_widget.dart";
+import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/notification/toast.dart";
@@ -28,10 +28,16 @@ import "package:photos/utils/magic_util.dart";
 class AlbumSelectionActionWidget extends StatefulWidget {
   final SelectedAlbums selectedAlbums;
   final UISectionType sectionType;
+  final Widget selectionControls;
+  final Color? backgroundColor;
+  final ScrollController? backgroundScrollController;
 
   const AlbumSelectionActionWidget(
     this.selectedAlbums,
     this.sectionType, {
+    required this.selectionControls,
+    this.backgroundColor,
+    this.backgroundScrollController,
     super.key,
   });
 
@@ -43,7 +49,6 @@ class AlbumSelectionActionWidget extends StatefulWidget {
 class _AlbumSelectionActionWidgetState
     extends State<AlbumSelectionActionWidget> {
   final _logger = Logger("AlbumSelectionActionWidgetState");
-  final _scrollController = ScrollController();
   late CollectionActions collectionActions;
   bool hasFavorites = false;
 
@@ -57,7 +62,6 @@ class _AlbumSelectionActionWidgetState
   @override
   void dispose() {
     widget.selectedAlbums.removeListener(_selectionChangedListener);
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -66,7 +70,7 @@ class _AlbumSelectionActionWidgetState
     if (widget.selectedAlbums.albums.isEmpty) {
       return const SizedBox.shrink();
     }
-    final List<SelectionActionButton> items = [];
+    final List<SelectionSheetAction> items = [];
     final hasPinnedAlbum = widget.selectedAlbums.albums.any(
       (album) => album.isPinned,
     );
@@ -92,7 +96,7 @@ class _AlbumSelectionActionWidgetState
 
     if (showOwnerActions) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.share,
           hugeIcon: Platform.isIOS
               ? HugeIcons.strokeRoundedShare03
@@ -103,7 +107,7 @@ class _AlbumSelectionActionWidgetState
     }
 
     items.add(
-      SelectionActionButton(
+      SelectionSheetAction(
         labelText: context.strings.slideshow,
         hugeIcon: HugeIcons.strokeRoundedPresentation03,
         onTap: _startAlbumSlideshow,
@@ -112,7 +116,7 @@ class _AlbumSelectionActionWidgetState
 
     if (showOwnerActions) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.pin,
           hugeIcon: HugeIcons.strokeRoundedPin,
           onTap: _onPinClick,
@@ -121,7 +125,7 @@ class _AlbumSelectionActionWidgetState
       );
 
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.unpin,
           hugeIcon: HugeIcons.strokeRoundedPinOff,
           onTap: _onUnpinClick,
@@ -130,7 +134,7 @@ class _AlbumSelectionActionWidgetState
       );
 
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.delete,
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           onTap: _trashCollection,
@@ -138,7 +142,7 @@ class _AlbumSelectionActionWidgetState
         ),
       );
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.hide,
           hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
           onTap: _onHideOrUnHideClick,
@@ -148,7 +152,7 @@ class _AlbumSelectionActionWidgetState
 
     if (showMixedEnteActions) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.hide,
           hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
           onTap: _onHideOrUnHideClick,
@@ -158,14 +162,14 @@ class _AlbumSelectionActionWidgetState
 
     if (widget.sectionType == UISectionType.archivedCollections) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.unarchive,
           hugeIcon: HugeIcons.strokeRoundedUnarchive03,
           onTap: _archiveClick,
         ),
       );
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.delete,
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           onTap: _trashCollection,
@@ -175,14 +179,14 @@ class _AlbumSelectionActionWidgetState
       );
     } else if (widget.sectionType == UISectionType.hiddenCollections) {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.unhide,
           hugeIcon: HugeIcons.strokeRoundedView,
           onTap: _onHideOrUnHideClick,
         ),
       );
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.delete,
           hugeIcon: HugeIcons.strokeRoundedDelete01,
           onTap: _trashCollection,
@@ -191,7 +195,7 @@ class _AlbumSelectionActionWidgetState
       );
     } else {
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.archive,
           hugeIcon: HugeIcons.strokeRoundedArchive03,
           onTap: _archiveClick,
@@ -209,7 +213,7 @@ class _AlbumSelectionActionWidgetState
         );
 
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.pin,
             hugeIcon: HugeIcons.strokeRoundedPin,
             onTap: _onPinClickForSharee,
@@ -218,7 +222,7 @@ class _AlbumSelectionActionWidgetState
         );
 
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.unpin,
             hugeIcon: HugeIcons.strokeRoundedPinOff,
             onTap: _onUnpinClickForSharee,
@@ -228,7 +232,7 @@ class _AlbumSelectionActionWidgetState
       }
 
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.hide,
           hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
           onTap: _onHideOrUnHideClick,
@@ -236,7 +240,7 @@ class _AlbumSelectionActionWidgetState
       );
 
       items.add(
-        SelectionActionButton(
+        SelectionSheetAction(
           labelText: context.strings.leaveAlbum,
           hugeIcon: HugeIcons.strokeRoundedLogout05,
           onTap: _leaveAlbum,
@@ -244,34 +248,11 @@ class _AlbumSelectionActionWidgetState
       );
     }
 
-    return MediaQuery(
-      data: MediaQuery.of(context).removePadding(removeBottom: true),
-      child: SafeArea(
-        child: Scrollbar(
-          radius: const Radius.circular(1),
-          thickness: 2,
-          controller: _scrollController,
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(
-              decelerationRate: ScrollDecelerationRate.fast,
-            ),
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(width: 4),
-                  ...items,
-                  const SizedBox(width: 4),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+    return SelectionActionSheet(
+      actions: items,
+      selectionControls: widget.selectionControls,
+      backgroundColor: widget.backgroundColor,
+      backgroundScrollController: widget.backgroundScrollController,
     );
   }
 

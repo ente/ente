@@ -58,12 +58,12 @@ class _PersonalNotePageState
       return context.strings.note;
     }
 
-    final controllerTitle = _nameController.text.trim();
+    final controllerTitle = _nameController.text;
     if (controllerTitle.isNotEmpty) {
       return controllerTitle;
     }
 
-    final dataTitle = (currentData?.title ?? '').trim();
+    final dataTitle = currentData?.title ?? '';
     if (dataTitle.isNotEmpty) {
       return dataTitle;
     }
@@ -79,14 +79,14 @@ class _PersonalNotePageState
 
   @override
   bool validateForm() {
-    final content = _contentController.text.trim();
+    final content = _contentController.text;
     return content.isNotEmpty;
   }
 
   @override
   PersonalNoteData createInfoData() {
-    final content = _contentController.text.trim();
-    var title = _nameController.text.trim();
+    final content = _contentController.text;
+    var title = _nameController.text;
 
     if (title.isEmpty && content.isNotEmpty) {
       title = _generateTitleFromContent(content);
@@ -100,16 +100,17 @@ class _PersonalNotePageState
     int maxWords = 5,
     int maxLength = 40,
   }) {
-    final firstLine = content.split('\n').first.trim();
+    final firstLine = content.trim().split('\n').first.trim();
     if (firstLine.isEmpty) return '';
 
     final words = firstLine.split(RegExp(r'\s+'));
     final limitedWords = words.take(maxWords).join(' ');
+    final characters = limitedWords.characters;
 
-    if (limitedWords.length <= maxLength) {
+    if (characters.length <= maxLength) {
       return limitedWords;
     }
-    return '${limitedWords.substring(0, maxLength).trimRight()}...';
+    return '${characters.take(maxLength).toString().trimRight()}...';
   }
 
   @override
@@ -117,7 +118,7 @@ class _PersonalNotePageState
 
   @override
   List<Widget> buildViewFields() {
-    if (_contentController.text.trim().isEmpty) {
+    if (_contentController.text.isEmpty) {
       return const <Widget>[];
     }
     return [
@@ -206,8 +207,8 @@ class _PersonalNotePageState
 
   @override
   bool get hasUnsavedChanges {
-    return _contentController.text.trim() != _initialContent.trim() ||
-        _nameController.text.trim() != _initialTitle.trim();
+    return _contentController.text != _initialContent ||
+        _nameController.text != _initialTitle;
   }
 
   @override

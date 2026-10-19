@@ -16,6 +16,8 @@ Ente Locker uses the same account system as Ente Photos and Ente Auth. If you al
 5. Verify your email with the code sent to you
 6. **Important**: Save your recovery key when prompted
 
+![Create account form on Ente Locker mobile with email frosted](https://docs-assets.ente.com/screenshots/locker-signup-create-account.png){width=320px}
+
 > [!WARNING]
 >
 > Your recovery key is the primary way to access your account if you forget your password. Store it securely in multiple locations, and set up Legacy recovery if someone else may need to recover the account.
@@ -39,6 +41,8 @@ If you already use Ente Photos or Ente Auth:
 ## Recovery key
 
 Your recovery key is a 24-word phrase generated when you create your account. This is critical for account recovery.
+
+![Recovery key save screen on Ente Locker mobile with key frosted](https://docs-assets.ente.com/screenshots/locker-signup-recovery-key.png){width=320px}
 
 **Best practices for storing your recovery key:**
 

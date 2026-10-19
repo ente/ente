@@ -15,7 +15,6 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/social/feed_data_provider.dart";
 import "package:photos/models/social/feed_item.dart";
 import "package:photos/models/social/social_data_provider.dart";
-import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import 'package:photos/services/social_notification_coordinator.dart';
 import "package:photos/theme/ente_theme.dart";
@@ -565,9 +564,7 @@ class _FeedScreenState extends State<FeedScreen> {
           ? const Center(child: EnteLoadingWidget(size: 24))
           : _feedItems.isEmpty
           ? FeedEmptyState(
-              localGalleryMode:
-                  isLocalGalleryMode &&
-                  !Configuration.instance.hasConfiguredAccount(),
+              reservesBottomNavigationSpace: !widget.showBackButton,
             )
           : RefreshIndicator(
               onRefresh: _onRefresh,
@@ -723,7 +720,7 @@ class _FeedScreenState extends State<FeedScreen> {
           CollectionWithThumbnail(collection, null),
           fileToJumpTo: fileToJumpTo,
         ),
-        forceCustomPageRoute: true,
+        useFadeTransition: true,
       ),
     );
   }

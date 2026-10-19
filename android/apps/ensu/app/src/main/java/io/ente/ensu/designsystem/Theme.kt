@@ -44,6 +44,8 @@ object EnsuColor {
     val error = Color(0xFFFF4444)
     val success = Color(0xFF4CAF50)
     val stopButton = Color(0xFFFF0000)
+    val sendButton = Color(0xFFE66A28)
+    val sendButtonInactive = sendButton.copy(alpha = 0.45f)
 
     val toastBackgroundLight = Color(0xFF1A1A1A)
     val toastBackgroundDark = Color(0xFFF8F5F0)

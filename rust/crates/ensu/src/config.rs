@@ -52,12 +52,25 @@ pub struct Defaults {
 }
 
 const SYSTEM_PROMPT_DATE_PLACEHOLDER: &str = "$date";
-// Mobile OSes report less than marketed RAM, so 7 GB targets 8 GB devices.
-const MOBILE_HIGH_MEMORY_THRESHOLD_BYTES: u64 = 7_000_000_000;
+const MOBILE_SMALL_MEMORY_MAX_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+const MOBILE_STANDARD_MEMORY_MAX_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const DESKTOP_HIGH_MEMORY_THRESHOLD_BYTES: u64 = 16 * 1024 * 1024 * 1024;
-const MOBILE_SYSTEM_PROMPT_BODY: &str = "You are Ensu, an AI assistant built by Ente. Current date: $date\n\nUse Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
+const MOBILE_SYSTEM_PROMPT_BODY: &str = "You are Ensu, an AI assistant built by Ente. Current date: $date\n\nBe short and crisp with your answers. Use simple sentences and words. Use Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
 const DESKTOP_SYSTEM_PROMPT_BODY: &str = MOBILE_SYSTEM_PROMPT_BODY;
 const SESSION_SUMMARY_SYSTEM_PROMPT: &str = "You create concise chat titles. Given the provided message, summarize the user's goal in 5-7 words. Use plain words. Don't use markdown characters in the title. No quotes, no emojis, no trailing punctuation, and output only the title.";
+
+fn lfm_350m() -> ModelPreset {
+    ModelPreset {
+        id: "lfm-350m".to_string(),
+        title: "LFM 2.5 350M (Q4_0)".to_string(),
+        url: "https://huggingface.co/ensu-app/LFM2.5-350M-GGUF/resolve/ca2fd7f92d164cbb729416c6f70b1b61e3124245/LFM2.5-350M-Q4_0.gguf?download=true".to_string(),
+        size: 219_309_792,
+        sha256: "85e32858daafad55b7bcd6b97a1343ee0661188e8036f9862d14d6b563142f50".to_string(),
+        mmproj_url: None,
+        mmproj_size: None,
+        mmproj_sha256: None,
+    }
+}
 
 fn lfm_vl_1_6b() -> ModelPreset {
     ModelPreset {
@@ -183,6 +196,7 @@ fn silero_vad_v4() -> ModelPreset {
 
 pub(crate) fn llm_catalog() -> Vec<ModelPreset> {
     vec![
+        lfm_350m(),
         lfm_vl_1_6b(),
         qwen_0_8b(),
         qwen_2b_q8(),
@@ -196,23 +210,26 @@ pub fn resolve_model_policy(
     surface: ModelRuntimeSurface,
     total_memory_bytes: Option<u64>,
 ) -> ResolvedModelPolicy {
-    let high_memory = match surface {
-        ModelRuntimeSurface::Android | ModelRuntimeSurface::Ios => {
-            total_memory_bytes.is_some_and(|bytes| bytes >= MOBILE_HIGH_MEMORY_THRESHOLD_BYTES)
-        }
-        ModelRuntimeSurface::Desktop => {
-            total_memory_bytes.is_some_and(|bytes| bytes >= DESKTOP_HIGH_MEMORY_THRESHOLD_BYTES)
-        }
-    };
+    if matches!(
+        surface,
+        ModelRuntimeSurface::Android | ModelRuntimeSurface::Ios
+    ) {
+        let model = match total_memory_bytes {
+            Some(bytes) if bytes > MOBILE_STANDARD_MEMORY_MAX_BYTES => gemma_4_e2b_q4km(),
+            Some(bytes) if bytes > MOBILE_SMALL_MEMORY_MAX_BYTES => lfm_vl_1_6b(),
+            _ => lfm_350m(),
+        };
+        return ResolvedModelPolicy {
+            default_model: model.clone(),
+            visible_models: vec![model.clone()],
+            allowed_preferred_models: vec![model],
+        };
+    }
 
-    let (default_id, visible_ids): (&str, &[&str]) = match (surface, high_memory) {
-        (ModelRuntimeSurface::Android | ModelRuntimeSurface::Ios, true) => {
-            ("gemma-4-e2b-q4km", &["gemma-4-e2b-q4km", "lfm-vl-1.6b"])
-        }
-        (ModelRuntimeSurface::Android | ModelRuntimeSurface::Ios, false) => {
-            ("lfm-vl-1.6b", &["lfm-vl-1.6b"])
-        }
-        (ModelRuntimeSurface::Desktop, true) => (
+    let high_memory =
+        total_memory_bytes.is_some_and(|bytes| bytes >= DESKTOP_HIGH_MEMORY_THRESHOLD_BYTES);
+    let (default_id, visible_ids): (&str, &[&str]) = if high_memory {
+        (
             "gemma-4-e4b-q4km",
             &[
                 "gemma-4-e4b-q4km",
@@ -221,11 +238,12 @@ pub fn resolve_model_policy(
                 "qwen-0.8b",
                 "qwen-2b-q8",
             ],
-        ),
-        (ModelRuntimeSurface::Desktop, false) => (
+        )
+    } else {
+        (
             "lfm-vl-1.6b",
             &["lfm-vl-1.6b", "qwen-0.8b", "qwen-2b-q8", "gemma-4-e2b-q4km"],
-        ),
+        )
     };
 
     let catalog = llm_catalog();
@@ -353,32 +371,52 @@ mod tests {
     }
 
     #[test]
-    fn defaults_views_select_from_the_catalog() {
-        let high_memory_mobile = resolve_model_policy(
-            ModelRuntimeSurface::Android,
-            Some(MOBILE_HIGH_MEMORY_THRESHOLD_BYTES),
-        );
-        assert_eq!(high_memory_mobile.default_model.id, "gemma-4-e2b-q4km");
-        let effective_id = |surface, memory, preferred| {
-            resolve_effective_model(surface, memory, Some(preferred)).id
-        };
-        assert_eq!(
-            effective_id(
-                ModelRuntimeSurface::Android,
-                Some(MOBILE_HIGH_MEMORY_THRESHOLD_BYTES),
-                "lfm-vl-1.6b",
-            ),
-            "lfm-vl-1.6b"
-        );
-        assert_eq!(
-            effective_id(ModelRuntimeSurface::Ios, None, "gemma-4-e2b-q4km"),
-            "gemma-4-e2b-q4km"
-        );
+    fn mobile_ram_ladder_enforces_inclusive_boundaries_and_saved_preferences() {
+        let gib = 1024 * 1024 * 1024;
+        for surface in [ModelRuntimeSurface::Android, ModelRuntimeSurface::Ios] {
+            for (memory, expected) in [
+                (None, "lfm-350m"),
+                (Some(0), "lfm-350m"),
+                (Some(4 * gib), "lfm-350m"),
+                (Some(4 * gib + 1), "lfm-vl-1.6b"),
+                (Some(8 * gib), "lfm-vl-1.6b"),
+                (Some(8 * gib + 1), "gemma-4-e2b-q4km"),
+            ] {
+                let policy = resolve_model_policy(surface, memory);
+                assert_eq!(policy.default_model.id, expected, "RAM: {memory:?}");
+                assert_eq!(policy.visible_models.len(), 1);
+                assert_eq!(policy.visible_models[0].id, expected);
+                assert_eq!(policy.allowed_preferred_models.len(), 1);
+                assert_eq!(
+                    policy.default_model.mmproj_url.is_none(),
+                    expected == "lfm-350m"
+                );
+                for preferred in [None, Some("unknown")]
+                    .into_iter()
+                    .chain(llm_catalog().iter().map(|model| Some(model.id.as_str())))
+                {
+                    assert_eq!(
+                        resolve_effective_model(surface, memory, preferred).id,
+                        expected,
+                        "RAM: {memory:?}, preference: {preferred:?}"
+                    );
+                }
+            }
+        }
+    }
 
-        let desktop = resolve_model_policy(ModelRuntimeSurface::Desktop, None);
-        assert_eq!(desktop.default_model.id, "lfm-vl-1.6b");
+    #[test]
+    fn desktop_model_policy_is_preserved() {
+        for (memory, expected, count) in [
+            (None, "lfm-vl-1.6b", 4),
+            (Some(16 * 1024 * 1024 * 1024), "gemma-4-e4b-q4km", 5),
+        ] {
+            let policy = resolve_model_policy(ModelRuntimeSurface::Desktop, memory);
+            assert_eq!(policy.default_model.id, expected);
+            assert_eq!(policy.visible_models.len(), count);
+        }
         assert_eq!(
-            effective_id(ModelRuntimeSurface::Desktop, None, "qwen-4b-q4km"),
+            resolve_effective_model(ModelRuntimeSurface::Desktop, None, Some("qwen-4b-q4km")).id,
             "qwen-4b-q4km"
         );
     }

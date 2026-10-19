@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Command};
 
 use postgresql_embedded::Settings;
 use postgresql_embedded::blocking::PostgreSQL;
@@ -33,6 +33,36 @@ impl Postgres {
 
     pub fn database(&self) -> &str {
         DATABASE
+    }
+
+    pub fn execute_sql(&self, sql: &str) -> TestResult {
+        let output = Command::new(
+            self.inner
+                .settings()
+                .binary_dir()
+                .join(format!("psql{}", std::env::consts::EXE_SUFFIX)),
+        )
+        .env("PGPASSWORD", self.password())
+        .args([
+            "-X",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-h",
+            self.host(),
+            "-p",
+            &self.port().to_string(),
+            "-U",
+            self.username(),
+            "-d",
+            self.database(),
+            "-c",
+            sql,
+        ])
+        .output()?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).into_owned().into());
+        }
+        Ok(())
     }
 }
 

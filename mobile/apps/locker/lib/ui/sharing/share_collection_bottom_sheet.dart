@@ -3,11 +3,9 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_sharing/models/user.dart";
 import "package:ente_sharing/user_avator_widget.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_utils/share_utils.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/extensions/user_extension.dart";
-import "package:locker/services/collections/collections_service.dart";
 import "package:locker/services/collections/models/collection.dart";
 import "package:locker/services/configuration.dart";
 import "package:locker/ui/components/custom_list_scrollbar.dart";
@@ -190,12 +188,15 @@ class _ShareCollectionSheetState extends State<ShareCollectionSheet> {
           _ShareActionOption(
             icon: HugeIcons.strokeRoundedLink02,
             label: _hasPublicLink
-                ? context.strings.manageLink
+                ? context.strings.linkSettings
                 : context.strings.linkLabel,
             onTap: () async {
               if (!_hasPublicLink) {
-                await _createAndSharePublicLink();
-                return;
+                final result = await CollectionActions.enableUrl(
+                  context,
+                  widget.collection,
+                );
+                if (!result || !mounted) return;
               }
 
               await routeToPage(
@@ -210,20 +211,6 @@ class _ShareCollectionSheetState extends State<ShareCollectionSheet> {
         ],
       ],
     );
-  }
-
-  Future<void> _createAndSharePublicLink() async {
-    final result = await CollectionActions.enableUrl(
-      context,
-      widget.collection,
-    );
-    if (result && mounted) {
-      setState(() {});
-      if (_hasPublicLink) {
-        final url = CollectionService.instance.getPublicUrl(widget.collection);
-        await shareText(url, context: context);
-      }
-    }
   }
 
   Widget _buildRoleIcon(CollectionParticipantRole role) {

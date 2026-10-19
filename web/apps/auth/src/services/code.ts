@@ -71,11 +71,11 @@ const parsePathname = (url: URL): [type: Code["type"], path: string] => {
 
     switch (url.host.toLowerCase()) {
         case "totp":
-            return ["totp", url.pathname.toLowerCase()];
+            return ["totp", url.pathname];
         case "hotp":
-            return ["hotp", url.pathname.toLowerCase()];
+            return ["hotp", url.pathname];
         case "steam":
-            return ["steam", url.pathname.toLowerCase()];
+            return ["steam", url.pathname];
         default:
             break;
     }
@@ -135,8 +135,10 @@ const parsePeriod = (url: URL): number =>
 const parseAlgorithm = (url: URL): Code["algorithm"] => {
     switch (url.searchParams.get("algorithm")?.toLowerCase()) {
         case "sha256":
+        case "algorithm.sha256":
             return "sha256";
         case "sha512":
+        case "algorithm.sha512":
             return "sha512";
         default:
             return "sha1";
@@ -191,6 +193,7 @@ export const generateOTPs = (
                 secret: code.secret,
                 counter: counter,
                 algorithm: code.algorithm,
+                digits: code.length,
             });
             otp = hotp.generate({ counter });
             nextOTP = hotp.generate({ counter: counter + 1 });

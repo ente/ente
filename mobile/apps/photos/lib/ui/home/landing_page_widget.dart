@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:math";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -60,7 +59,6 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
       data: lightComponentTheme,
       child: Builder(
         builder: (context) {
-          final textTheme = getEnteTextTheme(context);
           final colorScheme = getEnteColorScheme(context);
           return Scaffold(
             backgroundColor: colorScheme.greenBase,
@@ -92,32 +90,27 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
                                       context.strings.onboardingTitle,
                                       textAlign: TextAlign.center,
                                       textScaler: TextScaler.noScaling,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
                                         fontFamily: TextStyles.outfitFontFamily,
                                         package: TextStyles.fontPackage,
-                                        fontSize: min(
-                                          MediaQuery.of(context).size.width *
-                                              0.09,
-                                          48,
-                                        ),
-                                        height: 1,
+                                        fontSize: 28,
+                                        height: 30 / 28,
                                         color: Colors.white,
                                       ),
                                     ),
 
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 24),
 
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 32,
                                       ),
                                       child: Text(
-                                        context.strings.onboardingDesc,
+                                        context.strings.onboardingOrganizeDesc,
                                         textAlign: TextAlign.center,
-                                        style: textTheme.body.copyWith(
+                                        style: TextStyles.body.copyWith(
                                           color: colorScheme.greenLight,
-                                          fontSize: 14,
                                         ),
                                       ),
                                     ),
@@ -130,33 +123,74 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
                           },
                         ),
                       ),
-                      ButtonComponent(
-                        variant: ButtonComponentVariant.neutral,
-                        label: context.strings.createAnEnteAccount,
-                        onTap: _navigateToSignUpPage,
-                        shouldSurfaceExecutionStates: false,
-                      ),
-                      if (localSettings.showLocalGalleryModeOption) ...[
-                        const SizedBox(height: 12),
-                        ButtonComponent(
-                          variant: ButtonComponentVariant.secondary,
-                          label: context.strings.continueWithoutAccount,
-                          onTap: _navigateWithoutAccount,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: ButtonComponent(
+                          variant: ButtonComponentVariant.neutral,
+                          density: ButtonComponentDensity.compact,
+                          label: context.strings.createMyAccount,
+                          onTap: _navigateToSignUpPage,
                           shouldSurfaceExecutionStates: false,
                         ),
-                      ],
+                      ),
                       const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: _navigateToSignInPage,
-                        child: Text(
-                          context.strings.loginToExistingAccount,
-                          style: textTheme.body.copyWith(
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white,
-                            color: Colors.white,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: _navigateToSignInPage,
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              minimumSize: const Size.fromHeight(48),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Text(
+                              context.strings.logInLabel,
+                              style: TextStyles.body.copyWith(
+                                color: Colors.black,
+                              ),
+                            ),
                           ),
                         ),
                       ),
+                      if (localSettings.showLocalGalleryModeOption) ...[
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: TextButton(
+                              onPressed: _navigateWithoutAccount,
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              child: Text(
+                                context.strings.continueWithoutAccount,
+                                style: TextStyles.bodyLink.copyWith(
+                                  color: Colors.white,
+                                  decorationColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       const DeveloperSettingsWidget(),
                     ],
                   ),

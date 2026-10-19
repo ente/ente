@@ -14,6 +14,8 @@ import 'package:photos/ente_theme_data.dart';
 import 'package:photos/events/christmas_banner_event.dart';
 import 'package:photos/events/notification_event.dart';
 import 'package:photos/events/sync_status_update_event.dart';
+import 'package:photos/events/tab_changed_event.dart';
+import 'package:photos/models/home_tab.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/large_backup_session_tracker.dart";
 import 'package:photos/services/sync/sync_service.dart';
@@ -26,7 +28,7 @@ import 'package:photos/ui/home/header_error_widget.dart';
 import "package:photos/ui/home/large_backup_screen.dart";
 import "package:photos/ui/settings/backup/backup_settings_screen.dart";
 import "package:photos/ui/settings/backup/backup_status_screen.dart";
-import "package:photos/ui/settings/ml/machine_learning_settings_page.dart";
+import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 
 const double kContainerHeight = 36;
 
@@ -148,8 +150,8 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
             : const SizedBox.shrink(),
         if (_showErrorBanner) HeaderErrorWidget(error: _syncError),
         if (_shouldShowLargeBackupBanner) _largeBackupBanner(context),
-        if (_showMlBanner && !_showErrorBanner) _mlBanner(context),
-        if (_showVerificationBanner()) _recoveryKeyBanner(context),
+        if (_showMlBanner && !_showErrorBanner) const _MachineLearningBanner(),
+        if (_showVerificationBanner()) const _RecoveryKeyBanner(),
       ],
     );
   }
@@ -175,7 +177,22 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
     );
   }
 
-  Widget _mlBanner(BuildContext context) {
+  bool _showVerificationBanner() {
+    if (_showErrorBanner ||
+        _showErrorBanner ||
+        flagService.recoveryKeyVerified) {
+      return false;
+    }
+    final DateTime installTime = localSettings.getInstallDateTime();
+    return DateTime.now().difference(installTime).inDays >= 3;
+  }
+}
+
+class _MachineLearningBanner extends StatelessWidget {
+  const _MachineLearningBanner();
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.strings;
     return _bannerPadding(
       BannerComponent(
@@ -185,17 +202,22 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         state: BannerComponentState.success,
         trailingWidget: const Icon(Icons.arrow_forward),
         onTap: () async {
-          await routeToPage(
-            context,
-            const MachineLearningSettingsPage(),
-            forceCustomPageRoute: true,
-          );
+          if (await showMLConsentSheet(context)) {
+            Bus.instance.fire(
+              TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
+            );
+          }
         },
       ),
     );
   }
+}
 
-  Widget _recoveryKeyBanner(BuildContext context) {
+class _RecoveryKeyBanner extends StatelessWidget {
+  const _RecoveryKeyBanner();
+
+  @override
+  Widget build(BuildContext context) {
     return _bannerPadding(
       BannerComponent(
         leadingIcon: HugeIcons.strokeRoundedAlertCircle,
@@ -212,23 +234,13 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
       ),
     );
   }
+}
 
-  Widget _bannerPadding(Widget child) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: child,
-    );
-  }
-
-  bool _showVerificationBanner() {
-    if (_showErrorBanner ||
-        _showErrorBanner ||
-        flagService.recoveryKeyVerified) {
-      return false;
-    }
-    final DateTime installTime = localSettings.getInstallDateTime();
-    return DateTime.now().difference(installTime).inDays >= 3;
-  }
+Widget _bannerPadding(Widget child) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    child: child,
+  );
 }
 
 class SyncStatusWidget extends StatefulWidget {

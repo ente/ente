@@ -9,6 +9,7 @@ describe("getAvailableFileActions", () => {
                 barMode: "hidden-albums",
                 isInSearchMode: false,
                 collectionSummary: undefined,
+                hasOwnFiles: true,
                 hasOnlyOwnFiles: true,
                 showAddPerson: false,
                 showEditLocation: false,
@@ -29,6 +30,21 @@ describe("getAvailableFileActions", () => {
                 barMode: "hidden-albums",
                 isInSearchMode: false,
                 collectionSummary: undefined,
+                hasOwnFiles: false,
+                hasOnlyOwnFiles: false,
+                showAddPerson: false,
+                showEditLocation: false,
+            }),
+        ).toEqual(["download", "addToAlbum", "unhide"]);
+    });
+
+    test("allows trashing owned files in a mixed hidden-album selection", () => {
+        expect(
+            getAvailableFileActions({
+                barMode: "hidden-albums",
+                isInSearchMode: false,
+                collectionSummary: undefined,
+                hasOwnFiles: true,
                 hasOnlyOwnFiles: false,
                 showAddPerson: false,
                 showEditLocation: false,
@@ -57,6 +73,7 @@ describe("getAvailableFileActions", () => {
             getAvailableFileActions({
                 isInSearchMode: false,
                 collectionSummary,
+                hasOwnFiles: false,
                 hasOnlyOwnFiles: false,
                 showAddPerson: false,
                 showEditLocation: false,

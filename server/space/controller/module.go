@@ -7,18 +7,20 @@ import (
 )
 
 type Module struct {
-	Spaces     *SpacesController
-	Posts      *PostsController
-	Friends    *FriendsController
-	Messages   *MessagesController
-	Assets     *AssetsController
-	Read       *ReadMarkersController
-	Sessions   *SessionsController
-	WebPush    *WebPushController
-	Cleanup    *CleanupController
-	Links      *LinksController
-	UserTokens UserTokenTerminator
-	auth       authDeps
+	Spaces        *SpacesController
+	Posts         *PostsController
+	Friends       *FriendsController
+	Messages      *MessagesController
+	Assets        *AssetsController
+	Read          *ReadMarkersController
+	Notifications *NotificationsController
+	Pokes         *PokesController
+	Sessions      *SessionsController
+	WebPush       *WebPushController
+	Cleanup       *CleanupController
+	Links         *LinksController
+	UserTokens    UserTokenTerminator
+	auth          authDeps
 }
 
 type UserTokenTerminator interface {
@@ -42,17 +44,19 @@ func NewModule(
 	assets := &AssetsController{AssetsRepo: repos.Assets, SpacesRepo: repos.Spaces, auth: authDeps}
 	links := &LinksController{LinksRepo: repos.Links, SpacesRepo: repos.Spaces, FriendsRepo: repos.Friends, Posts: posts, Assets: assets}
 	return &Module{
-		Spaces:   spaces,
-		Posts:    posts,
-		Friends:  &FriendsController{FriendsRepo: repos.Friends, SpacesRepo: repos.Spaces, ActivityNotifier: activityNotifier},
-		Messages: &MessagesController{MessagesRepo: repos.Messages, PostsRepo: repos.Posts, SpacesRepo: repos.Spaces, FriendsRepo: repos.Friends, ReadMarkersRepo: repos.Read, ActivityNotifier: activityNotifier, auth: authDeps},
-		Assets:   assets,
-		Read:     &ReadMarkersController{ReadMarkersRepo: repos.Read},
-		Sessions: &SessionsController{SessionsRepo: repos.Sessions},
-		WebPush:  &WebPushController{webPushRepo: repos.WebPush, links: links, config: webPushConfig},
-		Cleanup:  &CleanupController{AssetsRepo: repos.Assets},
-		Links:    links,
-		auth:     authDeps,
+		Spaces:        spaces,
+		Posts:         posts,
+		Friends:       &FriendsController{FriendsRepo: repos.Friends, SpacesRepo: repos.Spaces, ActivityNotifier: activityNotifier},
+		Messages:      &MessagesController{MessagesRepo: repos.Messages, PostsRepo: repos.Posts, SpacesRepo: repos.Spaces, FriendsRepo: repos.Friends, ReadMarkersRepo: repos.Read, ActivityNotifier: activityNotifier, auth: authDeps},
+		Assets:        assets,
+		Read:          &ReadMarkersController{ReadMarkersRepo: repos.Read},
+		Notifications: &NotificationsController{NotificationsRepo: repos.Notifications, PostsRepo: repos.Posts},
+		Pokes:         &PokesController{PokesRepo: repos.Pokes, SpacesRepo: repos.Spaces, ActivityNotifier: activityNotifier, auth: authDeps},
+		Sessions:      &SessionsController{SessionsRepo: repos.Sessions},
+		WebPush:       &WebPushController{webPushRepo: repos.WebPush, links: links, config: webPushConfig},
+		Cleanup:       &CleanupController{AssetsRepo: repos.Assets},
+		Links:         links,
+		auth:          authDeps,
 	}
 }
 

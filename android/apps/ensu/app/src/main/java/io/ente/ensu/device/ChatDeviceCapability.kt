@@ -1,9 +1,14 @@
 package io.ente.ensu.device
 
-// Compared against the memory the OS reports (ActivityManager.totalMem), which runs
-// well below marketed RAM. 3.2 GB sits in the gap between 3 GB devices (~2.7-3.0 GB
-// reported) and 4 GB devices (~3.4-3.8 GB reported), so 4 GB devices pass and 3 GB don't.
-const val CHAT_MIN_RAM_BYTES: Long = 3_200_000_000L
+const val CHAT_MIN_RAM_BYTES: Long = 1_600_000_000L
+
+internal fun chatDeviceCapability(totalMemoryBytes: Long): ChatDeviceCapability =
+    when {
+        totalMemoryBytes <= 0 -> ChatDeviceCapability.Unknown
+        totalMemoryBytes < CHAT_MIN_RAM_BYTES ->
+            ChatDeviceCapability.UnsupportedLowMemory(totalMemoryBytes, CHAT_MIN_RAM_BYTES)
+        else -> ChatDeviceCapability.Supported(totalMemoryBytes)
+    }
 
 sealed interface ChatDeviceCapability {
     val totalMemoryBytes: Long?
@@ -12,7 +17,7 @@ sealed interface ChatDeviceCapability {
 
     data class UnsupportedLowMemory(
         override val totalMemoryBytes: Long,
-        val requiredMemoryBytes: Long = CHAT_MIN_RAM_BYTES,
+        val requiredMemoryBytes: Long,
     ) : ChatDeviceCapability
 
     object Unknown : ChatDeviceCapability {

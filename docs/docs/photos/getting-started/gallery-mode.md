@@ -11,6 +11,8 @@ Ente Photos can be used as a gallery app on your phone without creating an accou
 
 ## Getting started
 
+![Welcome screen on Ente Photos mobile with Continue without an account highlighted](https://docs-assets.ente.com/screenshots/phone-gallery-mode-continue-callout.png){width=320px}
+
 1. Download Ente Photos from the App Store or Google Play
 2. On the welcome screen, tap **Continue without account**
 3. Grant Ente access to your photo library when prompted

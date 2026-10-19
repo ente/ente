@@ -30,6 +30,10 @@ impl Model {
             model_params = model_params.with_n_gpu_layers(layers);
         }
 
+        if let Some(use_mmap) = params.use_mmap {
+            model_params = model_params.with_use_mmap(use_mmap);
+        }
+
         if let Some(use_mlock) = params.use_mlock {
             model_params = model_params.with_use_mlock(use_mlock);
         }

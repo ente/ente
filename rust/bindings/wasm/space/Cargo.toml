@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 ente-core.workspace = true
 ente-space.workspace = true
 ente-wasm-lib = { workspace = true, features = ["crypto"] }
+futures-util.workspace = true
 js-sys.workspace = true
 log.workspace = true
 serde.workspace = true
@@ -17,6 +18,7 @@ thiserror.workspace = true
 tsify.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
+web-sys = { workspace = true, features = ["AbortSignal"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }

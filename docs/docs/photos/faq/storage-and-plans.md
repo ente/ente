@@ -126,6 +126,8 @@ If a free account has no active paid subscription and remains inactive for 12 co
 
 If you have configured Legacy with trusted contacts, we will notify those trusted contacts as well, so they have a chance to recover the account if needed.
 
+Visitors opening or viewing your public albums do not count as you using your account. Do not rely on public-link views to keep a free account active.
+
 To keep the account and its data, simply sign in before the date mentioned in the emails.
 
 ### What are the limitations of the free plan? {#free-plan-limits}
@@ -336,9 +338,17 @@ In case you do not have access to such an email address, please send us proof (s
 
 Please note that these discounts are valid for a year, after which you may reapply to reclaim the discount.
 
+**Already subscribed?**
+
+Contact [students@ente.com](mailto:students@ente.com) before your next renewal invoice is generated so we can review your eligibility and help renew the discount on your existing subscription. Include the email address registered with Ente if it differs from your institute email.
+
+You do not need to cancel, resubscribe, or change your billing interval just to look for a coupon field. If an invoice has already been issued, contact us about the options for your account. An adjustment or refund is not automatic.
+
 ## Discount Codes and Referrals
 
 ### How do I apply a discount code to my subscription? {#apply-discount-code}
+
+For renewal of an existing student discount, follow the [student discount instructions](#student-discount) instead of changing your plan to enter a promotional code.
 
 If you have a discount code (e.g., from partnerships like Kagi Friends 25% off), follow these steps carefully:
 
@@ -441,6 +451,10 @@ We support **annual** subscriptions over PayPal.
 - You must email from the same email address registered with your Ente account
 - Invoice generation is manual, so expect a response within 1-2 business days
 
+**Renewing a PayPal plan**
+
+PayPal plans are renewed manually. Before your paid period ends, email [paypal@ente.com](mailto:paypal@ente.com) from your registered Ente email address and mention the annual plan you want to renew. We will send the payment instructions for your renewal.
+
 ### Does Ente store my card details? {#card-security}
 
 Ente does not store any of your sensitive payment related information.
@@ -493,15 +507,11 @@ When your subscription expires, you enter a **30-day grace period** before your 
     - Download all photos to your computer or NAS
     - Learn more in the [Export guide](/photos/migration/export/)
 
-**Can I get my free plan back after subscription expires?**
+**Can I get my free plan back after my subscription expires?**
 
-Yes! If you had data exceeding the free 10 GB limit and your subscription expired:
+Contact [support@ente.com](mailto:support@ente.com) if you want to return to the free plan after a paid subscription expires. Your account may need to be switched back by support even if your usage is already within the free 10 GB allowance. You do not need to delete photos just to meet that allowance if you are already below it.
 
-- Your data enters the 30-day grace period
-- To restore access to your data on the free plan, contact [support@ente.com](mailto:support@ente.com)
-- We can restore your account to the free plan if you're within the grace period
-- You'll need to delete data to get under the 10 GB limit
-- Once your account is back on the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
+If your usage is above the free allowance, contact support about your options. Keep a verified export of anything you want to retain before removing files.
 
 **What about subscriptions purchased through App Stores?**
 
@@ -626,13 +636,23 @@ You will be able to see all of your previous invoices, with details regarding th
 
 If you would like to change your payment method entirely (e.g., switch between App Store, Play Store, PayPal, or crypto), please contact [support@ente.com](mailto:support@ente.com).
 
+**Switching from Apple to direct billing**
+
+1. Cancel renewal in your Apple subscription settings. Cancelling renewal can leave your current paid period active until the end date shown by Apple.
+2. Contact [support@ente.com](mailto:support@ente.com) about switching the same Ente account to direct billing. Support can check when your account can be moved to the free plan so you can purchase directly.
+3. Once the account is ready, sign in to [photos.ente.com](https://photos.ente.com) with the same Ente email address and buy your plan there. Purchasing again inside the iOS app uses Apple billing and may reactivate that subscription.
+
+Apple decides requests for refunds of App Store purchases. Contacting Ente or cancelling renewal does not guarantee a refund.
+
 ### How can I cancel my subscription? {#cancel-subscription}
 
-You can cancel your subscription via Settings > click on the Storage (subscription) card at the top > Cancel subscription.
+For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-This can also be done via Settings > Account > Manage subscription > Cancel subscription.
+For a subscription purchased through Apple or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
-After cancellation, you'll have access to your data for 30 days, after which it will be deleted. Make sure to export your photos before the grace period ends if you want to keep them.
+If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
+
+Cancelling renewal does not delete your Ente account. Your paid plan continues until its expiry date. See [What happens when my subscription expires?](#subscription-expires) for what happens next. Make sure to export your photos before the grace period ends if you want to keep them.
 
 If support helps move your account back to the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 
@@ -660,7 +680,9 @@ Open Settings in the Ente app. The registered email address will appear at the v
 
 ### What should I do if I received this email? {#inactive-account-action}
 
-Simply sign in to the account mentioned in the email before the date specified. This will mark the account as active.
+Sign in to the account named in the email before the date specified. Check the registered email address in the app to make sure you are using the correct account. Signing in marks that account as active.
+
+Visitors viewing your public albums do not replace signing in yourself. For details, see the [inactive free-account policy](#inactive-free-account).
 
 ### I think this email was sent by mistake {#inactive-account-mistake}
 

@@ -1,4 +1,5 @@
 mod budget;
+mod followup;
 mod grounding;
 mod lookup;
 mod prepare;
@@ -7,11 +8,13 @@ mod turn;
 mod uuid_text;
 
 pub use budget::{GenerationBudget, resolve_generation_budget};
+pub use followup::direct_followup_references;
 pub use grounding::{FittedGrounding, GroundingCandidates, MAX_GROUNDING_BYTES};
 use grounding::{fit_grounding_with_history, grounded_system};
 use lookup::{HistoryLookup, lookup_history, requested_history};
 pub use prepare::{Effects, Preparation, PreparationResult, PrepareError};
-pub(crate) use state::ConversationEnvelope;
+pub use state::AnswerEvidence;
+pub(crate) use state::{ConversationEnvelope, valid_answer_passages};
 pub use turn::{PreparedTurn, TurnInput, prepare_turn};
 
 #[cfg(test)]
@@ -122,7 +125,7 @@ impl ConversationState {
     }
 }
 
-fn fingerprint(messages: &[Message]) -> String {
+pub fn fingerprint(messages: &[Message]) -> String {
     let rows: Vec<_> = messages
         .iter()
         .map(|m| {

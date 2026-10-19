@@ -1,5 +1,7 @@
 use super::*;
-use crate::conversation::{self, ConversationEnvelope, ConversationState, MAX_STATE_BYTES};
+use crate::conversation::{
+    self, AnswerEvidence, ConversationEnvelope, ConversationState, MAX_STATE_BYTES,
+};
 use std::collections::HashMap;
 
 const MESSAGE_COLUMNS: &str =
@@ -10,6 +12,7 @@ pub struct ConversationSnapshot {
     pub(super) session_uuid: Uuid,
     pub(super) messages: Vec<Message>,
     pub(super) state: Option<ConversationState>,
+    derived: ConversationEnvelope,
     rows: Vec<crate::db::Row>,
     envelope: Value,
 }
@@ -20,6 +23,14 @@ impl ConversationSnapshot {
     }
     pub fn state(&self) -> Option<&ConversationState> {
         self.state.as_ref()
+    }
+    pub fn evidence(&self) -> Vec<AnswerEvidence> {
+        self.derived
+            .evidence
+            .iter()
+            .filter(|entry| entry.matches(&self.messages))
+            .cloned()
+            .collect()
     }
     pub fn session_uuid(&self) -> Uuid {
         self.session_uuid
@@ -77,13 +88,15 @@ impl<B: Backend> ChatDb<B> {
         }
         conversation::validate_path(&messages)
             .map_err(|e| Error::UnsupportedOperation(e.to_string()))?;
-        let state = self
+        let derived = self
             .decode_conversation(&envelope, session)
-            .and_then(ConversationEnvelope::summary_state);
+            .unwrap_or_else(|| ConversationEnvelope::empty(session));
+        let state = derived.summary_state();
         Ok(ConversationSnapshot {
             session_uuid: session,
             messages,
             state,
+            derived,
             rows,
             envelope,
         })
@@ -122,19 +135,20 @@ impl<B: Backend> ChatDb<B> {
                 .validate()
                 .map_err(|_| Error::UnsupportedOperation("Invalid conversation state".into()))?;
         }
-        let mut derived = ConversationEnvelope::empty(snapshot.session_uuid);
+        let mut derived = snapshot.derived.clone();
         derived.summary = state.as_ref().map(|state| state.summary.clone());
         let envelope = self.encode_conversation(&derived)?;
         let applied = self.replace_conversation_envelope(snapshot, envelope.clone())?;
         if applied {
             snapshot.envelope = envelope;
             snapshot.state = state;
+            snapshot.derived = derived;
         }
         Ok(applied)
     }
 
     fn encode_conversation(&self, derived: &ConversationEnvelope) -> Result<Value> {
-        if derived.summary.is_none() {
+        if derived.summary.is_none() && derived.evidence.is_empty() {
             return Ok(Value::Null);
         }
         let bytes = serde_json::to_vec(derived)?;
@@ -144,6 +158,42 @@ impl<B: Backend> ChatDb<B> {
             ));
         }
         Ok(Value::Blob(crypto::encrypt_blob(&bytes, &self.key)?))
+    }
+
+    pub fn save_answer_evidence(
+        &self,
+        snapshot: &ConversationSnapshot,
+        answer: Uuid,
+        passages: Vec<crate::retrieval::IncludedPassage>,
+    ) -> Result<bool> {
+        if !conversation::valid_answer_passages(&passages) {
+            return Ok(false);
+        }
+        let mut path: Vec<_> = snapshot.messages.iter().map(|m| m.uuid).collect();
+        path.push(answer);
+        let mut current = self.conversation_snapshot(snapshot.session_uuid, &path)?;
+        if current.envelope != snapshot.envelope
+            || current.rows[..snapshot.rows.len()] != snapshot.rows
+        {
+            return Ok(false);
+        }
+        let saved = current
+            .messages
+            .last()
+            .ok_or(Error::UnsupportedOperation("Missing saved answer".into()))?;
+        let sources = crate::retrieval::parse_grounded_assistant_text(&saved.text).sources;
+        if !passages.iter().all(|passage| {
+            sources
+                .iter()
+                .any(|source| passage.locator.matches_source(source))
+        }) {
+            return Ok(false);
+        }
+        if !current.derived.add_evidence(&current.messages, passages) {
+            return Ok(false);
+        }
+        let envelope = self.encode_conversation(&current.derived)?;
+        self.replace_conversation_envelope(&current, envelope)
     }
 
     fn replace_conversation_envelope(
@@ -174,17 +224,36 @@ impl<B: Backend> ChatDb<B> {
         if envelope == Value::Null {
             return Ok(());
         }
-        let clear = match self
-            .decode_conversation(&envelope, session)
-            .and_then(|envelope| envelope.summary)
-        {
-            Some(summary) => depends_on(tx, summary.covered_boundary_message_uuid, edited)?,
-            None => true,
-        };
-        if clear {
+        let Some(mut derived) = self.decode_conversation(&envelope, session) else {
             tx.execute(
                 "UPDATE sessions SET conversation_state = NULL WHERE session_uuid = ?",
                 &[Value::Text(session.to_string())],
+            )?;
+            return Ok(());
+        };
+        let mut changed = false;
+        if let Some(summary) = &derived.summary
+            && depends_on(tx, summary.covered_boundary_message_uuid, edited)?
+        {
+            derived.summary = None;
+            changed = true;
+        }
+        let mut retained = Vec::new();
+        for entry in derived.evidence.drain(..) {
+            if depends_on(tx, entry.assistant_message_uuid, edited)? {
+                changed = true;
+            } else {
+                retained.push(entry);
+            }
+        }
+        derived.evidence = retained;
+        if changed {
+            tx.execute(
+                "UPDATE sessions SET conversation_state = ? WHERE session_uuid = ?",
+                &[
+                    self.encode_conversation(&derived)?,
+                    Value::Text(session.to_string()),
+                ],
             )?;
         }
         Ok(())
@@ -349,6 +418,37 @@ mod tests {
         .unwrap()
     }
 
+    fn passages() -> Vec<crate::retrieval::IncludedPassage> {
+        vec![crate::retrieval::passage_fixture().0]
+    }
+
+    fn sourced_answer(
+        db: &ChatDb<crate::db::SqliteBackend>,
+        captured: &ConversationSnapshot,
+    ) -> Message {
+        let source = crate::retrieval::GroundedSource::LocalNote {
+            reference: crate::notes::NoteSourceReference {
+                collection_id: "123e4567-e89b-12d3-a456-426614174000".into(),
+                collection_label: None,
+                document_id: "trip.md".into(),
+                indexed_revision: "a".repeat(64),
+                title: "Trip".into(),
+                section: None,
+            },
+        };
+        let text =
+            crate::retrieval::finalize_grounded_assistant_text("Saved answer", &[source]).unwrap();
+        db.insert_message_guarded(
+            captured.session_uuid,
+            "other",
+            &text,
+            captured.messages.last().map(|m| m.uuid),
+            vec![],
+            Some(captured),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn migrated_orphan_history_supports_summary_restore_and_continuation() {
         let dir = tempfile::tempdir().unwrap();
@@ -485,6 +585,138 @@ mod tests {
                 Some(&captured)
             )
             .is_err()
+        );
+    }
+
+    #[test]
+    fn evidence_and_summary_survive_encrypted_reopen_and_branch_selection() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("evidence.db");
+        let db = ChatDb::open_sqlite_with_defaults(&file, vec![7; 32]).unwrap();
+        let session = db.create_session("Sources").unwrap().uuid;
+        let question = db
+            .insert_message(session, "self", "Tell me about my trip", None, vec![])
+            .unwrap();
+        let captured = snapshot(&db, session, std::slice::from_ref(&question));
+        let answer = sourced_answer(&db, &captured);
+        assert!(
+            db.save_answer_evidence(&captured, answer.uuid, passages())
+                .unwrap()
+        );
+        let full = vec![question.clone(), answer];
+        let mut restored = snapshot(&db, session, &full);
+        assert!(restored.state().is_none());
+        assert_eq!(restored.evidence()[0].passages, passages());
+        let Value::Blob(bytes) = &restored.envelope else {
+            panic!("encrypted")
+        };
+        assert!(!bytes.windows(7).any(|w| w == b"trip.md"));
+        let memory = ConversationState::new(session, &full, "Trip discussed".into()).unwrap();
+        assert!(
+            db.replace_conversation_state(&mut restored, Some(memory.clone()))
+                .unwrap()
+        );
+        drop(restored);
+        drop(captured);
+        drop(db);
+        let db = ChatDb::open_sqlite_with_defaults(&file, vec![7; 32]).unwrap();
+        let reopened = snapshot(&db, session, &full);
+        assert_eq!(reopened.evidence().len(), 1);
+        assert_eq!(reopened.state(), Some(&memory));
+        let sibling = db
+            .insert_message(
+                session,
+                "other",
+                "Other branch",
+                Some(question.uuid),
+                vec![],
+            )
+            .unwrap();
+        assert!(
+            snapshot(&db, session, &[question, sibling])
+                .evidence()
+                .is_empty()
+        );
+        assert_eq!(snapshot(&db, session, &full).evidence().len(), 1);
+    }
+
+    #[test]
+    fn summary_updates_preserve_evidence_and_edits_invalidate_only_dependents() {
+        let (db, session, mut messages) = seeded();
+        let captured = snapshot(&db, session, &messages);
+        let answer = sourced_answer(&db, &captured);
+        assert!(
+            db.save_answer_evidence(&captured, answer.uuid, passages())
+                .unwrap()
+        );
+        messages.push(answer);
+        let mut current = snapshot(&db, session, &messages);
+        let memory = state(session, &messages, "Memory");
+        for next in [Some(memory.clone()), None, Some(memory)] {
+            assert!(db.replace_conversation_state(&mut current, next).unwrap());
+            assert_eq!(snapshot(&db, session, &messages).evidence().len(), 1);
+        }
+        db.update_message_text(messages[2].uuid, "Edited question")
+            .unwrap();
+        let current = snapshot(&db, session, &messages);
+        assert!(current.state().is_some());
+        assert!(current.evidence().is_empty());
+    }
+
+    #[test]
+    fn evidence_write_races_and_failures_keep_the_answer_and_prior_state() {
+        let (db, session, messages) = seeded();
+        let captured = snapshot(&db, session, &messages);
+        let answer = sourced_answer(&db, &captured);
+        let mut other_writer = snapshot(&db, session, &messages);
+        let memory = state(session, &messages, "Other writer");
+        assert!(
+            db.replace_conversation_state(&mut other_writer, Some(memory.clone()))
+                .unwrap()
+        );
+        assert!(
+            !db.save_answer_evidence(&captured, answer.uuid, passages())
+                .unwrap()
+        );
+        assert_eq!(db.get_message(answer.uuid).unwrap().unwrap(), answer);
+        db.backend.execute("CREATE TRIGGER fail_evidence BEFORE UPDATE OF conversation_state ON sessions BEGIN SELECT RAISE(ABORT, 'storage failure'); END", &[]).unwrap();
+        assert!(
+            db.save_answer_evidence(&other_writer, answer.uuid, passages())
+                .is_err()
+        );
+        assert_eq!(db.get_message(answer.uuid).unwrap().unwrap(), answer);
+        assert_eq!(snapshot(&db, session, &messages).state(), Some(&memory));
+    }
+
+    #[test]
+    fn evidence_rejects_changed_history_missing_citations_and_deleted_sessions() {
+        let (db, session, messages) = seeded();
+        let captured = snapshot(&db, session, &messages);
+        let uncited = db
+            .insert_message_guarded(
+                session,
+                "other",
+                "No sources",
+                Some(messages[2].uuid),
+                vec![],
+                Some(&captured),
+            )
+            .unwrap();
+        assert!(
+            !db.save_answer_evidence(&captured, uncited.uuid, passages())
+                .unwrap()
+        );
+        let answer = sourced_answer(&db, &captured);
+        db.update_message_text(messages[0].uuid, "Changed history")
+            .unwrap();
+        assert!(
+            !db.save_answer_evidence(&captured, answer.uuid, passages())
+                .unwrap()
+        );
+        db.delete_session(session).unwrap();
+        assert!(
+            db.save_answer_evidence(&captured, answer.uuid, passages())
+                .is_err()
         );
     }
 

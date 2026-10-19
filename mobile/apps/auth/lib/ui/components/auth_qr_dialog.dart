@@ -40,6 +40,7 @@ class AuthQrDialog extends StatefulWidget {
 
 class _AuthQrDialogState extends State<AuthQrDialog> {
   final GlobalKey _qrKey = GlobalKey();
+  bool _useBlackFinderPatterns = false;
 
   Future<void> _shareQrCode() async {
     try {
@@ -83,7 +84,6 @@ class _AuthQrDialogState extends State<AuthQrDialog> {
     final double qrSize = min(screenWidth - 80, 300.0);
     final enteTextTheme = getEnteTextTheme(context);
 
-    // QR text color - always black for scanability
     const qrTextColor = textBaseLight;
 
     return Semantics(
@@ -155,18 +155,28 @@ class _AuthQrDialogState extends State<AuthQrDialog> {
                               ),
                             ],
                             SizedBox(height: qrSize * 0.07),
-                            QrImageView(
-                              data: widget.data,
-                              eyeStyle: const QrEyeStyle(
-                                eyeShape: QrEyeShape.square,
-                                color: accentColor,
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _useBlackFinderPatterns =
+                                      !_useBlackFinderPatterns;
+                                });
+                              },
+                              child: QrImageView(
+                                data: widget.data,
+                                eyeStyle: QrEyeStyle(
+                                  eyeShape: QrEyeShape.square,
+                                  color: _useBlackFinderPatterns
+                                      ? qrTextColor
+                                      : context.componentColors.primary,
+                                ),
+                                dataModuleStyle: const QrDataModuleStyle(
+                                  dataModuleShape: QrDataModuleShape.square,
+                                  color: qrTextColor,
+                                ),
+                                version: QrVersions.auto,
+                                size: qrSize,
                               ),
-                              dataModuleStyle: const QrDataModuleStyle(
-                                dataModuleShape: QrDataModuleShape.square,
-                                color: qrTextColor,
-                              ),
-                              version: QrVersions.auto,
-                              size: qrSize,
                             ),
                             SizedBox(height: qrSize * 0.07),
                             Align(

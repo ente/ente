@@ -221,14 +221,14 @@ const Page: React.FC = () => {
                 isResending={isResending}
                 isSubmitting={isSubmitting}
                 onBack={() =>
-                    void router.push(
+                    void router.back(
                         isLoginVerification
                             ? spaceRoutes.login
                             : spaceRoutes.signup,
                     )
                 }
                 onChangeEmail={() =>
-                    void router.push(
+                    void router.back(
                         isLoginVerification
                             ? spaceRoutes.login
                             : spaceRoutes.signup,

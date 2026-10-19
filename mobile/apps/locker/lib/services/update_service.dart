@@ -129,11 +129,6 @@ class UpdateService {
     await _prefs!.setInt(kChangeLogShownVersionKey, currentChangeLogVersion);
   }
 
-  Future<void> resetChangeLogShown() async {
-    if (!_isInitialized) return;
-    await _prefs!.remove(kChangeLogShownVersionKey);
-  }
-
   bool isIndependent() {
     if (!_isInitialized) {
       return false;

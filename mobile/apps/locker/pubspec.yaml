@@ -1,7 +1,7 @@
 name: locker
 description: "Ente Locker – Safe space for your important documents"
 publish_to: "none"
-version: 1.0.10+182
+version: 1.0.11+182
 
 resolution: workspace
 environment:
@@ -11,14 +11,11 @@ dependencies:
   adaptive_theme: 3.7.2
   app_links: 6.4.1
   bip39: 1.0.6
-  camera: 0.11.2+1
+  camera: 0.12.1
   collection: 1.19.1
-  convert: 3.1.2
-  crypto: 3.0.7
   dio: 5.9.2
   dots_indicator: 4.0.1
   dotted_border: 3.1.0
-  email_validator: 3.0.0
   ente_account_deletion:
     path: ../../packages/account_deletion
   ente_accounts:
@@ -55,6 +52,8 @@ dependencies:
     path: ../../packages/logging
   ente_network:
     path: ../../packages/network
+  ente_pdf_renderer:
+    path: ../../packages/ente_pdf_renderer
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
   ente_sharing:
@@ -65,8 +64,6 @@ dependencies:
     path: ../../packages/ui
   ente_utils:
     path: ../../packages/utils
-  event_bus: 2.0.1
-  expandable: 5.0.1
   fast_base58: 0.2.1
   file_picker: 11.0.3
   file_saver: 0.3.1
@@ -75,7 +72,7 @@ dependencies:
   flutter_displaymode: 0.6.0
   flutter_localizations:
     sdk: flutter
-  flutter_rust_bridge: 2.12.0
+  flutter_rust_bridge: 2.13.0
   flutter_svg: 2.3.0
   freezed_annotation: 3.1.0
   hugeicons: 1.1.7
@@ -88,7 +85,7 @@ dependencies:
   path_provider: 2.1.5
   rive: 0.14.0-dev.13
   share_plus: 12.0.0
-  shared_preferences: 2.5.3
+  shared_preferences: 2.5.4
   sqflite: 2.4.2
   tuple: 2.0.2
   url_launcher: 6.3.2

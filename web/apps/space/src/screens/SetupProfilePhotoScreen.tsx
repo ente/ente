@@ -228,8 +228,9 @@ export const SetupProfilePhotoScreen: React.FC<
                     mx: "auto",
                     overflow: "hidden",
                     pb: "calc(20px + env(safe-area-inset-bottom))",
-                    pt: "32px",
-                    px: 3,
+                    pt: "calc(32px + var(--space-ios-safe-area-top, 0px))",
+                    pl: "max(24px, var(--space-ios-safe-area-left, 0px))",
+                    pr: "max(24px, var(--space-ios-safe-area-right, 0px))",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },
                 }}

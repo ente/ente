@@ -239,7 +239,6 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
                             autoCapitalize="none"
                             autoComplete="off"
                             autoCorrect="off"
-                            autoFocus
                             aria-label="Friend's username"
                             aria-invalid={hasError || undefined}
                             disabled={isSubmitting || isSent}
@@ -328,7 +327,7 @@ export const SpaceAddFriendDialog: React.FC<SpaceAddFriendDialogProps> = ({
                     ) : isSent ? (
                         <SpaceActionFeedbackIcon phase="done" />
                     ) : (
-                        "Send request"
+                        "Send friend request"
                     )}
                 </Box>
                 {profileLink && (

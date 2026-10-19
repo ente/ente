@@ -1,1 +1,0 @@
-- Fixed album auto-add missing photos after first setup or when person matches become available during sync.

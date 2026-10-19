@@ -146,11 +146,13 @@ class FilterChipComponent extends StatelessWidget {
     if (label != null) {
       addGap();
       children.add(
-        Text(
-          label!,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyles.mini.copyWith(color: color),
+        Flexible(
+          child: Text(
+            label!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyles.mini.copyWith(color: color),
+          ),
         ),
       );
     }

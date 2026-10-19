@@ -83,22 +83,24 @@ public final class VideoExportEngine: Sendable {
             )
         }
 
+        var compositionAudioTrack: AVMutableCompositionTrack?
         do {
             try compositionVideoTrack.insertTimeRange(videoTimeRange, of: videoTrack, at: .zero)
             let audioTracks = try await asset.loadTracks(withMediaType: .audio)
             if let audioTrack = audioTracks.first {
                 let audioTrackRange = try await audioTrack.load(.timeRange)
                 if let audioTimeRange = validIntersection(videoTimeRange, audioTrackRange),
-                    let compositionAudioTrack = composition.addMutableTrack(
+                    let mutableAudioTrack = composition.addMutableTrack(
                         withMediaType: .audio,
                         preferredTrackID: kCMPersistentTrackID_Invalid
                     )
                 {
-                    try compositionAudioTrack.insertTimeRange(
+                    try mutableAudioTrack.insertTimeRange(
                         audioTimeRange,
                         of: audioTrack,
                         at: CMTimeSubtract(audioTimeRange.start, videoTimeRange.start)
                     )
+                    compositionAudioTrack = mutableAudioTrack
                 }
             }
         } catch is CancellationError {
@@ -107,7 +109,18 @@ public final class VideoExportEngine: Sendable {
             throw VideoEditorError.composition("Failed to insert media track", error)
         }
 
-        let isReEncoded = request.crop != nil || (request.rotateDegrees ?? 0) != 0
+        if request.speed != 1 {
+            let sourceTimeRange = CMTimeRange(start: .zero, duration: composition.duration)
+            let outputDuration = CMTimeMultiplyByFloat64(
+                sourceTimeRange.duration,
+                multiplier: 1 / request.speed
+            )
+            compositionVideoTrack.scaleTimeRange(sourceTimeRange, toDuration: outputDuration)
+            compositionAudioTrack?.scaleTimeRange(sourceTimeRange, toDuration: outputDuration)
+        }
+
+        let isReEncoded =
+            request.crop != nil || (request.rotateDegrees ?? 0) != 0 || request.speed != 1
         var videoComposition: AVMutableVideoComposition?
         if isReEncoded {
             let transformPlan = try VideoTransformPlanner.makePlan(

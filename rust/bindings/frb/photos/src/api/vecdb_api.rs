@@ -54,7 +54,7 @@ fn to_engine_storage(storage: VecDbStorage) -> vecdb::StorageKind {
     }
 }
 
-fn to_api_storage(storage: vecdb::StorageKind) -> VecDbStorage {
+pub(crate) fn to_api_storage(storage: vecdb::StorageKind) -> VecDbStorage {
     match storage {
         vecdb::StorageKind::F32 => VecDbStorage::F32,
         vecdb::StorageKind::I8 => VecDbStorage::I8,
@@ -136,8 +136,27 @@ fn to_api_match(entry: vecdb::Match) -> VecDbMatch {
     }
 }
 
-fn to_api_matches(matches: Vec<vecdb::Match>) -> Vec<VecDbMatch> {
+pub(crate) fn to_api_matches(matches: Vec<vecdb::Match>) -> Vec<VecDbMatch> {
     matches.into_iter().map(to_api_match).collect()
+}
+
+pub(crate) fn to_api_key_matches(entry: vecdb::KeyMatches) -> VecDbKeyMatches {
+    VecDbKeyMatches {
+        key: entry.key,
+        matches: to_api_matches(entry.matches),
+    }
+}
+
+pub(crate) fn to_api_stats(stats: vecdb::Stats) -> VecDbStats {
+    VecDbStats {
+        live_count: stats.live_count as u32,
+        dead_count: stats.dead_count as u32,
+        dims: stats.dims as u32,
+        storage: to_api_storage(stats.storage),
+        log_bytes: stats.log_bytes,
+        records_since_snapshot: stats.records_since_snapshot as u32,
+        approximate_memory_bytes: stats.approximate_memory_bytes as u64,
+    }
 }
 
 pub fn delete_vec_db_files(file_path: String) -> Result<(), RustVecDbError> {
@@ -328,13 +347,7 @@ impl VecDb {
             exact,
             restrict_to_input,
         )?;
-        Ok(results
-            .into_iter()
-            .map(|entry| VecDbKeyMatches {
-                key: entry.key,
-                matches: to_api_matches(entry.matches),
-            })
-            .collect())
+        Ok(results.into_iter().map(to_api_key_matches).collect())
     }
 
     pub fn bulk_get_vectors(
@@ -364,16 +377,7 @@ impl VecDb {
     }
 
     pub fn get_index_stats(&self) -> Result<VecDbStats, RustVecDbError> {
-        let stats = self.inner.stats()?;
-        Ok(VecDbStats {
-            live_count: stats.live_count as u32,
-            dead_count: stats.dead_count as u32,
-            dims: stats.dims as u32,
-            storage: to_api_storage(stats.storage),
-            log_bytes: stats.log_bytes,
-            records_since_snapshot: stats.records_since_snapshot as u32,
-            approximate_memory_bytes: stats.approximate_memory_bytes as u64,
-        })
+        Ok(to_api_stats(self.inner.stats()?))
     }
 }
 

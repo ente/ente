@@ -189,8 +189,7 @@ const createIndexedDbChatDb = (
 ): ChatDbLike => ({
     get: async (name, key) => {
         const entry = (await db.get(name, key)) as
-            | ChatDbSchema[typeof name]
-            | undefined;
+            ChatDbSchema[typeof name] | undefined;
         if (!entry) return undefined;
         return cloneStoreEntry(name, entry);
     },
@@ -210,8 +209,7 @@ const createIndexedDbChatDb = (
             ): ChatObjectStore<K> => ({
                 get: async (key) => {
                     const entry = (await tx.objectStore(name).get(key)) as
-                        | ChatDbSchema[K]
-                        | undefined;
+                        ChatDbSchema[K] | undefined;
                     if (!entry) return undefined;
                     return cloneStoreEntry(name, entry);
                 },

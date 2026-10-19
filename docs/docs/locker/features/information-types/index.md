@@ -9,6 +9,8 @@ Ente Locker supports multiple item types, each designed for specific use cases. 
 
 ## Available types
 
+![Save to Locker item type picker on mobile](https://docs-assets.ente.com/screenshots/locker-save-menu.png){width=320px}
+
 ### Document
 
 Upload and store files securely including PDFs, images, and scans. Keep important documents like passports, contracts, receipts, and certificates encrypted and accessible.

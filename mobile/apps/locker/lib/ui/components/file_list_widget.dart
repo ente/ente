@@ -126,7 +126,7 @@ class FileListWidget extends StatelessWidget {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               border: Border.all(
                 color: isSelected ? colors.strokeDark : colors.fillLight,

@@ -1,9 +1,5 @@
 {
   "account": "അക്കൗണ്ട്",
-  "albumOwner": "ഉടമ",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "blog": "ബ്ലോഗ്",
   "calculating": "കണക്കുകൂട്ടുന്നു...",
   "cancel": "റദ്ദാക്കുക",
@@ -37,10 +33,6 @@
   "deleteAccount": "അക്കൗണ്ട് ഉപേക്ഷിക്കു",
   "@deleteAccount": {
     "description": "Delete account button label"
-  },
-  "doThisLater": "പിന്നീട് ചെയ്യുക",
-  "@doThisLater": {
-    "description": "Do this later button label"
   },
   "email": "ഇമെയിൽ",
   "@email": {

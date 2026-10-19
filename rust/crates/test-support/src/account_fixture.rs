@@ -1,7 +1,9 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use ente_accounts::auth::{SrpSession, generate_srp_setup_with_login_key};
 use ente_accounts::{AccountsClient, AccountsClientConfig, KeyAttributes, models::SetupSrpRequest};
-use ente_core::b64;
 use ente_core::crypto::{Key, SecretKey, kdf, secretbox};
+use ente_core::{b64, otp};
 use uuid::Uuid;
 
 use crate::{HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, TestResult};
@@ -109,6 +111,16 @@ pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestResult<Te
         secret_key: secret_key.as_bytes().to_vec(),
         key_attributes,
     })
+}
+
+pub fn current_totp(secret: &str) -> TestResult<String> {
+    Ok(otp::totp(
+        &otp::decode_secret(secret)?,
+        SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+        30,
+        6,
+        otp::Algorithm::Sha1,
+    )?)
 }
 
 fn pad_left(data: &[u8], len: usize) -> Vec<u8> {

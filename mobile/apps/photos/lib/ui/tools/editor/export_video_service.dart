@@ -33,7 +33,9 @@ class ExportService {
     final filters = buildFfmpegVideoFilters(
       crop: crop,
       rotation: controller.rotation,
+      speed: controller.speed,
     );
+    final audioFilters = buildFfmpegAudioTempoFilters(controller.speed);
 
     final start = _seconds(controller.startTrim);
     final duration = _seconds(controller.trimmedDuration);
@@ -41,15 +43,16 @@ class ExportService {
       '-y',
       '-ss',
       start,
-      '-i',
-      controller.file.path,
       '-t',
       duration,
+      '-i',
+      controller.file.path,
       '-map',
       '0:v:0',
       '-map',
       '0:a?',
       if (filters.isNotEmpty) ...['-vf', filters.join(',')],
+      if (audioFilters.isNotEmpty) ...['-af', audioFilters.join(',')],
       '-c:v',
       'libx264',
       '-preset',
@@ -69,7 +72,7 @@ class ExportService {
     return FfmpegVideoExportPlan(
       arguments: arguments,
       outputPath: outputPath,
-      duration: controller.trimmedDuration,
+      duration: controller.editedDuration,
     );
   }
 
@@ -152,6 +155,7 @@ class ExportService {
 List<String> buildFfmpegVideoFilters({
   required CropCalculation? crop,
   required int rotation,
+  double speed = 1.0,
 }) {
   final filters = <String>[];
   if (crop != null) filters.add(crop.toFFmpegFilter());
@@ -169,5 +173,29 @@ List<String> buildFfmpegVideoFilters({
       throw ArgumentError.value(rotation, 'rotation');
   }
   filters.add('scale=trunc(iw/2)*2:trunc(ih/2)*2');
+  if (speed != 1.0) {
+    filters.add('setpts=PTS/$speed');
+  }
+  return filters;
+}
+
+List<String> buildFfmpegAudioTempoFilters(double speed) {
+  if (!speed.isFinite || speed <= 0) {
+    throw ArgumentError.value(speed, 'speed');
+  }
+  if (speed == 1.0) return [];
+
+  final filters = <String>[];
+  var remaining = speed;
+  while (remaining < 0.5) {
+    filters.add('atempo=0.5');
+    remaining /= 0.5;
+  }
+  while (remaining > 2.0) {
+    filters.add('atempo=2.0');
+    remaining /= 2.0;
+  }
+  filters.add('atempo=$remaining');
+  filters.add('asetpts=PTS-STARTPTS+STARTPTS/$speed');
   return filters;
 }

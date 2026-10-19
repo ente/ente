@@ -100,8 +100,12 @@ pub fn reserved(name: &str, album: bool) -> bool {
 
 fn device(name: &str) -> bool {
     let folded = folded(name);
-    let device = folded.split('.').next().unwrap_or_default();
-    ["con", "prn", "aux", "nul", "clock$"].contains(&device)
+    let device = folded
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches(' ');
+    ["con", "prn", "aux", "nul", "clock$", "conin$", "conout$"].contains(&device)
         || ["com", "lpt"].iter().any(|prefix| {
             device.strip_prefix(prefix).is_some_and(|n| {
                 matches!(
@@ -154,6 +158,13 @@ pub fn available(
         }
     }
     Ok(true)
+}
+
+pub fn valid(name: &str, album: bool) -> bool {
+    !name.is_empty()
+        && portable(name) == name
+        && !reserved(name, album)
+        && name.len() <= if album { 255 } else { 250 }
 }
 
 pub fn allocate(

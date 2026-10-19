@@ -4,6 +4,7 @@ import "package:shared_preferences/shared_preferences.dart";
 class PermissionService {
   static const kHasGrantedPermissionsKey = "has_granted_permissions";
   static const kPermissionStateKey = "permission_state";
+  static const kHasAttemptedPermissionKey = "has_attempted_permission";
   static const _photoLibraryAddRequestOption = PermissionRequestOption(
     iosAccessLevel: IosAccessLevel.addOnly,
   );
@@ -34,6 +35,14 @@ class PermissionService {
 
   bool hasGrantedPermissions() {
     return _prefs.getBool(kHasGrantedPermissionsKey) ?? false;
+  }
+
+  bool hasAttemptedPermission() {
+    return _prefs.getBool(kHasAttemptedPermissionKey) ?? false;
+  }
+
+  Future<void> setHasAttemptedPermission() async {
+    await _prefs.setBool(kHasAttemptedPermissionKey, true);
   }
 
   bool hasGrantedLimitedPermissions() {

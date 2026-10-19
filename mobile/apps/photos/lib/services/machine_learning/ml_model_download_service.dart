@@ -2,11 +2,12 @@ import "dart:async";
 
 import "package:connectivity_plus/connectivity_plus.dart";
 import "package:logging/logging.dart";
+import "package:path/path.dart" as p;
+import "package:path_provider/path_provider.dart";
 import "package:photos/service_locator.dart"
     show flagService, hasGrantedMLConsent, isLocalGalleryMode, localSettings;
-import "package:photos/services/machine_learning/ml_model_assets.dart";
-import "package:photos/services/machine_learning/ml_models_overview.dart";
-import "package:photos/services/remote_assets_service.dart";
+import "package:photos/services/machine_learning/ml_exceptions.dart";
+import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/utils/network_util.dart";
 import "package:synchronized/synchronized.dart";
 
@@ -14,6 +15,13 @@ class MLModelDownloadService {
   final _logger = Logger("MLModelDownloadService");
 
   final _downloadModelLock = Lock();
+  final _progressController = StreamController<(String, int, int)>.broadcast();
+
+  Stream<(String, int, int)> get progressStream => _progressController.stream;
+
+  Future<String> getAssetsDirectory() async =>
+      p.join((await getApplicationSupportDirectory()).path, "assets");
+
   final _activeModelDownloadTriggers = <bool>{};
 
   bool _areIndexingModelsDownloaded = false;
@@ -35,13 +43,10 @@ class MLModelDownloadService {
   }
 
   Future<bool> canLoadClipTextModel() async {
-    final hasModel = await RemoteAssetsService.instance.hasAsset(
-      ClipTextModel.instance.modelRemotePath,
-    );
-    final hasVocab = await RemoteAssetsService.instance.hasAsset(
-      ClipTextModel.instance.vocabRemotePath,
-    );
-    if (hasModel && hasVocab) {
+    if (await rust_ml.isClipTextDownloaded(
+      assetsDir: await getAssetsDirectory(),
+      includeVocab: true,
+    )) {
       return true;
     }
     return isLocalGalleryMode || await canUseHighBandwidth();
@@ -69,11 +74,9 @@ class MLModelDownloadService {
 
   Future<void> ensureModelsDownloaded({
     required bool onlyIndexingModels,
-    bool forceRefresh = false,
   }) async {
     return _downloadModelLock.synchronized(() async {
-      if (!forceRefresh &&
-          areModelsDownloaded(onlyIndexingModels: onlyIndexingModels)) {
+      if (areModelsDownloaded(onlyIndexingModels: onlyIndexingModels)) {
         return;
       }
       if (!hasGrantedMLConsent) {
@@ -96,17 +99,10 @@ class MLModelDownloadService {
         return;
       }
 
-      final modelsToDownload = <Future<void>>[];
-      if (forceRefresh || !_areIndexingModelsDownloaded) {
-        modelsToDownload.addAll(_indexingModelDownloads(forceRefresh));
-      }
-      if (!onlyIndexingModels &&
-          (forceRefresh || !_areNonIndexingModelsDownloaded)) {
-        modelsToDownload.addAll(_nonIndexingModelDownloads(forceRefresh));
-      }
-      if (modelsToDownload.isEmpty) {
-        return;
-      }
+      final downloadIndexing = !_areIndexingModelsDownloaded;
+      final downloadText =
+          !onlyIndexingModels && !_areNonIndexingModelsDownloaded;
+      if (!downloadIndexing && !downloadText) return;
 
       _logger.info(
         onlyIndexingModels
@@ -114,7 +110,28 @@ class MLModelDownloadService {
             : "Downloading all ML models",
       );
       try {
-        await Future.wait(modelsToDownload);
+        await for (final update in rust_ml.preloadMlModels(
+          assetsDir: await getAssetsDirectory(),
+          runFaces: downloadIndexing,
+          runClip: downloadIndexing,
+          runPets: downloadIndexing && _shouldDownloadPetModels,
+          includeClipText: downloadText,
+        )) {
+          switch (update) {
+            case rust_ml.ModelDownloadEvent_Progress():
+              _progressController.add((
+                update.model,
+                update.downloadedBytes.toInt(),
+                update.totalBytes?.toInt() ?? 0,
+              ));
+            case rust_ml.ModelDownloadEvent_Failed():
+              final error = update.error;
+              if (error is rust_ml.RustMlError_ModelDownloadNetwork) {
+                throw ModelDownloadNetworkException(error.message);
+              }
+              throw error;
+          }
+        }
       } catch (e, s) {
         _logger.warning(
           "ML model download failed, will retry when high bandwidth "
@@ -127,7 +144,7 @@ class MLModelDownloadService {
         );
         rethrow;
       }
-      if (forceRefresh || !_areIndexingModelsDownloaded) {
+      if (!_areIndexingModelsDownloaded) {
         _areIndexingModelsDownloaded = true;
       }
       if (!onlyIndexingModels) {
@@ -140,28 +157,6 @@ class MLModelDownloadService {
             : "Downloaded all ML models",
       );
     });
-  }
-
-  List<Future<void>> _indexingModelDownloads(bool forceRefresh) {
-    final models = <MLModels>[
-      ...coreIndexingModels,
-      if (_shouldDownloadPetModels) ...petIndexingModels,
-    ];
-    return [
-      for (final model in models) model.model.downloadModel(forceRefresh),
-    ];
-  }
-
-  List<Future<void>> _nonIndexingModelDownloads(bool forceRefresh) {
-    return [
-      for (final model in nonIndexingModels)
-        model.model.downloadModel(forceRefresh),
-      RemoteAssetsService.instance.getAssetPath(
-        ClipTextModel.instance.vocabRemotePath,
-        refetch: forceRefresh,
-        expectedSha256: ClipTextModel.instance.vocabSha256,
-      ),
-    ];
   }
 
   bool get _shouldDownloadPetModels {

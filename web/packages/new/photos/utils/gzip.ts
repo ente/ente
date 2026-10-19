@@ -18,8 +18,18 @@ export const gunzipWithLimit = async (
     data: Uint8Array<ArrayBuffer>,
     maxOutputBytes: number,
 ) => {
-    const reader = new Blob([data])
-        .stream()
+    let inputOffset = 0;
+    const compressedStream = new ReadableStream<Uint8Array<ArrayBuffer>>({
+        pull(controller) {
+            if (inputOffset >= data.byteLength) {
+                controller.close();
+                return;
+            }
+            controller.enqueue(data.subarray(inputOffset, inputOffset + 1024));
+            inputOffset += 1024;
+        },
+    });
+    const reader = compressedStream
         .pipeThrough(new DecompressionStream("gzip"))
         .getReader();
     const chunks: Uint8Array<ArrayBuffer>[] = [];

@@ -225,6 +225,7 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
                               result.collectionWithThumbnail,
                               tagPrefix: "searchable_item" + result.heroTag(),
                             ),
+                            useFadeTransition: true,
                           );
                         },
                       );

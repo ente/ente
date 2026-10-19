@@ -78,6 +78,33 @@ String? extractPrintableExifValue(IfdTag? tag) {
   return printable;
 }
 
+String formatExifExposureTime(IfdTag exposureTimeTag) {
+  final values = exposureTimeTag.values.toList();
+  if (values.isEmpty) {
+    return exposureTimeTag.toString();
+  }
+
+  final value = values[0];
+  if (value is! Ratio) {
+    return exposureTimeTag.toString();
+  }
+
+  final seconds = value.numerator / value.denominator;
+  if (!seconds.isFinite || seconds <= 0) {
+    return exposureTimeTag.toString();
+  }
+
+  if (seconds >= 1) {
+    if (seconds == seconds.roundToDouble()) {
+      return "${seconds.toInt()}s";
+    }
+    return "${seconds.toStringAsFixed(1)}s";
+  } else {
+    final reciprocal = (1 / seconds).round();
+    return "1/$reciprocal";
+  }
+}
+
 bool shouldSwapDimensionsForExifOrientation(Map<String, IfdTag>? exifData) {
   final orientation = exifData?['Image Orientation']?.values.firstAsInt() ?? 1;
   // EXIF orientations 5-8 are rotated 90/270 variants and require w/h swap.

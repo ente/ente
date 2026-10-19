@@ -406,6 +406,7 @@ func main() {
 	collectionController := &collections.CollectionController{
 		CollectionRepo:        collectionRepo,
 		EmailCtrl:             emailNotificationCtrl,
+		PushCtrl:              pushController,
 		AccessCtrl:            accessCtrl,
 		CollectionLinkCtrl:    collectionLinkCtrl,
 		UserRepo:              userRepo,
@@ -537,38 +538,40 @@ func main() {
 				return base.ServerReqID()
 			},
 		}),
-		middleware.Logger(urlSanitizer), cors(), cacheHeaders(),
+		cors(), rateLimiter.GlobalRateLimiter(),
+		middleware.LimitRequestBody(), middleware.Logger(urlSanitizer), cacheHeaders(),
 		gzip.Gzip(gzip.DefaultCompression), middleware.PanicRecover())
 
 	publicAPI := server.Group("/")
-	publicAPI.Use(rateLimiter.GlobalRateLimiter(), rateLimiter.APIRateLimitMiddleware(urlSanitizer))
+	publicAPI.Use(rateLimiter.APIRateLimitMiddleware(urlSanitizer))
 
 	privateAPI := server.Group("/")
-	privateAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(nil), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
+	privateAPI.Use(authMiddleware.TokenAuthMiddleware(nil), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 	storageAPI := privateAPI.Group("/")
 	storageAPI.Use(middleware.RejectAuthApp())
 
 	adminAPI := server.Group("/admin")
-	adminAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(nil), authMiddleware.AdminAuthMiddleware())
+	adminAPI.Use(authMiddleware.TokenAuthMiddleware(nil), authMiddleware.AdminAuthMiddleware())
 	paymentJwtAuthAPI := server.Group("/")
-	paymentJwtAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(jwt.PAYMENT.Ptr()))
+	paymentJwtAuthAPI.Use(authMiddleware.TokenAuthMiddleware(jwt.PAYMENT.Ptr()))
 
 	familyAuthAPI := server.Group("/")
 	//The middleware order matters. First, the userID must be set in the context, so that we can apply limit for user.
-	familyAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenOrJWTAuthMiddleware(jwt.FAMILIES), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
+	familyAuthAPI.Use(authMiddleware.TokenOrJWTAuthMiddleware(jwt.FAMILIES), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 
 	publicCollectionAPI := server.Group("/public-collection")
 	publicCollectionAPI.Use(
-		rateLimiter.GlobalRateLimiter(),
 		collectionLinkMiddleware.Authenticate(urlSanitizer),
 		rateLimiter.APIRateLimitMiddleware(urlSanitizer),
 	)
 	fileLinkApi := server.Group("/file-link")
-	fileLinkApi.Use(rateLimiter.GlobalRateLimiter(), fileLinkMiddleware.Authenticate(urlSanitizer))
+	fileLinkApi.Use(
+		fileLinkMiddleware.Authenticate(urlSanitizer),
+		rateLimiter.APIRateLimitMiddleware(urlSanitizer),
+	)
 
 	publicMemoryAPI := server.Group("/public-memory")
 	publicMemoryAPI.Use(
-		rateLimiter.GlobalRateLimiter(),
 		memoryShareMiddleware.Authenticate(urlSanitizer),
 		rateLimiter.APIRateLimitMiddleware(urlSanitizer),
 	)
@@ -629,6 +632,8 @@ func main() {
 	storageAPI.POST("/files/data/fetch", fileHandler.GetFilesData)
 	storageAPI.GET("/files/data/fetch", fileHandler.GetFileData)
 	storageAPI.GET("/files/data/preview-upload-url", fileHandler.GetPreviewUploadURL)
+	storageAPI.POST("/files/data/preview-upload-url", fileHandler.GetPreviewUploadURLV2)
+	storageAPI.POST("/files/data/multipart-preview-upload-url", fileHandler.GetMultipartPreviewUploadURL)
 	storageAPI.GET("/files/data/preview", fileHandler.GetPreviewURL)
 
 	storageAPI.POST("/files", fileHandler.CreateOrUpdate)
@@ -730,7 +735,7 @@ func main() {
 	publicAPI.POST("/users/recover-account", userHandler.RecoverSelfAccount)
 
 	accountsJwtAuthAPI := server.Group("/")
-	accountsJwtAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(jwt.ACCOUNTS.Ptr()), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
+	accountsJwtAuthAPI.Use(authMiddleware.TokenAuthMiddleware(jwt.ACCOUNTS.Ptr()), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 	passkeysHandler := &api.PasskeyHandler{
 		Controller: passkeyCtrl,
 	}
@@ -843,7 +848,7 @@ func main() {
 
 	castCtrl := cast.NewController(&castDb, accessCtrl)
 	castMiddleware := middleware.CastMiddleware{CastCtrl: castCtrl}
-	castAPI.Use(rateLimiter.GlobalRateLimiter(), castMiddleware.CastAuthMiddleware())
+	castAPI.Use(castMiddleware.CastAuthMiddleware())
 
 	castHandler := &api.CastHandler{
 		CollectionCtrl: collectionController,
@@ -1022,7 +1027,7 @@ func main() {
 	spaceModule.UserTokens = userController
 	spaceHandlers := spaceapi.NewHandlers(spaceModule)
 	spacePrivateAPI := server.Group("/")
-	spacePrivateAPI.Use(rateLimiter.GlobalRateLimiter(), spaceHandlers.RequireSpaceBrowserSession(), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
+	spacePrivateAPI.Use(spaceHandlers.RequireSpaceBrowserSession(), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 
 	storageAPI.POST("/user-entity/key", userEntityHandler.CreateKey)
 	storageAPI.POST("/user-entity/key/ensure", userEntityHandler.EnsureKey)
@@ -1055,12 +1060,14 @@ func main() {
 	authenticatorController := &authenticatorCtrl.Controller{Repo: authRepo, UserRepo: userRepo}
 	authenticatorHandler := &api.AuthenticatorHandler{Controller: authenticatorController}
 
-	privateAPI.POST("/authenticator/key", authenticatorHandler.CreateKey)
-	privateAPI.GET("/authenticator/key", authenticatorHandler.GetKey)
-	privateAPI.POST("/authenticator/entity", authenticatorHandler.CreateEntity)
-	privateAPI.PUT("/authenticator/entity", authenticatorHandler.UpdateEntity)
-	privateAPI.DELETE("/authenticator/entity", authenticatorHandler.DeleteEntity)
-	privateAPI.GET("/authenticator/entity/diff", authenticatorHandler.GetDiff)
+	authenticatorAPI := privateAPI.Group("/authenticator")
+	authenticatorAPI.Use(middleware.RequireAuthApp())
+	authenticatorAPI.POST("/key", authenticatorHandler.CreateKey)
+	authenticatorAPI.GET("/key", authenticatorHandler.GetKey)
+	authenticatorAPI.POST("/entity", authenticatorHandler.CreateEntity)
+	authenticatorAPI.PUT("/entity", authenticatorHandler.UpdateEntity)
+	authenticatorAPI.DELETE("/entity", authenticatorHandler.DeleteEntity)
+	authenticatorAPI.GET("/entity/diff", authenticatorHandler.GetDiff)
 
 	dataCleanupController := &dataCleanupCtrl.DeleteUserCleanupController{
 		Repo:           dataCleanupRepository,

@@ -39,6 +39,7 @@ import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/services/filedata/model/file_data.dart";
+import "package:photos/services/filedata/preview_upload.dart";
 import "package:photos/services/isolated_ffmpeg_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/ui/notification/toast.dart";
@@ -590,7 +591,14 @@ class VideoPreviewService {
 
           final playlistFile = File("$prefix/output.m3u8");
           final previewFile = File("$prefix/output.ts");
-          final result = await _uploadPreviewVideo(enteFile, previewFile);
+          final result = await uploadVideoPreview(
+            previewFile,
+            fileID: enteFile.uploadedFileID!,
+            gateway: _fileDataGateway,
+            dio: serviceLocator.enteDio,
+            useUploadV2: flagService.previewUploadV2,
+            cancelToken: _streamingCancelToken,
+          );
 
           objectId = result.$1;
           objectSize = result.$2;
@@ -827,28 +835,6 @@ class VideoPreviewService {
     }
   }
 
-  Future<(String, int)> _uploadPreviewVideo(EnteFile file, File preview) async {
-    _logger.fine("Pushing preview for $file");
-    try {
-      final uploadUrlResult = await _fileDataGateway.getPreviewUploadUrl(
-        fileID: file.uploadedFileID!,
-        type: "vid_preview",
-        cancelToken: _streamingCancelToken,
-      );
-      final objectSize = preview.lengthSync();
-      await serviceLocator.enteDio.put(
-        uploadUrlResult.url,
-        data: preview.openRead(),
-        options: Options(headers: {Headers.contentLengthHeader: objectSize}),
-        cancelToken: _streamingCancelToken,
-      );
-      return (uploadUrlResult.objectID, objectSize);
-    } catch (e) {
-      _logger.warning("failed to upload previewVideo", e);
-      rethrow;
-    }
-  }
-
   String _getCacheKey(String objectKey) {
     return "video_playlist_$objectKey";
   }
@@ -934,7 +920,6 @@ class VideoPreviewService {
     bool Function(int bytes)? tryReserveBytes,
   }) async {
     _logger.fine("Getting playlist for $file");
-    int? width, height, size;
 
     try {
       late final String objectID;
@@ -951,28 +936,35 @@ class VideoPreviewService {
         objectID = previewInfo.objectId;
       }
 
-      final FileInfo? playlistCache = await cacheManager.getFileFromCache(
+      final playlistCache = await cacheManager.getFileFromCache(
         _getCacheKey(objectID),
       );
       final detailsCache = await cacheManager.getFileFromCache(
         _getDetailsCacheKey(objectID),
       );
-      late final String playlistTemplate;
-      if (playlistCache != null) {
-        playlistTemplate = playlistCache.file.readAsStringSync();
-        if (detailsCache != null) {
-          final details = json.decode(detailsCache.file.readAsStringSync());
-          width = details["width"];
-          height = details["height"];
-          size = details["size"];
+      for (final cachedFile in [playlistCache, detailsCache]) {
+        if (cachedFile != null &&
+            await cachedFile.file.length() > maxHlsMetadataBytes) {
+          throw const FormatException("HLS metadata exceeds the allowed size");
         }
-      } else {
-        final Map<String, dynamic> playlistData = await _getPlaylistData(file);
-        playlistTemplate = playlistData["playlist"];
-        width = playlistData["width"];
-        height = playlistData["height"];
-        size = playlistData["size"];
       }
+      late final String playlistTemplate;
+      late final Map<String, dynamic> metadata;
+      if (playlistCache != null) {
+        playlistTemplate = await playlistCache.file.readAsString();
+        metadata = detailsCache == null
+            ? const {}
+            : json.decode(await detailsCache.file.readAsString())
+                  as Map<String, dynamic>;
+      } else {
+        final playlistData = await _getPlaylistData(file);
+        if (playlistData == null) return null;
+        playlistTemplate = playlistData["playlist"] as String;
+        metadata = playlistData;
+      }
+      final width = metadata["width"] as int?;
+      final height = metadata["height"] as int?;
+      final size = metadata["size"] as int?;
       final videoFile = (await videoCacheManager.getFileFromCache(
         _getVideoPreviewKey(objectID),
       ))?.file;
@@ -1065,9 +1057,12 @@ class VideoPreviewService {
     }
   }
 
-  Future<Map<String, dynamic>> _getPlaylistData(EnteFile file) async {
-    late final ({String encryptedData, String decryptionHeader}) fetchResult;
-    if (collectionsService.isSharedPublicLink(file.collectionID!)) {
+  Future<Map<String, dynamic>?> _getPlaylistData(EnteFile file) async {
+    final isPublicCollection = collectionsService.isSharedPublicLink(
+      file.collectionID!,
+    );
+    late final ({String encryptedData, String decryptionHeader})? fetchResult;
+    if (isPublicCollection) {
       fetchResult = await _fileDataGateway.fetchPublicFileData(
         baseUrl: endpointConfig.endpoint,
         fileID: file.uploadedFileID!,
@@ -1081,22 +1076,21 @@ class VideoPreviewService {
         type: "vid_preview",
       );
     }
-    final encryptionKey =
-        collectionsService.isSharedPublicLink(file.collectionID!)
+    if (fetchResult == null) return null;
+    final encryptionKey = isPublicCollection
         ? getPublicFileKey(file)
         : getFileKey(file);
-    final playlistData = await decryptAndUnzipJson(
+    return decryptAndUnzipJson(
       encryptionKey,
       encryptedData: fetchResult.encryptedData,
       header: fetchResult.decryptionHeader,
+      maxOutputBytes: maxHlsMetadataBytes,
     );
-    return playlistData;
   }
 
   int? parseDurationFromHLS(String playlist) {
-    final lines = playlist.split("\n");
     double totalDuration = 0.0;
-    for (final line in lines) {
+    for (final line in LineSplitter.split(playlist)) {
       if (line.startsWith("#EXTINF:")) {
         final durationStr = line.substring(8, line.length - 1);
         final duration = double.tryParse(durationStr);

@@ -1,4 +1,9 @@
 {
+    "invalidUploadFileName": "Enter a valid file name of at most 255 bytes, including its extension.",
+    "discardUnsavedChangesTitle": "Discard unsaved changes?",
+    "discardUnsavedChangesBody": "You have unsaved changes. Discarding will lose them.",
+    "discardPendingUploadsBody": "Files that haven’t been uploaded will be removed from this queue. Files already uploaded will stay in Locker.",
+    "keepEditing": "Keep editing",
     "refresh": "Refresh",
     "saveToLocker": "Save to Locker",
     "informationDescription": "Save and share information with loved ones.",

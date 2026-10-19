@@ -22,13 +22,6 @@ class SelectedFiles extends ChangeNotifier {
     notifyListeners();
   }
 
-  void unSelectAll(Set<EnteFile> filesToUnselect, {bool skipNotify = false}) {
-    files.removeWhere((file) => filesToUnselect.contains(file));
-    if (!skipNotify) {
-      notifyListeners();
-    }
-  }
-
   bool isFileSelected(EnteFile file) {
     final EnteFile? alreadySelected = files.firstWhereOrNull(
       (element) => _isMatch(file, element),

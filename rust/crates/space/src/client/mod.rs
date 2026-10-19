@@ -5,8 +5,11 @@ mod keys;
 mod links;
 mod media;
 mod messages;
+mod notifications;
+mod pokes;
 mod posts;
 mod profiles;
+mod reactions;
 
 #[cfg(test)]
 mod test_support;
@@ -47,7 +50,7 @@ const MESSAGE_KIND_POKE: &str = "poke";
 const MESSAGE_KIND_POST_REPLY: &str = "post_reply";
 const ONLY_PHOTOS_UPLOAD_MESSAGE: &str = "only photos can be uploaded";
 
-pub const MAX_SPACE_POST_UPLOAD_BYTES: usize = 5 * 1024 * 1024;
+pub const MAX_SPACE_POST_UPLOAD_BYTES: usize = 15 * 1024 * 1024;
 pub const MAX_SPACE_AVATAR_UPLOAD_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_SPACE_COVER_UPLOAD_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_SPACE_POST_PLAINTEXT_BYTES: usize =
@@ -692,12 +695,29 @@ fn decrypt_post_object_metadata(
         .map_err(|err| Error::InvalidInput(format!("invalid post object metadata: {err}")))
 }
 
-fn ensure_post_objects_are_photos(objects: &[PostObjectPayload], post_key: &[u8]) -> Result<()> {
+fn ensure_post_objects_supported(objects: &[PostObjectPayload], post_key: &[u8]) -> Result<()> {
+    if objects.len() > 10 {
+        return Err(Error::InvalidInput("Choose between 1 and 10 items".into()));
+    }
     for object in objects {
         let metadata = decrypt_post_object_metadata(post_key, object)?
             .ok_or_else(|| Error::InvalidInput("post object metadata is required".into()))?;
         if ensure_supported_photo_media_type(metadata.media_type.as_deref())?.is_none() {
             return Err(Error::InvalidInput(ONLY_PHOTOS_UPLOAD_MESSAGE.into()));
+        }
+        if let Some(video) = &object.video {
+            let metadata = decrypt_post_object_metadata(post_key, video)?
+                .ok_or_else(|| Error::InvalidInput("video metadata is required".into()))?;
+            if video.video.is_some()
+                || metadata.media_type.as_deref() != Some("video/mp4")
+                || !metadata
+                    .duration_ms
+                    .is_some_and(|duration| (1..=10_000).contains(&duration))
+            {
+                return Err(Error::InvalidInput(
+                    "Videos must be MP4 and at most 10 seconds".into(),
+                ));
+            }
         }
     }
     Ok(())

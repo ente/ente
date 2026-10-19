@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:base32/base32.dart';
+import 'package:ente_auth/core/errors.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:logging/logging.dart';
@@ -9,11 +10,16 @@ import 'package:pointycastle/export.dart' hide Algorithm;
 
 final _logger = Logger('OtpAuthImportParser');
 
+const otpAuthImportMaxBytes = 10 * 1024 * 1024;
+
 class IncorrectOtpAuthPasswordException implements Exception {
   const IncorrectOtpAuthPasswordException();
 }
 
 List<Code> parseOtpAuthExport(Uint8List fileBytes, {required String password}) {
+  if (fileBytes.length > otpAuthImportMaxBytes) {
+    throw const ImportFileTooLargeException(otpAuthImportMaxBytes);
+  }
   final outer = _decryptOuterArchive(fileBytes);
   final isBackup = outer.containsKey('WrappedData');
   final encryptedData = _bytes(outer[isBackup ? 'WrappedData' : 'Data']);
@@ -45,6 +51,8 @@ List<Code> parseOtpAuthExport(Uint8List fileBytes, {required String password}) {
   late final Map<String, Object?> root;
   try {
     root = _asMap(_unarchive(decryptedData));
+  } on _ArchiveExpansionLimitException {
+    rethrow;
   } catch (_) {
     if (isLegacy) throw const IncorrectOtpAuthPasswordException();
     rethrow;
@@ -197,16 +205,39 @@ bool _constantTimeEquals(Uint8List first, Uint8List second) {
 }
 
 Object? _unarchive(Uint8List data) {
-  return _KeyedArchive(_asMap(_BinaryPlistReader(data).parse())).root;
+  final budget = _ArchiveBudget(data.length * 16);
+  return _KeyedArchive(
+    _asMap(_BinaryPlistReader(data, budget).parse()),
+    budget,
+  ).root;
+}
+
+class _ArchiveBudget {
+  int remaining;
+
+  _ArchiveBudget(this.remaining);
+
+  void consume(int amount) {
+    if (amount < 0 || amount > remaining) {
+      throw const _ArchiveExpansionLimitException();
+    }
+    remaining -= amount;
+  }
+}
+
+class _ArchiveExpansionLimitException extends FormatException {
+  const _ArchiveExpansionLimitException()
+    : super('OTP Auth archive expansion limit exceeded');
 }
 
 class _KeyedArchive {
   late final List<Object?> _objects;
-  final _cache = <int, Object?>{};
+  final _cache = <int, ({Object? value, int cost})>{};
   final _resolving = <int>{};
   final Map<String, Object?> archive;
+  final _ArchiveBudget _budget;
 
-  _KeyedArchive(this.archive) {
+  _KeyedArchive(this.archive, this._budget) {
     if (archive[r'$archiver'] != 'NSKeyedArchiver' ||
         archive[r'$objects'] is! List) {
       throw const FormatException('Invalid keyed archive');
@@ -220,13 +251,21 @@ class _KeyedArchive {
   }
 
   Object? _resolve(Object? value) {
+    _budget.consume(1);
+    if (value is String) {
+      _budget.consume(value.length);
+      return value;
+    }
+    if (value is Uint8List) {
+      _budget.consume(value.length);
+      return value;
+    }
     if (value is _PlistUid) return _resolveUid(value.value);
-    if (value is Uint8List) return value;
     if (value is List) return value.map(_resolve).toList();
     if (value is Map) {
       return {
         for (final entry in value.entries)
-          entry.key.toString(): _resolve(entry.value),
+          _resolve(entry.key).toString(): _resolve(entry.value),
       };
     }
     return value;
@@ -237,22 +276,34 @@ class _KeyedArchive {
     if (index < 0 || index >= _objects.length || !_resolving.add(index)) {
       throw const FormatException('Invalid keyed archive reference');
     }
-    if (_cache.containsKey(index)) {
+    final cached = _cache[index];
+    if (cached != null) {
+      // Import expands cached objects again.
+      _budget.consume(cached.cost);
       _resolving.remove(index);
-      return _cache[index];
+      return cached.value;
     }
 
+    final remaining = _budget.remaining;
     try {
       final raw = _objects[index];
       if (raw is! Map) {
-        return _cache[index] = _resolve(raw);
+        final result = _resolve(raw);
+        _cache[index] = (value: result, cost: remaining - _budget.remaining);
+        return result;
       }
       final classUid = raw[r'$class'];
       if (classUid is! _PlistUid) {
         throw const FormatException('Missing keyed archive class');
       }
-      final classMetadata = _asMap(_objects[classUid.value]);
+      final classMetadata = _objects[classUid.value];
+      if (classMetadata is! Map) {
+        throw const FormatException('Expected a dictionary');
+      }
       final className = classMetadata[r'$classname'];
+      if (className is! String) {
+        throw const FormatException('Invalid keyed archive class');
+      }
       final result = switch (className) {
         'NSDictionary' || 'NSMutableDictionary' => _resolveDictionary(raw),
         'NSArray' ||
@@ -266,13 +317,13 @@ class _KeyedArchive {
         'ACOTPAccount' || 'ACOTPFolder' => {
           for (final entry in raw.entries)
             if (entry.key != r'$class')
-              entry.key.toString(): _resolve(entry.value),
+              _resolve(entry.key).toString(): _resolve(entry.value),
         },
         _ => throw FormatException(
           'Unsupported keyed archive class: $className',
         ),
       };
-      _cache[index] = result;
+      _cache[index] = (value: result, cost: remaining - _budget.remaining);
       return result;
     } finally {
       _resolving.remove(index);
@@ -320,13 +371,14 @@ class _BinaryPlistReader {
   static const _header = [0x62, 0x70, 0x6c, 0x69, 0x73, 0x74, 0x30, 0x30];
 
   final Uint8List _data;
+  final _ArchiveBudget _budget;
   late final ByteData _bytes;
   late final int _objectRefSize;
   late final List<int> _offsets;
   final _cache = <int, Object?>{};
   final _reading = <int>{};
 
-  _BinaryPlistReader(this._data);
+  _BinaryPlistReader(this._data, this._budget);
 
   Object? parse() {
     _bytes = ByteData.sublistView(_data);
@@ -373,6 +425,7 @@ class _BinaryPlistReader {
     if (objectId < 0 || objectId >= _offsets.length) {
       throw const FormatException('Invalid binary plist reference');
     }
+    _budget.consume(1);
     if (_cache.containsKey(objectId)) return _cache[objectId];
     if (!_reading.add(objectId)) {
       throw const FormatException('Recursive binary plist reference');
@@ -423,12 +476,14 @@ class _BinaryPlistReader {
   Uint8List _readData(int offset, int info) {
     final length = _readLength(offset, info);
     _checkRange(length.offset, length.count);
+    _budget.consume(length.count);
     return _data.sublist(length.offset, length.offset + length.count);
   }
 
   String _readAscii(int offset, int info) {
     final length = _readLength(offset, info);
     _checkRange(length.offset, length.count);
+    _budget.consume(length.count);
     return ascii.decode(
       _data.sublist(length.offset, length.offset + length.count),
     );
@@ -438,6 +493,7 @@ class _BinaryPlistReader {
     final length = _readLength(offset, info);
     final byteLength = length.count * 2;
     _checkRange(length.offset, byteLength);
+    _budget.consume(byteLength);
     final buffer = StringBuffer();
     for (var index = 0; index < byteLength; index += 2) {
       buffer.writeCharCode(_bytes.getUint16(length.offset + index, Endian.big));
@@ -448,6 +504,7 @@ class _BinaryPlistReader {
   List<Object?> _readArray(int offset, int info) {
     final length = _readLength(offset, info);
     _checkRange(length.offset, length.count * _objectRefSize);
+    _budget.consume(length.count);
     return [
       for (var index = 0; index < length.count; index++)
         _readObject(
@@ -460,6 +517,7 @@ class _BinaryPlistReader {
     final length = _readLength(offset, info);
     final valuesOffset = length.offset + (length.count * _objectRefSize);
     _checkRange(length.offset, length.count * _objectRefSize * 2);
+    _budget.consume(length.count * 2);
     return {
       for (var index = 0; index < length.count; index++)
         _readObject(

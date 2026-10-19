@@ -1,3 +1,4 @@
+import "package:ente_components/theme/theme.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -12,9 +13,8 @@ import "package:photos/services/machine_learning/face_ml/face_filtering/face_fil
 import "package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/search_service.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
-import "package:photos/ui/components/bottom_action_bar/selection_action_button_widget.dart";
+import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/viewer/people/merge_clusters_to_person_sheet.dart";
 import "package:photos/ui/viewer/people/person_cluster_suggestion.dart";
@@ -24,7 +24,17 @@ import "package:photos/utils/dialog_util.dart";
 class PeopleSelectionActionWidget extends StatefulWidget {
   final SelectedPeople selectedPeople;
 
-  const PeopleSelectionActionWidget(this.selectedPeople, {super.key});
+  final Widget selectionControls;
+  final Color? backgroundColor;
+  final ScrollController? backgroundScrollController;
+
+  const PeopleSelectionActionWidget(
+    this.selectedPeople, {
+    required this.selectionControls,
+    this.backgroundColor,
+    this.backgroundScrollController,
+    super.key,
+  });
 
   @override
   State<PeopleSelectionActionWidget> createState() =>
@@ -96,14 +106,21 @@ class _PeopleSelectionActionWidgetState
       return const SizedBox.shrink();
     }
 
+    final controls = SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: widget.selectionControls,
+      ),
+    );
     return FutureBuilder<Map<String, PersonEntity>>(
       future: personEntitiesMapFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const SizedBox.shrink();
+          return controls;
         }
         final personMap = snapshot.data!;
-        final List<SelectionActionButton> items = [];
+        final List<SelectionSheetAction> items = [];
         final selectedPersonIds = _getSelectedPersonIds(personMap);
         final selectedClusterIds = _getSelectedClusterIds();
         final onlyOnePerson =
@@ -185,11 +202,11 @@ class _PeopleSelectionActionWidgetState
             showAutoAddAction;
 
         if (!hasVisibleAction) {
-          return const SizedBox.shrink();
+          return controls;
         }
 
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.edit,
             hugeIcon: HugeIcons.strokeRoundedPencilEdit01,
             onTap: _onEditPerson,
@@ -197,7 +214,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.review,
             hugeIcon: HugeIcons.strokeRoundedSearch01,
             onTap: _onReviewSuggestion,
@@ -205,7 +222,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.ignore,
             hugeIcon: HugeIcons.strokeRoundedImageNotFound01,
             onTap: _onIgnore,
@@ -213,7 +230,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.merge,
             hugeIcon: HugeIcons.strokeRoundedGitMerge,
             onTap: _onMerge,
@@ -221,7 +238,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.reset,
             hugeIcon: HugeIcons.strokeRoundedRemove01,
             onTap: _onResetPerson,
@@ -229,7 +246,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.showPerson,
             hugeIcon: HugeIcons.strokeRoundedView,
             onTap: _onShowPerson,
@@ -237,7 +254,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.pin,
             hugeIcon: HugeIcons.strokeRoundedPin,
             onTap: () => _updatePinState(true),
@@ -245,7 +262,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.unpin,
             hugeIcon: HugeIcons.strokeRoundedPinOff,
             onTap: () => _updatePinState(false),
@@ -253,7 +270,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.hideFromMemories,
             hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
             onTap: () => _updateHideFromMemoriesState(true),
@@ -261,7 +278,7 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.showInMemories,
             hugeIcon: HugeIcons.strokeRoundedView,
             onTap: () => _updateHideFromMemoriesState(false),
@@ -269,45 +286,24 @@ class _PeopleSelectionActionWidgetState
           ),
         );
         items.add(
-          SelectionActionButton(
+          SelectionSheetAction(
             labelText: context.strings.autoAddToAlbum,
             iconWidget: Image.asset(
               "assets/auto-add-people.png",
               width: 22,
               height: 22,
-              color: EnteTheme.isDark(context) ? Colors.white : Colors.black,
+              color: context.componentColors.textBase,
             ),
             onTap: _autoAddToAlbum,
             shouldShow: showAutoAddAction,
           ),
         );
 
-        return MediaQuery(
-          data: MediaQuery.of(context).removePadding(removeBottom: true),
-          child: SafeArea(
-            child: Scrollbar(
-              radius: const Radius.circular(1),
-              thickness: 2,
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(
-                  decelerationRate: ScrollDecelerationRate.fast,
-                ),
-                scrollDirection: Axis.horizontal,
-                child: Container(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(width: 4),
-                      ...items,
-                      const SizedBox(width: 4),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+        return SelectionActionSheet(
+          actions: items,
+          selectionControls: widget.selectionControls,
+          backgroundColor: widget.backgroundColor,
+          backgroundScrollController: widget.backgroundScrollController,
         );
       },
     );

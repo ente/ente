@@ -3,7 +3,6 @@ import "dart:math" as math;
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
@@ -83,11 +82,12 @@ class _ScrollableParticipantRosterState
   }
 
   double _rowExtent(BuildContext context) {
-    const textStyle = TextStyles.body;
-    final textExtent =
-        MediaQuery.textScalerOf(context).scale(textStyle.fontSize!) *
-        textStyle.height!;
-    return math.max(60.0, textExtent + 20.0);
+    final textScaler = MediaQuery.textScalerOf(context);
+    final titleExtent =
+        textScaler.scale(TextStyles.body.fontSize!) * TextStyles.body.height!;
+    final roleExtent =
+        textScaler.scale(TextStyles.mini.fontSize!) * TextStyles.mini.height!;
+    return math.max(68.0, titleExtent + Spacing.xs + roleExtent + 20.0);
   }
 }
 
@@ -98,31 +98,30 @@ class ParticipantRow extends StatelessWidget {
     required this.role,
     required this.currentUserID,
     this.trailing,
+    this.onTap,
+    this.onLongPress,
   });
 
   final User user;
   final CollectionParticipantRole role;
   final int currentUserID;
   final Widget? trailing;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.componentColors;
     return ShareMenuItem(
       title: user.id == currentUserID
           ? context.strings.you
           : resolveDisplayName(user),
       titleMaxLines: 1,
+      subtitle: shareableRoleLabel(context, role),
+      subtitleMaxLines: 1,
       leading: UserAvatarWidget(user, type: AvatarType.medium),
-      trailing:
-          trailing ??
-          HugeIcon(
-            icon: albumSharingRoleIcon(role),
-            color: colors.textLightest,
-            size: IconSizes.small,
-            strokeWidth: 1.6,
-          ),
-      isDisabled: true,
+      trailing: trailing,
+      onTap: onTap,
+      onLongPress: onLongPress,
     );
   }
 }

@@ -1,4 +1,5 @@
 import { isNamedError } from "ente-base/error";
+import { SpaceMediaRateLimitError } from "services/media-load";
 
 export const postQuotePhotoIndex = (
     photos: { objectKey: string }[],
@@ -20,4 +21,6 @@ export const postQuoteErrorState = (error: unknown) =>
     isNamedError(error, "content_unavailable") ||
     isNamedError(error, "permission_denied")
         ? { isUnavailable: true }
-        : { hasLoadError: true };
+        : error instanceof SpaceMediaRateLimitError
+          ? { hasLoadError: true, retryAt: error.retryAt }
+          : { hasLoadError: true };

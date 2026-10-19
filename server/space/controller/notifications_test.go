@@ -397,7 +397,7 @@ func TestPublicPostPushCarriesOnlyOpaqueLocalRouteTarget(t *testing.T) {
 	sender := NewSpaceWebPushSender(nil, config)
 	sender.send(
 		SpaceActivityActor{UserID: 2, Slug: "alice"},
-		"posted a new photo",
+		"shared a new post",
 		"Check it out",
 		spaceActivityPostCreated,
 		"/app",
@@ -411,10 +411,32 @@ func TestPublicPostPushCarriesOnlyOpaqueLocalRouteTarget(t *testing.T) {
 	)
 	require.Equal(t, spaceWebPushPayload{
 		Title:    "Ente Space",
-		Body:     "@alice posted a new photo",
+		Body:     "@alice shared a new post",
 		Action:   "Check it out",
 		TargetID: "wpt_public_target",
 	}, payload)
+}
+
+func TestFriendPushNotificationDestinations(t *testing.T) {
+	_, repos, ctx := setupPostsControllerTest(t)
+	recipientID := insertSpaceControllerUser(t, repos, "friend-push-recipient@example.com", "recipient-public")
+	sessionHash := []byte("friend-push-session")
+	require.NoError(t, repos.Sessions.CreateBrowserSession(ctx, sessionHash, recipientID, "wrap-key", timeutil.NDaysFromNow(1)))
+	_, err := repos.WebPush.UpsertAccountSubscription(ctx, sessionHash, "https://fcm.googleapis.com/wp/friend", "p256dh", "auth")
+	require.NoError(t, err)
+	originalSend := sendSpaceWebPush
+	t.Cleanup(func() { sendSpaceWebPush = originalSend })
+	var payload spaceWebPushPayload
+	sendSpaceWebPush = func(_ context.Context, message []byte, _ *webpush.Subscription, _ *webpush.Options) (*http.Response, error) {
+		require.NoError(t, json.Unmarshal(message, &payload))
+		return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}
+	sender := NewSpaceWebPushSender(repos.WebPush, newSpaceWebPushTestConfig(t))
+	actor := SpaceActivityActor{UserID: 1, SpaceID: "alice-space", Slug: "alice"}
+	sender.OnSpaceFriendRequested(actor, recipientID)
+	require.Equal(t, spaceWebPushPayload{Title: "Ente Space", Body: "@alice sent you a friend request", Action: "Review request", URL: "/app/notifications"}, payload)
+	sender.OnSpaceFriendAdded(actor, recipientID)
+	require.Equal(t, spaceWebPushPayload{Title: "Ente Space", Body: "@alice accepted your friend request", Action: "Say hi", URL: "/app/messages/alice-space"}, payload)
 }
 
 func TestSpaceWebPushSendRateAppliesOncePerActivity(t *testing.T) {
@@ -438,7 +460,7 @@ func TestSpaceWebPushSendRateAppliesOncePerActivity(t *testing.T) {
 	}
 	NewSpaceWebPushSender(nil, config).send(
 		SpaceActivityActor{UserID: 3, Slug: "alice"},
-		"posted a new photo",
+		"shared a new post",
 		"Check it out",
 		spaceActivityPostCreated,
 		"/app",

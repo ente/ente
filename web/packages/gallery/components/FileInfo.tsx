@@ -135,7 +135,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
 }) => {
     const { mapEnabled } = useSettingsSnapshot();
     const peopleState = usePeopleStateSnapshot();
-    const { onGenericError } = useBaseContext();
+    const { showMiniDialog, onGenericError } = useBaseContext();
 
     const [annotatedFaces, setAnnotatedFaces] = useState<AnnotatedFaceID[]>([]);
 
@@ -146,8 +146,8 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     const { show: showEditLocation, props: editLocationVisibilityProps } =
         useModalVisibility();
 
-    const [captionNavigationLocked, setCaptionNavigationLocked] =
-        useState(false);
+    const [captionEditState, setCaptionEditState] =
+        useState<CaptionEditState>("saved");
     const [dateTimeNavigationLocked, setDateTimeNavigationLocked] =
         useState(false);
     const [renameNavigationLocked, setRenameNavigationLocked] = useState(false);
@@ -169,7 +169,6 @@ export const FileInfo: React.FC<FileInfoProps> = ({
         return (peopleState?.people ?? []).filter(
             (p) =>
                 p.type == "cgroup" &&
-                !!p.name &&
                 p.cgroup.data.manuallyAssigned.includes(file.id) &&
                 !detectedPersonIDs.has(p.id),
         );
@@ -200,7 +199,24 @@ export const FileInfo: React.FC<FileInfoProps> = ({
         return () => {
             didCancel = true;
         };
-    }, [file, open]);
+    }, [file, open, peopleState]);
+
+    const handleClose = () => {
+        if (captionEditState == "saving") return;
+        if (captionEditState == "unsaved") {
+            showMiniDialog({
+                title: t("discard_changes"),
+                message: t("discard_changes_confirm_message"),
+                continue: {
+                    text: t("discard"),
+                    color: "critical",
+                    action: onClose,
+                },
+            });
+            return;
+        }
+        onClose();
+    };
 
     const handleSelectFace = ({ personID, faceID }: AnnotatedFaceID) => {
         log.info(`Selected person ${personID} for faceID ${faceID}`);
@@ -236,7 +252,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
         (rawExifVisibilityProps.open ||
             assignPersonVisibilityProps.open ||
             editLocationVisibilityProps.open ||
-            captionNavigationLocked ||
+            captionEditState != "saved" ||
             dateTimeNavigationLocked ||
             renameNavigationLocked);
 
@@ -245,10 +261,10 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     }, [onNavigationLockChange, navigationLocked]);
 
     return (
-        <BottomAlignedFileInfoSidebar {...{ open, onClose }}>
+        <BottomAlignedFileInfoSidebar open={open} onClose={handleClose}>
             <SidebarDrawerTitlebar
-                onClose={onClose}
-                onRootClose={onClose}
+                onClose={handleClose}
+                onRootClose={handleClose}
                 title={t("info")}
             />
             <Stack sx={{ pt: 1, pb: 3, gap: "20px" }}>
@@ -258,7 +274,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                         allowEdits,
                         onFileMetadataUpdate,
                         onUpdateCaption,
-                        onNavigationLockChange: setCaptionNavigationLocked,
+                        onEditStateChange: setCaptionEditState,
                     }}
                 />
                 <CreationTime
@@ -411,7 +427,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
             <FileInfoNavigationHint />
             <RawExif
                 {...rawExifVisibilityProps}
-                onInfoClose={onClose}
+                onInfoClose={handleClose}
                 tags={exif?.tags}
                 fileName={fileFileName(file)}
             />
@@ -659,21 +675,19 @@ const EditButton: React.FC<EditButtonProps> = ({ onClick, loading }) => (
     </IconButton>
 );
 
+type CaptionEditState = "saved" | "unsaved" | "saving";
+
 type CaptionProps = Pick<
     FileInfoProps,
-    | "file"
-    | "allowEdits"
-    | "onFileMetadataUpdate"
-    | "onUpdateCaption"
-    | "onNavigationLockChange"
->;
+    "file" | "allowEdits" | "onFileMetadataUpdate" | "onUpdateCaption"
+> & { onEditStateChange: (state: CaptionEditState) => void };
 
 const Caption: React.FC<CaptionProps> = ({
     file,
     allowEdits,
     onFileMetadataUpdate,
     onUpdateCaption,
-    onNavigationLockChange,
+    onEditStateChange,
 }) => {
     const [isSaving, setIsSaving] = useState(false);
 
@@ -704,9 +718,15 @@ const Caption: React.FC<CaptionProps> = ({
 
     const { values, errors, handleChange, handleSubmit, resetForm } = formik;
 
+    const editState: CaptionEditState = isSaving
+        ? "saving"
+        : values.caption != caption
+          ? "unsaved"
+          : "saved";
+
     useEffect(() => {
-        onNavigationLockChange?.(values.caption != caption || isSaving);
-    }, [onNavigationLockChange, values.caption, caption, isSaving]);
+        onEditStateChange(editState);
+    }, [onEditStateChange, editState]);
 
     if (!caption.length && !allowEdits) {
         return <Box sx={{ minHeight: 2 }}></Box>;
@@ -984,7 +1004,12 @@ const MapBox: React.FC<MapBoxProps> = ({ location, mapEnabled }) => {
         if (!mapRef.current) {
             const map = leaflet.map(mapContainer).setView(position, zoom);
             map.attributionControl.setPrefix(leafletAttributionPrefix);
-            leaflet.tileLayer(urlTemplate, { attribution }).addTo(map);
+            leaflet
+                .tileLayer(urlTemplate, {
+                    attribution,
+                    referrerPolicy: "strict-origin-when-cross-origin",
+                })
+                .addTo(map);
             markerRef.current = leaflet.marker(position).addTo(map);
             mapRef.current = map;
         } else {

@@ -237,7 +237,9 @@ fn generate_frb_package(package_dir: &Path) -> Result<(), DynError> {
     let result = FrbConfig::from_files_auto().and_then(|config| {
         let config = FrbConfig::merge(
             FrbConfig {
+                build_runner: Some(false),
                 dart_fix: Some(false),
+                dart_format: Some(false),
                 ..Default::default()
             },
             config,
@@ -254,7 +256,19 @@ fn generate_frb_package(package_dir: &Path) -> Result<(), DynError> {
 
     result?;
 
-    Ok(())
+    let dart = if cfg!(windows) { "dart.bat" } else { "dart" };
+    run_command(
+        Command::new(dart)
+            .args(["run", "build_runner", "build"])
+            .current_dir(package_dir),
+        format!("failed to generate Dart code in {}", package_dir.display()),
+    )?;
+    run_command(
+        Command::new(dart)
+            .args(["format", "lib/src/rust"])
+            .current_dir(package_dir),
+        format!("failed to format Dart code in {}", package_dir.display()),
+    )
 }
 
 fn generate_napi() -> Result<(), DynError> {

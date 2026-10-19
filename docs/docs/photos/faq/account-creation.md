@@ -75,6 +75,23 @@ Alternatively, you can follow these manual steps:
 
 **Desktop app:** You'll get an in-app notification to update. Ente desktop includes auto-update functionality - whenever updates are deployed, the app will automatically download and install them.
 
+Update the app on each device that needs it, using its existing distribution channel first. If uploads report that the upload API is no longer supported, follow the [specific troubleshooting steps](/photos/faq/troubleshooting#unsupported-upload-api).
+
+On Android, changing distribution channels may install a separate app and require signing in and setting up backup again. See [Android installation](/photos/getting-started/installation#android) before switching.
+
+### Why is my language not an option in Ente? {#language-not-available}
+
+Ente relies on community translations through Crowdin. A language is usually added to the apps once about 90% of it has been translated. New languages also need approval from Ente before they appear.
+
+You can help translate your language, even if it is not close to 90% yet:
+
+- [Ente Photos mobile app](https://crowdin.com/project/ente-photos-app)
+- [Ente Photos web and desktop](https://crowdin.com/project/ente-photos-web)
+
+If your language is not listed on Crowdin, request it on GitHub for [mobile](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+mobile) or [web and desktop](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+web) before you start translating.
+
+If a new language translation is complete but is still not available in the app, email [support@ente.com](mailto:support@ente.com) so we can confirm its approval status.
+
 ## Multi-Device Setup
 
 ### How do I log in on multiple devices? {#multi-device-login}
@@ -120,6 +137,14 @@ Each device can have its own backup configuration (which albums to back up on mo
 No. Use the same account across all your devices. Your photos, albums, and all your data will sync seamlessly across all devices where you're logged in.
 
 Only use separate accounts if you want to keep photo libraries completely separate (for example, personal vs. work photos).
+
+### Can I merge separate Ente accounts? {#merge-accounts}
+
+No. Changing an account's email address does not merge it with another account. Photos libraries, subscriptions, and account history remain separate.
+
+If you want to use your Photos account for Auth too, you can [export and import your Auth codes](/auth/faq/#merge-accounts). Verify the imported codes and sync before removing any source data.
+
+Before deleting an old account, check what it contains in Photos, Auth, and Locker. **Delete account** removes that account's data across all three apps. See [shared-account deletion](/photos/faq/security-and-privacy#shared-account-deletion).
 
 ## Account Creation & Security
 
@@ -244,3 +269,5 @@ Check whether you may have signed up using:
 - Apple Sign-In or another provider-linked email
 
 If you have a paid account, also check how the payment was made. App Store and Stripe payments can help identify which account was used.
+
+An App Store purchase may already be linked to a different Ente account. Making another purchase does not transfer that subscription or its storage to the account you are currently using. If the purchase appears on the wrong account, contact [support@ente.com](mailto:support@ente.com) so we can check the association before you buy again.

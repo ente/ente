@@ -12,7 +12,13 @@ import {
     Typography,
 } from "@mui/material";
 import { t } from "i18next";
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
 export const ItemFormFields: React.FC<{
     type: LockerItemType;
@@ -195,22 +201,33 @@ export const CollectionSelector: React.FC<{
     collections: LockerCollection[];
     selectedIDs: number[];
     initialSelectedIDs?: number[];
+    createName: string;
+    onCreateNameChange: (name: string) => void;
     onToggle: (id: number) => void;
     onCreateCollection?: (name: string) => Promise<number>;
 }> = ({
     collections,
     selectedIDs,
     initialSelectedIDs,
+    createName,
+    onCreateNameChange: setCreateName,
     onToggle,
     onCreateCollection,
 }) => {
     const [createOpen, setCreateOpen] = useState(false);
-    const [createName, setCreateName] = useState("");
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [newlyCreatedCollectionIDs, setNewlyCreatedCollectionIDs] = useState<
         number[]
     >([]);
+    const mountedRef = useRef(true);
+
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     const orderedCollections = useMemo(() => {
         const sortedCollections = [...collections].sort((a, b) =>
@@ -251,6 +268,7 @@ export const CollectionSelector: React.FC<{
         setCreateError(null);
         try {
             const newCollectionID = await onCreateCollection(name);
+            if (!mountedRef.current) return;
             setNewlyCreatedCollectionIDs((current) => [
                 newCollectionID,
                 ...current.filter((id) => id !== newCollectionID),
@@ -267,7 +285,7 @@ export const CollectionSelector: React.FC<{
         } finally {
             setCreating(false);
         }
-    }, [createName, onCreateCollection, onToggle]);
+    }, [createName, onCreateCollection, onToggle, setCreateName]);
 
     return (
         <Box>
@@ -283,6 +301,7 @@ export const CollectionSelector: React.FC<{
                     onCreateCollection
                         ? () => {
                               setCreateOpen((open) => !open);
+                              setCreateName("");
                               setCreateError(null);
                           }
                         : undefined
@@ -300,6 +319,7 @@ export const CollectionSelector: React.FC<{
                         onSubmit={() => void handleCreateCollection()}
                         onCancel={() => {
                             setCreateOpen(false);
+                            setCreateName("");
                             setCreateError(null);
                         }}
                         loading={creating}

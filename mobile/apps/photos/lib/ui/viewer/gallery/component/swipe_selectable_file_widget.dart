@@ -44,7 +44,7 @@ class _SwipeSelectableFileWidgetState extends State<SwipeSelectableFileWidget> {
             widget.selectedFiles!.files.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted &&
-                isSwipeActive &&
+                swipeActiveNotifier?.value == true &&
                 _isPointerInside &&
                 !swipeHelper.isActive) {
               swipeHelper.startSelection(widget.file);

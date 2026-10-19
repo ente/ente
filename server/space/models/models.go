@@ -291,6 +291,7 @@ type ShareUpdatePayload struct {
 }
 
 type CreatePostRequest struct {
+	ClientRequestID  string              `json:"clientRequestId,omitempty" binding:"max=64"`
 	EncryptedPostKey string              `json:"encryptedPostKey" binding:"required"`
 	KeyVersion       int                 `json:"keyVersion" binding:"required,gt=0"`
 	CaptionCipher    *string             `json:"captionCipher,omitempty"`
@@ -309,6 +310,10 @@ type UpdatePostCaptionRequest struct {
 	CaptionCipher *string `json:"captionCipher,omitempty"`
 }
 
+type CreatePokeRequest struct {
+	ClientRequestID string `json:"clientRequestId" binding:"required,max=64"`
+}
+
 type CreateMessageRequest struct {
 	MessageID                    string `json:"messageId,omitempty"`
 	MessageCipher                string `json:"messageCipher" binding:"required"`
@@ -316,6 +321,11 @@ type CreateMessageRequest struct {
 	RecipientEncryptedMessageKey string `json:"recipientEncryptedMessageKey" binding:"required"`
 	ReplyMessageID               string `json:"replyMessageId,omitempty"`
 	NotificationKind             string `json:"notificationKind,omitempty"`
+}
+
+type SetMessageReactionRequest struct {
+	SenderEncryptedReaction    string `json:"senderEncryptedReaction" binding:"required"`
+	RecipientEncryptedReaction string `json:"recipientEncryptedReaction" binding:"required"`
 }
 
 type LikeMessageResponse struct {
@@ -329,6 +339,7 @@ type MessageResponse struct {
 	RecipientSpaceID    string  `json:"recipientSpaceId"`
 	MessageCipher       string  `json:"messageCipher,omitempty"`
 	EncryptedMessageKey string  `json:"encryptedMessageKey,omitempty"`
+	EncryptedReaction   string  `json:"encryptedReaction,omitempty"`
 	Text                string  `json:"text,omitempty"`
 	ReplyPostID         *int64  `json:"replyPostId,omitempty"`
 	ReplyMessageID      *string `json:"replyMessageId,omitempty"`
@@ -355,6 +366,7 @@ type MessageConversationActivityResponse struct {
 	RecipientSpaceID    string  `json:"recipientSpaceId,omitempty"`
 	MessageCipher       string  `json:"messageCipher,omitempty"`
 	EncryptedMessageKey string  `json:"encryptedMessageKey,omitempty"`
+	EncryptedReaction   string  `json:"encryptedReaction,omitempty"`
 	ReplyMessageID      *string `json:"replyMessageId,omitempty"`
 	PostID              *int64  `json:"postId,omitempty"`
 	PostSpaceID         string  `json:"postSpaceId,omitempty"`
@@ -367,16 +379,16 @@ type ConversationChatSummaryResponse struct {
 
 type ConversationsResponse struct {
 	Friends             []SpaceFriendResponse                      `json:"friends"`
-	PendingRequests     []SpaceFriendRequestResponse               `json:"pendingRequests"`
 	ChatSummaries       map[string]ConversationChatSummaryResponse `json:"chatSummaries"`
 	LatestPostCreatedAt string                                     `json:"latestPostCreatedAt,omitempty"`
 }
 
 type PostObjectPayload struct {
-	ObjectKey      string `json:"objectKey" binding:"required"`
-	Size           int64  `json:"size,omitempty" binding:"omitempty,gt=0"`
-	Position       int    `json:"position,omitempty" binding:"gte=0"`
-	MetadataCipher string `json:"metadataCipher" binding:"required"`
+	Video          *PostObjectPayload `json:"video,omitempty" binding:"omitempty"`
+	ObjectKey      string             `json:"objectKey" binding:"required"`
+	Size           int64              `json:"size,omitempty" binding:"omitempty,gt=0"`
+	Position       int                `json:"position,omitempty" binding:"gte=0"`
+	MetadataCipher string             `json:"metadataCipher" binding:"required"`
 }
 
 type PostResponse struct {
@@ -396,7 +408,54 @@ type SpaceUnreadStatusResponse struct {
 	NotificationsUnread bool `json:"notificationsUnread"`
 }
 
+type ListUnreadActivitiesRequest struct {
+	Cursor string `form:"cursor"`
+	Limit  int    `form:"limit" binding:"omitempty,min=1,max=100"`
+}
+
+type UnreadActivityResponse struct {
+	Kind                string `json:"kind"`
+	MessageCipher       string `json:"messageCipher"`
+	EncryptedMessageKey string `json:"encryptedMessageKey"`
+}
+
+type UnreadActivityPage struct {
+	Items      []UnreadActivityResponse `json:"items"`
+	NextCursor string                   `json:"nextCursor,omitempty"`
+}
+
 type PostPage struct {
 	Items      []PostResponse `json:"items"`
 	NextCursor string         `json:"nextCursor,omitempty"`
+}
+
+type ListNotificationsRequest struct {
+	Cursor string `form:"cursor"`
+	Limit  int    `form:"limit" binding:"omitempty,min=1,max=100"`
+}
+
+type ReadNotificationsRequest struct {
+	NotificationIDs []string `json:"notificationIds" binding:"required,min=1,max=100,dive,required,max=100"`
+}
+
+type NotificationResponse struct {
+	NotificationID  string               `json:"notificationId"`
+	NotificationIDs []string             `json:"notificationIds"`
+	Kind            string               `json:"kind"`
+	Actors          []SpaceActorResponse `json:"actors"`
+	ActorCount      int64                `json:"actorCount"`
+	PostID          *int64               `json:"postId,omitempty"`
+	CreatedAt       string               `json:"createdAt"`
+	Unread          bool                 `json:"unread"`
+	FriendRequestID *int64               `json:"friendRequestId,omitempty"`
+}
+
+type NotificationPage struct {
+	LatestPostCreatedAt string                 `json:"latestPostCreatedAt,omitempty"`
+	Items               []NotificationResponse `json:"items"`
+	NextCursor          string                 `json:"nextCursor,omitempty"`
+}
+
+type NotificationUnreadResponse struct {
+	Unread bool `json:"unread"`
 }

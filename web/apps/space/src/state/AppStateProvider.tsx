@@ -1,5 +1,6 @@
-import { isNamedError } from "ente-base/error";
+import { retryAsyncOperation } from "ente-base/http";
 import log from "ente-base/log";
+import { logToDisk } from "ente-base/log-web";
 import React, {
     useCallback,
     useEffect,
@@ -23,9 +24,13 @@ import {
 import {
     clearSpaceFriendsCache,
     clearSpaceMediaURLCache,
-    createCurrentPhotoPost,
+    createCurrentMediaPost,
+    loadCurrentCreatedPost,
+    type PreparedSpacePostMedia,
+    type SpacePostUploadSession,
 } from "services/space";
 import {
+    initialFriends,
     type LocalSpaceFeedPost,
     type OnboardingEntrySource,
     type PendingCreateProfile,
@@ -34,7 +39,6 @@ import {
     SpaceAppStateContext,
     type SpacePostPublication,
     type SpaceProfileLoadStatus,
-    initialFriends,
 } from "state/app-state";
 import {
     confirmLocalFeedPost,
@@ -42,6 +46,9 @@ import {
     failLocalFeedPost,
 } from "utils/local-feed-post";
 import { prepareSpacePostImageFromEdit } from "utils/post-image";
+import { logSpaceImageReadCheck } from "utils/post-image-diagnostics";
+import { spacePostFrameAspectRatio } from "utils/post-photos";
+import { prepareSpaceVideo } from "utils/post-video";
 
 const postStatusDurationMs = 2000;
 
@@ -83,6 +90,30 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
     const profileRef = useRef<SetupProfile | null>(null);
     const profileLoadGenerationRef = useRef(0);
     const postPublishGenerationRef = useRef(0);
+    const postReadbacksRef = useRef(new Map<string, () => Promise<void>>());
+    const postPreparationsRef = useRef(new Map<string, AbortController>());
+    const postUploadsRef = useRef(
+        new Map<string, () => ReturnType<SpaceAppState["publishPost"]>>(),
+    );
+
+    useEffect(() => {
+        const readbacks = postReadbacksRef.current;
+        const uploads = postUploadsRef.current;
+        const preparations = postPreparationsRef.current;
+        const retryReadbacks = () => {
+            readbacks.forEach((readback) => void readback());
+        };
+        window.addEventListener("online", retryReadbacks);
+        window.addEventListener("focus", retryReadbacks);
+        return () => {
+            window.removeEventListener("online", retryReadbacks);
+            window.removeEventListener("focus", retryReadbacks);
+            readbacks.clear();
+            uploads.clear();
+            preparations.forEach((controller) => controller.abort());
+            preparations.clear();
+        };
+    }, []);
 
     const previewURLsRef = useRef(new Set<string>());
     useEffect(() => {
@@ -106,17 +137,6 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         [],
     );
 
-    useEffect(() => {
-        if (postPublication?.phase != "failed") return;
-
-        const timeoutID = window.setTimeout(() => {
-            setPostPublication((current) =>
-                current == postPublication ? null : current,
-            );
-        }, 2500);
-        return () => window.clearTimeout(timeoutID);
-    }, [postPublication]);
-
     const publishPost = useCallback(
         async (
             images: Parameters<SpaceAppState["publishPost"]>[0],
@@ -128,13 +148,13 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
 
             const cover = images[0]!;
             const previewUrl = cover.previewUrl;
-            const generation = ++postPublishGenerationRef.current;
             const localPostId = createLocalFeedPostID();
             const timestampMs = Date.now();
             setLocalFeedPosts((current) => [
                 {
                     avatarUrl: profile.avatarUrl,
                     caption: caption.trim() || undefined,
+                    frameAspectRatio: spacePostFrameAspectRatio(images),
                     friendID: spaceId,
                     height: cover.height,
                     id: localPostId,
@@ -164,49 +184,245 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
                     width: cover.width,
                 },
             };
-            setPostPublication(publication);
-            try {
-                const preparedImages = [];
-                for (const image of images) {
-                    preparedImages.push(
-                        await prepareSpacePostImageFromEdit(
-                            image.file,
-                            image.cropArea,
-                            image.rotationDegrees,
-                        ),
-                    );
-                }
-                const post = await createCurrentPhotoPost({
-                    caption,
-                    images: preparedImages,
-                    spaceId,
-                });
-                confirmLocalFeedPost(setLocalFeedPosts, localPostId, post);
-                if (postPublishGenerationRef.current == generation) {
-                    setPostPublication({
-                        ...publication,
-                        phase: "posted",
-                        post,
-                        statusExpiresAtMs: Date.now() + postStatusDurationMs,
-                    });
-                }
-                return post;
-            } catch (error) {
-                failLocalFeedPost(
-                    setLocalFeedPosts,
-                    localPostId,
-                    isNamedError(error, "post_limit_reached")
-                        ? "post-limit"
-                        : undefined,
+            const prepared: PreparedSpacePostMedia[] = [];
+            const hasVideo = images.some((image) => image.video);
+            const session: SpacePostUploadSession = {
+                requestId: crypto.randomUUID(),
+                uploads: [],
+            };
+            let pending: ReturnType<SpaceAppState["publishPost"]> | undefined;
+            let attempt = 0;
+            const upload = () => {
+                if (pending) return pending;
+                const generation = ++postPublishGenerationRef.current;
+                const startedAt = Date.now();
+                attempt += 1;
+                const controller = new AbortController();
+                const { signal } = controller;
+                const cancelExports = () =>
+                    images.forEach((image) => image.videoExport?.cancel());
+                signal.addEventListener("abort", cancelExports, { once: true });
+                postPreparationsRef.current.set(localPostId, controller);
+                setPostPublication(publication);
+                setLocalFeedPosts((current) =>
+                    current.map((item) =>
+                        item.id == localPostId && item.status == "failed"
+                            ? {
+                                  ...item,
+                                  status: "pending",
+                                  processing: undefined,
+                              }
+                            : item,
+                    ),
                 );
-                if (postPublishGenerationRef.current == generation) {
-                    setPostPublication({ ...publication, phase: "failed" });
-                }
-                throw error;
-            }
+                pending = (async () => {
+                    try {
+                        for (const [index, image] of images.entries()) {
+                            signal.throwIfAborted();
+                            if (prepared[index]) continue;
+                            if (hasVideo) {
+                                setLocalFeedPosts((current) =>
+                                    current.map((item) =>
+                                        item.id == localPostId &&
+                                        item.status == "pending"
+                                            ? {
+                                                  ...item,
+                                                  processing: "Processing",
+                                              }
+                                            : item,
+                                    ),
+                                );
+                            }
+                            try {
+                                prepared[index] = image.video
+                                    ? await prepareSpaceVideo(
+                                          image.file,
+                                          image.video,
+                                          signal,
+                                          attempt == 1
+                                              ? image.videoExport?.promise
+                                              : undefined,
+                                      )
+                                    : await prepareSpacePostImageFromEdit(
+                                          image.file,
+                                          image.cropArea,
+                                          image.rotationDegrees,
+                                      );
+                            } catch (error) {
+                                if (!image.video)
+                                    void logSpaceImageReadCheck(
+                                        image.file,
+                                        error,
+                                        {
+                                            requestId: session.requestId,
+                                            attempt,
+                                            item: index + 1,
+                                        },
+                                    ).catch(() => undefined);
+                                const details =
+                                    error instanceof Error
+                                        ? {
+                                              name: error.name,
+                                              message: error.message,
+                                              stack: error.stack,
+                                          }
+                                        : error;
+                                logToDisk(
+                                    `[error] Space post preparation failed request=${session.requestId} item=${index + 1}/${images.length} media=${image.video ? "video" : "photo"} bytes=${image.file.size} error=${JSON.stringify(details)}`.replaceAll(
+                                        spaceId,
+                                        "[space-id]",
+                                    ),
+                                );
+                                throw error;
+                            }
+                        }
+                        signal.throwIfAborted();
+                        postPreparationsRef.current.delete(localPostId);
+                        setLocalFeedPosts((current) =>
+                            current.map((item) =>
+                                item.id == localPostId &&
+                                item.status == "pending"
+                                    ? { ...item, processing: undefined }
+                                    : item,
+                            ),
+                        );
+                        if (!postUploadsRef.current.has(localPostId))
+                            throw new DOMException("Canceled", "AbortError");
+                        const postId = await createCurrentMediaPost({
+                            caption,
+                            images: prepared,
+                            spaceId,
+                            session,
+                        });
+                        const posted = { ...publication.post, postId };
+                        postUploadsRef.current.delete(localPostId);
+                        logToDisk(
+                            `[info] Space post published request=${session.requestId} attempt=${attempt} elapsedMs=${Date.now() - startedAt}`,
+                        );
+                        if (profileRef.current?.spaceId != spaceId)
+                            return posted;
+                        setLocalFeedPosts((current) =>
+                            current.map((item) =>
+                                item.id == localPostId &&
+                                item.status == "pending"
+                                    ? { ...item, postId }
+                                    : item,
+                            ),
+                        );
+                        if (postPublishGenerationRef.current == generation) {
+                            setPostPublication({
+                                ...publication,
+                                phase: "posted",
+                                post: posted,
+                                statusExpiresAtMs:
+                                    Date.now() + postStatusDurationMs,
+                            });
+                        }
+                        let reading = false;
+                        const readback = async () => {
+                            if (reading) return;
+                            reading = true;
+                            try {
+                                const post = await retryAsyncOperation(
+                                    () => {
+                                        if (
+                                            !postReadbacksRef.current.has(
+                                                localPostId,
+                                            )
+                                        )
+                                            throw new DOMException(
+                                                "Canceled",
+                                                "AbortError",
+                                            );
+                                        return loadCurrentCreatedPost(
+                                            spaceId,
+                                            session.postId!,
+                                            prepared,
+                                        );
+                                    },
+                                    {
+                                        abortIfNeeded: (error) => {
+                                            if (
+                                                !postReadbacksRef.current.has(
+                                                    localPostId,
+                                                )
+                                            )
+                                                throw error;
+                                        },
+                                    },
+                                );
+                                if (!postReadbacksRef.current.has(localPostId))
+                                    return;
+                                post.avatarUrl = profile.avatarUrl;
+                                postReadbacksRef.current.delete(localPostId);
+                                confirmLocalFeedPost(
+                                    setLocalFeedPosts,
+                                    localPostId,
+                                    post,
+                                );
+                                if (
+                                    postPublishGenerationRef.current ==
+                                    generation
+                                )
+                                    setPostPublication(
+                                        (current) =>
+                                            current && { ...current, post },
+                                    );
+                            } catch (error) {
+                                log.warn(
+                                    "Failed to refresh a published post",
+                                    error,
+                                );
+                            } finally {
+                                reading = false;
+                            }
+                        };
+                        postReadbacksRef.current.set(localPostId, readback);
+                        void readback();
+                        return posted;
+                    } catch (error) {
+                        const details =
+                            error instanceof Error
+                                ? {
+                                      name: error.name,
+                                      message: error.message,
+                                      stack: error.stack,
+                                  }
+                                : error;
+                        logToDisk(
+                            `[error] Space post failed request=${session.requestId} attempt=${attempt} elapsedMs=${Date.now() - startedAt} error=${JSON.stringify(details)}`.replaceAll(
+                                spaceId,
+                                "[space-id]",
+                            ),
+                        );
+                        failLocalFeedPost(setLocalFeedPosts, localPostId);
+                        if (postPublishGenerationRef.current == generation) {
+                            setPostPublication({
+                                ...publication,
+                                phase: "failed",
+                            });
+                        }
+                        throw error;
+                    }
+                })().finally(() => {
+                    signal.removeEventListener("abort", cancelExports);
+                    cancelExports();
+                    postPreparationsRef.current.delete(localPostId);
+                    pending = undefined;
+                });
+                return pending;
+            };
+            postUploadsRef.current.set(localPostId, upload);
+            return upload();
         },
         [],
     );
+
+    const retryPost = useCallback(async (localPostId: string) => {
+        await postUploadsRef.current
+            .get(localPostId)?.()
+            .catch(() => undefined);
+    }, []);
 
     const applyProfile = useCallback<SpaceAppState["setProfile"]>((update) => {
         const nextProfile =
@@ -376,6 +592,10 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         setProfileLoadError(undefined);
         setProfileLoadStatus("ready");
         postPublishGenerationRef.current += 1;
+        postReadbacksRef.current.clear();
+        postUploadsRef.current.clear();
+        postPreparationsRef.current.forEach((controller) => controller.abort());
+        postPreparationsRef.current.clear();
         setPostPublication(null);
         setPendingLoginCredentials(null);
         setPendingPasskeyVerification(null);
@@ -412,6 +632,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             resetAfterLogout,
             setPostPublication,
             publishPost,
+            retryPost,
             setFriends,
             setLocalFeedPosts,
             setIsLiveSignupVerification,
@@ -445,6 +666,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             refreshProfile,
             resetAfterLogout,
             publishPost,
+            retryPost,
             signupEmail,
             applyProfile,
         ],

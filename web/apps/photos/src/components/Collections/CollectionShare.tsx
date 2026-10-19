@@ -3,6 +3,7 @@
 import Avatar from "@/components/Avatar";
 import type { RemotePullOpts } from "@/components/gallery";
 import { PublicLinkCreated } from "@/components/share/PublicLinkCreated";
+import { usePublicLinkURL } from "@/components/utils/use-public-link-url";
 import { avatarTextColor } from "@/services/avatar";
 import AddIcon from "@mui/icons-material/Add";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
@@ -54,7 +55,6 @@ import { isHTTPErrorWithStatus, isMuseumHTTPError } from "ente-base/http";
 import { formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import { useResolvedContactDisplay } from "ente-contacts";
-import { appendCollectionKeyToShareURL } from "ente-gallery/services/share";
 import type {
     Collection,
     CollectionNewParticipantRole,
@@ -392,7 +392,7 @@ const SharingDetails: React.FC<SharingDetailsProps> = ({
             {admins.length > 0 && (
                 <Stack>
                     <RowButtonGroupTitle icon={<AdminPanelSettingsIcon />}>
-                        {t("admins", { defaultValue: "Admins" })}
+                        {t("admins")}
                     </RowButtonGroupTitle>
                     <RowButtonGroup>
                         {admins.map((email, index) => (
@@ -570,9 +570,7 @@ const EmailShare: React.FC<EmailShareProps> = ({
                             <RowButton
                                 startIcon={<AddIcon />}
                                 onClick={showAddAdmin}
-                                label={t("add_admins", {
-                                    defaultValue: "Add admins",
-                                })}
+                                label={t("add_admins")}
                             />
                         </>
                     ) : null}
@@ -714,7 +712,7 @@ const AddParticipant: React.FC<AddParticipantProps> = ({
             ? t("add_viewers")
             : role == "COLLABORATOR"
               ? t("add_collaborators")
-              : t("add_admins", { defaultValue: "Add admins" });
+              : t("add_admins");
 
     const collectionShare: AddParticipantFormProps["onSubmit"] = async (
         emailOrEmails,
@@ -1036,7 +1034,7 @@ const ManageEmailShare: React.FC<ManageEmailShareProps> = ({
                             <RowButtonGroupTitle
                                 icon={<AdminPanelSettingsIcon />}
                             >
-                                {t("admins", { defaultValue: "Admins" })}
+                                {t("admins")}
                             </RowButtonGroupTitle>
                             <RowButtonGroup>
                                 {admins.map((item, index) => {
@@ -1081,10 +1079,7 @@ const ManageEmailShare: React.FC<ManageEmailShareProps> = ({
                                         label={
                                             admins?.length
                                                 ? t("add_more")
-                                                : t("add_admins", {
-                                                      defaultValue:
-                                                          "Add admins",
-                                                  })
+                                                : t("add_admins")
                                         }
                                     />
                                 ) : null}
@@ -1264,13 +1259,8 @@ const ManageParticipant: React.FC<ManageParticipantProps> = ({
                 });
                 buttonText = t("confirm_convert_to_collaborator");
             } else {
-                message = t("change_permission_to_admin", {
-                    selectedEmail,
-                    defaultValue: `Make ${selectedEmail} an admin?`,
-                });
-                buttonText = t("confirm_convert_to_admin", {
-                    defaultValue: "Make admin",
-                });
+                message = t("change_permission_to_admin", { selectedEmail });
+                buttonText = t("confirm_convert_to_admin");
             }
 
             showMiniDialog({
@@ -1346,7 +1336,7 @@ const ManageParticipant: React.FC<ManageParticipantProps> = ({
                         <RowButton
                             fontWeight="regular"
                             onClick={createOnRoleChange("ADMIN")}
-                            label={t("admin", { defaultValue: "Admin" })}
+                            label={t("admin")}
                             startIcon={<AdminPanelSettingsIcon />}
                             endIcon={
                                 participant.role === "ADMIN" && <DoneIcon />
@@ -1356,7 +1346,7 @@ const ManageParticipant: React.FC<ManageParticipantProps> = ({
                         <RowButton
                             fontWeight="regular"
                             onClick={createOnRoleChange("COLLABORATOR")}
-                            label={"Collaborator"}
+                            label={t("collaborator")}
                             startIcon={<ModeEditIcon />}
                             endIcon={
                                 participant.role === "COLLABORATOR" && (
@@ -1369,7 +1359,7 @@ const ManageParticipant: React.FC<ManageParticipantProps> = ({
                         <RowButton
                             fontWeight="regular"
                             onClick={createOnRoleChange("VIEWER")}
-                            label={"Viewer"}
+                            label={t("viewer")}
                             startIcon={<PhotoIcon />}
                             endIcon={
                                 participant.role == "VIEWER" && <DoneIcon />
@@ -1397,7 +1387,7 @@ const ManageParticipant: React.FC<ManageParticipantProps> = ({
                                 color="critical"
                                 fontWeight="regular"
                                 onClick={removeParticipant}
-                                label={"Remove"}
+                                label={t("remove")}
                                 startIcon={<BlockIcon />}
                             />
                         </RowButtonGroup>
@@ -1432,34 +1422,21 @@ const PublicShare: React.FC<PublicShareProps> = ({
         props: publicLinkCreatedVisibilityProps,
     } = useModalVisibility();
 
-    const [publicURL, setPublicURL] = useState<PublicURL | undefined>(
-        undefined,
+    const [shareState, setShareState] = useState({
+        collection,
+        publicURL: collection.publicURLs[0],
+    });
+    const publicURL =
+        shareState.collection === collection
+            ? shareState.publicURL
+            : collection.publicURLs[0];
+    const setPublicURL = (publicURL: PublicURL | undefined) =>
+        setShareState({ collection, publicURL });
+    const { resolvedURL, isLoading, error } = usePublicLinkURL(
+        collection,
+        publicURL,
+        canManage ? customDomain : undefined,
     );
-    const [resolvedURL, setResolvedURL] = useState<string | undefined>(
-        undefined,
-    );
-
-    useEffect(() => {
-        setPublicURL(collection.publicURLs[0]);
-    }, [collection]);
-
-    useEffect(() => {
-        if (publicURL?.url) {
-            void appendCollectionKeyToShareURL(
-                publicURL.url,
-                collection.key,
-            ).then((url) =>
-                setResolvedURL(
-                    substituteCustomDomainIfNeeded(
-                        url,
-                        canManage ? customDomain : undefined,
-                    ),
-                ),
-            );
-        } else {
-            setResolvedURL(undefined);
-        }
-    }, [collection.key, publicURL, customDomain, canManage]);
 
     const handleCopyLink = () => {
         if (resolvedURL) void navigator.clipboard.writeText(resolvedURL);
@@ -1484,6 +1461,14 @@ const PublicShare: React.FC<PublicShareProps> = ({
                 ) : (
                     <ReadOnlyPublicShare resolvedURL={resolvedURL} />
                 )
+            ) : publicURL ? (
+                <Typography role="status" color="text.muted">
+                    {error
+                        ? t("generic_error")
+                        : isLoading
+                          ? t("loading")
+                          : null}
+                </Typography>
             ) : canManage ? (
                 <EnablePublicShareOptions
                     {...{ collection, onRemotePull, setPublicURL }}
@@ -1496,16 +1481,6 @@ const PublicShare: React.FC<PublicShareProps> = ({
             />
         </>
     );
-};
-
-const substituteCustomDomainIfNeeded = (
-    url: string,
-    customDomain: string | undefined,
-) => {
-    if (!customDomain) return url;
-    const u = new URL(url);
-    u.host = customDomain;
-    return u.href;
 };
 
 type EnablePublicShareOptionsProps = {

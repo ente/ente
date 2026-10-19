@@ -1,7 +1,11 @@
 // Export records are unvalidated disk input, so runtime guards which the
 // types deem unnecessary are load-bearing.
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-import { safeDirectoryName, safeFileName } from "@/utils/native-fs";
+import {
+    safeDirectoryName,
+    safeFileName,
+    sanitizeFilename,
+} from "@/utils/native-fs";
 import {
     ensureElectron,
     suppressMainWindowBlurForTrustedPrompt,
@@ -1186,7 +1190,7 @@ const convertFileIDExportNameObjectToMap = (
     );
 };
 
-const getRenamedExportedCollections = (
+export const getRenamedExportedCollections = (
     collections: Collection[],
     exportRecord: ExportRecord,
 ) => {
@@ -1202,7 +1206,9 @@ const getRenamedExportedCollections = (
                 collection.id,
             )!;
 
-            const collectionExportName = collectionUserFacingName(collection);
+            const collectionExportName = sanitizeFilename(
+                collectionUserFacingName(collection),
+            );
 
             if (currentExportName === collectionExportName) {
                 return false;
@@ -1380,7 +1386,7 @@ const getGoogleLikeMetadataFile = (
         },
     };
     const caption = file?.pubMagicMetadata?.data?.caption;
-    if (caption) result.caption = caption;
+    if (caption) result.description = caption;
     const geoData = fileLocation(file);
     if (geoData) result.geoData = geoData;
     return JSON.stringify(result, null, 2);

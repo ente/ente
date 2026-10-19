@@ -1,7 +1,6 @@
 import { AddSquareIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
-import { SpaceBackIcon } from "components/BackIcon";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpacePostPhotoInput } from "components/PostPhotoInput";
 import { SpaceRouteFallback } from "components/RouteFallback";
@@ -14,12 +13,10 @@ import {
     spaceText,
     spaceTextMuted,
 } from "styles/colors";
-import { spaceTouchTargetSize } from "styles/touch-targets";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
 const background = spaceAppBackgroundColor;
-const green = "#08C225";
 const textBase = spaceText;
 const textSecondary = spaceTextMuted;
 
@@ -59,7 +56,7 @@ const Page: React.FC = () => {
                     background: spaceAppBackground,
                     color: textBase,
                     display: "grid",
-                    minHeight: "100svh",
+                    minHeight: "var(--space-page-height, 100svh)",
                     placeItems: { xs: "stretch", sm: "start center" },
                 }}
             >
@@ -67,59 +64,25 @@ const Page: React.FC = () => {
                     sx={{
                         boxSizing: "border-box",
                         display: "grid",
-                        gridTemplateRows: "56px minmax(0, 1fr)",
-                        minHeight: "100svh",
+                        minHeight: "var(--space-page-height, 100svh)",
                         mx: "auto",
+                        position: "relative",
                         width: "100%",
                         "@media (min-width: 600px)": { maxWidth: 390 },
                     }}
                 >
                     <Box
-                        component="header"
-                        sx={{
-                            alignItems: "center",
-                            display: "flex",
-                            height: 56,
-                            px: 2,
-                        }}
-                    >
-                        <Box
-                            component="button"
-                            type="button"
-                            aria-label="Back to Space"
-                            onClick={() => void router.push(spaceRoutes.home)}
-                            sx={{
-                                alignItems: "center",
-                                bgcolor: "transparent",
-                                border: 0,
-                                borderRadius: "50%",
-                                color: textBase,
-                                cursor: "pointer",
-                                display: "flex",
-                                height: spaceTouchTargetSize,
-                                justifyContent: "flex-start",
-                                ml: "-2px",
-                                p: 0,
-                                width: spaceTouchTargetSize,
-                                "&:focus-visible": {
-                                    outline: `2px solid ${green}`,
-                                    outlineOffset: 2,
-                                },
-                            }}
-                        >
-                            <SpaceBackIcon />
-                        </Box>
-                    </Box>
-                    <Box
                         component="section"
                         sx={{
                             alignItems: "center",
-                            alignSelf: "center",
                             display: "flex",
                             flexDirection: "column",
+                            position: "absolute",
                             px: "28px",
-                            pb: "48px",
                             textAlign: "center",
+                            top: "calc(var(--space-viewport-height, 100svh) / 2)",
+                            transform: "translateY(-50%)",
+                            width: "100%",
                         }}
                     >
                         <Box

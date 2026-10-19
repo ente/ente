@@ -24,8 +24,16 @@ export const itemFormDataForSave = (
 ): Record<string, string> => {
     const data: Record<string, string> = Object.fromEntries(
         Object.entries(formData)
-            .filter(([, value]) => value.trim())
-            .map(([key, value]) => [key, value.trim()]),
+            .map(
+                ([key, value]) =>
+                    [
+                        key,
+                        type === "accountCredential" && key === "password"
+                            ? value
+                            : value.trim(),
+                    ] as const,
+            )
+            .filter(([, value]) => value),
     );
 
     if (type === "note" && !data.title) {
@@ -37,6 +45,30 @@ export const itemFormDataForSave = (
 
     return data;
 };
+
+export function hasUnsavedItemChanges(
+    data: Record<string, string>,
+    initialData: Record<string, string>,
+    collectionIDs: number[],
+    initialCollectionIDs: number[],
+    collectionName: string,
+): boolean {
+    const fields = new Set([...Object.keys(data), ...Object.keys(initialData)]);
+    const collections = new Set(collectionIDs);
+    const initialCollections = new Set(initialCollectionIDs);
+
+    const hasCollectionDraft = collectionName !== "";
+    const hasFieldChanges = [...fields].some((field) => {
+        const currentValue = data[field] ?? "";
+        const initialValue = initialData[field] ?? "";
+        return currentValue !== initialValue;
+    });
+    const hasCollectionChanges =
+        collections.size !== initialCollections.size ||
+        [...collections].some((id) => !initialCollections.has(id));
+
+    return hasCollectionDraft || hasFieldChanges || hasCollectionChanges;
+}
 
 export const typeDisplayName = (type: LockerItemType): string => {
     switch (type) {

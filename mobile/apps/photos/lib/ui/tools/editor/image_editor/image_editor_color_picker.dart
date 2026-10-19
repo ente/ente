@@ -4,11 +4,17 @@ import "package:flutter/material.dart";
 class ImageEditorColorPicker extends StatefulWidget {
   final double value;
   final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeStart;
+  final String? semanticLabel;
+  final EdgeInsetsGeometry padding;
 
   const ImageEditorColorPicker({
     super.key,
     required this.value,
     required this.onChanged,
+    this.onChangeStart,
+    this.semanticLabel,
+    this.padding = const EdgeInsets.symmetric(horizontal: 20.0),
   });
 
   @override
@@ -25,7 +31,7 @@ class ColorSliderState extends State<ImageEditorColorPicker> {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: widget.padding,
       child: SizedBox(
         height: 40,
         child: Stack(
@@ -51,8 +57,8 @@ class ColorSliderState extends State<ImageEditorColorPicker> {
                     Color(0xFFFF0080),
                     Color(0xFFFF0000),
                   ],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
                 ),
                 border: Border.all(color: colors.fillLight, width: 6),
               ),
@@ -68,11 +74,15 @@ class ColorSliderState extends State<ImageEditorColorPicker> {
                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
                   trackShape: const _TransparentTrackShape(),
                 ),
-                child: Slider(
-                  value: widget.value,
-                  onChanged: widget.onChanged,
-                  min: 0.0,
-                  max: 1.0,
+                child: Semantics(
+                  label: widget.semanticLabel,
+                  child: Slider(
+                    value: widget.value,
+                    onChanged: widget.onChanged,
+                    onChangeStart: widget.onChangeStart,
+                    min: 0.0,
+                    max: 1.0,
+                  ),
                 ),
               ),
             ),

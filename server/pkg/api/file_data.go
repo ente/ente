@@ -131,6 +131,34 @@ func (h *FileHandler) GetPreviewUploadURL(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *FileHandler) GetPreviewUploadURLV2(c *gin.Context) {
+	var request fileData.PreviewUploadRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, err)
+		return
+	}
+	resp, err := h.FileDataCtrl.PreviewUploadURLWithMetadata(c, request)
+	if err != nil {
+		handler.Error(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *FileHandler) GetMultipartPreviewUploadURL(c *gin.Context) {
+	var request fileData.MultipartPreviewUploadRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, err)
+		return
+	}
+	resp, err := h.FileDataCtrl.MultipartPreviewUploadURLWithMetadata(c, request)
+	if err != nil {
+		handler.Error(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 func (h *FileHandler) GetPreviewURL(c *gin.Context) {
 	var request fileData.GetPreviewURLRequest
 	if err := c.ShouldBindQuery(&request); err != nil {

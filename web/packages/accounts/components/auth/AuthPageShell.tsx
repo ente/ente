@@ -386,7 +386,7 @@ const Wordmark = styled("div", {
 const PanelCopy = styled("div", {
     shouldForwardProp: (prop) => prop !== "size",
 })<{ size: BrandPanelProps["size"] }>(({ size }) => ({
-    marginTop: size === "desktop" ? "36px" : 0,
+    marginTop: size === "desktop" ? "32px" : 0,
     marginLeft: size === "mobile" ? "8px" : 0,
     // On the tablet band the ducky is anchored to the right edge, so keep
     // the copy from running underneath it at narrow widths.
@@ -416,7 +416,7 @@ const PanelSubtitle = styled("p", {
     shouldForwardProp: (prop) => prop !== "size",
 })<{ size: BrandPanelProps["size"] }>(({ size }) => ({
     margin: 0,
-    marginTop: size === "desktop" ? "14px" : "10px",
+    marginTop: size === "desktop" ? "16px" : "10px",
     fontSize: size === "desktop" ? "20px" : "17px",
     fontWeight: 500,
     lineHeight: size === "desktop" ? "28px" : "24px",
@@ -426,11 +426,11 @@ const PanelSubtitle = styled("p", {
 }));
 
 const BulletList = styled("ul")({
-    margin: "34px 0 0",
+    margin: "24px 0 0",
     padding: 0,
     display: "flex",
     flexDirection: "column",
-    gap: "14px",
+    gap: "12px",
     listStyle: "none",
 });
 

@@ -1,1 +1,0 @@
-- Removed the favorite action when viewing photos through public links.

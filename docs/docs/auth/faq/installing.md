@@ -48,9 +48,11 @@ Alternatively, you can follow these steps:
 
 <br/>
 
-# iOS
+# iOS {#ios}
 
-You can install Ente Auth on Apple devices from [AppStore](https://apps.apple.com/us/app/ente-auth/id6444121398).
+You can install Ente Auth on iPhone and iPad from the [App Store](https://apps.apple.com/us/app/ente-auth/id6444121398).
+
+The iOS app can also run on compatible Apple-silicon Macs. For the native macOS app, including Intel Macs, use the [desktop download](#desktop).
 
 <br/>
 
@@ -61,6 +63,10 @@ You can install Ente Auth on Apple devices from [AppStore](https://apps.apple.co
 # Desktop
 
 You can grab the latest version of Ente Auth for Mac, Windows and Linux from [GitHub](https://github.com/ente/ente/releases?q=tag%3Aauth-v4).
+
+On macOS, download the `.dmg` file for the native desktop app. This is a separate build from the iOS app offered through the App Store on Apple-silicon Macs. Use the native desktop build if you need Intel Mac support or are having trouble entering an app-lock PIN with your Mac keyboard.
+
+Before switching builds, confirm that your codes have synced to your account and are accessible on another device, or create and verify an [encrypted export](/auth/migration/export). Keep the existing app and its data until your codes work in the new installation.
 
 On Linux, App lock can use system authentication in releases newer than `auth-v4.4.22`. Learn how to [set up Linux system authentication](/auth/troubleshooting/linux-system-auth).
 
@@ -87,6 +93,8 @@ Latest versions of our web app are available at [auth.ente.com](https://auth.ent
 ### What Windows version does Ente Auth run on? {#windows-version}
 
 The Ente Auth desktop app requires Windows 10 or later. Windows 7 and 8 are not supported.
+
+If Auth cannot start and Windows reports that `MSVCP140.dll` is missing, see the [Visual C++ runtime troubleshooting steps](/auth/troubleshooting/windows#missing-msvcp140-dll).
 
 ---
 

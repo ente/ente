@@ -43,8 +43,16 @@ Choose a shorter period if you want faster recovery, or keep the default 30 days
 1. Open Ente Locker.
 2. Open the Locker menu.
 3. Tap **Legacy**.
+
+![Locker menu with Legacy entry highlighted](https://docs-assets.ente.com/screenshots/locker-legacy-drawer-callout.png){width=320px}
+
 4. Tap **Add Trusted Contact**.
+
+![Legacy home with Add trusted contact](https://docs-assets.ente.com/screenshots/locker-legacy-home-callout.png){width=320px}
+
 5. Enter the email address of the person you want to add.
+
+![Add trusted contact sheet with email frosted and recovery time](https://docs-assets.ente.com/screenshots/locker-legacy-add-contact-callout.png){width=320px}
 
 The contact must already have an Ente account. After you add them, they must accept the invite from the Legacy page in their Ente app.
 

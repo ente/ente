@@ -2,7 +2,6 @@ import bs58 from "bs58";
 import {
     decryptBoxBytes,
     decryptMetadataJSON,
-    decryptStreamBytes,
     deriveKey,
     fromHex,
     toB64,
@@ -22,6 +21,7 @@ import type {
     LinkKeyMaterial,
     LockerInfo,
 } from "../types/file-share";
+import { saveStreamedFile } from "./download";
 
 const deviceLimitExceededMessage =
     "This link has been viewed on too many devices. Please contact the owner.";
@@ -402,6 +402,16 @@ export const downloadFile = async (
         throw new Error(`Failed to download file: ${response.statusText}`);
     }
 
+    if (fileDecryptionHeader) {
+        await saveStreamedFile(
+            response,
+            fileKey,
+            fileName,
+            fileDecryptionHeader,
+        );
+        return;
+    }
+
     const body = response.body;
     if (!body) {
         throw new Error("Response body is empty");
@@ -411,12 +421,7 @@ export const downloadFile = async (
 
     let decryptedData: Uint8Array<ArrayBuffer>;
 
-    if (fileDecryptionHeader) {
-        decryptedData = await decryptStreamBytes(
-            { encryptedData, decryptionHeader: fileDecryptionHeader },
-            fileKey,
-        );
-    } else if (fileNonce) {
+    if (fileNonce) {
         decryptedData = await decryptBoxBytes(
             { encryptedData: await toB64(encryptedData), nonce: fileNonce },
             fileKey,

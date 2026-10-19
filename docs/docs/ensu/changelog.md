@@ -7,6 +7,12 @@ description: Release notes of recent updates to Ensu
 
 A short summary list of changes to the Ensu mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v0.1.21 - Oct 2026
+
+- Improved follow-up questions about notes and packs.
+- Improved continuity in long text conversations with saved summaries.
+- Fixed issue regarding duplicate instances making Notes unavailable.
+
 ## v0.1.20 - Sep 2026
 
 - Chat with your local markdown notes on desktop and mobile

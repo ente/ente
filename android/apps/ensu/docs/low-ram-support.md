@@ -1,0 +1,2 @@
+- added LFM2.5 350M for devices with <=4GB RAM
+- modified ladder to have 8GB devices use LFM2.5 1.6B model

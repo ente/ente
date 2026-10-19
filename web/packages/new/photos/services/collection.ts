@@ -21,6 +21,7 @@ import {
     type CollectionType,
     type PublicURL,
 } from "ente-media/collection";
+import type { CollectionSortBy } from "ente-media/collection-sort";
 import {
     decryptRemoteFile,
     FileDiffResponse,
@@ -977,7 +978,8 @@ export const updateShareeCollectionOrder = async (
 export const updateCollectionSortOrder = async (
     collection: Collection,
     asc: boolean,
-) => updateCollectionPublicMagicMetadata(collection, { asc });
+    sortBy: CollectionSortBy = "date",
+) => updateCollectionPublicMagicMetadata(collection, { asc, sortBy });
 
 const albumDescriptionSegmenter =
     typeof Intl !== "undefined" && "Segmenter" in Intl

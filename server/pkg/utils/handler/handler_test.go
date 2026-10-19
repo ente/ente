@@ -82,6 +82,16 @@ func TestErrorLogsWarnForExpectedClientErrors(t *testing.T) {
 			err:        ente.ErrAuthenticationRequired,
 			wantStatus: http.StatusUnauthorized,
 		},
+		{
+			name:       "request body too large",
+			err:        &http.MaxBytesError{Limit: 4 << 20},
+			wantStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name:       "request body too large while binding JSON",
+			err:        bindJSONError{err: &http.MaxBytesError{Limit: 4 << 20}},
+			wantStatus: http.StatusRequestEntityTooLarge,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			recorder, ctx := testContext()

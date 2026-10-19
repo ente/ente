@@ -50,7 +50,6 @@ pub struct RustTextRegionDetectionResult {
 pub enum RustOcrError {
     ImageNotFound { message: String },
     InvalidImage { message: String },
-    Cancelled,
     CorruptModel { message: String },
     Other { message: String },
 }
@@ -86,16 +85,24 @@ impl OcrEngine {
         ocr::assets::is_detector_downloaded(&AssetStore::new(assets_dir))
     }
 
+    pub fn load_models(&self) -> Result<(), RustOcrError> {
+        self.inner
+            .load_models()
+            .map_err(|error| RustOcrError::from(ocr::OcrError::Ml(error)))
+    }
+
+    pub fn unload_models(&self) {
+        self.inner.unload_models();
+    }
+
     pub fn detect_text(
         &self,
         image_path: String,
         include_all_confidence_scores: bool,
-        request_id: Option<String>,
     ) -> Result<RustTextDetectionResult, RustOcrError> {
         let request = ocr::DetectTextRequest {
             image_path,
             include_all_confidence_scores,
-            request_id,
         };
         self.inner
             .detect_text(&request)
@@ -106,30 +113,19 @@ impl OcrEngine {
     pub fn detect_text_regions(
         &self,
         image_path: String,
-        request_id: Option<String>,
     ) -> Result<RustTextRegionDetectionResult, RustOcrError> {
-        let request = ocr::DetectRegionsRequest {
-            image_path,
-            request_id,
-        };
+        let request = ocr::DetectRegionsRequest { image_path };
         self.inner
             .detect_text_regions(&request)
             .map(to_api_text_region_detection_result)
             .map_err(|error| logged_failure("detect_text_regions", &request.image_path, error))
-    }
-
-    #[frb(sync)]
-    pub fn cancel(&self, request_id: String) {
-        self.inner.cancel(&request_id);
     }
 }
 
 impl RustOcrError {
     fn log_level(&self) -> log::Level {
         match self {
-            Self::ImageNotFound { .. } | Self::InvalidImage { .. } | Self::Cancelled => {
-                log::Level::Warn
-            }
+            Self::ImageNotFound { .. } | Self::InvalidImage { .. } => log::Level::Warn,
             Self::CorruptModel { .. } | Self::Other { .. } => log::Level::Error,
         }
     }
@@ -138,7 +134,6 @@ impl RustOcrError {
         match self {
             Self::ImageNotFound { .. } => "image not found".to_string(),
             Self::InvalidImage { message } => format!("invalid image: {message}"),
-            Self::Cancelled => "cancelled".to_string(),
             Self::CorruptModel { message } => format!("corrupt model: {message}"),
             Self::Other { message } => message.clone(),
         }
@@ -151,7 +146,6 @@ impl From<ocr::OcrError> for RustOcrError {
             error @ ocr::OcrError::ImageNotFound(_) => Self::ImageNotFound {
                 message: error.to_string(),
             },
-            ocr::OcrError::Cancelled => Self::Cancelled,
             ocr::OcrError::Ml(MlError::Decode(message) | MlError::Image(message)) => {
                 Self::InvalidImage { message }
             }

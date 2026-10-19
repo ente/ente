@@ -19,6 +19,19 @@ func (h *Handlers) CreateMessage(c *gin.Context, space *spacerepo.SpaceRecord) {
 	respondJSON(c, resp, err)
 }
 
+func (h *Handlers) SetMessageReaction(c *gin.Context, space *spacerepo.SpaceRecord) {
+	var req models.SetMessageReactionRequest
+	if !bindJSON(c, &req) {
+		return
+	}
+	messageID, ok := stringParam(c, "messageID")
+	if !ok {
+		return
+	}
+	resp, err := h.Module.Messages.SetReaction(c, space, messageID, req)
+	respondJSON(c, resp, err)
+}
+
 func (h *Handlers) LikeMessage(c *gin.Context, space *spacerepo.SpaceRecord) {
 	h.setMessageLike(c, space, true)
 }

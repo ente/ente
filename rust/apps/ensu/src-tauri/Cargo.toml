@@ -1,10 +1,10 @@
 [package]
 name = "ensu-desktop"
-version = "0.1.21-beta"
+version = "0.1.23-beta"
 edition.workspace = true
 
 [build-dependencies]
-tauri-build = { version = "2.6.2", features = [] }
+tauri-build = { version = "2.7.1", features = [] }
 
 [dependencies]
 ente-assets.workspace = true
@@ -13,26 +13,26 @@ ente-ensu.workspace = true
 ente-ensu-crypto.workspace = true
 keyring = { workspace = true, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 log.workspace = true
-notify = "6.1.1"
+notify = "8.2.0"
 serde.workspace = true
 serde_json.workspace = true
-tauri = { version = "2.11.2", features = [] }
-tauri-plugin-dialog = "2.7.1"
-tauri-plugin-fs = "2.5.1"
-tauri-plugin-opener = "2.5.4"
-tauri-plugin-process = "2.3.1"
-tauri-plugin-updater = "2.10.1"
+tauri = { version = "2.12.1", features = [] }
+tauri-plugin-dialog = "2.8.1"
+tauri-plugin-fs = "2.6.0"
+tauri-plugin-opener = "2.7.0"
+tauri-plugin-process = "2.4.0"
+tauri-plugin-updater = "2.13.1"
 uuid = { workspace = true, features = ["v4"] }
 
 [target.'cfg(unix)'.dependencies]
-libc = "0.2.0"
-rustix = { version = "1.1.4", features = ["fs"] }
+libc = "0.2.189"
+rustix = { version = "1.1.5", features = ["fs"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
 
 [target.'cfg(any(windows, target_os = "linux"))'.dependencies]
-tauri-plugin-single-instance = "2.4.4"
+tauri-plugin-single-instance = "2.4.5"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

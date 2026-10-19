@@ -407,22 +407,24 @@ Make sure you have sufficient storage available if you're expecting many people 
 
 ### Can I let others view a shared album without allowing download of the photos? {#disable-downloads-public-link}
 
-Yes. When creating or managing a public link, you can turn off downloads.
+You can hide Ente's download option for a public link. In the link settings, turn off **Download photos** on mobile or **Allow downloads** on web/desktop.
 
-Open the album, create or manage the public link, and disable **Allow downloads**.
+This is a viewer control, not copy protection. Anyone who can view the photos or videos may still save copies using browser features or external tools, take screenshots, or record their screen. Do not rely on this setting to prevent copying of the original files or their metadata.
 
-This lets people view the album through the link without showing them a download option.
+For a quick link on mobile, open **Albums**, tap the down-arrow, choose **Links**, open the link album, and tap the **link icon**. This opens **Link settings**, where you can turn off **Download photos**.
+
+See [Edit link settings](/photos/features/sharing-and-collaboration/public-links#edit-link-settings) for the other link types and platforms.
 
 ### Can I set limits on public links? {#link-limits}
 
-Yes! Public links (including collect links) support several protective features:
+Yes! Public links (including collect links) support these controls:
 
-- **Link expiry**: Set the link to automatically expire after a duration you define
-- **Device limits**: Limit how many devices can access the link (a "device" is identified by the combination of IP address and browser/app, so the same browser on a different network counts as a separate device)
-- **Password protection**: Add an additional password that users must enter to access the link
-- **Prevent downloads**: Disable the option to download original photos (though screenshots can't be prevented)
+- **Link expiry**: Set when the link stops working
+- **Device limits**: Limit access through the link. Different browsers or app access contexts can be counted separately, and using a phone that opened the link before does not guarantee continued access. See [device limits](/photos/features/sharing-and-collaboration/public-links#device-limits)
+- **Password protection**: Require a password before viewers can access the link
+- **Download control**: Hide Ente's download option. Viewers may still save copies with browser features or external tools, take screenshots, or record their screen
 
-These options help you maintain control over who can access and contribute to your shared albums.
+These settings help manage access to the link, but they cannot prevent someone who can view the content from copying it. See [download-control limitations](#disable-downloads-public-link).
 
 ### Can I stop people from adding more photos to a collect link? {#disable-collect-link}
 
@@ -446,6 +448,16 @@ In collaborative albums (with other Ente users), you can see who uploaded each p
 For existing album links shared while on the free plan, the device limit will not be removed automatically. You can edit the device limit from manage link option (open album>link icon on top)
 
 Once you upgrade to a paid plan, all future public links will have no device limit unless you set one yourself.
+
+### How do I keep the same public link and QR code after reaching the 10-device limit on the free plan? {#keep-public-link-after-device-limit}
+
+1. Upgrade the album owner's Ente account to a paid plan (the lowest tier, 50 GB monthly, is enough).
+2. Open the album and manage its existing public link.
+3. Set **Device limit** to **None**.
+
+The link URL stays the same. Only the album owner needs a paid plan; people opening the link can use free accounts.
+
+Sharing the album directly with another Ente user gives them access in the app, but scanning the QR code still uses the public link and its device limit.
 
 ### Why do emails on my feed appear masked for public links? {#masked-emails-public-links}
 
@@ -608,6 +620,15 @@ If you're the owner of shared albums and your paid subscription expires:
 - You won't be able to modify existing share settings
 
 Receiving shared albums works on free accounts, so if someone shares with you, you can still access those albums even without a paid plan.
+
+### Why can't I create a public link after my subscription expires? {#expired-subscription-public-links}
+
+An expired paid subscription does not automatically switch your account to the free plan. While the account is in this expired state, you cannot create a new public link, even though active free accounts can.
+
+1. To keep your paid plan, renew your subscription.
+2. To move to the free plan, contact support during the 30-day grace period. If your storage exceeds the free plan's 10 GB limit, you will need to reduce it.
+
+Once your account has an active plan, try creating the link again. See [What happens when my subscription expires?](/photos/faq/storage-and-plans#subscription-expires) for details about the grace period.
 
 ## Security and Privacy
 

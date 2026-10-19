@@ -5,18 +5,16 @@ abstract class OcrBackend {
     Set<OcrModelComponent> components,
   );
 
+  Future<void> unloadModels();
+
   Future<TextDetectionResult> detectText({
     required String imagePath,
     bool includeAllConfidenceScores = false,
-    String? requestId,
   });
 
   Future<TextRegionDetectionResult> detectTextRegions({
     required String imagePath,
-    String? requestId,
   });
-
-  Future<void> cancelRequest(String requestId);
 
   Future<String> ensureDisplayablePath(String imagePath);
 }

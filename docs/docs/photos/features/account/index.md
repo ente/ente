@@ -11,6 +11,8 @@ Your Ente account is the foundation for securely storing and accessing your phot
 
 One Ente account works with Ente Photos, Ente Auth, and Ente Locker. You can use one account for all three, or create a separate account for each.
 
+This shared account applies within the same Ente service or server. If you create a new account on an independent self-hosted server, it is separate from your hosted Ente account even when both use the same email address. Keep separate, clearly labeled credentials and recovery keys, and check the server endpoint before signing in or resetting a password. See the [self-hosting setup guide](/self-hosting/installation/post-install/#step-1-creating-first-user).
+
 > [!NOTE]
 >
 > If you use the same account for both Photos and Auth and enable 2FA for your Ente account (stored in Ente Auth), this creates a circular dependency. We recommend either:
@@ -174,6 +176,8 @@ Ente does not store your payment information. All payments are processed securel
 Learn more in the [Storage and Plans FAQ](/photos/faq/storage-and-plans#supported-payment-methods).
 
 ## Managing Your Account
+
+![Settings drawer with account email frosted](https://docs-assets.ente.com/screenshots/settings-drawer-frosted.png){width=320px}
 
 ### Multi-device access
 

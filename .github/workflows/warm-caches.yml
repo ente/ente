@@ -31,13 +31,8 @@ jobs:
                   go-version-file: server/go.mod
                   cache: false
 
-            - name: Free runner disk space
-              run: sudo rm -rf /usr/share/dotnet
-
-            - name: Install Linux dependencies
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc libdbus-1-dev
+            - name: Setup Linux for Rust
+              uses: ./.github/actions/setup-rust-linux
 
             - name: Setup Rust cache
               uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -198,7 +193,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup node
-              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 24
                   cache: "npm"
@@ -262,7 +257,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup node
-              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 24
 
@@ -286,7 +281,7 @@ jobs:
             - name: Install Vulkan build dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y libvulkan-dev glslc
+                  sudo apt-get install -y libvulkan-dev glslc spirv-headers
 
             - run: cargo codegen native
               working-directory: rust

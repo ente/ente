@@ -43,7 +43,7 @@ func (c *ClICtrl) writeAuthExport(ctx context.Context, account model.Account, da
 			return fmt.Errorf("error creating backup file: %v", err)
 		}
 	}
-	file, err := os.Create(outputFile)
+	file, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("error creating output file: %v", err)
 	}

@@ -2,19 +2,20 @@ import "dart:async";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/clear_and_unfocus_search_bar_event.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/index_of_indexed_stack.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/search/search_query_utils.dart";
 import "package:photos/ui/viewer/search/search_suffix_icon_widget.dart";
-import "package:photos/utils/pending_translation.dart";
 
 class SearchWidget extends StatefulWidget {
   const SearchWidget({
@@ -67,7 +68,7 @@ class SearchWidgetState extends State<SearchWidget> {
       if (!mounted) {
         return;
       }
-      if (event.selectedIndex != 3) {
+      if (event.selectedIndex != searchTabIndex) {
         focusNode.unfocus();
       }
     });
@@ -75,7 +76,7 @@ class SearchWidgetState extends State<SearchWidget> {
       event,
     ) async {
       debugPrint("Firing now ${event.selectedIndex}");
-      if (mounted && event.selectedIndex == 3) {
+      if (mounted && event.selectedIndex == searchTabIndex) {
         focusNode.requestFocus();
       }
     });
@@ -177,7 +178,7 @@ class SearchWidgetState extends State<SearchWidget> {
       child: TextInputComponent(
         controller: textController,
         focusNode: focusNode,
-        hintText: pendingTranslation("Search photos, people, places..."),
+        hintText: context.strings.searchPhotosPeoplePlaces,
         shouldUnfocusOnClearOrSubmit: true,
         prefix: HugeIcon(
           icon: HugeIcons.strokeRoundedSearch01,

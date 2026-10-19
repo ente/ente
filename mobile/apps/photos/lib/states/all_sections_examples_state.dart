@@ -9,6 +9,7 @@ import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/events/people_sort_order_change_event.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
 import "package:photos/services/search_service.dart";
@@ -85,8 +86,10 @@ class _AllSectionsExamplesProviderState
           onDataUpdate();
         });
     _tabChangeEvent = Bus.instance.on<TabChangedEvent>().listen((event) {
-      if (event.source == TabChangedEventSource.pageView &&
-          event.selectedIndex == 3) {
+      final entersSearch =
+          event.source == TabChangedEventSource.pageView ||
+          event.source == TabChangedEventSource.mlConsent;
+      if (entersSearch && event.selectedIndex == searchTabIndex) {
         isOnSearchTab = true;
         _cancelInitialLoadTimer();
         if (hasPendingUpdate || !_firstLoadInProgressOrComplete) {

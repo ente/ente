@@ -20,6 +20,8 @@ class NotificationService {
       "notifications_enabled_shared_photos";
   static const String keyShouldShowSocialNotifications =
       "notifications_enabled_social";
+  static const String _keyHasAttemptedNotificationPermission =
+      "has_attempted_notification_permission";
 
   NotificationService._privateConstructor();
 
@@ -165,7 +167,15 @@ class NotificationService {
   Future<bool> requestPermissions(BuildContext context) async {
     if (await hasGrantedPermissions()) return true;
     if (!context.mounted) return false;
-    if (await _askPermissions()) return true;
+
+    final hasAttemptedPermission =
+        _preferences.getBool(_keyHasAttemptedNotificationPermission) ?? false;
+    if (!hasAttemptedPermission) {
+      await _preferences.setBool(_keyHasAttemptedNotificationPermission, true);
+      if (!context.mounted) return false;
+      return _askPermissions();
+    }
+
     if (!context.mounted) return false;
     await _openNotificationSettings();
     const interval = Duration(milliseconds: 500);

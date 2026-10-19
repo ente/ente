@@ -21,6 +21,9 @@ runs:
           run: |
               set -euo pipefail
 
+              sed '/^untranslated-messages-file:/d' "$GITHUB_WORKSPACE/mobile/packages/strings/l10n.yaml" > "$RUNNER_TEMP/l10n.yaml"
+              mv "$RUNNER_TEMP/l10n.yaml" "$GITHUB_WORKSPACE/mobile/packages/strings/l10n.yaml"
+
               base_url="https://storage.googleapis.com/flutter_infra_release/releases"
               case "$RUNNER_OS-$RUNNER_ARCH" in
               Linux-X64)

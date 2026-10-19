@@ -40,28 +40,17 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
           ),
         );
 
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: widget.onTap == null ? Spacing.xl : Spacing.xs,
-          ),
-          child: Center(
-            child: widget.onTap == null
-                ? versionText
-                : InkWell(
-                    onTap: widget.onTap,
-                    borderRadius: BorderRadius.circular(Radii.sm),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.lg,
-                      ),
-                      child: SizedBox(
-                        height: 48,
-                        child: Center(child: versionText),
-                      ),
-                    ),
-                  ),
-          ),
+        final versionContent = Padding(
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xl),
+          child: Center(child: versionText),
         );
+        return widget.onTap == null
+            ? versionContent
+            : InkWell(
+                onTap: widget.onTap,
+                borderRadius: BorderRadius.circular(Radii.sm),
+                child: versionContent,
+              );
       },
     );
   }

@@ -6,6 +6,8 @@ import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/configuration.dart';
+import 'package:photos/core/event_bus.dart';
+import 'package:photos/events/contact_relationships_invalidated_event.dart';
 import 'package:photos/models/api/collection/user.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
@@ -29,6 +31,8 @@ class ShareCollectionPage extends StatefulWidget {
 
 class _ShareCollectionPageState extends State<ShareCollectionPage> {
   late Collection _collection;
+  late final StreamSubscription<ContactRelationshipsInvalidatedEvent>
+  _relationshipsSubscription;
   final CollectionActions collectionActions = CollectionActions(
     CollectionsService.instance,
   );
@@ -37,7 +41,25 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
   @override
   void initState() {
     super.initState();
-    _collection = widget.collection;
+    _collection =
+        CollectionsService.instance.getCollectionByID(widget.collection.id) ??
+        widget.collection;
+    _relationshipsSubscription = Bus.instance
+        .on<ContactRelationshipsInvalidatedEvent>()
+        .listen((event) {
+          final latest = CollectionsService.instance.getCollectionByID(
+            _collection.id,
+          );
+          if (latest != null && !identical(latest, _collection)) {
+            setState(() => _collection = latest);
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _relationshipsSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshCollection() async {
@@ -78,11 +100,36 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
       children.addAll([
         if (sortedSharees.isNotEmpty)
           _participantRoster(userID, sortedSharees)
-        else ...[
-          Center(child: Image.asset("assets/on_device.png")),
-          if (!hasUrl)
-            ShareSectionDescription(context.strings.emptyAlbumShareMessage),
-        ],
+        else
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 145),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Spacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    "assets/empty_album_sharing.png",
+                    width: 76,
+                    height: 52,
+                    excludeFromSemantics: true,
+                  ),
+                  const SizedBox(height: Spacing.md),
+                  SizedBox(
+                    width: 221,
+                    child: Text(
+                      context.strings.emptyAlbumShareMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyles.body.copyWith(
+                        color: context.componentColors.textLight,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         const SizedBox(height: Spacing.sm),
         ButtonComponent(
           label: context.strings.addPerson,

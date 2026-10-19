@@ -1,7 +1,7 @@
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:photos/ente_theme_data.dart";
-import "package:ente_strings/ente_strings.dart";
 import "package:photos/ui/payment/subscription_common_widgets.dart";
 
 void main() {
@@ -22,10 +22,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final togglePosition = tester.widget<AnimatedPositioned>(
-        find.byType(AnimatedPositioned),
+      final toggleAlignment = tester.widget<AnimatedAlign>(
+        find.byType(AnimatedAlign),
       );
-      expect(togglePosition.left, 0);
+      expect(toggleAlignment.alignment, Alignment.centerLeft);
     });
   });
 }

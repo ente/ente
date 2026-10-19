@@ -138,6 +138,7 @@ pub struct PostContent {
 }
 
 pub struct PostPhoto {
+    pub video: Option<PostVideo>,
     pub asset: PostAsset,
     pub position: Option<i32>,
     pub metadata: Option<PostObjectMetadata>,
@@ -150,6 +151,11 @@ pub struct PostAsset {
     pub encrypted_post_key: String,
     pub key_version: i32,
     pub size: Option<i64>,
+}
+
+pub struct PostVideo {
+    pub asset: PostAsset,
+    pub duration_ms: u32,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -195,6 +201,7 @@ pub struct Message {
     pub sender_space_id: String,
     pub recipient_space_id: String,
     pub content: Result<Option<MessageContent>>,
+    pub reaction: Result<Option<String>>,
     pub reply_post_id: Option<i64>,
     pub reply_message_id: Option<String>,
     pub liked: bool,
@@ -213,6 +220,24 @@ pub struct MessagePage {
     pub next_cursor: String,
 }
 
+pub struct Notification {
+    pub notification_id: String,
+    pub notification_ids: Vec<String>,
+    pub kind: String,
+    pub actors: Vec<SpaceActor>,
+    pub actor_count: i64,
+    pub post_id: Option<i64>,
+    pub friend_request_id: Option<i64>,
+    pub created_at: String,
+    pub unread: bool,
+}
+
+pub struct NotificationPage {
+    pub latest_post_created_at: Option<String>,
+    pub items: Vec<Notification>,
+    pub next_cursor: String,
+}
+
 pub struct MessageActivity {
     pub id: String,
     pub activity_type: String,
@@ -221,6 +246,7 @@ pub struct MessageActivity {
     pub outgoing: bool,
     pub message_id: Option<String>,
     pub content: Result<Option<MessageContent>>,
+    pub reaction: Result<Option<String>>,
     pub post_id: Option<i64>,
     pub post_space_id: Option<String>,
 }
@@ -232,7 +258,6 @@ pub struct ConversationChatSummary {
 
 pub struct Conversations {
     pub friends: Vec<SpaceFriend>,
-    pub pending_requests: Vec<SpaceFriendRequest>,
     pub chat_summaries: BTreeMap<String, ConversationChatSummary>,
     pub latest_post_created_at: Option<String>,
 }
@@ -240,6 +265,8 @@ pub struct Conversations {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PostObjectMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub variant: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

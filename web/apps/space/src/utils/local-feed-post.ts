@@ -1,11 +1,10 @@
 import type React from "react";
 import type { SpacePost } from "services/space";
-import type { FailedSpaceFeedPost, LocalSpaceFeedPost } from "state/app-state";
+import type { LocalSpaceFeedPost } from "state/app-state";
 
 let nextLocalFeedPostID = 0;
 
 const postedConfirmationDurationMs = 1500;
-const failedPostDurationMs = 2500;
 
 export const createLocalFeedPostID = () =>
     `space-local-post-${Date.now()}-${nextLocalFeedPostID++}`;
@@ -41,19 +40,12 @@ export const failLocalFeedPost = (
         React.SetStateAction<LocalSpaceFeedPost[]>
     >,
     localPostId: string,
-    reason?: FailedSpaceFeedPost["reason"],
 ) => {
     setLocalFeedPosts((currentPosts) =>
         currentPosts.map((item) =>
             item.id == localPostId && item.status == "pending"
-                ? { ...item, reason, status: "failed" }
+                ? { ...item, status: "failed" }
                 : item,
         ),
     );
-
-    window.setTimeout(() => {
-        setLocalFeedPosts((currentPosts) =>
-            currentPosts.filter((item) => item.id != localPostId),
-        );
-    }, failedPostDurationMs);
 };

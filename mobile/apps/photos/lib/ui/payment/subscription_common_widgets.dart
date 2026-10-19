@@ -1,13 +1,12 @@
-import "package:ente_components/theme/theme.dart";
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
-import 'package:photos/ente_theme_data.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
 import "package:photos/gateways/storage_bonus/models/bonus.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import 'package:photos/ui/payment/billing_questions_widget.dart';
 
 class ValidityWidget extends StatelessWidget {
@@ -94,39 +93,59 @@ class AddOnBonusValidity extends StatelessWidget {
 }
 
 class SubFaqWidget extends StatelessWidget {
-  final bool isOnboarding;
-
-  const SubFaqWidget({super.key, this.isOnboarding = false});
+  const SubFaqWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: MenuItemWidgetNew(
-        title: context.strings.faqs,
-        menuItemColor: colorScheme.fillFaint,
-        pressedColor: colorScheme.fillFaintPressed,
-        trailingWidget: Icon(
-          Icons.chevron_right_outlined,
-          color: colorScheme.strokeBase,
+    final colors = context.componentColors;
+    return MenuGroupComponent(
+      items: [
+        MenuComponent(
+          title: context.strings.faqs,
+          leading: HugeIcon(
+            icon: HugeIcons.strokeRoundedHelpCircle,
+            size: IconSizes.small,
+            color: colors.textBase,
+          ),
+          trailing: HugeIcon(
+            icon: HugeIcons.strokeRoundedArrowRight01,
+            size: IconSizes.small,
+            color: colors.textBase,
+          ),
+          onTap: () => showPlanFaqSheet(context),
         ),
-        onTap: () async {
-          // ignore: unawaited_futures
-          showModalBottomSheet<void>(
-            backgroundColor: Theme.of(context).colorScheme.bgColorForQuestions,
-            barrierColor: Colors.black87,
-            context: context,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            clipBehavior: Clip.antiAlias,
-            builder: (context) {
-              return const SafeArea(child: BillingQuestionsWidget());
-            },
-          );
-        },
-      ),
+      ],
+    );
+  }
+}
+
+Future<void> showPlanFaqSheet(BuildContext context) {
+  return showBottomSheetComponent<void>(
+    context: context,
+    builder: (_) => BottomSheetComponent(
+      title: context.strings.faqs,
+      isScrollable: true,
+      initialChildSize: 0.6,
+      content: const BillingQuestionsWidget(),
+    ),
+  );
+}
+
+class SubscriptionPlanList extends StatelessWidget {
+  const SubscriptionPlanList({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(height: Spacing.sm),
+          children[i],
+        ],
+      ],
     );
   }
 }
@@ -145,6 +164,10 @@ class SubscriptionToggle extends StatefulWidget {
 }
 
 class _SubscriptionToggleState extends State<SubscriptionToggle> {
+  static const double _padding = Spacing.xs;
+  static const double _minSegmentHeight = 41;
+  static const double _radius = 35;
+
   late bool _isYearly;
 
   @override
@@ -163,102 +186,66 @@ class _SubscriptionToggleState extends State<SubscriptionToggle> {
 
   @override
   Widget build(BuildContext context) {
-    const borderPadding = 2.5;
-    const spaceBetweenButtons = 4.0;
-    final textTheme = getEnteTextTheme(context);
-    final componentColors = context.componentColors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: LayoutBuilder(
-        builder: (context, constrains) {
-          final widthOfButton =
-              (constrains.maxWidth -
-                  (borderPadding * 2) -
-                  spaceBetweenButtons) /
-              2;
-          return Container(
-            decoration: BoxDecoration(
-              color: componentColors.strokeFaint,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            padding: const EdgeInsets.symmetric(
-              vertical: borderPadding,
-              horizontal: borderPadding,
-            ),
-            width: double.infinity,
-            child: Stack(
-              children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setIsYearly(true);
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        width: widthOfButton,
-                        child: Center(
-                          child: Text(
-                            context.strings.yearly,
-                            style: textTheme.bodyMuted,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: spaceBetweenButtons),
-                    GestureDetector(
-                      onTap: () {
-                        setIsYearly(false);
-                      },
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        width: widthOfButton,
-                        child: Center(
-                          child: Text(
-                            context.strings.monthly,
-                            style: textTheme.bodyMuted,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 350),
-                  curve: Curves.easeInOutQuart,
-                  left: _isYearly ? 0 : widthOfButton + spaceBetweenButtons,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    width: widthOfButton,
-                    decoration: BoxDecoration(
-                      color: componentColors.fillLight,
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      switchInCurve: Curves.easeInOutExpo,
-                      switchOutCurve: Curves.easeInOutExpo,
-                      child: Text(
-                        key: ValueKey(_isYearly),
-                        _isYearly
-                            ? context.strings.yearly
-                            : context.strings.monthly,
-                        style: textTheme.body,
-                      ),
-                    ),
+    final colors = context.componentColors;
+    final labelStyle = TextStyles.body.copyWith(color: colors.textLight);
+    return Container(
+      padding: const EdgeInsets.all(_padding),
+      decoration: BoxDecoration(
+        color: colors.strokeFaint,
+        borderRadius: BorderRadius.circular(_radius),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: AnimatedAlign(
+              duration: Motion.slow,
+              curve: Curves.easeInOutCubic,
+              alignment: _isYearly
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              child: FractionallySizedBox(
+                widthFactor: 0.5,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.fillLight,
+                    borderRadius: BorderRadius.circular(_radius),
                   ),
                 ),
+              ),
+            ),
+          ),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _segment(context.strings.yearly, true, labelStyle),
+                _segment(context.strings.monthly, false, labelStyle),
               ],
             ),
-          );
-        },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(String label, bool isYearly, TextStyle style) {
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setIsYearly(isYearly),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _minSegmentHeight),
+          child: Center(
+            child: Text(label, style: style, textAlign: TextAlign.center),
+          ),
+        ),
       ),
     );
   }
 
   void setIsYearly(bool isYearly) {
+    if (_isYearly == isYearly) return;
     setState(() {
       _isYearly = isYearly;
     });

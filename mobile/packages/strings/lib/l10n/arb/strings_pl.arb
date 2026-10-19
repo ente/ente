@@ -1,4 +1,14 @@
 {
+  "bringMemoriesTogether": "Połącz swoje wspomnienia",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Utwórz nowe konto",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Zezwól na dostęp do zdjęć i porządkowanie ich za pomocą rozpoznawania twarzy. Całe przetwarzanie odbywa się na Twoim urządzeniu.",
+  "onboardingOrganizeDesc": "Uporządkuj swoje zdjęcia i filmy. Wszystkie wspomnienia w jednym miejscu.",
   "about": "O nas",
   "acceptTrustInvite": "Zaakceptuj zaproszenie",
   "account": "Konto",
@@ -14,6 +24,7 @@
       }
     }
   },
+  "accountRecovery": "Odzyskiwanie konta",
   "accountSetupIncompleteCreateAccount": "Konfiguracja konta nieukończona. Utwórz konto, aby ukończyć konfigurację.",
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
@@ -24,11 +35,7 @@
     "description": "Title for active sessions page"
   },
   "add": "Dodaj",
-  "addAdmin": "Dodaj administratora",
-  "addANewEmail": "Dodaj nowy adres e-mail",
   "addCode": "Dodaj kod",
-  "addCollaborator": "Dodaj współuczestnika",
-  "addedAs": "Dodano jako",
   "addedBy": "Dodane przez {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -52,7 +59,6 @@
   "addLocationButton": "Dodaj",
   "addMember": "Dodaj użytkownika",
   "addMore": "Dodaj więcej",
-  "addMoreAdmins": "Dodaj więcej administratorów",
   "addName": "Dodaj nazwę",
   "addNewEmail": "Dodaj nowy email",
   "addOnPageSubtitle": "Szczegóły dodatków",
@@ -64,7 +70,6 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Dodaj uczestników",
   "addPerson": "Dodaj osobę",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -81,12 +86,9 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addUpTo5MembersFree": "Dodaj do 5 użytkowników za darmo",
-  "addViewer": "Dodaj widza",
   "addYourPhotosNow": "Dodaj swoje zdjęcia teraz",
   "adjust": "Dostosuj",
   "admin": "Administrator",
-  "admins": "Administratorzy",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Administratorzy i współpracownicy mogą dodawać zdjęcia. Administratorzy mogą także zarządzać zdjęciami i uczestnikami.",
   "admiringThem": "Podziwianie {name}",
   "@admiringThem": {
     "placeholders": {
@@ -100,21 +102,8 @@
   "after1Week": "Po 1 tygodniu",
   "after1Year": "Po 1 roku",
   "albumLayout": "Układ albumu",
-  "albumOwner": "Właściciel",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
-  "albumParticipantsCount": "{count, plural, =0{Brak Uczestników} one{{count} Uczestnik} other{{count} Uczestników}}",
-  "@albumParticipantsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "5"
-      }
-    },
-    "description": "Number of participants in an album, including the album owner."
-  },
   "albums": "Albumy",
+  "albumsOnDevicePermissionCta": "Zezwól na dostęp",
   "albumTitle": "Tytuł albumu",
   "albumUpdated": "Album został zaktualizowany",
   "algorithm": "Algorytm",
@@ -317,12 +306,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} nie będzie mógł dodać więcej zdjęć do tego albumu\n\nJednak nadal będą mogli usunąć istniejące zdjęcia, które dodali",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Nie można usunąć udostępnionych plików",
   "cannotMoveToSharedAlbums": "Nie można przenieść do udostępnionych albumów",
   "cannotMoveToSharedAlbumsMessage": "Elementy mogą być dodane tylko do udostępnionych albumów, a nie przeniesione. Czy chcesz je dodać?",
@@ -345,7 +328,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Zmień uprawnienia",
-  "changePermissionsQuestion": "Zmień uprawnienia?",
   "changeYourReferralCode": "Zmień swój kod",
   "checkInboxAndSpamFolder": "Sprawdź swoją skrzynkę odbiorczą (i spam), aby zakończyć weryfikację",
   "@checkInboxAndSpamFolder": {
@@ -383,7 +365,6 @@
   "codeIssuerHint": "Wydawca",
   "collabLinkSectionDescription": "Pozwól innym dodawać zdjęcia bez konta Ente",
   "collaborator": "Współuczestnik",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Współuczestnicy mogą dodawać zdjęcia i wideo do udostępnionego albumu.",
   "collageLayout": "Układ",
   "collageSaved": "Kolaż zapisano w galerii",
   "collectionCannotBeDeleted": "Ta kolekcja nie może zostać usunięta",
@@ -1355,11 +1336,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Zarządzaj",
   "manageDeviceStorage": "Zarządzaj pamięcią podręczną urządzenia",
   "manageFamily": "Zarządzaj rodziną",
   "manageLink": "Zarządzaj linkiem",
-  "manageParticipants": "Zarządzaj",
   "managePaymentMethod": "Zarządzaj formami płatności",
   "manageSubscription": "Zarządzaj subskrypcją",
   "manualSort": "Niestandardowe",
@@ -1618,7 +1597,6 @@
   "openSettings": "Otwórz ustawienia",
   "openstreetmapContributors": "Współautorzy OpenStreetMap",
   "optionalAsShortAsYouLike": "Opcjonalnie, tak krótko, jak chcesz...",
-  "orPickAnExistingOne": "Lub wybierz istniejący",
   "otherDetectedFaces": "Inne wykryte twarze",
   "pair": "Sparuj",
   "parsingError": "Błąd przetworzenia",
@@ -1938,12 +1916,6 @@
   "remoteVideos": "Zdalne wideo",
   "remove": "Usuń",
   "removeAccess": "Usuń dostęp",
-  "removeAlbumParticipantBody": "{userEmail} zostanie usunięty z tego udostępnionego albumu\n\nWszelkie dodane przez nich zdjęcia zostaną usunięte z albumu",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} zostanie usunięty z tej udostępnionej kolekcji\n\nWszystkie elementy dodane przez niego zostaną również usunięte z kolekcji",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2188,7 +2160,6 @@
   "selectFile": "Wybierz plik",
   "selectFolder": "Wybierz folder",
   "selectFolders": "Wybierz foldery",
-  "selectFoldersForBackup": "Wybierz foldery do stworzenia kopii zapasowej",
   "selectFolderToContinue": "Wybierz folder, aby kontynuować",
   "selectItemsToAdd": "Wybierz elementy do dodania",
   "selectLanguage": "Wybierz język",
@@ -2266,7 +2237,6 @@
   "shareALink": "Udostępnij link",
   "shareCodes": "Udostępnij kody",
   "shareCodesDuration": "Wybierz okres, przez który chcesz udostępniać kody.",
-  "sharedAlbumSectionDescription": "Twórz wspólne albumy i współpracuj z innymi użytkownikami Ente, w tym z użytkownikami korzystającymi z bezpłatnych planów.",
   "sharedPhotoNotifications": "Nowe udostępnione zdjęcia i albumy",
   "sharedPhotoNotificationsExplanation": "Nowe zdjęcia i albumy, w których jesteś lub są udostępnione tobie",
   "sharedWith": "Udostępniono",
@@ -2289,15 +2259,6 @@
   "shareTextRecommendUsingEnteForPhotos": "Pobierz Ente, abyśmy mogli łatwo udostępniać zdjęcia i wideo w oryginalnej jakości\n\nhttps://ente.com",
   "shareThisLink": "Ten link pozwala każdemu, kto go otrzyma, uzyskać dostęp do Twojego elementu. Możesz w każdej chwili usunąć dostęp, usuwając link.",
   "shareWithNonenteUsers": "Udostępnij użytkownikom bez konta Ente",
-  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0{Udostępnij z konkretnymi osobami} one{Udostępniono z {numberOfPeople} osobą} other{Udostępniono z {numberOfPeople} osobami}}",
-  "@shareWithPeopleSectionTitle": {
-    "placeholders": {
-      "numberOfPeople": {
-        "type": "int",
-        "example": "2"
-      }
-    }
-  },
   "shareYourSubscription": "Podziel się swoją subskrypcją z bliskimi",
   "sharing": "Udostępnianie...",
   "shiftDatesAndTime": "Zmień daty i czas",
@@ -2367,16 +2328,15 @@
       "name": {}
     }
   },
-  "spotlightOnThem": "Uwaga na {name}",
+  "spotlightOnThem": "Wspomnienia z {name}",
   "@spotlightOnThem": {
     "placeholders": {
       "name": {}
     }
   },
-  "spotlightOnYourself": "Uwaga na siebie",
+  "spotlightOnYourself": "Spotlight na siebie",
   "startBackup": "Uruchom tworzenie kopii zapasowej",
   "startRecovery": "Rozpocznij odzyskiwanie",
-  "startWithLatestPhotos": "Zacznij z najnowszymi zdjęciami",
   "status": "Stan",
   "sticker": "Naklejka",
   "stopCastingBody": "Czy chcesz przestać wyświetlać?",

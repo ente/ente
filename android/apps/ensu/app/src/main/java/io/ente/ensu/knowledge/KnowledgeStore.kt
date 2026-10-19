@@ -1,7 +1,6 @@
 package io.ente.ensu.knowledge
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.ente.ensu.AppState
@@ -17,20 +16,18 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private val Context.knowledgePreferences by preferencesDataStore("ensu_knowledge_preferences")
+private val Context.legacyKnowledgePreferences by preferencesDataStore("ensu_knowledge_preferences")
 
 data class KnowledgePackState(
     val config: KnowledgeDatasetConfig,
     val status: KnowledgeReconciliationStatus? = null,
     val activeIdentity: String? = null,
-    val enabled: Boolean = false,
+    val inventoryLoaded: Boolean = false,
     val mutationProgress: KnowledgeDownloadProgress? = null,
     val errorMessage: String? = null,
 ) {
@@ -38,14 +35,21 @@ data class KnowledgePackState(
         get() = mutationProgress != null
 }
 
-data class KnowledgeState(val packs: Map<String, KnowledgePackState> = emptyMap()) {
-    val enabledReadyDatasets: List<KnowledgeDatasetConfig>
+data class KnowledgeState(
+    val packs: Map<String, KnowledgePackState> = emptyMap(),
+    val disabledIds: Set<String> = emptySet(),
+    val inventoryLoading: Boolean = true,
+    val settingsReady: Boolean = false,
+) {
+    val inventoryReady: Boolean
+        get() = settingsReady && !inventoryLoading && packs.values.all { it.inventoryLoaded }
+
+    val readyDatasets: List<KnowledgeDatasetConfig>
         get() =
             packs.values
                 .filter { pack ->
-                    pack.enabled &&
-                        (pack.status == KnowledgeReconciliationStatus.READY ||
-                            pack.status == KnowledgeReconciliationStatus.UPDATE_AVAILABLE)
+                    pack.status == KnowledgeReconciliationStatus.READY ||
+                        pack.status == KnowledgeReconciliationStatus.UPDATE_AVAILABLE
                 }
                 .map { it.config }
 }
@@ -62,36 +66,68 @@ class KnowledgeStore(
     private val jobs = mutableMapOf<String, Job>()
     private var scope: CoroutineScope? = null
     private var bootstrapJob: Job? = null
-    private val enabledPacksReady = CompletableDeferred<Unit>()
+    private val packsReady = CompletableDeferred<Unit>()
 
-    fun bootstrap(scope: CoroutineScope) {
+    fun bootstrap(scope: CoroutineScope, retryFailed: Boolean = false) {
         this.scope = scope
-        if (bootstrapJob != null) return
-        state.update { appState ->
-            appState.copy(
-                knowledge =
-                    KnowledgeState(
-                        packs = catalog.mapValues { (_, config) -> KnowledgePackState(config) }
-                    )
-            )
-        }
+        if (bootstrapJob?.isActive == true || (bootstrapJob != null && !retryFailed)) return
+        if (state.value.knowledge.inventoryReady) return
+        if (bootstrapJob == null)
+            state.update { appState ->
+                appState.copy(
+                    knowledge =
+                        appState.knowledge.copy(
+                            packs = catalog.mapValues { (_, config) -> KnowledgePackState(config) }
+                        )
+                )
+            }
+        state.update { it.copy(knowledge = it.knowledge.copy(inventoryLoading = true)) }
         bootstrapJob = scope.launch {
-            val requestedEnabled = runCatchingCancellable {
-                preferences.enabledDatasetIds.first()
-            }
-                .getOrDefault(emptySet())
-            val (enabled, disabled) = catalog.values.partition { it.stableId in requestedEnabled }
             try {
-                enabled.forEach { dataset -> reconcileAndUpdate(dataset, enabled = true) }
+                preferences.migratePackSettings(catalog.keys)
+                val disabledIds = preferences.disabledPackIds
+                state.update {
+                    it.copy(
+                        knowledge =
+                            it.knowledge.copy(
+                                disabledIds = disabledIds,
+                                settingsReady = true,
+                            )
+                    )
+                }
+                catalog.values
+                    .filter { state.value.knowledge.packs[it.stableId]?.inventoryLoaded != true }
+                    .forEach { dataset -> reconcileAndUpdate(dataset) }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                logRepository.log(
+                    LogLevel.Error,
+                    "Could not load source preferences",
+                    tag = "Knowledge",
+                    throwable = error,
+                )
             } finally {
-                enabledPacksReady.complete(Unit)
+                state.update { it.copy(knowledge = it.knowledge.copy(inventoryLoading = false)) }
+                packsReady.complete(Unit)
             }
-            disabled.forEach { dataset -> reconcileAndUpdate(dataset, enabled = false) }
         }
     }
 
-    suspend fun awaitEnabledPacksReady() {
-        enabledPacksReady.await()
+    suspend fun awaitReady() {
+        packsReady.await()
+        bootstrapJob?.join()
+    }
+
+    fun retry() {
+        scope?.let { bootstrap(it, retryFailed = true) }
+    }
+
+    fun setEnabled(stableId: String, enabled: Boolean) {
+        preferences.setPackEnabled(stableId, enabled)
+        state.update {
+            it.copy(knowledge = it.knowledge.copy(disabledIds = preferences.disabledPackIds))
+        }
     }
 
     fun downloadOrUpdate(stableId: String) {
@@ -114,30 +150,20 @@ class KnowledgeStore(
                             current.copy(mutationProgress = progress)
                         }
                     }
-                val shouldEnable =
-                    !wasInstalled && reconciliation.status == KnowledgeReconciliationStatus.READY
-                if (shouldEnable) {
-                    preferences.setDatasetEnabled(stableId, true)
-                }
-                val enabled =
-                    if (wasInstalled) {
-                        state.value.knowledge.packs[stableId]?.enabled == true
-                    } else {
-                        shouldEnable
-                    }
                 updatePack(stableId) {
-                    it.fromReconciliation(reconciliation, enabled).copy(mutationProgress = null)
+                    it.fromReconciliation(reconciliation).copy(mutationProgress = null)
                 }
+                if (!wasInstalled && reconciliation.activeIdentity != null)
+                    setEnabled(stableId, true)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
                 val reconciled = runCatchingCancellable { provider.reconcile(dataset) }.getOrNull()
                 updatePack(stableId) { current ->
-                    (reconciled?.let { current.fromReconciliation(it, current.enabled) } ?: current)
-                        .copy(
-                            mutationProgress = null,
-                            errorMessage = userFacingKnowledgeError(error),
-                        )
+                    (reconciled?.let { current.fromReconciliation(it) } ?: current).copy(
+                        mutationProgress = null,
+                        errorMessage = userFacingKnowledgeError(error),
+                    )
                 }
                 logRepository.log(
                     LogLevel.Error,
@@ -160,19 +186,11 @@ class KnowledgeStore(
             ownerJob?.join()
             if (jobs[stableId]?.isActive == true) return@launch
             updatePack(stableId) { current ->
-                (result?.let { current.fromReconciliation(it, current.enabled) } ?: current).copy(
+                (result?.let { current.fromReconciliation(it) } ?: current).copy(
                     mutationProgress = null
                 )
             }
         }
-    }
-
-    fun setEnabled(stableId: String, enabled: Boolean) {
-        val pack = state.value.knowledge.packs[stableId] ?: return
-        if (pack.activeIdentity == null || pack.isMutating) return
-        val ownerScope = scope ?: return
-        updatePack(stableId) { it.copy(enabled = enabled) }
-        ownerScope.launch { preferences.setDatasetEnabled(stableId, enabled) }
     }
 
     private fun updatePack(
@@ -190,20 +208,14 @@ class KnowledgeStore(
         }
     }
 
-    private suspend fun reconcileAndUpdate(
-        dataset: KnowledgeDatasetConfig,
-        enabled: Boolean,
-    ) {
+    private suspend fun reconcileAndUpdate(dataset: KnowledgeDatasetConfig) {
         val result = runCatchingCancellable { provider.reconcile(dataset) }
         updatePack(dataset.stableId) { current ->
             result.fold(
-                onSuccess = { reconciliation ->
-                    current.fromReconciliation(reconciliation, enabled)
-                },
+                onSuccess = { reconciliation -> current.fromReconciliation(reconciliation) },
                 onFailure = { error ->
                     current.copy(
                         status = KnowledgeReconciliationStatus.DOWNLOAD,
-                        enabled = false,
                         errorMessage = userFacingKnowledgeError(error),
                     )
                 },
@@ -212,13 +224,12 @@ class KnowledgeStore(
     }
 
     private fun KnowledgePackState.fromReconciliation(
-        result: KnowledgeReconciliation,
-        enabled: Boolean,
+        result: KnowledgeReconciliation
     ): KnowledgePackState =
         copy(
             status = result.status,
             activeIdentity = result.activeIdentity,
-            enabled = enabled && result.activeIdentity != null,
+            inventoryLoaded = true,
             errorMessage = null,
         )
 
@@ -241,19 +252,25 @@ class KnowledgeStore(
 }
 
 private class KnowledgePreferences(context: Context) {
-    private val preferences = context.applicationContext.knowledgePreferences
+    private val legacyPreferences = context.applicationContext.legacyKnowledgePreferences
+    private val preferences =
+        context.applicationContext.getSharedPreferences("ensu_chat_sources", Context.MODE_PRIVATE)
 
-    val enabledDatasetIds: Flow<Set<String>> =
-        preferences.data.map { values -> values[Keys.enabledDatasetIds].orEmpty() }
+    val disabledPackIds: Set<String>
+        get() = preferences.getStringSet("disabled_pack_defaults", emptySet()).orEmpty().toSet()
 
-    suspend fun setDatasetEnabled(stableId: String, enabled: Boolean) {
-        preferences.edit { values ->
-            val ids = values[Keys.enabledDatasetIds].orEmpty()
-            values[Keys.enabledDatasetIds] = if (enabled) ids + stableId else ids - stableId
+    suspend fun migratePackSettings(packIds: Set<String>) {
+        if (preferences.getBoolean("pack_defaults_migrated", false)) return
+        val legacy = legacyPreferences.data.first()[stringSetPreferencesKey("enabled_dataset_ids")]
+        val editor = preferences.edit()
+        if (!preferences.contains("disabled_pack_defaults")) {
+            editor.putStringSet("disabled_pack_defaults", legacy?.let { packIds - it }.orEmpty())
         }
+        editor.putBoolean("pack_defaults_migrated", true).apply()
     }
 
-    private object Keys {
-        val enabledDatasetIds = stringSetPreferencesKey("enabled_dataset_ids")
+    fun setPackEnabled(id: String, enabled: Boolean) {
+        val ids = disabledPackIds.let { if (enabled) it - id else it + id }
+        preferences.edit().putStringSet("disabled_pack_defaults", ids).apply()
     }
 }

@@ -28,4 +28,10 @@ class MLDataDB {
       "ML DB backend: ${useRust ? "rust" : "dart"} (wantsRust: $preferRust)",
     );
   }
+
+  static Future<void> releaseVectorIndexes() async {
+    if (_useRust != true) return;
+    await RustMLDataDB.instance.releaseVectorIndexes();
+    await RustMLDataDB.localGalleryInstance.releaseVectorIndexes();
+  }
 }

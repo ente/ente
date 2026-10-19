@@ -23,7 +23,9 @@ internal class AttachmentStoreActions(
                 attachment.type == AttachmentType.Image &&
                     chat.attachments.count { it.type == AttachmentType.Image } >=
                         MaxImageAttachmentsPerMessage
-            if (chat.isGenerating || chat.isDownloading || imageLimitReached) {
+            val unsupportedImage =
+                attachment.type == AttachmentType.Image && !chat.supportsImageAttachments
+            if (chat.isGenerating || chat.isDownloading || imageLimitReached || unsupportedImage) {
                 appState.copy(chat = chat.copy(isProcessingAttachments = false))
             } else {
                 accepted = true

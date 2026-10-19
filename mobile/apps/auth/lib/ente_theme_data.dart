@@ -1,10 +1,12 @@
 import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
+import 'package:ente_components/theme/colors.dart' show ColorTokens;
 import 'package:flutter/material.dart';
 
 final lightThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.light,
+  popupMenuTheme: PopupMenuThemeData(color: ColorTokens.light.fillLight),
   dividerTheme: const DividerThemeData(color: Colors.black12),
   hintColor: const Color.fromRGBO(158, 158, 158, 1),
   primaryColor: const Color.fromRGBO(255, 110, 64, 1),
@@ -119,6 +121,7 @@ final lightThemeData = ThemeData(
 final darkThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.dark,
+  popupMenuTheme: PopupMenuThemeData(color: ColorTokens.dark.fillLight),
   dividerTheme: const DividerThemeData(color: Colors.white12),
   primaryColorLight: const Color.fromRGBO(255, 255, 255, 0.702),
   iconTheme: const IconThemeData(color: Colors.white),

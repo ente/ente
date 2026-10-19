@@ -99,26 +99,29 @@ export const uploadCountsText = ({
     | "finishedUploads"
     | "preUploadSkippedFiles"
 >) => {
+    const {
+        completed: count,
+        skipped,
+        failed,
+    } = uploadCompletionCounts(finishedUploads, preUploadSkippedFiles);
     if (uploadPhase == "done") {
-        const {
-            completed: count,
-            skipped,
-            failed,
-        } = uploadCompletionCounts(finishedUploads, preUploadSkippedFiles);
-        const notCount = skipped + failed;
         const items: string[] = [];
         if (count) items.push(t("upload_done", { count }));
-        if (notCount) items.push(t("upload_skipped", { count: notCount }));
+        if (skipped) items.push(t("upload_skipped", { count: skipped }));
+        if (failed) items.push(t("upload_failed", { count: failed }));
         return items.length
             ? formattedListJoin(items)
             : t("upload_done", { count });
     }
-    return uploadCounter.total
+    const progress = uploadCounter.total
         ? t("upload_items_progress", {
               count: uploadCounter.finished,
               total: uploadCounter.total,
           })
         : uploadStatusText(uploadPhase);
+    return failed
+        ? formattedListJoin([progress, t("upload_failed", { count: failed })])
+        : progress;
 };
 
 export const normalizePercent = (value: number) =>

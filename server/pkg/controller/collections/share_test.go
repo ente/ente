@@ -6,7 +6,9 @@ import (
 	"errors"
 	"net/http/httptest"
 	"strconv"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
@@ -16,6 +18,8 @@ import (
 	castRepo "github.com/ente/museum/pkg/repo/cast"
 	publicRepo "github.com/ente/museum/pkg/repo/public"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type panicUserLookup struct{}
@@ -116,6 +120,7 @@ func newBatchShareTestController(
 	collectionRepo *repo.CollectionRepository,
 ) *CollectionController {
 	return &CollectionController{
+		PushCtrl:       &museumcontroller.PushController{},
 		AccessCtrl:     access.NewAccessController(collectionRepo, nil),
 		CollectionRepo: collectionRepo,
 		UserLookup:     newShareTestUserLookup(db),
@@ -480,7 +485,7 @@ func TestUncategorizedCollectionsOnlyAllowViewerShares(t *testing.T) {
 		Role:         ente.VIEWER,
 	}
 
-	status, err := controller.shareCollectionWithUserID(
+	status, _, err := controller.shareCollectionWithUserID(
 		context.Background(),
 		ownerID,
 		shareeID,
@@ -490,7 +495,7 @@ func TestUncategorizedCollectionsOnlyAllowViewerShares(t *testing.T) {
 	requireCollectionShareStatus(t, status, ente.CollectionShared, err)
 
 	item.Role = ente.ADMIN
-	_, err = controller.shareCollectionWithUserID(
+	_, _, err = controller.shareCollectionWithUserID(
 		context.Background(),
 		ownerID,
 		shareeID,
@@ -567,6 +572,7 @@ func TestBulkShareAndUnshareReturnPerCollectionStatuses(t *testing.T) {
 func TestBulkShareAutomaticRecipientMustBeInSameFamily(t *testing.T) {
 	db, collectionRepo, ownerID, shareeID := setupCollectionShareTest(t)
 	controller := &CollectionController{
+		PushCtrl:       &museumcontroller.PushController{},
 		CollectionRepo: collectionRepo,
 		UserRepo:       &repo.UserRepository{DB: db},
 		UserLookup:     newShareTestUserLookup(db),
@@ -939,5 +945,189 @@ func TestBatchShareRejectsOversizedBatch(t *testing.T) {
 	_, err := controller.BatchShare(&gin.Context{}, shares)
 	if !errors.Is(err, ente.ErrBatchSizeTooLarge) {
 		t.Fatalf("oversized share batch error = %v, want %v", err, ente.ErrBatchSizeTooLarge)
+	}
+}
+
+type albumSharePushFunc func(context.Context, []int64)
+
+func (f albumSharePushFunc) NotifyAlbumShare(ctx context.Context, recipients []int64) {
+	f(ctx, recipients)
+}
+
+func TestAlbumShareNotifiesAfterEverySuccessfulShare(t *testing.T) {
+	db, r, owner, recipient := setupCollectionShareTest(t)
+	c := newBatchShareTestController(db, r)
+	id := createShareTestCollection(t, r, owner)
+	notifications := make(chan []int64, 4)
+	c.PushCtrl = albumSharePushFunc(func(ctx context.Context, users []int64) {
+		_, pooledContext := ctx.(*gin.Context)
+		assert.False(t, pooledContext)
+		var active bool
+		assert.NoError(t, db.QueryRow(`SELECT NOT is_deleted FROM collection_shares WHERE collection_id=$1 AND to_user_id=$2`, id, recipient).Scan(&active))
+		assert.True(t, active, "notification must run after commit")
+		notifications <- users
+	})
+	request := ente.AlterShareRequest{CollectionID: id, Email: "sharee@example.com", EncryptedKey: b64OfLen(sealedCollectionKeyLen)}
+	_, err := c.Share(newBatchShareTestContext(owner), request)
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return len(notifications) == 1 }, time.Second, time.Millisecond)
+	require.Equal(t, []int64{recipient}, <-notifications)
+	_, err = c.BatchShare(newBatchShareTestContext(owner), []ente.AlterShareRequest{request})
+	require.NoError(t, err)
+	role := ente.COLLABORATOR
+	request.Role = &role
+	_, err = c.Share(newBatchShareTestContext(owner), request)
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return len(notifications) == 2 }, time.Second, time.Millisecond, "retry and role change must notify")
+	require.Equal(t, []int64{recipient}, <-notifications)
+	require.Equal(t, []int64{recipient}, <-notifications)
+	require.NoError(t, r.UnShare(id, recipient))
+	_, err = c.BatchShare(newBatchShareTestContext(owner), []ente.AlterShareRequest{request})
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return len(notifications) == 1 }, time.Second, time.Millisecond)
+	require.Equal(t, []int64{recipient}, <-notifications, "restored access should notify")
+	require.NoError(t, r.UnShare(id, recipient))
+	_, err = db.Exec(`UPDATE collections SET is_deleted = TRUE WHERE collection_id = $1`, id)
+	require.NoError(t, err)
+	_, err = c.Share(newBatchShareTestContext(owner), request)
+	require.ErrorIs(t, err, ente.ErrCollectionDeleted)
+	require.Never(t, func() bool { return len(notifications) > 0 }, 50*time.Millisecond, time.Millisecond)
+	var deleted bool
+	require.NoError(t, db.QueryRow(`SELECT is_deleted FROM collection_shares WHERE collection_id=$1 AND to_user_id=$2`, id, recipient).Scan(&deleted))
+	require.True(t, deleted, "failed share must roll back restored access")
+}
+
+func TestBatchShareNotifiesAllRecipients(t *testing.T) {
+	db, r, owner, existingRecipient := setupCollectionShareTest(t)
+	newRecipient := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID: 3, Email: "new-sharee@example.com", CreationTime: 1,
+	})
+	id := createShareTestCollection(t, r, owner)
+	addShareTestShare(t, r, id, owner, existingRecipient, ente.VIEWER)
+	c := newBatchShareTestController(db, r)
+	notifications := make(chan []int64, 1)
+	c.PushCtrl = albumSharePushFunc(func(_ context.Context, recipients []int64) {
+		notifications <- recipients
+	})
+	admin, collaborator := ente.ADMIN, ente.COLLABORATOR
+	_, err := c.BatchShare(newBatchShareTestContext(owner), []ente.AlterShareRequest{
+		{CollectionID: id, Email: "sharee@example.com", EncryptedKey: b64OfLen(sealedCollectionKeyLen), Role: &admin},
+		{CollectionID: id, Email: "new-sharee@example.com", EncryptedKey: b64OfLen(sealedCollectionKeyLen), Role: &collaborator},
+	})
+	require.NoError(t, err)
+	select {
+	case recipients := <-notifications:
+		require.ElementsMatch(t, []int64{existingRecipient, newRecipient}, recipients)
+	case <-time.After(time.Second):
+		t.Fatal("new recipient was not notified")
+	}
+}
+
+func TestBulkAlbumShareNotifiesOnceAfterAllMutations(t *testing.T) {
+	db, r, owner, recipient := setupCollectionShareTest(t)
+	c := newBatchShareTestController(db, r)
+	request := ente.BulkCollectionShareRequest{RecipientUserID: recipient, RecipientEmail: "sharee@example.com", Source: ente.ManualShare}
+	for range 2 {
+		request.Collections = append(request.Collections, ente.BulkCollectionShareItem{CollectionID: createShareTestCollection(t, r, owner), EncryptedKey: b64OfLen(sealedCollectionKeyLen), Role: ente.VIEWER})
+	}
+	var calls atomic.Int32
+	c.PushCtrl = albumSharePushFunc(func(_ context.Context, _ []int64) {
+		for _, item := range request.Collections {
+			var count int
+			assert.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM collection_shares WHERE collection_id=$1`, item.CollectionID).Scan(&count))
+			assert.Equal(t, 1, count)
+		}
+		calls.Add(1)
+	})
+	for range 2 {
+		_, err := c.BulkShare(newBatchShareTestContext(owner), request)
+		require.NoError(t, err)
+	}
+	require.Eventually(t, func() bool { return calls.Load() == 2 }, time.Second, time.Millisecond)
+}
+
+func TestAlbumSharePushEligibility(t *testing.T) {
+	db, r, owner, recipient := setupCollectionShareTest(t)
+	c := newBatchShareTestController(db, r)
+	var calls atomic.Int32
+	var expected int32
+	c.PushCtrl = albumSharePushFunc(func(context.Context, []int64) { calls.Add(1) })
+	for _, collection := range []ente.Collection{
+		{Type: "album", App: string(ente.Photos)},
+		{Type: "album", App: string(ente.Locker)},
+		{Type: "folder", App: string(ente.Photos)},
+		{Type: "favorites", App: string(ente.Photos)},
+		{Type: "uncategorized", App: string(ente.Photos)},
+	} {
+		id := createShareTestCollection(t, r, owner)
+		_, err := db.Exec(`UPDATE collections SET type=$2, app=$3 WHERE collection_id=$1`, id, collection.Type, collection.App)
+		require.NoError(t, err)
+		for _, flow := range []string{"single", "batch", "bulk"} {
+			request := ente.AlterShareRequest{CollectionID: id, Email: "sharee@example.com", EncryptedKey: b64OfLen(sealedCollectionKeyLen)}
+			switch flow {
+			case "single":
+				_, err = c.Share(newBatchShareTestContext(owner), request)
+			case "batch":
+				_, err = c.BatchShare(newBatchShareTestContext(owner), []ente.AlterShareRequest{request})
+			case "bulk":
+				_, err = c.BulkShare(newBatchShareTestContext(owner), ente.BulkCollectionShareRequest{
+					RecipientUserID: recipient, RecipientEmail: request.Email, Source: ente.ManualShare,
+					Collections: []ente.BulkCollectionShareItem{{CollectionID: id, EncryptedKey: request.EncryptedKey, Role: ente.VIEWER}},
+				})
+			}
+			require.NoError(t, err)
+			require.Equal(t, 1, collectionShareCount(t, db, id))
+			require.NoError(t, r.UnShare(id, recipient))
+		}
+		if collection.App == string(ente.Photos) {
+			expected += 3
+			require.Eventually(t, func() bool { return calls.Load() == expected }, time.Second, time.Millisecond)
+		}
+	}
+	require.Never(t, func() bool { return calls.Load() > expected }, 50*time.Millisecond, time.Millisecond)
+}
+
+func TestAlbumShareDoesNotWaitForPush(t *testing.T) {
+	for _, flow := range []string{"single", "batch", "bulk"} {
+		t.Run(flow, func(t *testing.T) {
+			db, r, owner, recipient := setupCollectionShareTest(t)
+			c := newBatchShareTestController(db, r)
+			id := createShareTestCollection(t, r, owner)
+			request := ente.AlterShareRequest{CollectionID: id, Email: "sharee@example.com", EncryptedKey: b64OfLen(sealedCollectionKeyLen)}
+			started := make(chan struct{})
+			release := make(chan struct{})
+			returned := make(chan struct{})
+			c.PushCtrl = albumSharePushFunc(func(context.Context, []int64) {
+				close(started)
+				<-release
+			})
+			t.Cleanup(func() { close(release); <-returned })
+			var err error
+			go func() {
+				switch flow {
+				case "single":
+					_, err = c.Share(newBatchShareTestContext(owner), request)
+				case "batch":
+					_, err = c.BatchShare(newBatchShareTestContext(owner), []ente.AlterShareRequest{request})
+				case "bulk":
+					_, err = c.BulkShare(newBatchShareTestContext(owner), ente.BulkCollectionShareRequest{
+						RecipientUserID: recipient, RecipientEmail: request.Email, Source: ente.ManualShare,
+						Collections: []ente.BulkCollectionShareItem{{CollectionID: id, EncryptedKey: request.EncryptedKey, Role: ente.VIEWER}},
+					})
+				}
+				close(returned)
+			}()
+			select {
+			case <-returned:
+				require.NoError(t, err)
+			case <-time.After(5 * time.Second):
+				t.Fatal("sharing must return while push delivery is blocked")
+			}
+			select {
+			case <-started:
+			case <-time.After(time.Second):
+				t.Fatal("push delivery was not started")
+			}
+		})
 	}
 }

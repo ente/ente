@@ -18,7 +18,13 @@ Create quick collages on iOS or Android by selecting a handful of photos and arr
 3. Choose a layout from the options shown under **Layout**.
 4. Tap **Save** in the app bar to export the collage to your device gallery.
 
+![Create collage highlighted in the bottom action bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collage-create-callout.png){width=320px}
+
+![Layout options highlighted in the collage editor on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collage-editor-layout-callout.png){width=320px}
+
 ## Arrange and swap photos
+
+![Collage editor with photo tiles arranged in a layout on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-collage-editor-real.png){width=320px}
 
 - **Swap positions**: Long-press a photo in the collage preview to select it, then tap another photo to swap their spots. Tap the selected photo again to cancel the selection.
 - **Adjust framing**: Pinch and drag inside any photo tile to zoom or reposition the image within its slot.

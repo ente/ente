@@ -21,26 +21,25 @@ import (
 
 const PreSignedRequestValidityDuration = 7 * 24 * stime.Hour
 
-func (c *Controller) getUploadURL(object ente.TempObject) (*ente.UploadURL, error) {
+func (c *Controller) getUploadURL(object ente.TempObject) (string, error) {
 	s3Client := c.S3Config.GetS3Client(object.BucketId)
 	r, _ := s3Client.PutObjectRequest(&s3.PutObjectInput{
-		Bucket: c.S3Config.GetBucket(object.BucketId),
-		Key:    &object.ObjectKey,
+		Bucket:        c.S3Config.GetBucket(object.BucketId),
+		Key:           &object.ObjectKey,
+		ContentLength: object.ContentLength,
+		ContentMD5:    object.ContentMD5,
 	})
 	url, err := r.Presign(PreSignedRequestValidityDuration)
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+		return "", stacktrace.Propagate(err, "")
 	}
 	err = c.ObjectCleanupController.AddTempObject(object)
 	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+		return "", stacktrace.Propagate(err, "")
 	}
-	return &ente.UploadURL{
-		ObjectKey: object.ObjectKey,
-		URL:       url,
-	}, nil
+	return url, nil
 }
-func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count *int64) (*ente.MultipartUploadURLs, error) {
+func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, partLength int64, partMD5s []string) (*ente.MultipartUploadURLs, error) {
 	s3Client := c.S3Config.GetS3Client(object.BucketId)
 	bucket := c.S3Config.GetBucket(object.BucketId)
 	r, err := s3Client.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
@@ -58,13 +57,18 @@ func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count *int64)
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: object.ObjectKey}
 	urls := make([]string, 0)
-	for i := int64(1); i <= *count; i++ {
-		partReq, _ := s3Client.UploadPartRequest(&s3.UploadPartInput{
+	for i := int64(1); i <= count; i++ {
+		input := &s3.UploadPartInput{
 			Bucket:     bucket,
 			Key:        &object.ObjectKey,
 			UploadId:   r.UploadId,
 			PartNumber: &i,
-		})
+		}
+		if object.ContentLength != nil {
+			input.ContentLength = aws.Int64(min(partLength, *object.ContentLength-(i-1)*partLength))
+			input.ContentMD5 = &partMD5s[i-1]
+		}
+		partReq, _ := s3Client.UploadPartRequest(input)
 		partUrl, partUrlErr := partReq.Presign(PreSignedRequestValidityDuration)
 		if partUrlErr != nil {
 			return nil, stacktrace.Propagate(partUrlErr, "")

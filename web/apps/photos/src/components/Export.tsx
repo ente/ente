@@ -5,14 +5,8 @@ import exportService, {
     type ExportOpts,
     type ExportProgress,
 } from "@/services/export";
-import FolderIcon from "@mui/icons-material/Folder";
 import {
     Box,
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     Divider,
     LinearProgress,
     Stack,
@@ -23,23 +17,22 @@ import { isDesktop } from "ente-base/app";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { TitledMiniDialog } from "ente-base/components/MiniDialog";
-import {
-    OverflowMenu,
-    OverflowMenuOption,
-} from "ente-base/components/OverflowMenu";
 import { EllipsizedTypography } from "ente-base/components/Typography";
 import { SpacedRow } from "ente-base/components/containers";
-import type { ButtonishProps } from "ente-base/components/mui";
-import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import {
+    TitledNestedSidebarDrawer,
+    type NestedSidebarDrawerVisibilityProps,
+} from "ente-base/components/mui/SidebarDrawer";
 import {
     useModalVisibility,
     type ModalVisibilityProps,
 } from "ente-base/components/utils/modal";
+import { RowCard } from "ente-base/components/v2/RowCard";
 import { useBaseContext } from "ente-base/context";
 import { ensureElectron } from "ente-base/electron";
-import { formattedNumber } from "ente-base/i18n";
-import { formattedDateTime } from "ente-base/i18n-date";
+import { formattedNumber, ut } from "ente-base/i18n";
+import { formattedDateRelative, formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
@@ -54,13 +47,14 @@ import {
     type ListItemKeySelector,
 } from "react-window";
 
-type ExportProps = ModalVisibilityProps & {
+type ExportProps = NestedSidebarDrawerVisibilityProps & {
     collectionNameByID: Map<number, string>;
 };
 
 export const Export: React.FC<ExportProps> = ({
     open,
     onClose,
+    onRootClose,
     collectionNameByID,
 }) => {
     const { showMiniDialog } = useBaseContext();
@@ -187,15 +181,30 @@ export const Export: React.FC<ExportProps> = ({
         void exportService.stopRunningExport();
     }, []);
 
-    return (
-        <Dialog {...{ open, onClose }} maxWidth="xs" fullWidth>
-            <SpacedRow sx={{ p: "12px 4px 0px 0px" }}>
-                <DialogTitle variant="h3">{t("export_data")}</DialogTitle>
-                <DialogCloseIconButton {...{ onClose }} />
-            </SpacedRow>
+    const handleRootClose = () => {
+        onClose();
+        onRootClose();
+    };
 
-            <DialogContent>
-                <Stack>
+    const percentComplete = exportProgress.total
+        ? Math.round(
+              ((exportProgress.success + exportProgress.failed) * 100) /
+                  exportProgress.total,
+          )
+        : 0;
+
+    return (
+        <TitledNestedSidebarDrawer
+            {...{ open, onClose }}
+            onRootClose={handleRootClose}
+            maxWidth="440px"
+            title={t("export_data")}
+        >
+            <Typography sx={{ px: 3, pb: 2, color: "text.muted" }}>
+                {ut("Keep a decrypted copy of your library on this computer.")}
+            </Typography>
+            <Box sx={{ px: 2, py: 1 }}>
+                <Stack sx={{ gap: 2 }}>
                     <ExportDirectory
                         exportStage={exportStage}
                         exportFolder={exportFolder}
@@ -206,14 +215,41 @@ export const Export: React.FC<ExportProps> = ({
                         onToggle={handleToggleContinuousExport}
                     />
                 </Stack>
-            </DialogContent>
-            <Divider />
+            </Box>
+            <Divider sx={{ mx: 2, my: 1 }} />
+            <SpacedRow sx={{ px: 2, pt: 2, gap: 2 }}>
+                <Typography variant="small" sx={{ color: "text.muted" }}>
+                    {t("last_export_time")}
+                    {": "}
+                    {lastExportTime ? (
+                        <Tooltip
+                            title={formattedDateTime(new Date(lastExportTime))}
+                        >
+                            <span>
+                                {formattedDateRelative(
+                                    new Date(lastExportTime),
+                                )}
+                            </span>
+                        </Tooltip>
+                    ) : (
+                        t("never")
+                    )}
+                </Typography>
+                {exportStage === ExportStage.exportingFiles && (
+                    <Typography
+                        variant="small"
+                        sx={{ color: "text.muted", flexShrink: 0 }}
+                    >
+                        {t("percent_complete", { percent: percentComplete })}
+                    </Typography>
+                )}
+            </SpacedRow>
             <ExportDialogStageContent
                 {...{
                     exportStage,
                     exportProgress,
+                    percentComplete,
                     pendingFiles,
-                    lastExportTime,
                     collectionNameByID,
                     onClose,
                 }}
@@ -221,7 +257,7 @@ export const Export: React.FC<ExportProps> = ({
                 onResyncExport={handleResyncExport}
                 onStopExport={handleStopExport}
             />
-        </Dialog>
+        </TitledNestedSidebarDrawer>
     );
 };
 
@@ -237,28 +273,41 @@ const ExportDirectory: React.FC<ExportDirectoryProps> = ({
     onChangeExportDirectory,
 }) => (
     <Stack
-        direction="row"
-        sx={{ gap: 1, justifyContent: "space-between", alignItems: "center" }}
+        direction={exportFolder ? "column" : "row"}
+        sx={{
+            p: 2,
+            gap: 1,
+            bgcolor: "fill.faint",
+            borderRadius: "20px",
+            alignItems: exportFolder ? "stretch" : "center",
+            justifyContent: "space-between",
+        }}
     >
-        <Typography sx={{ color: "text.muted", mr: 1 }}>
-            {t("destination")}
+        <Typography variant="small" sx={{ color: "text.muted" }}>
+            {ut("Export folder")}
         </Typography>
-        {exportFolder ? (
-            <>
-                <DirectoryPath path={exportFolder} />
-                {exportStage === ExportStage.finished ||
-                exportStage === ExportStage.init ? (
-                    <ChangeDirectoryOption onClick={onChangeExportDirectory} />
-                ) : (
-                    // Preserve the directory row width while its action is hidden.
-                    <Box sx={{ width: "16px", height: "48px" }} />
-                )}
-            </>
-        ) : (
-            <Button color="accent" onClick={onChangeExportDirectory}>
-                {t("select_folder")}
-            </Button>
-        )}
+        <Stack
+            direction="row"
+            sx={{
+                gap: 1,
+                alignItems: "center",
+                justifyContent: "space-between",
+            }}
+        >
+            {exportFolder && <DirectoryPath path={exportFolder} />}
+            <FocusVisibleButton
+                color="secondary"
+                onClick={onChangeExportDirectory}
+                disabled={
+                    Boolean(exportFolder) &&
+                    exportStage !== ExportStage.finished &&
+                    exportStage !== ExportStage.init
+                }
+                sx={{ flexShrink: 0, px: 2, borderRadius: "12px" }}
+            >
+                {exportFolder ? t("change_folder") : t("select_folder")}
+            </FocusVisibleButton>
+        </Stack>
     </Stack>
 );
 
@@ -267,24 +316,22 @@ interface DirectoryPathProps {
 }
 
 const DirectoryPath: React.FC<DirectoryPathProps> = ({ path }) => (
-    <LinkButton onClick={() => void ensureElectron().openDirectory(path)}>
-        <Tooltip title={path}>
-            <EllipsizedTypography
-                // Ellipsis needs a fixed maximum width.
-                sx={{ maxWidth: "262px" }}
-            >
-                {path}
-            </EllipsizedTypography>
-        </Tooltip>
-    </LinkButton>
-);
-
-const ChangeDirectoryOption: React.FC<ButtonishProps> = ({ onClick }) => (
-    <OverflowMenu ariaID="export-option">
-        <OverflowMenuOption onClick={onClick} startIcon={<FolderIcon />}>
-            {t("change_folder")}
-        </OverflowMenuOption>
-    </OverflowMenu>
+    <Box
+        sx={{
+            minWidth: 0,
+            "& button": { maxWidth: "100%", textAlign: "left" },
+        }}
+    >
+        <LinkButton onClick={() => void ensureElectron().openDirectory(path)}>
+            <Tooltip title={path}>
+                <EllipsizedTypography
+                    sx={{ maxWidth: "100%", fontFamily: "monospace" }}
+                >
+                    {path}
+                </EllipsizedTypography>
+            </Tooltip>
+        </LinkButton>
+    </Box>
 );
 
 interface ContinuousExportProps {
@@ -296,13 +343,20 @@ const ContinuousExport: React.FC<ContinuousExportProps> = ({
     enabled,
     onToggle,
 }) => (
-    <SpacedRow sx={{ minHeight: "48px", mt: 1 }}>
-        <Typography sx={{ color: "text.muted" }}>
-            {t("sync_continuously")}
-        </Typography>
-        <Box>
-            <EnteSwitch color="accent" checked={enabled} onChange={onToggle} />
-        </Box>
+    <SpacedRow sx={{ gap: 2, px: 1, py: 1 }}>
+        <Stack sx={{ gap: 0.5 }}>
+            <Typography>{ut("Continuous export")}</Typography>
+            <Typography variant="small" sx={{ color: "text.muted" }}>
+                {ut("Automatically export new photos as they sync")}
+            </Typography>
+        </Stack>
+        <EnteSwitch
+            color="accent"
+            checked={enabled}
+            onChange={onToggle}
+            slotProps={{ input: { "aria-label": ut("Continuous export") } }}
+            sx={{ flexShrink: 0 }}
+        />
     </SpacedRow>
 );
 
@@ -313,8 +367,8 @@ type ExportDialogStageContentProps = ExportInitDialogContentProps &
 const ExportDialogStageContent: React.FC<ExportDialogStageContentProps> = ({
     exportStage,
     exportProgress,
+    percentComplete,
     pendingFiles,
-    lastExportTime,
     collectionNameByID,
     onClose,
     onStartExport,
@@ -333,7 +387,13 @@ const ExportDialogStageContent: React.FC<ExportDialogStageContentProps> = ({
         case ExportStage.trashingDeletedCollections:
             return (
                 <ExportInProgressDialogContent
-                    {...{ exportStage, exportProgress, onClose, onStopExport }}
+                    {...{
+                        exportStage,
+                        exportProgress,
+                        percentComplete,
+                        onClose,
+                        onStopExport,
+                    }}
                 />
             );
         case ExportStage.finished:
@@ -341,7 +401,6 @@ const ExportDialogStageContent: React.FC<ExportDialogStageContentProps> = ({
                 <ExportFinishedDialogContent
                     {...{
                         pendingFiles,
-                        lastExportTime,
                         collectionNameByID,
                         onClose,
                         onResyncExport,
@@ -361,20 +420,15 @@ interface ExportInitDialogContentProps {
 const ExportInitDialogContent: React.FC<ExportInitDialogContentProps> = ({
     onStartExport,
 }) => (
-    <DialogContent>
-        <DialogActions>
-            <FocusVisibleButton
-                fullWidth
-                color="accent"
-                onClick={onStartExport}
-            >
-                {t("start")}
-            </FocusVisibleButton>
-        </DialogActions>
-    </DialogContent>
+    <Stack direction="row" sx={{ px: 2, py: 1, gap: 1 }}>
+        <FocusVisibleButton fullWidth color="accent" onClick={onStartExport}>
+            {ut("Start export")}
+        </FocusVisibleButton>
+    </Stack>
 );
 
 interface ExportInProgressDialogContentProps {
+    percentComplete: number;
     exportStage: ExportStage;
     exportProgress: ExportProgress;
     onClose: () => void;
@@ -383,83 +437,89 @@ interface ExportInProgressDialogContentProps {
 
 const ExportInProgressDialogContent: React.FC<
     ExportInProgressDialogContentProps
-> = ({ exportStage, exportProgress, onClose, onStopExport }) => (
-    <>
-        <DialogContent>
-            <Stack sx={{ alignItems: "center", gap: 3, mt: 1 }}>
-                <Typography>
-                    {exportStage === ExportStage.starting ? (
-                        t("export_starting")
-                    ) : exportStage === ExportStage.migration ? (
-                        t("export_preparing")
-                    ) : exportStage ===
-                      ExportStage.renamingCollectionFolders ? (
-                        t("export_renaming_album_folders")
-                    ) : exportStage === ExportStage.trashingDeletedFiles ? (
-                        t("export_trashing_deleted_files")
-                    ) : exportStage ===
-                      ExportStage.trashingDeletedCollections ? (
-                        t("export_trashing_deleted_albums")
-                    ) : (
-                        <Typography
-                            component="span"
-                            sx={{ color: "text.muted" }}
-                        >
+> = ({
+    exportStage,
+    exportProgress,
+    percentComplete,
+    onClose,
+    onStopExport,
+}) => {
+    return (
+        <>
+            <Box sx={{ px: 2, py: 1 }}>
+                <Stack sx={{ gap: 1, mb: 1 }}>
+                    <Box>
+                        {exportStage === ExportStage.exportingFiles ? (
+                            <LinearProgress
+                                variant="determinate"
+                                value={percentComplete}
+                                sx={{
+                                    height: 6,
+                                    borderRadius: 3,
+                                    bgcolor: "fill.faint",
+                                    "& .MuiLinearProgress-bar": {
+                                        bgcolor: "accent.main",
+                                    },
+                                }}
+                            />
+                        ) : (
+                            <LinearProgress
+                                sx={{
+                                    height: 6,
+                                    borderRadius: 3,
+                                    bgcolor: "fill.faint",
+                                    "& .MuiLinearProgress-bar": {
+                                        bgcolor: "accent.main",
+                                    },
+                                }}
+                            />
+                        )}
+                    </Box>
+                    <Typography variant="small" sx={{ color: "text.muted" }}>
+                        {exportStage === ExportStage.starting ? (
+                            t("export_starting")
+                        ) : exportStage === ExportStage.migration ? (
+                            t("export_preparing")
+                        ) : exportStage ===
+                          ExportStage.renamingCollectionFolders ? (
+                            t("export_renaming_album_folders")
+                        ) : exportStage === ExportStage.trashingDeletedFiles ? (
+                            t("export_trashing_deleted_files")
+                        ) : exportStage ===
+                          ExportStage.trashingDeletedCollections ? (
+                            t("export_trashing_deleted_albums")
+                        ) : (
                             <Trans
                                 i18nKey={"export_progress"}
-                                components={{
-                                    a: (
-                                        <Typography
-                                            component="span"
-                                            sx={{
-                                                color: "text.base",
-                                                pr: "1rem",
-                                                wordSpacing: "1rem",
-                                            }}
-                                        />
-                                    ),
-                                }}
+                                components={{ a: <span /> }}
                                 values={{ progress: exportProgress }}
                             />
-                        </Typography>
-                    )}
-                </Typography>
-
-                <Box sx={{ alignSelf: "stretch" }}>
-                    {exportStage === ExportStage.exportingFiles ? (
-                        <LinearProgress
-                            variant="determinate"
-                            value={Math.round(
-                                ((exportProgress.success +
-                                    exportProgress.failed) *
-                                    100) /
-                                    exportProgress.total,
-                            )}
-                        />
-                    ) : (
-                        <LinearProgress />
-                    )}
-                </Box>
+                        )}
+                    </Typography>
+                </Stack>
+            </Box>
+            <Stack direction="row" sx={{ px: 2, py: 1, gap: 1 }}>
+                <FocusVisibleButton
+                    fullWidth
+                    color="secondary"
+                    onClick={onClose}
+                >
+                    {t("close")}
+                </FocusVisibleButton>
+                <FocusVisibleButton
+                    fullWidth
+                    color="critical"
+                    onClick={onStopExport}
+                >
+                    {t("stop")}
+                </FocusVisibleButton>
             </Stack>
-        </DialogContent>
-        <DialogActions>
-            <FocusVisibleButton fullWidth color="secondary" onClick={onClose}>
-                {t("close")}
-            </FocusVisibleButton>
-            <FocusVisibleButton
-                fullWidth
-                color="critical"
-                onClick={onStopExport}
-            >
-                {t("stop")}
-            </FocusVisibleButton>
-        </DialogActions>
-    </>
-);
+        </>
+    );
+};
 
 interface ExportFinishedDialogContentProps {
     pendingFiles: EnteFile[];
-    lastExportTime: number | null;
     collectionNameByID: Map<number, string>;
     onClose: () => void;
     onResyncExport: () => void;
@@ -467,47 +527,35 @@ interface ExportFinishedDialogContentProps {
 
 const ExportFinishedDialogContent: React.FC<
     ExportFinishedDialogContentProps
-> = ({
-    pendingFiles,
-    lastExportTime,
-    collectionNameByID,
-    onClose,
-    onResyncExport,
-}) => {
+> = ({ pendingFiles, collectionNameByID, onClose, onResyncExport }) => {
     const { show: showPendingList, props: pendingListVisibilityProps } =
         useModalVisibility();
 
     return (
         <>
-            <DialogContent>
-                <Stack sx={{ pr: 1 }}>
-                    <SpacedRow sx={{ minHeight: "48px" }}>
-                        <Typography sx={{ color: "text.muted" }}>
+            <Box sx={{ px: 2, py: 1 }}>
+                <RowCard
+                    title={
+                        <Typography
+                            component="span"
+                            variant="small"
+                            sx={{ color: "text.muted" }}
+                        >
                             {t("pending_items")}
                         </Typography>
-                        {pendingFiles.length ? (
-                            <LinkButton onClick={showPendingList}>
-                                {formattedNumber(pendingFiles.length)}
-                            </LinkButton>
-                        ) : (
-                            <Typography>
-                                {formattedNumber(pendingFiles.length)}
-                            </Typography>
-                        )}
-                    </SpacedRow>
-                    <SpacedRow sx={{ minHeight: "48px" }}>
-                        <Typography sx={{ color: "text.muted" }}>
-                            {t("last_export_time")}
+                    }
+                    onClick={pendingFiles.length ? showPendingList : undefined}
+                    endIcon={
+                        <Typography
+                            variant="small"
+                            sx={{ color: "text.muted" }}
+                        >
+                            {formattedNumber(pendingFiles.length)}
                         </Typography>
-                        <Typography>
-                            {lastExportTime
-                                ? formattedDateTime(new Date(lastExportTime))
-                                : t("never")}
-                        </Typography>
-                    </SpacedRow>
-                </Stack>
-            </DialogContent>
-            <DialogActions>
+                    }
+                />
+            </Box>
+            <Stack direction="row" sx={{ px: 2, py: 1, gap: 1 }}>
                 <FocusVisibleButton
                     fullWidth
                     color="secondary"
@@ -518,7 +566,7 @@ const ExportFinishedDialogContent: React.FC<
                 <FocusVisibleButton fullWidth onClick={onResyncExport}>
                     {t("export_again")}
                 </FocusVisibleButton>
-            </DialogActions>
+            </Stack>
             <ExportPendingListDialog
                 {...pendingListVisibilityProps}
                 pendingFiles={pendingFiles}

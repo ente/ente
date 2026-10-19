@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"crypto/hpke"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -99,8 +100,42 @@ func newFCMClient() (*fcmClient, error) {
 	}, nil
 }
 
-func (c *PushController) AddToken(userID int64, token ente.PushTokenRequest) error {
-	return stacktrace.Propagate(c.PushRepo.AddToken(userID, token), "")
+func (c *PushController) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
+	if token.NotificationKey != nil {
+		if _, err := hpke.MLKEM768X25519().NewPublicKey(token.NotificationKey); err != nil {
+			return ente.NewBadRequestWithMessage("invalid notification public key")
+		}
+	}
+	return stacktrace.Propagate(c.PushRepo.AddToken(userID, sessionTokenHash, token), "")
+}
+
+func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int64) {
+	if viper.GetBool("internal.silent") || c.fcm == nil || len(recipients) == 0 {
+		return
+	}
+	ctx = context.WithoutCancel(ctx)
+	lookupCtx, cancel := context.WithTimeout(ctx, 5*gotime.Second)
+	tokens, err := c.PushRepo.GetTokensForAlbumShare(lookupCtx, recipients)
+	cancel()
+	if err != nil {
+		log.WithError(err).Warn("album share push token lookup failed")
+		return
+	}
+	var unregisteredTokens []string
+	for _, token := range tokens {
+		err = c.fcm.sendMessage(ctx, map[string]any{
+			"token":   token.FCMToken,
+			"data":    map[string]string{"action": "sync"},
+			"android": map[string]string{"priority": "high", "ttl": "86400s"},
+		})
+		if err != nil {
+			log.WithError(err).Warn("album share push failed; album remains shared")
+			if errors.Is(err, errUnregisteredToken) {
+				unregisteredTokens = append(unregisteredTokens, token.FCMToken)
+			}
+		}
+	}
+	c.pruneTokens(unregisteredTokens)
 }
 
 func (c *PushController) RemoveTokensForUser(userID int64) error {
@@ -224,21 +259,23 @@ func (c *PushController) pruneTokens(fcmTokens []string) {
 }
 
 func (c *fcmClient) send(ctx context.Context, token string, data map[string]string) error {
-	body, err := json.Marshal(map[string]any{
-		"message": map[string]any{
-			"token":   token,
-			"data":    data,
-			"android": map[string]any{"priority": "high"},
-			"apns": map[string]any{
-				"headers": map[string]string{
-					"apns-push-type": "background",
-					"apns-priority":  "5",
-					"apns-topic":     "io.ente.frame",
-				},
-				"payload": map[string]any{"aps": map[string]any{"content-available": 1}},
+	return c.sendMessage(ctx, map[string]any{
+		"token":   token,
+		"data":    data,
+		"android": map[string]any{"priority": "high"},
+		"apns": map[string]any{
+			"headers": map[string]string{
+				"apns-push-type": "background",
+				"apns-priority":  "5",
+				"apns-topic":     "io.ente.frame",
 			},
+			"payload": map[string]any{"aps": map[string]any{"content-available": 1}},
 		},
 	})
+}
+
+func (c *fcmClient) sendMessage(ctx context.Context, message map[string]any) error {
+	body, err := json.Marshal(map[string]any{"message": message})
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

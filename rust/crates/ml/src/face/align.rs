@@ -1,5 +1,5 @@
 use image::{ImageBuffer, Rgb, RgbImage};
-use imageproc::geometric_transformations::{Interpolation, Projection, warp_into};
+use imageproc::geometric_transformations::{Border, Interpolation, Projection, warp_into};
 use nalgebra::{Matrix2, Matrix3, Vector2};
 
 use crate::{
@@ -243,13 +243,26 @@ fn warp_face_image(source: &RgbImage, affine_matrix: &[[f32; 3]; 3]) -> MlResult
     .ok_or_else(|| MlError::Image("invalid affine matrix projection".to_string()))?;
 
     let mut output = RgbImage::from_pixel(FACE_INPUT_SIZE, FACE_INPUT_SIZE, Rgb([114, 114, 114]));
+    let inverse = projection.invert();
     warp_into(
         source,
-        &projection,
+        projection,
         Interpolation::Bicubic,
-        Rgb([114, 114, 114]),
+        Border::Constant(Rgb([114, 114, 114])),
         &mut output,
     );
+    for (x, y, pixel) in output.enumerate_pixels_mut() {
+        let (source_x, source_y) = inverse * (x as f32, y as f32);
+        let left = source_x.floor() - 1.0;
+        let top = source_y.floor() - 1.0;
+        if !(left >= 0.0
+            && left + 4.0 < source.width() as f32
+            && top >= 0.0
+            && top + 4.0 < source.height() as f32)
+        {
+            *pixel = Rgb([114, 114, 114]);
+        }
+    }
     Ok(output)
 }
 
@@ -408,11 +421,15 @@ fn variance_2d(matrix: &[i32], rows: usize, cols: usize) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::run_face_alignment;
+    use super::{
+        MOBILEFACENET_IDEAL_5_LANDMARKS, estimate_similarity_transform, run_face_alignment,
+        warp_face_image,
+    };
     use crate::{
         error::MlError,
         types::{DecodedImage, Dimensions, FaceDetection},
     };
+    use image::{Rgb, RgbImage};
 
     #[test]
     fn face_alignment_restores_the_decoded_rgb_allocation() {
@@ -452,5 +469,32 @@ mod tests {
 
         assert!(matches!(result, Err(MlError::Image(_))));
         assert_eq!(decoded.rgb, (0..12).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn face_warp_retains_the_previous_bicubic_border_fill() {
+        let source = RgbImage::from_pixel(112, 112, Rgb([255, 0, 0]));
+        let identity = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+
+        let output = warp_face_image(&source, &identity).unwrap();
+
+        assert_eq!(*output.get_pixel(0, 0), Rgb([114, 114, 114]));
+        assert_eq!(*output.get_pixel(1, 1), Rgb([255, 0, 0]));
+        assert_eq!(*output.get_pixel(109, 109), Rgb([114, 114, 114]));
+    }
+
+    #[test]
+    fn similarity_transform_recovers_known_scale_and_translation() {
+        let source = MOBILEFACENET_IDEAL_5_LANDMARKS.map(|[x, y]| [2.0 * x + 0.1, 2.0 * y - 0.2]);
+
+        let transform = estimate_similarity_transform(&source)
+            .unwrap()
+            .affine_matrix;
+        let expected = [[0.5, 0.0, -0.05], [0.0, 0.5, 0.1], [0.0, 0.0, 1.0]];
+        for (actual_row, expected_row) in transform.iter().zip(expected) {
+            for (actual, expected) in actual_row.iter().zip(expected_row) {
+                assert!((actual - expected).abs() < 1e-5);
+            }
+        }
     }
 }

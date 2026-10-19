@@ -27,6 +27,23 @@ func TestRecordRateLimitRejection(t *testing.T) {
 	}
 }
 
+func TestShouldNotifyPotentialAbuse(t *testing.T) {
+	tests := []struct {
+		scope rateLimitScope
+		path  string
+		want  bool
+	}{
+		{rateLimitScopeIP, "/users/srp/attributes", false},
+		{rateLimitScopeIP, "/users/srp/create-session", true},
+		{rateLimitScopeRouteGlobal, "/users/srp/attributes", true},
+	}
+	for _, tt := range tests {
+		if got := shouldNotifyPotentialAbuse(tt.scope, tt.path); got != tt.want {
+			t.Errorf("shouldNotifyPotentialAbuse(%q, %q) = %t, want %t", tt.scope, tt.path, got, tt.want)
+		}
+	}
+}
+
 func TestRateLimitScopeLabels(t *testing.T) {
 	tests := []struct {
 		scope rateLimitScope

@@ -20,7 +20,23 @@ const randomPrefix = () => {
     return Array(10).fill("").map(randomChar).join("");
 };
 
+const isValidExtension = (extension: string) =>
+    /^[a-z0-9]{1,244}$/i.test(extension);
+
+export const imageInputExtension = (
+    detectedExtension: string | undefined,
+    fileName: string,
+) => {
+    const fileNameExtension = path.extname(fileName).slice(1);
+    const mayBeTIFFBasedRAW = detectedExtension === "tif";
+    return mayBeTIFFBasedRAW && isValidExtension(fileNameExtension)
+        ? fileNameExtension
+        : detectedExtension;
+};
+
 export const makeTempFilePath = async (extension?: string) => {
+    if (extension && !isValidExtension(extension))
+        throw new Error("Invalid temporary file extension");
     const tempDir = await enteTempDirPath();
     const suffix = extension ? "." + extension : "";
     let result: string;
@@ -53,27 +69,31 @@ interface FileForStreamOrPathOrZipItem {
 
 export const makeFileForStreamOrPathOrZipItem = async (
     item: ReadableStream | string | ZipItem,
+    detectedExtension?: string,
 ): Promise<FileForStreamOrPathOrZipItem> => {
-    let path: string;
+    let filePath: string;
     let isFileTemporary: boolean;
     let writeToTemporaryFile = async () => {
         /* no-op */
     };
 
     if (typeof item == "string") {
-        path = item;
+        filePath = item;
         isFileTemporary = false;
     } else {
-        path = await makeTempFilePath();
+        const extension = Array.isArray(item)
+            ? imageInputExtension(detectedExtension, item[1])
+            : detectedExtension;
+        filePath = await makeTempFilePath(extension);
         isFileTemporary = true;
         if (item instanceof ReadableStream) {
-            writeToTemporaryFile = () => writeStream(path, item);
+            writeToTemporaryFile = () => writeStream(filePath, item);
         } else {
             writeToTemporaryFile = async () => {
                 const [zipPath, entryName] = item;
                 const zip = openZip(zipPath);
                 try {
-                    await zip.extract(entryName, path);
+                    await zip.extract(entryName, filePath);
                 } finally {
                     markClosableZip(zipPath);
                 }
@@ -81,5 +101,5 @@ export const makeFileForStreamOrPathOrZipItem = async (
         }
     }
 
-    return { path, isFileTemporary, writeToTemporaryFile };
+    return { path: filePath, isFileTemporary, writeToTemporaryFile };
 };

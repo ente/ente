@@ -10,7 +10,6 @@ import {
     savedNormalCollections,
 } from "ente-new/photos/services/collection";
 import { savedCollectionFiles } from "ente-new/photos/services/photos-fdb";
-import { pullFiles } from "./pull";
 
 export interface DuplicateGroup {
     id: string;
@@ -112,6 +111,7 @@ export const deduceDuplicates = async () => {
 export const removeSelectedDuplicateGroups = async (
     duplicateGroups: DuplicateGroup[],
     onProgress: (progress: number) => void,
+    onRemoteFilesPull: () => Promise<void>,
 ) => {
     const selectedDuplicateGroups = duplicateGroups.filter((g) => g.isSelected);
 
@@ -156,7 +156,7 @@ export const removeSelectedDuplicateGroups = async (
         tickProgress();
     }
 
-    await pullFiles();
+    await onRemoteFilesPull();
     tickProgress();
 
     return new Set(selectedDuplicateGroups.map((g) => g.id));

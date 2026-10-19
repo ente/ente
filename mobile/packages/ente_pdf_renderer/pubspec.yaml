@@ -1,0 +1,25 @@
+name: ente_pdf_renderer
+description: Renders PDF pages with the OS renderer (PdfRenderer on Android, PDFKit on iOS).
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.ente.pdf_renderer
+        pluginClass: EntePdfRendererPlugin
+      ios:
+        pluginClass: EntePdfRendererPlugin

@@ -32,15 +32,16 @@ func (repo *CommentsRepository) Insert(ctx context.Context, comment socialentity
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *CommentsRepository) UpdateCipher(ctx context.Context, id string, cipher string, nonce string) error {
+func (repo *CommentsRepository) UpdateCipher(ctx context.Context, id string, collectionID int64, cipher string, nonce string) error {
 	result, err := repo.DB.ExecContext(ctx, `
         UPDATE comments
         SET cipher = $1,
             nonce = $2,
             updated_at = now_utc_micro_seconds()
         WHERE id = $3
+          AND collection_id = $4
           AND is_deleted = FALSE
-    `, cipher, nonce, id)
+    `, cipher, nonce, id, collectionID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

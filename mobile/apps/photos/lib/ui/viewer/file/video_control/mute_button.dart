@@ -38,6 +38,29 @@ class _VideoMuteButtonState extends State<VideoMuteButton> {
 
   @override
   Widget build(BuildContext context) {
+    return VideoMuteIconButton(
+      isMuted: _isMuted,
+      onPressed: () async {
+        final newValue = !_isMuted;
+        await localSettings.setIsMuted(newValue);
+        Bus.instance.fire(VideoMuteChangedEvent(newValue));
+      },
+    );
+  }
+}
+
+class VideoMuteIconButton extends StatelessWidget {
+  final bool isMuted;
+  final VoidCallback onPressed;
+
+  const VideoMuteIconButton({
+    required this.isMuted,
+    required this.onPressed,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       width: 32,
       height: 32,
@@ -57,19 +80,15 @@ class _VideoMuteButtonState extends State<VideoMuteButton> {
           switchInCurve: Curves.easeInOutQuart,
           switchOutCurve: Curves.easeInOutQuart,
           child: HugeIcon(
-            key: ValueKey(_isMuted),
-            icon: _isMuted
+            key: ValueKey(isMuted),
+            icon: isMuted
                 ? HugeIcons.strokeRoundedVolumeOff
                 : HugeIcons.strokeRoundedVolumeHigh,
             color: Colors.white,
             size: 20,
           ),
         ),
-        onPressed: () async {
-          final newValue = !_isMuted;
-          await localSettings.setIsMuted(newValue);
-          Bus.instance.fire(VideoMuteChangedEvent(newValue));
-        },
+        onPressed: onPressed,
       ),
     );
   }

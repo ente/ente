@@ -33,7 +33,13 @@ Follow these steps to recover your data from Google Photos and preserve it with 
 
     ![Google Takeout - Frequency and file size](google-photos-5.png)
 
-8. Wait for Google to send you your data.
+8. Wait for Google to prepare the export, then download **every ZIP part** listed for that export before starting the import.
+
+    A file ending in `.crdownload` is an unfinished Chrome download. It is not a photo or a completed ZIP, and it may represent an archive containing many photos and videos. [Resume the download or download that part again](https://support.google.com/chrome/answer/2898334/fix-file-download-errors?hl=en-GB); changing its filename does not complete it.
+
+    If your computer lacks space, you can download and extract the Takeout on an external drive with enough free space for the archives and extracted files. Keep the drive connected during import. You still need to download the export from Google and upload the files to Ente.
+
+    Keep the original ZIPs and extracted files until you have reviewed the import, checked important photos and dates, and verified another backup. See [unfinished or oversized Takeout downloads](/photos/faq/migration#takeout-download-incomplete).
 
 9. Open [the Ente desktop app](https://ente.com/download/desktop), click **Upload**, and select **Google takeout**.
 
@@ -81,11 +87,15 @@ Follow these steps to recover your data from Google Photos and preserve it with 
 
     Learn more about stopping an upload, reviewing skipped or failed items, and retrying failures in [Import from Local Hard Disk](/photos/migration/from-local-hard-disk).
 
-Ente will parse Google's metadata and preserve everything with your photos, end-to-end encrypted!
+Ente reads the Google Takeout metadata it can match with your photos and videos, and encrypts it before upload. Check a sample of imported dates and review failed or skipped items before considering the migration complete.
 
----
+## Resume an import or correct imported dates {#resume-or-correct-import}
 
-In case your uploads get interrupted, just drag and drop the folder or files again. Ente will automatically ignore already backed up files and upload just the rest.
+If an Ente upload is interrupted, select the same source folder or files again. Ente skips matching files already uploaded to the target album and processes the rest. A skipped file keeps its existing metadata; retrying does not retroactively rewrite its date.
+
+Before cleaning up items in Ente, [stop any active import](/photos/migration/from-local-hard-disk#stop-and-resume-an-upload). Items still in the selected source can upload again. If you want to exclude items from a later import, prepare a separate working copy of the source and keep your original export unchanged.
+
+For incorrect dates, follow the [date-repair guidance](/photos/faq/metadata-and-editing#google-photos-dates-wrong). Keep your Takeout ZIPs, extracted originals, and matching JSON files until you have checked the imported library and verified another backup.
 
 If you run into any issues during this migration, please check out our [Migration FAQ](/photos/faq/migration#importing-from-google-photos) page or reach out to [support@ente.com](mailto:support@ente.com) and we will be happy to help you!
 

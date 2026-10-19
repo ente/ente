@@ -20,6 +20,7 @@ export type {
     SpaceKeyResponse,
     SpaceLinkCtxHandle,
     UpdateSpaceProfileResponse,
+    UploadedPostAsset,
 } from "./pkg/ente_space_wasm";
 
 const wasm = () => import("./pkg/ente_space_wasm");

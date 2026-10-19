@@ -87,6 +87,7 @@ pub async fn download<W: std::io::Write>(
     use futures_util::StreamExt;
 
     http::retry_if(
+        http::RetryProfile::Background,
         || {
             let output = output();
             async move {

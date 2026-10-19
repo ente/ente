@@ -22,14 +22,22 @@ export const renderableImageBlob = async (
             : undefined,
     );
 
-const nativeConvertToJPEG = async (imageBlob: Blob) => {
+const nativeConvertToJPEG = async (
+    imageBlob: Blob,
+    detectedExtension: string,
+    fileName: string,
+) => {
     const startTime = Date.now();
     const imageData = new Uint8Array(await imageBlob.arrayBuffer());
     const electron = globalThis.electron;
     // Workers route through the main thread because they cannot access electron.
     const jpegData = electron
-        ? await electron.convertToJPEG(imageData)
-        : await workerBridge!.convertToJPEG(imageData);
+        ? await electron.convertToJPEG(imageData, detectedExtension, fileName)
+        : await workerBridge!.convertToJPEG(
+              imageData,
+              detectedExtension,
+              fileName,
+          );
     log.debug(() => `Native JPEG conversion took ${Date.now() - startTime} ms`);
     return new Blob([jpegData], { type: "image/jpeg" });
 };

@@ -1,7 +1,8 @@
 use std::path::Path;
 use std::time::Duration;
 
-use rubato::{FftFixedIn, Resampler};
+use rubato::audioadapter_buffers::direct::InterleavedSlice;
+use rubato::{Fft, FixedSync, Resampler, WindowFunction};
 use transcribe_rs::vad::{SileroVad, SmoothedVad, Vad};
 
 use crate::transcription::{Result, TranscriptionError};
@@ -96,7 +97,7 @@ fn extract_speech(
 }
 
 struct FrameResampler {
-    resampler: Option<FftFixedIn<f32>>,
+    resampler: Option<Fft<f32>>,
     chunk_in: usize,
     in_buf: Vec<f32>,
     frame_samples: usize,
@@ -115,12 +116,14 @@ impl FrameResampler {
         let resampler = if in_hz == out_hz {
             None
         } else {
-            Some(FftFixedIn::<f32>::new(
+            Some(Fft::<f32>::new_custom(
                 in_hz,
                 out_hz,
                 RESAMPLER_CHUNK_SIZE,
                 1,
                 1,
+                WindowFunction::BlackmanHarris2,
+                FixedSync::Input,
             )?)
         };
 
@@ -147,9 +150,10 @@ impl FrameResampler {
 
             if self.in_buf.len() == self.chunk_in {
                 if let Some(resampler) = self.resampler.as_mut()
-                    && let Ok(out) = resampler.process(&[&self.in_buf[..]], None)
+                    && let Ok(input) = InterleavedSlice::new(&self.in_buf, 1, self.chunk_in)
+                    && let Ok(out) = resampler.process(&input, None)
                 {
-                    self.emit_frames(&out[0], &mut emit);
+                    self.emit_frames(&out.take_data(), &mut emit);
                 }
                 self.in_buf.clear();
             }
@@ -161,8 +165,10 @@ impl FrameResampler {
             && !self.in_buf.is_empty()
         {
             self.in_buf.resize(self.chunk_in, 0.0);
-            if let Ok(out) = resampler.process(&[&self.in_buf[..]], None) {
-                self.emit_frames(&out[0], &mut emit);
+            if let Ok(input) = InterleavedSlice::new(&self.in_buf, 1, self.chunk_in)
+                && let Ok(out) = resampler.process(&input, None)
+            {
+                self.emit_frames(&out.take_data(), &mut emit);
             }
         }
 
@@ -184,6 +190,88 @@ impl FrameResampler {
                 emit(&self.pending);
                 self.pending.clear();
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::f32::consts::TAU;
+
+    use super::*;
+
+    fn resample(input: &[f32], sample_rate: usize, push_size: usize) -> Vec<f32> {
+        let mut resampler =
+            FrameResampler::new(sample_rate, 16_000, Duration::from_millis(30)).unwrap();
+        let mut output = Vec::new();
+        let mut emit = |frame: &[f32]| {
+            assert_eq!(frame.len(), 480);
+            output.extend_from_slice(frame);
+        };
+        for chunk in input.chunks(push_size) {
+            resampler.push(chunk, &mut emit);
+        }
+        resampler.finish(emit);
+        output
+    }
+
+    #[test]
+    fn native_rate_preserves_samples_and_pads_the_last_frame() {
+        let input: Vec<_> = (0..961).map(|i| i as f32 / 1000.0 - 0.5).collect();
+        let output = resample(&input, 16_000, 137);
+
+        assert_eq!(output.len(), 1440);
+        assert_eq!(&output[..input.len()], input);
+        assert!(output[input.len()..].iter().all(|&sample| sample == 0.0));
+    }
+
+    #[test]
+    fn resampling_is_independent_of_push_boundaries() {
+        for sample_rate in [44_100, 48_000] {
+            let input: Vec<_> = (0..sample_rate / 4 + 19)
+                .map(|i| (TAU * 1000.0 * i as f32 / sample_rate as f32).sin())
+                .collect();
+            let expected = resample(&input, sample_rate, input.len());
+            assert!(!expected.is_empty());
+
+            for push_size in [1, 257, 1023, 1024, 1025] {
+                assert_eq!(
+                    resample(&input, sample_rate, push_size),
+                    expected,
+                    "{sample_rate} Hz, {push_size} samples per push"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn downsampling_preserves_speech_frequencies_and_rejects_aliasing() {
+        fn amplitude(samples: &[f32], frequency: f32) -> f32 {
+            let (sin, cos) =
+                samples
+                    .iter()
+                    .enumerate()
+                    .fold((0.0, 0.0), |(sin, cos), (i, &sample)| {
+                        let phase = TAU * frequency * i as f32 / 16_000.0;
+                        (sin + sample * phase.sin(), cos + sample * phase.cos())
+                    });
+            2.0 * sin.hypot(cos) / samples.len() as f32
+        }
+
+        for sample_rate in [44_100, 48_000] {
+            let input: Vec<_> = (0..sample_rate)
+                .map(|i| {
+                    let phase = TAU * i as f32 / sample_rate as f32;
+                    0.5 * (1000.0 * phase).sin() + 0.5 * (12_000.0 * phase).sin()
+                })
+                .collect();
+            let output = resample(&input, sample_rate, 257);
+            let settled = &output[1600..9600];
+            let speech = amplitude(settled, 1000.0);
+            let alias = amplitude(settled, 4000.0);
+
+            assert!((speech - 0.5).abs() < 0.01, "{sample_rate} Hz: {speech}");
+            assert!(alias < 0.01, "{sample_rate} Hz: {alias}");
         }
     }
 }

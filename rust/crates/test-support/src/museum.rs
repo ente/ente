@@ -25,7 +25,14 @@ pub struct Museum {
 
 impl Museum {
     pub fn run(test: impl FnOnce(&Self) -> TestResult) -> TestResult {
-        let mut museum = Self::start()?;
+        Self::run_with_env(&[], test)
+    }
+
+    pub fn run_with_env(
+        env: &[(&str, &str)],
+        test: impl FnOnce(&Self) -> TestResult,
+    ) -> TestResult {
+        let mut museum = Self::start(env)?;
         match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| test(&museum))) {
             Ok(Ok(())) => Ok(()),
             Ok(Err(error)) => {
@@ -47,10 +54,9 @@ impl Museum {
         Self::run(|museum| tokio::runtime::Runtime::new()?.block_on(test(museum.endpoint.clone())))
     }
 
-    fn start() -> TestResult<Self> {
+    fn start(env: &[(&str, &str)]) -> TestResult<Self> {
         let server_dir = server_dir()?;
         let mut temp_dir = TempDir::new("ente-test")?;
-        let log_dir = temp_dir.path().join("logs");
         let museum_port = free_port()?;
         let endpoint = format!("http://{LOCAL_HOST}:{museum_port}");
         let museum_config_file = temp_dir.path().join("museum.yaml");
@@ -62,7 +68,7 @@ impl Museum {
             let postgres = postgres::start()?;
             let server = server::start(
                 &server_dir,
-                &log_dir,
+                env,
                 &museum_config_file,
                 museum_port,
                 &museum_bin,
@@ -99,6 +105,10 @@ impl Museum {
 
     pub fn object_store(&self) -> std::sync::Arc<crate::ObjectStoreControl> {
         self._object_store.control.clone()
+    }
+
+    pub fn execute_sql(&self, sql: &str) -> TestResult {
+        self._postgres.execute_sql(sql)
     }
 }
 

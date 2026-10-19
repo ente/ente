@@ -5,7 +5,8 @@ import {
 } from "ente-gallery/export-dirs";
 import sanitize from "sanitize-filename";
 
-const sanitizeFilename = (s: string) => sanitize(s, { replacement: "_" });
+export const sanitizeFilename = (s: string) =>
+    sanitize(s, { replacement: "_" });
 
 export const safeDirectoryName = async (
     directoryPath: string,

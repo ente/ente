@@ -33,6 +33,7 @@ export type FileListWithViewerProps = {
 } & Pick<
     FileListProps,
     | "layout"
+    | "disableGrouping"
     | "header"
     | "footer"
     | "enableSelect"
@@ -52,6 +53,7 @@ export type FileListWithViewerProps = {
 
 export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     layout,
+    disableGrouping,
     header,
     footer,
     files,
@@ -156,6 +158,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                         {...{ width, height, annotatedFiles }}
                         {...{
                             layout,
+                            disableGrouping,
                             header,
                             footer,
                             enableSelect,

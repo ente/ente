@@ -143,8 +143,7 @@ export const fileCreationPhotoSortTime = (file: EnteFile) =>
 
 export const fileLocation = (file: EnteFile): Location | undefined => {
     const { lat, long } = file.pubMagicMetadata?.data ?? {};
-    // Use (lat, long) only if both are present and nonzero.
-    const edited = lat && long;
+    const edited = lat != null && long != null;
 
     const latitude = nullToUndefined(edited ? lat : file.metadata.latitude);
     const longitude = nullToUndefined(edited ? long : file.metadata.longitude);

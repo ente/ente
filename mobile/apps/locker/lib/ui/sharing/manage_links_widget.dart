@@ -5,7 +5,6 @@ import 'package:ente_components/ente_components.dart';
 import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:ente_utils/share_utils.dart";
 import "package:flutter/material.dart";
@@ -15,6 +14,7 @@ import "package:locker/services/collections/collections_api_client.dart";
 import "package:locker/services/collections/collections_service.dart";
 import "package:locker/services/collections/models/collection.dart";
 import "package:locker/services/collections/models/public_url.dart";
+import "package:locker/ui/components/locker_progress_dialog.dart";
 import "package:locker/ui/components/text_input_sheet.dart";
 import "package:locker/ui/sharing/pickers/device_limit_picker_page.dart";
 import "package:locker/ui/sharing/pickers/link_expiry_picker_page.dart";
@@ -34,79 +34,106 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
   final GlobalKey sendLinkButtonKey = GlobalKey();
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final PublicURL url = widget.collection!.publicURLs.firstOrNull!;
-    final String urlValue = CollectionService.instance.getPublicUrl(
-      widget.collection!,
+    Widget linkIcon(List<List<dynamic>> icon, {Color? color}) => HugeIcon(
+      icon: icon,
+      color: color ?? colors.textLight,
+      size: IconSizes.small,
+      strokeWidth: 1.6,
+    );
+    final chevron = Icon(
+      Icons.chevron_right_rounded,
+      color: colors.textLight,
+      size: IconSizes.medium,
     );
     return Scaffold(
       backgroundColor: colors.backgroundBase,
       body: AppBarComponent(
-        title: context.strings.manageLink,
+        title: context.strings.linkSettings,
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.lg,
-              Spacing.md,
-              Spacing.lg,
-              Spacing.md,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: Column(
+          SliverSafeArea(
+            top: false,
+            sliver: SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                0,
+                Spacing.lg,
+                Spacing.xl,
+              ),
+              sliver: SliverList.list(
                 children: [
-                  MenuGroupComponent(
+                  _LinkSettingsGroup(
                     items: [
-                      MenuComponent(
-                        title: context.strings.linkExpiry,
-                        subtitle: url.hasExpiry
-                            ? (url.isExpired
-                                  ? context.strings.linkExpired
-                                  : getFormattedTime(
-                                      DateTime.fromMicrosecondsSinceEpoch(
-                                        url.validTill,
-                                      ),
-                                    ))
-                            : context.strings.never,
-                        subtitleColor: url.isExpired ? colors.warning : null,
-                        trailing: HugeIcon(
-                          icon: HugeIcons.strokeRoundedArrowRight01,
-                          color: colors.textLight,
-                          size: 20,
+                      if (url.isExpired)
+                        MenuComponent(
+                          title: context.strings.linkHasExpired,
+                          titleColor: colors.warning,
+                          isDisabled: true,
+                          iconColor: colors.warning,
+                          leading: const Icon(Icons.error_outline_rounded),
                         ),
-                        onTap: () async {
-                          unawaited(
-                            routeToPage(
+                      if (!url.isExpired) ...[
+                        MenuComponent(
+                          title: context.strings.copyLink,
+                          leading: linkIcon(HugeIcons.strokeRoundedCopy01),
+                          showOnlyLoadingState: true,
+                          onTap: () async {
+                            await Clipboard.setData(
+                              ClipboardData(
+                                text: CollectionService.instance.getPublicUrl(
+                                  widget.collection!,
+                                ),
+                              ),
+                            );
+                            if (!context.mounted) {
+                              return;
+                            }
+                            showShortToast(
                               context,
-                              LinkExpiryPickerPage(widget.collection!),
-                            ).then((value) {
-                              if (mounted) {
-                                setState(() {});
-                              }
-                            }),
-                          );
-                        },
-                      ),
+                              context.strings.linkCopiedToClipboard,
+                            );
+                          },
+                        ),
+                        MenuComponent(
+                          key: sendLinkButtonKey,
+                          title: context.strings.sendLink,
+                          leading: linkIcon(HugeIcons.strokeRoundedSent),
+                          onTap: () async {
+                            await shareText(
+                              CollectionService.instance.getPublicUrl(
+                                widget.collection!,
+                              ),
+                              context: context,
+                              key: sendLinkButtonKey,
+                            );
+                          },
+                        ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: Spacing.xxl),
-                  MenuGroupComponent(
+                  if (!url.isExpired)
+                    Padding(
+                      padding: const EdgeInsets.only(top: Spacing.sm),
+                      child: Text(
+                        context.strings.publicCollectionLinkAccessDescription,
+                        style: TextStyles.mini.copyWith(
+                          color: colors.textLight,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: Spacing.lg),
+                  _LinkSettingsGroup(
                     items: [
                       MenuComponent(
                         title: context.strings.linkDeviceLimit,
+                        leading: linkIcon(HugeIcons.strokeRoundedLaptop),
                         subtitle: url.deviceLimit == 0
-                            ? context.strings.noDeviceLimit
+                            ? context.strings.noLimit
                             : "${url.deviceLimit}",
-                        trailing: HugeIcon(
-                          icon: HugeIcons.strokeRoundedArrowRight01,
-                          color: colors.textLight,
-                          size: 20,
-                        ),
+                        trailing: chevron,
                         onTap: () async {
                           unawaited(
                             routeToPage(
@@ -122,7 +149,8 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                       ),
                       MenuComponent(
                         key: ValueKey("Password lock ${url.passwordEnabled}"),
-                        title: context.strings.passwordLock,
+                        title: context.strings.password,
+                        leading: linkIcon(HugeIcons.strokeRoundedSquareLock01),
                         trailing: ToggleSwitchComponent.async(
                           value: () => url.passwordEnabled,
                           onChanged: () async {
@@ -157,69 +185,59 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                           },
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.xxl),
-                  MenuGroupComponent(
-                    items: [
-                      if (url.isExpired)
-                        MenuComponent(
-                          title: context.strings.linkExpired,
-                          titleColor: colors.warning,
-                          iconColor: colors.warning,
-                          leading: const Icon(Icons.error_outline),
-                        ),
-                      if (!url.isExpired)
-                        MenuComponent(
-                          title: context.strings.copyLink,
-                          titleBold: true,
-                          leading: HugeIcon(
-                            icon: HugeIcons.strokeRoundedCopy01,
-                            color: colors.textBase,
-                            size: 20,
-                          ),
-                          showOnlyLoadingState: true,
-                          onTap: () async {
-                            await Clipboard.setData(
-                              ClipboardData(text: urlValue),
-                            );
-                            if (!context.mounted) {
-                              return;
-                            }
-                            showShortToast(
+                      MenuComponent(
+                        title: context.strings.linkExpiry,
+                        leading: linkIcon(HugeIcons.strokeRoundedCalendar03),
+                        subtitle: url.hasExpiry
+                            ? (url.isExpired
+                                  ? context.strings.linkExpired
+                                  : context.strings.linkEnabled)
+                            : context.strings.linkNeverExpires,
+                        trailing: chevron,
+                        onTap: () async {
+                          unawaited(
+                            routeToPage(
                               context,
-                              context.strings.linkCopiedToClipboard,
-                            );
-                          },
-                        ),
-                      if (!url.isExpired)
-                        MenuComponent(
-                          key: sendLinkButtonKey,
-                          title: context.strings.sendLink,
-                          titleBold: true,
-                          leading: HugeIcon(
-                            icon: HugeIcons.strokeRoundedShare08,
-                            color: colors.textBase,
-                            size: 20,
-                          ),
-                          onTap: () async {
-                            unawaited(shareText(urlValue, context: context));
-                          },
-                        ),
+                              LinkExpiryPickerPage(widget.collection!),
+                            ).then((value) {
+                              if (mounted) {
+                                setState(() {});
+                              }
+                            }),
+                          );
+                        },
+                      ),
                     ],
                   ),
-                  const SizedBox(height: Spacing.xxl),
-                  MenuGroupComponent(
+                  if (url.hasExpiry)
+                    Padding(
+                      padding: const EdgeInsets.only(top: Spacing.sm),
+                      child: Text(
+                        url.isExpired
+                            ? context.strings.expiredLinkInfo
+                            : context.strings.linkExpiresOn(
+                                expiryTime: getFormattedTime(
+                                  DateTime.fromMicrosecondsSinceEpoch(
+                                    url.validTill,
+                                  ),
+                                  context: context,
+                                ),
+                              ),
+                        style: TextStyles.body.copyWith(
+                          color: colors.textLight,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: Spacing.lg),
+                  _LinkSettingsGroup(
                     items: [
                       MenuComponent(
                         title: context.strings.removeLink,
-                        titleBold: true,
                         titleColor: colors.warning,
                         iconColor: colors.warning,
-                        leading: HugeIcon(
-                          icon: HugeIcons.strokeRoundedDelete02,
+                        leading: linkIcon(
+                          HugeIcons.strokeRoundedMinusSignCircle,
                           color: colors.warning,
-                          size: 20,
                         ),
                         onTap: () async {
                           final bool result =
@@ -238,6 +256,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: Spacing.sm),
                 ],
               ),
             ),
@@ -267,9 +286,8 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
     bool showProgressDialog = true,
   }) async {
     final dialog = showProgressDialog && context != null && context.mounted
-        ? createProgressDialog(context, context.strings.pleaseWait)
+        ? await showLockerProgressDialog(context, context.strings.pleaseWait)
         : null;
-    await dialog?.show();
     try {
       await CollectionApiClient.instance.updateShareUrl(
         widget.collection!,
@@ -289,5 +307,34 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
       }
       rethrow;
     }
+  }
+}
+
+class _LinkSettingsGroup extends StatelessWidget {
+  const _LinkSettingsGroup({required this.items});
+
+  final List<Widget> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuGroupComponent(
+      items: items.length > 1
+          ? [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var index = 0; index < items.length; index++) ...[
+                      items[index],
+                      if (index < items.length - 1)
+                        const SizedBox(height: Spacing.xs),
+                    ],
+                  ],
+                ),
+              ),
+            ]
+          : items,
+    );
   }
 }

@@ -70,15 +70,21 @@ Your **recovery key is a 24-word phrase** that is the ONLY way to recover your a
 
 ⚠️ **Your recovery key is different from verification codes**. Verification codes are temporary 6-digit numbers sent to your email. Your recovery key is a permanent 24-word phrase.
 
+The same Ente account uses the same recovery key in Photos, Auth, and Locker. Separate accounts have separate keys. Backup-code lists issued by other websites belong to those websites and cannot be used as your Ente recovery key. Learn [which recovery key or backup codes you need](/auth/faq/#recovery-key-or-backup-codes).
+
 ### How do I find my recovery key? {#find-recovery-key}
+
+If you previously downloaded your recovery key, search your Downloads folder for `ente-recovery-key.txt` (or search for `recovery-key.txt`). If you saved it elsewhere, check that folder too. Keep the file private.
 
 **If you're still logged in to Ente on any device:**
 
-Open `Settings > Account > Recovery key`, enter your password to view your 24-word recovery key, and **save it immediately** in a secure location.
+Open `Settings > Account > Recovery key`, enter your password to view your 24-word recovery key, and save it in a secure location. Keep that device signed in while you resolve any access problems.
 
-**If you're logged out of all devices and don't have your recovery key:**
+**If you're logged out of all devices:**
 
-Unfortunately, there is no way to recover your account. This is an inherent property of end-to-end encryption - for your privacy and security, only you have access to your data.
+If you still know your password and can complete the required sign-in checks, sign in and save your recovery key. If you have lost access to a second factor, see [recovering access to 2FA](#two-factor-auth).
+
+If you have lost both your password and recovery key, Ente support cannot reconstruct your encryption keys or decrypt your data. See [account recovery](#account-recovery) for the available recovery options.
 
 ### How should I store my recovery key? {#store-recovery-key}
 
@@ -103,21 +109,22 @@ Unfortunately, there is no way to recover your account. This is an inherent prop
 
 If you've forgotten your password and are logged out everywhere:
 
-1. Open the login page (on any platform)
-2. Enter your email address
-3. Click "Forgot Password"
-4. Enter your 24-word recovery key
-    - Type each word separated by a single space
-    - All lowercase, no punctuation
-    - Example format: `word1 word2 word3 ... word24`
-5. Create a new password
-6. Log in with your new password
+1. Open the login page.
+2. Enter your email address.
+3. Choose **Forgot Password** and complete the sign-in checks shown by the app.
+4. Enter the 24 words of your recovery key in their original order.
+    - Separate words with a single space.
+    - Use lowercase letters without punctuation or manually inserted line breaks.
+    - The field may wrap text automatically; do not press Enter between words.
+5. Create a new password.
+6. Sign in with the new password.
 
 **Common issues:**
 
-- **"Invalid recovery key"**: Check for typos, extra spaces, or missing words
-- **Recovery key not working**: Make sure you're using the recovery key (24 words), not a verification code (6 digits)
-- **Still can't access account**: Contact [support@ente.com](mailto:support@ente.com) - we may be able to help verify account ownership for account deletion, but cannot recover your data
+- **Invalid recovery key:** Check for typos, missing or reordered words, extra spaces, and manually inserted line breaks. Use the key for this Ente account and server.
+- **Wrong kind of code:** Your Ente recovery key is a 24-word phrase. An email verification code or another website's backup codes cannot replace it.
+- **Error after submitting:** A generic error can also involve a connection problem. See [verification troubleshooting](/auth/faq/#sync-password-recovery-failures) before repeating the reset.
+- **Still unable to continue:** Contact [support@ente.com](mailto:support@ente.com) with the error text and app version. Never send the recovery words or your password. Support cannot reconstruct your recovery key or decrypt your data.
 
 ### Can I change my password? {#change-password}
 
@@ -135,6 +142,10 @@ Yes, we recommend enabling 2FA for an additional layer of security. We support:
 You can set up 2FA in the settings of our mobile or desktop apps.
 
 Warning: if you use the same account in Ente Auth, enabling 2FA in Ente Photos also enables it for Ente Auth, which can be a problem if you store your Ente account's 2FA code inside Ente Auth itself. See [Enteception](/auth/faq/enteception/).
+
+If you lose access to your authenticator or passkey, use your Ente recovery key through the recovery option shown during sign-in. If you also cannot find the recovery key but still know your password, contact [support@ente.com](mailto:support@ente.com) from your registered email address. After verifying account ownership, support may be able to help with the lost second factor. Email access alone is not sufficient, and assistance is not guaranteed.
+
+Tell support whether you are being asked for an authenticator code, a passkey, or both, since these can be separate sign-in checks. Never send your password, recovery key, authenticator setup key, or current codes. Support cannot decrypt your data or replace a forgotten password without an available recovery method.
 
 ### Can I use app lock to protect Ente Photos? {#app-lock}
 
@@ -227,6 +238,17 @@ You can delete your account at any time by using the "Delete account" option in 
 Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
 
 To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
+
+### Will deleting my Ente Auth or Locker account also delete my Photos account? {#shared-account-deletion}
+
+Yes, if you use the same Ente account in those apps. **Delete account** deletes that account and its Photos, Auth, and Locker data, no matter which app you select it from.
+
+If you want to stop using just one app:
+
+1. Check which Ente account you are signed in to in each app.
+2. Sign out of or uninstall the app you no longer want to use. Do not select **Delete account**.
+
+Your account and data in the other apps stay available. If you created separate Ente accounts, deleting one does not delete the others.
 
 ## Trust and Reliability
 

@@ -1,4 +1,3 @@
-import { StarBorderIcon } from "@/components/icons/StarIcon";
 import type { FileContextAction } from "@/utils/file-actions";
 import {
     AddSquareIcon,
@@ -10,6 +9,7 @@ import {
     Location01Icon,
     Navigation03Icon,
     RemoveCircleIcon,
+    StarIcon,
     StarOffIcon,
     Time04Icon,
     Unarchive03Icon,
@@ -52,11 +52,11 @@ const hugeIcon = (icon: IconSvgElement, size = 20) => (
 );
 
 const actionConfigs: Record<FileContextAction, ActionConfig> = {
-    sendLink: { label: "Send link", Icon: hugeIcon(Navigation03Icon) },
+    sendLink: { label: "send_link", Icon: hugeIcon(Navigation03Icon) },
     download: { label: "download", Icon: hugeIcon(Download01Icon) },
     fixTime: { label: "fix_creation_time", Icon: hugeIcon(Time04Icon) },
     editLocation: { label: "edit_location", Icon: hugeIcon(Location01Icon) },
-    favorite: { label: "favorite", Icon: <StarBorderIcon fontSize="small" /> },
+    favorite: { label: "favorite", Icon: hugeIcon(StarIcon) },
     unfavorite: { label: "un_favorite", Icon: hugeIcon(StarOffIcon) },
     archive: { label: "archive", Icon: hugeIcon(Download05Icon) },
     unarchive: { label: "unarchive", Icon: hugeIcon(Unarchive03Icon) },

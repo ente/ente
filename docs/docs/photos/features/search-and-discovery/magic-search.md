@@ -57,6 +57,8 @@ Open `Settings > Machine learning`, enable **Machine learning** and/or **Local i
 
 Open `Settings > Preferences > Machine learning`, enable **Machine learning** and/or **Local indexing**, and monitor indexing progress.
 
+![Enable machine learning button highlighted on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-enable-callout.png){width=720px}
+
 > [!NOTE]
 >
 > Magic search is not available on photos.ente.com. You must use the mobile or desktop app.
@@ -76,6 +78,8 @@ After enabling magic search:
 - Enable before importing photos to avoid downloading them twice
 - Once indexed on one device, the indexes sync to other devices
 
+![Machine learning indexing progress showing Enabled and Processed percent on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-ml-indexing-progress.png){width=720px}
+
 Learn more about [Machine learning](/photos/features/search-and-discovery/machine-learning).
 
 ## Using Magic Search
@@ -90,6 +94,8 @@ Type natural language descriptions in the search bar:
 - **"food"** - finds photos of meals and food
 - **"car"** - finds photos containing cars
 
+![Magic search for dog playing in the snow on Ente Photos mobile and desktop](https://docs-assets.ente.com/screenshots/duo-magic-search-long.png){width=900px}
+
 ### Complex searches
 
 Magic search understands more complex, descriptive queries:
@@ -99,6 +105,8 @@ Magic search understands more complex, descriptive queries:
 - **"birthday cake with candles"** - finds relevant celebration photos
 - **"mountain landscape"** - finds scenic mountain photos
 - **"night city"** - finds urban nighttime photos
+
+![Magic search results for dog playing in the snow on Ente Photos desktop](https://docs-assets.ente.com/screenshots/desktop-magic-search-long.png){width=720px}
 
 ### Search best practices
 

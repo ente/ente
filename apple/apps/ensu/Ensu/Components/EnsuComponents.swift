@@ -42,16 +42,19 @@ struct AttributionSheet<Content: View>: View {
 
 struct CompactButton: View {
     let text: String
+    var prominent = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(text)
-                .font(EnsuTypography.small)
-                .padding(.horizontal, EnsuSpacing.xs)
+                .font(prominent ? EnsuTypography.body.weight(.semibold) : EnsuTypography.small)
+                .foregroundColor(prominent ? .black : nil)
+                .padding(.horizontal, prominent ? EnsuSpacing.sm : EnsuSpacing.xs)
+                .frame(minHeight: prominent ? EnsuSpacing.xxl : nil)
         }
         .buttonStyle(.borderedProminent)
-        .controlSize(.small)
+        .controlSize(prominent ? .large : .small)
         .tint(EnsuColor.accent)
     }
 }
@@ -147,6 +150,8 @@ struct ActionButton: View {
 
 struct TextActionButton: View {
     let text: String
+    var underlined = false
+    var color = EnsuColor.textMuted
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
@@ -158,7 +163,8 @@ struct TextActionButton: View {
         }) {
             Text(text)
                 .font(EnsuTypography.small)
-                .foregroundStyle(isEnabled ? EnsuColor.textMuted : EnsuColor.textMuted.opacity(0.4))
+                .underline(underlined)
+                .foregroundStyle(isEnabled ? color : color.opacity(0.4))
                 .padding(.horizontal, 4)
                 .frame(height: 36)
         }

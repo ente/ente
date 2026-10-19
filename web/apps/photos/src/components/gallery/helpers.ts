@@ -13,6 +13,47 @@ import {
     restoreToCollection,
 } from "ente-new/photos/services/collection";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
+import type { SidebarActionID } from "ente-new/photos/services/search/types";
+
+export const albumShortcutCollectionID = (
+    actionID: SidebarActionID,
+    uncategorizedCollectionSummaryID: number,
+): number | undefined => {
+    switch (actionID) {
+        case "shortcuts.uncategorized":
+            return uncategorizedCollectionSummaryID;
+        case "shortcuts.hidden":
+            return PseudoCollectionID.hiddenItems;
+        case "shortcuts.archive":
+            return PseudoCollectionID.archiveItems;
+        case "shortcuts.trash":
+            return PseudoCollectionID.trash;
+        default:
+            return undefined;
+    }
+};
+
+export const showCollectionSummaryWithAuthentication = async (
+    collectionSummaryID: number | undefined,
+    requiresAuthentication: boolean,
+    lastAuthentication: { current: number },
+    authenticateUser: () => Promise<boolean>,
+    onShowCollectionSummary: (id: number | undefined) => void,
+): Promise<boolean> => {
+    if (
+        requiresAuthentication &&
+        Date.now() - lastAuthentication.current > 5 * 60 * 1e3
+    ) {
+        try {
+            if (!(await authenticateUser())) return false;
+            lastAuthentication.current = Date.now();
+        } catch {
+            return false;
+        }
+    }
+    onShowCollectionSummary(collectionSummaryID);
+    return true;
+};
 
 export const findCollectionCreatingIfNeeded = async (
     collections: Collection[],

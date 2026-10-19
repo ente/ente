@@ -110,10 +110,11 @@ func (c *CommentsController) UpdateComment(ctx *gin.Context, collectionID int64,
 		return err
 	}
 	updateReq := socialcontroller.UpdateCommentRequest{
-		Actor:     actor,
-		CommentID: commentID,
-		Cipher:    req.Cipher,
-		Nonce:     req.Nonce,
+		Actor:        actor,
+		CommentID:    commentID,
+		CollectionID: collectionID,
+		Cipher:       req.Cipher,
+		Nonce:        req.Nonce,
 	}
 	return c.CommentCtrl.UpdatePayload(ctx, updateReq)
 }

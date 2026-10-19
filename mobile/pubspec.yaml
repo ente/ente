@@ -34,6 +34,7 @@ workspace:
   - packages/ente_crypto_api
   - packages/ente_crypto_dart_adapter
   - packages/ente_icons
+  - packages/ente_pdf_renderer
   - packages/install_source
   - packages/ente_pure_utils
   - packages/ente_qr

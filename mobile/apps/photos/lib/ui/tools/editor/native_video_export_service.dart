@@ -37,8 +37,9 @@ class NativeVideoExportService {
         controller.maxCrop != const Offset(1.0, 1.0);
     final needsRotate = controller.rotation != 0;
     final needsTrim = controller.isTrimmed;
+    final needsSpeed = controller.speed != 1.0;
 
-    if (!(needsCrop || needsRotate || needsTrim)) {
+    if (!(needsCrop || needsRotate || needsTrim || needsSpeed)) {
       await File(inputPath).copy(outputPath);
       return VideoEditResult(outputPath: outputPath, isReEncoded: false);
     }
@@ -57,6 +58,7 @@ class NativeVideoExportService {
       trimEnd: needsTrim ? controller.endTrim : null,
       rotateDegrees: needsRotate ? controller.rotation : null,
       cropRect: cropRect,
+      speed: controller.speed,
       onProgress: onProgress,
     );
   }

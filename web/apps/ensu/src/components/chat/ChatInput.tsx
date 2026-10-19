@@ -1,14 +1,21 @@
-import { Navigation06Icon, Upload01Icon } from "@hugeicons/core-free-icons";
+import {
+    ImagePlusIcon,
+    Navigation06Icon,
+    StopIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, IconButton, InputBase } from "@mui/material";
-import type { SxProps, Theme } from "@mui/material/styles";
-import React, {
+import { alpha, type SxProps, type Theme } from "@mui/material/styles";
+import {
     forwardRef,
     memo,
     useImperativeHandle,
+    useLayoutEffect,
     useRef,
     useState,
 } from "react";
+
+const sendButtonColor = "#E66A28";
 
 interface IconProps {
     size: number;
@@ -23,7 +30,7 @@ export interface ChatInputHandle {
 interface ChatInputProps {
     actionIconProps: IconProps;
     disableAttachmentButton: boolean;
-    drawerIconButtonSx: SxProps<Theme>;
+    drawerIconButtonSx: Exclude<SxProps<Theme>, readonly unknown[]>;
     handleSend: (input: string) => void | Promise<void>;
     handleStopGeneration: () => void;
     hasPendingAttachments: boolean;
@@ -32,10 +39,11 @@ interface ChatInputProps {
     isDownloading: boolean;
     isGenerating: boolean;
     isModelPreparationActive: boolean;
-    openAttachmentMenu: (event: React.MouseEvent<HTMLElement>) => void;
+    openPhotoPicker: () => void;
     onTextChange: (text: string) => void;
+    sourcesLoading: boolean;
+    isPreparingMessage: boolean;
     showAttachmentPicker: boolean;
-    stopButtonColor: string;
 }
 
 export const ChatInput = memo(
@@ -52,15 +60,20 @@ export const ChatInput = memo(
             isDownloading,
             isGenerating,
             isModelPreparationActive,
-            openAttachmentMenu,
+            openPhotoPicker,
             onTextChange,
+            sourcesLoading,
+            isPreparingMessage,
             showAttachmentPicker,
-            stopButtonColor,
         },
         ref,
     ) {
         const [input, setInput] = useState(initialText);
         const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+        useLayoutEffect(() => {
+            if (inputRef.current) updateInputLayout(inputRef.current, input);
+        }, [input]);
 
         useImperativeHandle(
             ref,
@@ -73,7 +86,9 @@ export const ChatInput = memo(
 
         const send = () => void handleSend(input);
         const disableSend =
+            (isPreparingMessage && !isGenerating) ||
             isModelPreparationActive ||
+            sourcesLoading ||
             isDownloading ||
             (!isGenerating &&
                 (isAttachingImages ||
@@ -84,7 +99,7 @@ export const ChatInput = memo(
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 1,
+                    gap: 0.5,
                     px: 1,
                     py: 0.75,
                     borderRadius: 2,
@@ -92,17 +107,45 @@ export const ChatInput = memo(
                         "color-mix(in srgb, var(--mui-palette-background-default) 45%, var(--mui-palette-background-paper) 55%)",
                 }}
             >
+                {showAttachmentPicker && (
+                    <IconButton
+                        aria-label="Add photos"
+                        disabled={disableAttachmentButton}
+                        sx={[
+                            drawerIconButtonSx,
+                            { width: 32, p: 0, flexShrink: 0 },
+                        ]}
+                        onClick={openPhotoPicker}
+                    >
+                        <HugeiconsIcon
+                            icon={ImagePlusIcon}
+                            {...actionIconProps}
+                        />
+                    </IconButton>
+                )}
                 <InputBase
                     multiline
                     inputComponent="textarea"
-                    inputProps={{ rows: 1, type: undefined }}
+                    inputProps={{ rows: 1, type: undefined, wrap: "soft" }}
                     inputRef={inputRef}
                     placeholder={
-                        isDownloading
-                            ? "Downloading model..."
-                            : "Write a message..."
+                        isDownloading ? "Downloading model..." : "Ask Ensu"
                     }
                     value={input}
+                    onPasteCapture={(event) => {
+                        const textarea = inputRef.current;
+                        if (!textarea) return;
+                        const pasted =
+                            event.clipboardData.getData("text/plain");
+                        const next =
+                            textarea.value.slice(0, textarea.selectionStart) +
+                            pasted +
+                            textarea.value.slice(textarea.selectionEnd);
+                        updateInputLayout(textarea, next);
+                        requestAnimationFrame(() =>
+                            updateInputLayout(textarea, textarea.value),
+                        );
+                    }}
                     onChange={(event) => {
                         const text = event.target.value;
                         setInput(text);
@@ -116,9 +159,11 @@ export const ChatInput = memo(
                     }}
                     sx={{
                         flex: 1,
+                        minWidth: 0,
                         bgcolor: "transparent",
                         borderRadius: 2,
-                        px: 1.5,
+                        pl: 0,
+                        pr: 1.5,
                         py: 1.5,
                         minHeight: 48,
                         display: "flex",
@@ -129,6 +174,7 @@ export const ChatInput = memo(
                         color: "text.base",
                         "& textarea": {
                             fieldSizing: "content",
+                            width: "100%",
                             maxHeight: "8.5em",
                             overflowY: "auto",
                             padding: 0,
@@ -140,19 +186,6 @@ export const ChatInput = memo(
                         },
                     }}
                 />
-                {showAttachmentPicker && (
-                    <IconButton
-                        aria-label="Add attachment"
-                        sx={drawerIconButtonSx}
-                        disabled={disableAttachmentButton}
-                        onClick={openAttachmentMenu}
-                    >
-                        <HugeiconsIcon
-                            icon={Upload01Icon}
-                            {...actionIconProps}
-                        />
-                    </IconButton>
-                )}
                 <IconButton
                     aria-label={isGenerating ? "Stop" : "Send message"}
                     onClick={isGenerating ? handleStopGeneration : send}
@@ -160,50 +193,48 @@ export const ChatInput = memo(
                     sx={{
                         width: 44,
                         height: 44,
+                        ml: 0.5,
                         borderRadius: 2,
                         bgcolor: "transparent",
-                        color: isGenerating ? "critical.main" : "text.muted",
+                        color: sendButtonColor,
                         "&:hover": { bgcolor: "fill.faint" },
-                        "&.Mui-disabled": { color: "text.faint" },
+                        "&.Mui-disabled": {
+                            color: alpha(sendButtonColor, 0.45),
+                        },
                     }}
                 >
-                    {isGenerating ? (
-                        <Box
-                            sx={{
-                                width: 22,
-                                height: 22,
-                                minWidth: 22,
-                                minHeight: 22,
-                                borderRadius: "999px",
-                                bgcolor: "#ffffff",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }}
-                        >
-                            <Box
-                                component="svg"
-                                viewBox="0 0 24 24"
-                                sx={{ width: 12, height: 12, display: "block" }}
-                            >
-                                <path
-                                    d="M4 12C4 8.72077 4 7.08116 4.81382 5.91891C5.1149 5.48891 5.48891 5.1149 5.91891 4.81382C7.08116 4 8.72077 4 12 4C15.2792 4 16.9188 4 18.0811 4.81382C18.5111 5.1149 18.8851 5.48891 19.1862 5.91891C20 7.08116 20 8.72077 20 12C20 15.2792 20 16.9188 19.1862 18.0811C18.8851 18.5111 18.5111 18.8851 18.0811 19.1862C16.9188 20 15.2792 20 12 20C8.72077 20 7.08116 20 5.91891 19.1862C5.48891 18.8851 5.1149 18.5111 4.81382 18.0811C4 16.9188 4 15.2792 4 12Z"
-                                    fill={stopButtonColor}
-                                />
-                            </Box>
-                        </Box>
-                    ) : (
-                        <Box
-                            sx={{ transform: "rotate(90deg)", display: "flex" }}
-                        >
-                            <HugeiconsIcon
-                                icon={Navigation06Icon}
-                                {...actionIconProps}
-                            />
-                        </Box>
-                    )}
+                    <Box
+                        sx={{
+                            transform: isGenerating
+                                ? undefined
+                                : "rotate(90deg)",
+                            display: "flex",
+                        }}
+                    >
+                        <HugeiconsIcon
+                            icon={isGenerating ? StopIcon : Navigation06Icon}
+                            {...actionIconProps}
+                        />
+                    </Box>
                 </IconButton>
             </Box>
         );
     }),
 );
+
+function updateInputLayout(textarea: HTMLTextAreaElement, text: string) {
+    let run = 0;
+    let expensive = false;
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        run = code > 32 && code < 127 ? run + 1 : 0;
+        if (run > 16384) {
+            expensive = true;
+            break;
+        }
+    }
+    textarea.style.setProperty("field-sizing", expensive ? "fixed" : "content");
+    textarea.style.height = expensive ? "8.5em" : "";
+    textarea.style.fontKerning = expensive ? "none" : "";
+    textarea.style.fontVariantLigatures = expensive ? "none" : "";
+}

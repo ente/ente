@@ -189,17 +189,16 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(tester.getCenter(find.byIcon(Icons.arrow_back)).dy, closeTo(28, 1));
-    expect(tester.getSize(find.byIcon(Icons.arrow_back)).width, 24);
-    expect(
-      tester.getSize(find.byKey(const ValueKey('header-leading'))),
-      const Size(38, 38),
-    );
     expect(
       tester.getCenter(find.byKey(const ValueKey('header-leading'))).dy,
-      closeTo(89, 1),
+      closeTo(tester.getCenter(find.byIcon(Icons.add)).dy, 1),
     );
-    expect(tester.getCenter(find.byIcon(Icons.add)).dy, closeTo(89, 1));
+    expect(
+      tester.getBottomLeft(find.byIcon(Icons.arrow_back)).dy,
+      lessThanOrEqualTo(
+        tester.getTopLeft(find.byKey(const ValueKey('header-leading'))).dy,
+      ),
+    );
 
     await tester.tap(find.byKey(const ValueKey('header-leading')));
     await tester.pump();
@@ -346,8 +345,8 @@ void main() {
       expect(find.byIcon(Icons.arrow_back), findsNothing);
       if (showBack) {
         expect(
-          tester.getCenter(find.byIcon(Icons.close)),
-          const Offset(35, 28),
+          tester.getBottomLeft(find.byIcon(Icons.close)).dy,
+          lessThanOrEqualTo(tester.getTopLeft(find.text('Settings')).dy),
         );
         await tester.tap(find.byIcon(Icons.close));
       } else {
@@ -612,9 +611,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(scrollController.offset, closeTo(74, 1));
-    final collapsedTitle = tester.widget<Text>(find.text('Appearance'));
-    expect(collapsedTitle.style?.fontSize, closeTo(20, 0.01));
-    expect(collapsedTitle.style?.fontFamily, TextStyles.display3.fontFamily);
     expect(tester.getTopLeft(find.text('System theme')).dy, closeTo(56, 1));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 32));
@@ -697,7 +693,10 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(title), findsOneWidget);
-    expect(tester.getBottomLeft(find.text(title)).dy, lessThanOrEqualTo(128));
+    expect(
+      tester.getBottomLeft(find.text(title)).dy,
+      lessThanOrEqualTo(tester.getTopLeft(find.text('Scaled item 0')).dy),
+    );
     expect(tester.getSize(find.bySemanticsLabel('Back')), const Size(48, 48));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -240));

@@ -6,21 +6,18 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/cluster_centroid_vector_db.dart";
-import "package:photos/db/ml/db_pet_model_mappers.dart";
-import "package:photos/db/ml/pet_vector_db.dart";
+import "package:photos/db/ml/ml_exclusive_operation.dart";
+import "package:photos/db/ml/usearch_clip_vector_db.dart";
+import "package:photos/db/ml/usearch_cluster_centroid_vector_db.dart";
 import "package:photos/events/embedding_updated_event.dart";
 import "package:photos/generated/protos/ente/common/vector.pb.dart";
-import "package:photos/main.dart" show isProcessBg;
 import "package:photos/models/ml/clip.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/ml_process_lock.dart";
-import "package:photos/services/machine_learning/ml_result.dart";
 import "package:synchronized/synchronized.dart";
 
 mixin MLDataDBOrchestration implements IMLDataDB<int> {
-  static const _kMigrationLockWaitDeadline = Duration(minutes: 2);
-
   int _clusterSummaryMutationVersion = 0;
   Future<void>? _clipVectorDbRecoveryFuture;
   final Lock _clipVectorRecoveryLock = Lock();
@@ -31,146 +28,44 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
   final Lock _clusterCentroidVectorMigrationLock = Lock();
   bool _clusterCentroidVectorDbRecoveryRequested = false;
 
-  ClipVectorDB get clipVectorDB;
-  ClusterCentroidVectorDB get clusterCentroidVectorDB;
-  bool get isLocalGallery;
+  UsearchClipVectorDB get clipVectorDB;
+  UsearchClusterCentroidVectorDB get clusterCentroidVectorDB;
   Logger get logger;
 
-  @override
-  Future<void> storePetFaceEmbeddings(
-    List<DBPetFace> dbPetFaces,
-    List<PetFaceResult> petFaces,
-  ) async {
-    if (dbPetFaces.length != petFaces.length) {
-      throw StateError(
-        'dbPetFaces.length (${dbPetFaces.length}) != petFaces.length (${petFaces.length})',
-      );
-    }
-    try {
-      final bySpecies = <int, List<(DBPetFace, PetFaceResult)>>{};
-      for (int i = 0; i < dbPetFaces.length; i++) {
-        final species = petFaces[i].species;
-        bySpecies.putIfAbsent(species, () => []);
-        bySpecies[species]!.add((dbPetFaces[i], petFaces[i]));
-      }
-      for (final entry in bySpecies.entries) {
-        final vdb = PetVectorDB.forModel(
-          species: entry.key,
-          isFace: true,
-          localGallery: isLocalGallery,
-        );
-        final petFaceIds = entry.value.map((e) => e.$1.petFaceId).toList();
-        final idMap = await getPetFaceVectorIdMap(
-          petFaceIds,
-          createIfMissing: true,
-        );
-        final vectorIds = <int>[];
-        final embeddings = <Float32List>[];
-        final insertedPetFaceIds = <String>[];
-        for (final (dbFace, pfResult) in entry.value) {
-          final vid = idMap[dbFace.petFaceId];
-          if (vid == null) continue;
-          final emb = Float32List.fromList(pfResult.embedding);
-          if (emb.length != PetVectorDB.faceDimension) {
-            logger.warning(
-              "Skipping pet face embedding with wrong dimension ${emb.length}",
-            );
-            continue;
-          }
-          vectorIds.add(vid);
-          embeddings.add(emb);
-          insertedPetFaceIds.add(dbFace.petFaceId);
-        }
-        if (vectorIds.isNotEmpty) {
-          await vdb.bulkInsertEmbeddings(
-            vectorIds: vectorIds,
-            embeddings: embeddings,
-          );
-          final updateMap = Map.fromIterables(insertedPetFaceIds, vectorIds);
-          await updatePetFaceVectorIds(updateMap);
-        }
-      }
-    } catch (e, s) {
-      logger.severe("Failed to store pet face embeddings in vector DB", e, s);
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> storePetBodyEmbeddings(
-    List<DBPetBody> dbPetBodies,
-    List<PetBodyResult> petBodies,
-  ) async {
-    if (dbPetBodies.length != petBodies.length) {
-      throw StateError(
-        'dbPetBodies.length (${dbPetBodies.length}) != petBodies.length (${petBodies.length})',
-      );
-    }
-    try {
-      final bySpecies = <int, List<(DBPetBody, PetBodyResult)>>{};
-      for (int i = 0; i < dbPetBodies.length; i++) {
-        final species = dbPetBodies[i].species;
-        bySpecies.putIfAbsent(species, () => []);
-        bySpecies[species]!.add((dbPetBodies[i], petBodies[i]));
-      }
-      for (final entry in bySpecies.entries) {
-        final vdb = PetVectorDB.forModel(
-          species: entry.key,
-          isFace: false,
-          localGallery: isLocalGallery,
-        );
-        final bodyIds = entry.value.map((e) => e.$1.petBodyId).toList();
-        final idMap = await getPetBodyVectorIdMap(
-          bodyIds,
-          createIfMissing: true,
-        );
-        final vectorIds = <int>[];
-        final embeddings = <Float32List>[];
-        final insertedBodyIds = <String>[];
-        for (final (dbBody, bodyResult) in entry.value) {
-          final vid = idMap[dbBody.petBodyId];
-          if (vid == null) continue;
-          final emb = Float32List.fromList(bodyResult.embedding);
-          if (emb.length != PetVectorDB.bodyDimension) {
-            logger.warning(
-              "Skipping pet body embedding with wrong dimension ${emb.length}",
-            );
-            continue;
-          }
-          vectorIds.add(vid);
-          embeddings.add(emb);
-          insertedBodyIds.add(dbBody.petBodyId);
-        }
-        if (vectorIds.isNotEmpty) {
-          await vdb.bulkInsertEmbeddings(
-            vectorIds: vectorIds,
-            embeddings: embeddings,
-          );
-          final updateMap = Map.fromIterables(insertedBodyIds, vectorIds);
-          await updatePetBodyVectorIds(updateMap);
-        }
-      }
-    } catch (e, s) {
-      logger.severe("Failed to store pet body embeddings in vector DB", e, s);
-      rethrow;
-    }
-  }
+  Future<void> clearNonPetTables();
+  Future<void> clearPetTables();
+  Future<void> resetClusterTables({required bool faces});
+  Future<void> upsertClusterSummaryRows(Map<String, (Uint8List, int)> summary);
+  Future<void> deleteClusterSummaryRow(String clusterID);
+  Future<void> insertClipRows(List<ClipEmbedding> embeddings);
+  Future<void> deleteClipRows(List<int> fileIDs);
+  Future<void> deleteAllClipRows();
+  Future<int> countClusterSummaries();
+  Future<List<(String, Uint8List)>> getClusterSummaryPage({
+    String? beforeClusterID,
+    required int limit,
+  });
+  Future<int> countClipRows();
+  Future<List<(int, Uint8List)>> getClipRowsPage({
+    required int limit,
+    required int offset,
+  });
+  Future<Map<String, int>> getClusterCentroidVectorIdMap(
+    Iterable<String> clusterIDs, {
+    bool createIfMissing,
+  });
+  Future<void> deleteClusterCentroidVectorIdMapping(String clusterID);
+  Future<void> clearClusterCentroidVectorIdMappings();
 
   @override
   Future<void> clearTable() =>
-      _runMlOperationExclusive(MlOperation.clearData, _clearTable);
+      runMlOperationExclusive(MlOperation.clearData, _clearTable);
 
   Future<void> _clearTable() async {
     await clearNonPetTables();
     await clipVectorDB.deleteIndexFile();
     await clusterCentroidVectorDB.deleteIndexFile();
     await clearPetTables();
-    final petVdbs = isLocalGallery
-        ? PetVectorDB.allLocalGalleryInstances
-        : PetVectorDB.allInstances;
-    for (final vdb in petVdbs) {
-      await vdb.deleteIndexFile();
-    }
     _markClusterSummaryMutated();
   }
 
@@ -193,7 +88,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
     _markClusterSummaryMutated();
 
     if (!flagService.enableVectorDb ||
-        !await clusterCentroidVectorDB.checkIfMigrationDone()) {
+        !await clusterCentroidVectorDB.isReady()) {
       return;
     }
 
@@ -254,7 +149,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
     _markClusterSummaryMutated();
 
     if (!flagService.enableVectorDb ||
-        !await clusterCentroidVectorDB.checkIfMigrationDone()) {
+        !await clusterCentroidVectorDB.isReady()) {
       await deleteClusterCentroidVectorIdMapping(clusterID);
       return;
     }
@@ -283,7 +178,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
       await resetClusterTables(faces: faces);
       _markClusterSummaryMutated();
 
-      if (await clusterCentroidVectorDB.checkIfMigrationDone()) {
+      if (await clusterCentroidVectorDB.isReady()) {
         await _withClusterCentroidVectorWriteRecovery(
           operation: "dropClustersAndPersonTable",
           writeOperation: () async {
@@ -300,13 +195,13 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
   Future<void> checkMigrateFillClusterCentroidVectorDB({
     bool force = false,
   }) async {
-    if (!force && await clusterCentroidVectorDB.checkIfMigrationDone()) {
+    if (!force && await clusterCentroidVectorDB.isReady()) {
       return;
     }
-    await _runMlOperationExclusive(
+    await runMlOperationExclusive(
       MlOperation.clusterCentroidVectorMigration,
       () => _checkMigrateFillClusterCentroidVectorDB(force: force),
-      waitDeadline: _kMigrationLockWaitDeadline,
+      waitDeadline: kMlMigrationLockWaitDeadline,
     );
   }
 
@@ -314,8 +209,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
     required bool force,
   }) async {
     await _clusterCentroidVectorMigrationLock.synchronized(() async {
-      final migrationDone = await clusterCentroidVectorDB
-          .checkIfMigrationDone();
+      final migrationDone = await clusterCentroidVectorDB.isReady();
       if (migrationDone && !force) {
         logger.info(
           "ClusterCentroidVectorDB migration not needed, already done",
@@ -584,19 +478,19 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
 
   @override
   Future<void> checkMigrateFillClipVectorDB({bool force = false}) async {
-    if (!force && await clipVectorDB.checkIfMigrationDone()) {
+    if (!force && await clipVectorDB.isReady()) {
       return;
     }
-    await _runMlOperationExclusive(
+    await runMlOperationExclusive(
       MlOperation.clipVectorMigration,
       () => _checkMigrateFillClipVectorDB(force: force),
-      waitDeadline: _kMigrationLockWaitDeadline,
+      waitDeadline: kMlMigrationLockWaitDeadline,
     );
   }
 
   Future<void> _checkMigrateFillClipVectorDB({required bool force}) async {
     await _clipVectorMigrationLock.synchronized(() async {
-      final migrationDone = await clipVectorDB.checkIfMigrationDone();
+      final migrationDone = await clipVectorDB.isReady();
       if (migrationDone && !force) {
         logger.info("ClipVectorDB migration not needed, already done");
         return;
@@ -725,26 +619,6 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
     });
   }
 
-  Future<void> _runMlOperationExclusive(
-    MlOperation operation,
-    Future<void> Function() body, {
-    Duration? waitDeadline,
-  }) async {
-    final attempt = await MlProcessLock.instance.tryRunExclusive(
-      operation,
-      body,
-      background: isProcessBg,
-      waitForAvailability: true,
-      waitDeadline: waitDeadline,
-    );
-    if (attempt != MlLockAttempt.ran) {
-      throw StateError(
-        "${operation.name} could not acquire the ML process lock "
-        "(${attempt.name})",
-      );
-    }
-  }
-
   Future<void> _withClipVectorWriteRecovery({
     required String operation,
     required Future<void> Function() writeOperation,
@@ -864,63 +738,6 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
   }
 
   @override
-  Future<void> deletePetDataForFiles(List<int> fileIDs) async {
-    if (fileIDs.isEmpty) return;
-    final (faceRows, bodyRows) = await getPetRowsForFiles(fileIDs);
-
-    final faceVidsBySpecies = <int, List<int>>{};
-    final faceIdsToRemove = <String>[];
-    for (final (petFaceId, vid, species) in faceRows) {
-      faceIdsToRemove.add(petFaceId);
-      if (vid != null) {
-        faceVidsBySpecies.putIfAbsent(species, () => []);
-        faceVidsBySpecies[species]!.add(vid);
-      }
-    }
-
-    final bodyVidsBySpecies = <int, List<int>>{};
-    final bodyIdsToRemove = <String>[];
-    for (final (petBodyId, vid, species) in bodyRows) {
-      bodyIdsToRemove.add(petBodyId);
-      if (vid != null) {
-        bodyVidsBySpecies.putIfAbsent(species, () => []);
-        bodyVidsBySpecies[species]!.add(vid);
-      }
-    }
-
-    for (final entry in faceVidsBySpecies.entries) {
-      try {
-        final vdb = PetVectorDB.forModel(
-          species: entry.key,
-          isFace: true,
-          localGallery: isLocalGallery,
-        );
-        await vdb.deleteEmbeddings(entry.value);
-      } catch (e, s) {
-        logger.warning("Failed to delete pet face vectors", e, s);
-      }
-    }
-    for (final entry in bodyVidsBySpecies.entries) {
-      try {
-        final vdb = PetVectorDB.forModel(
-          species: entry.key,
-          isFace: false,
-          localGallery: isLocalGallery,
-        );
-        await vdb.deleteEmbeddings(entry.value);
-      } catch (e, s) {
-        logger.warning("Failed to delete pet body vectors", e, s);
-      }
-    }
-
-    await deletePetRowsForFiles(
-      fileIDs: fileIDs,
-      petFaceIds: faceIdsToRemove,
-      petBodyIds: bodyIdsToRemove,
-    );
-  }
-
-  @override
   Future<void> putClip(List<ClipEmbedding> embeddings) async {
     if (embeddings.isEmpty) return;
     final vectorizableEmbeddings = _vectorizableClipEmbeddings(embeddings);
@@ -928,7 +745,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
     if (embeddings.length == 1) {
       if (flagService.enableVectorDb &&
           vectorizableEmbeddings.isNotEmpty &&
-          await clipVectorDB.checkIfMigrationDone()) {
+          await clipVectorDB.isReady()) {
         await _withClipVectorWriteRecovery(
           operation: "putClip(single)",
           writeOperation: () async {
@@ -942,7 +759,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
     } else {
       if (flagService.enableVectorDb &&
           vectorizableEmbeddings.isNotEmpty &&
-          await clipVectorDB.checkIfMigrationDone()) {
+          await clipVectorDB.isReady()) {
         await _withClipVectorWriteRecovery(
           operation: "putClip(bulk)",
           writeOperation: () async {
@@ -962,8 +779,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
   @override
   Future<void> deleteClipEmbeddings(List<int> fileIDs) async {
     await deleteClipRows(fileIDs);
-    if (flagService.enableVectorDb &&
-        await clipVectorDB.checkIfMigrationDone()) {
+    if (flagService.enableVectorDb && await clipVectorDB.isReady()) {
       await _withClipVectorWriteRecovery(
         operation: "deleteClipEmbeddings",
         writeOperation: () async {
@@ -977,8 +793,7 @@ mixin MLDataDBOrchestration implements IMLDataDB<int> {
   @override
   Future<void> deleteClipIndexes() async {
     await deleteAllClipRows();
-    if (flagService.enableVectorDb &&
-        await clipVectorDB.checkIfMigrationDone()) {
+    if (flagService.enableVectorDb && await clipVectorDB.isReady()) {
       await _withClipVectorWriteRecovery(
         operation: "deleteClipIndexes",
         writeOperation: () async {

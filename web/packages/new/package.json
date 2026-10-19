@@ -3,19 +3,19 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@mui/material": "9.3.1",
-        "@mui/x-date-pickers": "9.8.0",
-        "dayjs": "1.11.21",
+        "@mui/material": "9.4.0",
+        "@mui/x-date-pickers": "9.14.0",
+        "dayjs": "1.11.23",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-gallery": "*",
         "ente-photos-wasm": "*",
         "ente-utils": "*",
-        "i18next": "26.3.1",
-        "react": "19.2.7"
+        "i18next": "26.4.2",
+        "react": "19.3.0"
     },
     "devDependencies": {
-        "@types/react": "19.2.17",
+        "@types/react": "19.3.0",
         "ente-build-config": "*"
     }
 }

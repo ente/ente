@@ -1,11 +1,9 @@
-import 'dart:math' as math;
+import "dart:math" as math;
 
-import 'package:ente_components/theme/text_styles.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/service_locator.dart";
-import "package:photos/theme/ente_theme.dart";
 
 class SubscriptionPlanWidget extends StatelessWidget {
   const SubscriptionPlanWidget({
@@ -13,21 +11,34 @@ class SubscriptionPlanWidget extends StatelessWidget {
     required this.storage,
     required this.price,
     required this.period,
-    required this.isOnboarding,
+    this.monthlyPrice,
     this.isActive = false,
     this.isPopular = false,
   });
 
+  static const double height = 84;
+  static const double _borderWidth = 2;
+  static const double _horizontalPadding = Spacing.xl - _borderWidth;
+  static const double _verticalPadding = Spacing.lg - _borderWidth;
+  static const double _contentMinHeight =
+      height - 2 * _borderWidth - 2 * _verticalPadding;
+  static const double _badgeWidth = 102;
+  static const double _badgeHeight = 26;
+  static const double _badgeLineHeight = 20;
+  static const double _badgeVerticalPadding =
+      (_badgeHeight - _badgeLineHeight) / 2;
+
   final int storage;
   final String price;
   final String period;
+
+  final String? monthlyPrice;
   final bool isActive;
   final bool isPopular;
-  final bool isOnboarding;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     final numAndUnit = convertBytesToNumberAndUnit(storage);
     int storageValueInUnit = numAndUnit.$1;
     String storageUnit = numAndUnit.$2.toUpperCase();
@@ -36,90 +47,99 @@ class SubscriptionPlanWidget extends StatelessWidget {
       storageUnit = "GB";
     }
     final String storageValue = storageValueInUnit.toString();
-    final bool isSelected = isActive;
+    final badgeHeight =
+        MediaQuery.textScalerOf(context).scale(_badgeLineHeight) +
+        2 * _badgeVerticalPadding;
+    final badgeOverflow = isPopular
+        ? math.max(0.0, badgeHeight - _badgeHeight)
+        : 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: colors.fillLight,
+        borderRadius: BorderRadius.circular(Radii.button),
+        border: Border.all(
+          color: isActive ? colors.primary : Colors.transparent,
+          width: _borderWidth,
+        ),
+      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            constraints: const BoxConstraints(minHeight: 72),
-            decoration: BoxDecoration(
-              color: isSelected ? colorScheme.greenLight : colorScheme.fill,
-              borderRadius: BorderRadius.circular(20),
-              border: isSelected
-                  ? Border.all(color: colorScheme.greenBase, width: 2)
-                  : null,
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              _horizontalPadding,
+              _verticalPadding + badgeOverflow,
+              _horizontalPadding,
+              _verticalPadding,
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: _contentMinHeight),
+              child: Column(
+                mainAxisAlignment: isPopular
+                    ? MainAxisAlignment.end
+                    : MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            color: colorScheme.contentDarker,
-                            fontFamily: TextStyles.outfitFontFamily,
-                            package: TextStyles.fontPackage,
-                            fontWeight: FontWeight.w900,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: storageValue,
-                              style: const TextStyle(
-                                fontSize: 36,
-                                height: 28 / 36,
-                                letterSpacing: -1.8,
-                              ),
-                            ),
-                            const TextSpan(
-                              text: " ",
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            text: TextSpan(
                               style: TextStyle(
-                                fontSize: 24,
-                                height: 28 / 24,
-                                letterSpacing: -0.96,
+                                color: colors.textBase,
+                                fontFamily: TextStyles.outfitFontFamily,
+                                package: TextStyles.fontPackage,
+                                fontWeight: FontWeight.w900,
                               ),
+                              children: [
+                                TextSpan(
+                                  text: storageValue,
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    height: 28 / 36,
+                                    letterSpacing: -1.8,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: " ",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    height: 28 / 24,
+                                    letterSpacing: -0.96,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: storageUnit,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    height: 28 / 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
-                            TextSpan(
-                              text: storageUnit.isEmpty
-                                  ? ""
-                                  : storageUnit.substring(0, 1),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                height: 28 / 16,
-                                letterSpacing: -0.64,
-                              ),
+                            textHeightBehavior: const TextHeightBehavior(
+                              applyHeightToFirstAscent: false,
+                              applyHeightToLastDescent: false,
                             ),
-                            TextSpan(
-                              text: storageUnit.length > 1
-                                  ? storageUnit.substring(1)
-                                  : "",
-                              style: const TextStyle(
-                                fontSize: 16,
-                                height: 28 / 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.left,
-                        textHeightBehavior: const TextHeightBehavior(
-                          applyHeightToFirstAscent: false,
-                          applyHeightToLastDescent: false,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  Flexible(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: _Price(price: price, period: period),
-                    ),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: _Price(
+                            price: price,
+                            period: period,
+                            monthlyPrice: monthlyPrice,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -127,27 +147,33 @@ class SubscriptionPlanWidget extends StatelessWidget {
           ),
           if (isPopular)
             Positioned(
-              right: -8,
-              top: -4,
-              child: Transform.rotate(
-                angle: 8 * math.pi / 180,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.greenBase,
-                    borderRadius: BorderRadius.circular(8),
+              left: -_borderWidth,
+              top: -_borderWidth,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: _badgeWidth,
+                  minHeight: _badgeHeight,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.lg,
+                  vertical: _badgeVerticalPadding,
+                ),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(Radii.button),
+                    bottomRight: Radius.circular(Radii.button),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  child: Text(
-                    "Most popular",
-                    textAlign: TextAlign.center,
-                    style: TextStyles.tiny.copyWith(
-                      color: Colors.white,
-                      fontFamily: TextStyles.outfitFontFamily,
-                      fontWeight: FontWeight.w700,
-                    ),
+                ),
+                child: Text(
+                  context.strings.mostPopular,
+                  textAlign: TextAlign.center,
+                  style: TextStyles.tiny.copyWith(
+                    color: colors.specialWhite,
+                    fontFamily: TextStyles.outfitFontFamily,
+                    fontWeight: FontWeight.w700,
+                    height: _badgeLineHeight / 10,
                   ),
                 ),
               ),
@@ -159,114 +185,94 @@ class SubscriptionPlanWidget extends StatelessWidget {
 }
 
 class _Price extends StatelessWidget {
+  const _Price({
+    required this.price,
+    required this.period,
+    required this.monthlyPrice,
+  });
+
   final String price;
   final String period;
-
-  const _Price({required this.price, required this.period});
+  final String? monthlyPrice;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
+    final amountStyle = TextStyles.large.copyWith(
+      color: colors.textBase,
+      height: 28 / 16,
+    );
+    final periodStyle = TextStyles.mini.copyWith(
+      color: colors.textLight,
+      height: 28 / 12,
+    );
     if (price.isEmpty) {
-      return Text(
-        "Free",
-        style: textTheme.bodyBold.copyWith(
-          color: colorScheme.contentDarker,
-          fontFamily: "Inter",
-          fontSize: 16,
-          height: 28 / 16,
-        ),
-      );
+      return Text(context.strings.free, style: amountStyle);
     }
 
     if (period == "month") {
       return Text.rich(
         TextSpan(
-          style: textTheme.largeBold.copyWith(
-            color: colorScheme.contentDarker,
-            height: 1.1,
-          ),
           children: [
-            TextSpan(text: price),
-            TextSpan(
-              text: "/${context.strings.month}",
-              style: textTheme.small.copyWith(color: colorScheme.contentLight),
-            ),
+            TextSpan(text: price, style: amountStyle),
+            TextSpan(text: "/${context.strings.month}", style: periodStyle),
           ],
         ),
         textAlign: TextAlign.end,
       );
     }
 
-    if (period == "year") {
-      final currencySymbol = price[0];
-      final priceWithoutCurrency = price.substring(1);
-      final priceDouble = double.parse(priceWithoutCurrency);
-      final pricePerMonth = priceDouble / 12;
-      String pricePerMonthString = pricePerMonth.toStringAsFixed(2);
-
-      if (pricePerMonthString.endsWith(".00")) {
-        pricePerMonthString = pricePerMonthString.substring(
-          0,
-          pricePerMonthString.length - 3,
-        );
-      }
-
-      final bool isPlayStore = updateService.isPlayStoreFlavor();
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (isPlayStore)
-            Text.rich(
-              TextSpan(
-                style: textTheme.largeBold.copyWith(
-                  color: colorScheme.contentDarker,
-                  height: 1.1,
-                ),
-                children: [
-                  TextSpan(text: price),
-                  TextSpan(
-                    text: "/${context.strings.yearShort}",
-                    style: textTheme.small.copyWith(
-                      color: colorScheme.contentLight,
-                    ),
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.end,
-            ),
-          if (isPlayStore)
-            Text(
-              "$currencySymbol$pricePerMonthString / ${context.strings.month}",
-              style: textTheme.tiny.copyWith(color: colorScheme.contentLight),
-              textAlign: TextAlign.end,
-            ),
-          if (!isPlayStore)
-            Text(
-              "$currencySymbol$pricePerMonthString / ${context.strings.month}",
-              style: textTheme.largeBold.copyWith(
-                color: colorScheme.contentDarker,
-              ),
-              textAlign: TextAlign.end,
-            ),
-          if (!isPlayStore)
-            Text.rich(
-              TextSpan(
-                style: textTheme.tiny.copyWith(color: colorScheme.contentLight),
-                children: [
-                  TextSpan(text: price),
-                  TextSpan(text: "/${context.strings.yearShort}"),
-                ],
-              ),
-              textAlign: TextAlign.end,
-            ),
-        ],
+    assert(period == "year", "Invalid period: $period");
+    final currencySymbol = price[0];
+    final pricePerMonth = double.parse(price.substring(1)) / 12;
+    String pricePerMonthString = pricePerMonth.toStringAsFixed(2);
+    if (pricePerMonthString.endsWith(".00")) {
+      pricePerMonthString = pricePerMonthString.substring(
+        0,
+        pricePerMonthString.length - 3,
       );
-    } else {
-      assert(false, "Invalid period: $period");
-      return const Text("");
     }
+    final perMonthStyle = TextStyles.tiny.copyWith(
+      color: colors.textLight,
+      height: 16 / 10,
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: price, style: amountStyle),
+              TextSpan(text: "/${context.strings.year}", style: periodStyle),
+            ],
+          ),
+          textAlign: TextAlign.end,
+        ),
+        Text.rich(
+          TextSpan(
+            children: [
+              if (monthlyPrice != null) ...[
+                TextSpan(
+                  text: monthlyPrice,
+                  style: perMonthStyle.copyWith(
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: colors.textLight,
+                  ),
+                ),
+                const TextSpan(text: " → "),
+              ],
+              TextSpan(
+                text:
+                    "$currencySymbol$pricePerMonthString"
+                    "/${context.strings.month}",
+              ),
+            ],
+            style: perMonthStyle,
+          ),
+          textAlign: TextAlign.end,
+        ),
+      ],
+    );
   }
 }

@@ -23,6 +23,8 @@ Share an entire album via a public link:
 4. Tap "Manage link" to configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Tap "Copy link" and share it
 
+![Create public link highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-share-create-link-callout.png){width=320px}
+
 **On web/desktop:**
 
 1. Open the album
@@ -30,6 +32,8 @@ Share an entire album via a public link:
 3. Select "Create link"
 4. Click "Manage link" to configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Click "Copy link" and share it
+
+![Create public link highlighted in the share panel on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-share-create-link-callout.png){width=720px}
 
 ### Quick link (from selected photos)
 
@@ -50,17 +54,24 @@ You can create a quick link in any of these ways:
 2. Select multiple files and use the "Send link" action in the top navbar
 3. Open a file in the viewer and use "Send link" from the viewer menu
 
+![Link created toast after Send link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-quick-link-created.png){width=720px}
+
 **How it works:** Ente creates a special album behind the scenes and adds your selected photos to it. The link works exactly like a regular public link - recipients see an album with the photos you selected.
 
 **Managing quick links:**
 
-- View all quick links in the Albums tab under "Links" (tap the 'v' icon at the right)
+- On mobile, open **Albums**, tap the down-arrow at the right, and choose **Links**
+- Open a link album and tap the **link icon** to open **Link settings**, including the **Download photos** control
 - Quick links can be converted to regular albums if needed
 - Removing a link doesn't delete the photos
+
+See [Edit link settings](#edit-link-settings) for the full steps and [download-control limitations](#prevent-downloads) before sharing.
 
 ## Link features
 
 Public links support powerful customization, security, and control features:
+
+![Allow downloads highlighted in Manage link on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-album-manage-link-callout.png){width=900px}
 
 ### Album layout
 
@@ -92,6 +103,8 @@ Add a password to your link for an extra layer of security. Recipients must ente
 - Limiting access to a specific group
 - Adding security beyond link secrecy
 
+![Password lock toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-password-callout.png){width=720px}
+
 ### Link expiry
 
 Set an expiration date for your link. After this time, the link automatically stops working.
@@ -107,6 +120,8 @@ Set an expiration date for your link. After this time, the link automatically st
 - Custom date/time
 - Common presets (7 days, 30 days, etc.)
 - Can be extended or changed later
+
+![Link expiry row highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-expiry-callout.png){width=720px}
 
 ### Device limits
 
@@ -127,19 +142,17 @@ A "device" is determined by the combination of IP address and browser/app (User-
 - Preventing viral spread of the link
 - Adding accountability to sharing
 
-### Prevent downloads
+![Device limit row highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-device-limit-callout.png){width=720px}
 
-Disable the option to download original quality photos. Recipients can still view photos and take screenshots, but can't download the original files.
+### Download control {#prevent-downloads}
 
-**When to use:**
+Turn off **Download photos** on mobile or **Allow downloads** on web/desktop to hide Ente's download option for a public link.
 
-- Protecting professional work
-- Watermarked preview sharing
-- Limited distribution control
+Viewers can still see the photos and videos. They may also save copies using browser features or external tools, take screenshots, or record their screen. This setting does not guarantee that original files cannot be copied, and it does not remove their metadata.
 
-> [!NOTE]
->
-> This doesn't prevent screenshots or screen recording, but does make it harder for recipients to get high-quality copies.
+Use it when you want to hide the download button, but share only content you are comfortable allowing recipients to view and potentially copy.
+
+![Allow downloads toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-callout.png){width=720px}
 
 ### Allow joining album
 
@@ -185,6 +198,8 @@ When disabled, anyone with the link can still view the album in a browser, but t
 
 Enable photo uploads through the link. Anyone with the link can add photos to the album via web browser - no Ente account needed.
 
+![Allow adding photos toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-allow-adding-callout.png){width=720px}
+
 **When to use:**
 
 - Collecting event photos from guests
@@ -207,20 +222,34 @@ Learn more in the [Custom domains guide](/photos/features/sharing-and-collaborat
 
 ### View all your links
 
+![Links list with public albums on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-links-list.png){width=320px}
+
 **On mobile:**
 
 - To see shared albums, open the Albums tab and use the "Shared" tab (albums you've shared) or the "Received" tab (albums shared with you)
 - To see quick links, open the Albums tab, tap on 'v' icon at the right, then tap "Links"
 
-### Edit link settings
+### Edit link settings {#edit-link-settings}
 
-1. Find the link in your sharing list
-2. Tap/click the three dots menu
-3. Select "Edit link settings"
-4. Modify password, expiry, device limits, or other options
-5. Save changes
+![Manage link settings on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-callout.png){width=720px}
 
-Changes apply immediately - anyone accessing the link will see the updated settings.
+**For a quick link on mobile:**
+
+1. Open **Albums**
+2. Tap the down-arrow at the right and choose **Links**
+3. Open the link album you want to change
+4. Tap the **link icon** to open **Link settings**
+5. Change the settings you need, such as **Download photos**, password, expiry, or device limit
+
+**For a regular album link on mobile:**
+
+Open the album, tap the **Share icon**, and manage its public link.
+
+**On web/desktop:**
+
+Open the album, click the **share icon**, and choose **Manage link**. Change the existing link's settings, including **Allow downloads**, password, expiry, or device limit.
+
+Turning off **Download photos** or **Allow downloads** hides Ente's download control. It does not prevent copying through browser features, external tools, screenshots, or screen recording. See [download-control limitations](#prevent-downloads).
 
 ### Delete a link
 
@@ -231,6 +260,8 @@ Changes apply immediately - anyone accessing the link will see the updated setti
 
 Deleting a link makes it immediately inaccessible. The photos in the album remain in your account.
 
+![Remove link highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-remove-callout.png){width=720px}
+
 ### Convert quick link to regular album
 
 Quick links create special albums. You can convert them to regular albums:
@@ -240,6 +271,8 @@ Quick links create special albums. You can convert them to regular albums:
 3. Tap "Links"
 4. Find the quick link and tap the three dots menu
 5. Select "Convert to album"
+
+![Convert to album highlighted in the link album More menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-convert-to-album-callout.png){width=320px}
 
 The album becomes a regular album in your Albums tab, and the link continues to work.
 
@@ -258,6 +291,8 @@ Public links are end-to-end encrypted, but with an important caveat:
 - Decryption keys are embedded in the link (in the URL fragment after #)
 - Anyone with the link can decrypt and view the content
 - The keys never reach Ente's servers (URL fragments aren't sent to servers)
+
+Metadata decrypts along with the photos, so public-link viewers can see details such as locations. There is no hide-location switch for a public link, and changing a location in Ente does not remove GPS embedded in the original file. For location-free sharing, use [separate copies with location metadata removed](/photos/faq/metadata-and-editing#shared-metadata-visibility).
 
 **For sensitive content:**
 
@@ -283,6 +318,8 @@ Public links (including collect links and quick links) are available on all plan
 
 - Create public links with no device limit
 - Access all other premium features
+
+If you use a free account, visitors viewing your public albums do not keep your account active. Sign in to your own account and follow any inactivity notices you receive. See the [inactive free-account policy](/photos/faq/storage-and-plans#inactive-free-account).
 
 ## Related topics
 

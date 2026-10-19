@@ -26,12 +26,18 @@ Create albums to organize your photos and videos into collections.
 
 ### On mobile
 
-- Open the **Albums** tab
-- Tap the **Add new** button
-- Enter a name for your album
-- Tap **Create**
+![Albums grid and New album dialog side by side on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-albums-create-duo.png){width=780px}
+
+1. Open the **Albums** tab
+2. Select **Ente** at the top
+3. Tap **Create album**
+4. Enter a name and tap **Create**
+
+The **Device** view shows folders from your phone and does not offer this Ente-album creation tile. If **Create album** is missing, scroll to the top, select **Ente**, and clear any active album search.
 
 ### On web / desktop
+
+![New album dialog on Ente Photos web with album name field and Create button](https://docs-assets.ente.com/screenshots/web-album-create-dialog.png){width=720px}
 
 - Click the All Albums button (down arrow) in the top right corner
 - Click the **New album** button
@@ -40,18 +46,32 @@ Create albums to organize your photos and videos into collections.
 
 You can also create albums by uploading photos from your device, manually adding photos to new albums, or automatically through features like [watch folders](/photos/features/backup-and-sync/watch-folders) on desktop.
 
+## Add existing photos to an album {#add-existing-photos}
+
+Creating an empty album using the steps above does not move existing photos into it. To organize photos already in Ente, select them in your gallery or an album and choose **Add to album**. On desktop, choose one destination at a time. On mobile, you can select multiple destination albums.
+
+For photos in **Uncategorized** on desktop, first use **Move** in the action bar to put them in one album. Open that album and use **Add to album** for any additional destinations. See [organizing Uncategorized photos](/photos/features/albums-and-organization/uncategorized#organize-uncategorized-photos).
+
+Use **Upload** when you want to import new local files from your computer.
+
 ## Rename album
 
 Personalize your albums by giving them a meaningful name.
 
+Renaming an Ente album does not rename the corresponding folder on your phone. If that album is already the destination for mobile automatic backup, the existing backup connection continues to use it after the rename. Changing its name does not choose a new backup destination.
+
 ### On mobile
+
+![Album overflow menu on Ente Photos mobile showing Edit details, Sort by, and Pin options](https://docs-assets.ente.com/screenshots/phone-album-overflow-menu.png){width=320px}
 
 - Open the album
 - Tap the overflow menu (three dots) in the top right corner
-- Tap **Rename album**, then type in a new name
-- Tap **Rename**
+- Tap **Edit details**, then type in a new name
+- Tap **Save**
 
 ### On web / desktop
+
+![Album overflow menu on Ente Photos web showing edit details sort by pin archive and share](https://docs-assets.ente.com/screenshots/web-album-overflow-menu.png){width=720px}
 
 - Open the album
 - Click the overflow menu (three dots) in the top right corner
@@ -62,6 +82,8 @@ Personalize your albums by giving them a meaningful name.
 ## Add or edit an album description
 
 Add a description to provide context that appears with the album in the gallery and on shared links.
+
+![Edit album details dialog on Ente Photos mobile and web for name description and cover](https://docs-assets.ente.com/screenshots/duo-album-edit-details.png){width=900px}
 
 **On mobile and web/desktop:**
 
@@ -77,6 +99,8 @@ Select any photo you want to use as the cover for your album.
 
 ### On mobile
 
+![Green pencil button to change the album cover on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-cover-callout.png){width=320px}
+
 - Open the album you want to change
 - Tap the overflow menu (three dots) in the top right corner
 - Select **Edit details**
@@ -86,6 +110,8 @@ Select any photo you want to use as the cover for your album.
 - Tap **Use selected photo**
 
 ### On web / desktop
+
+![Select album cover photo dialog on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-cover-picker.png){width=720px}
 
 - Click the album you want to change
 - Click the overflow menu (three dots) in the top right corner
@@ -103,6 +129,8 @@ Explore your album's memories based on their location.
 - Select **Map**
 - All photos from the album will appear in map view
 
+![Map view with location pins for photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view.png){width=720px}
+
 Learn more about [Map and location](/photos/features/search-and-discovery/map-and-location) features.
 
 ## Sort albums
@@ -111,12 +139,16 @@ Maintain order in your albums by arranging them from newest to oldest.
 
 ### On mobile
 
+![Sort album photos menu highlighted on Ente Photos mobile with newest first and oldest first](https://docs-assets.ente.com/screenshots/phone-album-sort-by-callout.png){width=320px}
+
 - Open the album
 - Tap the overflow menu (three dots) in the top right corner
 - Select **Sort by**
 - Choose **Newest first** or **Oldest first**
 
 ### On web / desktop
+
+![Sort album photos menu highlighted on Ente Photos web with newest first and oldest first](https://docs-assets.ente.com/screenshots/web-album-sort-by-callout.png){width=720px}
 
 - Open the album
 - Click the overflow menu (three dots) in the top right corner
@@ -129,11 +161,29 @@ Keep your favorite albums at the top by pinning them for quick access.
 
 ### On mobile
 
+![Pin album option highlighted in the Ente Photos mobile overflow menu](https://docs-assets.ente.com/screenshots/phone-album-overflow-pin-callout.png){width=320px}
+
 - Open the album
 - Tap the overflow menu (three dots) in the top right corner
 - Tap **Pin album** or **Unpin album**
 
+### On web / desktop
+
+![Pin album option highlighted in the Ente Photos web album overflow menu](https://docs-assets.ente.com/screenshots/web-album-overflow-pin-callout.png){width=720px}
+
+## Remove a photo from an album on mobile
+
+You can remove a photo from an album, quick link, or Favorites without deleting it from Ente:
+
+1. Open the photo and select **Info** from the three-dot menu.
+2. In **Albums**, tap the remove button on the album, quick link, or Favorites label.
+3. Confirm the removal if prompted.
+
+If you remove the photo from its last album, it moves to [Uncategorized](/photos/features/albums-and-organization/uncategorized) instead of Trash. The remove button appears only where you have permission to remove the photo.
+
 ## Find albums on web and desktop
+
+![All Albums panel on Ente Photos web with search and filters for links shared received and empty](https://docs-assets.ente.com/screenshots/web-all-albums.png){width=720px}
 
 Open **All Albums** to search your album names or filter the list. The available filters include:
 
@@ -178,6 +228,8 @@ This will delete all empty albums from your library. The feature only appears af
 The **Empty** filter appears when you have at least 3 eligible empty albums. Only empty albums that you own and that are not shared or archived are deleted.
 
 ## Uploading nested folders from desktop {#preserving-folder-structure}
+
+![Ente Photos desktop import dialog choosing one album or separate albums for nested folders](https://docs-assets.ente.com/screenshots/desktop-import-albums-choice.png){width=720px}
 
 When you upload photos and videos from your computer using the desktop app - whether by dragging and dropping a folder or zip file, or by setting up [watch folders](/photos/features/backup-and-sync/watch-folders) - you can choose how to handle nested folder structures.
 

@@ -154,7 +154,9 @@ func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter
 		return false
 	}
 	recordRateLimitRejection(scope, c.Request.Method, requestPath)
-	go r.discordCtrl.NotifyPotentialAbuse(message)
+	if shouldNotifyPotentialAbuse(scope, requestPath) {
+		go r.discordCtrl.NotifyPotentialAbuse(message)
+	}
 	log.WithFields(log.Fields{
 		"rate_limit_scope": scope,
 		"req_id":           requestid.Get(c),
@@ -163,6 +165,10 @@ func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter
 	}).Error("Rate limit breached")
 	c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
 	return true
+}
+
+func shouldNotifyPotentialAbuse(scope rateLimitScope, requestPath string) bool {
+	return scope != rateLimitScopeIP || requestPath != "/users/srp/attributes"
 }
 
 func recordRateLimitRejection(scope rateLimitScope, method string, requestPath string) {

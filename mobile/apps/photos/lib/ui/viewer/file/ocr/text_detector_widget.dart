@@ -8,6 +8,7 @@ import 'package:photos/services/machine_learning/ocr/ocr_models.dart'
 import 'package:photos/services/machine_learning/ocr_service.dart';
 import 'package:photos/theme/colors.dart';
 import 'package:photos/theme/ente_theme.dart';
+import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/viewer/file/ocr/text_overlay_widget.dart';
 
 const double _enteSelectionHighlightOpacity = 0.28;
@@ -102,8 +103,6 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
   Size? _imageSize;
   bool _userAttemptedInteraction = false;
   Offset? _pendingSelectionPosition;
-  int _detectionRequestSequence = 0;
-  String? _activeDetectionRequestId;
   bool get _hasSelectableText =>
       _detectedTextBlocks != null && _detectedTextBlocks!.isNotEmpty;
 
@@ -124,7 +123,6 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
 
   @override
   void dispose() {
-    _cancelActiveDetection();
     widget.controller._detach(this);
     super.dispose();
   }
@@ -170,14 +168,8 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
         _errorMessage = context.strings.ocrImageDecodeFailedError;
         _isProcessing = false;
       });
-    }
-  }
-
-  void _cancelActiveDetection() {
-    final requestId = _activeDetectionRequestId;
-    _activeDetectionRequestId = null;
-    if (requestId != null) {
-      unawaited(_ocr.cancelRequest(requestId).catchError((_) {}));
+      _notifyController();
+      _showErrorToast();
     }
   }
 
@@ -233,6 +225,7 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
         _isProcessing = false;
       });
       _notifyController();
+      _showErrorToast();
       return;
     }
 
@@ -246,7 +239,6 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
       _notifyController();
     }
 
-    String? nativeRequestId;
     try {
       await _ensureModelsReady();
       if (_errorMessage != null) {
@@ -257,14 +249,7 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
         return;
       }
 
-      final requestId =
-          'text-detector-${identityHashCode(this)}-${++_detectionRequestSequence}';
-      nativeRequestId = requestId;
-      _activeDetectionRequestId = requestId;
-      final result = await _ocr.detectText(
-        imagePath: imagePath,
-        requestId: requestId,
-      );
+      final result = await _ocr.detectText(imagePath: imagePath);
       if (mounted && widget.imagePath == requestedPath) {
         final pendingPos = _pendingSelectionPosition;
         setState(() {
@@ -297,16 +282,22 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
         _notifyController();
       }
     } finally {
-      if (_activeDetectionRequestId == nativeRequestId) {
-        _activeDetectionRequestId = null;
-      }
       if (mounted && widget.imagePath == requestedPath) {
         setState(() {
           _isProcessing = false;
           _pendingSelectionPosition = null;
         });
         _notifyController();
+        _showErrorToast();
       }
+    }
+  }
+
+  void _showErrorToast() {
+    if (!mounted || !_userAttemptedInteraction || _isNetworkError) return;
+    final message = _errorMessage;
+    if (message != null) {
+      showToast(context, message, iosLongToastLengthInSec: 3);
     }
   }
 
@@ -331,24 +322,22 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
         fit: StackFit.expand,
         children: [
           _buildImageLayer(),
-          if (_errorMessage != null)
+          if (_errorMessage != null && _isNetworkError)
             Positioned(
               bottom: 32,
               left: 16,
               right: 16,
-              child: _isNetworkError
-                  ? _buildNetworkErrorBanner(_errorMessage!)
-                  : _buildErrorBanner(_errorMessage!),
+              child: _buildNetworkErrorBanner(_errorMessage!),
             ),
           if (_userAttemptedInteraction &&
               _detectedTextBlocks != null &&
               _detectedTextBlocks!.isEmpty &&
               _errorMessage == null)
-            Positioned(
+            const Positioned(
               top: 100,
               left: 0,
               right: 0,
-              child: Center(child: _buildNoTextMessage()),
+              child: Center(child: _NoTextMessage()),
             ),
         ],
       ),
@@ -384,23 +373,6 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
         isImageZoomed: widget.isImageZoomed,
         uiScale: widget.uiScale,
         uiOffset: widget.uiOffset,
-      ),
-    );
-  }
-
-  Widget _buildErrorBanner(String message) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: getEnteColorScheme(context).warning500.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: getEnteTextTheme(
-          context,
-        ).smallBold.copyWith(color: textBaseDark),
       ),
     );
   }
@@ -460,33 +432,6 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
     );
   }
 
-  Widget _buildNoTextMessage() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off,
-            color: textBaseDark.withValues(alpha: 0.7),
-            size: 16,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            context.strings.ocrNoTextDetected,
-            style: getEnteTextTheme(
-              context,
-            ).small.copyWith(color: textBaseDark.withValues(alpha: 0.8)),
-          ),
-        ],
-      ),
-    );
-  }
-
   bool get _hasActiveSelection => _textOverlayController.hasActiveSelection;
 
   bool _selectTextAtPosition(Offset globalPosition) {
@@ -521,5 +466,37 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
 
   void _notifyController() {
     widget.controller._notifyStateChanged();
+  }
+}
+
+class _NoTextMessage extends StatelessWidget {
+  const _NoTextMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.search_off,
+            color: textBaseDark.withValues(alpha: 0.7),
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            context.strings.ocrNoTextDetected,
+            style: getEnteTextTheme(
+              context,
+            ).small.copyWith(color: textBaseDark.withValues(alpha: 0.8)),
+          ),
+        ],
+      ),
+    );
   }
 }

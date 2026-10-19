@@ -211,6 +211,7 @@ const handleGenerateHLSWrite = async (
     const fileID = parseInt(params.get("fileID") ?? "", 10);
     const fetchURL = params.get("fetchURL");
     const authToken = request.headers.get("X-Auth-Token");
+    const previewUploadV2 = params.get("previewUploadV2") == "true";
     if (!fileID || !fetchURL || !authToken)
         return new Response("Invalid generate HLS request", { status: 400 });
 
@@ -249,6 +250,7 @@ const handleGenerateHLSWrite = async (
             fileID,
             fetchURL,
             authToken,
+            previewUploadV2,
         );
 
         if (!result) {

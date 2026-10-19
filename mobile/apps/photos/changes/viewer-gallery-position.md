@@ -1,0 +1,1 @@
+- Return to the last viewed photo in the gallery when closing the viewer.

@@ -1,3 +1,4 @@
+import CryptoKit
 import XCTest
 @testable import Ensu
 
@@ -11,6 +12,14 @@ private final class UnavailableNotesSource: NotesSource {
 }
 
 final class NotesIntegrationTests: XCTestCase {
+    func testContentRevisionReadsBorrowedBytes() {
+        let bytes = Data((0..<131_073).map { UInt8(truncatingIfNeeded: $0) })
+        for input in [Data(), Data([0]), bytes, bytes.dropFirst()] {
+            let expected = SHA256.hash(data: input).map { String(format: "%02x", $0) }.joined()
+            XCTAssertEqual(notesContentRevision(bytes: input), expected)
+        }
+    }
+
     func testNativeSourceFailureAndCancellationCrossTheBridge() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

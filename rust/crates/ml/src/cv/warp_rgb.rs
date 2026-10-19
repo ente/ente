@@ -50,7 +50,7 @@ pub(super) fn warp(source: &RgbImage, projection: Projection, width: u32, height
 #[cfg(test)]
 mod tests {
     use image::Rgb;
-    use imageproc::geometric_transformations::{Interpolation, warp_into};
+    use imageproc::geometric_transformations::{Border, Interpolation, warp_into};
 
     use super::*;
 
@@ -77,15 +77,30 @@ mod tests {
                 1.0,
             ])
             .expect("valid projection");
+            let inverse = projection.invert();
             let actual = warp(&source, projection, 113, 97);
             let mut expected = RgbImage::new(113, 97);
             warp_into(
                 &source,
-                &projection,
+                projection,
                 Interpolation::Bilinear,
-                Rgb([0, 0, 0]),
+                Border::Constant(Rgb([0, 0, 0])),
                 &mut expected,
             );
+            // The older imageproc reference returned black when any of the
+            // four bilinear source pixels fell outside the image.
+            for (x, y, pixel) in expected.enumerate_pixels_mut() {
+                let (source_x, source_y) = inverse * (x as f32, y as f32);
+                let left = source_x.floor();
+                let top = source_y.floor();
+                if !(left >= 0.0
+                    && left + 1.0 < source.width() as f32
+                    && top >= 0.0
+                    && top + 1.0 < source.height() as f32)
+                {
+                    *pixel = Rgb([0, 0, 0]);
+                }
+            }
             assert_eq!(actual, expected, "case {index}");
         }
     }

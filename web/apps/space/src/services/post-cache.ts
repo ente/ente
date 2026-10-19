@@ -9,6 +9,11 @@ const CachedSpacePostAsset = z.object({
     spaceId: z.string(),
 });
 
+const CachedSpacePostVideo = z.object({
+    asset: CachedSpacePostAsset,
+    durationMs: z.number(),
+});
+
 export const CachedSpacePost = z.object({
     avatarKeyVersion: z.number().optional(),
     avatarObjectID: z.string().optional(),
@@ -17,11 +22,13 @@ export const CachedSpacePost = z.object({
     caption: z.string().optional(),
     friendID: z.string(),
     height: z.number().optional(),
+    video: CachedSpacePostVideo.optional(),
     imageAsset: CachedSpacePostAsset.optional(),
     photos: z
         .array(
             z.object({
                 height: z.number().optional(),
+                video: CachedSpacePostVideo.optional(),
                 imageAsset: CachedSpacePostAsset.optional(),
                 thumbHash: z.string().optional(),
                 width: z.number().optional(),

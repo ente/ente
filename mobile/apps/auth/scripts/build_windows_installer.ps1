@@ -3,7 +3,9 @@ param(
     [string] $SourceDir,
 
     [Parameter(Mandatory = $true)]
-    [string] $InstallerPath
+    [string] $InstallerPath,
+
+    [string] $CompilerPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -78,13 +80,20 @@ Filename: "{app}\auth.exe"; Description: "{cm:LaunchProgram,Ente Auth}"; Flags: 
 $utf8WithBom = [System.Text.UTF8Encoding]::new($true)
 [System.IO.File]::WriteAllText($issPath, $iss, $utf8WithBom)
 
-$iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
-    $isccCommand = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
-    if (-not $isccCommand) {
-        throw "Inno Setup compiler not found. Install Inno Setup 6 before running this script."
+$iscc = $CompilerPath
+if ($PSBoundParameters.ContainsKey("CompilerPath")) {
+    if (-not $iscc -or -not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
+        throw "Inno Setup compiler not found: $iscc"
     }
-    $iscc = $isccCommand.Source
+} else {
+    $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+    if (-not (Test-Path -LiteralPath $iscc -PathType Leaf)) {
+        $isccCommand = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+        if (-not $isccCommand) {
+            throw "Inno Setup compiler not found. Install Inno Setup 6 before running this script."
+        }
+        $iscc = $isccCommand.Source
+    }
 }
 
 & $iscc $issPath

@@ -84,10 +84,8 @@ func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 			if err != nil {
 				if errors.Is(err, model.ErrDecryption) {
 					continue
-				} else if existingEntry.IsLivePhoto() && (errors.Is(err, zip.ErrFormat) || errors.Is(err, zip.ErrInsecurePath)) {
+				} else if existingEntry.IsLivePhoto() && (errors.Is(err, zip.ErrFormat) || errors.Is(err, zip.ErrInsecurePath) || errors.Is(err, model.ErrLiveZip)) {
 					log.Printf("err processing live photo %s (%d), %s", existingEntry.GetTitle(), existingEntry.ID, err.Error())
-					continue
-				} else if existingEntry.IsLivePhoto() && errors.Is(err, model.ErrLiveZip) {
 					continue
 				} else if model.IsBadTimeStampError(err) {
 					log.Printf("Skipping file due to error %s (%d)", existingEntry.GetTitle(), existingEntry.ID)
@@ -153,29 +151,15 @@ func (c *ClICtrl) downloadEntry(ctx context.Context,
 			if err != nil {
 				return err
 			}
-			if imagePath == "" && videoPath == "" {
-				log.Printf("imagePath %s, videoPath %s", imagePath, videoPath)
-				return model.ErrLiveZip
-			}
-			if imagePath != "" {
-				imageExtn := filepath.Ext(imagePath)
-				imageFileName := diskInfo.GenerateUniqueFileName(baseFileName, imageExtn)
-				imageFilePath := filepath.Join(diskInfo.ExportRoot, diskInfo.AlbumMeta.FolderName, imageFileName)
-				moveErr := Move(imagePath, imageFilePath)
-				if moveErr != nil {
-					return moveErr
+			defer os.Remove(imagePath)
+			defer os.Remove(videoPath)
+			for _, componentPath := range []string{imagePath, videoPath} {
+				fileName := diskInfo.GenerateUniqueFileName(baseFileName, filepath.Ext(componentPath))
+				filePath := filepath.Join(diskInfo.ExportRoot, diskInfo.AlbumMeta.FolderName, fileName)
+				if err := Move(componentPath, filePath); err != nil {
+					return err
 				}
-				fileDiskMetadata.AddFileName(imageFileName)
-			}
-			if videoPath != "" {
-				videoExtn := filepath.Ext(videoPath)
-				videoFileName := diskInfo.GenerateUniqueFileName(baseFileName, videoExtn)
-				videoFilePath := filepath.Join(diskInfo.ExportRoot, diskInfo.AlbumMeta.FolderName, videoFileName)
-				moveErr := Move(videoPath, videoFilePath)
-				if moveErr != nil {
-					return moveErr
-				}
-				fileDiskMetadata.AddFileName(videoFileName)
+				fileDiskMetadata.AddFileName(fileName)
 			}
 		} else {
 			fileName := diskInfo.GenerateUniqueFileName(baseFileName, extension)
@@ -207,6 +191,11 @@ func (c *ClICtrl) downloadEntry(ctx context.Context,
 }
 
 func removeDiskFile(diskFileMeta *export.DiskFileMetadata, diskInfo *albumDiskInfo) error {
+	for _, fileName := range diskFileMeta.Info.FileNames {
+		if !filepath.IsLocal(fileName) || fileName == "." || filepath.Base(fileName) != fileName {
+			return fmt.Errorf("invalid exported filename %q", fileName)
+		}
+	}
 	log.Printf("Removing file %s from disk", diskFileMeta.MetaFileName)
 	err := os.Remove(filepath.Join(diskInfo.ExportRoot, diskInfo.AlbumMeta.FolderName, ".meta", diskFileMeta.MetaFileName))
 	if err != nil && !os.IsNotExist(err) {

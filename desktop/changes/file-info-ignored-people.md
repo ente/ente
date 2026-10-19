@@ -1,0 +1,1 @@
+- Added "(Ignored)" labels for ignored people in File Info.

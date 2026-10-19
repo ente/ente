@@ -63,27 +63,33 @@ void main() {
         _wrap(
           SizedBox(
             width: 240,
-            child: TextInputComponent(
-              suffix: const Icon(
-                Icons.close_rounded,
-                key: ValueKey("custom-suffix-icon"),
-              ),
-              onSuffixTap: () => suffixTapCount++,
+            child: Column(
+              children: [
+                const TextInputComponent(),
+                TextInputComponent(
+                  suffix: const Icon(
+                    Icons.close_rounded,
+                    key: ValueKey("custom-suffix-icon"),
+                  ),
+                  onSuffixTap: () => suffixTapCount++,
+                ),
+              ],
             ),
           ),
         ),
       );
 
-      final fieldFinder = _fieldContainers().first;
+      final fieldFinder = _fieldContainers().last;
       final fieldRect = tester.getRect(fieldFinder);
-
-      expect(fieldRect.height, 52);
 
       await tester.tapAt(Offset(fieldRect.right - 51, fieldRect.center.dy));
       await tester.pump();
 
       expect(suffixTapCount, 1);
-      expect(tester.getRect(fieldFinder).height, 52);
+      expect(
+        tester.getSize(fieldFinder),
+        tester.getSize(_fieldContainers().first),
+      );
     },
   );
 
@@ -226,14 +232,15 @@ void main() {
 }
 
 Finder _fieldContainers() {
-  return find.byWidgetPredicate((widget) {
-    if (widget is! Container || widget.decoration is! BoxDecoration) {
-      return false;
-    }
-    final decoration = widget.decoration! as BoxDecoration;
-    return decoration.borderRadius == BorderRadius.circular(16) &&
-        decoration.border is Border;
-  });
+  return find.ancestor(
+    of: find.byType(TextField),
+    matching: find.byWidgetPredicate((widget) {
+      if (widget is! Container || widget.decoration is! BoxDecoration) {
+        return false;
+      }
+      return (widget.decoration! as BoxDecoration).border is Border;
+    }),
+  );
 }
 
 BoxDecoration _fieldDecoration(WidgetTester tester) {

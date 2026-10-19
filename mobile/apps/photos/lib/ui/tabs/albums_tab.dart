@@ -402,7 +402,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     Widget? leadingSliver,
   }) {
     if (collections.isEmpty && _searchQuery.trim().isEmpty) {
-      return SliverFillRemaining(hasScrollBody: false, child: emptyState);
+      return SliverFillRemaining(child: emptyState);
     }
 
     final filteredCollections = _filterCollectionsByQuery(collections);
@@ -1113,6 +1113,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                 sectionType,
                 filteredCollections,
                 showSelectAllButton: true,
+                backgroundScrollController: _scrollController,
               );
             },
           ),

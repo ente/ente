@@ -6,6 +6,8 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
+import "package:photos/core/event_bus.dart";
+import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/favorites_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -38,6 +40,8 @@ class _FavoriteWidgetState extends State<FavoriteWidget>
   bool _isUpdating = false;
   bool? _isFavorite;
   int _fileVersion = 0;
+  late final StreamSubscription<LocalPhotosUpdatedEvent>
+  _favoriteUpdatesSubscription;
 
   @override
   void initState() {
@@ -91,6 +95,19 @@ class _FavoriteWidgetState extends State<FavoriteWidget>
         weight: 12,
       ),
     ]).animate(_favoriteAnimationController);
+    _favoriteUpdatesSubscription = Bus.instance
+        .on<LocalPhotosUpdatedEvent>()
+        .where(
+          (event) =>
+              event.source == "favoriteAdd" || event.source == "favoriteRemove",
+        )
+        .listen((event) {
+          if (event.updatedFiles.any(
+            (file) => file.uploadedFileID == widget.file.uploadedFileID,
+          )) {
+            _initializeFavoriteState();
+          }
+        });
     _initializeFavoriteState();
   }
 
@@ -117,6 +134,7 @@ class _FavoriteWidgetState extends State<FavoriteWidget>
 
   @override
   void dispose() {
+    _favoriteUpdatesSubscription.cancel();
     _favoriteAnimationController.dispose();
     super.dispose();
   }

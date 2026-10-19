@@ -1,5 +1,10 @@
 import { keyframes } from "@mui/material/styles";
 
+export const pickLikeVariant = (previous: number, random = Math.random) => {
+    const choices = [0, 2, 4].filter((variant) => variant != previous);
+    return choices[Math.floor(random() * choices.length)]!;
+};
+
 export const spacePostLikePopDurationMs = 520;
 export const spacePostLikePopTiming = "cubic-bezier(0.2, 0.82, 0.22, 1)";
 

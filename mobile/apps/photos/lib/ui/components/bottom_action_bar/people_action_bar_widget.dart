@@ -1,82 +1,31 @@
-import "package:ente_components/ente_components.dart" as components;
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/selected_people.dart";
+import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 
-class PeopleActionBarWidget extends StatefulWidget {
-  final SelectedPeople? selectedPeople;
+class PeopleActionBarWidget extends StatelessWidget {
+  const PeopleActionBarWidget({
+    required this.selectedPeople,
+    this.onCancel,
+    super.key,
+  });
+  final SelectedPeople selectedPeople;
   final VoidCallback? onCancel;
-  const PeopleActionBarWidget({super.key, this.selectedPeople, this.onCancel});
 
   @override
-  State<PeopleActionBarWidget> createState() => _PeopleActionBarWidgetState();
-}
-
-class _PeopleActionBarWidgetState extends State<PeopleActionBarWidget> {
-  final ValueNotifier<int> _selectedPeopleNotifier = ValueNotifier(0);
-
-  @override
-  void initState() {
-    super.initState();
-    widget.selectedPeople?.addListener(_selectedPeopleListener);
-  }
-
-  @override
-  void dispose() {
-    widget.selectedPeople?.removeListener(_selectedPeopleListener);
-    _selectedPeopleNotifier.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = components.ComponentTheme.colorsOf(context);
-    final miniStyle = components.TextStyles.mini.copyWith(
-      color: colors.textBase,
-    );
-    return SizedBox(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              flex: 1,
-              child: ValueListenableBuilder(
-                valueListenable: _selectedPeopleNotifier,
-                builder: (context, value, child) {
-                  final count = widget.selectedPeople?.personIds.length ?? 0;
-                  return Text(
-                    context.strings.selectedPhotos(count: count),
-                    style: miniStyle,
-                  );
-                },
-              ),
-            ),
-            Flexible(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    widget.onCancel?.call();
-                  },
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(context.strings.cancel, style: miniStyle),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: selectedPeople,
+    builder: (context, _) => SelectionControlChip(
+      label: selectedPeople.personIds.length.toString(),
+      semanticLabel:
+          "${context.strings.cancel}, ${context.strings.selectedCount(count: selectedPeople.personIds.length)}",
+      icon: const HugeIcon(
+        icon: HugeIcons.strokeRoundedCancel01,
+        size: IconSizes.small,
       ),
-    );
-  }
-
-  void _selectedPeopleListener() {
-    _selectedPeopleNotifier.value =
-        widget.selectedPeople?.personIds.length ?? 0;
-  }
+      onTap: onCancel,
+    ),
+  );
 }

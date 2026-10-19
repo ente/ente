@@ -158,7 +158,6 @@ class FileBottomBarState extends State<FileBottomBar> {
           child: FileShareButton(
             key: shareButtonKey,
             canSendLink: file.isUploaded && file.isOwner && !isFileHidden,
-            isVideo: file.isVideo,
             onSendFile: () =>
                 share(context, [file], shareButtonKey: shareButtonKey),
             onSendLink: () => _sendLink(file),

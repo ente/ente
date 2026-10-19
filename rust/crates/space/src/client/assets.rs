@@ -13,8 +13,44 @@ use crate::transport::{
 use crate::{
     MAX_SPACE_AVATAR_UPLOAD_BYTES, MAX_SPACE_COVER_UPLOAD_BYTES, MAX_SPACE_POST_UPLOAD_BYTES,
 };
+use ente_core::http;
 
 impl AccountSpaceCtx {
+    pub async fn upload_post_video_asset(
+        &self,
+        space_id: &str,
+        post_key: &[u8],
+        plaintext: &[u8],
+        width: i32,
+        height: i32,
+        duration_ms: u32,
+    ) -> Result<PostObjectPayload> {
+        if plaintext.len() < 12
+            || &plaintext[4..8] != b"ftyp"
+            || width <= 0
+            || height <= 0
+            || !(1..=10_000).contains(&duration_ms)
+        {
+            return Err(Error::InvalidInput(
+                "Videos must be MP4 and at most 10 seconds".into(),
+            ));
+        }
+        let mut object = self
+            .upload_post_asset(space_id, post_key, plaintext, None)
+            .await?;
+        object.metadata_cipher = Some(encrypt_post_object_metadata(
+            post_key,
+            &PostObjectMetadata {
+                width: Some(width),
+                height: Some(height),
+                media_type: Some("video/mp4".into()),
+                duration_ms: Some(duration_ms),
+                ..Default::default()
+            },
+        )?);
+        Ok(object)
+    }
+
     pub async fn presign_post_upload(
         &self,
         space_id: &str,
@@ -34,7 +70,8 @@ impl AccountSpaceCtx {
             .json(&request)
             .send()
             .await?
-            .error_for_status()?
+            .error_for_code()
+            .await?
             .json()
             .await?)
     }
@@ -90,15 +127,19 @@ impl AccountSpaceCtx {
     }
 
     pub async fn upload_bytes(&self, presign: &PresignUploadResponse, body: &[u8]) -> Result<()> {
-        let request = presign.headers.iter().fold(
-            self.api().http().put(&presign.url),
-            |request, (name, value)| request.header(name, value),
-        );
-        request
-            .body(body.to_vec())
-            .send()
-            .await?
-            .error_for_status()?;
+        http::retry(|| async {
+            let request = presign.headers.iter().fold(
+                self.api().http().put(&presign.url),
+                |request, (name, value)| request.header(name, value),
+            );
+            request
+                .body(body.to_vec())
+                .send()
+                .await?
+                .error_for_status()?;
+            Ok(())
+        })
+        .await?;
         Ok(())
     }
 
@@ -116,6 +157,7 @@ impl AccountSpaceCtx {
             .await?;
         self.upload_bytes(&presign, &encrypted).await?;
         Ok(PostObjectPayload {
+            video: None,
             object_key: presign.object_key,
             size: Some(encrypted.len() as i64),
             position,

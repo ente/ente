@@ -1,0 +1,1 @@
+- Fixed Important selection and tightened list padding.

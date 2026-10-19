@@ -55,6 +55,10 @@ Yes! By default, the map view shows photos from all your albums. You can also:
 
 Learn more in the [Map and location guide](/photos/features/search-and-discovery/map-and-location).
 
+### Why does the Map setting turn back on? {#map-turns-back-on}
+
+On mobile, opening the map from Search or an album turns Map back on so the view can load. If you want to keep it off, avoid opening either map view. If you opened one, turn Map off again in Settings.
+
 ## Location Tags
 
 ### How are location tags different from map view? {#location-tags-vs-map}
@@ -107,6 +111,10 @@ Ente's servers cannot see your location tags or where your photos were taken.
 Machine Learning enables features like face recognition and magic search.
 
 Local processing controls whether the current device performs the indexing work itself. When local processing is on, the device downloads photos, runs the ML models, and builds indexes locally.
+
+Local processing describes where the indexing work happens. While signed in, face recognition and Magic search index photos backed up to Ente. A photo being visible in the device gallery does not make it eligible for signed-in indexing if it has not been backed up.
+
+In [Gallery Mode](/photos/faq/gallery-mode), the mobile app can index local photos it has permission to access while you are signed out.
 
 If local processing is turned off, that device skips the heavy work and can instead use indexes created by another device, such as your desktop.
 
@@ -227,9 +235,13 @@ Similarly, on desktop you can use the "Add a name" button to merge people by sel
 
 ### How can I remove an incorrectly grouped face from a person? {#remove-incorrect-face}
 
-On our mobile app, open up the person from the People section, click on the three dots to open up overflow menu, and click on Edit. Now you will be presented with the list of all photos that were merged to create this person.
+If the same person is tagged on two different faces in one photo, one of those faces may be in the wrong group.
 
-You can click on the merged photos and select the photos you think are incorrectly grouped (by long-pressing on them) and select "Remove" from the action bar that pops up to remove any incorrect faces.
+1. Open the photo and tap the incorrectly named person.
+2. Scroll to the face clusters.
+3. Remove the cluster containing the wrong face.
+
+Ente uses that correction to avoid suggesting the same cluster for that person again. If you need to undo a previous merge, open the person, select **Review suggestions**, then open **History** and undo that merge.
 
 ### How do I change the cover for a recognized person? {#change-person-cover}
 
@@ -272,6 +284,12 @@ Yes! Once your photos have been indexed, face recognition and magic search work 
 ML indexing requires internet initially to download the ML models and to download any photos not already present locally on your device. Once your photos have been indexed completely, face recognition and magic search work completely offline.
 
 Internet is also required to sync the encrypted indexes across your devices.
+
+### How much data do Ente Photos' machine-learning models download? {#ml-model-download-size}
+
+The machine-learning models can take around 300 MB to download. The amount depends on which features you enable and may change with app updates.
+
+Ente may also download photos that are not already on your device to index them locally. Those photo downloads are separate from the model download, so total data use can be higher.
 
 ### Is my face data used to train AI models? {#face-data-training}
 
@@ -402,6 +420,17 @@ You can then search for words in those descriptions to find the photos.
 
 Learn more in [Metadata and Editing FAQ](/photos/faq/metadata-and-editing#descriptions).
 
+## Memories
+
+### How do I mute the music in Memories? {#mute-memories-music}
+
+To watch a memory without music in the mobile app:
+
+1. Open the memory.
+2. Tap the speaker icon to mute the music.
+
+Tap the speaker icon again to turn the music back on.
+
 ## General Search
 
 ### How do I search my photos? {#how-to-search}
@@ -411,6 +440,15 @@ Ente supports multiple search types:
 **Date search**: Search by date, month, or year **Location search**: Find photos taken in specific locations (if they have GPS data) **Magic search**: Natural language descriptions of photo content **Face search**: Find photos of specific people **Description search**: Search descriptions/captions you've added **File name search**: Search by original file name
 
 Simply type in the search bar and Ente will show matching results across all these categories.
+
+### Why does searching for a month show photos from other years? {#month-search-other-years}
+
+Ente shows different types of search results. A **Magic search** result looks for visual content, so it may show photos from other dates. Choose the date result to filter by when a photo was taken.
+
+1. Type a month and year, such as `July 2019`.
+2. Select the matching result under **Moments**, rather than **Magic**.
+
+For place searches, select the matching result under **Locations**.
 
 ### Can I save my searches? {#save-searches}
 

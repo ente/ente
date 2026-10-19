@@ -8,6 +8,8 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/cluster_centroid_vector_db.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/rust_db.dart";
+import "package:photos/db/ml/usearch_clip_vector_db.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
@@ -19,6 +21,7 @@ import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
+import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
@@ -27,6 +30,8 @@ import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/settings/debug/memories_debug_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/ml_util.dart";
+
+typedef _VectorIndexStatus = ({String label, bool ready});
 
 class MLDebugSettingsPage extends StatefulWidget {
   const MLDebugSettingsPage({super.key});
@@ -318,7 +323,9 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   }
 
   Widget _buildVectorDbMigrationCard(BuildContext context) {
-    return FutureBuilder<({bool clipDone, bool clusterCentroidDone})>(
+    return FutureBuilder<
+      ({_VectorIndexStatus clip, _VectorIndexStatus clusterCentroid})
+    >(
       future: _getVectorDbMigrationStatus(),
       builder: (context, snapshot) {
         final status = snapshot.data;
@@ -332,7 +339,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
               ),
               trailingWidget: _buildMigrationStatusWidget(
                 context,
-                isDone: status?.clipDone,
+                status: status?.clip,
                 hasError: snapshot.hasError,
               ),
             ),
@@ -344,7 +351,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
               ),
               trailingWidget: _buildMigrationStatusWidget(
                 context,
-                isDone: status?.clusterCentroidDone,
+                status: status?.clusterCentroid,
                 hasError: snapshot.hasError,
               ),
             ),
@@ -370,7 +377,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
 
   Widget _buildMigrationStatusWidget(
     BuildContext context, {
-    required bool? isDone,
+    required _VectorIndexStatus? status,
     required bool hasError,
   }) {
     final colorScheme = getEnteColorScheme(context);
@@ -381,22 +388,32 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
     if (hasError) {
       label = "Error";
       color = colorScheme.warning500;
-    } else if (isDone == null) {
+    } else if (status == null) {
       label = "Loading";
       color = colorScheme.textMuted;
-    } else if (isDone) {
-      label = "Done";
-      color = colorScheme.greenBase;
     } else {
-      label = "Pending";
-      color = colorScheme.warning500;
+      label = status.label;
+      color = status.ready ? colorScheme.greenBase : colorScheme.warning500;
     }
 
     return Text(label, style: textTheme.miniBold.copyWith(color: color));
   }
 
-  Future<({bool clipDone, bool clusterCentroidDone})>
+  Future<({_VectorIndexStatus clip, _VectorIndexStatus clusterCentroid})>
   _getVectorDbMigrationStatus() async {
+    if (MLDataDB.isRustBackend) {
+      final rustDataDB = isLocalGalleryMode
+          ? RustMLDataDB.localGalleryInstance
+          : RustMLDataDB.instance;
+      final fillStates = await Future.wait<rust.FillState>([
+        rustDataDB.fillState(rust.Index.clip),
+        rustDataDB.fillState(rust.Index.clusterCentroid),
+      ]);
+      return (
+        clip: _fillStateStatus(fillStates[0]),
+        clusterCentroid: _fillStateStatus(fillStates[1]),
+      );
+    }
     final clipVectorDB = isLocalGalleryMode
         ? ClipVectorDB.localGalleryInstance
         : ClipVectorDB.instance;
@@ -404,14 +421,26 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
         ? ClusterCentroidVectorDB.localGalleryInstance
         : ClusterCentroidVectorDB.instance;
     final migrationStatus = await Future.wait<bool>([
-      clipVectorDB.checkIfMigrationDone(),
-      clusterCentroidVectorDB.checkIfMigrationDone(),
+      clipVectorDB.isReady(),
+      clusterCentroidVectorDB.isReady(),
     ]);
     return (
-      clipDone: migrationStatus[0],
-      clusterCentroidDone: migrationStatus[1],
+      clip: _migrationStatus(migrationStatus[0]),
+      clusterCentroid: _migrationStatus(migrationStatus[1]),
     );
   }
+
+  static _VectorIndexStatus _migrationStatus(bool isDone) =>
+      (label: isDone ? "Done" : "Pending", ready: isDone);
+
+  static _VectorIndexStatus _fillStateStatus(rust.FillState state) => (
+    label: switch (state) {
+      rust.FillState.filled => "Filled",
+      rust.FillState.filling => "Filling",
+      rust.FillState.stale => "Stale",
+    },
+    ready: state == rust.FillState.filled,
+  );
 
   Widget _buildThresholdsCard(BuildContext context) {
     return SettingsGroupedCard(
@@ -632,14 +661,18 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
           onTap: () async => _onResetAllLocalClip(context),
         ),
         MenuItemWidgetNew(
-          title: "Reset USearch index",
+          title: MLDataDB.isRustBackend
+              ? "Rebuild clip vector index"
+              : "Reset USearch index",
           leadingIconWidget: _buildIconWidget(
             context,
             HugeIcons.strokeRoundedAiSearch,
           ),
           trailingIcon: Icons.chevron_right_outlined,
           trailingIconIsMuted: true,
-          onTap: () async => _onResetUsearchIndex(context),
+          onTap: () async => MLDataDB.isRustBackend
+              ? _onRebuildClipVectorIndex(context)
+              : _onResetUsearchIndex(context),
         ),
       ],
     );
@@ -1036,8 +1069,8 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       firstButtonOnTap: () async {
         try {
           final vectorDB = isLocalGalleryMode
-              ? ClipVectorDB.localGalleryInstance
-              : ClipVectorDB.instance;
+              ? UsearchClipVectorDB.localGalleryInstance
+              : UsearchClipVectorDB.instance;
           await vectorDB.deleteIndexFile();
           if (!context.mounted) return;
           showShortToast(context, "Done");
@@ -1046,6 +1079,33 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
           }
         } catch (e, s) {
           logger.warning('reset usearch index failed ', e, s);
+          if (!context.mounted) return;
+          await showGenericErrorDialog(context: context, error: e);
+        }
+      },
+    );
+  }
+
+  Future<void> _onRebuildClipVectorIndex(BuildContext context) async {
+    await showChoiceDialog(
+      context,
+      title: "Are you sure?",
+      body:
+          "This will rebuild the clip vector index from the database. Compute is paused while the rebuild runs.",
+      firstButtonLabel: "Yes, confirm",
+      firstButtonOnTap: () async {
+        try {
+          final db = isLocalGalleryMode
+              ? MLDataDB.localGalleryInstance
+              : MLDataDB.instance;
+          await db.checkMigrateFillClipVectorDB(force: true);
+          if (!context.mounted) return;
+          showShortToast(context, "Done");
+          if (mounted) {
+            setState(() {});
+          }
+        } catch (e, s) {
+          logger.warning('rebuild clip vector index failed ', e, s);
           if (!context.mounted) return;
           await showGenericErrorDialog(context: context, error: e);
         }

@@ -307,7 +307,8 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             trimStartMs = call.argument<Number>("trimStartMs")?.toLong(),
             trimEndMs = call.argument<Number>("trimEndMs")?.toLong(),
             rotateDegrees = call.argument<Int>("rotateDegrees"),
-            crop = crop
+            crop = crop,
+            speed = call.argument<Number>("speed")?.toFloat() ?: 1f
         )
     }.getOrNull()
 

@@ -25,7 +25,8 @@ const NOTES_REMOVE_WAIT_ERROR =
 interface UseNotesCollectionsOptions {
     isTauriRuntime: boolean;
     isGenerating: boolean;
-    isGenerationActive: () => boolean;
+    isIndexingPaused: boolean;
+    isIndexingBlocked: () => boolean;
     modelReady: boolean;
     ensureProvider: () => Promise<LlmProvider>;
     cancelIndexing: () => void;
@@ -35,7 +36,8 @@ interface UseNotesCollectionsOptions {
 export const useNotesCollections = ({
     isTauriRuntime,
     isGenerating,
-    isGenerationActive,
+    isIndexingPaused,
+    isIndexingBlocked,
     modelReady,
     ensureProvider,
     cancelIndexing,
@@ -43,6 +45,7 @@ export const useNotesCollections = ({
 }: UseNotesCollectionsOptions) => {
     const [collections, setCollections] = useState<NotesCollection[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loaded, setLoaded] = useState(false);
     const [operationError, setOperationError] = useState<string | null>(null);
     const [listError, setListError] = useState<string | null>(null);
     const [subscriptionError, setSubscriptionError] = useState<string | null>(
@@ -69,7 +72,7 @@ export const useNotesCollections = ({
     }, [cancelIndexing, controller]);
 
     const refresh = useCallback(async () => {
-        if (!isTauriRuntime) return;
+        if (!isTauriRuntime) return false;
         const request = controller.beginRefresh();
         setLoading(true);
         try {
@@ -77,26 +80,28 @@ export const useNotesCollections = ({
                 const mutation = controller.refreshMutationSnapshot();
                 try {
                     const next = await listNotesCollections();
-                    if (!controller.isRefreshCurrent(request)) return;
+                    if (!controller.isRefreshCurrent(request)) return false;
                     if (!controller.canApplyRefresh(request, mutation)) {
                         continue;
                     }
                     setCollections(next);
+                    setLoaded(true);
                     setListError(null);
-                    return;
+                    return true;
                 } catch (error) {
-                    if (!controller.isRefreshCurrent(request)) return;
+                    if (!controller.isRefreshCurrent(request)) return false;
                     if (!controller.canApplyRefresh(request, mutation)) {
                         continue;
                     }
                     setListError(notesErrorMessage(error));
                     log.error("Failed to refresh Your Notes", error);
-                    return;
+                    return false;
                 }
             }
         } finally {
             if (controller.isRefreshCurrent(request)) setLoading(false);
         }
+        return false;
     }, [controller, isTauriRuntime]);
 
     const replaceCollection = useCallback(
@@ -135,7 +140,7 @@ export const useNotesCollections = ({
             automatic = false,
             automaticRequestKey?: number,
         ) => {
-            const blocked = !modelReady || isGenerationActive();
+            const blocked = !modelReady || isIndexingBlocked();
             const request = automatic
                 ? controller.ensureIndex(
                       collectionId,
@@ -157,14 +162,14 @@ export const useNotesCollections = ({
             });
 
             const ownsIndex = () => controller.canContinueIndex(collectionId);
-            const canStartIndex = () => ownsIndex() && !isGenerationActive();
+            const canStartIndex = () => ownsIndex() && !isIndexingBlocked();
             void ensureProvider()
                 .then((provider) =>
                     provider.withKnowledgeRetrieval(async (retrievalEpoch) => {
                         let needsRerun = true;
                         let bypassQuietPeriod = force;
                         while (needsRerun && ownsIndex()) {
-                            if (isGenerationActive()) {
+                            if (isIndexingBlocked()) {
                                 controller.queueIndex(
                                     collectionId,
                                     bypassQuietPeriod,
@@ -225,7 +230,7 @@ export const useNotesCollections = ({
         [
             controller,
             ensureProvider,
-            isGenerationActive,
+            isIndexingBlocked,
             lifecycleChanged,
             modelReady,
             refresh,
@@ -240,7 +245,7 @@ export const useNotesCollections = ({
     );
 
     useEffect(() => {
-        const blocked = !modelReady || isGenerationActive();
+        const blocked = !modelReady || isIndexingBlocked();
         const queued = controller.drainQueued(blocked);
         if (queued.length > 0) {
             lifecycleChanged();
@@ -251,7 +256,8 @@ export const useNotesCollections = ({
     }, [
         controller,
         isGenerating,
-        isGenerationActive,
+        isIndexingPaused,
+        isIndexingBlocked,
         lifecycleChanged,
         lifecycleRevision,
         modelReady,
@@ -343,19 +349,24 @@ export const useNotesCollections = ({
         setSyncAttempt((attempt) => attempt + 1);
     }, []);
 
-    const addFolder = useCallback(async () => {
-        setOperationError(null);
-        try {
-            const sourceRoot = await selectNotesFolder();
-            if (!sourceRoot) return;
-            const collection = await addNotesCollection(sourceRoot);
-            replaceCollection(collection);
-            runIndex(collection.id);
-        } catch (error) {
-            setOperationError(notesErrorMessage(error));
-            log.error("Failed to add Notes folder", error);
-        }
-    }, [replaceCollection, runIndex]);
+    const addFolder = useCallback(
+        async (onAdded?: (collection: NotesCollection) => void) => {
+            setOperationError(null);
+            try {
+                if (!loaded && !(await refresh())) return;
+                const sourceRoot = await selectNotesFolder();
+                if (!sourceRoot) return;
+                const collection = await addNotesCollection(sourceRoot);
+                onAdded?.(collection);
+                replaceCollection(collection);
+                runIndex(collection.id);
+            } catch (error) {
+                setOperationError(notesErrorMessage(error));
+                log.error("Failed to add Notes folder", error);
+            }
+        },
+        [loaded, refresh, replaceCollection, runIndex],
+    );
 
     const removeCollection = useCallback(
         (collectionId: string, label: string) => {
@@ -406,16 +417,20 @@ export const useNotesCollections = ({
                 } else if (lifecycleActivity === "queued") {
                     activity = !modelReady
                         ? "waitingForModel"
-                        : isGenerating || isGenerationActive()
-                          ? "waitingForGeneration"
-                          : "starting";
+                        : isIndexingPaused
+                          ? "waitingForChat"
+                          : isGenerating || isIndexingBlocked()
+                            ? "waitingForGeneration"
+                            : "starting";
                 } else if (collection.updateDueAtMs != null) {
                     activity = null;
                 } else if (collection.status !== "pending") {
                     activity = null;
                 } else if (!modelReady) {
                     activity = "waitingForModel";
-                } else if (isGenerating || isGenerationActive()) {
+                } else if (isIndexingPaused) {
+                    activity = "waitingForChat";
+                } else if (isGenerating || isIndexingBlocked()) {
                     activity = "waitingForGeneration";
                 } else {
                     activity = "starting";
@@ -426,7 +441,8 @@ export const useNotesCollections = ({
             collections,
             controller,
             isGenerating,
-            isGenerationActive,
+            isIndexingPaused,
+            isIndexingBlocked,
             lifecycleRevision,
             modelReady,
         ],
@@ -435,6 +451,7 @@ export const useNotesCollections = ({
     return {
         collections: collectionViews,
         loading,
+        loaded,
         error: subscriptionError ?? listError ?? operationError,
         retry,
         addFolder,

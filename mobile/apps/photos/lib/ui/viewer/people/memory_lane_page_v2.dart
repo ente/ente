@@ -9,7 +9,7 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart" show SystemUiOverlayStyle;
 import "package:hugeicons/hugeicons.dart";
-import "package:intl/intl.dart" show DateFormat, NumberFormat;
+import "package:intl/intl.dart" show DateFormat;
 import "package:logging/logging.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/file/file.dart";
@@ -23,8 +23,9 @@ import "package:photos/services/memory_share_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/home/memories/memory_progress_indicator.dart";
+import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
-import "package:photos/ui/viewer/people/memory_lane_page.dart";
+import "package:photos/ui/viewer/people/memory_lane_caption.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 import "package:photos/utils/share_util.dart";
@@ -37,21 +38,10 @@ Future<void> openMemoryLanePage(
 }) async {
   if (!context.mounted || (!isCluster && person == null)) return;
 
-  final Widget page;
-  if (flagService.internalUser) {
-    page = MemoryLanePageV2(
-      personId: personId,
-      isCluster: isCluster,
-      person: person,
-    );
-  } else {
-    page = MemoryLanePage(
-      personId: personId,
-      isCluster: isCluster,
-      person: person,
-    );
-  }
-  await routeToPage(context, page);
+  await routeToPage(
+    context,
+    MemoryLanePageV2(personId: personId, isCluster: isCluster, person: person),
+  );
 }
 
 class MemoryLanePageV2 extends StatefulWidget {
@@ -101,6 +91,8 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   int i = 0;
   bool _hasMarkedScheduleSeen = false;
   MemoryLaneSchedule? _schedule;
+  bool _isMusicPausedByPointer = false;
+  bool _isMusicPausedByDialog = false;
 
   @override
   void initState() {
@@ -111,10 +103,44 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final musicController = MemoryAudioScope.maybeOf(context)?.controller;
     if (widget.isActive) {
-      unawaited(musicController?.setViewerActionPaused(true));
+      _syncMusic();
     }
+  }
+
+  void _syncMusic() {
+    if (!widget.isActive) return;
+    final scope = MemoryAudioScope.maybeOf(context, listen: false);
+    if (scope == null) return;
+    if (_entries.isEmpty) {
+      scope.setMusicViewerActionPaused(true);
+      return;
+    }
+    scope.activateMusic(
+      "memoryLane_${widget.personId}",
+      currentItemIsVideo: false,
+      viewerActionPaused: _isMusicPausedByPointer || _isMusicPausedByDialog,
+    );
+  }
+
+  void _setMusicPausedByPointer(bool paused) {
+    _isMusicPausedByPointer = paused;
+    _syncMusicViewerActionPaused();
+  }
+
+  void _setMusicPausedByDialog(bool paused) {
+    _isMusicPausedByDialog = paused;
+    _syncMusicViewerActionPaused();
+  }
+
+  void _syncMusicViewerActionPaused() {
+    if (!mounted || !widget.isActive) return;
+    MemoryAudioScope.maybeOf(
+      context,
+      listen: false,
+    )?.setMusicViewerActionPaused(
+      _isMusicPausedByPointer || _isMusicPausedByDialog || _entries.isEmpty,
+    );
   }
 
   @override
@@ -126,12 +152,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
       return;
     }
     unawaited(_play(0));
-    unawaited(
-      MemoryAudioScope.maybeOf(
-        context,
-        listen: false,
-      )?.controller?.setViewerActionPaused(true),
-    );
+    _syncMusic();
   }
 
   @override
@@ -183,6 +204,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
           return _loadEntry(entry, files[entry.fileId]!);
         },
       );
+      _syncMusic();
       unawaited(_play(0));
     } catch (error) {
       if (!mounted ||
@@ -247,6 +269,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   void _onPhotoPointerEnd(PointerEvent event) {
     if (event.pointer != _photoPointer) return;
     _photoPointer = null;
+    _setMusicPausedByPointer(false);
     unawaited(_play(i, fastTransition: true));
   }
 
@@ -348,6 +371,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     final safePadding = MediaQuery.paddingOf(context);
+    final memoryAudio = MemoryAudioScope.maybeOf(context);
     final toolbarTopPadding = widget.isFromMemoriesStrip
         ? math.max(40.0 - safePadding.top, 0.0) + 16
         : 16.0;
@@ -368,17 +392,15 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
         final creationDate = creationTime == null
             ? null
             : DateTime.fromMicrosecondsSinceEpoch(creationTime);
-        const captionPlaceholder = "\uFFFC";
+        const captionPlaceholder = MemoryLaneCaption.timePlaceholder;
+        final captionName = name == null || name.isEmpty
+            ? ""
+            : MemoryLaneCaption.namePlaceholder;
         int? captionValue;
         String? caption;
         if (creationDate != null) {
           final now = DateTime.now();
           final today = DateTime.utc(now.year, now.month, now.day);
-          final photoDate = DateTime.utc(
-            creationDate.year,
-            creationDate.month,
-            creationDate.day,
-          );
           var months =
               (now.year - creationDate.year) * 12 +
               now.month -
@@ -392,42 +414,21 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
             ),
           );
           if (today.isBefore(anniversary)) months--;
-          final days = today.difference(photoDate).inDays;
           if (months >= 12) {
             captionValue = months ~/ 12;
             caption = context.strings.memoryLaneCaptionYearsAgo(
-              name: name ?? "",
-              count: captionValue,
-              number: captionPlaceholder,
-            );
-          } else if (months >= 1) {
-            captionValue = months;
-            caption = context.strings.memoryLaneCaptionMonthsAgo(
-              name: name ?? "",
-              count: captionValue,
-              number: captionPlaceholder,
-            );
-          } else if (days >= 7) {
-            captionValue = days ~/ 7;
-            caption = context.strings.memoryLaneCaptionWeeksAgo(
-              name: name ?? "",
-              count: captionValue,
-              number: captionPlaceholder,
-            );
-          } else if (days >= 1) {
-            captionValue = days;
-            caption = context.strings.memoryLaneCaptionDaysAgo(
-              name: name ?? "",
+              name: captionName,
               count: captionValue,
               number: captionPlaceholder,
             );
           } else {
-            caption = context.strings.memoryLaneCaptionToday(name: name ?? "");
+            caption = context.strings.memoryLaneCaptionNow(
+              name: captionName,
+              now: captionPlaceholder,
+            );
           }
           caption = caption.trim();
         }
-        final captionParts =
-            caption?.split(captionPlaceholder) ?? const <String>[];
         return Stack(
           children: [
             Positioned.fill(
@@ -604,6 +605,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                           if (_photoPointer != null || !widget.isActive) return;
                           _photoPointer = event.pointer;
                           _pause();
+                          _setMusicPausedByPointer(true);
                         },
                         onPointerUp: _onPhotoPointerEnd,
                         onPointerCancel: _onPhotoPointerEnd,
@@ -761,41 +763,16 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                               constraints: const BoxConstraints(minHeight: 48),
                               child: Align(
                                 alignment: Alignment.bottomCenter,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  spacing: screenSize.width * 0.02,
-                                  children: [
-                                    for (
-                                      var index = 0;
-                                      index < captionParts.length;
-                                      index++
-                                    ) ...[
-                                      if (index > 0 && captionValue != null)
-                                        _MemoryLaneAnimatedDigit(
-                                          value: captionValue,
-                                        ),
-                                      Flexible(
-                                        child: Text(
-                                          captionParts[index],
-                                          style: darkTheme.textTheme.bodyMuted,
-                                          textAlign: TextAlign.center,
-                                          softWrap: false,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                                child: MemoryLaneCaption(
+                                  caption: caption,
+                                  name: name ?? "",
+                                  value: captionValue,
                                 ),
                               ),
                             ),
                             SizedBox(height: screenSize.height * 0.01),
                           ],
-                          if (_entries.isNotEmpty &&
-                              !widget.isFromMemoriesStrip)
+                          if (_entries.isNotEmpty)
                             ConstrainedBox(
                               constraints: const BoxConstraints(minHeight: 32),
                               child: Padding(
@@ -914,10 +891,30 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                 ),
               ),
             ),
+            if (memoryAudio != null && _entries.isNotEmpty)
+              Positioned(
+                left: safePadding.left + kMemoryOverlayHorizontalInset,
+                bottom: safePadding.bottom + kMemoryOverlayBottomInset,
+                child: MemoryAudioMuteButton(memoryAudio),
+              ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _runWithViewerPaused(Future<void> Function() action) async {
+    final wasPlaying = _playbackToken != null;
+    _pause();
+    _setMusicPausedByDialog(true);
+    try {
+      await action();
+    } finally {
+      _setMusicPausedByDialog(false);
+      if (mounted && wasPlaying && ModalRoute.of(context)?.isCurrent == true) {
+        unawaited(_play(i));
+      }
+    }
   }
 
   Future<void> _onShareTap() async {
@@ -941,164 +938,34 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
       );
     }
     final dialog = createProgressDialog(context, l10n.creatingLink);
-    final wasPlaying = _playbackToken != null;
-    _pause();
-
-    try {
-      await dialog.show();
-      final shareLinkData = await MemoryShareService.instance
-          .getOrCreateMemoryLaneLink(
-            entries: timeline.entries,
-            title: title,
-            personId: person.remoteID,
-            personName: person.data.name,
-            birthDate: person.data.birthDate,
-          );
-      await dialog.hide();
-      if (!mounted) return;
-      await shareText(
-        formatMemoryShareText(title, shareLinkData.$1),
-        context: context,
-      );
-    } catch (e) {
-      await dialog.hide();
-      if (!mounted) return;
-      await showGenericErrorBottomSheet(context: context, error: e);
-    } finally {
-      if (mounted && wasPlaying && ModalRoute.of(context)?.isCurrent == true) {
-        unawaited(_play(i));
+    await _runWithViewerPaused(() async {
+      try {
+        await dialog.show();
+        final shareLinkData = await MemoryShareService.instance
+            .getOrCreateMemoryLaneLink(
+              entries: timeline.entries,
+              title: title,
+              personId: person.remoteID,
+              personName: person.data.name,
+              birthDate: person.data.birthDate,
+            );
+        await dialog.hide();
+        if (!mounted) return;
+        await shareText(
+          formatMemoryShareText(title, shareLinkData.$1),
+          context: context,
+        );
+      } catch (e) {
+        await dialog.hide();
+        if (!mounted) return;
+        await showGenericErrorBottomSheet(context: context, error: e);
       }
-    }
+    });
   }
 
   Future<void> _onDateTap(EnteFile file) async {
-    final wasPlaying = _playbackToken != null;
-    _pause();
-    try {
-      await routeToPage(context, JumpToDateGallery(fileToJumpTo: file));
-    } finally {
-      if (mounted && wasPlaying && ModalRoute.of(context)?.isCurrent == true) {
-        unawaited(_play(i));
-      }
-    }
-  }
-}
-
-class _MemoryLaneAnimatedDigit extends StatefulWidget {
-  const _MemoryLaneAnimatedDigit({required this.value}) : assert(value >= 0);
-
-  final int value;
-
-  @override
-  State<_MemoryLaneAnimatedDigit> createState() =>
-      _MemoryLaneAnimatedDigitState();
-}
-
-class _MemoryLaneAnimatedDigitState extends State<_MemoryLaneAnimatedDigit>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late int _previousValue;
-
-  @override
-  void initState() {
-    super.initState();
-    _previousValue = widget.value;
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 320),
-      value: 1,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_MemoryLaneAnimatedDigit oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.value != oldWidget.value) {
-      _previousValue = oldWidget.value;
-      _controller.forward(from: 0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final direction = widget.value >= _previousValue ? 1 : -1;
-    final formatter = NumberFormat.decimalPattern(context.strings.localeName);
-    final current = formatter.format(widget.value);
-    final previous = formatter.format(_previousValue);
-    final disableAnimations =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    return Semantics(
-      label: current,
-      excludeSemantics: true,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final progress = disableAnimations
-              ? 1.0
-              : Curves.easeOutCubic.transform(_controller.value);
-          final length = progress == 1
-              ? current.length
-              : math.max(current.length, previous.length);
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            textDirection: TextDirection.ltr,
-            children: [
-              for (var place = length - 1; place >= 0; place--)
-                Builder(
-                  key: ValueKey(place),
-                  builder: (context) {
-                    final nextDigit = place < current.length
-                        ? current[current.length - place - 1]
-                        : null;
-                    final oldDigit = place < previous.length
-                        ? previous[previous.length - place - 1]
-                        : null;
-                    if (progress == 1 || oldDigit == nextDigit) {
-                      return Text(
-                        nextDigit ?? "",
-                        style: darkTheme.textTheme.h2Bold,
-                      );
-                    }
-                    return ClipRect(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          if (oldDigit != null)
-                            FractionalTranslation(
-                              translation: Offset(0, -direction * progress),
-                              child: Text(
-                                oldDigit,
-                                style: darkTheme.textTheme.h2Bold,
-                              ),
-                            ),
-                          if (nextDigit != null)
-                            FractionalTranslation(
-                              translation: Offset(
-                                0,
-                                direction * (1 - progress),
-                              ),
-                              child: Text(
-                                nextDigit,
-                                style: darkTheme.textTheme.h2Bold,
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-            ],
-          );
-        },
-      ),
+    await _runWithViewerPaused(
+      () => routeToPage(context, JumpToDateGallery(fileToJumpTo: file)),
     );
   }
 }

@@ -96,12 +96,14 @@ export const initiateGenerateHLS = async (
     fileID: number,
     fetchURL: string,
     authToken: string,
+    previewUploadV2: boolean,
 ): Promise<GenerateHLSResult | undefined> => {
     const params = new URLSearchParams({
         op: "generate-hls",
         fileID: fileID.toString(),
         fetchURL,
     });
+    if (previewUploadV2) params.set("previewUploadV2", "true");
 
     let body: ReadableStream | null;
     if (video instanceof ReadableStream) {

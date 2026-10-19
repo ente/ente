@@ -1,0 +1,15 @@
+{
+  "title": "Photo.jpg",
+  "description": null,
+  "location": null,
+  "creationTime": "2026-10-05T11:19:01.464+05:30",
+  "modificationTime": "2026-10-05T11:19:01.464+05:30",
+  "info": {
+    "id": 10000062,
+    "hash": null,
+    "ownerID": 1580559962386471,
+    "fileNames": [
+      "Photo.jpg"
+    ]
+  }
+}

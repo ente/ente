@@ -1,0 +1,1 @@
+- Remember the window position and normal size on Windows, including when reopening maximized.

@@ -114,14 +114,14 @@ class SemanticSearchService {
     try {
       if (!_shouldUseVectorDbApproximateSearch) return;
       if (!flagService.hasGrantedMLConsent) return;
-      if (!await _vectorDB.checkIfMigrationDone()) {
+      if (!await _vectorDB.isReady()) {
         await Future.delayed(_vectorDbMigrationDelay);
         if (!_shouldUseVectorDbApproximateSearch) return;
         if (!flagService.hasGrantedMLConsent) return;
         await _mlDataDB.checkMigrateFillClipVectorDB();
       }
-      if (await _vectorDB.checkIfMigrationDone()) {
-        await _vectorDB.warmupApproxSearch();
+      if (await _vectorDB.isReady()) {
+        await _vectorDB.warmup();
       }
     } catch (e, s) {
       _logger.severe("Failed to prepare VectorDB for search", e, s);
@@ -432,7 +432,7 @@ class SemanticSearchService {
             );
         final endTime = DateTime.now();
         _logger.info(
-          "computingSimilarities (rust simsimd exact) took for ${textQueryToEmbeddingMap.length} queries " +
+          "computingSimilarities (rust SIMD exact) took for ${textQueryToEmbeddingMap.length} queries " +
               (endTime.millisecondsSinceEpoch -
                       startTime.millisecondsSinceEpoch)
                   .toString() +
@@ -473,7 +473,7 @@ class SemanticSearchService {
       final query = entry.key;
       final minimumSimilarity = minimumSimilarityMap[query]!;
       final textEmbedding = entry.value;
-      final results = await _vectorDB.searchApproxSimilaritiesWithinThreshold(
+      final results = await _vectorDB.searchSimilaritiesWithinThreshold(
         textEmbedding,
         minimumSimilarity,
       );
@@ -489,7 +489,7 @@ class SemanticSearchService {
   Future<bool> _canUseVectorDbForSearch() async {
     if (!_shouldUseVectorDbApproximateSearch) return false;
     if (!flagService.hasGrantedMLConsent) return false;
-    if (await _vectorDB.checkIfMigrationDone()) return true;
+    if (await _vectorDB.isReady()) return true;
     // Keep interactive search responsive: prepare/migrate in the background and
     // immediately fall back to in-memory similarity search for this request.
     unawaited(_prepareVectorDbForSearch());

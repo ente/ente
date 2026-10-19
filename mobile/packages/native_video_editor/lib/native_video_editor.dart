@@ -266,6 +266,7 @@ class NativeVideoEditor {
     Duration? trimEnd,
     int? rotateDegrees,
     Rect? cropRect,
+    double speed = 1.0,
     void Function(double progress)? onProgress,
   }) async {
     _ensureInputPathExists(inputPath);
@@ -281,6 +282,9 @@ class NativeVideoEditor {
     }
     if (rotateDegrees != null && rotateDegrees != 0) {
       _validateRotationDegrees(rotateDegrees);
+    }
+    if (!speed.isFinite || speed <= 0) {
+      throw ArgumentError.value(speed, 'speed');
     }
     if (cropRect != null &&
         (!cropRect.left.isFinite ||
@@ -306,6 +310,7 @@ class NativeVideoEditor {
         'trimEndMs': trimEnd!.inMilliseconds,
       },
       'rotateDegrees': ?rotateDegrees,
+      'speed': speed,
       if (cropRect != null) ...{
         'cropX': cropRect.left.toInt(),
         'cropY': cropRect.top.toInt(),

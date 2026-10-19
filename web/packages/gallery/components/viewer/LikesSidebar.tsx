@@ -549,7 +549,7 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
                     </CloseButton>
                 </Header>
 
-                <LikersContainer>
+                <LikersContainer data-custom-scrollbar>
                     {loading ? (
                         <LoadingContainer>
                             <CircularProgress size={32} />

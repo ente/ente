@@ -3,17 +3,12 @@ export interface WhatsNewEntry {
     readonly description: string;
 }
 
-export const whatsNewVersion = 2;
+export const whatsNewVersion = 3;
 
 export const whatsNewEntries: readonly WhatsNewEntry[] = [
     {
-        title: "Ensu Packs",
+        title: "Keep the conversation going",
         description:
-            "Add knowledge from wikipedia and wikibooks to get more accurate answers",
-    },
-    {
-        title: "Chat with Your Notes",
-        description:
-            "Add your markdown notes folder, and chat with your notes. Ask questions or discuss the thoughts you put down",
+            "Ensu now keeps better track of the details that matter in longer chats, so you can ask follow-up questions with less need to repeat yourself.",
     },
 ];

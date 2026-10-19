@@ -95,6 +95,7 @@ class _CollectionListPageState extends State<CollectionListPage> {
         widget.sectionType == UISectionType.hiddenCollections;
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Stack(
           alignment: Alignment.bottomCenter,
           children: [
@@ -138,6 +139,7 @@ class _CollectionListPageState extends State<CollectionListPage> {
               widget.sectionType,
               collections!,
               showSelectAllButton: true,
+              backgroundScrollController: _scrollController,
             ),
           ],
         ),

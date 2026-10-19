@@ -1,13 +1,23 @@
 import { Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box } from "@mui/material";
+import { Box, Skeleton } from "@mui/material";
 import { keyframes } from "@mui/material/styles";
+import { SpacePostVideoBadge } from "components/PostPhotosBadge";
 import React from "react";
+import {
+    spaceControlBackground,
+    spaceControlBackgroundHover,
+    spaceText,
+} from "styles/colors";
 import { maxSpacePostPhotos, movePostPhoto } from "utils/post-photos";
 
 interface StripPhoto {
     id: number;
     imageUrl?: string;
+    isLoading?: boolean;
+    hasError?: boolean;
+    isVideo?: boolean;
+    durationMs?: number;
 }
 
 interface PhotoDrag {
@@ -27,7 +37,7 @@ const iconButtonSx = {
     alignItems: "center",
     background: "none",
     border: 0,
-    color: "#D8D8D8",
+    color: spaceText,
     cursor: "pointer",
     display: "flex",
     justifyContent: "center",
@@ -188,7 +198,7 @@ export const SpacePostPhotoStrip: React.FC<{
             if (active && completed.from != completed.to) {
                 callbacksRef.current.onMove?.(completed.from, completed.to);
                 setAnnouncement(
-                    `Photo moved to position ${completed.to + 1} of ${photos.length}`,
+                    `Item moved to position ${completed.to + 1} of ${photos.length}`,
                 );
             }
         };
@@ -222,23 +232,42 @@ export const SpacePostPhotoStrip: React.FC<{
         ? movePostPhoto(photos, drag.from, drag.to)
         : photos;
     const draggedPhoto = drag ? photos[drag.from] : undefined;
-    const preview = (photo: StripPhoto) =>
-        photo.imageUrl ? (
-            <Box
-                component="img"
-                src={photo.imageUrl}
-                alt=""
-                draggable={false}
-                sx={{
-                    height: "100%",
-                    width: "100%",
-                    objectFit: "cover",
-                    pointerEvents: "none",
-                }}
-            />
-        ) : (
-            photos.indexOf(photo) + 1
-        );
+    const preview = (photo: StripPhoto) => (
+        <>
+            {photo.imageUrl ? (
+                <Box
+                    component="img"
+                    src={photo.imageUrl}
+                    alt=""
+                    draggable={false}
+                    sx={{
+                        height: "100%",
+                        width: "100%",
+                        objectFit: "cover",
+                        pointerEvents: "none",
+                    }}
+                />
+            ) : photo.hasError ? (
+                <Box
+                    component="span"
+                    sx={{ color: "#FF8A8A", fontSize: 20, fontWeight: 700 }}
+                >
+                    !
+                </Box>
+            ) : (
+                <Skeleton
+                    animation="wave"
+                    variant="rectangular"
+                    sx={{
+                        width: "100%",
+                        height: "100%",
+                        bgcolor: spaceControlBackground,
+                    }}
+                />
+            )}
+            <SpacePostVideoBadge durationMs={photo.durationMs} size={12} />
+        </>
+    );
 
     return (
         <Box sx={{ mb: "8px" }}>
@@ -300,7 +329,7 @@ export const SpacePostPhotoStrip: React.FC<{
                                         component="button"
                                         type="button"
                                         data-photo-index={index}
-                                        aria-label={`Photo ${index + 1}`}
+                                        aria-label={`${photo.isVideo || photo.durationMs ? "Video" : "Photo"} ${index + 1}${photo.hasError ? ", couldn't prepare" : ""}`}
                                         aria-pressed={
                                             photo.id == photos[activeIndex]?.id
                                         }
@@ -334,15 +363,17 @@ export const SpacePostPhotoStrip: React.FC<{
                                                 return;
                                             onMove(index, to);
                                             setAnnouncement(
-                                                `Photo moved to position ${to + 1} of ${photos.length}`,
+                                                `Item moved to position ${to + 1} of ${photos.length}`,
                                             );
                                         }}
                                         sx={{
                                             ...iconButtonSx,
-                                            bgcolor: "#242424",
+                                            bgcolor: spaceControlBackground,
                                             outline:
+                                                !photo.isLoading &&
+                                                photo.imageUrl &&
                                                 photo.id ==
-                                                photos[activeIndex]?.id
+                                                    photos[activeIndex]?.id
                                                     ? "1.5px solid #FFFFFF"
                                                     : "none",
                                             outlineOffset: "-1.5px",
@@ -365,12 +396,13 @@ export const SpacePostPhotoStrip: React.FC<{
                                         {preview(photo)}
                                     </Box>
                                     {onRemove &&
+                                        !photo.isLoading &&
                                         index == activeIndex &&
                                         !dragging && (
                                             <Box
                                                 component="button"
                                                 type="button"
-                                                aria-label="Remove photo"
+                                                aria-label="Remove item"
                                                 disabled={disabled}
                                                 onClick={onRemove}
                                                 sx={{
@@ -386,7 +418,8 @@ export const SpacePostPhotoStrip: React.FC<{
                                                     component="span"
                                                     sx={{
                                                         alignItems: "center",
-                                                        bgcolor: "#3A3A3A",
+                                                        bgcolor:
+                                                            spaceControlBackgroundHover,
                                                         border: "1px solid #000000",
                                                         borderRadius: "50%",
                                                         display: "flex",
@@ -410,12 +443,12 @@ export const SpacePostPhotoStrip: React.FC<{
                             <Box
                                 component="button"
                                 type="button"
-                                aria-label="Add photos"
+                                aria-label="Add photos or videos"
                                 disabled={disabled}
                                 onClick={onAdd}
                                 sx={{
                                     ...iconButtonSx,
-                                    bgcolor: "#242424",
+                                    bgcolor: spaceControlBackground,
                                     borderRadius: "9px",
                                     flexShrink: 0,
                                     width: photoSize,
@@ -447,8 +480,10 @@ export const SpacePostPhotoStrip: React.FC<{
                 role="status"
                 sx={{
                     position: "absolute",
-                    width: 1,
-                    height: 1,
+                    top: 0,
+                    left: 0,
+                    width: "1px",
+                    height: "1px",
                     overflow: "hidden",
                     clipPath: "inset(50%)",
                 }}
@@ -467,7 +502,7 @@ export const SpacePostPhotoStrip: React.FC<{
                         borderRadius: "9px",
                         outline: "1.5px solid #FFFFFF",
                         outlineOffset: "-1.5px",
-                        bgcolor: "#242424",
+                        bgcolor: spaceControlBackground,
                         overflow: "hidden",
                         boxShadow: "0 4px 12px #00000088",
                         transform: "scale(1.04)",

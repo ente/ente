@@ -9,11 +9,11 @@ import 'package:path_provider/path_provider.dart';
 import "package:photos/db/common/base.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
-import "package:photos/db/ml/cluster_centroid_vector_db.dart";
 import "package:photos/db/ml/db_model_mappers.dart";
-import "package:photos/db/ml/db_pet_model_mappers.dart";
 import "package:photos/db/ml/ml_data_db_orchestration.dart";
 import 'package:photos/db/ml/schema.dart';
+import "package:photos/db/ml/usearch_clip_vector_db.dart";
+import "package:photos/db/ml/usearch_cluster_centroid_vector_db.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
@@ -33,31 +33,28 @@ class DartMLDataDB
   static const int _maxSqlBindParamsPerQuery = 10000;
 
   final String _databaseName;
-  final ClipVectorDB _clipVectorDB;
-  final ClusterCentroidVectorDB _clusterCentroidVectorDB;
-  final bool _isLocalGallery;
+  final UsearchClipVectorDB _clipVectorDB;
+  final UsearchClusterCentroidVectorDB _clusterCentroidVectorDB;
   final List<String> _migrationScripts;
 
   DartMLDataDB._privateConstructor({
     String databaseName = "ente.ml.db",
-    ClipVectorDB? clipVectorDB,
-    ClusterCentroidVectorDB? clusterCentroidVectorDB,
-    bool isLocalGallery = false,
+    UsearchClipVectorDB? clipVectorDB,
+    UsearchClusterCentroidVectorDB? clusterCentroidVectorDB,
     List<String>? migrationScripts,
   }) : _databaseName = databaseName,
-       _clipVectorDB = clipVectorDB ?? ClipVectorDB.instance,
+       _clipVectorDB = clipVectorDB ?? UsearchClipVectorDB.instance,
        _clusterCentroidVectorDB =
-           clusterCentroidVectorDB ?? ClusterCentroidVectorDB.instance,
-       _isLocalGallery = isLocalGallery,
+           clusterCentroidVectorDB ?? UsearchClusterCentroidVectorDB.instance,
        _migrationScripts = migrationScripts ?? _defaultMigrationScripts;
 
   static final DartMLDataDB instance = DartMLDataDB._privateConstructor();
   static final DartMLDataDB localGalleryInstance =
       DartMLDataDB._privateConstructor(
         databaseName: "ente.ml.offline.db",
-        clipVectorDB: ClipVectorDB.localGalleryInstance,
-        clusterCentroidVectorDB: ClusterCentroidVectorDB.localGalleryInstance,
-        isLocalGallery: true,
+        clipVectorDB: UsearchClipVectorDB.localGalleryInstance,
+        clusterCentroidVectorDB:
+            UsearchClusterCentroidVectorDB.localGalleryInstance,
         migrationScripts: _localGalleryMigrationScripts,
       );
 
@@ -84,14 +81,11 @@ class DartMLDataDB
   ];
 
   @override
-  ClipVectorDB get clipVectorDB => _clipVectorDB;
+  UsearchClipVectorDB get clipVectorDB => _clipVectorDB;
 
   @override
-  ClusterCentroidVectorDB get clusterCentroidVectorDB =>
+  UsearchClusterCentroidVectorDB get clusterCentroidVectorDB =>
       _clusterCentroidVectorDB;
-
-  @override
-  bool get isLocalGallery => _isLocalGallery;
 
   @override
   Logger get logger => _logger;
@@ -169,206 +163,6 @@ class DartMLDataDB
 
       await db.executeBatch(sql, parameterSets);
     }
-  }
-
-  @override
-  Future<void> bulkInsertPetFaces(List<DBPetFace> petFaces) async {
-    final db = await asyncDB;
-    const batchSize = 500;
-    final numBatches = (petFaces.length / batchSize).ceil();
-    for (int i = 0; i < numBatches; i++) {
-      final start = i * batchSize;
-      final end = min((i + 1) * batchSize, petFaces.length);
-      final batch = petFaces.sublist(start, end);
-
-      const String sql =
-          '''
-        INSERT INTO $petFacesTable (
-          $fileIDColumn, $petFaceIDColumn, $faceDetectionColumn, $faceVectorIdColumn, $speciesColumn, $faceScore, $imageHeight, $imageWidth, $mlVersionColumn
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT($fileIDColumn, $petFaceIDColumn) DO UPDATE SET $faceDetectionColumn = excluded.$faceDetectionColumn, $faceVectorIdColumn = excluded.$faceVectorIdColumn, $speciesColumn = excluded.$speciesColumn, $faceScore = excluded.$faceScore, $imageHeight = excluded.$imageHeight, $imageWidth = excluded.$imageWidth, $mlVersionColumn = excluded.$mlVersionColumn
-      ''';
-      final parameterSets = batch.map((petFace) {
-        final map = petFace.toMap();
-        return [
-          map[fileIDColumn],
-          map[petFaceIDColumn],
-          map[faceDetectionColumn],
-          map[faceVectorIdColumn],
-          map[speciesColumn],
-          map[faceScore],
-          map[imageHeight],
-          map[imageWidth],
-          map[mlVersionColumn],
-        ];
-      }).toList();
-
-      await db.executeBatch(sql, parameterSets);
-    }
-  }
-
-  @override
-  Future<void> bulkInsertPetBodies(List<DBPetBody> petBodies) async {
-    final db = await asyncDB;
-    const batchSize = 500;
-    final numBatches = (petBodies.length / batchSize).ceil();
-    for (int i = 0; i < numBatches; i++) {
-      final start = i * batchSize;
-      final end = min((i + 1) * batchSize, petBodies.length);
-      final batch = petBodies.sublist(start, end);
-
-      const String sql =
-          '''
-        INSERT INTO $petBodiesTable (
-          $fileIDColumn, $petBodyIDColumn, $detectionColumn, $bodyVectorIdColumn, $speciesColumn, $bodyScore, $imageHeight, $imageWidth, $mlVersionColumn
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT($fileIDColumn, $petBodyIDColumn) DO UPDATE SET $detectionColumn = excluded.$detectionColumn, $bodyVectorIdColumn = excluded.$bodyVectorIdColumn, $speciesColumn = excluded.$speciesColumn, $bodyScore = excluded.$bodyScore, $imageHeight = excluded.$imageHeight, $imageWidth = excluded.$imageWidth, $mlVersionColumn = excluded.$mlVersionColumn
-      ''';
-      final parameterSets = batch.map((obj) {
-        final map = obj.toMap();
-        return [
-          map[fileIDColumn],
-          map[petBodyIDColumn],
-          map[detectionColumn],
-          map[bodyVectorIdColumn],
-          map[speciesColumn],
-          map[bodyScore],
-          map[imageHeight],
-          map[imageWidth],
-          map[mlVersionColumn],
-        ];
-      }).toList();
-
-      await db.executeBatch(sql, parameterSets);
-    }
-  }
-
-  @override
-  Future<void> updatePetFaceVectorIds(
-    Map<String, int> petFaceIdToVectorId,
-  ) async {
-    if (petFaceIdToVectorId.isEmpty) return;
-    final db = await asyncDB;
-    const batchSize = 500;
-    final entries = petFaceIdToVectorId.entries.toList();
-    final numBatches = (entries.length / batchSize).ceil();
-    for (int i = 0; i < numBatches; i++) {
-      final start = i * batchSize;
-      final end = min((i + 1) * batchSize, entries.length);
-      final batch = entries.sublist(start, end);
-
-      const String sql =
-          '''
-        UPDATE $petFacesTable
-        SET $faceVectorIdColumn = ?
-        WHERE $petFaceIDColumn = ?
-      ''';
-      final parameterSets = batch.map((e) => [e.value, e.key]).toList();
-      await db.executeBatch(sql, parameterSets);
-    }
-  }
-
-  @override
-  Future<void> updatePetBodyVectorIds(
-    Map<String, int> petBodyIdToVectorId,
-  ) async {
-    if (petBodyIdToVectorId.isEmpty) return;
-    final db = await asyncDB;
-    const batchSize = 500;
-    final entries = petBodyIdToVectorId.entries.toList();
-    final numBatches = (entries.length / batchSize).ceil();
-    for (int i = 0; i < numBatches; i++) {
-      final start = i * batchSize;
-      final end = min((i + 1) * batchSize, entries.length);
-      final batch = entries.sublist(start, end);
-
-      const String sql =
-          '''
-        UPDATE $petBodiesTable
-        SET $bodyVectorIdColumn = ?
-        WHERE $petBodyIDColumn = ?
-      ''';
-      final parameterSets = batch.map((e) => [e.value, e.key]).toList();
-      await db.executeBatch(sql, parameterSets);
-    }
-  }
-
-  @override
-  Future<Map<String, int>> getPetFaceVectorIdMap(
-    Iterable<String> petFaceIds, {
-    bool createIfMissing = false,
-  }) async {
-    final uniqueIds = petFaceIds.toSet().toList(growable: false);
-    if (uniqueIds.isEmpty) return {};
-
-    final db = await asyncDB;
-    if (createIfMissing) {
-      const insertSql =
-          '''
-        INSERT OR IGNORE INTO $petFaceVectorIdMappingTable ($petFaceIDColumn)
-        VALUES (?)
-      ''';
-      final insertParams = <List<Object?>>[];
-      for (final id in uniqueIds) {
-        insertParams.add([id]);
-      }
-      await db.executeBatch(insertSql, insertParams);
-    }
-
-    final result = <String, int>{};
-    const chunkSize = 800;
-    for (int i = 0; i < uniqueIds.length; i += chunkSize) {
-      final chunk = uniqueIds.sublist(i, min(i + chunkSize, uniqueIds.length));
-      final rows = await db.getAll('''
-          SELECT $petFaceIDColumn, $petFaceVectorIdColumn
-          FROM $petFaceVectorIdMappingTable
-          WHERE $petFaceIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''', chunk);
-      for (final row in rows) {
-        result[row[petFaceIDColumn] as String] =
-            row[petFaceVectorIdColumn] as int;
-      }
-    }
-    return result;
-  }
-
-  @override
-  Future<Map<String, int>> getPetBodyVectorIdMap(
-    Iterable<String> petBodyIds, {
-    bool createIfMissing = false,
-  }) async {
-    final uniqueIds = petBodyIds.toSet().toList(growable: false);
-    if (uniqueIds.isEmpty) return {};
-
-    final db = await asyncDB;
-    if (createIfMissing) {
-      const insertSql =
-          '''
-        INSERT OR IGNORE INTO $petBodyVectorIdMappingTable ($petBodyIDColumn)
-        VALUES (?)
-      ''';
-      final insertParams = <List<Object?>>[];
-      for (final id in uniqueIds) {
-        insertParams.add([id]);
-      }
-      await db.executeBatch(insertSql, insertParams);
-    }
-
-    final result = <String, int>{};
-    const chunkSize = 800;
-    for (int i = 0; i < uniqueIds.length; i += chunkSize) {
-      final chunk = uniqueIds.sublist(i, min(i + chunkSize, uniqueIds.length));
-      final rows = await db.getAll('''
-          SELECT $petBodyIDColumn, $petBodyVectorIdColumn
-          FROM $petBodyVectorIdMappingTable
-          WHERE $petBodyIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''', chunk);
-      for (final row in rows) {
-        result[row[petBodyIDColumn] as String] =
-            row[petBodyVectorIdColumn] as int;
-      }
-    }
-    return result;
   }
 
   @override
@@ -720,40 +514,6 @@ class DartMLDataDB
       return null;
     }
     return maps.map((e) => mapRowToFace(e)).toList();
-  }
-
-  @override
-  Future<List<DBPetFace>?> getPetFacesForFileID(int fileUploadID) async {
-    final db = await asyncDB;
-    const String query =
-        '''
-      SELECT * FROM $petFacesTable
-      WHERE $fileIDColumn = ? AND $speciesColumn != -1
-    ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(query, [
-      fileUploadID,
-    ]);
-    if (maps.isEmpty) {
-      return null;
-    }
-    return maps.map((e) => DBPetFace.fromMap(e)).toList();
-  }
-
-  @override
-  Future<List<DBPetBody>?> getPetBodiesForFileID(int fileUploadID) async {
-    final db = await asyncDB;
-    const String query =
-        '''
-      SELECT * FROM $petBodiesTable
-      WHERE $fileIDColumn = ? AND $speciesColumn != -1
-    ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(query, [
-      fileUploadID,
-    ]);
-    if (maps.isEmpty) {
-      return null;
-    }
-    return maps.map((e) => DBPetBody.fromMap(e)).toList();
   }
 
   @override
@@ -1722,7 +1482,9 @@ class DartMLDataDB
     final List<EmbeddingVector> embeddings = [];
     for (final result in results) {
       final bytes = result[embeddingColumn] as Uint8List;
-      if (bytes.lengthInBytes != ClipVectorDB.embeddingBytesLength) continue;
+      if (bytes.lengthInBytes != ClipVectorDB.embeddingBytesLength) {
+        continue;
+      }
       final embedding = EmbeddingVector(
         fileID: result[fileIDColumn],
         embedding: Float32List.sublistView(bytes),
@@ -1861,19 +1623,6 @@ class DartMLDataDB
   }
 
   @override
-  Future<int> getPetIndexedFileCount({
-    int minimumMlVersion = petMlVersion,
-  }) async {
-    final db = await asyncDB;
-    const String query =
-        'SELECT COUNT(DISTINCT $fileIDColumn) as count FROM $petFacesTable WHERE $mlVersionColumn >= ?';
-    final List<Map<String, dynamic>> maps = await db.getAll(query, [
-      minimumMlVersion,
-    ]);
-    return maps.first['count'] as int;
-  }
-
-  @override
   Future<Set<int>> getFullyIndexedFileIds({required bool includePets}) async {
     final db = await asyncDB;
     String query =
@@ -1887,79 +1636,6 @@ class DartMLDataDB
     }
     final List<Map<String, dynamic>> maps = await db.getAll(query);
     return {for (final map in maps) map[fileIDColumn] as int};
-  }
-
-  @override
-  Future<(List<(String, int?, int)>, List<(String, int?, int)>)>
-  getPetRowsForFiles(List<int> fileIDs) async {
-    final db = await asyncDB;
-    final placeholders = List.filled(fileIDs.length, '?').join(', ');
-
-    final faceRows = await db.getAll(
-      'SELECT $petFaceIDColumn, $faceVectorIdColumn, $speciesColumn '
-      'FROM $petFacesTable WHERE $fileIDColumn IN ($placeholders)',
-      fileIDs,
-    );
-    final bodyRows = await db.getAll(
-      'SELECT $petBodyIDColumn, $bodyVectorIdColumn, $speciesColumn '
-      'FROM $petBodiesTable WHERE $fileIDColumn IN ($placeholders)',
-      fileIDs,
-    );
-    return (
-      [
-        for (final row in faceRows)
-          (
-            row[petFaceIDColumn] as String,
-            row[faceVectorIdColumn] as int?,
-            row[speciesColumn] as int,
-          ),
-      ],
-      [
-        for (final row in bodyRows)
-          (
-            row[petBodyIDColumn] as String,
-            row[bodyVectorIdColumn] as int?,
-            row[speciesColumn] as int,
-          ),
-      ],
-    );
-  }
-
-  @override
-  Future<void> deletePetRowsForFiles({
-    required List<int> fileIDs,
-    required List<String> petFaceIds,
-    required List<String> petBodyIds,
-  }) async {
-    final db = await asyncDB;
-    final placeholders = List.filled(fileIDs.length, '?').join(', ');
-
-    await db.writeTransaction((tx) async {
-      if (petFaceIds.isNotEmpty) {
-        final placeholders = List.filled(petFaceIds.length, '?').join(',');
-        await tx.execute(
-          'DELETE FROM $petFaceVectorIdMappingTable '
-          'WHERE $petFaceIDColumn IN ($placeholders)',
-          petFaceIds,
-        );
-      }
-      if (petBodyIds.isNotEmpty) {
-        final placeholders = List.filled(petBodyIds.length, '?').join(',');
-        await tx.execute(
-          'DELETE FROM $petBodyVectorIdMappingTable '
-          'WHERE $petBodyIDColumn IN ($placeholders)',
-          petBodyIds,
-        );
-      }
-      await tx.execute(
-        'DELETE FROM $petFacesTable WHERE $fileIDColumn IN ($placeholders)',
-        fileIDs,
-      );
-      await tx.execute(
-        'DELETE FROM $petBodiesTable WHERE $fileIDColumn IN ($placeholders)',
-        fileIDs,
-      );
-    });
   }
 
   @override

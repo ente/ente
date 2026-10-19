@@ -12,6 +12,7 @@ class PinInputComponent extends StatefulWidget {
   const PinInputComponent({
     super.key,
     required this.controller,
+    this.focusNode,
     this.length = 6,
     this.autofocus = false,
     this.useNativeKeyboard = true,
@@ -29,6 +30,7 @@ class PinInputComponent extends StatefulWidget {
 
   final int length;
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final bool autofocus;
   // When false, the caller must update the controller from its own keypad.
   final bool useNativeKeyboard;
@@ -51,7 +53,10 @@ class _PinInputComponentState extends State<PinInputComponent> {
   static const _boxHeight = 52.0;
   static const _boxGap = 6.0;
 
-  final FocusNode _focusNode = FocusNode();
+  FocusNode? _ownedFocusNode;
+
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
   String _value = '';
   String _lastControllerText = '';
   String? _lastCompletedValue;
@@ -67,6 +72,12 @@ class _PinInputComponentState extends State<PinInputComponent> {
   @override
   void didUpdateWidget(covariant PinInputComponent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      (oldWidget.focusNode ?? _ownedFocusNode)?.removeListener(
+        _handleFocusChanged,
+      );
+      _focusNode.addListener(_handleFocusChanged);
+    }
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_handleControllerChanged);
       _synchronizeController();
@@ -82,7 +93,7 @@ class _PinInputComponentState extends State<PinInputComponent> {
   void dispose() {
     widget.controller.removeListener(_handleControllerChanged);
     _focusNode.removeListener(_handleFocusChanged);
-    _focusNode.dispose();
+    _ownedFocusNode?.dispose();
     super.dispose();
   }
 

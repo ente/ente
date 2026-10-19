@@ -15,6 +15,12 @@ Once Ente is up and running, the Ente Photos web app will be accessible on `http
 
 Select **Don't have an account?** to create a new user. Follow the prompts to sign up.
 
+> [!IMPORTANT]
+>
+> Creating an account on a new self-hosted server creates a separate account, even if you use the same email address as your hosted Ente account. It has its own password, recovery key, and data; signup does not move or link your hosted account.
+>
+> Save a separate password-manager entry and recovery-key backup labeled with this server's address. Keep your existing hosted-account credentials and recovery key instead of overwriting them.
+
 <div style="display: flex; gap: 10px;">
   <img alt="Onboarding screen" src="/onboarding.png" style="width: 50%; height: auto;">
   <img alt="Sign up page" src="/sign-up.png" style="width: 50%; height: auto;">
@@ -150,6 +156,8 @@ You can also install Ente Auth (if you are planning to use Auth) by following th
 ## Step 6: Configure apps to use your server
 
 You can modify Ente mobile apps and CLI to connect to your server.
+
+Before signing in or starting account recovery, check that the app points to the intended server. Use the credentials and recovery key for the account created on that server. The same email address on Ente's hosted service and an independently set up self-hosted server does not make them the same account.
 
 ### Mobile
 

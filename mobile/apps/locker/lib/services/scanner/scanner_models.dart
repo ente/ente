@@ -150,23 +150,6 @@ class ScanQuad {
         aligned;
   }
 
-  ScanQuad rotatedClockwise(int degrees) {
-    if (degrees % 90 != 0) {
-      throw ArgumentError.value(degrees, 'degrees', 'Expected quarter turns');
-    }
-    var result = this;
-    for (var turn = 0; turn < (degrees ~/ 90) % 4; turn++) {
-      result = ScanQuad._([
-        for (var i = 0; i < 4; i++)
-          Offset(
-            1 - result.corners[(i + 3) % 4].dy,
-            result.corners[(i + 3) % 4].dx,
-          ),
-      ]);
-    }
-    return result;
-  }
-
   static void _validateSize(Size size) {
     if (!size.width.isFinite || !size.height.isFinite || size.isEmpty) {
       throw ArgumentError.value(size, 'sourceSize');

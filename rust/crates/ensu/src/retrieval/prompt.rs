@@ -113,6 +113,11 @@ mod tests {
         KnowledgePromptHit {
             dataset_id: dataset_id.to_owned(),
             hit: RetrievalHit {
+                locator: crate::retrieval::PassageLocator::EnsuPack {
+                    dataset_id: dataset_id.to_owned(),
+                    revision_sha256: "b".repeat(64),
+                    row: 0,
+                },
                 score: 0.9,
                 text: text.to_owned(),
                 title: "Example title".to_owned(),

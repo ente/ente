@@ -145,8 +145,7 @@ class DownloadManager {
       final cancelToken = CancelToken();
       _cancelTokens[task.id] = cancelToken;
 
-      final directory = Configuration.instance.getTempDirectory();
-      final basePath = '$directory${task.id}.encrypted';
+      final basePath = encryptedFilePath(task.id);
 
       final baseFile = File(basePath);
       if (await baseFile.exists()) {
@@ -250,7 +249,10 @@ class DownloadManager {
     }
   }
 
-  String _getChunkPath(String basePath, int part) {
+  static String encryptedFilePath(int fileId) =>
+      '${Configuration.instance.getTempDirectory()}$fileId.encrypted';
+
+  static String chunkFilePath(String basePath, int part) {
     return '$basePath.${part}_part';
   }
 
@@ -262,7 +264,7 @@ class DownloadManager {
     final existingChunks = List.filled(totalChunks, false);
 
     for (int i = 0; i < totalChunks; i++) {
-      final chunkFile = File(_getChunkPath(basePath, i + 1));
+      final chunkFile = File(chunkFilePath(basePath, i + 1));
       if (!await chunkFile.exists()) continue;
 
       final expectedSize = i == totalChunks - 1
@@ -314,7 +316,7 @@ class DownloadManager {
     CancelToken cancelToken,
     String downloadUrl,
   ) async {
-    final chunkPath = _getChunkPath(basePath, chunkIndex + 1);
+    final chunkPath = chunkFilePath(basePath, chunkIndex + 1);
     final startByte = chunkIndex * downloadChunkSize;
     final endByte = chunkIndex == totalChunks - 1
         ? task.totalBytes - 1
@@ -385,7 +387,7 @@ class DownloadManager {
     final sink = finalFile.openWrite();
     try {
       for (int i = 1; i <= totalChunks; i++) {
-        final chunkFile = File(_getChunkPath(basePath, i));
+        final chunkFile = File(chunkFilePath(basePath, i));
         await sink.addStream(chunkFile.openRead());
         await chunkFile.delete();
       }
@@ -397,14 +399,13 @@ class DownloadManager {
 
   Future<void> _deleteFiles(DownloadTask task) async {
     try {
-      final directory = Configuration.instance.getTempDirectory();
-      final basePath = '$directory${task.id}.encrypted';
+      final basePath = encryptedFilePath(task.id);
       final finalFile = File(basePath);
       if (await finalFile.exists()) await finalFile.delete();
 
       final totalChunks = (task.totalBytes / downloadChunkSize).ceil();
       for (int i = 1; i <= totalChunks; i++) {
-        final chunkFile = File(_getChunkPath(basePath, i));
+        final chunkFile = File(chunkFilePath(basePath, i));
         if (await chunkFile.exists()) await chunkFile.delete();
       }
     } catch (e) {

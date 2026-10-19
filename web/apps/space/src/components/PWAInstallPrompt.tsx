@@ -18,7 +18,7 @@ import { useSpaceWebPushPrompt } from "hooks/use-web-push-prompt";
 import React from "react";
 import { spaceToastActionButtonSx } from "styles/buttons";
 import {
-    spaceDialogBackground,
+    spaceHomeSurface,
     spaceOnAccent,
     spaceSurface,
     spaceText,
@@ -208,17 +208,17 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
                     : undefined,
             boxSizing: "border-box",
             left: "50%",
-            px: "16px",
+            px: "8px",
             pointerEvents: "none",
             position: "fixed",
             top:
                 placement == "top"
-                    ? "calc(env(safe-area-inset-top) + 12px)"
+                    ? "calc(env(safe-area-inset-top) + 8px)"
                     : undefined,
             transform: hidden
                 ? placement == "bottom"
                     ? "translate(-50%, calc(100% + env(safe-area-inset-bottom) + 16px))"
-                    : "translate(-50%, calc(-100% - env(safe-area-inset-top) - 12px))"
+                    : "translate(-50%, calc(-100% - env(safe-area-inset-top) - 8px))"
                 : "translate(-50%, 0)",
             transition: "transform 180ms ease",
             width: "100%",
@@ -232,8 +232,8 @@ export const SpacePWAPromptBanner: React.FC<SpacePWAPromptBannerProps> = ({
             aria-live="polite"
             sx={{
                 alignItems: "center",
-                bgcolor: spaceDialogBackground,
-                borderRadius: "22px",
+                bgcolor: spaceHomeSurface,
+                borderRadius: "32px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 color: textBase,
                 display: "flex",

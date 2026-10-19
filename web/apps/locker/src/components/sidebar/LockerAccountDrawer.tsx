@@ -16,9 +16,7 @@ import {
 } from "./LockerSidebarShell";
 
 type AuthenticatedAccountAction =
-    | "recoveryKey"
-    | "changePassword"
-    | "changeEmail";
+    "recoveryKey" | "changePassword" | "changeEmail";
 
 export const LockerAccountDrawer: React.FC<
     LockerNestedSidebarDrawerVisibilityProps

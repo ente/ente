@@ -8,7 +8,11 @@ import { detectFileTypeInfo } from "../utils/detect-type";
 type ConvertToMP4 = (blob: Blob) => Promise<Blob | Uint8Array<ArrayBuffer>>;
 
 export interface RenderableImageBlobWebOpts {
-    convertToJPEG?: (imageBlob: Blob) => Promise<Blob>;
+    convertToJPEG?: (
+        imageBlob: Blob,
+        detectedExtension: string,
+        fileName: string,
+    ) => Promise<Blob>;
     onConvertToJPEGError?: (e: unknown) => void;
 }
 
@@ -27,7 +31,11 @@ export const renderableImageBlobWeb = async (
 
             if (opts?.convertToJPEG) {
                 try {
-                    return await opts.convertToJPEG(imageBlob);
+                    return await opts.convertToJPEG(
+                        imageBlob,
+                        extension,
+                        fileName,
+                    );
                 } catch (e) {
                     opts.onConvertToJPEGError?.(e);
                 }

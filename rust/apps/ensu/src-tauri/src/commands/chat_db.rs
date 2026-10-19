@@ -382,14 +382,23 @@ pub async fn chat_db_insert_message(
         input.text
     };
     with_chat_db_async(&state, move |db| {
-        Ok(ChatMessageDto::from(db.insert_message_guarded(
-            session_uuid,
-            sender,
-            &text,
-            parent,
-            attachments,
-            prepared.as_ref(),
-        )?))
+        let snapshot = prepared.as_ref().map(|(snapshot, _)| snapshot);
+        let message =
+            db.insert_message_guarded(session_uuid, sender, &text, parent, attachments, snapshot)?;
+        if let Some((snapshot, passages)) = prepared.filter(|(_, passages)| !passages.is_empty()) {
+            match db.save_answer_evidence(&snapshot, message.uuid, passages) {
+                Ok(true) => {}
+                Ok(false) => logging::log(
+                    "ChatDb",
+                    "Reply saved, but its source references could not be retained",
+                ),
+                Err(error) => logging::log(
+                    "ChatDb",
+                    format!("Reply saved but source reference persistence failed: {error}"),
+                ),
+            }
+        }
+        Ok(ChatMessageDto::from(message))
     })
     .await
 }

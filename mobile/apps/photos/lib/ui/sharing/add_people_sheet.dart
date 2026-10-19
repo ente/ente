@@ -106,6 +106,7 @@ class _AddPeopleSheetState extends State<_AddPeopleSheet> {
   final _contactsScrollController = ScrollController();
   final _shareLinkKey = GlobalKey();
   late final List<UserSuggestion> _contacts;
+  String _emailText = "";
   bool _emailIsValid = false;
   bool _emailHasNoAccount = false;
 
@@ -134,10 +135,14 @@ class _AddPeopleSheetState extends State<_AddPeopleSheet> {
       for (final suggestion in widget.selected)
         normalizedSharingEmail(suggestion.email),
     };
+    final query = _emailHasNoAccount
+        ? ""
+        : _textController.text.trim().toLowerCase();
     final availableContacts = _contacts
         .where(
           (contact) =>
-              !selectedEmails.contains(normalizedSharingEmail(contact.email)),
+              !selectedEmails.contains(normalizedSharingEmail(contact.email)) &&
+              matchesResolvedSuggestionQuery(contact, query),
         )
         .toList();
     final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -151,44 +156,53 @@ class _AddPeopleSheetState extends State<_AddPeopleSheet> {
         isKeyboardAware: true,
         content: Flexible(
           fit: FlexFit.loose,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SelectedRecipientChips(
-                suggestions: widget.selected,
-                scrollController: _selectedPeopleScrollController,
-                onRemove: _toggleSuggestion,
-                onLongPress: (suggestion) => showVerifyIdentitySheet(
-                  context,
-                  self: false,
-                  email: suggestion.email,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectedRecipientChips(
+                  suggestions: widget.selected,
+                  scrollController: _selectedPeopleScrollController,
+                  onRemove: _toggleSuggestion,
+                  onLongPress: (suggestion) => showVerifyIdentitySheet(
+                    context,
+                    self: false,
+                    email: suggestion.email,
+                  ),
                 ),
-              ),
-              _EmailField(
-                controller: _textController,
-                focusNode: _focusNode,
-                emailIsValid: _emailIsValid,
-                emailHasNoAccount: _emailHasNoAccount,
-                shareKey: _shareLinkKey,
-                onChanged: (value) {
-                  setState(() {
-                    _emailIsValid = EmailValidator.validate(value.trim());
-                    _emailHasNoAccount = false;
-                  });
-                },
-                onSubmit: _tryAddTypedEmail,
-                onShareLink: _sharePublicLink,
-              ),
-              if (!_emailHasNoAccount && availableContacts.isNotEmpty) ...[
-                const SizedBox(height: Spacing.xl),
-                _ContactSuggestions(
-                  contacts: availableContacts,
-                  scrollController: _contactsScrollController,
-                  onToggle: _toggleSuggestion,
+                _EmailField(
+                  controller: _textController,
+                  focusNode: _focusNode,
+                  emailIsValid: _emailIsValid,
+                  emailHasNoAccount: _emailHasNoAccount,
+                  shareKey: _shareLinkKey,
+                  onChanged: (value) {
+                    if (value == _emailText) {
+                      return;
+                    }
+                    _emailText = value;
+                    if (_contactsScrollController.hasClients) {
+                      _contactsScrollController.jumpTo(0);
+                    }
+                    setState(() {
+                      _emailIsValid = EmailValidator.validate(value.trim());
+                      _emailHasNoAccount = false;
+                    });
+                  },
+                  onSubmit: _tryAddTypedEmail,
+                  onShareLink: _sharePublicLink,
                 ),
+                if (availableContacts.isNotEmpty || query.isNotEmpty) ...[
+                  const SizedBox(height: Spacing.xl),
+                  _ContactSuggestions(
+                    contacts: availableContacts,
+                    scrollController: _contactsScrollController,
+                    onToggle: _toggleSuggestion,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
         actions: keyboardVisible && !_emailHasNoAccount
@@ -297,6 +311,7 @@ class _AddPeopleSheetState extends State<_AddPeopleSheet> {
       }
     });
     if (added) {
+      _clearEmail();
       _scrollSelectedPeopleToEnd();
     }
   }
@@ -394,7 +409,7 @@ class _EmailField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final messageStyle = TextStyles.mini.copyWith(
-      color: context.componentColors.textLight,
+      color: context.componentColors.textLighter,
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,27 +458,20 @@ class _EmailField extends StatelessWidget {
           const SizedBox(height: Spacing.sm),
           SizedBox(
             width: double.infinity,
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              children: [
-                Text(
-                  '${context.strings.noEnteAccountWithThisEmail} ',
-                  style: messageStyle,
-                ),
-                InkWell(
-                  key: shareKey,
-                  onTap: () => onShareLink(),
-                  child: Text(
-                    context.strings.shareALinkInline,
-                    style: messageStyle.copyWith(
-                      color: context.componentColors.textBase,
-                      decoration: TextDecoration.underline,
-                      decorationColor: context.componentColors.textBase,
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              context.strings.noEnteAccountWithThisEmail,
+              textAlign: TextAlign.center,
+              style: messageStyle,
             ),
+          ),
+          const SizedBox(height: Spacing.xl),
+          ButtonComponent(
+            key: shareKey,
+            label: context.strings.shareALink,
+            variant: ButtonComponentVariant.secondary,
+            size: ButtonComponentSize.large,
+            shouldShowSuccessState: false,
+            onTap: onShareLink,
           ),
         ],
       ],
@@ -471,7 +479,7 @@ class _EmailField extends StatelessWidget {
   }
 }
 
-class _ContactSuggestions extends StatelessWidget {
+class _ContactSuggestions extends StatefulWidget {
   const _ContactSuggestions({
     required this.contacts,
     required this.scrollController,
@@ -481,8 +489,9 @@ class _ContactSuggestions extends StatelessWidget {
   static double rowExtent(BuildContext context) {
     const textStyle = TextStyles.mini;
     final lineExtent =
-        MediaQuery.textScalerOf(context).scale(textStyle.fontSize!) *
-        textStyle.height!;
+        (MediaQuery.textScalerOf(context).scale(textStyle.fontSize!) *
+                textStyle.height!)
+            .ceilToDouble();
     return math.max(
       104.0,
       getAvatarSize(AvatarType.huge) + Spacing.sm + lineExtent * 2,
@@ -494,117 +503,208 @@ class _ContactSuggestions extends StatelessWidget {
   final ValueChanged<UserSuggestion> onToggle;
 
   @override
+  State<_ContactSuggestions> createState() => _ContactSuggestionsState();
+}
+
+class _ContactSuggestionsState extends State<_ContactSuggestions> {
+  bool _canScrollBack = false;
+  bool _canScrollForward = false;
+
+  @override
   Widget build(BuildContext context) {
     final rowExtent = _ContactSuggestions.rowExtent(context);
+    if (widget.contacts.isEmpty) {
+      return SizedBox(
+        height: rowExtent,
+        width: double.infinity,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedAlert02,
+                size: 33,
+                color: context.componentColors.textLighter,
+              ),
+              const SizedBox(height: Spacing.sm),
+              Text(
+                context.strings.noMatchingResultsFound,
+                textAlign: TextAlign.center,
+                style: TextStyles.body.copyWith(
+                  color: context.componentColors.textLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final avatarSize = getAvatarSize(AvatarType.huge);
     const arrowSize = 36.0;
     final itemWidth = avatarSize + Spacing.lg;
-    final scrollStep = itemWidth + Spacing.lg;
+    final scrollStep = (itemWidth + Spacing.lg) * 3;
 
     return SizedBox(
       height: rowExtent,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: ShaderMask(
-              blendMode: BlendMode.dstIn,
-              shaderCallback: (bounds) {
-                final fadeStop = (arrowSize / bounds.width).clamp(0.0, 0.5);
-                return LinearGradient(
-                  colors: const [
-                    Colors.transparent,
-                    Colors.black,
-                    Colors.black,
-                    Colors.transparent,
-                  ],
-                  stops: [0, fadeStop, 1 - fadeStop, 1],
-                ).createShader(bounds);
-              },
-              child: ListView.separated(
-                key: const ValueKey("contact-suggestions-scroll"),
-                controller: scrollController,
-                primary: false,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: arrowSize),
-                itemCount: contacts.length,
-                itemBuilder: (context, index) {
-                  final contact = contacts[index];
-                  return SizedBox(
-                    width: itemWidth,
-                    child: _ContactSuggestion(
-                      key: ValueKey(
-                        "contact-${contact.email.trim().toLowerCase()}",
+      child: NotificationListener<ScrollMetricsNotification>(
+        onNotification: (notification) {
+          _updateScrollEdges(notification.metrics);
+          return false;
+        },
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            _updateScrollEdges(notification.metrics);
+            return false;
+          },
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ListView.separated(
+                  key: const ValueKey("contact-suggestions-scroll"),
+                  controller: widget.scrollController,
+                  primary: false,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsetsDirectional.only(end: arrowSize),
+                  itemCount: widget.contacts.length,
+                  itemBuilder: (context, index) {
+                    final contact = widget.contacts[index];
+                    return SizedBox(
+                      width: itemWidth,
+                      child: _ContactSuggestion(
+                        key: ValueKey(
+                          "contact-${contact.email.trim().toLowerCase()}",
+                        ),
+                        suggestion: contact,
+                        onTap: () => widget.onToggle(contact),
+                        onLongPress: () => showVerifyIdentitySheet(
+                          context,
+                          self: false,
+                          email: contact.email,
+                        ),
                       ),
-                      suggestion: contact,
-                      onTap: () => onToggle(contact),
-                      onLongPress: () => showVerifyIdentitySheet(
-                        context,
-                        self: false,
-                        email: contact.email,
+                    );
+                  },
+                  separatorBuilder: (_, _) => const SizedBox(width: Spacing.lg),
+                ),
+              ),
+              if (_canScrollBack)
+                PositionedDirectional(
+                  start: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: arrowSize,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: AlignmentDirectional.centerStart,
+                          end: AlignmentDirectional.centerEnd,
+                          colors: [
+                            context.componentColors.backgroundBase,
+                            context.componentColors.backgroundBase.withValues(
+                              alpha: 0,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                },
-                separatorBuilder: (_, _) => const SizedBox(width: Spacing.lg),
-              ),
-            ),
-          ),
-          PositionedDirectional(
-            start: 0,
-            top: 0,
-            child: SizedBox(
-              height: avatarSize,
-              child: Center(
-                child: IconButtonComponent(
-                  size: arrowSize,
-                  variant: IconButtonComponentVariant.primary,
-                  shouldSurfaceExecutionStates: false,
-                  tooltip: context.strings.previous,
-                  icon: const HugeIcon(
-                    icon: HugeIcons.strokeRoundedArrowLeft01,
                   ),
-                  onTap: () => _scroll(context, -scrollStep),
+                ),
+              PositionedDirectional(
+                end: 0,
+                top: 0,
+                bottom: 0,
+                width: arrowSize,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: AlignmentDirectional.centerStart,
+                        end: AlignmentDirectional.centerEnd,
+                        colors: [
+                          context.componentColors.backgroundBase.withValues(
+                            alpha: 0,
+                          ),
+                          context.componentColors.backgroundBase,
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          PositionedDirectional(
-            end: 0,
-            top: 0,
-            child: SizedBox(
-              height: avatarSize,
-              child: Center(
-                child: IconButtonComponent(
-                  size: arrowSize,
-                  variant: IconButtonComponentVariant.primary,
-                  shouldSurfaceExecutionStates: false,
-                  tooltip: context.strings.next,
-                  icon: const HugeIcon(
-                    icon: HugeIcons.strokeRoundedArrowRight01,
+              if (_canScrollBack)
+                PositionedDirectional(
+                  start: 0,
+                  top: 0,
+                  child: SizedBox(
+                    height: avatarSize,
+                    child: Center(
+                      child: IconButtonComponent(
+                        size: arrowSize,
+                        variant: IconButtonComponentVariant.primary,
+                        shouldSurfaceExecutionStates: false,
+                        tooltip: context.strings.previous,
+                        icon: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowLeft01,
+                        ),
+                        onTap: () => _scroll(context, -scrollStep),
+                      ),
+                    ),
                   ),
-                  onTap: () => _scroll(context, scrollStep),
                 ),
-              ),
-            ),
+              if (_canScrollForward)
+                PositionedDirectional(
+                  end: 0,
+                  top: 0,
+                  child: SizedBox(
+                    height: avatarSize,
+                    child: Center(
+                      child: IconButtonComponent(
+                        size: arrowSize,
+                        variant: IconButtonComponentVariant.primary,
+                        shouldSurfaceExecutionStates: false,
+                        tooltip: context.strings.next,
+                        icon: const HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                        ),
+                        onTap: () => _scroll(context, scrollStep),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Future<void> _scroll(BuildContext context, double offset) async {
-    if (!scrollController.hasClients) {
+  void _updateScrollEdges(ScrollMetrics metrics) {
+    final canScrollBack = metrics.extentBefore > 0;
+    final canScrollForward = metrics.extentAfter > 0;
+    if (canScrollBack == _canScrollBack &&
+        canScrollForward == _canScrollForward) {
       return;
     }
-    final position = scrollController.position;
+    setState(() {
+      _canScrollBack = canScrollBack;
+      _canScrollForward = canScrollForward;
+    });
+  }
+
+  Future<void> _scroll(BuildContext context, double offset) async {
+    if (!widget.scrollController.hasClients) {
+      return;
+    }
+    final position = widget.scrollController.position;
     final target = (position.pixels + offset)
         .clamp(position.minScrollExtent, position.maxScrollExtent)
         .toDouble();
     if (MediaQuery.disableAnimationsOf(context)) {
-      scrollController.jumpTo(target);
+      widget.scrollController.jumpTo(target);
       return;
     }
-    await scrollController.animateTo(
+    await widget.scrollController.animateTo(
       target,
       duration: Motion.slow,
       curve: Curves.easeOutCubic,

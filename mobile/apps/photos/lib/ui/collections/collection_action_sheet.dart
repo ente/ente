@@ -235,31 +235,52 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
           key: const ValueKey('add_button'),
           label: context.strings.add,
           shouldSurfaceExecutionStates: false,
-          dismissModalOnSuccess: true,
+          dismissModalOnSuccess: widget.selectedPeople == null,
           onTap: () async {
             if (widget.selectedPeople != null) {
               final ProgressDialog dialog = createProgressDialog(
                 context,
                 context.strings.uploadingFilesToAlbum,
-                isDismissible: true,
+                isDismissible: false,
               );
-              await dialog.show();
-              for (final collection in _selectedCollections) {
-                try {
-                  await smartAlbumsService.addPeopleToSmartAlbum(
-                    collection.id,
-                    widget.selectedPeople!,
-                  );
-                } catch (error, stackTrace) {
-                  _logger.severe(
-                    "Error while adding people to smart album",
-                    error,
-                    stackTrace,
-                  );
+              final updatedAlbumIds = <int>{};
+              Object? firstError;
+              try {
+                await dialog.show();
+                for (final collection in _selectedCollections) {
+                  try {
+                    await smartAlbumsService.addPeopleToSmartAlbum(
+                      collection.id,
+                      widget.selectedPeople!,
+                    );
+                    updatedAlbumIds.add(collection.id);
+                  } catch (error, stackTrace) {
+                    firstError ??= error;
+                    _logger.severe(
+                      "Error while adding people to smart album",
+                      error,
+                      stackTrace,
+                    );
+                  }
                 }
+                if (updatedAlbumIds.isNotEmpty) {
+                  await smartAlbumsService.syncSmartAlbumsFor(updatedAlbumIds);
+                }
+              } catch (error, stackTrace) {
+                firstError ??= error;
+                _logger.severe("Error syncing smart albums", error, stackTrace);
+              } finally {
+                await dialog.hide();
               }
-              unawaited(smartAlbumsService.syncSmartAlbums());
-              await dialog.hide();
+              if (!mounted) return;
+              if (firstError != null) {
+                await showGenericErrorDialog(
+                  context: context,
+                  error: firstError,
+                );
+                return;
+              }
+              Navigator.pop(context);
               return;
             }
             final CollectionActions collectionActions = CollectionActions(
@@ -306,6 +327,12 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
                     .toList();
                 final recentIds = recentCollections.map((c) => c.id).toSet();
                 collections.removeWhere((c) => recentIds.contains(c.id));
+              }
+
+              if (widget.actionType == CollectionActionType.autoAddPeople) {
+                final userID = Configuration.instance.getUserID()!;
+                collections.removeWhere((c) => !c.canAutoAdd(userID));
+                recentCollections.removeWhere((c) => !c.canAutoAdd(userID));
               }
 
               List<Collection> sharedCollections = [];

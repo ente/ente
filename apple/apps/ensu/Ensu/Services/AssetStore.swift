@@ -72,6 +72,14 @@ final class AssetStore: Sendable {
         core.removeDownloaded(asset: asset)
     }
 
+    func cleanupObsoleteChatModels(_ modelId: String) {
+        do {
+            try core.cleanupObsoleteChatModels(modelId: modelId)
+        } catch {
+            logger.warning("Unable to remove obsolete chat models", details: "\(error)")
+        }
+    }
+
     func reconcileKnowledge(_ stableId: String) throws -> KnowledgeReconciliation {
         try reconcileKnowledgePack(store: core, stableId: stableId)
     }

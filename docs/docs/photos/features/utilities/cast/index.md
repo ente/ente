@@ -17,7 +17,7 @@ With Ente Cast, you can play a slideshow of your favourite albums on your Google
 
 <div align="center">
 
-![Album options menu](web-play-album-on-tv.webp){width=300px}
+![Play album on TV highlighted in the album overflow menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-cast-album-menu-callout.png){width=720px}
 
 </div>
 
@@ -25,7 +25,7 @@ With Ente Cast, you can play a slideshow of your favourite albums on your Google
 
     <div align="center">
 
-    ![Pairing options](web-pairing-options.webp){width=300px}
+    ![Pair with PIN highlighted on the Cast pairing options on Ente Photos web](https://docs-assets.ente.com/screenshots/web-cast-pairing-options.png){width=720px}
 
     </div>
 
@@ -41,7 +41,7 @@ With Ente Cast, you can play a slideshow of your favourite albums on your Google
 
 <div align="center">
 
-![Pairing screen](tv-pairing-screen.png)
+![Cast PIN pairing screen in a TV browser](https://docs-assets.ente.com/screenshots/web-cast-pin-screen.png){width=720px}
 
 </div>
 

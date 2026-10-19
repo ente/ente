@@ -1,14 +1,16 @@
 import 'dart:typed_data' show Float32List, Uint8List;
 
-import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Uint64List;
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
     show Int64List;
 import "package:ml_linalg/linalg.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
+import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/usearch_clip_vector_db.dart";
 import "package:photos/models/ml/face/box.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/ml_constants.dart";
+import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/src/rust/api/image_processing_api.dart"
@@ -20,7 +22,7 @@ import "package:photos/utils/ml_util.dart";
 
 final Map<String, dynamic> _isolateCache = {};
 const _rustLibLoadedCacheKey = "rustLibLoaded";
-const _rustMlModelPathsCacheKey = "rustMlModelPaths";
+const _rustMlRuntimeConfigCacheKey = "rustMlRuntimeConfig";
 
 class RustCorruptModelException implements Exception {
   const RustCorruptModelException(this.modelPath);
@@ -65,21 +67,28 @@ Future<dynamic> isolateFunction(
   switch (function) {
     case IsolateOperation.bulkVectorSearchWithKeys:
       await _ensureRustLoaded();
-      final potentialKeys = args["potentialKeys"] as Uint64List;
+      MLDataDB.initialize(preferRust: args["rustMlDb"] as bool);
+      final fileIDs = args["fileIDs"] as List<int>;
+      final maxDistance = args["maxDistance"] as double;
       final exact = args["exact"] as bool;
 
-      return ClipVectorDB.instance.bulkSearchWithKeys(
-        potentialKeys,
-        BigInt.from(100),
-        exact: exact,
-      );
+      try {
+        return await ClipVectorDB.instance.bulkSearchNearestForFiles(
+          fileIDs,
+          count: 100,
+          maxDistance: maxDistance,
+          exact: exact,
+        );
+      } finally {
+        await MLDataDB.releaseVectorIndexes();
+      }
 
     case IsolateOperation.bulkVectorSearch:
       await _ensureRustLoaded();
       final clipFloat32 = args["clipFloat32"] as List<Float32List>;
       final exact = args["exact"] as bool;
 
-      return ClipVectorDB.instance.bulkSearchVectors(
+      return UsearchClipVectorDB.instance.bulkSearchVectors(
         clipFloat32,
         BigInt.from(100),
         exact: exact,
@@ -92,12 +101,18 @@ Future<dynamic> isolateFunction(
         result = await analyzeImageRust(args);
       } on rust_ml.RustMlError_CorruptModel catch (e) {
         return RustCorruptModelException(e.message);
+      } on ModelDownloadNetworkException catch (e) {
+        return e;
       }
       return result.toJsonString();
 
     case IsolateOperation.prepareRustMlRuntime:
       await _ensureRustLoaded();
-      await _ensureRustRuntimePrepared(args);
+      try {
+        await _ensureRustRuntimePrepared(args);
+      } on rust_ml.RustMlError_ModelDownloadNetwork catch (e) {
+        return ModelDownloadNetworkException(e.message);
+      }
       return true;
 
     case IsolateOperation.releaseRustMlRuntime:
@@ -131,23 +146,6 @@ Future<dynamic> isolateFunction(
     case IsolateOperation.runClipText:
       await _ensureRustLoaded();
       final text = args["text"] as String;
-      final clipTextModelPath = args["clipTextModelPath"] as String?;
-      if (clipTextModelPath == null || clipTextModelPath.trim().isEmpty) {
-        throw Exception(
-          "RustMLMissingModelPath: Missing required model path: clipTextModelPath",
-        );
-      }
-
-      final clipTextVocabPath = args["clipTextVocabPath"] as String?;
-      if (clipTextVocabPath == null || clipTextVocabPath.trim().isEmpty) {
-        throw Exception(
-          "RustMLMissingModelPath: Missing required model path: clipTextVocabPath",
-        );
-      }
-
-      // Configure execution behavior before the CLIP text session is
-      // created; the session is process-global and cannot be reconfigured
-      // once built.
       await rust_ml.setMlExecutionConfig(
         enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
       );
@@ -157,12 +155,13 @@ Future<dynamic> isolateFunction(
         result = await rust_ml.runClipTextRust(
           req: rust_ml.RunClipTextRequest(
             text: text,
-            modelPath: clipTextModelPath,
-            vocabPath: clipTextVocabPath,
+            assetsDir: args["assetsDir"] as String,
           ),
         );
       } on rust_ml.RustMlError_CorruptModel catch (e) {
         return RustCorruptModelException(e.message);
+      } on rust_ml.RustMlError_ModelDownloadNetwork catch (e) {
+        return ModelDownloadNetworkException(e.message);
       }
       return List<double>.from(result.embedding, growable: false);
 
@@ -332,47 +331,18 @@ Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
   await rust_ml.setMlExecutionConfig(
     enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
   );
-  final modelPaths = rust_ml.RustModelPaths(
-    faceDetection: (args["faceDetectionModelPath"] as String?) ?? "",
-    faceEmbedding: (args["faceEmbeddingModelPath"] as String?) ?? "",
-    clipImage: (args["clipImageModelPath"] as String?) ?? "",
-    clipText: (args["clipTextModelPath"] as String?) ?? "",
-    petFaceDetection: (args["petFaceDetectionModelPath"] as String?) ?? "",
-    petFaceEmbeddingDog:
-        (args["petFaceEmbeddingDogModelPath"] as String?) ?? "",
-    petFaceEmbeddingCat:
-        (args["petFaceEmbeddingCatModelPath"] as String?) ?? "",
-    petBodyDetection: (args["petBodyDetectionModelPath"] as String?) ?? "",
-    petBodyEmbeddingDog:
-        (args["petBodyEmbeddingDogModelPath"] as String?) ?? "",
-    petBodyEmbeddingCat:
-        (args["petBodyEmbeddingCatModelPath"] as String?) ?? "",
+  final assetsDir = args["assetsDir"] as String;
+  final preparePets = (args["preparePets"] as bool?) ?? false;
+  final runtimeConfigKey = "$assetsDir|$preparePets";
+  if (_isolateCache[_rustMlRuntimeConfigCacheKey] == runtimeConfigKey) return;
+
+  await rust_ml.initMlRuntime(
+    assetsDir: assetsDir,
+    runFaces: true,
+    runClip: true,
+    runPets: preparePets,
   );
-  final modelPathsKey = _modelPathsCacheKey(modelPaths);
-  final currentModelPathsKey =
-      _isolateCache[_rustMlModelPathsCacheKey] as String?;
-  if (currentModelPathsKey == modelPathsKey) {
-    return;
-  }
-
-  final missingModelPaths = <String>[];
-  if (modelPaths.faceDetection.trim().isEmpty) {
-    missingModelPaths.add("faceDetectionModelPath");
-  }
-  if (modelPaths.faceEmbedding.trim().isEmpty) {
-    missingModelPaths.add("faceEmbeddingModelPath");
-  }
-  if (modelPaths.clipImage.trim().isEmpty) {
-    missingModelPaths.add("clipImageModelPath");
-  }
-  if (missingModelPaths.isNotEmpty) {
-    throw Exception(
-      "RustMLMissingModelPath: Missing required model paths: ${missingModelPaths.join(', ')}",
-    );
-  }
-
-  await rust_ml.initMlRuntime(modelPaths: modelPaths);
-  _isolateCache[_rustMlModelPathsCacheKey] = modelPathsKey;
+  _isolateCache[_rustMlRuntimeConfigCacheKey] = runtimeConfigKey;
 }
 
 Future<void> _releaseRustRuntime() async {
@@ -385,20 +355,5 @@ Future<void> _releaseRustRuntime() async {
   } catch (_) {
     // no-op: indexing-model release is best-effort.
   }
-  _isolateCache.remove(_rustMlModelPathsCacheKey);
-}
-
-String _modelPathsCacheKey(rust_ml.RustModelPaths modelPaths) {
-  return [
-    modelPaths.faceDetection,
-    modelPaths.faceEmbedding,
-    modelPaths.clipImage,
-    modelPaths.clipText,
-    modelPaths.petFaceDetection,
-    modelPaths.petFaceEmbeddingDog,
-    modelPaths.petFaceEmbeddingCat,
-    modelPaths.petBodyDetection,
-    modelPaths.petBodyEmbeddingDog,
-    modelPaths.petBodyEmbeddingCat,
-  ].join("|");
+  _isolateCache.remove(_rustMlRuntimeConfigCacheKey);
 }

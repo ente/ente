@@ -69,6 +69,7 @@ pub(crate) struct OnnxSession {
     provider_plan: Option<ProviderPlan>,
     session: Option<(Session, ExecutionProvider)>,
     first_run_canary: Option<webgpu::ArmedCanary>,
+    deferred_first_run_canary: bool,
 }
 
 impl OnnxSession {
@@ -82,6 +83,7 @@ impl OnnxSession {
             provider_plan: None,
             session: None,
             first_run_canary: None,
+            deferred_first_run_canary: false,
         }
     }
 
@@ -104,7 +106,14 @@ impl OnnxSession {
     pub(crate) fn unload(&mut self) {
         self.provider_plan = None;
         self.session = None;
+        self.deferred_first_run_canary = false;
         self.leave_first_run_canary_armed();
+    }
+
+    pub(crate) fn load(&mut self) -> MlResult<()> {
+        self.ensure_loaded()?;
+        self.defer_first_run_canary();
+        Ok(())
     }
 
     #[cfg(test)]
@@ -131,6 +140,12 @@ impl OnnxSession {
         mut operation: impl FnMut(&mut Session) -> SessionRunResult<T>,
     ) -> MlResult<(T, ProviderUsage)> {
         loop {
+            if let Err(error) = self.arm_deferred_first_run_canary() {
+                if self.retry_after_provider_failure(&error) {
+                    continue;
+                }
+                return Err(error.into_ml_error());
+            }
             let (session, execution_provider) = self.ensure_loaded()?;
             match operation(session) {
                 Ok(value) => {
@@ -182,6 +197,33 @@ impl OnnxSession {
         Ok((session, *provider))
     }
 
+    fn defer_first_run_canary(&mut self) {
+        if let Some(canary) = self.first_run_canary.take() {
+            canary.defer();
+            self.deferred_first_run_canary = true;
+        }
+    }
+
+    fn arm_deferred_first_run_canary(&mut self) -> SessionRunResult<()> {
+        #[cfg(any(
+            target_os = "android",
+            target_os = "linux",
+            target_os = "windows",
+            test
+        ))]
+        if self.deferred_first_run_canary {
+            self.first_run_canary = Some(
+                webgpu::arm_canary(&self.model_path, &self.model_namespace).map_err(|error| {
+                    SessionRunError::retryable(MlError::Ort(format!(
+                        "failed to arm WebGPU crash canary: {error}"
+                    )))
+                })?,
+            );
+            self.deferred_first_run_canary = false;
+        }
+        Ok(())
+    }
+
     fn disarm_first_run_canary(&mut self) {
         if let Some(canary) = self.first_run_canary.take() {
             canary.disarm();
@@ -203,6 +245,7 @@ impl OnnxSession {
         }
 
         self.session = None;
+        self.deferred_first_run_canary = false;
         log::warn!(
             "execution provider failed, retrying model with the next provider fallback: {error}"
         );
@@ -684,6 +727,126 @@ mod tests {
         session.leave_first_run_canary_armed();
 
         assert!(has_canary(&temp));
+    }
+
+    #[test]
+    fn unused_preloaded_session_does_not_leave_a_crash_canary() {
+        let temp = tempfile::tempdir().unwrap();
+        let model = temp.path().join("model.onnx");
+        let mut session = OnnxSession::new(
+            model.to_str().unwrap(),
+            "scanner",
+            ExecutionMode::GpuPreferred,
+        );
+        session.first_run_canary = Some(first_run_canary(&temp));
+
+        session.defer_first_run_canary();
+        session.defer_first_run_canary();
+
+        assert!(session.deferred_first_run_canary);
+        assert!(!has_canary(&temp));
+        drop(session);
+        assert!(!has_canary(&temp));
+    }
+
+    #[test]
+    fn preloaded_session_rearms_canary_only_for_first_inference() {
+        let temp = tempfile::tempdir().unwrap();
+        let model = temp.path().join("model.onnx");
+        let mut session = OnnxSession::new(
+            model.to_str().unwrap(),
+            "scanner",
+            ExecutionMode::GpuPreferred,
+        );
+        session.first_run_canary = Some(first_run_canary(&temp));
+        session.defer_first_run_canary();
+
+        session.arm_deferred_first_run_canary().unwrap();
+
+        assert!(has_canary(&temp));
+        assert!(!session.deferred_first_run_canary);
+        session.disarm_first_run_canary();
+        session.arm_deferred_first_run_canary().unwrap();
+        assert!(!has_canary(&temp));
+    }
+
+    #[test]
+    fn preload_preserves_prior_failures_until_successful_inference() {
+        for previous_failures in 1..=2 {
+            let temp = tempfile::tempdir().unwrap();
+            let model = temp.path().join("model.onnx");
+            let mut session = OnnxSession::new(
+                model.to_str().unwrap(),
+                "scanner",
+                ExecutionMode::GpuPreferred,
+            );
+            for _ in 0..previous_failures {
+                drop(first_run_canary(&temp));
+            }
+            session.first_run_canary = Some(first_run_canary(&temp));
+
+            session.defer_first_run_canary();
+            session.defer_first_run_canary();
+
+            let canary = std::fs::read_dir(temp.path())
+                .unwrap()
+                .next()
+                .unwrap()
+                .unwrap()
+                .path();
+            assert_eq!(
+                std::fs::read_to_string(&canary).unwrap().trim(),
+                previous_failures.to_string()
+            );
+            session.arm_deferred_first_run_canary().unwrap();
+            assert_eq!(
+                std::fs::read_to_string(&canary).unwrap().trim(),
+                (previous_failures + 1).to_string()
+            );
+            session.disarm_first_run_canary();
+            assert!(!has_canary(&temp));
+        }
+    }
+
+    #[test]
+    fn failed_canary_rearm_remains_required_on_retry() {
+        let temp = tempfile::tempdir().unwrap();
+        let parent = temp.path().join("not-a-directory");
+        std::fs::write(&parent, []).unwrap();
+        let model = parent.join("model.onnx");
+        let mut session = OnnxSession::new(
+            model.to_str().unwrap(),
+            "scanner",
+            ExecutionMode::GpuPreferred,
+        );
+        session.deferred_first_run_canary = true;
+
+        for _ in 0..2 {
+            let error = session.arm_deferred_first_run_canary().unwrap_err();
+            assert!(error.is_retryable());
+            assert!(session.deferred_first_run_canary);
+        }
+    }
+
+    #[test]
+    fn unloading_preloaded_session_clears_deferred_canary() {
+        let temp = tempfile::tempdir().unwrap();
+        let model = temp.path().join("model.onnx");
+        let mut session = OnnxSession::new(
+            model.to_str().unwrap(),
+            "ocr-detection-fixed-v1",
+            ExecutionMode::GpuPreferred,
+        );
+        session.initialize_load_state();
+        session.first_run_canary = Some(first_run_canary(&temp));
+        session.defer_first_run_canary();
+
+        session.unload();
+        session.arm_deferred_first_run_canary().unwrap();
+
+        assert!(!session.has_load_state());
+        assert!(!session.deferred_first_run_canary);
+        assert!(!has_canary(&temp));
     }
 
     #[test]

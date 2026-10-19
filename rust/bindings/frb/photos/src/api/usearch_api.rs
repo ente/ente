@@ -1,34 +1,19 @@
 use ente_ml::vector_db;
 use flutter_rust_bridge::frb;
+use numkong::Dot;
 
 type SearchMatch = (Vec<u64>, Vec<f32>);
 type BulkSearchMatch = (Vec<Vec<u64>>, Vec<Vec<f32>>);
 type BulkSearchByKeyMatch = (Vec<u64>, Vec<Vec<u64>>, Vec<Vec<f32>>);
 
-// USearch already vendors and links SimSIMD. Call that single exported symbol
-// directly to avoid pulling a second copy of SimSIMD into the final app binary.
-#[expect(
-    unsafe_code,
-    reason = "Declare the SimSIMD symbol already linked by USearch"
-)]
-unsafe extern "C" {
-    fn simsimd_dot_f32(a: *const f32, b: *const f32, n: u64, d: *mut f64);
-}
-
-#[expect(
-    unsafe_code,
-    reason = "Call the SimSIMD symbol already linked by USearch"
-)]
-fn simsimd_dot_product(a: &[f32], b: &[f32]) -> f64 {
+// Use the same NumKong dependency as USearch for SIMD dispatch and avoid
+// relying on an implementation-specific symbol from USearch's static library.
+fn dot_product(a: &[f32], b: &[f32]) -> f64 {
     debug_assert_eq!(a.len(), b.len());
-    let mut score = 0.0_f64;
-    // SAFETY:
-    // - `a` and `b` are valid, non-null slices for `a.len()` elements.
-    // - SimSIMD only reads the input buffers and writes one f64 to `score`.
-    unsafe {
-        simsimd_dot_f32(a.as_ptr(), b.as_ptr(), a.len() as u64, &mut score);
+    match f32::dot(a, b) {
+        Some(score) => score,
+        None => unreachable!("validated embeddings have equal dimensions"),
     }
-    score
 }
 
 fn validate_semantic_search_exact_image_embeddings(
@@ -127,7 +112,7 @@ fn semantic_search_exact_impl(
             let mut query_matches = Vec::with_capacity(image_embeddings.len());
 
             for (file_id, image_embedding) in image_file_ids.iter().zip(image_embeddings.iter()) {
-                let score = simsimd_dot_product(image_embedding, query_embedding);
+                let score = dot_product(image_embedding, query_embedding);
 
                 if score >= minimum_similarity {
                     query_matches.push(SemanticSearchExactMatch {
@@ -170,7 +155,7 @@ fn semantic_search_exact_flattened_impl(
                     let offset = index * image_embedding_dimension;
                     let image_embedding =
                         &flattened_image_embeddings[offset..offset + image_embedding_dimension];
-                    let score = simsimd_dot_product(image_embedding, query_embedding);
+                    let score = dot_product(image_embedding, query_embedding);
 
                     if score >= minimum_similarity {
                         query_matches.push(SemanticSearchExactMatch {

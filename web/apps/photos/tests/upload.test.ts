@@ -8,6 +8,7 @@ import {
     metadataJSONMapKeyForJSON,
     metadataJSONMapKeyForXMP,
     parseXMPSidecarTags,
+    tryParseTakeoutMetadataJSON,
     tryParseXMPSidecar,
 } from "ente-gallery/services/upload/metadata-json";
 import { describe, expect, test } from "vitest";
@@ -209,6 +210,26 @@ describe("upload filename metadata", () => {
             );
         },
     );
+});
+
+describe("JSON sidecar captions", () => {
+    test.each([
+        [{ description: "description", caption: "caption" }, "description"],
+        [{ description: "description" }, "description"],
+        [{ caption: "caption" }, "caption"],
+        [{ description: "", caption: "caption" }, "caption"],
+        [{ description: null, caption: "caption" }, "caption"],
+        [{ description: 123, caption: "caption" }, "caption"],
+        [{ description: "", caption: "" }, undefined],
+        [{ caption: "" }, undefined],
+        [{ caption: 123 }, undefined],
+        [{}, undefined],
+    ])("parses %j as %s", async (json, description) => {
+        const sidecar = new File([JSON.stringify(json)], "photo.jpg.json");
+        expect((await tryParseTakeoutMetadataJSON(sidecar))?.description).toBe(
+            description,
+        );
+    });
 });
 
 describe("Apple Photos XMP sidecars", () => {

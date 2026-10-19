@@ -97,6 +97,14 @@ class GlacierFilterMatrix {
   ];
 }
 
+// colorOverlay changed its sign in 13.0; retain the existing filter colors.
+List<double> _previousColorOverlay(
+  double r,
+  double g,
+  double b,
+  double scale,
+) => ColorFilterAddons.colorOverlay(-r, -g, -b, scale);
+
 final filterList = [
   const FilterModel(name: "None", filters: []),
   FilterModel(
@@ -137,7 +145,7 @@ final filterList = [
   FilterModel(
     name: 'Haze',
     filters: [
-      ColorFilterAddons.colorOverlay(228, 130, 225, 0.13),
+      _previousColorOverlay(228, 130, 225, 0.13),
       ColorFilterAddons.saturation(-0.2),
     ],
   ),
@@ -156,7 +164,7 @@ final filterList = [
   FilterModel(
     name: 'Retro',
     filters: [
-      ColorFilterAddons.colorOverlay(25, 240, 252, 0.05),
+      _previousColorOverlay(25, 240, 252, 0.05),
       ColorFilterAddons.sepia(0.3),
     ],
   ),

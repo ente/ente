@@ -6,7 +6,6 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/models/gallery/gallery_layout_config.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/ui/settings/about/about_us_page.dart";
 import "package:photos/ui/settings/account/account_settings_page.dart";
@@ -28,7 +27,6 @@ class SettingsSearchRegistry {
     final hasLoggedIn = Configuration.instance.isLoggedIn();
     final isLocalGallery = isLocalGalleryMode;
     final showThemeControls = Platform.isAndroid || kDebugMode;
-    final showJustifiedLayout = isJustifiedLayoutAvailable;
     final items = <SettingsSearchItem>[];
 
     if (hasLoggedIn && !isLocalGallery) {
@@ -317,33 +315,26 @@ class SettingsSearchRegistry {
         routeBuilder: (_) =>
             const GallerySettingsScreen(fromGalleryLayoutSettingsCTA: false),
         isSubPage: true,
-        keywords: [
-          "grid size",
-          "group by",
-          "layout",
-          if (showJustifiedLayout) "justified",
-        ],
+        keywords: ["grid size", "group by", "layout", "justified"],
       ),
     );
 
-    if (showJustifiedLayout) {
-      items.add(
-        SettingsSearchItem(
-          title: "${l10n.layout} (i)",
-          subtitle: l10n.gallery,
-          sectionPath: "${l10n.appearance} > ${l10n.gallery}",
-          icon: HugeIcons.strokeRoundedDashboardSquare02,
-          routeBuilder: (_) =>
-              const GallerySettingsScreen(fromGalleryLayoutSettingsCTA: false),
-          isSubPage: true,
-          keywords: ["layout", "grid", "justified"],
-        ),
-      );
-    }
+    items.add(
+      SettingsSearchItem(
+        title: l10n.layout,
+        subtitle: l10n.gallery,
+        sectionPath: "${l10n.appearance} > ${l10n.gallery}",
+        icon: HugeIcons.strokeRoundedDashboardSquare02,
+        routeBuilder: (_) =>
+            const GallerySettingsScreen(fromGalleryLayoutSettingsCTA: false),
+        isSubPage: true,
+        keywords: ["layout", "grid", "justified"],
+      ),
+    );
 
     items.add(
       SettingsSearchItem(
-        title: l10n.photoGridSize,
+        title: l10n.photosPerRow,
         subtitle: l10n.gallery,
         sectionPath: "${l10n.appearance} > ${l10n.gallery}",
         icon: HugeIcons.strokeRoundedDashboardSquare02,
@@ -720,6 +711,15 @@ class SettingsSearchRegistry {
     );
 
     items.addAll([
+      SettingsSearchItem(
+        title: l10n.whatsNew,
+        subtitle: l10n.about,
+        sectionPath: l10n.about,
+        icon: HugeIcons.strokeRoundedParty,
+        routeBuilder: (_) => const AboutUsPage(),
+        isSubPage: true,
+        keywords: ["changelog", "updates", "new"],
+      ),
       SettingsSearchItem(
         title: l10n.weAreOpenSource,
         subtitle: l10n.about,

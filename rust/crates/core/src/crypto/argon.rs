@@ -31,6 +31,30 @@ impl Params {
         mem_limit: 8_192,
         ops_limit: 1,
     };
+
+    pub fn validate(self) -> Result<()> {
+        if self.mem_limit < Self::MIN.mem_limit {
+            return Err(Error::InvalidKeyDerivationParams(format!(
+                "Memory limit {} is below minimum {}",
+                self.mem_limit,
+                Self::MIN.mem_limit
+            )));
+        }
+        if !self.mem_limit.is_multiple_of(1024) {
+            return Err(Error::InvalidKeyDerivationParams(format!(
+                "Memory limit {} must be a multiple of 1024 bytes",
+                self.mem_limit
+            )));
+        }
+        if self.ops_limit < Self::MIN.ops_limit {
+            return Err(Error::InvalidKeyDerivationParams(format!(
+                "Operations limit {} is below minimum {}",
+                self.ops_limit,
+                Self::MIN.ops_limit
+            )));
+        }
+        Ok(())
+    }
 }
 
 const MEMLIMIT_SENSITIVE_MIN: u32 = 134_217_728;
@@ -58,28 +82,7 @@ pub fn derive_key(password: &str, salt: &Salt, params: Params) -> Result<Key> {
 }
 
 fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> {
-    if params.mem_limit < Params::MIN.mem_limit {
-        return Err(Error::InvalidKeyDerivationParams(format!(
-            "Memory limit {} is below minimum {}",
-            params.mem_limit,
-            Params::MIN.mem_limit
-        )));
-    }
-
-    if !params.mem_limit.is_multiple_of(1024) {
-        return Err(Error::InvalidKeyDerivationParams(format!(
-            "Memory limit {} must be a multiple of 1024 bytes",
-            params.mem_limit
-        )));
-    }
-
-    if params.ops_limit < Params::MIN.ops_limit {
-        return Err(Error::InvalidKeyDerivationParams(format!(
-            "Operations limit {} is below minimum {}",
-            params.ops_limit,
-            Params::MIN.ops_limit
-        )));
-    }
+    params.validate()?;
 
     let m_cost = params.mem_limit / 1024;
     let t_cost = params.ops_limit;

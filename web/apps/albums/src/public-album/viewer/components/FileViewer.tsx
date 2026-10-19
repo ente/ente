@@ -81,6 +81,7 @@ export type FileViewerInitialSidebar = "likes" | "comments";
 export type FileViewerProps = ModalVisibilityProps & {
     files: EnteFile[];
     initialIndex: number;
+    autoPlayMutedVideos?: boolean;
     initialSidebar?: FileViewerInitialSidebar;
     highlightCommentID?: string;
     initialAnonUserNames?: Map<string, string>;
@@ -103,6 +104,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     onClose,
     files,
     initialIndex,
+    autoPlayMutedVideos,
     initialSidebar,
     highlightCommentID,
     initialAnonUserNames,
@@ -1133,6 +1135,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
 
             const pswp = new FileViewerPhotoSwipe({
                 initialIndex,
+                autoPlayMutedVideos,
                 showSocialButtons,
                 enableComment,
                 showFullscreenButton,
@@ -1167,6 +1170,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         open,
         onClose,
         initialIndex,
+        autoPlayMutedVideos,
         disableDownload,
         showFullscreenButton,
         disableEscapeClose,

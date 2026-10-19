@@ -1,5 +1,4 @@
 import 'dart:async';
-import "dart:math";
 import 'dart:typed_data';
 
 import "package:ente_accounts/services/user_service.dart";
@@ -33,19 +32,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class CollectionService {
   static final CollectionService instance =
       CollectionService._privateConstructor();
-
-  static const Set<String> _suggestedCollectionNames = {
-    'Personal',
-    'Work',
-    'Travel',
-    'Family',
-    'Projects',
-    'School',
-    'Music',
-    'Books',
-    'Events',
-    'Holidays',
-  };
 
   final _logger = Logger("CollectionService");
 
@@ -254,10 +240,8 @@ class CollectionService {
     }
   }
 
-  Future<int> getFileCount(Collection collection) async {
-    final files = await getFilesInCollection(collection);
-    return files.length;
-  }
+  Future<int> getFileCount(Collection collection) async =>
+      _db.getFileCount(collection);
 
   Future<int> getFileSize(EnteFile file) async {
     int fileSize;
@@ -741,35 +725,6 @@ class CollectionService {
       "No Documents collection found, creating Documents collection.",
     );
     return createCollection("Documents", type: CollectionType.folder);
-  }
-
-  Future<String> getRandomUnusedCollectionName() async {
-    try {
-      final existingCollections = await getCollections();
-      final existingNames = existingCollections
-          .map((collection) => collection.name?.toLowerCase())
-          .where((name) => name != null)
-          .toSet();
-
-      final availableNames = _suggestedCollectionNames
-          .where((name) => !existingNames.contains(name.toLowerCase()))
-          .toList();
-
-      if (availableNames.isEmpty) {
-        _logger.info(
-          "All suggested collection names are used, returning 'Documents'",
-        );
-        return "Documents";
-      }
-
-      final random = Random();
-      final randomName = availableNames[random.nextInt(availableNames.length)];
-      _logger.info("Selected random unused collection name");
-      return randomName;
-    } catch (e) {
-      _logger.severe("Failed to get random unused collection name: $e");
-      return "Documents";
-    }
   }
 
   Future<Collection> getCollection(int collectionID) async {

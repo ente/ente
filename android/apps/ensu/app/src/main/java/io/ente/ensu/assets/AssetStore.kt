@@ -63,6 +63,15 @@ class AssetStore(context: Context) {
 
     fun removeDownloaded(asset: Asset): Boolean = core.removeDownloaded(asset)
 
+    suspend fun cleanupObsoleteChatModels(modelId: String): Unit =
+        withContext(Dispatchers.IO) {
+            try {
+                core.cleanupObsoleteChatModels(modelId)
+            } catch (error: Exception) {
+                Log.w("AssetStore", "Unable to remove obsolete chat models", error)
+            }
+        }
+
     internal fun reconcileKnowledge(stableId: String): KnowledgeReconciliation =
         reconcileKnowledgePack(core, stableId)
 

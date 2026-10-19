@@ -3,8 +3,8 @@ import {
     FileContextMenu,
     type ContextMenuPosition,
 } from "@/components/FileContextMenu";
+import { AlbumEmptyState } from "@/components/gallery/AlbumEmptyState";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
-import { StarIcon } from "@/components/icons/StarIcon";
 import {
     selectedFavoriteCount as countSelectedFavorites,
     type SelectedState,
@@ -17,6 +17,8 @@ import {
     handleSelectCreator,
     handleSelectCreatorMulti,
 } from "@/utils/photoFrame";
+import { StarIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import AlbumOutlinedIcon from "@mui/icons-material/AlbumOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -46,7 +48,6 @@ import {
     type CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
 import { batch } from "ente-utils/array";
-import { t } from "i18next";
 import React, {
     memo,
     useCallback,
@@ -289,13 +290,14 @@ export const FileList: React.FC<FileListProps> = ({
 
         if (!annotatedFiles.length) {
             items.push({
-                height: height - 48,
+                height: Math.max(
+                    340,
+                    height - (header?.height ?? 0) - (footer?.height ?? 0),
+                ),
                 type: "span",
                 component: (
                     <NoFilesListItem>
-                        <Typography sx={{ color: "text.faint" }}>
-                            {t("nothing_here")}
-                        </Typography>
+                        <AlbumEmptyState />
                     </NoFilesListItem>
                 ),
             });
@@ -483,15 +485,18 @@ export const FileList: React.FC<FileListProps> = ({
             previousSelectionRef.current !== null;
         let selectionCount: number;
         let favoriteCount: number;
+        let hasOwnFiles: boolean;
         let hasOnlyOwnFiles: boolean;
 
         if (isTemporarySingleSelection) {
             selectionCount = 1;
             favoriteCount = favoriteFileIDs?.has(contextMenu.file.id) ? 1 : 0;
             hasOnlyOwnFiles = contextMenu.file.ownerID === user?.id;
+            hasOwnFiles = hasOnlyOwnFiles;
         } else {
             selectionCount = selected.count;
             favoriteCount = selectedFavoriteCount;
+            hasOwnFiles = selected.ownCount > 0;
             hasOnlyOwnFiles =
                 selectionCount > 0 && selected.ownCount === selectionCount;
         }
@@ -499,6 +504,7 @@ export const FileList: React.FC<FileListProps> = ({
             barMode: mode,
             isInSearchMode: modePlus === "search",
             collectionSummary,
+            hasOwnFiles,
             hasOnlyOwnFiles,
             showAddPerson: !!showAddPersonAction,
             showEditLocation: !!showEditLocationAction && hasOnlyOwnFiles,
@@ -548,9 +554,7 @@ export const FileList: React.FC<FileListProps> = ({
                         ? { mode: "people" as const, personID: activePersonID }
                         : {
                               mode: (mode ?? "albums") as
-                                  | "albums"
-                                  | "hidden-albums"
-                                  | "archive-albums",
+                                  "albums" | "hidden-albums" | "archive-albums",
                               collectionID: activeCollectionID,
                           };
                 setSelected({
@@ -1114,7 +1118,12 @@ const FileThumbnail: React.FC<FileThumbnailProps> = ({
             )}
             {isFav && (
                 <FavoriteOverlay>
-                    <StarIcon fontSize="small" />
+                    <HugeiconsIcon
+                        icon={StarIcon}
+                        size={20}
+                        fill="currentColor"
+                        aria-hidden
+                    />
                 </FavoriteOverlay>
             )}
 

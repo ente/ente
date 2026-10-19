@@ -6,9 +6,12 @@ import android.media.MediaFormat
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import androidx.media3.common.C
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.audio.SonicAudioProcessor
+import androidx.media3.common.audio.SpeedProvider
 import androidx.media3.common.util.ExperimentalApi
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Size
@@ -21,6 +24,9 @@ import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.InAppMp4Muxer
+import androidx.media3.muxer.BufferInfo
+import androidx.media3.muxer.Muxer
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
 import kotlinx.coroutines.CancellationException
@@ -33,6 +39,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.nio.ByteBuffer
+import kotlin.math.roundToLong
 
 @UnstableApi
 class VideoExportEngine(
@@ -58,9 +66,17 @@ class VideoExportEngine(
             val mediaItem = buildMediaItem(inputFile, clipRange)
             val videoInfo = request.crop?.let { metadataReader.read(inputFile.path) }
             val effects = buildVideoEffects(videoInfo, request.crop, request.rotateDegrees)
+            val audioProcessors = if (request.speed != 1f) {
+                listOf(SonicAudioProcessor().apply { setPitch(1f / request.speed) })
+            } else {
+                emptyList()
+            }
             val editedMediaItem = EditedMediaItem.Builder(mediaItem).apply {
-                if (effects.isNotEmpty()) {
-                    setEffects(Effects(emptyList(), effects))
+                if (request.speed != 1f) {
+                    setSpeed(ConstantSpeedProvider(request.speed))
+                }
+                if (effects.isNotEmpty() || audioProcessors.isNotEmpty()) {
+                    setEffects(Effects(audioProcessors, effects))
                 }
             }.build()
             @Suppress("DEPRECATION")
@@ -71,8 +87,15 @@ class VideoExportEngine(
                 export(
                     composition = composition,
                     outputPath = outputFile.path,
-                    transcodeVideo = effects.isNotEmpty(),
-                    optimizeTrim = request.trimStartMs != null && effects.isEmpty(),
+                    transcodeVideo = effects.isNotEmpty() || request.speed != 1f,
+                    optimizeTrim = request.trimStartMs != null &&
+                        effects.isEmpty() &&
+                        request.speed == 1f,
+                    maxDurationUs = if (request.speed != 1f) {
+                        ((clipRange.endUs - clipRange.startUs) / request.speed.toDouble()).roundToLong()
+                    } else {
+                        null
+                    },
                     onProgress = onProgress
                 )
             }
@@ -162,12 +185,16 @@ class VideoExportEngine(
         outputPath: String,
         transcodeVideo: Boolean,
         optimizeTrim: Boolean,
+        maxDurationUs: Long?,
         onProgress: ((Float) -> Unit)?
     ): ExportResult = coroutineScope {
         var progressJob: Job? = null
         try {
             suspendCancellableCoroutine { continuation ->
                 val transformerBuilder = Transformer.Builder(context)
+                if (maxDurationUs != null) {
+                    transformerBuilder.setMuxerFactory(DurationLimitedMuxerFactory(maxDurationUs))
+                }
                 if (transcodeVideo) {
                     transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
                 }
@@ -238,6 +265,30 @@ class VideoExportEngine(
             extractor.release()
         }
     }
+}
+
+@UnstableApi
+private class DurationLimitedMuxerFactory(
+    private val durationUs: Long,
+    private val factory: Muxer.Factory = InAppMp4Muxer.Factory().setVideoDurationUs(durationUs)
+) : Muxer.Factory by factory {
+    override fun create(path: String): Muxer {
+        val muxer = factory.create(path)
+        return object : Muxer by muxer {
+            override fun writeSampleData(trackId: Int, byteBuffer: ByteBuffer, bufferInfo: BufferInfo) {
+                if (bufferInfo.presentationTimeUs < durationUs) {
+                    muxer.writeSampleData(trackId, byteBuffer, bufferInfo)
+                }
+            }
+        }
+    }
+}
+
+@UnstableApi
+private class ConstantSpeedProvider(private val speed: Float) : SpeedProvider {
+    override fun getSpeed(timeUs: Long): Float = speed
+
+    override fun getNextSpeedChangeTimeUs(timeUs: Long): Long = C.TIME_UNSET
 }
 
 internal data class VideoClipRangeUs(val startUs: Long, val endUs: Long)

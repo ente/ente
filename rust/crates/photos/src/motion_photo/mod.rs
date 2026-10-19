@@ -4,8 +4,12 @@ mod xmp;
 use ftyp::find_largest_ftyp_segment;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use std::fs;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Component, Path, PathBuf};
+
+const BUFFER_SIZE: usize = 64 * 1024;
+const MAX_VIDEO_BYTES_SIZE: usize = 64 * 1024 * 1024;
 
 const ITEM_LENGTH_OFFSET_KEY: &str = "Item:Length";
 const GCAMERA_MOTION_PHOTO: &str = "GCamera:MotionPhoto";
@@ -25,6 +29,8 @@ pub enum MotionPhotoError {
     InvalidIndex,
     InvalidFileName,
     VideoNotFound,
+    VideoTooLarge,
+    XmpTooLarge,
 }
 
 impl Display for MotionPhotoError {
@@ -35,6 +41,11 @@ impl Display for MotionPhotoError {
             Self::InvalidIndex => write!(f, "invalid video index"),
             Self::InvalidFileName => write!(f, "invalid output file name"),
             Self::VideoNotFound => write!(f, "unable to find video index"),
+            Self::VideoTooLarge => write!(
+                f,
+                "video exceeds {MAX_VIDEO_BYTES_SIZE} byte limit; use file extraction"
+            ),
+            Self::XmpTooLarge => write!(f, "xmp exceeds {} byte limit", xmp::MAX_XMP_SIZE),
         }
     }
 }
@@ -50,40 +61,63 @@ impl From<std::io::Error> for MotionPhotoError {
 pub fn get_motion_video_index_from_path<P: AsRef<Path>>(
     file_path: P,
 ) -> Result<Option<VideoIndex>, MotionPhotoError> {
-    let bytes = fs::read(file_path)?;
-    Ok(get_motion_video_index(&bytes))
+    let mut file = File::open(file_path)?;
+    let size = file_size(&file)?;
+    get_motion_video_index(&mut file, size)
 }
 
-fn get_motion_video_index(bytes: &[u8]) -> Option<VideoIndex> {
-    if let Some(index) = find_largest_ftyp_segment(bytes) {
-        return Some(index);
+fn file_size(file: &File) -> Result<usize, MotionPhotoError> {
+    usize::try_from(file.metadata()?.len()).map_err(|_| MotionPhotoError::InvalidIndex)
+}
+
+fn get_motion_video_index<R: Read + Seek>(
+    reader: &mut R,
+    size: usize,
+) -> Result<Option<VideoIndex>, MotionPhotoError> {
+    reader.rewind()?;
+    if let Some(index) = find_largest_ftyp_segment(&mut *reader, size)? {
+        return Ok(Some(index));
     }
 
-    extract_video_index_from_xmp(bytes)
+    reader.rewind()?;
+    match xmp::extract_xmp(reader.take(size as u64)) {
+        Ok(data) => Ok(extract_video_index_from_xmp(&data, size)),
+        Err(MotionPhotoError::Xml(_)) => Ok(None),
+        // None clears existing motion-photo tags.
+        Err(err) => Err(err),
+    }
 }
 
 pub fn extract_motion_video_from_path<P: AsRef<Path>>(
     file_path: P,
     index: Option<VideoIndex>,
 ) -> Result<Option<Vec<u8>>, MotionPhotoError> {
-    let bytes = fs::read(file_path)?;
-    extract_motion_video(&bytes, index).map(|video| Some(video.to_vec()))
+    let mut file = File::open(file_path)?;
+    let size = file_size(&file)?;
+    let index = resolve_video_index(&mut file, size, index)?;
+    let length = index.end - index.start;
+    if length > MAX_VIDEO_BYTES_SIZE {
+        return Err(MotionPhotoError::VideoTooLarge);
+    }
+    file.seek(SeekFrom::Start(index.start as u64))?;
+    let mut video = vec![0; length];
+    file.read_exact(&mut video)?;
+    Ok(Some(video))
 }
 
-fn extract_motion_video(
-    bytes: &[u8],
+fn resolve_video_index<R: Read + Seek>(
+    reader: &mut R,
+    size: usize,
     index: Option<VideoIndex>,
-) -> Result<&[u8], MotionPhotoError> {
-    let video_index = index.or_else(|| get_motion_video_index(bytes));
-    let Some(video_index) = video_index else {
-        return Err(MotionPhotoError::VideoNotFound);
+) -> Result<VideoIndex, MotionPhotoError> {
+    let index = match index {
+        Some(index) => index,
+        None => get_motion_video_index(reader, size)?.ok_or(MotionPhotoError::VideoNotFound)?,
     };
-
-    if video_index.start >= video_index.end || video_index.end > bytes.len() {
+    if index.start >= index.end || index.end > size {
         return Err(MotionPhotoError::InvalidIndex);
     }
-
-    Ok(&bytes[video_index.start..video_index.end])
+    Ok(index)
 }
 
 pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
@@ -94,12 +128,37 @@ pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
 ) -> Result<Option<PathBuf>, MotionPhotoError> {
     validate_output_file_name(file_name)?;
 
-    let bytes = fs::read(file_path)?;
-    let video = extract_motion_video(&bytes, index)?;
+    let mut source = File::open(file_path)?;
+    let size = file_size(&source)?;
+    let index = resolve_video_index(&mut source, size, index)?;
+    source.seek(SeekFrom::Start(index.start as u64))?;
     fs::create_dir_all(destination_directory.as_ref())?;
     let output = destination_directory.as_ref().join(file_name);
-    fs::write(&output, video)?;
+    // Copy forward before truncating: output may alias the source.
+    let mut destination = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&output)?;
+    let length = index.end - index.start;
+    copy_video(&mut source, &mut destination, length)?;
+    destination.set_len(length as u64)?;
     Ok(Some(output))
+}
+
+fn copy_video<R: Read, W: Write>(
+    source: &mut R,
+    destination: &mut W,
+    mut remaining: usize,
+) -> io::Result<()> {
+    let mut buffer = vec![0; BUFFER_SIZE];
+    while remaining > 0 {
+        let length = remaining.min(buffer.len());
+        source.read_exact(&mut buffer[..length])?;
+        destination.write_all(&buffer[..length])?;
+        remaining -= length;
+    }
+    Ok(())
 }
 
 fn validate_output_file_name(file_name: &str) -> Result<(), MotionPhotoError> {
@@ -117,14 +176,15 @@ fn validate_output_file_name(file_name: &str) -> Result<(), MotionPhotoError> {
 pub fn extract_xmp_from_path<P: AsRef<Path>>(
     file_path: P,
 ) -> Result<HashMap<String, String>, MotionPhotoError> {
-    let bytes = fs::read(file_path)?;
-    xmp::extract_xmp(&bytes)
+    let file = File::open(file_path)?;
+    let size = file_size(&file)?;
+    xmp::extract_xmp(file.take(size as u64))
 }
 
-fn extract_video_index_from_xmp(bytes: &[u8]) -> Option<VideoIndex> {
-    let xmp_data = xmp::extract_xmp(bytes).ok()?;
-    let size = bytes.len();
-
+fn extract_video_index_from_xmp(
+    xmp_data: &HashMap<String, String>,
+    size: usize,
+) -> Option<VideoIndex> {
     for offset_key in FILE_OFFSET_KEYS {
         let Some(raw_offset) = xmp_data.get(offset_key) else {
             continue;
@@ -133,14 +193,13 @@ fn extract_video_index_from_xmp(bytes: &[u8]) -> Option<VideoIndex> {
             continue;
         };
 
-        if offset_key == ITEM_LENGTH_OFFSET_KEY
-            && offset_from_end + offset_from_end < size
-            && !has_motion_photo_tags(&xmp_data)
-        {
+        if offset_from_end == 0 || offset_from_end > size {
             continue;
         }
-
-        if offset_from_end == 0 || offset_from_end > size {
+        if offset_key == ITEM_LENGTH_OFFSET_KEY
+            && offset_from_end < size - offset_from_end
+            && !has_motion_photo_tags(xmp_data)
+        {
             continue;
         }
 
@@ -168,7 +227,12 @@ fn has_motion_photo_tags(xmp_data: &HashMap<String, String>) -> bool {
 mod tests {
     use super::*;
     use std::fs;
+    use std::io::Cursor;
     use tempfile::tempdir;
+
+    fn get_motion_video_index(bytes: &[u8]) -> Option<VideoIndex> {
+        super::get_motion_video_index(&mut Cursor::new(bytes), bytes.len()).expect("read index")
+    }
 
     fn make_ftyp_box(brand: [u8; 4]) -> Vec<u8> {
         let mut buf = Vec::with_capacity(16);
@@ -220,10 +284,6 @@ mod tests {
         let index = get_motion_video_index(&bytes).expect("video index should exist");
         assert_eq!(index.start, first_start);
         assert_eq!(index.end, second_start);
-        let extracted =
-            extract_motion_video(&bytes, Some(index)).expect("video bytes should extract");
-        assert_eq!(extracted.len(), second_start - first_start);
-
         let mut bytes2 = b"jpeg-prefix".to_vec();
         bytes2.extend_from_slice(&make_ftyp_box(*b"mp42"));
         bytes2.extend_from_slice(&[0xCC; 50]);
@@ -324,18 +384,24 @@ mod tests {
 
     #[test]
     fn skips_invalid_item_length_without_motion_tags() {
-        let mut bytes = b"prefix-data".to_vec();
-        bytes.extend_from_slice(xmp_with_offset(8, "").as_bytes());
-        bytes.extend_from_slice(b"small-tail");
-        assert_eq!(get_motion_video_index(&bytes), None);
+        for offset in [8, usize::MAX] {
+            let mut bytes = b"prefix-data".to_vec();
+            bytes.extend_from_slice(xmp_with_offset(offset, "").as_bytes());
+            bytes.extend_from_slice(b"small-tail");
+            assert_eq!(get_motion_video_index(&bytes), None);
+        }
     }
 
     #[test]
     fn extracts_video_bytes_for_valid_index() {
         let bytes = bytes_with_xmp_and_video(20, "GCamera:MotionPhoto=\"1\"");
-        let video = extract_motion_video(&bytes, None).expect("video bytes should extract");
-        assert_eq!(video.len(), 20);
-        assert!(video.iter().all(|byte| *byte == 0xAB));
+        let temp = tempdir().unwrap();
+        let image = temp.path().join("motion.jpg");
+        fs::write(&image, bytes).unwrap();
+        let video = extract_motion_video_from_path(&image, None)
+            .unwrap()
+            .unwrap();
+        assert_eq!(video, vec![0xAB; 20]);
     }
 
     #[test]
@@ -416,22 +482,33 @@ mod tests {
     fn file_extraction_preserves_selected_bytes_when_overwriting() {
         let temp = tempdir().expect("temp dir");
         let image = temp.path().join("source.jpg");
-        let source = b"image-prefix-video-data-trailing-preview";
-        let index = VideoIndex { start: 13, end: 23 };
+        let source: Vec<u8> = (0..BUFFER_SIZE * 3 + 19).map(|i| (i % 251) as u8).collect();
+        fs::write(&image, &source).unwrap();
+        fs::hard_link(&image, temp.path().join("hard.mp4")).unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&image, temp.path().join("symbolic.mp4")).unwrap();
 
-        for file_name in ["clip.mp4", "source.jpg"] {
-            fs::write(&image, source).expect("write source");
-            fs::write(temp.path().join(file_name), source).expect("write existing output");
-            let output = extract_motion_video_file_from_path(
-                &image,
-                temp.path(),
-                file_name,
-                Some(index.clone()),
-            )
-            .expect("extract video")
-            .expect("video output");
-
-            assert_eq!(fs::read(output).unwrap(), source[index.start..index.end]);
+        for file_name in [
+            "clip.mp4",
+            "source.jpg",
+            "hard.mp4",
+            #[cfg(unix)]
+            "symbolic.mp4",
+        ] {
+            for start in [0, 13] {
+                fs::write(&image, &source).unwrap();
+                fs::write(temp.path().join(file_name), &source).unwrap();
+                let end = source.len() - 7;
+                let output = extract_motion_video_file_from_path(
+                    &image,
+                    temp.path(),
+                    file_name,
+                    Some(VideoIndex { start, end }),
+                )
+                .unwrap()
+                .unwrap();
+                assert_eq!(fs::read(output).unwrap(), source[start..end]);
+            }
         }
     }
 
@@ -441,7 +518,7 @@ mod tests {
             16,
             "GPano:ProjectionType=\"equirectangular\" GCamera:MotionPhoto=\"1\"",
         );
-        let xmp = xmp::extract_xmp(&bytes).expect("xmp must parse");
+        let xmp = xmp::extract_xmp(bytes.as_slice()).expect("xmp must parse");
         assert_eq!(
             xmp.get("GPano:ProjectionType"),
             Some(&"equirectangular".to_string())
@@ -483,6 +560,67 @@ mod tests {
         assert_eq!(
             get_motion_video_index_from_path(&non_motion).expect("still read"),
             None
+        );
+    }
+
+    #[test]
+    fn file_extraction_streams_videos_above_the_byte_api_limit() {
+        let temp = tempdir().unwrap();
+        let image = temp.path().join("source.jpg");
+        let length = MAX_VIDEO_BYTES_SIZE + 1;
+        File::create(&image)
+            .unwrap()
+            .set_len(length as u64 + 1)
+            .unwrap();
+        let index = VideoIndex {
+            start: 1,
+            end: length + 1,
+        };
+        assert!(matches!(
+            extract_motion_video_from_path(&image, Some(index.clone())),
+            Err(MotionPhotoError::VideoTooLarge)
+        ));
+        let output =
+            extract_motion_video_file_from_path(&image, temp.path(), "clip.mp4", Some(index))
+                .unwrap()
+                .unwrap();
+        assert_eq!(fs::metadata(output).unwrap().len(), length as u64);
+    }
+
+    #[test]
+    fn copying_is_bounded_and_rejects_short_input() {
+        struct BoundedReader(Cursor<Vec<u8>>);
+        impl Read for BoundedReader {
+            fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+                assert!(buffer.len() <= BUFFER_SIZE);
+                self.0.read(buffer)
+            }
+        }
+        let length = BUFFER_SIZE * 3 + 5;
+        let mut source = BoundedReader(Cursor::new(vec![7; length]));
+        let mut output = Vec::new();
+        copy_video(&mut source, &mut output, length).unwrap();
+        assert_eq!(output, vec![7; length]);
+        let error = copy_video(&mut Cursor::new([1; 3]), &mut io::sink(), 4).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::UnexpectedEof);
+    }
+
+    #[test]
+    fn ftyp_takes_precedence_over_oversized_xmp() {
+        let mut bytes = b"<x:xmpmeta>".to_vec();
+        bytes.resize(xmp::MAX_XMP_SIZE + 1, b' ');
+        assert!(matches!(
+            super::get_motion_video_index(&mut Cursor::new(&bytes), bytes.len()),
+            Err(MotionPhotoError::XmpTooLarge)
+        ));
+        let start = bytes.len();
+        bytes.extend_from_slice(&make_ftyp_box(*b"mp42"));
+        assert_eq!(
+            get_motion_video_index(&bytes),
+            Some(VideoIndex {
+                start,
+                end: bytes.len()
+            })
         );
     }
 }

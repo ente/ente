@@ -2,12 +2,23 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:ente_auth/core/errors.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/ui/settings/data/import/otp_auth_import_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('OTP Auth import parser', () {
+    test('rejects oversized files before attempting decryption', () {
+      expect(
+        () => parseOtpAuthExport(
+          Uint8List(otpAuthImportMaxBytes + 1),
+          password: '',
+        ),
+        throwsA(isA<ImportFileTooLargeException>()),
+      );
+    });
+
     for (final version in ['1.0', '1.1']) {
       test('decrypts backup version $version', () async {
         final codes = parseOtpAuthExport(
@@ -63,6 +74,48 @@ void main() {
         issuer: 'Modern Account',
         account: 'modern@example.com',
         secret: 'ONUW4Z3MMUWW233EMVZG4LLTMVRXEZLU',
+      );
+    });
+
+    test('preserves ordinary shared folders and account lists', () async {
+      final codes = parseOtpAuthExport(
+        await _fixture('backup-shared.otpauthdb'),
+        password: 'abc123',
+      );
+      final original = parseOtpAuthExport(
+        await _fixture('backup-1.1.otpauthdb'),
+        password: 'abc123',
+      );
+
+      expect(codes.map((code) => code.rawData), [
+        for (var index = 0; index < 3; index++)
+          ...original.map((code) => code.rawData),
+      ]);
+    });
+
+    for (final representation in ['uids', 'inline']) {
+      test('rejects excessive $representation archive expansion', () async {
+        final bytes = await _fixture(
+          'backup-expanded-$representation.otpauthdb',
+        );
+        expect(
+          () => parseOtpAuthExport(bytes, password: 'abc123'),
+          throwsA(
+            isA<FormatException>().having(
+              (error) => error.message,
+              'message',
+              'OTP Auth archive expansion limit exceeded',
+            ),
+          ),
+        );
+      });
+    }
+
+    test('bounds binary decoding before resolving the keyed archive', () async {
+      final bytes = await _fixture('backup-expanded-binary.otpauthdb');
+      expect(
+        () => parseOtpAuthExport(bytes, password: 'abc123'),
+        throwsFormatException,
       );
     });
 

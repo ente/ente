@@ -19,8 +19,7 @@ class SearchFilterDataProvider {
       _appliedFiltersNotifier.appliedFilters;
 
   void clearAndAddRecommendations(List<HierarchicalSearchFilter> filters) {
-    _recommendedFiltersNotifier.clearFilters();
-    _safelyAddToRecommended(filters);
+    _safelyAddToRecommended(filters, replace: true);
   }
 
   void applyFilters(List<HierarchicalSearchFilter> filters) {
@@ -84,7 +83,10 @@ class SearchFilterDataProvider {
     }
   }
 
-  void _safelyAddToRecommended(List<HierarchicalSearchFilter> filters) {
+  void _safelyAddToRecommended(
+    List<HierarchicalSearchFilter> filters, {
+    bool replace = false,
+  }) {
     if (_appliedFiltersNotifier.appliedFilters.any(
       (e) => e is OnlyThemFilter,
     )) {
@@ -95,7 +97,7 @@ class SearchFilterDataProvider {
 
     final List<HierarchicalSearchFilter> filtersToAvoid = [
       ...appliedFilters,
-      ...recommendations,
+      if (!replace) ...recommendations,
     ];
 
     if (appliedFilters.isEmpty) {
@@ -105,6 +107,7 @@ class SearchFilterDataProvider {
     _recommendedFiltersNotifier.addFilters(
       filters,
       filtersToAvoid: filtersToAvoid,
+      replace: replace,
     );
   }
 
@@ -144,7 +147,9 @@ class _RecommendedFiltersNotifier extends ChangeNotifier {
   void addFilters(
     List<HierarchicalSearchFilter> filters, {
     required List<HierarchicalSearchFilter> filtersToAvoid,
+    bool replace = false,
   }) {
+    if (replace) _recommendedFilters.clear();
     for (HierarchicalSearchFilter filter in filters) {
       bool avoidFilter = false;
       for (HierarchicalSearchFilter filterToAvoid in filtersToAvoid) {
@@ -164,11 +169,6 @@ class _RecommendedFiltersNotifier extends ChangeNotifier {
 
   void removeFilters(List<HierarchicalSearchFilter> filters) {
     _recommendedFilters.removeWhere((filter) => filters.contains(filter));
-    notifyListeners();
-  }
-
-  void clearFilters() {
-    _recommendedFilters.clear();
     notifyListeners();
   }
 }

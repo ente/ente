@@ -108,8 +108,8 @@ export const reconstructPeopleState = async (): Promise<PeopleState> => {
 
         let isHidden = data.isHidden;
 
-        // Older mobile clients encoded hidden cgroups with an empty name.
-        if (!name) isHidden = true;
+        // Older mobile clients encoded ignored people in the name.
+        if (!name || name == "(hidden)" || name == "(ignored)") isHidden = true;
 
         let assignedFaceIDs: string[][];
         if (data.rejectedFaceIDs.length == 0) {

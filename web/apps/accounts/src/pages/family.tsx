@@ -15,12 +15,7 @@ import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type Phase =
-    | "loading"
-    | "ready"
-    | "accepting"
-    | "accepted"
-    | "invalid"
-    | "failed";
+    "loading" | "ready" | "accepting" | "accepted" | "invalid" | "failed";
 
 const Page: React.FC = () => {
     const router = useRouter();

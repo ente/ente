@@ -14,6 +14,7 @@ import {
     createDocumentIconConfig,
     lockerItemIconConfig,
 } from "@/components/items/locker-item-icons";
+import { LockerConfirmDialog } from "@/components/ui/LockerConfirmDialog";
 import type { LockerUploadLimitState } from "@/services/locker-limits";
 import type { LockerUploadProgress } from "@/services/uploads";
 import {
@@ -135,6 +136,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         canSave,
         canUpload,
         completedFileKeys,
+        collectionName,
         customCollectionNames,
         displayCollections,
         error,
@@ -143,6 +145,8 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         formType,
         handleClose,
         handleDialogClose,
+        handleDiscard,
+        handleKeepEditing,
         handleFieldChange,
         handleFileSelect,
         handleSave,
@@ -151,6 +155,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         handleUpload,
         isEditMode,
         isFileMode,
+        pendingExit,
         saving,
         savedUploadCount,
         selectedCollectionIDs,
@@ -159,6 +164,7 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
         selectedType,
         selectedUploadItems,
         setCustomCollectionNames,
+        setCollectionName,
         setSelectedCollectionIDs,
         setSelectedCollectionNamesByFileKey,
         setSelectedUploadItems,
@@ -457,6 +463,17 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                                     ),
                                 )
                             }
+                            onRenameItem={(fileKey, uploadName) => {
+                                if (uploading || completedFileKeys.has(fileKey))
+                                    return;
+                                setSelectedUploadItems((current) =>
+                                    current.map((item) =>
+                                        uploadQueueItemKey(item) === fileKey
+                                            ? { ...item, uploadName }
+                                            : item,
+                                    ),
+                                );
+                            }}
                             onRemoveItem={(fileKey) => {
                                 setSelectedUploadItems((current) =>
                                     current.filter(
@@ -491,6 +508,8 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                         />
 
                         <CollectionSelector
+                            createName={collectionName}
+                            onCreateNameChange={setCollectionName}
                             key={`${open ? "open" : "closed"}:${
                                 editItem?.id ?? "create"
                             }:${formType}`}
@@ -537,6 +556,20 @@ export const CreateItemDialog: React.FC<CreateItemDialogProps> = ({
                     </Stack>
                 )}
             </DialogContent>
+            <LockerConfirmDialog
+                open={open && pendingExit !== null}
+                illustration="/images/warning-grey.png"
+                title={t("discardUnsavedChangesTitle")}
+                body={t(
+                    isFileMode && !isEditMode
+                        ? "discardPendingUploadsBody"
+                        : "discardUnsavedChangesBody",
+                )}
+                confirmLabel={t("discard")}
+                cancelLabel={t("keepEditing")}
+                onClose={handleKeepEditing}
+                onConfirm={handleDiscard}
+            />
         </Dialog>
     );
 };

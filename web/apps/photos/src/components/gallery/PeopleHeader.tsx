@@ -617,6 +617,7 @@ const SuggestionsDialog: React.FC<SuggestionsDialogProps> = ({
         if (hasUnsavedChanges) {
             showMiniDialog({
                 message: t("discard_changes_confirm_message"),
+                kind: "warning",
                 continue: {
                     text: t("discard_changes"),
                     color: "critical",

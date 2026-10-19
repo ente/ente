@@ -7,6 +7,10 @@ struct KnowledgeSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: EnsuSpacing.md) {
+                Text(
+                    "Choose packs for future messages in all chats. Existing answers stay unchanged."
+                )
+                .font(EnsuTypography.small).foregroundStyle(EnsuColor.textMuted)
                 ForEach(store.packs) { pack in
                     packCard(pack)
                 }
@@ -53,16 +57,18 @@ struct KnowledgeSettingsView: View {
                     }
                 }
                 Spacer()
-                if pack.activeIdentity != nil && !pack.isMutating {
+                if pack.activeIdentity != nil {
                     Toggle(
-                        "",
+                        "Use \(pack.config.label) for future messages",
                         isOn: Binding(
-                            get: { pack.enabled },
-                            set: { store.setEnabled(stableId: pack.id, enabled: $0) }
-                        )
+                            get: { !store.disabledIDs.contains(pack.id) },
+                            set: {
+                                store.setEnabled(pack.id, enabled: $0)
+                            })
                     )
                     .labelsHidden()
                     .tint(EnsuColor.accent)
+                    .disabled(pack.isMutating)
                 } else if store.downloadsAllowed && pack.status == .download && !pack.isMutating {
                     CompactButton(text: "Download") {
                         store.downloadOrUpdate(stableId: pack.id)
@@ -92,6 +98,12 @@ struct KnowledgeSettingsView: View {
                 CompactButton(text: "Update") {
                     store.downloadOrUpdate(stableId: pack.id)
                 }
+            }
+
+            if pack.isMutating, let progress = pack.progressLabel {
+                Text(progress)
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.textMuted)
             }
 
             if let error = pack.errorMessage {

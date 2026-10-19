@@ -1,1 +1,0 @@
-- Fixed background album auto-add missing updated person assignments when local indexing is disabled.

@@ -72,4 +72,34 @@ void main() {
     expect(plan.arguments, contains('/tmp/output video.mp4'));
     expect(plan.arguments, containsAllInOrder(['-map', '0:a?']));
   });
+
+  test('speed export plan retimes both streams', () {
+    final controller = VideoEditorController.file(File('/tmp/input.mp4'));
+    addTearDown(controller.dispose);
+    controller.updateSpeed(0.25);
+
+    final plan = ExportService.createPlan(
+      controller: controller,
+      outputPath: '/tmp/output.mp4',
+    );
+
+    expect(
+      plan.arguments.indexOf('-t'),
+      lessThan(plan.arguments.indexOf('-i')),
+    );
+    expect(
+      plan.arguments,
+      containsAllInOrder([
+        '-vf',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2,setpts=PTS/0.25',
+      ]),
+    );
+    expect(
+      plan.arguments,
+      containsAllInOrder([
+        '-af',
+        'atempo=0.5,atempo=0.5,asetpts=PTS-STARTPTS+STARTPTS/0.25',
+      ]),
+    );
+  });
 }

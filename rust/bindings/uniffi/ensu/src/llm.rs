@@ -43,6 +43,7 @@ pub struct LlmModelLoadParams {
 pub struct LlmContextParams {
     pub context_size: Option<i32>,
     pub n_threads: Option<i32>,
+    pub n_threads_generation: Option<i32>,
     pub n_batch: Option<i32>,
 }
 
@@ -110,6 +111,22 @@ impl LlmModel {
         Ok(Arc::new(LlmContext { handle }))
     }
 
+    pub fn new_title_context(
+        &self,
+        chat_context_size: u32,
+        n_threads: Option<i32>,
+        n_threads_generation: Option<i32>,
+    ) -> Result<Arc<LlmContext>, LlmError> {
+        let handle = llm::Context::new_title(
+            &self.handle,
+            chat_context_size,
+            n_threads,
+            n_threads_generation,
+        )
+        .map_err(LlmError::from)?;
+        Ok(Arc::new(LlmContext { handle }))
+    }
+
     pub fn new_embedding_context(
         &self,
         n_threads: Option<i32>,
@@ -127,6 +144,10 @@ pub struct LlmContext {
 
 #[uniffi::export]
 impl LlmContext {
+    pub fn release_multimodal(&self) {
+        self.handle.release_multimodal();
+    }
+
     pub fn context_size(&self) -> u32 {
         self.handle.context_size()
     }
@@ -149,7 +170,7 @@ impl LlmContext {
     pub fn generate_chat_stream(
         &self,
         request: LlmChatRequest,
-        callback: Box<dyn LlmGenerationEventCallback>,
+        callback: Arc<dyn LlmGenerationEventCallback>,
     ) -> Result<LlmGenerationSummary, LlmError> {
         let mut sink = CallbackSink { callback };
         self.handle
@@ -169,7 +190,58 @@ impl LlmContext {
     }
 }
 
-#[uniffi::export(callback_interface)]
+#[derive(Clone, Copy, uniffi::Enum)]
+pub enum LlmMemoryOperation {
+    Embedding,
+    Voice,
+    Title,
+}
+
+#[derive(uniffi::Record)]
+pub struct LlmChatModelMemory {
+    pub model_id: String,
+    pub model_bytes: u64,
+    pub context_size: u32,
+}
+
+#[derive(uniffi::Record)]
+pub struct LlmMemoryBudget {
+    pub required_bytes: u64,
+    pub system_reserve_cap_bytes: Option<u64>,
+}
+
+#[uniffi::export]
+pub fn llm_has_required_work_reserve(available_bytes: Option<u64>) -> bool {
+    llm::memory::has_required_work_reserve(available_bytes)
+}
+
+#[uniffi::export]
+pub fn llm_memory_budget(
+    surface: crate::config::ModelRuntimeSurface,
+    operation: LlmMemoryOperation,
+    loaded_chat: Option<LlmChatModelMemory>,
+    query_bytes: Option<u64>,
+) -> LlmMemoryBudget {
+    use llm::memory::MemoryOperation;
+    let operation = match operation {
+        LlmMemoryOperation::Embedding => MemoryOperation::Embedding,
+        LlmMemoryOperation::Voice => MemoryOperation::Voice,
+        LlmMemoryOperation::Title => MemoryOperation::Title,
+    };
+    let loaded_chat = loaded_chat.map(|chat| llm::memory::ChatModelMemory {
+        model_id: chat.model_id,
+        model_bytes: chat.model_bytes,
+        context_size: chat.context_size,
+    });
+    let budget =
+        llm::memory::memory_budget(surface.into(), operation, loaded_chat.as_ref(), query_bytes);
+    LlmMemoryBudget {
+        required_bytes: budget.required_bytes,
+        system_reserve_cap_bytes: budget.system_reserve_cap_bytes,
+    }
+}
+
+#[uniffi::export(foreign)]
 pub trait LlmGenerationEventCallback: Send + Sync {
     fn on_event(&self, event: LlmGenerationEvent);
 }
@@ -190,6 +262,7 @@ impl From<LlmContextParams> for llm::ContextParams {
         Self {
             context_size: value.context_size,
             n_threads: value.n_threads,
+            n_threads_generation: value.n_threads_generation,
             n_batch: value.n_batch,
         }
     }
@@ -267,7 +340,7 @@ impl From<llm::GenerationEvent> for LlmGenerationEvent {
 }
 
 struct CallbackSink {
-    callback: Box<dyn LlmGenerationEventCallback>,
+    callback: Arc<dyn LlmGenerationEventCallback>,
 }
 
 impl llm::EventSink for CallbackSink {
@@ -279,6 +352,11 @@ impl llm::EventSink for CallbackSink {
 #[uniffi::export]
 pub fn llm_init_backend() -> Result<(), LlmError> {
     llm::init_backend().map_err(LlmError::from)
+}
+
+#[uniffi::export]
+pub fn llm_init_backend_from_directory(directory: String) -> Result<(), LlmError> {
+    llm::init_backend_from_directory(&directory).map_err(LlmError::from)
 }
 
 #[uniffi::export]

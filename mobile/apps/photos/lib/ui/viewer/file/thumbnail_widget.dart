@@ -41,6 +41,8 @@ class ThumbnailWidget extends StatefulWidget {
   final Duration? serverLoadDeferDuration;
   final int thumbnailSize;
   final bool useRequestedThumbnailSizeForLocalCache;
+  final bool useCachedThumbnailAsPlaceholder;
+  final bool gaplessPlayback;
   final bool shouldShowOwnerAvatar;
   final AvatarType ownerAvatarType;
   final bool shouldShowFavoriteIcon;
@@ -63,6 +65,8 @@ class ThumbnailWidget extends StatefulWidget {
     this.serverLoadDeferDuration,
     this.thumbnailSize = thumbnailSmallSize,
     this.useRequestedThumbnailSizeForLocalCache = false,
+    this.useCachedThumbnailAsPlaceholder = false,
+    this.gaplessPlayback = false,
     this.shouldShowFavoriteIcon = true,
     this.placeholderColor,
     this.shouldShowVideoDuration = false,
@@ -181,7 +185,12 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
     }
     Widget? image;
     if (_imageProvider != null) {
-      image = Image(image: _imageProvider!, fit: widget.fit);
+      image = Image(
+        image: _imageProvider!,
+        fit: widget.fit,
+        gaplessPlayback:
+            widget.gaplessPlayback || widget.useCachedThumbnailAsPlaceholder,
+      );
     }
     if (widget.rawThumbnail) {
       return image ?? ThumbnailPlaceHolder(color: widget.placeholderColor);
@@ -307,6 +316,22 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
         ).image;
         _cacheAndRender(imageProvider);
         return;
+      }
+      if (widget.useCachedThumbnailAsPlaceholder &&
+          _localCacheThumbnailSize != thumbnailSmallSize) {
+        final preview = ThumbnailInMemoryLruCache.get(
+          widget.file,
+          thumbnailSmallSize,
+        );
+        if (preview != null) {
+          _imageProvider = Image.memory(
+            preview,
+            cacheWidth: optimizedImageWidth == null ? null : thumbnailSmallSize,
+            cacheHeight: optimizedImageHeight == null
+                ? null
+                : thumbnailSmallSize,
+          ).image;
+        }
       }
       if (widget.diskLoadDeferDuration != null) {
         Future.delayed(widget.diskLoadDeferDuration!, () {

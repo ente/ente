@@ -2,7 +2,6 @@ import 'package:ente_components/ente_components.dart';
 import "package:ente_events/event_bus.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
@@ -20,6 +19,7 @@ import "package:locker/services/files/sync/models/file.dart";
 import "package:locker/services/trash/trash_service.dart";
 import "package:locker/ui/components/add_to_collection_sheet.dart";
 import "package:locker/ui/components/delete_confirmation_sheet.dart";
+import "package:locker/ui/components/locker_progress_dialog.dart";
 import "package:locker/ui/components/selection_action_button_widget.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:locker/utils/collection_list_util.dart";
@@ -644,14 +644,8 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       '${result.selectedCollections.length} selected collection(s).',
     );
     final dialog = context.mounted
-        ? createProgressDialog(
-            context,
-            context.strings.pleaseWait,
-            isDismissible: false,
-          )
+        ? await showLockerProgressDialog(context, context.strings.pleaseWait)
         : null;
-
-    await dialog?.show();
 
     try {
       final addFutures = <Future<void>>[];
@@ -772,16 +766,10 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     }
 
     final dialog = context.mounted
-        ? createProgressDialog(
-            context,
-            context.strings.deletingFile,
-            isDismissible: false,
-          )
+        ? await showLockerProgressDialog(context, context.strings.deletingFile)
         : null;
 
     try {
-      await dialog?.show();
-
       for (final file in ownedFiles) {
         final collections = await CollectionService.instance
             .getCollectionsForFile(file);
@@ -874,14 +862,11 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     final targetCollection = result.selectedCollections.first;
 
     final dialog = context.mounted
-        ? createProgressDialog(
+        ? await showLockerProgressDialog(
             context,
             context.strings.restoringItems,
-            isDismissible: false,
           )
         : null;
-
-    await dialog?.show();
 
     try {
       await TrashService.instance.restore(files, targetCollection);
@@ -925,14 +910,8 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     }
 
     final dialog = context.mounted
-        ? createProgressDialog(
-            context,
-            context.strings.deletingFiles,
-            isDismissible: false,
-          )
+        ? await showLockerProgressDialog(context, context.strings.deletingFiles)
         : null;
-
-    await dialog?.show();
 
     try {
       await TrashService.instance.deleteFromTrash(files);

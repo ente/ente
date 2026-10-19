@@ -1,7 +1,7 @@
+import type { AlbumFilter } from "@/utils/album-filters";
 import type { LocalUser } from "ente-accounts/services/user";
 import {
     groupFilesByCollectionID,
-    sortFiles,
     uniqueFilesByID,
 } from "ente-gallery/utils/file";
 import {
@@ -11,6 +11,7 @@ import {
     findUserUncategorizedCollection,
     type Collection,
 } from "ente-media/collection";
+import { sortCollectionFiles, sortFiles } from "ente-media/collection-sort";
 import type { EnteFile } from "ente-media/file";
 import {
     isArchivedFile,
@@ -43,16 +44,16 @@ import { splitByPredicate } from "ente-utils/array";
 import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
 import React, { useReducer } from "react";
+import { visibleQuickLinks } from "../../utils/quick-links";
 
 // TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
 // all cases where the bar mode was in use.
 export type GalleryBarMode =
-    | "albums"
-    | "hidden-albums"
-    | "archive-albums"
-    | "people";
+    "albums" | "hidden-albums" | "archive-albums" | "people" | "links";
 
 type GalleryView =
+    | { type: "links"; selectedLinkID: number | undefined }
+    | { type: "album-overview"; albumFilter: AlbumFilter }
     | {
           type: "albums" | "hidden-albums" | "archive-albums";
           activeCollectionSummaryID: number;
@@ -155,6 +156,9 @@ type GalleryAction =
     | { type: "clearUnsyncedState" }
     | { type: "showAll" }
     | { type: "showHidden" }
+    | { type: "showAlbumOverview"; albumFilter: AlbumFilter }
+    | { type: "showLinks"; collectionID?: number }
+    | { type: "selectLink"; collectionID: number }
     | { type: "showAlbums" }
     | { type: "showCollectionSummary"; collectionSummaryID: number | undefined }
     | { type: "showPeople" }
@@ -165,7 +169,7 @@ type GalleryAction =
     | { type: "exitSearch"; shouldExitSearchMode?: boolean }
     | { type: "setSearchSortOrder"; asc: boolean | undefined };
 
-const initialGalleryState: GalleryState = {
+export const initialGalleryState: GalleryState = {
     user: undefined,
     familyData: undefined,
     collections: [],
@@ -207,7 +211,7 @@ const initialGalleryState: GalleryState = {
     searchSortAsc: undefined,
 };
 
-const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
+export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
     state,
     action,
 ) => {
@@ -227,7 +231,7 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 hiddenCollections,
                 hiddenCollectionIDs,
                 hiddenFileIDs,
-            } = deriveHiddenInfo(collections, collectionFiles);
+            } = deriveHiddenInfo(collections, collectionFiles, user.id);
 
             const archivedCollectionIDs =
                 deriveArchivedCollectionIDs(normalCollections);
@@ -339,7 +343,11 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 hiddenCollections,
                 hiddenCollectionIDs,
                 hiddenFileIDs,
-            } = deriveHiddenInfo(collections, state.collectionFiles);
+            } = deriveHiddenInfo(
+                collections,
+                state.collectionFiles,
+                state.user!.id,
+            );
 
             const archivedCollectionIDs =
                 deriveArchivedCollectionIDs(normalCollections);
@@ -715,6 +723,36 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 isInSearchMode: false,
             });
 
+        case "showLinks":
+        case "selectLink":
+            return stateByUpdatingFilteredFiles({
+                ...state,
+                selectedCollectionSummaryID: undefined,
+                extraVisiblePerson: undefined,
+                searchSuggestion: undefined,
+                searchResults: undefined,
+                isRecomputingSearchResults: false,
+                pendingSearchSuggestions: [],
+                isInSearchMode: false,
+                view: { type: "links", selectedLinkID: action.collectionID },
+            });
+
+        case "showAlbumOverview":
+            return stateByUpdatingFilteredFiles({
+                ...state,
+                selectedCollectionSummaryID: undefined,
+                extraVisiblePerson: undefined,
+                searchSuggestion: undefined,
+                searchResults: undefined,
+                isRecomputingSearchResults: false,
+                pendingSearchSuggestions: [],
+                view: {
+                    type: "album-overview",
+                    albumFilter: action.albumFilter,
+                },
+                isInSearchMode: false,
+            });
+
         case "showAlbums": {
             const { view, selectedCollectionSummaryID } =
                 deriveAlbumsViewAndSelectedID(
@@ -809,8 +847,8 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 state.peopleState,
                 state.tempDeletedFileIDs,
                 state.tempHiddenFileIDs,
-                state.selectedPersonID,
-                state.extraVisiblePerson,
+                undefined,
+                undefined,
             );
             return stateByUpdatingFilteredFiles({
                 ...state,
@@ -920,10 +958,11 @@ const deriveCollectionFiles = (
 const deriveHiddenInfo = (
     collections: GalleryState["collections"],
     collectionFiles: GalleryState["collectionFiles"],
+    userID: number,
 ) => {
     const [hiddenCollections, normalCollections] = splitByPredicate(
         collections,
-        isHiddenCollection,
+        (collection) => isHiddenCollection(collection, userID),
     );
     const hiddenCollectionIDs = new Set(hiddenCollections.map((c) => c.id));
     return {
@@ -1555,8 +1594,6 @@ const derivePeopleView = (
         activePerson = findByIDIn(people);
         if (activePerson) {
             extraVisiblePerson = activePerson;
-        } else {
-            activePerson = visiblePeople[0];
         }
     }
 
@@ -1634,6 +1671,18 @@ const stateForUpdatedCollectionFiles = (
 };
 
 const stateByUpdatingFilteredFiles = (state: GalleryState) => {
+    if (state.view?.type == "links") {
+        const links = visibleQuickLinks(
+            state.collections,
+            state.user!.id,
+            state.hiddenCollectionIDs,
+        );
+        const previousLinkID = state.view.selectedLinkID;
+        const selectedLinkID = links.some(({ id }) => id == previousLinkID)
+            ? state.view.selectedLinkID
+            : links[0]?.id;
+        state = { ...state, view: { type: "links", selectedLinkID } };
+    }
     if (state.isInSearchMode) {
         const searchFiles = state.searchResults ?? state.filteredFiles;
         const visibleSearchFiles = suppressSharedFilesSavedByUser(
@@ -1668,6 +1717,11 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
             state.user?.id,
         );
         return { ...state, filteredFiles };
+    } else if (
+        state.view?.type == "album-overview" ||
+        state.view?.type == "links"
+    ) {
+        return { ...state, filteredFiles: [] };
     } else if (state.view?.type == "people") {
         const filteredFiles = derivePeopleFilteredFiles(
             state.collectionFiles,
@@ -1760,8 +1814,11 @@ const sortAndUniqueFilteredFiles = (
     const uniqueFiles = uniqueFilesByID(
         suppressSharedFilesSavedByUser(files, currentUserID, activeCollection),
     );
-    const sortAsc = activeCollection?.pubMagicMetadata?.data.asc ?? false;
-    return sortAsc ? sortFiles(uniqueFiles, true) : uniqueFiles;
+    const metadata = activeCollection?.pubMagicMetadata?.data;
+    // The synced library is already in newest-first order.
+    return metadata?.asc || metadata?.sortBy === "fileName"
+        ? sortCollectionFiles(uniqueFiles, metadata)
+        : uniqueFiles;
 };
 
 const suppressSharedFilesSavedByUser = (

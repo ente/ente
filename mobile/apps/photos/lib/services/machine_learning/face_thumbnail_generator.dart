@@ -5,6 +5,19 @@ import "package:photos/models/ml/face/box.dart";
 import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:photos/utils/isolate/super_isolate.dart";
 
+final _unsupportedImageFormatError = RegExp(
+  r'^Exception: decode error: (The file extension .+ was not recognized as an image format|The image format .+ is not supported)$',
+);
+
+class UnsupportedFaceThumbnailException implements Exception {
+  final Object cause;
+
+  const UnsupportedFaceThumbnailException(this.cause);
+
+  @override
+  String toString() => "UnsupportedFaceThumbnailException: $cause";
+}
+
 @pragma('vm:entry-point')
 class FaceThumbnailGenerator extends SuperIsolate {
   @override
@@ -42,6 +55,9 @@ class FaceThumbnailGenerator extends SuperIsolate {
     } catch (e, s) {
       _logger.severe("Failed to generate face thumbnails", e, s);
 
+      if (_unsupportedImageFormatError.hasMatch(e.toString())) {
+        Error.throwWithStackTrace(UnsupportedFaceThumbnailException(e), s);
+      }
       rethrow;
     }
   }

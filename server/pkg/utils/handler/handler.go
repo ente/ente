@@ -92,6 +92,7 @@ func requestFailureLogLevel(err error, apiErr *ente.ApiError) *log.Level {
 		errors.Is(err, ente.ErrUserDeleted) ||
 		errors.Is(err, sql.ErrNoRows) ||
 		errors.Is(err, errBindJSON) ||
+		isRequestBodyTooLarge(err) ||
 		isRequestIOError(err) ||
 		(apiErr != nil && apiErr.HttpStatusCode >= 400 && apiErr.HttpStatusCode < 500) {
 		return logLevel(log.WarnLevel)
@@ -109,8 +110,15 @@ func isRequestIOError(err error) bool {
 		errors.Is(err, syscall.ECONNRESET)
 }
 
+func isRequestBodyTooLarge(err error) bool {
+	var sizeError *http.MaxBytesError
+	return errors.As(err, &sizeError)
+}
+
 func httpStatusCode(err error) int {
 	switch {
+	case isRequestBodyTooLarge(err):
+		return http.StatusRequestEntityTooLarge
 	case errors.Is(err, ente.ErrNotFound) ||
 		errors.Is(err, sql.ErrNoRows):
 		return http.StatusNotFound

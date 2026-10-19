@@ -21,6 +21,7 @@ import {
 } from "react";
 import {
     dedupeCollectionNames,
+    fileForUpload,
     filterNonEmptyUploadItems,
     normalizeCollectionName,
     uploadQueueItemKey,
@@ -283,7 +284,7 @@ export function useUploadQueue({
 
                         try {
                             await onUploadProgress(
-                                item.file,
+                                fileForUpload(item),
                                 collectionIDs,
                                 (progress) => {
                                     setUploadProgressByFileKey((current) => ({

@@ -19,9 +19,9 @@ const textLight = spaceTextMuted;
 const warning = "#F63A3A";
 
 export const spaceAppAvatarCropSize =
-    "min(calc(100vw - 48px), calc(100dvh - 308px), 342px)";
+    "min(calc(100vw - 48px), calc(100dvh - 320px - var(--space-ios-safe-area-top, 0px)), 342px)";
 export const spaceSetupAvatarCropSize =
-    "min(calc(100vw - 48px), calc(100dvh - 294px), 342px)";
+    "min(calc(100vw - 48px), calc(100dvh - 294px - var(--space-ios-safe-area-top, 0px)), 342px)";
 export const spaceSetupAvatarCropFooterHeight = "130px";
 
 interface SpaceAvatarCropPageProps {
@@ -195,7 +195,7 @@ export const SpaceAvatarCropPage: React.FC<SpaceAvatarCropPageProps> = ({
                     boxSizing: "border-box",
                     display: "grid",
                     gridTemplateRows: isAppHeader
-                        ? "56px minmax(0, 1fr) auto auto"
+                        ? "68px minmax(0, 1fr) auto auto"
                         : `42px minmax(0, 1fr) auto ${spaceSetupAvatarCropFooterHeight}`,
                     height: "100%",
                     minHeight: 0,
@@ -205,8 +205,15 @@ export const SpaceAvatarCropPage: React.FC<SpaceAvatarCropPageProps> = ({
                     pb: isAppHeader
                         ? "calc(24px + env(safe-area-inset-bottom))"
                         : "calc(20px + env(safe-area-inset-bottom))",
-                    pt: isAppHeader ? 0 : "32px",
-                    px: isAppHeader ? 0 : 3,
+                    pt: isAppHeader
+                        ? "var(--space-ios-safe-area-top, 0px)"
+                        : "calc(32px + var(--space-ios-safe-area-top, 0px))",
+                    pl: isAppHeader
+                        ? 0
+                        : "max(24px, var(--space-ios-safe-area-left, 0px))",
+                    pr: isAppHeader
+                        ? 0
+                        : "max(24px, var(--space-ios-safe-area-right, 0px))",
                     width: "100%",
                     "@media (min-width: 600px)": { maxWidth: 390 },
                 }}
@@ -219,8 +226,9 @@ export const SpaceAvatarCropPage: React.FC<SpaceAvatarCropPageProps> = ({
                                   alignItems: "center",
                                   display: "grid",
                                   gridTemplateColumns: `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
-                                  height: 56,
-                                  px: 2,
+                                  height: 68,
+                                  pl: "max(16px, var(--space-ios-safe-area-left, 0px))",
+                                  pr: "max(16px, var(--space-ios-safe-area-right, 0px))",
                                   width: "100%",
                               }
                             : {

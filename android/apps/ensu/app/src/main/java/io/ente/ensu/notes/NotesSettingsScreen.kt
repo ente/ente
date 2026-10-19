@@ -13,6 +13,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,6 +25,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.ente.ensu.components.CompactButton
 import io.ente.ensu.components.KnowledgeCard
@@ -35,17 +38,29 @@ import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun NotesSettingsScreen(store: NotesStore) {
+fun NotesSettingsScreen(
+    store: NotesStore,
+    onPickerPending: (Boolean) -> Unit,
+    allowRemoval: Boolean,
+) {
     val state by store.state.collectAsState()
     var removing by remember { mutableStateOf<NoteCollectionState?>(null) }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            onPickerPending(false)
             uri?.let(store::add)
         }
     LazyColumn(
         modifier = Modifier.padding(horizontal = EnsuSpacing.pageHorizontal.dp),
         verticalArrangement = Arrangement.spacedBy(EnsuSpacing.md.dp),
     ) {
+        item {
+            Text(
+                "Choose notes for future messages in all chats. Changes apply to your next message.",
+                style = EnsuTypography.small,
+                color = EnsuColor.textMuted(),
+            )
+        }
         items(state.collections, key = { it.id }) { collection ->
             KnowledgeCard(spacing = EnsuSpacing.sm.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -87,17 +102,27 @@ fun NotesSettingsScreen(store: NotesStore) {
                             color = EnsuColor.textMuted(),
                         )
                     }
-                    IconButton(
-                        onClick = { removing = collection },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(HugeIcons.Delete01Icon),
-                            contentDescription = "Remove ${collection.label}",
-                            modifier = Modifier.size(18.dp),
-                            tint = EnsuColor.textMuted(),
-                        )
-                    }
+                    Switch(
+                        checked = collection.id !in state.disabledIds,
+                        onCheckedChange = { store.setEnabled(collection.id, it) },
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription =
+                                    "Use ${collection.label} for future messages in all chats"
+                            },
+                    )
+                    if (allowRemoval)
+                        IconButton(
+                            onClick = { removing = collection },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(HugeIcons.Delete01Icon),
+                                contentDescription = "Remove ${collection.label}",
+                                modifier = Modifier.size(18.dp),
+                                tint = EnsuColor.textMuted(),
+                            )
+                        }
                 }
                 collection.progress?.let { progress ->
                     Row(
@@ -133,7 +158,15 @@ fun NotesSettingsScreen(store: NotesStore) {
         item {
             CompactButton(
                 label = "Add notes folder",
-                onClick = { picker.launch(null) },
+                onClick = {
+                    onPickerPending(true)
+                    try {
+                        picker.launch(null)
+                    } catch (error: Exception) {
+                        onPickerPending(false)
+                        throw error
+                    }
+                },
             )
         }
         item {

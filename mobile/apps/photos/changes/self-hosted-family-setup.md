@@ -1,1 +1,0 @@
-- Fixed family setup for self-hosted accounts.

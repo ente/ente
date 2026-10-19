@@ -8,7 +8,6 @@ import 'package:ente_events/event_bus.dart';
 import "package:ente_events/models/trigger_logout_event.dart";
 import "package:ente_legacy/events/legacy_kit_created_event.dart";
 import 'package:ente_strings/ente_strings.dart';
-import 'package:ente_ui/utils/dialog_util.dart';
 import "package:ente_utils/email_util.dart";
 import 'package:flutter/material.dart';
 import "package:flutter_svg/flutter_svg.dart";
@@ -20,13 +19,13 @@ import 'package:locker/models/selected_files.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/configuration.dart';
-import 'package:locker/services/feature_flag_service.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/local_settings.dart';
 import "package:locker/states/user_details_state.dart";
 import "package:locker/ui/components/empty_state_widget.dart";
 import "package:locker/ui/components/home_empty_state_widget.dart";
 import "package:locker/ui/components/legacy_setup_banner.dart";
+import "package:locker/ui/components/locker_progress_dialog.dart";
 import 'package:locker/ui/components/recents_section_widget.dart';
 import "package:locker/ui/components/save_to_locker_empty_state_widget.dart";
 import 'package:locker/ui/components/search_result_view.dart';
@@ -341,8 +340,10 @@ class _HomePageState extends UploaderPageState<HomePage>
             label: context.strings.ok,
             onTap: () async {
               navigator.pop();
-              final dialog = createProgressDialog(context, l10n.pleaseWait);
-              await dialog.show();
+              final dialog = await showLockerProgressDialog(
+                context,
+                l10n.pleaseWait,
+              );
               await Configuration.instance.logout();
               await dialog.hide();
               navigator.popUntil((route) => route.isFirst);
@@ -418,23 +419,56 @@ class _HomePageState extends UploaderPageState<HomePage>
     }
 
     try {
+      final files = <File>[];
+      final seen = <String>{};
+      var skippedCount = 0;
       for (final sharedFile in sharedFiles) {
-        _logger.info('Processing shared file');
-        if (sharedFile.path.isNotEmpty) {
-          final file = File(sharedFile.path);
-          if (await file.exists()) {
-            _logger.info('File exists, uploading');
-            await uploadFiles([file]);
-          } else {
-            _logger.warning('Shared file does not exist');
+        if (seen.contains(sharedFile.path)) {
+          skippedCount++;
+          continue;
+        }
+        final file = File(sharedFile.path);
+        try {
+          final reader = await file.open();
+          try {
+            await reader.read(1);
+          } finally {
+            await reader.close();
           }
-        } else {
-          _logger.warning('Shared file has empty path');
+          seen.add(sharedFile.path);
+          files.add(file);
+        } on FileSystemException {
+          // The plugin also labels files with captions as text; probe them first.
+          if (sharedFile.type != SharedMediaType.text &&
+              sharedFile.type != SharedMediaType.url &&
+              sharedFile.type != SharedMediaType.mailto) {
+            skippedCount++;
+          }
         }
       }
+      if (!mounted) return;
 
-      await ReceiveSharingIntent.instance.reset();
-      _logger.info('Reset sharing intent after handling files');
+      if (skippedCount > 0) {
+        _logger.warning('Skipped $skippedCount unreadable or repeated files');
+        await showBottomSheetComponent(
+          context: context,
+          builder: (sheetContext) => BottomSheetComponent(
+            title: context.strings.skippedFiles,
+            message: context.strings.sharedFilesSkipped,
+            illustration: LockerBottomSheetIllustration.warningGrey,
+            actions: [
+              ButtonComponent(
+                label: context.strings.ok,
+                onTap: () => Navigator.of(sheetContext).pop(),
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (mounted && files.isNotEmpty) {
+        await uploadFiles(files);
+      }
     } catch (e) {
       _logger.severe('Error handling shared files: $e');
       if (mounted) {
@@ -455,6 +489,8 @@ class _HomePageState extends UploaderPageState<HomePage>
           ),
         );
       }
+    } finally {
+      await ReceiveSharingIntent.instance.reset();
     }
   }
 
@@ -680,12 +716,8 @@ class _HomePageState extends UploaderPageState<HomePage>
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (FeatureFlagService
-                                  .instance
-                                  .documentScanner) ...[
-                                _buildScannerFab(colors),
-                                const SizedBox(height: 14),
-                              ],
+                              _buildScannerFab(colors),
+                              const SizedBox(height: 14),
                               FloatingActionButton(
                                 tooltip: 'Add item',
                                 onPressed: () =>

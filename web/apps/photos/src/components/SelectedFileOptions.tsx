@@ -1,7 +1,5 @@
 import type { CollectionSelectorAttributes } from "@/components/CollectionSelector";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
-import { StarBorderIcon } from "@/components/icons/StarIcon";
-import { StarOffIcon } from "@/components/icons/StarOffIcon";
 import {
     getAvailableFileActions,
     type FileContextAction,
@@ -16,6 +14,8 @@ import {
     Location01Icon,
     Navigation03Icon,
     RemoveCircleIcon,
+    StarIcon,
+    StarOffIcon,
     Time04Icon,
     Unarchive03Icon,
     UserAdd02Icon,
@@ -58,6 +58,7 @@ interface SelectedFileOptionsProps {
     selectedOwnFileCount: number;
     selectedFavoriteCount: number;
     onClearSelection: () => void;
+    onDelete: () => void;
     onRemoveFilesFromCollection: (collection: Collection) => void;
     onOpenCollectionSelector: (
         attributes: CollectionSelectorAttributes,
@@ -82,6 +83,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     selectedOwnFileCount,
     selectedFavoriteCount,
     onClearSelection,
+    onDelete,
     onRemoveFilesFromCollection,
     onOpenCollectionSelector,
     createOnCreateForCollectionOp,
@@ -102,17 +104,6 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     const handleArchive = createFileOpHandler("archive");
     const handleUnarchive = createFileOpHandler("unarchive");
 
-    const handleDelete = () =>
-        showMiniDialog({
-            title: t("trash_files_title"),
-            message: t("trash_files_message"),
-            continue: {
-                text: t("move_to_trash"),
-                color: "critical",
-                action: createFileOpHandler("trash"),
-            },
-        });
-
     const handleRestore = () =>
         onOpenCollectionSelector({
             action: "restore",
@@ -123,6 +114,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     const handleDeletePermanently = () =>
         showMiniDialog({
             title: t("delete_files_title"),
+            kind: "warning",
             message: t("delete_files_message"),
             continue: {
                 text: t("delete"),
@@ -226,6 +218,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
         barMode,
         isInSearchMode,
         collectionSummary,
+        hasOwnFiles: selectedOwnFileCount > 0,
         hasOnlyOwnFiles,
         showAddPerson: !!onShowAssignPersonDialog,
         showEditLocation: !!onEditLocation && hasOnlyOwnFiles,
@@ -263,7 +256,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
             case "unhide":
                 return <UnhideButton key={action} onClick={handleUnhide} />;
             case "trash":
-                return <DeleteButton key={action} onClick={handleDelete} />;
+                return <DeleteButton key={action} onClick={onDelete} />;
             case "deletePermanently":
                 return (
                     <DeletePermanentlyButton
@@ -340,7 +333,7 @@ const DownloadButton: React.FC<ButtonishProps> = ({ onClick }) => (
 );
 
 const SendLinkButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title="Send link">
+    <Tooltip title={t("send_link")}>
         <IconButton {...{ onClick }} aria-label="Send link">
             <HugeiconsIcon icon={Navigation03Icon} />
         </IconButton>
@@ -350,7 +343,7 @@ const SendLinkButton: React.FC<ButtonishProps> = ({ onClick }) => (
 const FavoriteButton: React.FC<ButtonishProps> = ({ onClick }) => (
     <Tooltip title={t("favorite")}>
         <IconButton {...{ onClick }}>
-            <StarBorderIcon fontSize="small" />
+            <HugeiconsIcon icon={StarIcon} size={20} aria-hidden />
         </IconButton>
     </Tooltip>
 );
@@ -358,7 +351,7 @@ const FavoriteButton: React.FC<ButtonishProps> = ({ onClick }) => (
 const UnfavoriteButton: React.FC<ButtonishProps> = ({ onClick }) => (
     <Tooltip title={t("un_favorite")}>
         <IconButton {...{ onClick }}>
-            <StarOffIcon fontSize="small" />
+            <HugeiconsIcon icon={StarOffIcon} size={20} aria-hidden />
         </IconButton>
     </Tooltip>
 );

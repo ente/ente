@@ -3,8 +3,6 @@ import "dart:math" show max;
 
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
-import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
-    show Uint64List;
 import 'package:logging/logging.dart';
 import "package:path_provider/path_provider.dart";
 import "package:photos/db/ml/db.dart";
@@ -79,7 +77,6 @@ class SimilarImagesService {
         fileIDs.add(file.uploadedFileID!);
       }
     }
-    final Uint64List potentialKeys = Uint64List.fromList(fileIDs);
     w?.log("getAllFilesForSearch");
 
     final fileIDToPersonIDs = <int, Set<String>>{};
@@ -101,7 +98,7 @@ class SimilarImagesService {
 
     if (forceRefresh) {
       final result = await _performFullSearch(
-        potentialKeys,
+        fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
@@ -181,7 +178,7 @@ class SimilarImagesService {
 
     if (cachedData == null || needsFullRefresh) {
       final result = await _performFullSearch(
-        potentialKeys,
+        fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
@@ -198,7 +195,7 @@ class SimilarImagesService {
     } else {
       return await _performIncrementalUpdate(
         cachedData,
-        potentialKeys,
+        fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
@@ -209,7 +206,7 @@ class SimilarImagesService {
 
   Future<List<SimilarFiles>> _performIncrementalUpdate(
     SimilarFilesCache cachedData,
-    Uint64List currentFileIDs,
+    List<int> currentFileIDs,
     Map<int, EnteFile> allFileIdsToFile,
     Map<int, Set<String>> fileIDToPersonIDs,
     double distanceThreshold,
@@ -218,7 +215,7 @@ class SimilarImagesService {
     _logger.info("Performing incremental update for similar files");
     final existingGroups = await cachedData.similarFilesList();
     final cachedFileIDs = cachedData.allCheckedFileIDs;
-    final currentFileIDsSet = currentFileIDs.map((id) => id.toInt()).toSet();
+    final currentFileIDsSet = currentFileIDs.toSet();
     final deletedFiles = cachedFileIDs.difference(currentFileIDsSet);
 
     if (deletedFiles.isNotEmpty) {
@@ -250,25 +247,21 @@ class SimilarImagesService {
       return existingGroups;
     }
 
-    final newFileIDsList = Uint64List.fromList(newFileIDs.toList());
-    final (keys, vectorKeys, distances) = await MLComputer.instance
-        .bulkVectorSearchWithKeys(newFileIDsList, exact);
-    final keysList = keys.map((key) => key.toInt()).toList();
+    final newFileMatches = await MLComputer.instance.bulkVectorSearchWithKeys(
+      newFileIDs.toList(),
+      maxDistance: distanceThreshold,
+      exact: exact,
+    );
 
-    final unassignedNewFilesIndices = <int>{};
-    final unassignedNewFileIDs = <int>{};
-    for (int i = 0; i < keysList.length; i++) {
-      final newFileID = keysList[i];
+    final unassignedNewFiles = <int, List<(int, double)>>{};
+    for (final entry in newFileMatches.entries) {
+      final newFileID = entry.key;
       final newFile = allFileIdsToFile[newFileID];
       if (newFile == null) continue;
-      final similarFileIDs = vectorKeys[i];
-      final fileDistances = distances[i];
       final newFilePersonIDs = fileIDToPersonIDs[newFileID] ?? <String>{};
       bool assigned = false;
-      for (int j = 0; j < similarFileIDs.length; j++) {
-        final otherFileID = similarFileIDs[j].toInt();
+      for (final (otherFileID, distance) in entry.value) {
         if (otherFileID == newFileID) continue;
-        final distance = fileDistances[j];
         if (distance > distanceThreshold) break;
         for (final group in existingGroups) {
           if (group.fileIds.contains(otherFileID)) {
@@ -296,29 +289,24 @@ class SimilarImagesService {
         if (assigned) break;
       }
       if (!assigned) {
-        unassignedNewFilesIndices.add(i);
-        unassignedNewFileIDs.add(newFileID);
+        unassignedNewFiles[newFileID] = entry.value;
       }
     }
 
-    if (unassignedNewFilesIndices.isNotEmpty) {
+    if (unassignedNewFiles.isNotEmpty) {
       final alreadyUsedNewFiles = <int>{};
-      for (final searchIndex in unassignedNewFilesIndices) {
-        final newFileID = keysList[searchIndex];
+      for (final entry in unassignedNewFiles.entries) {
+        final newFileID = entry.key;
         if (alreadyUsedNewFiles.contains(newFileID)) continue;
         final newFile = allFileIdsToFile[newFileID];
         if (newFile == null) continue;
-        final similarFileIDs = vectorKeys[searchIndex];
-        final fileDistances = distances[searchIndex];
         final newFilePersonIDs = fileIDToPersonIDs[newFileID] ?? <String>{};
         final similarNewFiles = <EnteFile>[];
         double furthestDistance = 0.0;
-        for (int j = 0; j < similarFileIDs.length; j++) {
-          final otherFileID = similarFileIDs[j].toInt();
+        for (final (otherFileID, distance) in entry.value) {
           if (otherFileID == newFileID) continue;
-          if (!unassignedNewFileIDs.contains(otherFileID)) continue;
+          if (!unassignedNewFiles.containsKey(otherFileID)) continue;
           if (alreadyUsedNewFiles.contains(otherFileID)) continue;
-          final distance = fileDistances[j];
           if (distance > distanceThreshold) break;
           final otherFile = allFileIdsToFile[otherFileID];
           if (otherFile == null) continue;
@@ -357,7 +345,7 @@ class SimilarImagesService {
   }
 
   Future<List<SimilarFiles>> _performFullSearch(
-    Uint64List potentialKeys,
+    List<int> fileIDs,
     Map<int, EnteFile> allFileIdsToFile,
     Map<int, Set<String>> fileIDToPersonIDs,
     double distanceThreshold,
@@ -365,29 +353,28 @@ class SimilarImagesService {
   ) async {
     _logger.info("Performing full search for similar files");
     final w = (kDebugMode ? EnteWatch('getSimilarFiles') : null)?..start();
-    final (keys, vectorKeys, distances) = await MLComputer.instance
-        .bulkVectorSearchWithKeys(potentialKeys, exact);
+    final fileMatches = await MLComputer.instance.bulkVectorSearchWithKeys(
+      fileIDs,
+      maxDistance: distanceThreshold,
+      exact: exact,
+    );
     w?.log("bulkSearchVectors");
 
     final alreadyUsedFileIDs = <int>{};
     final allSimilarFiles = <SimilarFiles>[];
-    for (int i = 0; i < keys.length; i++) {
-      final fileID = keys[i].toInt();
+    for (final entry in fileMatches.entries) {
+      final fileID = entry.key;
       if (alreadyUsedFileIDs.contains(fileID)) continue;
       final firstLoopFile = allFileIdsToFile[fileID];
       if (firstLoopFile == null || firstLoopFile.uploadedFileID == null) {
         continue;
       }
-      final otherFileIDs = vectorKeys[i];
-      final distancesToFiles = distances[i];
       final similarFilesList = <EnteFile>[];
       final personIDs = fileIDToPersonIDs[fileID] ?? <String>{};
       double furthestDistance = 0.0;
-      for (int j = 0; j < otherFileIDs.length; j++) {
-        final otherFileID = otherFileIDs[j].toInt();
+      for (final (otherFileID, distance) in entry.value) {
         if (otherFileID == fileID) continue;
         if (alreadyUsedFileIDs.contains(otherFileID)) continue;
-        final distance = distancesToFiles[j];
         if (distance > distanceThreshold) break;
         final otherFile = allFileIdsToFile[otherFileID];
         if (otherFile == null || otherFile.uploadedFileID == null) {

@@ -10,6 +10,7 @@ import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
+    Button,
     Checkbox,
     Dialog,
     FormControlLabel,
@@ -27,6 +28,7 @@ interface LockerConfirmDialogProps {
     title: string;
     body: React.ReactNode;
     confirmLabel: string;
+    cancelLabel?: string;
     tone?: "critical" | "primary";
     loading?: boolean;
     error?: string;
@@ -45,6 +47,7 @@ export function LockerConfirmDialog({
     title,
     body,
     confirmLabel,
+    cancelLabel,
     tone = "critical",
     loading,
     error,
@@ -54,6 +57,7 @@ export function LockerConfirmDialog({
 }: LockerConfirmDialogProps) {
     const titleID = useId();
     const bodyID = useId();
+    const confirmButtonTypography = cancelLabel ? {} : lockerTextBodyBoldSx;
     const handleClose = () => {
         if (!loading) {
             onClose();
@@ -176,7 +180,7 @@ export function LockerConfirmDialog({
                     loading={loading}
                     onClick={onConfirm}
                     sx={(theme) => ({
-                        ...lockerTextBodyBoldSx,
+                        ...confirmButtonTypography,
                         mt: 3,
                         minHeight: 52,
                         borderRadius: "20px",
@@ -205,6 +209,22 @@ export function LockerConfirmDialog({
                 >
                     {confirmLabel}
                 </LoadingButton>
+                {cancelLabel && (
+                    <Button
+                        fullWidth
+                        autoFocus
+                        disabled={loading}
+                        onClick={handleClose}
+                        sx={{
+                            mt: 1,
+                            minHeight: 52,
+                            borderRadius: "20px",
+                            textTransform: "none",
+                        }}
+                    >
+                        {cancelLabel}
+                    </Button>
+                )}
             </Stack>
         </Dialog>
     );

@@ -2,6 +2,7 @@ mod citation;
 mod grounded;
 mod index;
 mod pack;
+mod passage;
 mod prompt;
 
 use thiserror::Error;
@@ -47,7 +48,7 @@ pub use citation::{
 };
 pub use grounded::{
     GroundedExcerpt, GroundedPromptContext, GroundedSource, MAX_NOTES_GROUNDING_HITS,
-    build_grounded_prompt_context, select_mixed_grounding_candidates,
+    ReferencedPassage, build_grounded_prompt_context, select_mixed_grounding_candidates,
 };
 pub use index::{RetrievalHit, RetrievalIndex};
 pub use pack::{
@@ -57,4 +58,9 @@ pub use pack::{
 };
 pub use prompt::{KnowledgePromptContext, KnowledgePromptHit, build_knowledge_prompt_context};
 
-pub(crate) use grounded::{MAX_GROUNDING_HITS, MAX_PACK_HITS, sanitize_excerpt};
+pub(crate) use grounded::{MAX_GROUNDING_HITS, MAX_PACK_HITS, build_followup_prompt_context};
+pub(crate) use passage::clean_passage_text;
+pub use passage::{IncludedPassage, PassageLocator, PassageSpan};
+
+#[cfg(test)]
+pub(crate) use passage::tests::passage_fixture;

@@ -7,6 +7,16 @@ description: Release notes of recent updates to Ente Locker
 
 A short summary list of changes to Ente Locker.
 
+## v1.0.10 (mobile) - Oct 2026
+
+- Improved document scanning. Retake individual pages before saving.
+- Rename documents before uploading. Thanks @fosszil!
+- Leave optional details blank in Notes, Things and Secrets.
+- Android: share multiple files into Locker. See when files are skipped.
+- Reopen What’s new from the version number in Settings or from About.
+- Find links to Ente Photos and Ente Auth in Settings.
+- Fixed scanner crashes on iPhone 17.
+
 ## v1.0.9 (mobile) - Sep 2026
 
 - Scan paper documents with Locker.

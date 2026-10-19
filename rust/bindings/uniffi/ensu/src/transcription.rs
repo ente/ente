@@ -64,7 +64,7 @@ impl Transcriber {
     pub fn transcribe(
         &self,
         input_sample_rate: u32,
-        pcm_le: Vec<u8>,
+        pcm_le: &[u8],
     ) -> Result<String, TranscriptionError> {
         self.inner
             .transcribe(input_sample_rate, pcm_le)

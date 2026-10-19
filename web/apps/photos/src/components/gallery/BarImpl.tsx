@@ -1,40 +1,58 @@
 import { CollectionsSortOptions } from "@/components/CollectionsSortOptions";
-import { StarIcon } from "@/components/icons/StarIcon";
 import { PeopleSortOptions } from "@/components/PeopleSortOptions";
+import {
+    matchesAlbumFilter,
+    type AlbumFilter,
+    type albumFilters,
+} from "@/utils/album-filters";
 import type { PeopleSortBy } from "@/utils/people-sort";
-import { Link05Icon, PinIcon } from "@hugeicons/core-free-icons";
+import {
+    Delete02Icon,
+    Download05Icon,
+    GeometricShapes01Icon,
+    Link05Icon,
+    PinIcon,
+    StarIcon,
+    ViewOffSlashIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import AddIcon from "@mui/icons-material/Add";
 import ArchiveIcon from "@mui/icons-material/Archive";
+import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PeopleIcon from "@mui/icons-material/People";
-import { Box, IconButton, Stack, Typography, styled } from "@mui/material";
-import { Overlay } from "ente-base/components/containers";
-import { FilledIconButton } from "ente-base/components/mui";
-import { Ellipsized2LineTypography } from "ente-base/components/Typography";
-import { useIsSmallWidth } from "ente-base/components/utils/hooks";
+import SearchIcon from "@mui/icons-material/Search";
 import {
-    BarItemTile,
-    ItemCard,
-    TileTextOverlay,
-} from "ente-new/photos/components/Tiles";
-import { FocusVisibleUnstyledButton } from "ente-new/photos/components/UnstyledButton";
+    Box,
+    ButtonBase,
+    Divider,
+    Drawer,
+    IconButton,
+    InputBase,
+    Stack,
+    Tooltip,
+    Typography,
+    styled,
+    useMediaQuery,
+    useTheme,
+} from "@mui/material";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { ItemCard } from "ente-new/photos/components/Tiles";
 import {
-    thumbnailLayoutMinColumns,
-    thumbnailMaxWidth,
-} from "ente-new/photos/components/utils/thumbnail-grid-layout";
-import type {
-    CollectionSummary,
-    CollectionSummaryAttribute,
-    CollectionsSortBy,
+    PseudoCollectionID,
+    type CollectionSummaries,
+    type CollectionSummary,
+    type CollectionSummaryAttribute,
+    type CollectionsSortBy,
 } from "ente-new/photos/services/collection-summary";
-import { isMLSupported } from "ente-new/photos/services/ml";
 import type { Person } from "ente-new/photos/services/ml/people";
+import { wait } from "ente-utils/promise";
 import { t } from "i18next";
 import React, {
     memo,
-    useCallback,
     useEffect,
+    useId,
     useMemo,
     useRef,
     useState,
@@ -47,14 +65,29 @@ import {
 } from "react-window";
 import type { GalleryBarMode } from "./reducer";
 
-export interface GalleryBarImplProps {
+export interface GalleryBarPresentationProps {
+    collapsed: boolean;
+    mobileDrawerProps: ModalVisibilityProps;
+}
+
+export interface GalleryBarImplProps extends GalleryBarPresentationProps {
     mode: GalleryBarMode;
-    onChangeMode: (mode: GalleryBarMode) => void;
+    albumFilter: AlbumFilter;
+    albumSearchQuery: string;
+    onAlbumSearchQueryChange: (query: string) => void;
+    onShowAlbumOverview: (filter: AlbumFilter) => void;
+    onShowPeopleOverview: () => void;
     collectionSummaries: CollectionSummary[];
+    visibleAlbumFilters: typeof albumFilters;
+    normalCollectionSummaries: CollectionSummaries;
+    uncategorizedCollectionSummaryID: number;
+    onShowCollectionSummary: (
+        collectionSummaryID: number,
+        isHiddenCollectionSummary?: boolean,
+    ) => Promise<boolean>;
     activeCollectionID: number | undefined;
     onSelectCollectionID: (collectionID: number) => void;
-    onShowAllAlbums: () => void;
-    onShowAllPeople: () => void;
+    onCreateAlbum: () => void;
     collectionsSortBy: CollectionsSortBy;
     onChangeCollectionsSortBy: (by: CollectionsSortBy) => void;
     peopleSortBy: PeopleSortBy;
@@ -66,12 +99,19 @@ export interface GalleryBarImplProps {
 
 export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
     mode,
-    onChangeMode,
+    albumFilter,
+    albumSearchQuery,
+    onAlbumSearchQueryChange,
+    onShowAlbumOverview,
+    onShowPeopleOverview,
     collectionSummaries,
+    visibleAlbumFilters,
+    normalCollectionSummaries,
+    uncategorizedCollectionSummaryID,
+    onShowCollectionSummary,
     activeCollectionID,
     onSelectCollectionID,
-    onShowAllAlbums,
-    onShowAllPeople,
+    onCreateAlbum,
     collectionsSortBy,
     onChangeCollectionsSortBy,
     peopleSortBy,
@@ -79,314 +119,588 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
     people,
     activePerson,
     onSelectPerson,
+    collapsed,
+    mobileDrawerProps,
 }) => {
-    const isSmallWidth = useIsSmallWidth();
-
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
-
-    const listContainerRef = useRef<HTMLDivElement | null>(null);
+    const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
+    const titleID = useId();
     const listRef = useRef<FixedSizeList | null>(null);
-
-    const updateScrollState = useCallback(() => {
-        if (!listContainerRef.current) return;
-
-        const { scrollLeft, scrollWidth, clientWidth } =
-            listContainerRef.current;
-
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft + clientWidth < scrollWidth);
-    }, []);
-
-    // react-window supplies the DOM node after the first render.
-    // The callback ref initializes listeners; the regular ref handles later changes.
-    const listContainerCallbackRef = useCallback<
-        (ref: HTMLDivElement | null) => void
-    >(
-        (ref) => {
-            listContainerRef.current = ref;
-            if (!ref) return undefined;
-
-            ref.addEventListener("scroll", updateScrollState);
-            const observer = new ResizeObserver(updateScrollState);
-            observer.observe(ref);
-
-            updateScrollState();
-
-            return () => {
-                ref.removeEventListener("scroll", updateScrollState);
-                observer.unobserve(ref);
-            };
-        },
-        [updateScrollState],
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
+    const searchQuery = mode == "people" ? peopleSearchQuery : albumSearchQuery;
+    const setSearchQuery =
+        mode == "people" ? setPeopleSearchQuery : onAlbumSearchQueryChange;
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+    const isSearching = !!normalizedSearchQuery;
+    const matchingPeople = useMemo(
+        () =>
+            mode == "people" && isSearching
+                ? people.filter((person) =>
+                      person.name
+                          ?.toLowerCase()
+                          .includes(normalizedSearchQuery),
+                  )
+                : people,
+        [mode, people, isSearching, normalizedSearchQuery],
+    );
+    const [viewportHeight, setViewportHeight] = useState(0);
+    const [expandedAlbumFilter, setExpandedAlbumFilter] = useState<
+        AlbumFilter | undefined
+    >(albumFilter);
+    const lastAlbumFilter = useRef(albumFilter);
+    const displayedAlbumFilter =
+        isSearching &&
+        expandedAlbumFilter !== undefined &&
+        !visibleAlbumFilters.some(({ value }) => value == expandedAlbumFilter)
+            ? visibleAlbumFilters[0]?.value
+            : expandedAlbumFilter;
+    const displayedCollectionSummaries = useMemo(
+        () =>
+            mode == "albums"
+                ? collectionSummaries.filter(
+                      (cs) =>
+                          displayedAlbumFilter !== undefined &&
+                          matchesAlbumFilter(cs, displayedAlbumFilter),
+                  )
+                : collectionSummaries,
+        [mode, collectionSummaries, displayedAlbumFilter],
     );
 
     useEffect(() => {
-        updateScrollState();
-    }, [updateScrollState, mode, collectionSummaries, people]);
-
-    const scroll = (direction: number) => () =>
-        listContainerRef.current?.scrollBy(250 * direction, 0);
+        // Heading clicks already set expansion; sync other group navigation.
+        if (lastAlbumFilter.current == albumFilter) return;
+        lastAlbumFilter.current = albumFilter;
+        setExpandedAlbumFilter(albumFilter);
+    }, [albumFilter]);
+    useEffect(() => {
+        setPeopleSearchQuery("");
+    }, [mode]);
 
     useEffect(() => {
-        if (!listRef.current) return;
+        if (
+            mode == "people" &&
+            (mobile ? !mobileDrawerProps.open : collapsed)
+        ) {
+            setPeopleSearchQuery("");
+        }
+    }, [mode, mobile, mobileDrawerProps.open, collapsed]);
+
+    useEffect(() => {
+        if (isSearching) listRef.current?.scrollTo(0);
+    }, [searchQuery, isSearching]);
+
+    useEffect(() => {
+        if (!listRef.current || isSearching) return;
         let i = -1;
         switch (mode) {
             case "albums":
             case "hidden-albums":
             case "archive-albums":
-                i = collectionSummaries.findIndex(
+            case "links":
+                i = displayedCollectionSummaries.findIndex(
                     ({ id }) => id == activeCollectionID,
                 );
                 break;
             case "people":
-                i = people.findIndex(({ id }) => id == activePerson?.id);
+                i = matchingPeople.findIndex(
+                    ({ id }) => id == activePerson?.id,
+                );
                 break;
         }
         if (i != -1) listRef.current.scrollToItem(i, "smart");
-    }, [mode, collectionSummaries, activeCollectionID, people, activePerson]);
+    }, [
+        mode,
+        displayedCollectionSummaries,
+        activeCollectionID,
+        matchingPeople,
+        activePerson,
+        collapsed,
+        mobile,
+        mobileDrawerProps.open,
+        viewportHeight,
+        isSearching,
+    ]);
 
     const itemData = useMemo<ItemData>(
         () =>
             mode == "albums" ||
             mode == "hidden-albums" ||
-            mode == "archive-albums"
+            mode == "archive-albums" ||
+            mode == "links"
                 ? {
                       type: "collections",
-                      collectionSummaries,
+                      collectionSummaries: displayedCollectionSummaries,
+                      indented: mode == "albums",
                       activeCollectionID: activeCollectionID!,
                       onSelectCollectionID,
                   }
                 : {
                       type: "people" as const,
-                      people,
+                      people: matchingPeople,
                       activePerson,
                       onSelectPerson,
                   },
         [
             mode,
-            collectionSummaries,
+            displayedCollectionSummaries,
             activeCollectionID,
             onSelectCollectionID,
-            people,
+            matchingPeople,
             activePerson,
             onSelectPerson,
         ],
     );
 
-    const controls1 = isSmallWidth && (
-        <Stack
-            direction="row"
-            sx={{ alignItems: "center", gap: 1, minHeight: "64px" }}
+    const title =
+        mode == "people"
+            ? t("people")
+            : mode == "links"
+              ? t("links")
+              : mode == "hidden-albums"
+                ? t("hidden_albums")
+                : mode == "archive-albums"
+                  ? t("section_archive")
+                  : t("albums");
+
+    const albumShortcuts = [
+        {
+            id: uncategorizedCollectionSummaryID,
+            label: t("section_uncategorized"),
+            icon: GeometricShapes01Icon,
+            active: activeCollectionID == uncategorizedCollectionSummaryID,
+        },
+        {
+            id: PseudoCollectionID.hiddenItems,
+            label: t("section_hidden"),
+            icon: ViewOffSlashIcon,
+            active: mode == "hidden-albums",
+        },
+        {
+            id: PseudoCollectionID.archiveItems,
+            label: t("section_archive"),
+            icon: Download05Icon,
+            active: mode == "archive-albums",
+        },
+        {
+            id: PseudoCollectionID.trash,
+            label: t("section_trash"),
+            icon: Delete02Icon,
+            active: activeCollectionID == PseudoCollectionID.trash,
+        },
+    ];
+
+    const albumListID = `${titleID}-albums`;
+    const items = (
+        <Box
+            id={mode == "albums" ? albumListID : undefined}
+            sx={{
+                flex: mode == "albums" ? "0 1 auto" : 1,
+                height:
+                    mode == "albums"
+                        ? getItemCount(itemData) * (mobile ? 46 : 50)
+                        : undefined,
+                minHeight:
+                    mode == "albums" && getItemCount(itemData) > 0
+                        ? mobile
+                            ? 46
+                            : 50
+                        : 0,
+                minWidth: 0,
+            }}
         >
-            {mode != "people" ? (
-                <CollectionsSortOptions
-                    activeSortBy={collectionsSortBy}
-                    onChangeSortBy={onChangeCollectionsSortBy}
-                    transparentTriggerButtonBackground
-                />
-            ) : (
-                <PeopleSortOptions
-                    activeSortBy={peopleSortBy}
-                    onChangeSortBy={onChangePeopleSortBy}
-                    transparentTriggerButtonBackground
-                />
-            )}
-            <IconButton
-                onClick={mode == "people" ? onShowAllPeople : onShowAllAlbums}
+            <AutoSizer onResize={({ height }) => setViewportHeight(height)}>
+                {({ width, height }) => (
+                    <FixedSizeList
+                        ref={listRef}
+                        width={width}
+                        height={height}
+                        itemData={itemData}
+                        itemKey={getItemKey}
+                        itemCount={getItemCount(itemData)}
+                        itemSize={mobile ? 46 : 50}
+                        style={{ overflowX: "hidden" }}
+                    >
+                        {ListItem}
+                    </FixedSizeList>
+                )}
+            </AutoSizer>
+        </Box>
+    );
+
+    const searchEmptyState = (
+        <Stack
+            role="status"
+            sx={{
+                flex: 1,
+                minHeight: 0,
+                alignItems: "center",
+                justifyContent: "safe center",
+                gap: "12px",
+                px: "16px",
+                py: "24px",
+                textAlign: "center",
+                overflowY: "auto",
+            }}
+        >
+            <Box
+                component="img"
+                src="/images/empty-state/no-matches.svg"
+                alt=""
+                draggable={false}
+                sx={{ width: 112, height: "auto", flexShrink: 0 }}
+            />
+            <Typography
+                sx={{
+                    color: "text.base",
+                    fontFamily: '"Outfit Variable", sans-serif',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    lineHeight: "26px",
+                }}
             >
-                <ExpandMoreIcon />
-            </IconButton>
+                {t("no_results")}
+            </Typography>
         </Stack>
     );
 
-    const controls2 = !isSmallWidth && (
+    const navigation = (
         <Stack
-            direction="row"
-            sx={{ alignItems: "center", gap: 1, height: "64px" }}
+            component="nav"
+            aria-labelledby={titleID}
+            onKeyDown={(event) => {
+                if (event.key == "Escape" && searchQuery) {
+                    event.stopPropagation();
+                    setSearchQuery("");
+                }
+            }}
+            sx={(theme) => ({
+                "--gallery-navigation-surface": "#FFFFFF",
+                "--gallery-navigation-hover":
+                    "color-mix(in srgb, var(--mui-palette-text-base) 8%, var(--gallery-navigation-surface))",
+                display: collapsed && !mobile ? "none" : "flex",
+                flexShrink: 0,
+                width: mobile ? "100%" : 328,
+                height: "100%",
+                minHeight: 0,
+                px: mobile ? "12px" : "16px",
+                py: mobile ? "14px" : 0,
+                borderLeft: mobile ? 0 : "2px solid",
+                borderColor: "rgba(224, 224, 224, 0.5)",
+                gap: "16px",
+                letterSpacing: 0,
+                ...theme.applyStyles("dark", {
+                    "--gallery-navigation-surface": "#212121",
+                    borderColor: "rgba(62, 62, 62, 0.5)",
+                }),
+            })}
         >
-            {mode != "people" ? (
-                <CollectionsSortOptions
-                    activeSortBy={collectionsSortBy}
-                    onChangeSortBy={onChangeCollectionsSortBy}
-                />
-            ) : (
-                <PeopleSortOptions
-                    activeSortBy={peopleSortBy}
-                    onChangeSortBy={onChangePeopleSortBy}
-                />
-            )}
-            <FilledIconButton
-                onClick={mode == "people" ? onShowAllPeople : onShowAllAlbums}
+            <Stack
+                direction="row"
+                sx={{
+                    alignItems: "center",
+                    flexShrink: 0,
+                    height: 38,
+                    gap: 0.5,
+                    "& .MuiIconButton-root": {
+                        width: 38,
+                        height: 38,
+                        borderRadius: "12px",
+                        bgcolor: "var(--gallery-navigation-surface)",
+                        "&:hover": {
+                            bgcolor: "var(--gallery-navigation-hover)",
+                        },
+                    },
+                }}
             >
-                <ExpandMoreIcon />
-            </FilledIconButton>
-        </Stack>
-    );
-
-    return (
-        <BarWrapper
-            style={
-                {
-                    "--et-bar-bottom-border-color":
-                        mode == "people" && people.length == 0
-                            ? "transparent"
-                            : "var(--mui-palette-divider)",
-                } as React.CSSProperties
-            }
-        >
-            <Row1>
-                <ModeIndicator {...{ mode, onChangeMode }} />
-                {controls1}
-            </Row1>
-            <Row2>
-                <ListWrapper>
-                    {canScrollLeft && <ScrollButtonLeft onClick={scroll(-1)} />}
-                    <AutoSizer disableHeight>
-                        {({ width }) => (
-                            <FixedSizeList
-                                ref={listRef}
-                                outerRef={listContainerCallbackRef}
-                                layout="horizontal"
-                                width={width}
-                                height={110}
-                                itemData={itemData}
-                                itemKey={getItemKey}
-                                itemCount={getItemCount(itemData)}
-                                itemSize={94}
-                            >
-                                {ListItem}
-                            </FixedSizeList>
-                        )}
-                    </AutoSizer>
-                    {canScrollRight && (
-                        <ScrollButtonRight onClick={scroll(1)} />
+                <Typography
+                    component="h2"
+                    id={titleID}
+                    sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontFamily: '"Outfit Variable", Outfit, sans-serif',
+                        fontSize: mobile ? 20 : 24,
+                        fontWeight: 600,
+                        lineHeight: mobile ? "26px" : "32px",
+                    }}
+                >
+                    {mode == "people" ? (
+                        <ButtonBase
+                            onClick={() => {
+                                setPeopleSearchQuery("");
+                                onShowPeopleOverview();
+                                mobileDrawerProps.onClose();
+                            }}
+                            sx={{
+                                font: "inherit",
+                                justifyContent: "flex-start",
+                                borderRadius: 1,
+                                "&:hover": { color: "text.muted" },
+                                "&.Mui-focusVisible": {
+                                    outline: "2px solid",
+                                    outlineColor: "primary.main",
+                                    outlineOffset: 2,
+                                },
+                            }}
+                        >
+                            {title}
+                        </ButtonBase>
+                    ) : (
+                        title
                     )}
-                </ListWrapper>
-                {controls2}
-            </Row2>
-        </BarWrapper>
-    );
-};
-
-const BarWrapper = styled("div")`
-    padding-inline: 24px;
-    @media (max-width: ${thumbnailMaxWidth * thumbnailLayoutMinColumns}px) {
-        padding-inline: 4px;
-    }
-    margin-block-end: 16px;
-`;
-
-const Row1 = styled("div")`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-block-end: 12px;
-`;
-
-const Row2 = styled("div")`
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    border-block-end: 1px solid var(--et-bar-bottom-border-color);
-`;
-
-const ModeIndicator: React.FC<
-    Pick<GalleryBarImplProps, "mode" | "onChangeMode">
-> = ({ mode, onChangeMode }) => {
-    if (mode == "hidden-albums") {
-        return <Typography>{t("hidden_albums")}</Typography>;
-    }
-    if (mode == "archive-albums") {
-        return <Typography>{t("section_archive")}</Typography>;
-    }
-
-    if (!isMLSupported) {
-        return <Typography>{t("albums")}</Typography>;
-    }
-
-    return (
-        <Stack direction="row" sx={{ gap: "10px" }}>
-            <ModeButton
-                active={mode == "albums"}
-                onClick={() => onChangeMode("albums")}
+                </Typography>
+                {mode != "people" ? (
+                    <CollectionsSortOptions
+                        variant="v2"
+                        activeSortBy={collectionsSortBy}
+                        onChangeSortBy={onChangeCollectionsSortBy}
+                    />
+                ) : (
+                    <PeopleSortOptions
+                        variant="v2"
+                        activeSortBy={peopleSortBy}
+                        onChangeSortBy={onChangePeopleSortBy}
+                    />
+                )}
+                {(mode == "albums" || mode == "hidden-albums") && (
+                    <Tooltip title={t("new_album")}>
+                        <IconButton
+                            aria-label={t("new_album")}
+                            aria-haspopup="dialog"
+                            onClick={() => {
+                                mobileDrawerProps.onClose();
+                                onCreateAlbum();
+                            }}
+                        >
+                            <AddIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                    </Tooltip>
+                )}
+                {mobile && (
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={mobileDrawerProps.onClose}
+                    >
+                        <CloseIcon sx={{ fontSize: 20 }} />
+                    </IconButton>
+                )}
+            </Stack>
+            <Stack
+                direction="row"
+                sx={{
+                    alignItems: "center",
+                    flexShrink: 0,
+                    height: 52,
+                    gap: "10px",
+                    px: "16px",
+                    borderRadius: "12px",
+                    bgcolor: "var(--gallery-navigation-surface)",
+                    border: "1px solid",
+                    borderColor: "stroke.faint",
+                    "&:focus-within": {
+                        outline: "1px solid",
+                        outlineColor: "stroke.muted",
+                        outlineOffset: -1,
+                    },
+                }}
             >
-                <Typography>{t("albums")}</Typography>
-            </ModeButton>
-            <ModeButton
-                active={mode == "people"}
-                onClick={() => onChangeMode("people")}
-            >
-                <Typography>{t("people")}</Typography>
-            </ModeButton>
+                <SearchIcon sx={{ fontSize: 18, color: "text.muted" }} />
+                <InputBase
+                    inputRef={searchInputRef}
+                    fullWidth
+                    placeholder={t(
+                        mode == "people"
+                            ? "people_search_hint"
+                            : mode == "links"
+                              ? "search_links"
+                              : "search_in_albums",
+                    )}
+                    inputProps={{
+                        "aria-label": t(
+                            mode == "people"
+                                ? "people_search_hint"
+                                : mode == "links"
+                                  ? "search_links"
+                                  : "search_in_albums",
+                        ),
+                    }}
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    sx={{
+                        fontSize: mobile ? 13 : 14,
+                        fontWeight: 500,
+                        color: "text.base",
+                        "& input::placeholder": {
+                            color: "text.muted",
+                            opacity: 1,
+                        },
+                    }}
+                />
+                {searchQuery && (
+                    <IconButton
+                        aria-label={t("clear_search")}
+                        onClick={() => {
+                            setSearchQuery("");
+                            searchInputRef.current?.focus();
+                        }}
+                        size="small"
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                )}
+            </Stack>
+            {isSearching &&
+            (mode == "albums"
+                ? !visibleAlbumFilters.length
+                : !getItemCount(itemData)) ? (
+                searchEmptyState
+            ) : mode == "albums" ? (
+                <Stack
+                    role="group"
+                    aria-label={t("filter_albums")}
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        gap: "2px",
+                        overflowY: "auto",
+                        pb: "12px",
+                    }}
+                >
+                    {visibleAlbumFilters.map((filter) => (
+                        <React.Fragment key={filter.value}>
+                            <BarCard
+                                aria-label={filter.title()}
+                                aria-current={
+                                    activeCollectionID === undefined &&
+                                    albumFilter == filter.value
+                                        ? "page"
+                                        : undefined
+                                }
+                                aria-expanded={
+                                    displayedAlbumFilter == filter.value
+                                }
+                                aria-controls={
+                                    displayedAlbumFilter == filter.value
+                                        ? albumListID
+                                        : undefined
+                                }
+                                onClick={() => {
+                                    lastAlbumFilter.current = filter.value;
+                                    setExpandedAlbumFilter(
+                                        displayedAlbumFilter == filter.value
+                                            ? undefined
+                                            : filter.value,
+                                    );
+                                    onShowAlbumOverview(filter.value);
+                                    mobileDrawerProps.onClose();
+                                }}
+                                sx={{ flexShrink: 0 }}
+                            >
+                                <CardText>{filter.label()}</CardText>
+                                <ExpandMoreIcon
+                                    sx={{
+                                        fontSize: 16,
+                                        color: "text.muted",
+                                        transform:
+                                            displayedAlbumFilter == filter.value
+                                                ? undefined
+                                                : "rotate(-90deg)",
+                                    }}
+                                />
+                            </BarCard>
+                            {displayedAlbumFilter == filter.value && items}
+                        </React.Fragment>
+                    ))}
+                </Stack>
+            ) : (
+                items
+            )}
+            {mode != "people" && mode != "links" && (
+                <Stack sx={{ flexShrink: 0, gap: "2px", pb: "8px" }}>
+                    <Divider
+                        sx={{
+                            mb: "8px",
+                            height: "2px",
+                            border: 0,
+                            bgcolor: "divider",
+                            opacity: 0.5,
+                        }}
+                    />
+                    {albumShortcuts.map(({ id, label, icon, active }) => (
+                        <BarCard
+                            key={id}
+                            aria-label={label}
+                            aria-current={active ? "true" : undefined}
+                            onClick={() => {
+                                void onShowCollectionSummary(
+                                    id,
+                                    id == PseudoCollectionID.hiddenItems,
+                                ).then(async (success) => {
+                                    if (!success || !mobile) return;
+                                    if (id == PseudoCollectionID.hiddenItems)
+                                        await wait(10);
+                                    mobileDrawerProps.onClose();
+                                });
+                            }}
+                            sx={{ flexShrink: 0 }}
+                        >
+                            <HugeiconsIcon icon={icon} size={20} aria-hidden />
+                            <CardText>{label}</CardText>
+                            {id == PseudoCollectionID.hiddenItems ? (
+                                <LockOutlinedIcon
+                                    sx={{ color: "text.muted", fontSize: 19 }}
+                                />
+                            ) : (
+                                <Typography
+                                    variant="small"
+                                    sx={{ color: "text.muted" }}
+                                >
+                                    {
+                                        normalCollectionSummaries.get(id)
+                                            ?.fileCount
+                                    }
+                                </Typography>
+                            )}
+                        </BarCard>
+                    ))}
+                </Stack>
+            )}
         </Stack>
     );
+
+    return mobile ? (
+        <Drawer
+            {...mobileDrawerProps}
+            anchor="left"
+            slotProps={{
+                backdrop: { sx: { bgcolor: "rgba(0,0,0,0.4)" } },
+                paper: {
+                    role: "dialog",
+                    "aria-modal": true,
+                    "aria-labelledby": titleID,
+                    inert: !mobileDrawerProps.open,
+                    sx: (theme) => ({
+                        width: "100%",
+                        borderRadius: 0,
+                        boxShadow: "none",
+                        bgcolor: "#F4F4F4",
+                        ...theme.applyStyles("dark", { bgcolor: "#161616" }),
+                    }),
+                },
+            }}
+        >
+            {navigation}
+        </Drawer>
+    ) : (
+        navigation
+    );
 };
-
-const ModeButton = styled(FocusVisibleUnstyledButton, {
-    shouldForwardProp: (propName) => propName != "active",
-})<{ active: boolean }>(
-    ({ theme, active }) => `
-p {
-    color: ${active ? theme.vars.palette.text.base : theme.vars.palette.text.muted}
-}
-p:hover {
-    color: ${theme.vars.palette.text.base}
-}
-`,
-);
-
-const ScrollButtonBase: React.FC<
-    React.ButtonHTMLAttributes<HTMLButtonElement>
-> = (props) => (
-    <ScrollButtonBase_ {...props}>
-        <NavigateNextIcon />
-    </ScrollButtonBase_>
-);
-
-const ScrollButtonBase_ = styled("button")(({ theme }) => ({
-    position: "absolute",
-    zIndex: 2,
-    top: "7px",
-    height: "50px",
-    width: "50px",
-    border: "none",
-    padding: 0,
-    margin: 0,
-    borderRadius: "50%",
-    backgroundColor: theme.vars.palette.backdrop.muted,
-    color: theme.vars.palette.stroke.base,
-    cursor: "pointer",
-    "& > svg": { borderRadius: "50%", height: "30px", width: "30px" },
-}));
-
-const ScrollButtonLeft = styled(ScrollButtonBase)`
-    left: 0;
-    text-align: right;
-    transform: translate(-50%, 0%);
-    & > svg {
-        transform: rotate(180deg);
-    }
-`;
-
-const ScrollButtonRight = styled(ScrollButtonBase)`
-    right: 0;
-    text-align: left;
-    transform: translate(50%, 0%);
-`;
-
-const ListWrapper = styled("div")`
-    position: relative;
-    overflow: hidden;
-    height: 86px;
-    width: 100%;
-`;
 
 type ItemData =
     | {
           type: "collections";
           collectionSummaries: CollectionSummary[];
+          indented: boolean;
           activeCollectionID: number;
           onSelectCollectionID: (id: number) => void;
       }
@@ -442,6 +756,10 @@ const ListItem = memo((props: ListChildComponentProps<ItemData>) => {
                         activeCollectionID,
                         onSelectCollectionID,
                     }}
+                    indented={
+                        data.indented &&
+                        !collectionSummary.attributes.has("system")
+                    }
                 />
             );
             break;
@@ -465,36 +783,56 @@ const ListItem = memo((props: ListChildComponentProps<ItemData>) => {
 
 interface CollectionBarCardProps {
     collectionSummary: CollectionSummary;
+    indented: boolean;
     activeCollectionID: number;
     onSelectCollectionID: (collectionID: number) => void;
 }
 
 const CollectionBarCard: React.FC<CollectionBarCardProps> = ({
     collectionSummary,
+    indented,
     activeCollectionID,
     onSelectCollectionID,
 }: CollectionBarCardProps) => (
-    <div>
-        <ItemCard
-            TileComponent={BarItemTile}
-            coverFile={collectionSummary.coverFile}
-            onClick={() => onSelectCollectionID(collectionSummary.id)}
-        >
-            <CardText>{collectionSummary.name}</CardText>
-            <CollectionBarCardIcon attributes={collectionSummary.attributes} />
-        </ItemCard>
-        {activeCollectionID === collectionSummary.id && <ActiveIndicator />}
-    </div>
+    <BarCard
+        aria-label={collectionSummary.name}
+        aria-current={
+            activeCollectionID === collectionSummary.id ? "true" : undefined
+        }
+        title={collectionSummary.name}
+        onClick={() => onSelectCollectionID(collectionSummary.id)}
+        sx={
+            indented
+                ? { marginInlineStart: "20px", width: "calc(100% - 20px)" }
+                : undefined
+        }
+    >
+        <Box aria-hidden sx={{ flexShrink: 0 }}>
+            <ItemCard
+                TileComponent={BarThumbnail}
+                coverFile={collectionSummary.coverFile}
+            />
+        </Box>
+        <CardText>{collectionSummary.name}</CardText>
+        <CollectionBarCardIcon attributes={collectionSummary.attributes} />
+    </BarCard>
 );
 
 const CardText: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <TileTextOverlay>
-        <Box sx={{ height: "2.1em" }}>
-            <Ellipsized2LineTypography variant="small">
-                {children}
-            </Ellipsized2LineTypography>
-        </Box>
-    </TileTextOverlay>
+    <Typography
+        noWrap
+        sx={(theme) => ({
+            flex: 1,
+            minWidth: 0,
+            fontFamily: '"Inter Variable", Inter, sans-serif',
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: "20px",
+            [theme.breakpoints.down("md")]: { fontSize: 13 },
+        })}
+    >
+        {children}
+    </Typography>
 );
 
 interface CollectionBarCardIconProps {
@@ -505,52 +843,76 @@ const CollectionBarCardIcon: React.FC<CollectionBarCardIconProps> = ({
     attributes,
 }) => (
     // A collection can show all four status icons at once.
-    <CollectionBarCardIcon_>
-        {attributes.has("userFavorites") && <StarIcon fontSize="small" />}
+    <CollectionBarCardIcon_ aria-hidden>
+        {attributes.has("userFavorites") && (
+            <HugeiconsIcon
+                icon={StarIcon}
+                size={16}
+                fill="currentColor"
+                aria-hidden
+            />
+        )}
         {(attributes.has("pinned") || attributes.has("shareePinned")) && (
-            <HugeiconsIcon icon={PinIcon} size={18} />
+            <HugeiconsIcon icon={PinIcon} size={14} />
         )}
         {attributes.has("shared") && !attributes.has("sharedOnlyViaLink") && (
             <PeopleIcon />
         )}
         {attributes.has("sharedViaLink") && (
-            <HugeiconsIcon icon={Link05Icon} size={20} />
+            <HugeiconsIcon icon={Link05Icon} size={16} />
         )}
         {attributes.has("archived") && <ArchiveIcon sx={{ opacity: 0.48 }} />}
     </CollectionBarCardIcon_>
 );
 
-const CollectionBarCardIcon_ = styled(Overlay)`
-    padding: 3px;
+const CollectionBarCardIcon_ = styled("span")`
     display: flex;
-    justify-content: flex-start;
-    align-items: flex-end;
-    gap: 2px;
+    flex-shrink: 0;
+    margin-inline-start: auto;
+    align-items: center;
+    gap: 4px;
+    color: #969696;
     & > .MuiSvgIcon-root {
-        font-size: 20px;
+        font-size: 16px;
     }
 `;
 
-const PersonPinnedIcon = styled(Overlay)`
-    padding: 4px;
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-end;
-    color: white;
-    z-index: 1;
-    & > .MuiSvgIcon-root {
-        font-size: 20px;
-    }
-`;
+const BarCard = styled(ButtonBase)(({ theme }) => ({
+    display: "flex",
+    justifyContent: "flex-start",
+    gap: "12px",
+    width: "100%",
+    height: 48,
+    paddingInline: "16px 12px",
+    borderRadius: "12px",
+    color: theme.vars.palette.text.base,
+    textAlign: "left",
+    '&[aria-current="true"], &[aria-current="page"]': {
+        backgroundColor: "var(--gallery-navigation-surface)",
+    },
+    "&:hover": { backgroundColor: "var(--gallery-navigation-hover)" },
+    "&.Mui-focusVisible": {
+        outline: "2px solid",
+        outlineColor: theme.vars.palette.stroke.base,
+        outlineOffset: -2,
+    },
+    [theme.breakpoints.down("md")]: { height: 44 },
+}));
 
-const ActiveIndicator = styled("div")(
-    ({ theme }) => `
-    height: 3px;
-    background-color: ${theme.vars.palette.stroke.base};
-    margin-top: 19px;
-    border-radius: 2px;
-`,
-);
+const BarThumbnail = styled("div")({
+    width: 24,
+    height: 24,
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: "6px",
+    "& > img": {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block",
+    },
+    "& .MuiSvgIcon-root": { fontSize: 18 },
+});
 
 interface PersonCardProps {
     person: Person;
@@ -563,20 +925,27 @@ const PersonCard: React.FC<PersonCardProps> = ({
     activePerson,
     onSelectPerson,
 }) => (
-    <div>
-        <ItemCard
-            TileComponent={BarItemTile}
-            coverFile={person.displayFaceFile}
-            coverFaceID={person.displayFaceID}
-            onClick={() => onSelectPerson(person.id)}
+    <BarCard
+        aria-label={person.name || t("unnamed_person")}
+        aria-current={activePerson?.id === person.id ? "true" : undefined}
+        title={person.name || t("unnamed_person")}
+        onClick={() => onSelectPerson(person.id)}
+    >
+        <Box
+            aria-hidden
+            sx={{ flexShrink: 0, borderRadius: "50%", overflow: "hidden" }}
         >
-            {person.name && <CardText>{person.name}</CardText>}
-            {person.isPinned && (
-                <PersonPinnedIcon>
-                    <HugeiconsIcon icon={PinIcon} size={18} color="white" />
-                </PersonPinnedIcon>
-            )}
-        </ItemCard>
-        {activePerson?.id === person.id && <ActiveIndicator />}
-    </div>
+            <ItemCard
+                TileComponent={BarThumbnail}
+                coverFile={person.displayFaceFile}
+                coverFaceID={person.displayFaceID}
+            />
+        </Box>
+        <CardText>{person.name || t("unnamed_person")}</CardText>
+        {person.isPinned && (
+            <CollectionBarCardIcon_ aria-hidden>
+                <HugeiconsIcon icon={PinIcon} size={14} />
+            </CollectionBarCardIcon_>
+        )}
+    </BarCard>
 );

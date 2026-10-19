@@ -250,9 +250,9 @@ const parseMetadataJSONText = (text: string) => {
         parseGTLocation(metadataJSON.geoData) ??
         parseGTLocation(metadataJSON.geoDataExif);
 
-    parsedMetadataJSON.description = parseGTNonEmptyString(
-        metadataJSON.description,
-    );
+    parsedMetadataJSON.description =
+        parseGTNonEmptyString(metadataJSON.description) ??
+        parseGTNonEmptyString(metadataJSON.caption);
 
     if (metadataJSON.favorited === true) {
         parsedMetadataJSON.favorited = true;

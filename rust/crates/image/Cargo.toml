@@ -10,10 +10,10 @@ fast_image_resize.workspace = true
 image.workspace = true
 jxl-oxide = { version = "0.12.6", features = ["image"] }
 kamadak-exif = "0.6.1"
-moxcms = { version = "0.8.1", features = ["in_place"] }
+moxcms = { version = "0.9.1", features = ["in_place"] }
 png = "0.18.1"
 thiserror.workspace = true
-tiff = "0.10.3"
+tiff = "0.11.3"
 
 [dev-dependencies]
 tempfile.workspace = true

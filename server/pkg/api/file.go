@@ -210,7 +210,7 @@ func (h *FileHandler) RestrictLegacyUploads(c *gin.Context) {
 		return
 	}
 	cutoff := gTime.Date(2026, gTime.April, 1, 0, 0, 0, 0, gTime.UTC).UnixMicro()
-	if user.CreationTime >= cutoff || user.ID%10 == 0 {
+	if user.CreationTime >= cutoff || user.ID%2 == 0 {
 		c.AbortWithStatusJSON(http.StatusGone, gin.H{"error": "This upload API is no longer supported. Please update your app."})
 	}
 }

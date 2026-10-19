@@ -629,14 +629,12 @@ const getComponents = (appName: AppName): Components => {
         ?.styleOverrides ?? {}) as Record<string, unknown>;
     const muiIconButtonRootStyleOverrides =
         (muiIconButtonStyleOverrides.root as
-            | Record<string, unknown>
-            | undefined) ?? {};
+            Record<string, unknown> | undefined) ?? {};
     const muiInputBaseStyleOverrides = (components.MuiInputBase
         ?.styleOverrides ?? {}) as Record<string, unknown>;
     const muiInputBaseFormControlStyleOverrides =
         (muiInputBaseStyleOverrides.formControl as
-            | Record<string, unknown>
-            | undefined) ?? {};
+            Record<string, unknown> | undefined) ?? {};
     const muiDialogTitleStyleOverrides = (components.MuiDialogTitle
         ?.styleOverrides ?? {}) as Record<string, unknown>;
     const muiDialogContentStyleOverrides = (components.MuiDialogContent
@@ -692,8 +690,7 @@ const getComponents = (appName: AppName): Components => {
                     ...components.MuiFilledInput?.styleOverrides,
                     root: {
                         ...(components.MuiFilledInput?.styleOverrides?.root as
-                            | Record<string, unknown>
-                            | undefined),
+                            Record<string, unknown> | undefined),
                         borderRadius: "16px",
                     },
                 },
@@ -704,8 +701,7 @@ const getComponents = (appName: AppName): Components => {
                     ...muiDialogTitleStyleOverrides,
                     root: {
                         ...(muiDialogTitleStyleOverrides.root as
-                            | Record<string, unknown>
-                            | undefined),
+                            Record<string, unknown> | undefined),
                         paddingBottom: "12px",
                     },
                 },
@@ -716,8 +712,7 @@ const getComponents = (appName: AppName): Components => {
                     ...muiDialogContentStyleOverrides,
                     root: {
                         ...(muiDialogContentStyleOverrides.root as
-                            | Record<string, unknown>
-                            | undefined),
+                            Record<string, unknown> | undefined),
                         paddingTop: "8px",
                     },
                 },

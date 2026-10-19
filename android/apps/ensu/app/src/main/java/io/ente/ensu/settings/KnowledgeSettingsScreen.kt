@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.ente.ensu.bindings.KnowledgeDatasetConfig
 import io.ente.ensu.bindings.KnowledgeReconciliationStatus
@@ -57,13 +59,21 @@ fun KnowledgeSettingsScreen(
         modifier = Modifier.padding(horizontal = EnsuSpacing.pageHorizontal.dp),
         verticalArrangement = Arrangement.spacedBy(EnsuSpacing.md.dp),
     ) {
+        item {
+            Text(
+                "Choose packs for future messages in all chats. Changes apply to your next message.",
+                style = EnsuTypography.small,
+                color = EnsuColor.textMuted(),
+            )
+        }
         items(state.packs.values.toList(), key = { it.config.stableId }) { pack ->
             KnowledgePackCard(
                 pack = pack,
                 packDownloadsAllowed = packDownloadsAllowed,
+                selected = pack.config.stableId !in state.disabledIds,
+                onSetEnabled = { onSetEnabled(pack.config.stableId, it) },
                 onDownloadOrUpdate = { onDownloadOrUpdate(pack.config.stableId) },
                 onCancel = { onCancel(pack.config.stableId) },
-                onSetEnabled = { enabled -> onSetEnabled(pack.config.stableId, enabled) },
                 onOpenAttribution = { attributionConfig = pack.config },
             )
         }
@@ -83,8 +93,9 @@ private fun KnowledgePackCard(
     packDownloadsAllowed: Boolean,
     onDownloadOrUpdate: () -> Unit,
     onCancel: () -> Unit,
-    onSetEnabled: (Boolean) -> Unit,
     onOpenAttribution: () -> Unit,
+    selected: Boolean,
+    onSetEnabled: (Boolean) -> Unit,
 ) {
     KnowledgeCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -99,14 +110,26 @@ private fun KnowledgePackCard(
                 )
                 PackMetadataLine(pack = pack, onOpenAttribution = onOpenAttribution)
             }
-            if (pack.activeIdentity != null && !pack.isMutating) {
-                Switch(checked = pack.enabled, onCheckedChange = onSetEnabled)
+            if (pack.activeIdentity != null) {
+                Switch(
+                    checked = selected,
+                    onCheckedChange = onSetEnabled,
+                    enabled = !pack.isMutating,
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription =
+                                "Use ${pack.config.label} for future messages in all chats"
+                        },
+                )
             } else if (
                 packDownloadsAllowed &&
                     pack.status == KnowledgeReconciliationStatus.DOWNLOAD &&
                     !pack.isMutating
             ) {
-                CompactButton(label = "Download", onClick = onDownloadOrUpdate)
+                CompactButton(
+                    label = "Download",
+                    onClick = onDownloadOrUpdate,
+                )
             }
         }
 

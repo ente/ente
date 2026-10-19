@@ -6,6 +6,19 @@ import 'package:photos/locale.dart';
 void main() {
   setUp(() => autoDetectedLocale = null);
 
+  test("memory lane translations retain the styled now placeholder", () {
+    for (final locale in StringsLocalizations.supportedLocales) {
+      final strings = lookupStringsLocalizations(locale);
+      final caption = strings.memoryLaneCaptionNow(
+        name: "Ashil",
+        now: "\uFFFC",
+      );
+      expect(caption.split("\uFFFC"), hasLength(2), reason: "$locale");
+      expect(caption, contains("Ashil"), reason: "$locale");
+      expect(strings.memoryLaneNow, isNotEmpty, reason: "$locale");
+    }
+  });
+
   test('normalizes Portuguese variants', () {
     expect(_resolve(const Locale('pt')), const Locale('pt', 'BR'));
     expect(_resolve(const Locale('pt', 'BR')), const Locale('pt', 'BR'));

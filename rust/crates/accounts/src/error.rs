@@ -1,4 +1,4 @@
-use ente_core::{b64, crypto, http};
+use ente_core::{b64, crypto, http, otp};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -13,6 +13,9 @@ pub enum Error {
 
     #[error(transparent)]
     Crypto(#[from] crypto::Error),
+
+    #[error(transparent)]
+    Otp(#[from] otp::Error),
 
     #[error("Decode error: {0}")]
     Decode(String),
@@ -72,9 +75,6 @@ pub enum Error {
 
     #[error("{0}")]
     Protocol(String),
-
-    #[error(transparent)]
-    Ui(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl From<b64::DecodeError> for Error {

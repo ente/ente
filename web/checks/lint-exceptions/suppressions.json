@@ -20,13 +20,16 @@
     "web/apps/photos/src/components/PlanSelector.tsx": [
         "react-hooks/exhaustive-deps"
     ],
-    "web/apps/photos/src/components/Sidebar.tsx": [
+    "web/apps/photos/src/components/sidebar/accounts/subscription.ts": [
+        "@typescript-eslint/no-floating-promises"
+    ],
+    "web/apps/photos/src/components/sidebar/Sidebar.tsx": [
         "@typescript-eslint/no-floating-promises"
     ],
     "web/apps/photos/src/components/Upload.tsx": [
         "react-hooks/exhaustive-deps"
     ],
-    "web/apps/photos/src/components/WatchFolder.tsx": [
+    "web/apps/photos/src/components/sidebar/WatchFolder.tsx": [
         "react-hooks/exhaustive-deps"
     ],
     "web/apps/photos/src/pages/gallery.tsx": ["react-hooks/exhaustive-deps"],

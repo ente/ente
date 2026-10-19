@@ -36,6 +36,7 @@ import 'package:photos/ui/viewer/actions/suggest_delete_sheet.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/video_control/video_speed_bottom_sheet.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
+import "package:photos/ui/viewer/file/viewer_app_bar.dart";
 import "package:photos/ui/viewer/file_details/favorite_widget.dart";
 import "package:photos/ui/viewer/file_details/upload_icon_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
@@ -166,62 +167,20 @@ class FileAppBarState extends State<FileAppBar> {
       _reloadActions = false;
     }
     final shouldShowActions = !isGuestView;
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(kToolbarHeight),
-      child: ValueListenableBuilder(
-        valueListenable: widget.enableFullScreenNotifier,
-        builder: (context, bool isFullScreen, child) {
-          return IgnorePointer(
-            ignoring: isFullScreen,
-            child: AnimatedOpacity(
-              opacity: isFullScreen ? 0 : 1,
-              duration: const Duration(milliseconds: 150),
-              child: child,
-            ),
-          );
+    return ValueListenableBuilder<bool>(
+      valueListenable: widget.enableFullScreenNotifier,
+      builder: (context, isFullScreen, _) => ViewerAppBar(
+        visible: !isFullScreen,
+        toolbarKey: ValueKey(isGuestView),
+        onBackPressed: () {
+          final onBackPressed = widget.onBackPressed;
+          if (onBackPressed != null && !isGuestView) {
+            unawaited(Future.sync(() => onBackPressed(context)));
+            return;
+          }
+          isGuestView ? _requestAuthentication() : Navigator.of(context).pop();
         },
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.72),
-                Colors.black.withValues(alpha: 0.6),
-                Colors.transparent,
-              ],
-              stops: const [0, 0.2, 1],
-            ),
-          ),
-          child: SafeArea(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              switchInCurve: Curves.easeInOut,
-              switchOutCurve: Curves.easeInOut,
-              child: AppBar(
-                clipBehavior: Clip.none,
-                key: ValueKey(isGuestView),
-                iconTheme: const IconThemeData(color: Colors.white),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () {
-                    final onBackPressed = widget.onBackPressed;
-                    if (onBackPressed != null && !isGuestView) {
-                      unawaited(Future.sync(() => onBackPressed(context)));
-                      return;
-                    }
-                    isGuestView
-                        ? _requestAuthentication()
-                        : Navigator.of(context).pop();
-                  },
-                ),
-                actions: shouldShowActions ? _actions : [],
-                elevation: 0,
-                backgroundColor: const Color(0x00000000),
-              ),
-            ),
-          ),
-        ),
+        actions: shouldShowActions ? _actions : [],
       ),
     );
   }

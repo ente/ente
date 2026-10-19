@@ -1,10 +1,11 @@
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BTreeMap, BinaryHeap};
-use std::fs::{self, File};
-use std::io::Read;
+use std::fs::{self, File, Metadata};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
-use memmap2::{Mmap, MmapOptions};
+use ente_ensu_crypto::Sha256Hasher;
 use serde::Deserialize;
 use url::Url;
 
@@ -17,8 +18,42 @@ use super::{BEGIN_CONTEXT_SENTINEL, END_CONTEXT_SENTINEL, RetrievalError, normal
 
 const MAX_MANIFEST_BYTES: u64 = 1_048_576;
 const MAX_METADATA_FRAME_BYTES: u64 = 1_048_576;
+const READ_BUFFER_BYTES: usize = 1_048_576;
+
+struct IndexFile {
+    file: Mutex<File>,
+    metadata: Metadata,
+}
+
+impl IndexFile {
+    fn new(file: File) -> Result<Self, RetrievalError> {
+        Ok(Self {
+            metadata: file.metadata()?,
+            file: Mutex::new(file),
+        })
+    }
+
+    fn lock(&self) -> Result<MutexGuard<'_, File>, RetrievalError> {
+        self.file
+            .lock()
+            .map_err(|_| RetrievalError::InvalidPack("knowledge file lock poisoned".to_owned()))
+    }
+
+    fn verify(&self) -> Result<(), RetrievalError> {
+        let current = self.lock()?.metadata()?;
+        if current.len() != self.metadata.len()
+            || current.modified().ok() != self.metadata.modified().ok()
+        {
+            return Err(RetrievalError::InvalidPack(
+                "knowledge file changed while open".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+}
 #[derive(Debug, Clone, PartialEq)]
 pub struct RetrievalHit {
+    pub locator: super::PassageLocator,
     pub score: f32,
     pub text: String,
     pub title: String,
@@ -54,14 +89,18 @@ struct MetadataRow {
 
 pub struct RetrievalIndex {
     dataset_identity: String,
+    stable_id: String,
+    revision_sha256: OnceLock<String>,
+    revision_lock: Mutex<()>,
+    manifest_bytes: Vec<u8>,
     count: usize,
     dim: usize,
     scale: f32,
     rows_per_block: usize,
     max_chars: usize,
     url_template: String,
-    vectors: Mmap,
-    metadata: Mmap,
+    vectors: IndexFile,
+    metadata: IndexFile,
     offsets: Vec<u64>,
 }
 
@@ -98,7 +137,8 @@ impl RetrievalIndex {
                 "manifest size is outside the supported range".to_string(),
             ));
         }
-        let manifest: Manifest = serde_json::from_slice(&fs::read(&manifest_path)?)?;
+        let manifest_bytes = fs::read(&manifest_path)?;
+        let manifest: Manifest = serde_json::from_slice(&manifest_bytes)?;
         validate_manifest(&manifest, directory_identity, expected_pack)?;
 
         let count = usize::try_from(manifest.count).map_err(|_| {
@@ -161,19 +201,14 @@ impl RetrievalIndex {
             .collect::<Vec<_>>();
         validate_offsets(&offsets, metadata_len)?;
 
-        // Native callers prevent file swaps or deletion while mapped.
-        #[expect(
-            unsafe_code,
-            reason = "File-backed memory mapping requires an unsafe call"
-        )]
-        let vectors = unsafe { MmapOptions::new().map(&vector_file)? };
-        #[expect(
-            unsafe_code,
-            reason = "File-backed memory mapping requires an unsafe call"
-        )]
-        let metadata = unsafe { MmapOptions::new().map(&metadata_file)? };
+        let vectors = IndexFile::new(vector_file)?;
+        let metadata = IndexFile::new(metadata_file)?;
 
         Ok(Self {
+            stable_id: expected_pack.stable_id.clone(),
+            revision_sha256: OnceLock::new(),
+            revision_lock: Mutex::new(()),
+            manifest_bytes,
             dataset_identity: manifest.dataset,
             count,
             dim,
@@ -189,6 +224,47 @@ impl RetrievalIndex {
 
     pub fn dataset_identity(&self) -> &str {
         &self.dataset_identity
+    }
+
+    fn revision_sha256(&self) -> Result<&str, RetrievalError> {
+        if let Some(digest) = self.revision_sha256.get() {
+            return Ok(digest);
+        }
+        let _initialize = self.revision_lock.lock().map_err(|_| {
+            RetrievalError::InvalidPack("knowledge revision lock poisoned".to_owned())
+        })?;
+        if let Some(digest) = self.revision_sha256.get() {
+            return Ok(digest);
+        }
+        self.metadata.verify()?;
+        let mut hash = Sha256Hasher::new();
+        hash.update(b"ensu-pack-text-revision-v1\0");
+        hash.update((self.manifest_bytes.len() as u64).to_le_bytes());
+        hash.update(&self.manifest_bytes);
+        hash.update(self.metadata.metadata.len().to_le_bytes());
+        {
+            let mut file = self.metadata.lock()?;
+            file.seek(SeekFrom::Start(0))?;
+            let mut buffer = vec![0; READ_BUFFER_BYTES];
+            let mut remaining = self.metadata.metadata.len();
+            while remaining > 0 {
+                let count = remaining.min(buffer.len() as u64) as usize;
+                file.read_exact(&mut buffer[..count])?;
+                hash.update(&buffer[..count]);
+                remaining -= count as u64;
+            }
+        }
+        self.metadata.verify()?;
+        hash.update((self.offsets.len() as u64 * 8).to_le_bytes());
+        for offset in &self.offsets {
+            hash.update(offset.to_le_bytes());
+        }
+        let digest = hash
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        Ok(self.revision_sha256.get_or_init(|| digest))
     }
 
     pub fn search(
@@ -222,27 +298,39 @@ impl RetrievalIndex {
         }
         let max_hits = max_hits.min(self.count);
 
+        self.vectors.verify()?;
+        self.metadata.verify()?;
+        let rows_per_read = (READ_BUFFER_BYTES / self.dim).max(1).min(self.count);
+        let mut buffer = vec![0; rows_per_read * self.dim];
         let mut heap = BinaryHeap::<Reverse<RankedRow>>::with_capacity(max_hits);
-        for row in 0..self.count {
-            let start = row * self.dim;
-            let vector = &self.vectors[start..start + self.dim];
-            let dot = query
-                .iter()
-                .zip(vector)
-                .map(|(query_component, document_component)| {
-                    *query_component * f32::from(*document_component as i8)
-                })
-                .sum::<f32>();
-            let score = dot / self.scale;
-            if !score.is_finite() || score < threshold {
-                continue;
+        for first_row in (0..self.count).step_by(rows_per_read) {
+            let rows = rows_per_read.min(self.count - first_row);
+            let bytes = &mut buffer[..rows * self.dim];
+            {
+                let mut file = self.vectors.lock()?;
+                file.seek(SeekFrom::Start((first_row * self.dim) as u64))?;
+                file.read_exact(bytes)?;
             }
-            let candidate = RankedRow { score, row };
-            if heap.len() < max_hits {
-                heap.push(Reverse(candidate));
-            } else if heap.peek().is_some_and(|worst| candidate > worst.0) {
-                heap.pop();
-                heap.push(Reverse(candidate));
+            for (index, vector) in bytes.chunks_exact(self.dim).enumerate() {
+                let row = first_row + index;
+                let dot = query
+                    .iter()
+                    .zip(vector)
+                    .map(|(query_component, document_component)| {
+                        *query_component * f32::from(*document_component as i8)
+                    })
+                    .sum::<f32>();
+                let score = dot / self.scale;
+                if !score.is_finite() || score < threshold {
+                    continue;
+                }
+                let candidate = RankedRow { score, row };
+                if heap.len() < max_hits {
+                    heap.push(Reverse(candidate));
+                } else if heap.peek().is_some_and(|worst| candidate > worst.0) {
+                    heap.pop();
+                    heap.push(Reverse(candidate));
+                }
             }
         }
 
@@ -251,7 +339,37 @@ impl RetrievalIndex {
             .map(|Reverse(candidate)| candidate)
             .collect::<Vec<_>>();
         ranked.sort_unstable_by(|left, right| right.cmp(left));
-        self.load_hits(&ranked)
+        let hits = self.load_hits(&ranked)?;
+        self.vectors.verify()?;
+        self.metadata.verify()?;
+        Ok(hits)
+    }
+
+    pub fn reload_passage(
+        &self,
+        locator: &super::PassageLocator,
+    ) -> Result<Option<RetrievalHit>, RetrievalError> {
+        let super::PassageLocator::EnsuPack {
+            dataset_id,
+            revision_sha256,
+            row,
+        } = locator
+        else {
+            return Ok(None);
+        };
+        let Ok(row) = usize::try_from(*row) else {
+            return Ok(None);
+        };
+        self.metadata.verify()?;
+        if dataset_id != &self.stable_id
+            || row >= self.count
+            || revision_sha256 != self.revision_sha256()?
+        {
+            return Ok(None);
+        }
+        let hit = self.load_hits(&[RankedRow { score: 0.0, row }])?.pop();
+        self.metadata.verify()?;
+        Ok(hit)
     }
 
     fn load_hits(&self, ranked: &[RankedRow]) -> Result<Vec<RetrievalHit>, RetrievalError> {
@@ -306,6 +424,11 @@ impl RetrievalIndex {
                     ));
                 }
                 hits[rank] = Some(RetrievalHit {
+                    locator: super::PassageLocator::EnsuPack {
+                        dataset_id: self.stable_id.clone(),
+                        revision_sha256: self.revision_sha256()?.to_owned(),
+                        row: selected.row as u64,
+                    },
                     score: selected.score,
                     text,
                     title,
@@ -331,7 +454,9 @@ impl RetrievalIndex {
         let end = usize::try_from(self.offsets[block + 1]).map_err(|_| {
             RetrievalError::InvalidPack("metadata frame end is too large".to_string())
         })?;
-        let frame = &self.metadata[start..end];
+        let mut file = self.metadata.lock()?;
+        file.seek(SeekFrom::Start(start as u64))?;
+        let frame = (&mut *file).take((end - start) as u64);
         let decoder = zstd::stream::read::Decoder::new(frame)
             .map_err(|error| RetrievalError::Zstd(error.to_string()))?;
         let mut capped = decoder.take(MAX_METADATA_FRAME_BYTES + 1);
@@ -507,6 +632,22 @@ fn python_quote(value: &str) -> String {
     encoded
 }
 
+#[cfg(test)]
+fn text_revision_digest(manifest: &[u8], metadata: &[u8], offsets: &[u8]) -> String {
+    ente_ensu_crypto::sha256_parts(&[
+        b"ensu-pack-text-revision-v1\0",
+        &(manifest.len() as u64).to_le_bytes(),
+        manifest,
+        &(metadata.len() as u64).to_le_bytes(),
+        metadata,
+        &(offsets.len() as u64).to_le_bytes(),
+        offsets,
+    ])
+    .iter()
+    .map(|byte| format!("{byte:02x}"))
+    .collect()
+}
+
 fn sanitize_prompt_text(value: &str) -> String {
     let normalized_line_endings = value.replace("\r\n", "\n").replace('\r', "\n");
     let normalized = normalized_line_endings
@@ -613,6 +754,185 @@ pub(super) mod tests {
             revision,
             expected,
         }
+    }
+
+    #[test]
+    fn streamed_revision_matches_the_existing_digest_format() {
+        let pack = synthetic_pack("simplewiki-test");
+        let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+        let expected = text_revision_digest(
+            &fs::read(pack.revision.join(KNOWLEDGE_MANIFEST_FILE)).unwrap(),
+            &fs::read(pack.revision.join(KNOWLEDGE_META_FILE)).unwrap(),
+            &fs::read(pack.revision.join(KNOWLEDGE_OFFSETS_FILE)).unwrap(),
+        );
+        assert_eq!(index.revision_sha256().unwrap(), expected);
+        assert_eq!(index.revision_sha256().unwrap(), expected);
+    }
+
+    #[test]
+    fn rejects_truncation_after_open_and_after_caching_a_revision() {
+        for name in [KNOWLEDGE_VECTORS_FILE, KNOWLEDGE_META_FILE] {
+            let pack = synthetic_pack("simplewiki-test");
+            let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+            let mut query = vec![0.0; 512];
+            query[0] = 1.0;
+            let hit = index.search(&query, 1, 0.0).unwrap().remove(0);
+            fs::write(pack.revision.join(name), []).unwrap();
+            assert!(index.search(&query, 1, 0.0).is_err());
+            if name == KNOWLEDGE_META_FILE {
+                assert!(index.reload_passage(&hit.locator).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_same_length_metadata_edits() {
+        let pack = synthetic_pack("simplewiki-test");
+        let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+        index.revision_sha256().unwrap();
+        let path = pack.revision.join(KNOWLEDGE_META_FILE);
+        let mut bytes = fs::read(&path).unwrap();
+        bytes[0] ^= 1;
+        fs::write(&path, bytes).unwrap();
+        File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(std::time::SystemTime::UNIX_EPOCH)
+            .unwrap();
+        assert!(index.search(&vec![0.0; 512], 1, 0.0).is_err());
+    }
+
+    #[test]
+    fn chunked_search_matches_a_full_scan_and_supports_concurrent_readers() {
+        let pack = synthetic_pack("simplewiki-test");
+        let count = 4_101;
+        let dim = 512;
+        let vectors: Vec<u8> = (0..count * dim)
+            .map(|index| ((index * 73 + index / dim * 19) % 255) as u8)
+            .collect();
+        fs::write(pack.revision.join(KNOWLEDGE_VECTORS_FILE), &vectors).unwrap();
+        let mut metadata = Vec::new();
+        let mut offsets = vec![0_u64];
+        for first in (0..count).step_by(128) {
+            let rows = (first..(first + 128).min(count))
+                .map(|row| {
+                    json!({"title":format!("Row {row}"), "text":format!("Passage {row}")})
+                        .to_string()
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            metadata.extend(zstd::stream::encode_all(rows.as_bytes(), 1).unwrap());
+            offsets.push(metadata.len() as u64);
+        }
+        fs::write(pack.revision.join(KNOWLEDGE_META_FILE), &metadata).unwrap();
+        fs::write(
+            pack.revision.join(KNOWLEDGE_OFFSETS_FILE),
+            offsets
+                .into_iter()
+                .flat_map(u64::to_le_bytes)
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        let manifest_path = pack.revision.join(KNOWLEDGE_MANIFEST_FILE);
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        manifest["count"] = json!(count);
+        fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+        std::thread::scope(|scope| {
+            for seed in 0..8 {
+                let index = &index;
+                let vectors = &vectors;
+                scope.spawn(move || {
+                    let query: Vec<f32> = (0..dim)
+                        .map(|position| ((position * 17 + seed * 31) % 251) as f32 / 251.0)
+                        .collect();
+                    let mut expected: Vec<RankedRow> = vectors
+                        .chunks_exact(dim)
+                        .enumerate()
+                        .map(|(row, vector)| RankedRow {
+                            row,
+                            score: query
+                                .iter()
+                                .zip(vector)
+                                .map(|(query, value)| *query * f32::from(*value as i8))
+                                .sum::<f32>()
+                                / 127.0,
+                        })
+                        .filter(|row| row.score >= 0.0)
+                        .collect();
+                    expected.sort_unstable_by(|left, right| right.cmp(left));
+                    expected.truncate(10);
+                    for _ in 0..3 {
+                        let hits = index.search(&query, 10, 0.0).unwrap();
+                        assert_eq!(hits.len(), expected.len());
+                        for (hit, expected) in hits.iter().zip(&expected) {
+                            assert_eq!(hit.score, expected.score);
+                            assert_eq!(hit.title, format!("Row {}", expected.row));
+                            assert_eq!(
+                                index.reload_passage(&hit.locator).unwrap().unwrap().text,
+                                hit.text
+                            );
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    #[test]
+    fn passage_reload_preserves_sources_and_rejects_changed_artifacts() {
+        use crate::retrieval::PassageLocator;
+        let pack = synthetic_pack("simplewiki-test");
+        let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+        let mut query = vec![0.0; 512];
+        query[0] = 1.0;
+        let hits = index.search(&query, 2, 0.0).unwrap();
+        assert_ne!(hits[0].locator, hits[1].locator);
+        drop(index);
+        let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+        for field in ["row", "dataset"] {
+            let mut wrong = hits[0].locator.clone();
+            let PassageLocator::EnsuPack {
+                dataset_id, row, ..
+            } = &mut wrong
+            else {
+                panic!("expected a pack locator")
+            };
+            match field {
+                "row" => *row = u64::MAX,
+                _ => *dataset_id = "wikibooks".to_string(),
+            }
+            assert!(index.reload_passage(&wrong).unwrap().is_none(), "{field}");
+        }
+        for (hit, text) in hits.iter().zip(["first passage", "second passage"]) {
+            let reloaded = index.reload_passage(&hit.locator).unwrap().unwrap();
+            assert_eq!(reloaded.locator, hit.locator);
+            assert_eq!(reloaded.text, text);
+            assert_eq!(reloaded.source_url, hit.source_url);
+        }
+        drop(index);
+
+        let metadata_path = pack.revision.join(KNOWLEDGE_META_FILE);
+        let bytes = fs::read(&metadata_path).unwrap();
+        let decoded = zstd::stream::decode_all(bytes.as_slice()).unwrap();
+        let changed = String::from_utf8(decoded)
+            .unwrap()
+            .replace("first passage", "new passage");
+        let compressed = zstd::stream::encode_all(changed.as_bytes(), 1).unwrap();
+        fs::write(metadata_path, &compressed).unwrap();
+        fs::write(
+            pack.revision.join(KNOWLEDGE_OFFSETS_FILE),
+            [0_u64, compressed.len() as u64]
+                .into_iter()
+                .flat_map(u64::to_le_bytes)
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+        let index = RetrievalIndex::open(&pack.revision, &pack.expected).unwrap();
+        assert!(index.reload_passage(&hits[0].locator).unwrap().is_none());
+        assert_eq!(index.search(&query, 1, 0.0).unwrap()[0].text, "new passage");
     }
 
     #[test]

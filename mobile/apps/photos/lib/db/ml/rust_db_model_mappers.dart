@@ -1,7 +1,6 @@
 import "dart:convert";
 import "dart:typed_data";
 
-import "package:photos/db/ml/db_pet_model_mappers.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/detection.dart";
 import "package:photos/models/ml/face/face.dart";
@@ -62,62 +61,6 @@ FaceDbInfoForClustering toFaceDbInfoForClustering(
     faceScore: row.faceScore,
     blurValue: row.blurValue,
     isSideways: row.isSideways,
-  );
-}
-
-rust.PetFaceRow toPetFaceRow(DBPetFace petFace) {
-  return rust.PetFaceRow(
-    fileId: petFace.fileId,
-    petFaceId: petFace.petFaceId,
-    detectionJson: petFace.detection,
-    faceVectorId: petFace.faceVectorId,
-    species: petFace.species,
-    faceScore: petFace.faceScore,
-    imageHeight: petFace.imageHeight,
-    imageWidth: petFace.imageWidth,
-    mlVersion: petFace.mlVersion,
-  );
-}
-
-DBPetFace toDBPetFace(rust.PetFaceRow row) {
-  return DBPetFace(
-    fileId: row.fileId,
-    petFaceId: row.petFaceId,
-    detection: row.detectionJson,
-    faceVectorId: row.faceVectorId,
-    species: row.species,
-    faceScore: row.faceScore,
-    imageHeight: row.imageHeight,
-    imageWidth: row.imageWidth,
-    mlVersion: row.mlVersion,
-  );
-}
-
-rust.PetBodyRow toPetBodyRow(DBPetBody petBody) {
-  return rust.PetBodyRow(
-    fileId: petBody.fileId,
-    petBodyId: petBody.petBodyId,
-    detectionJson: petBody.detection,
-    bodyVectorId: petBody.bodyVectorId,
-    species: petBody.species,
-    score: petBody.score,
-    imageHeight: petBody.imageHeight,
-    imageWidth: petBody.imageWidth,
-    mlVersion: petBody.mlVersion,
-  );
-}
-
-DBPetBody toDBPetBody(rust.PetBodyRow row) {
-  return DBPetBody(
-    fileId: row.fileId,
-    petBodyId: row.petBodyId,
-    detection: row.detectionJson,
-    bodyVectorId: row.bodyVectorId,
-    species: row.species,
-    score: row.score,
-    imageHeight: row.imageHeight,
-    imageWidth: row.imageWidth,
-    mlVersion: row.mlVersion,
   );
 }
 

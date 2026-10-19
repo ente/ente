@@ -15,8 +15,7 @@ import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/selected_files.dart";
-import "package:photos/service_locator.dart"
-    show flagService, isLocalGalleryMode;
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
@@ -120,15 +119,13 @@ class _ClusterPageState extends State<ClusterPage> {
       if (mounted) setState(() {});
     };
     _timelineNotifier.addListener(_timelineListener);
-    if (flagService.internalUser) {
-      if (widget.personID == null) {
-        unawaited(
-          MemoryLaneService.instance.ensureTimelineReachability(
-            widget.clusterID,
-            isCluster: true,
-          ),
-        );
-      }
+    if (widget.personID == null) {
+      unawaited(
+        MemoryLaneService.instance.ensureTimelineReachability(
+          widget.clusterID,
+          isCluster: true,
+        ),
+      );
     }
     kDebugMode
         ? ClusterFeedbackService.instance.debugLogClusterBlurValues(
@@ -177,7 +174,6 @@ class _ClusterPageState extends State<ClusterPage> {
   }
 
   Future<void> _openMemoryLanePage() async {
-    if (!flagService.internalUser) return;
     if (widget.personID == null &&
         MemoryLaneService.instance.hasReadyTimelineSync(
           widget.clusterID,
@@ -200,13 +196,13 @@ class _ClusterPageState extends State<ClusterPage> {
       "${files.length} memories${widget.appendTitle}",
       _selectedFiles,
       widget.clusterID,
-      memoryLaneReady: flagService.internalUser && widget.personID == null
+      memoryLaneReady: widget.personID == null
           ? MemoryLaneService.instance.hasReadyTimelineSync(
               widget.clusterID,
               isCluster: true,
             )
           : false,
-      onMemoryLaneTap: flagService.internalUser ? _openMemoryLanePage : null,
+      onMemoryLaneTap: _openMemoryLanePage,
     );
     final gallery = Gallery(
       appBar: appBar,

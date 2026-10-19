@@ -4,12 +4,18 @@ import QuickLook
 
 struct NotesSettingsView: View {
     @ObservedObject var store: NotesStore
+    var allowsRemoval = true
     @State private var showPicker = false
     @State private var removing: NoteCollectionState?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: EnsuSpacing.md) {
+                Text(
+                    "Choose notes for future messages in all chats. Existing answers stay unchanged."
+                )
+                .font(EnsuTypography.small)
+                .foregroundStyle(EnsuColor.textMuted)
                 ForEach(store.collections) { collection in
                     EnsuCard {
                         HStack {
@@ -24,11 +30,23 @@ struct NotesSettingsView: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer()
-                            ActionButton(
-                                icon: "Delete01Icon", tooltip: "Remove \(collection.label)",
-                                size: 44
-                            ) {
-                                removing = collection
+                            Toggle(
+                                "Use \(collection.label) for future messages",
+                                isOn: Binding(
+                                    get: { !store.disabledIDs.contains(collection.id) },
+                                    set: {
+                                        store.setEnabled(collection.id, enabled: $0)
+                                    })
+                            )
+                            .labelsHidden()
+                            .tint(EnsuColor.accent)
+                            if allowsRemoval {
+                                ActionButton(
+                                    icon: "Delete01Icon", tooltip: "Remove \(collection.label)",
+                                    size: 44
+                                ) {
+                                    removing = collection
+                                }
                             }
                         }
                         if let progress = collection.progress {
@@ -78,13 +96,17 @@ struct NotesSettingsView: View {
         .background(EnsuColor.backgroundBase)
         .navigationTitle("Your Notes")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showPicker) { NotesFolderPicker { store.add($0) } }
+        .sheet(isPresented: $showPicker) {
+            NotesFolderPicker { url in
+                store.add(url)
+            }
+        }
         .alert(
             "Remove folder?",
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })
         ) {
             Button("Remove", role: .destructive) {
-                if let collection = removing { store.remove(collection.id) }
+                if allowsRemoval, let collection = removing { store.remove(collection.id) }
                 removing = nil
             }
             Button("Cancel", role: .cancel) { removing = nil }

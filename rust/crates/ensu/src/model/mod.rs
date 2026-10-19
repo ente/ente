@@ -2,7 +2,7 @@ pub mod migrations;
 
 use std::path::PathBuf;
 
-use ente_assets::{Asset, AssetDownloadProgress, AssetFile, AssetStore};
+use ente_assets::{Asset, AssetDownloadProgress, AssetFile, AssetStore, AssetStoreError};
 
 use crate::config::{self, ModelPreset};
 
@@ -67,6 +67,29 @@ pub fn desktop_llm_asset(model_id: &str) -> Result<Asset, InvalidPreset> {
         .find(|preset| preset.id == model_id)
         .unwrap_or_else(|| config::defaults().desktop_default_model);
     llm_asset(&preset)
+}
+
+pub fn cleanup_obsolete_mobile_llm_assets(
+    store: &AssetStore,
+    model_id: &str,
+) -> Result<(), AssetStoreError> {
+    let catalog = config::llm_catalog();
+    let Some(active) = catalog
+        .iter()
+        .find(|preset| preset.id == model_id)
+        .and_then(|preset| llm_asset(preset).ok())
+    else {
+        return Ok(());
+    };
+    if !store.is_downloaded(&active) {
+        return Ok(());
+    }
+    let obsolete = catalog
+        .iter()
+        .filter(|preset| preset.id != model_id)
+        .map(|preset| model_key(&preset.id))
+        .collect::<Vec<_>>();
+    store.remove_keys(&obsolete)
 }
 
 pub fn transcription_model_asset() -> Asset {
@@ -204,6 +227,77 @@ fn format_bytes(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn publish_test_asset(store: &AssetStore, asset: &Asset) {
+        std::fs::create_dir_all(store.asset_dir(asset)).unwrap();
+        for name in [LLM_MODEL_FILE, LLM_MMPROJ_FILE, VOICE_ACTIVITY_MODEL_FILE] {
+            if let Some(path) = store.file_path(asset, name) {
+                std::fs::write(path, b"published test artifact").unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn cleanup_waits_for_every_replacement_file() {
+        let root = tempfile::tempdir().unwrap();
+        let store = AssetStore::new(root.path());
+        let old = mobile_llm_asset("gemma-4-e2b-q4km").unwrap();
+        let active = mobile_llm_asset("lfm-vl-1.6b").unwrap();
+        publish_test_asset(&store, &old);
+
+        cleanup_obsolete_mobile_llm_assets(&store, "lfm-vl-1.6b").unwrap();
+        assert!(store.is_downloaded(&old));
+
+        std::fs::create_dir_all(store.asset_dir(&active)).unwrap();
+        std::fs::write(llm_model_path(&store, &active).unwrap(), b"model only").unwrap();
+        assert!(!store.is_downloaded(&active));
+        cleanup_obsolete_mobile_llm_assets(&store, "lfm-vl-1.6b").unwrap();
+        assert!(store.is_downloaded(&old));
+
+        publish_test_asset(&store, &active);
+        cleanup_obsolete_mobile_llm_assets(&store, "lfm-vl-1.6b").unwrap();
+        assert!(store.is_downloaded(&active));
+        assert!(!store.asset_dir(&old).exists());
+    }
+
+    #[test]
+    fn cleanup_removes_only_obsolete_catalog_models_for_a_known_replacement() {
+        let root = tempfile::tempdir().unwrap();
+        let store = AssetStore::new(root.path());
+        let catalog = config::llm_catalog();
+        for preset in &catalog {
+            publish_test_asset(&store, &llm_asset(preset).unwrap());
+        }
+        let retained = [
+            transcription_model_asset(),
+            voice_activity_model_asset(),
+            knowledge_embedding_model_asset(),
+        ];
+        for asset in &retained {
+            publish_test_asset(&store, asset);
+        }
+        let custom = root.path().join("models/custom-model/model.gguf");
+        std::fs::create_dir_all(custom.parent().unwrap()).unwrap();
+        std::fs::write(&custom, b"custom").unwrap();
+
+        cleanup_obsolete_mobile_llm_assets(&store, "unknown").unwrap();
+        assert!(
+            catalog
+                .iter()
+                .all(|preset| store.is_downloaded(&llm_asset(preset).unwrap()))
+        );
+        for _ in 0..2 {
+            cleanup_obsolete_mobile_llm_assets(&store, "lfm-350m").unwrap();
+            for preset in &catalog {
+                assert_eq!(
+                    store.asset_dir(&llm_asset(preset).unwrap()).exists(),
+                    preset.id == "lfm-350m",
+                );
+            }
+            assert!(retained.iter().all(|asset| store.is_downloaded(asset)));
+            assert_eq!(std::fs::read(&custom).unwrap(), b"custom");
+        }
+    }
 
     fn preset(mmproj_url: Option<&str>, mmproj_sha256: Option<&str>) -> ModelPreset {
         ModelPreset {

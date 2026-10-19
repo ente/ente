@@ -252,6 +252,12 @@ class _CatalogHomeState extends State<CatalogHome> {
         previewBuilder: (_) => const _ButtonMatrix(),
       ),
       CatalogSection(
+        title: 'Loading',
+        icon: HugeIcons.strokeRoundedLoading03,
+        components: const ['Indicator', 'Dialog'],
+        previewBuilder: (_) => const _LoadingPreview(),
+      ),
+      CatalogSection(
         title: 'Floating action button',
         icon: HugeIcons.strokeRoundedAdd01,
         components: const [
@@ -303,7 +309,7 @@ class _CatalogHomeState extends State<CatalogHome> {
       CatalogSection(
         title: 'Selection controls',
         icon: HugeIcons.strokeRoundedSlidersHorizontal,
-        components: const ['Checkbox', 'Radio', 'Switch', 'Slider', 'Stepper'],
+        components: const ['Checkbox', 'Radio', 'Switch'],
         previewBuilder: (_) => const _SelectionPreview(),
       ),
       CatalogSection(
@@ -3155,8 +3161,6 @@ class _SelectionPreviewState extends State<_SelectionPreview> {
   bool _checkbox = true;
   bool _radio = true;
   bool _switch = true;
-  double _slider = 0.42;
-  int _stepper = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -3217,35 +3221,6 @@ class _SelectionPreviewState extends State<_SelectionPreview> {
                 ),
                 label: 'Off switch',
               ),
-            ],
-          ),
-        ),
-        _CatalogPreviewGroup(
-          title: 'Slider',
-          child: SliderComponent(
-            value: _slider,
-            onChanged: (value) => setState(() => _slider = value),
-          ),
-        ),
-        const _CatalogPreviewGroup(
-          title: 'Disabled slider',
-          child: SliderComponent(value: 0.7, onChanged: null),
-        ),
-        _CatalogPreviewGroup(
-          title: 'Stepper',
-          child: StepperComponent(
-            value: _stepper,
-            onChanged: (value) => setState(() => _stepper = value),
-          ),
-        ),
-        const _CatalogPreviewGroup(
-          title: 'Stepper limits',
-          child: Wrap(
-            spacing: Spacing.lg,
-            runSpacing: Spacing.md,
-            children: [
-              StepperComponent(value: 0, min: 0, max: 5, onChanged: null),
-              StepperComponent(value: 5, min: 0, max: 5, onChanged: null),
             ],
           ),
         ),
@@ -4205,5 +4180,92 @@ class _WarningIllustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset('assets/warning-grey.png', width: 101, height: 89);
+  }
+}
+
+class _LoadingPreview extends StatefulWidget {
+  const _LoadingPreview();
+
+  @override
+  State<_LoadingPreview> createState() => _LoadingPreviewState();
+}
+
+class _LoadingPreviewState extends State<_LoadingPreview> {
+  Future<void> _showDialog() async {
+    final dialog = showLoadingComponent(context, 'Deleting 3 items');
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    dialog.update(message: 'Almost done');
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    await dialog.hide();
+  }
+
+  Future<void> _showProgress() async {
+    final dialog = showLoadingComponent(
+      context,
+      'Opening Passport scan.pdf',
+      isDismissible: true,
+    );
+    for (var step = 1; step <= 30; step++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      dialog.update(message: 'Downloading ${(step / 30 * 100).round()}%');
+    }
+    await dialog.hide();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _CatalogPreviewList(
+      children: [
+        _CatalogPreviewGroup(
+          title: 'Indicator',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              for (final size in LoadingComponentSize.values)
+                _LoadingSample(
+                  label: size.name,
+                  child: LoadingComponent(size: size),
+                ),
+            ],
+          ),
+        ),
+        _CatalogPreviewGroup(
+          title: 'Dialog (tap to show)',
+          child: Column(
+            children: [
+              _ToastTriggerButton(label: 'Show dialog', onTap: _showDialog),
+              const SizedBox(height: Spacing.sm),
+              _ToastTriggerButton(
+                label: 'Show dialog with progress (tap to dismiss)',
+                onTap: _showProgress,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoadingSample extends StatelessWidget {
+  const _LoadingSample({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: LoadingComponentSize.large.diameter,
+          child: Center(child: child),
+        ),
+        const SizedBox(height: Spacing.md),
+        Text(label, style: TextStyles.mini.copyWith(color: colors.textLight)),
+      ],
+    );
   }
 }

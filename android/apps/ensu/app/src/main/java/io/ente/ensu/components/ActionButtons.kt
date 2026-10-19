@@ -2,6 +2,7 @@ package io.ente.ensu.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.ente.ensu.designsystem.EnsuColor
@@ -80,6 +82,8 @@ fun ActionButton(
 fun TextActionButton(
     text: String,
     onTap: () -> Unit,
+    underlined: Boolean = false,
+    color: Color = EnsuColor.textMuted(),
 ) {
     val haptic = rememberHaptics()
     TextButton(
@@ -88,22 +92,37 @@ fun TextActionButton(
             onTap()
         }
     ) {
-        Text(text = text, style = EnsuTypography.small, color = EnsuColor.textMuted())
+        Text(
+            text = text,
+            style = EnsuTypography.small,
+            color = color,
+            textDecoration = if (underlined) TextDecoration.Underline else TextDecoration.None,
+        )
     }
 }
 
 @Composable
-fun CompactButton(label: String, onClick: () -> Unit) {
+fun CompactButton(
+    label: String,
+    onClick: () -> Unit,
+    prominent: Boolean = false,
+) {
     Button(
         onClick = onClick,
+        modifier = Modifier.heightIn(min = if (prominent) 48.dp else 0.dp),
         colors = ButtonDefaults.buttonColors(containerColor = EnsuColor.accent()),
         contentPadding =
             PaddingValues(
-                horizontal = EnsuSpacing.md.dp,
-                vertical = EnsuSpacing.xs.dp,
+                horizontal = if (prominent) EnsuSpacing.xxl.dp else EnsuSpacing.md.dp,
+                vertical = if (prominent) EnsuSpacing.md.dp else EnsuSpacing.xs.dp,
             ),
     ) {
-        Text(label, style = EnsuTypography.mini)
+        Text(
+            label,
+            style =
+                if (prominent) EnsuTypography.body.copy(fontWeight = FontWeight.SemiBold)
+                else EnsuTypography.mini,
+        )
     }
 }
 

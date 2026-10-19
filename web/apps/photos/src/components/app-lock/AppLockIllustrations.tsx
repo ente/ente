@@ -15,10 +15,7 @@ const illustrationSvgSx = (theme: Theme) => ({
     }),
 });
 
-const LOCK_ILLUSTRATION_SRC = new URL(
-    "../icons/lock.svg",
-    import.meta.url,
-).toString();
+const LOCK_ILLUSTRATION_SRC = new URL("./lock.svg", import.meta.url).toString();
 
 export const LockIllustration = () => (
     <Box

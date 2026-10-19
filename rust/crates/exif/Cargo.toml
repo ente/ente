@@ -3,8 +3,8 @@ name = "ente-exif"
 edition.workspace = true
 
 [dependencies]
-brotli-decompressor = "5.0.0"
-miniz_oxide = "0.8.9"
+brotli-decompressor = "6.0.1"
+miniz_oxide = "0.9.1"
 quick-xml.workspace = true
 serde_json.workspace = true
 

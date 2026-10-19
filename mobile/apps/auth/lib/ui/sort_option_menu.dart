@@ -16,6 +16,11 @@ class SortCodeMenuWidget extends StatelessWidget {
   final void Function(CodeSortKey) onSelected;
   final Color? iconColor;
 
+  static final List<CodeSortKey> _menuOrder = [
+    ...CodeSortKey.values.where((key) => key != CodeSortKey.manual),
+    CodeSortKey.manual,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.strings;
@@ -53,7 +58,7 @@ class SortCodeMenuWidget extends StatelessWidget {
           content: MenuGroupComponent(
             showDividers: true,
             items: [
-              for (final key in CodeSortKey.values)
+              for (final key in _menuOrder)
                 MenuComponent(
                   title: _labelFor(l10n, key),
                   selected: key == currentKey,
@@ -82,6 +87,7 @@ class SortCodeMenuWidget extends StatelessWidget {
       CodeSortKey.mostFrequentlyUsed => l10n.mostFrequentlyUsed,
       CodeSortKey.recentlyUsed => l10n.mostRecentlyUsed,
       CodeSortKey.manual => l10n.manualSort,
+      CodeSortKey.newestFirst => l10n.sortNewestFirst,
     };
   }
 }

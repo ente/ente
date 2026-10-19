@@ -1,5 +1,4 @@
 pub mod assets;
-mod cancel;
 mod characters;
 mod classify;
 mod context;
@@ -20,7 +19,6 @@ use std::time::Instant;
 
 use thiserror::Error;
 
-use cancel::{RequestGuard, RequestRegistry};
 use characters::character_boxes;
 use classify::AngleClassifier;
 use crop::{TextCrop, crop_text};
@@ -51,13 +49,11 @@ pub struct OcrModelPaths {
 pub struct DetectTextRequest {
     pub image_path: String,
     pub include_all_confidence_scores: bool,
-    pub request_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DetectRegionsRequest {
     pub image_path: String,
-    pub request_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -127,8 +123,6 @@ pub struct TextDetectionDebug {
 pub enum OcrError {
     #[error("image not found: {0}")]
     ImageNotFound(String),
-    #[error("cancelled")]
-    Cancelled,
     #[error(transparent)]
     Ml(#[from] MlError),
 }
@@ -138,7 +132,6 @@ pub struct OcrEngine {
     classifier: Option<AngleClassifier>,
     recognizer: Option<TextRecognizer>,
     missing_text_model_paths: Vec<&'static str>,
-    requests: RequestRegistry,
 }
 
 impl OcrEngine {
@@ -157,8 +150,28 @@ impl OcrEngine {
             classifier,
             recognizer,
             missing_text_model_paths: missing_text_model_paths(&paths),
-            requests: RequestRegistry::default(),
         })
+    }
+
+    pub fn load_models(&self) -> MlResult<()> {
+        self.detector.load()?;
+        if let Some(classifier) = &self.classifier {
+            classifier.load()?;
+        }
+        if let Some(recognizer) = &self.recognizer {
+            recognizer.load()?;
+        }
+        Ok(())
+    }
+
+    pub fn unload_models(&self) {
+        self.detector.unload();
+        if let Some(classifier) = &self.classifier {
+            classifier.unload();
+        }
+        if let Some(recognizer) = &self.recognizer {
+            recognizer.unload();
+        }
     }
 
     fn text_models(&self) -> MlResult<(&AngleClassifier, &TextRecognizer)> {
@@ -187,21 +200,15 @@ impl OcrEngine {
     fn run_text_pipeline(&self, req: &DetectTextRequest) -> Result<TextPipeline, OcrError> {
         let (classifier, recognizer) = self.text_models()?;
         let started = Instant::now();
-        let request = self.requests.begin(req.request_id.as_deref());
         let mut source = load_source(&req.image_path, FULL_TEXT_CAP)?;
-        request.check()?;
         let detection_started = Instant::now();
         let detection = self.detector.detect(&source.working)?;
         let detection_ms = detection_started.elapsed().as_millis();
-        request.check()?;
         let crops = crop_candidates(&mut source.working, &detection.candidates)?;
-        request.check()?;
         let recognition_started = Instant::now();
-        let mut recognized = recognize_crops(recognizer, crops, &request)?;
-        request.check()?;
-        let retries = retry_low_confidence(classifier, recognizer, &mut recognized, &request)?;
+        let mut recognized = recognize_crops(recognizer, crops)?;
+        let retries = retry_low_confidence(classifier, recognizer, &mut recognized)?;
         let recognition_ms = recognition_started.elapsed().as_millis();
-        request.check()?;
         let blocks = text_blocks(
             &detection.candidates,
             &recognized,
@@ -243,13 +250,10 @@ impl OcrEngine {
         req: &DetectRegionsRequest,
     ) -> Result<RegionDetectionDebug, OcrError> {
         let started = Instant::now();
-        let request = self.requests.begin(req.request_id.as_deref());
         let source = load_source(&req.image_path, REGIONS_CAP)?;
-        request.check()?;
         let detection_started = Instant::now();
         let detection = self.detector.detect(&source.working)?;
         let detection_ms = detection_started.elapsed().as_millis();
-        request.check()?;
         let regions = regions_in_decoded_pixels(&detection.candidates, &source);
         log::info!(
             "ocr detect_text_regions: {}x{} -> {}x{}, det {} boxes in {detection_ms}ms, kept {}, total {}ms",
@@ -271,10 +275,6 @@ impl OcrEngine {
             working_height: source.working.height as u32,
             probability_map: detection.probability_map,
         })
-    }
-
-    pub fn cancel(&self, request_id: &str) {
-        self.requests.cancel(request_id);
     }
 }
 
@@ -427,8 +427,7 @@ fn crop_candidates(
 fn recognize_crops(
     recognizer: &TextRecognizer,
     crops: Vec<TextCrop>,
-    request: &RequestGuard<'_>,
-) -> Result<Vec<RecognizedCrop>, OcrError> {
+) -> MlResult<Vec<RecognizedCrop>> {
     let flipped = crops
         .iter()
         .map(flipped_if_vertical)
@@ -438,7 +437,7 @@ fn recognize_crops(
         .zip(&flipped)
         .flat_map(|(crop, flipped)| std::iter::once(&crop.image).chain(flipped))
         .collect();
-    let mut results = recognizer.recognize(&inputs, request)?.into_iter();
+    let mut results = recognizer.recognize(&inputs)?.into_iter();
     crops
         .into_iter()
         .zip(flipped)
@@ -471,8 +470,7 @@ fn retry_low_confidence(
     classifier: &AngleClassifier,
     recognizer: &TextRecognizer,
     crops: &mut [RecognizedCrop],
-    request: &RequestGuard<'_>,
-) -> Result<usize, OcrError> {
+) -> MlResult<usize> {
     let indices: Vec<usize> = crops
         .iter()
         .enumerate()
@@ -487,7 +485,6 @@ fn retry_low_confidence(
         .map(|&index| crops[index].image.clone())
         .collect();
     let decisions = classifier.classify(&mut images)?;
-    request.check()?;
     let flipped: Vec<(usize, ImageU8)> = indices
         .iter()
         .copied()
@@ -497,7 +494,7 @@ fn retry_low_confidence(
         .map(|(flipped, _)| flipped)
         .collect();
     let inputs: Vec<&ImageU8> = flipped.iter().map(|(_, image)| image).collect();
-    let results = recognizer.recognize(&inputs, request)?;
+    let results = recognizer.recognize(&inputs)?;
     for ((index, image), retry) in flipped.into_iter().zip(results) {
         crops[index].prefer_rotated(image, retry);
     }
@@ -663,7 +660,6 @@ mod tests {
         let error = detector_only_engine()
             .detect_text_regions(&DetectRegionsRequest {
                 image_path: "missing/image.jpg".to_string(),
-                request_id: Some("r1".to_string()),
             })
             .unwrap_err();
         assert!(matches!(error, OcrError::ImageNotFound(_)), "{error}");
@@ -682,7 +678,6 @@ mod tests {
             .detect_text(&DetectTextRequest {
                 image_path: "missing/image.jpg".to_string(),
                 include_all_confidence_scores: false,
-                request_id: None,
             })
             .unwrap_err();
         let OcrError::Ml(MlError::InvalidRequest(message)) = error else {

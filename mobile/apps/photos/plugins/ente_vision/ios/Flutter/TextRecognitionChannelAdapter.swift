@@ -20,13 +20,12 @@ final class TextRecognitionChannelAdapter {
     func detach() {
         guard isAttached else { return }
         isAttached = false
-        recognizer.cancelAll()
         channel.setMethodCallHandler(nil)
     }
 
     private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard isAttached else {
-            result(TextRecognitionError.cancelled.flutterError)
+            result(FlutterError(code: "UNAVAILABLE", message: "Text recognition plugin is detached", details: nil))
             return
         }
         switch call.method {
@@ -34,8 +33,6 @@ final class TextRecognitionChannelAdapter {
             handleDetectText(call, result: result)
         case "textRecognition.detectTextRegions":
             handleDetectTextRegions(call, result: result)
-        case "textRecognition.cancelRequest":
-            handleCancelRequest(call, result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -50,8 +47,7 @@ final class TextRecognitionChannelAdapter {
         }
         recognizer.recognizeText(
             imagePath: imagePath,
-            includeAllConfidenceScores: arguments["includeAllConfidenceScores"] as? Bool ?? false,
-            requestId: arguments["requestId"] as? String
+            includeAllConfidenceScores: arguments["includeAllConfidenceScores"] as? Bool ?? false
         ) { outcome in
             deliver(outcome, to: result, channelValue: \.channelValue)
         }
@@ -65,22 +61,10 @@ final class TextRecognitionChannelAdapter {
             return
         }
         recognizer.detectTextRegions(
-            imagePath: imagePath,
-            requestId: arguments["requestId"] as? String
+            imagePath: imagePath
         ) { outcome in
             deliver(outcome, to: result, channelValue: \.channelValue)
         }
-    }
-
-    private func handleCancelRequest(_ call: FlutterMethodCall, result: FlutterResult) {
-        guard let arguments = call.arguments as? [String: Any],
-            let requestId = arguments["requestId"] as? String, !requestId.isEmpty
-        else {
-            result(invalidArgument("requestId is required"))
-            return
-        }
-        recognizer.cancel(requestId: requestId)
-        result(nil)
     }
 
     private static let channelName = "io.ente.photos.vision/text_recognition"
@@ -114,8 +98,6 @@ extension TextRecognitionError {
             FlutterError(code: "IMAGE_DECODE_ERROR", message: "Failed to load image from path", details: nil)
         case .imageBitmapUnavailable:
             FlutterError(code: "IMAGE_DECODE_ERROR", message: "Failed to get CGImage", details: nil)
-        case .cancelled:
-            FlutterError(code: "CANCELLED", message: "OCR request was cancelled", details: nil)
         case .detectionFailed(let error):
             FlutterError(
                 code: "DETECTION_ERROR",

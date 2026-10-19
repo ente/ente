@@ -10,6 +10,7 @@ import "package:photos/services/home_widget_service.dart";
 import "package:photos/services/people_home_widget_service.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/components/banners/ml_progress_banner.dart";
 import "package:photos/ui/viewer/search/result/people_section_all_page.dart";
 
 class PeopleWidgetSettings extends StatefulWidget {
@@ -98,21 +99,31 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
         slivers: <Widget>[
           if (!hasInstalledAny)
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.sizeOf(context).height * 0.5 - 200,
-                    ),
-                    Image.asset("assets/people-widget-static.png", height: 160),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: MediaQuery.sizeOf(context).height * 0.5 - 200,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: MLProgressBanner(),
+                      ),
+                    ],
+                  ),
+                  Image.asset("assets/people-widget-static.png", height: 160),
+                ],
               ),
             )
           else ...[
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: MLProgressBanner(),
+              ),
+            ),
             if (kDebugMode)
               SliverToBoxAdapter(
                 child: Padding(

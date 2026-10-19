@@ -175,6 +175,24 @@ actor KnowledgeProvider {
         }
     }
 
+    func reload(_ locator: PassageLocator, datasets: [KnowledgeDatasetConfig]) async throws
+        -> GroundedExcerpt?
+    {
+        guard case .ensuPack(let datasetId, _, _) = locator,
+            datasets.contains(where: { $0.stableId == datasetId })
+        else { return nil }
+        return try await withIndexGate {
+            guard let index = indexes[datasetId]?.index else { return nil }
+            return try await Task.detached {
+                guard let hit = try index.reloadPassage(locator: locator) else { return nil }
+                return try selectMixedGroundingCandidates(
+                    packHits: [KnowledgePromptHit(datasetId: datasetId, hit: hit)],
+                    notesHits: [], notesLimit: 0
+                ).first
+            }.value
+        }
+    }
+
     private func reconcileAndActivateLocked(
         dataset: KnowledgeDatasetConfig
     ) async throws -> KnowledgeReconciliation {

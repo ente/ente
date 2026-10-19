@@ -1,10 +1,9 @@
 use ente_photos::{
-    extract_motion_video_file_from_path, extract_motion_video_from_path,
+    extract_motion_video_file_from_path, extract_motion_video_from_path, extract_xmp_from_path,
     get_motion_video_index_from_path,
 };
 use std::path::{Path, PathBuf};
 
-// External fixtures live beside the repository unless overridden.
 fn fixture_dir() -> Option<PathBuf> {
     if let Some(path) = std::env::var_os("ENTE_TEST_FIXTURES_DIR") {
         return Some(PathBuf::from(path).join("media/motion-photos/v1/files"));
@@ -152,5 +151,24 @@ fn file_extraction_matches_video_bytes_when_fixtures_present() {
             assert_eq!(video, expected, "{name}");
             assert_eq!(std::fs::read(output).unwrap(), expected, "{name}");
         }
+    }
+}
+
+#[test]
+fn reads_xmp_attributes_when_fixtures_present() {
+    for (name, length, mime) in [
+        ("motionphoto.heic", "80", "video/mp4"),
+        ("pixel_6_small_video.jpg", "1789460", "video/mp4"),
+        ("dual_mp4_video_first.jpg", "6123713", "video/mp4"),
+        ("dual_mp4_video_last.jpg", "4048544", "video/mp4"),
+        ("pixel_8.jpg", "9554", "image/jpeg"),
+    ] {
+        let Some(path) = fixture(name) else {
+            eprintln!("Skipping: external fixture {name} not present");
+            return;
+        };
+        let data = extract_xmp_from_path(path).expect("extract fixture XMP");
+        assert_eq!(data.get("Item:Length").unwrap(), length, "{name}");
+        assert_eq!(data.get("Item:Mime").unwrap(), mime, "{name}");
     }
 }

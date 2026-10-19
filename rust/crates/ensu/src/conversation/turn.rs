@@ -44,8 +44,11 @@ pub fn prepare_turn(
         .transpose()?
         .flatten();
     effects.check_cancelled()?;
+    let grounding_plan = input.candidates.select_sources(Some(
+        input.history_query.as_deref().unwrap_or(&input.current),
+    ))?;
     let grounding = fit_grounding_with_history(
-        &input.candidates,
+        &grounding_plan,
         required.as_ref(),
         &input.system,
         &input.current,

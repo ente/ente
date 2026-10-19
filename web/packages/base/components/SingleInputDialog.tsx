@@ -12,6 +12,12 @@ import {
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { t } from "i18next";
 import React, { useCallback, useId } from "react";
+import {
+    v2CloseButtonSx,
+    v2HeaderRowSx,
+    v2PaperSx,
+    v2TitleSx,
+} from "./SingleInput.styles";
 import { SingleInputForm, type SingleInputFormProps } from "./SingleInputForm";
 
 type SingleInputDialogProps = ModalVisibilityProps &
@@ -96,41 +102,3 @@ export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
         </Dialog>
     );
 };
-
-const surfaceStroke = "#e0e0e0";
-const surfaceStrokeDark = "rgba(255 255 255 / 0.12)";
-
-const v2PaperSx: SxProps<Theme> = (theme) => ({
-    width: "min(444px, calc(100svw - 32px))",
-    maxWidth: "444px",
-    boxSizing: "content-box",
-    m: 2,
-    borderRadius: "20px",
-    border: `1px solid ${surfaceStroke}`,
-    backgroundColor: "#f4f4f4",
-    backgroundImage: "none",
-    boxShadow: "none",
-    color: "text.base",
-    ...theme.applyStyles("dark", {
-        borderColor: surfaceStrokeDark,
-        backgroundColor: "#1b1b1b",
-    }),
-});
-const v2HeaderRowSx = {
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "12px",
-};
-const v2TitleSx = { fontSize: 24, lineHeight: "32px", fontWeight: 600 };
-const v2CloseButtonSx = (theme: Theme) => ({
-    width: 38,
-    height: 38,
-    p: 0,
-    flexShrink: 0,
-    color: "text.base",
-    backgroundColor: "background.paper",
-    "&:hover": { backgroundColor: "fill.faintHover" },
-    ...theme.applyStyles("dark", {
-        backgroundColor: "rgba(255 255 255 / 0.12)",
-    }),
-});

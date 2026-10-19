@@ -106,7 +106,7 @@ export const SpaceProfileImageViewerPage: React.FC<{
                 { cause: error },
             );
         }
-        void router.push(backRoute).catch((error: unknown) => {
+        void router.backTo(backRoute).catch((error: unknown) => {
             log.error("Failed to return to Space profile", error);
         });
     };
@@ -126,7 +126,7 @@ export const SpaceProfileImageViewerPage: React.FC<{
             <ProfileImageViewerScreen
                 profile={profile}
                 variant={variant}
-                onBack={() => void router.push(backRoute)}
+                onBack={() => void router.back(backRoute)}
                 onRemoveImage={
                     (
                         variant == "cover"
@@ -208,7 +208,7 @@ export const SpaceProfileImageEditPage: React.FC<{
                     : { ...profile, avatarFile: file },
             );
             setProfile(savedProfile);
-            await router.push(savedRoute);
+            await router.backTo(savedRoute);
             clearPendingFile();
         } catch (error) {
             log.error(
@@ -221,9 +221,9 @@ export const SpaceProfileImageEditPage: React.FC<{
         }
     };
 
-    const handleBack = () => {
+    const handleBack = async () => {
+        await router.back(profileImageRoute);
         clearPendingFile();
-        void router.push(profileImageRoute);
     };
 
     return (

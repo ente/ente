@@ -49,6 +49,11 @@ jobs:
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'docs-verify-build') }}
         uses: ./.github/workflows/docs-verify-build.yml
 
+    ensu-desktop-build:
+        needs: select
+        if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'ensu-desktop-build') }}
+        uses: ./.github/workflows/ensu-desktop-build.yml
+
     infra-lint-staff:
         needs: select
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'infra-lint-staff') }}
@@ -104,6 +109,7 @@ jobs:
             - dependency-review
             - desktop-lint
             - docs-verify-build
+            - ensu-desktop-build
             - infra-lint-staff
             - mobile-lint
             - mobile-podfile-lock

@@ -5,7 +5,10 @@ use std::{
 };
 
 use anyhow::{Context, Result, ensure};
-use ente_photos::{collections::Collection, source::Documents};
+use ente_photos::{
+    collections::{Collection, Visibility},
+    source::Documents,
+};
 use rusqlite::{Connection, OptionalExtension, Row, TransactionBehavior, params};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -23,7 +26,17 @@ pub fn lock(store: &Mutex<Store>) -> Result<MutexGuard<'_, Store>> {
         .map_err(|_| anyhow::anyhow!("export database mutex poisoned"))
 }
 
-#[derive(Clone)]
+pub fn json<T: DeserializeOwned>(
+    db: &Connection,
+    sql: &str,
+    parameters: impl rusqlite::Params,
+) -> Result<Option<T>> {
+    let text: Option<String> = db.query_row(sql, parameters, |r| r.get(0)).optional()?;
+    text.map(|text| serde_json::from_str(&text).map_err(Into::into))
+        .transpose()
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Album {
     pub key: String,
     pub id: i64,
@@ -44,7 +57,7 @@ impl Album {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Placement {
     pub id: String,
     pub album: i64,
@@ -73,7 +86,7 @@ pub struct Location {
     pub name: String,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Component {
     pub placement: String,
     pub role: Role,
@@ -158,7 +171,7 @@ pub fn system_time(time: SystemTime) -> i128 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct JsonRecord {
     pub owner: String,
     pub role: Option<Role>,
@@ -196,8 +209,9 @@ impl JsonRecord {
 #[derive(Serialize, Deserialize)]
 pub struct AlbumSource {
     pub name: String,
+    pub shared: Option<bool>,
+    pub hidden: Option<bool>,
     pub metadata: Value,
-    pub warnings: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -334,7 +348,7 @@ impl Store {
         if let Some(existing) = existing {
             ensure!(
                 existing == destination.as_os_str().as_encoded_bytes(),
-                AdoptionRequired("destination association does not match")
+                AdoptionRequired("destination association does not match; use --adopt")
             );
         } else {
             connection.execute(
@@ -535,19 +549,6 @@ impl Store {
         Ok(())
     }
 
-    pub fn json<T: DeserializeOwned>(
-        &self,
-        sql: &str,
-        parameters: impl rusqlite::Params,
-    ) -> Result<Option<T>> {
-        let text: Option<String> = self
-            .db
-            .query_row(sql, parameters, |r| r.get(0))
-            .optional()?;
-        text.map(|text| serde_json::from_str(&text).map_err(Into::into))
-            .transpose()
-    }
-
     pub fn temporary(&self, temporary: &Temporary) -> Result<()> {
         self.db.execute(
             "INSERT INTO temporaries VALUES(?1,?2,?3,?4)",
@@ -565,12 +566,58 @@ impl Store {
         Ok(())
     }
 
-    pub fn desired_album(&self, entry: &CollectionEntry) -> Result<()> {
+    pub fn desired_album(&self, entry: &CollectionEntry, user_id: i64) -> Result<()> {
+        let shared = entry.owner_id != user_id;
+        let hidden = entry
+            .value
+            .as_ref()
+            .ok()
+            .map(|(album, _)| matches!(album.visibility, Visibility::Hidden));
         self.db.execute(
-            "INSERT INTO desired_albums(id,name,present,favorites) VALUES(?1,?2,1,?3) ON CONFLICT(id) DO UPDATE SET name=excluded.name,present=1,favorites=excluded.favorites",
-            params![entry.id, entry.name, entry.favorites],
+            "INSERT INTO desired_albums(id,name,present,favorites,shared,hidden) VALUES(?1,?2,1,?3,?4,?5) ON CONFLICT(id) DO UPDATE SET name=excluded.name,present=1,favorites=excluded.favorites,shared=excluded.shared,hidden=excluded.hidden",
+            params![entry.id, entry.name, entry.favorites, shared, hidden],
         )?;
-        Ok(())
+        let mut source: AlbumSource = json(
+            &self.db,
+            "SELECT record FROM album_sources WHERE id=?1",
+            [entry.id],
+        )?
+        .unwrap_or(AlbumSource {
+            name: entry.name.clone().unwrap_or_default(),
+            shared: None,
+            hidden: None,
+            metadata: Value::Null,
+        });
+        source.shared = Some(shared);
+        source.hidden = hidden.or(source.hidden);
+        self.save_album_source(entry.id, &source)
+    }
+
+    pub fn recover_album(
+        &self,
+        id: i64,
+        name: &str,
+        metadata: Value,
+        shared: Option<bool>,
+    ) -> Result<()> {
+        let mut source: AlbumSource = json(
+            &self.db,
+            "SELECT record FROM album_sources WHERE id=?1",
+            [id],
+        )?
+        .unwrap_or(AlbumSource {
+            name: name.to_owned(),
+            shared: None,
+            hidden: None,
+            metadata: Value::Null,
+        });
+        source.shared = source.shared.or(shared);
+        if metadata.is_object() {
+            let (shared, hidden) = crate::metadata::album_categories(&metadata)?;
+            source.shared = source.shared.or(shared);
+            source.hidden = source.hidden.or(Some(hidden));
+        }
+        self.save_album_source(id, &source)
     }
 
     pub fn snapshot_album(
@@ -579,15 +626,20 @@ impl Store {
         documents: &Documents,
         user_id: i64,
     ) -> Result<()> {
-        let (metadata, warnings) = crate::metadata::album(album, documents, user_id)?;
+        let metadata = crate::metadata::album(album, documents)?;
         let source = AlbumSource {
             name: album.name.clone(),
+            shared: Some(album.owner_id != user_id),
+            hidden: Some(matches!(album.visibility, Visibility::Hidden)),
             metadata,
-            warnings,
         };
+        self.save_album_source(album.id, &source)
+    }
+
+    fn save_album_source(&self, id: i64, source: &AlbumSource) -> Result<()> {
         self.db.execute(
             "INSERT INTO album_sources VALUES(?1,?2) ON CONFLICT(id) DO UPDATE SET record=excluded.record WHERE album_sources.record<>excluded.record",
-            params![album.id, serde_json::to_string(&source)?],
+            params![id, serde_json::to_string(source)?],
         )?;
         Ok(())
     }
@@ -630,7 +682,7 @@ CREATE TABLE sources (file INTEGER PRIMARY KEY, record TEXT NOT NULL);
 ";
 
 const RUN_SCHEMA: &str = "
-CREATE TEMP TABLE desired_albums (id INTEGER PRIMARY KEY, name TEXT, present INTEGER NOT NULL DEFAULT 0, favorites INTEGER NOT NULL DEFAULT 0, selected INTEGER NOT NULL DEFAULT 0, ready INTEGER NOT NULL DEFAULT 0, failure TEXT);
+CREATE TEMP TABLE desired_albums (id INTEGER PRIMARY KEY, name TEXT, present INTEGER NOT NULL DEFAULT 0, favorites INTEGER NOT NULL DEFAULT 0, shared INTEGER, hidden INTEGER, selected INTEGER NOT NULL DEFAULT 0, ready INTEGER NOT NULL DEFAULT 0, failure TEXT);
 CREATE TEMP TABLE desired_files (album INTEGER NOT NULL, file INTEGER NOT NULL, favorited INTEGER, completed INTEGER NOT NULL DEFAULT 0, failure TEXT, claimed INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(album,file));
 CREATE INDEX desired_file_id ON desired_files(file,album);
 CREATE INDEX eligible_files ON desired_files(file) WHERE failure IS NULL AND claimed=0;

@@ -14,6 +14,7 @@ import {
 export interface Settings {
     isInternalUser: boolean;
     deferredMultipartChecksumsEnabled: boolean;
+    previewUploadV2Enabled: boolean;
     mapEnabled: boolean;
     cfUploadProxyDisabled: boolean;
     castURL: string;
@@ -25,6 +26,7 @@ export interface Settings {
 const createDefaultSettings = (): Settings => ({
     isInternalUser: false,
     deferredMultipartChecksumsEnabled: false,
+    previewUploadV2Enabled: false,
     mapEnabled: false,
     cfUploadProxyDisabled: false,
     castURL: "https://cast.ente.com",
@@ -88,6 +90,7 @@ const FeatureFlags = z.object({
 type FeatureFlags = z.infer<typeof FeatureFlags>;
 
 const deferredMultipartChecksumsFlag = 1 << 6;
+const previewUploadV2Flag = 1 << 8;
 
 const syncSettingsSnapshotWithLocalStorage = () => {
     const flags = savedRemoteFeatureFlags();
@@ -95,6 +98,9 @@ const syncSettingsSnapshotWithLocalStorage = () => {
     settings.isInternalUser = flags?.internalUser || false;
     settings.deferredMultipartChecksumsEnabled = !!(
         (flags?.serverApiFlag ?? 0) & deferredMultipartChecksumsFlag
+    );
+    settings.previewUploadV2Enabled = !!(
+        (flags?.serverApiFlag ?? 0) & previewUploadV2Flag
     );
     settings.mapEnabled = flags?.mapEnabled || false;
     settings.cfUploadProxyDisabled = savedCFProxyDisabled();

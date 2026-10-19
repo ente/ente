@@ -6,8 +6,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_sharing/components/invite_dialog.dart";
 import "package:ente_sharing/models/user.dart";
 import 'package:ente_strings/ente_strings.dart';
-import "package:ente_ui/components/progress_dialog.dart";
-import 'package:ente_ui/utils/dialog_util.dart';
 import "package:ente_ui/utils/toast_util.dart";
 import 'package:flutter/material.dart';
 import "package:locker/core/errors.dart";
@@ -17,6 +15,7 @@ import 'package:locker/services/collections/models/collection.dart';
 import "package:locker/services/configuration.dart";
 import "package:locker/services/trash/trash_service.dart";
 import "package:locker/ui/components/delete_confirmation_sheet.dart";
+import 'package:locker/ui/components/locker_progress_dialog.dart';
 import "package:locker/ui/components/subscription_required_sheet.dart";
 import "package:locker/ui/components/text_input_sheet.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
@@ -85,8 +84,10 @@ class CollectionActions {
       onSubmit: (String newName) async {
         if (newName.isEmpty || newName == collection.name) return;
 
-        final progressDialog = createProgressDialog(context, l10n.pleaseWait);
-        await progressDialog.show();
+        final progressDialog = await showLockerProgressDialog(
+          context,
+          l10n.pleaseWait,
+        );
 
         try {
           await CollectionService.instance.rename(collection, newName);
@@ -129,10 +130,9 @@ class CollectionActions {
 
     if (dialogChoice == null) return;
 
-    ProgressDialog? progressDialog;
+    LockerProgressDialog? progressDialog;
     if (context.mounted) {
-      progressDialog = createProgressDialog(context, l10n.pleaseWait);
-      await progressDialog.show();
+      progressDialog = await showLockerProgressDialog(context, l10n.pleaseWait);
     }
 
     bool isFavoriteCollection = false;
@@ -240,10 +240,12 @@ class CollectionActions {
     final fileCount = await CollectionService.instance.getFileCount(collection);
 
     if (fileCount == 0) {
-      ProgressDialog? progressDialog;
+      LockerProgressDialog? progressDialog;
       if (context.mounted) {
-        progressDialog = createProgressDialog(context, l10n.pleaseWait);
-        await progressDialog.show();
+        progressDialog = await showLockerProgressDialog(
+          context,
+          l10n.pleaseWait,
+        );
       }
 
       try {
@@ -282,10 +284,9 @@ class CollectionActions {
       return;
     }
 
-    ProgressDialog? progressDialog;
+    LockerProgressDialog? progressDialog;
     if (context.mounted) {
-      progressDialog = createProgressDialog(context, l10n.pleaseWait);
-      await progressDialog.show();
+      progressDialog = await showLockerProgressDialog(context, l10n.pleaseWait);
     }
 
     try {
@@ -456,15 +457,14 @@ class CollectionActions {
     String email, {
     bool showProgress = false,
   }) async {
-    ProgressDialog? dialog;
+    LockerProgressDialog? dialog;
     String? publicKey;
     if (showProgress) {
-      dialog = createProgressDialog(
+      dialog = await showLockerProgressDialog(
         context,
         context.strings.sharing,
         isDismissible: true,
       );
-      await dialog.show();
     }
     try {
       publicKey = await UserService.instance.getPublicKey(email);
@@ -521,15 +521,14 @@ class CollectionActions {
       return false;
     }
 
-    ProgressDialog? dialog;
+    LockerProgressDialog? dialog;
     String? publicKey;
     if (showProgress && context != null && context.mounted) {
-      dialog = createProgressDialog(
+      dialog = await showLockerProgressDialog(
         context,
         context.strings.sharing,
         isDismissible: true,
       );
-      await dialog.show();
     }
 
     try {

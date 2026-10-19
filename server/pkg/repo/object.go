@@ -105,6 +105,7 @@ func (repo *ObjectRepository) GetAccessibleObjectWithDCs(ctx context.Context, fi
 					JOIN collection_shares cs ON cs.collection_id = cf.collection_id
 					WHERE cf.file_id = f.file_id
 						AND cf.is_deleted = FALSE
+						AND cf.action IS DISTINCT FROM $4
 						AND cs.is_deleted = FALSE
 						AND (cs.to_user_id = $2 OR cs.from_user_id = $2)
 				)
@@ -119,7 +120,7 @@ func (repo *ObjectRepository) GetAccessibleObjectWithDCs(ctx context.Context, fi
 			AND ok.o_type = $3::object_type
 			AND ok.is_deleted = FALSE
 		WHERE f.file_id = $1`,
-		fileID, actorUserID, objType)
+		fileID, actorUserID, objType, ente.ActionRemove)
 
 	var s3ObjectKey ente.S3ObjectKey
 	var canAccess bool
@@ -224,8 +225,9 @@ func (repo *ObjectRepository) GetCollectionObjectWithDCs(ctx context.Context, co
 			AND ok.is_deleted = FALSE
 		WHERE cf.collection_id = $1
 			AND cf.file_id = $2
-			AND cf.is_deleted = FALSE`,
-		collectionID, fileID, objType)
+			AND cf.is_deleted = FALSE
+			AND cf.action IS DISTINCT FROM $4`,
+		collectionID, fileID, objType, ente.ActionRemove)
 
 	var s3ObjectKey ente.S3ObjectKey
 	var objectKey sql.NullString

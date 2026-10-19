@@ -136,6 +136,11 @@ class ChatRepository(
 
     internal class PreparedConversation(val owner: EnsuDb, val work: ConversationPreparation)
 
+    internal fun startFollowup(sessionId: String, path: List<String>, userText: String) =
+        withDbRecovery {
+            db.startConversationFollowup(sessionId, path, userText)
+        }
+
     internal fun prepareConversation(
         context: LlmContext,
         request: ConversationRequest,

@@ -1,7 +1,7 @@
 name: photos
 description: ente photos application
 
-version: 1.3.65+2158
+version: 1.3.67+2158
 publish_to: none
 
 resolution: workspace
@@ -17,8 +17,7 @@ dependencies:
   backup_exclusion:
     path: ../../packages/backup_exclusion
   bip39: 1.0.6
-  camera: 0.11.2+1
-  chewie: 1.13.0
+  camera: 0.12.1
   collection: 1.19.1
   computer: # logged task name in verbose in fork
     git:
@@ -112,7 +111,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_map: 8.3.1
-  flutter_rust_bridge: 2.12.0
+  flutter_rust_bridge: 2.13.0
   # Version 9.2.4 leaves lock-screen keys behind after an app reinstall.
   # Upgrade only after this is fixed or with a migration.
   # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870#issuecomment-2777447937
@@ -120,7 +119,7 @@ dependencies:
   flutter_sodium:
     git:
       url: https://github.com/ente/flutter_sodium
-      ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
+      ref: 88b8b971521d4423eaa9b467d4b2baa4fd5e0962
   flutter_staggered_grid_view: 0.7.0
   flutter_svg: 2.3.0
   flutter_timezone: 4.1.1
@@ -149,10 +148,6 @@ dependencies:
   media_kit_video: 2.0.0
   mesh_gradient: 1.3.8
   ml_linalg: 13.12.6
-  mobile_ocr:
-    git:
-      url: https://github.com/ente/mobile_ocr
-      ref: 0c68f88f20607cfcb10286422860350ccb024acd
   modal_bottom_sheet: 3.0.0
   motionphoto:
     git:
@@ -177,7 +172,7 @@ dependencies:
   photo_manager_image_provider: 2.2.0
   pinput: 5.0.2
   pointycastle: 3.9.1
-  pro_image_editor: 11.23.0
+  pro_image_editor: 13.3.1
   protobuf: 4.2.0
   random_access_source: 4.3.1
   receive_sharing_intent: # pub.dev is behind
@@ -189,7 +184,7 @@ dependencies:
   sentry: 9.6.0
   sentry_flutter: 9.6.0
   share_plus: 12.0.0
-  shared_preferences: 2.5.3
+  shared_preferences: 2.5.4
   sqlite3_flutter_libs: 0.5.41
   sqlite_async: 0.11.7
   styled_text: 8.1.0

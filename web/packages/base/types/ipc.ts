@@ -74,11 +74,16 @@ export interface Electron {
         findFiles: (folderPath: string) => Promise<string[]>;
     };
 
-    convertToJPEG: (imageData: Uint8Array) => Promise<Uint8Array<ArrayBuffer>>;
+    convertToJPEG: (
+        imageData: Uint8Array,
+        detectedExtension: string,
+        fileName: string,
+    ) => Promise<Uint8Array<ArrayBuffer>>;
     generateImageThumbnail: (
         pathOrZipItem: string | ZipItem,
         maxDimension: number,
         maxSize: number,
+        extension: string,
     ) => Promise<Uint8Array<ArrayBuffer>>;
     ffmpegExec: (
         command: FFmpegCommand,

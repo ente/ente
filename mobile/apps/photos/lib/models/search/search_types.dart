@@ -225,6 +225,7 @@ extension SectionTypeExtensions on SectionType {
                 await routeToPage(
                   context,
                   CollectionPage(CollectionWithThumbnail(c, null)),
+                  useFadeTransition: true,
                 );
               } catch (e, s) {
                 Logger(

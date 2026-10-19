@@ -158,14 +158,14 @@ jobs:
               run: cd artifacts && sha256sum ente-auth-*.apk > SHA256SUMS-android
 
             - name: Upload checksum snippet
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: auth-SHA256SUMS-android
                   path: mobile/apps/auth/artifacts/SHA256SUMS-android
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -251,14 +251,54 @@ jobs:
                   sudo apt-get install -y libsecret-1-dev libsodium-dev libfuse2 ninja-build libgtk-3-dev dpkg-dev pkg-config rpm patchelf libsqlite3-dev locate libayatana-appindicator3-dev libffi-dev libtiff5 xz-utils libarchive-tools libcurl4-openssl-dev
                   sudo updatedb --localpaths='/usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu'
 
-            - name: Install fpm for RPM packaging
-              run: sudo gem install fpm
-
-            - name: Install appimagetool
+            - name: Install verified fpm
               run: |
-                  wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
-                  chmod +x appimagetool
-                  mv appimagetool /usr/local/bin/
+                  set -euo pipefail
+
+                  gem_lock="$GITHUB_WORKSPACE/mobile/apps/auth/linux/packaging/fpm-gems.sha256"
+                  gem_home="$(mktemp -d "${RUNNER_TEMP:?}/auth-fpm.XXXXXX")"
+                  export GEM_HOME="$gem_home" GEM_PATH="$gem_home"
+                  cd "$gem_home"
+
+                  while read -r _checksum gem_file; do
+                      curl -fsSL --proto '=https' \
+                          "https://rubygems.org/downloads/$gem_file" --output "$gem_file"
+                  done < "$gem_lock"
+                  sha256sum --check "$gem_lock"
+
+                  # An isolated gem home and --local keep the entire dependency closure offline.
+                  gem install --local --no-document --env-shebang ./*.gem
+                  "$gem_home/bin/fpm" --version
+                  printf 'GEM_HOME=%s\nGEM_PATH=%s\n' "$gem_home" "$gem_home" >> "${GITHUB_ENV:?}"
+                  printf '%s\n' "$gem_home/bin" >> "${GITHUB_PATH:?}"
+
+            - name: Install verified AppImage tools
+              run: |
+                  set -euo pipefail
+
+                  tools_dir="$(mktemp -d "${RUNNER_TEMP:?}/auth-appimage.XXXXXX")"
+                  cd "$tools_dir"
+
+                  curl -fsSL --proto '=https' \
+                      https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage \
+                      --output appimagetool.AppImage
+                  echo 'ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  appimagetool.AppImage' | sha256sum --check
+                  curl -fsSL --proto '=https' \
+                      https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64 \
+                      --output runtime-x86_64
+                  echo '2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d  runtime-x86_64' | sha256sum --check
+
+                  # Both Fastforge and post_process_appimage.sh must use the verified runtime.
+                  cat > appimagetool <<'EOF'
+                  #!/usr/bin/env bash
+                  set -euo pipefail
+                  tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+                  export APPIMAGE_EXTRACT_AND_RUN=1
+                  exec "$tools_dir/appimagetool.AppImage" --runtime-file "$tools_dir/runtime-x86_64" "$@"
+                  EOF
+                  chmod +x appimagetool.AppImage appimagetool
+                  ./appimagetool --version
+                  printf '%s\n' "$tools_dir" >> "${GITHUB_PATH:?}"
 
             - name: Build Linux app
               run: |
@@ -278,14 +318,14 @@ jobs:
               run: cd artifacts && sha256sum ente-auth-*.deb ente-auth-*.rpm ente-auth-*.AppImage > SHA256SUMS-linux
 
             - name: Upload checksum snippet
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: auth-SHA256SUMS-linux
                   path: mobile/apps/auth/artifacts/SHA256SUMS-linux
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -366,8 +406,34 @@ jobs:
               shell: bash
               run: |
                   flutter config --enable-windows-desktop
-                  choco install innosetup -y
                   flutter build windows --release
+
+            - name: Install verified Inno Setup
+              shell: pwsh
+              run: |
+                  $ErrorActionPreference = "Stop"
+
+                  $toolsDir = Join-Path $env:RUNNER_TEMP ("auth-innosetup-" + [guid]::NewGuid())
+                  New-Item -ItemType Directory -Path $toolsDir | Out-Null
+                  $installer = Join-Path $toolsDir "innosetup-6.7.3.exe"
+                  Invoke-WebRequest `
+                      -Uri "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe" `
+                      -OutFile $installer
+                  if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732") {
+                      throw "Inno Setup installer checksum mismatch"
+                  }
+
+                  $installDir = Join-Path $toolsDir "compiler"
+                  $process = Start-Process -FilePath $installer -Wait -PassThru -ArgumentList `
+                      "/PORTABLE=1", "/CURRENTUSER", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOICONS", "/DIR=`"$installDir`""
+                  if ($process.ExitCode -ne 0) {
+                      throw "Inno Setup installation failed with exit code $($process.ExitCode)"
+                  }
+                  $compiler = Join-Path $installDir "ISCC.exe"
+                  if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
+                      throw "Inno Setup compiler not found: $compiler"
+                  }
+                  "INNO_SETUP_COMPILER=$compiler" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
             - name: Verify Windows PE allowlist
               shell: pwsh
@@ -402,7 +468,8 @@ jobs:
               run: |
                   & ./scripts/build_windows_installer.ps1 `
                     -SourceDir "build/windows/x64/runner/Release" `
-                    -InstallerPath "artifacts/${{ env.ARTIFACT_STEM }}-installer.exe"
+                    -InstallerPath "artifacts/${{ env.ARTIFACT_STEM }}-installer.exe" `
+                    -CompilerPath $env:INNO_SETUP_COMPILER
 
             - name: Sign Windows installer with Trusted Signing
               uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
@@ -443,14 +510,14 @@ jobs:
               run: cd artifacts && sha256sum ente-auth-* > SHA256SUMS-windows
 
             - name: Upload checksum snippet
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: auth-SHA256SUMS-windows
                   path: mobile/apps/auth/artifacts/SHA256SUMS-windows
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -518,7 +585,19 @@ jobs:
             - run: flutter pub get --enforce-lockfile
 
             - name: Install code signing dependencies
-              run: pip3 install codemagic-cli-tools --break-system-packages
+              run: |
+                  set -euo pipefail
+
+                  venv="$(mktemp -d "${RUNNER_TEMP:?}/auth-codemagic.XXXXXX")"
+                  python3 -m venv "$venv"
+                  "$venv/bin/python" -m pip --isolated install \
+                      --disable-pip-version-check --no-cache-dir \
+                      --index-url https://pypi.org/simple \
+                      --require-hashes --only-binary=:all: \
+                      --requirement macos/packaging/codemagic-requirements.txt
+                  "$venv/bin/python" -m pip check
+                  "$venv/bin/codemagic-cli-tools" --version
+                  printf '%s\n' "$venv/bin" >> "${GITHUB_PATH:?}"
 
             - name: Add provisioning profiles
               run: |
@@ -578,14 +657,14 @@ jobs:
               run: cd artifacts && shasum -a 256 ente-auth-* > SHA256SUMS-macos
 
             - name: Upload checksum snippet
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: auth-SHA256SUMS-macos
                   path: mobile/apps/auth/artifacts/SHA256SUMS-macos
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -653,7 +732,7 @@ jobs:
               working-directory: mobile/apps/auth/ios
 
             - name: Import Apple Distribution certificate
-              uses: Apple-Actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7.0.0
+              uses: Apple-Actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9 # v7.1.0
               with:
                   p12-file-base64: ${{ secrets.APPLE_DISTRIBUTION_CERT_BASE64 }}
                   p12-password: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
@@ -706,7 +785,7 @@ jobs:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
             - name: Download checksum snippets
-              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
                   pattern: auth-SHA256SUMS-*
                   path: checksums
@@ -725,7 +804,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}

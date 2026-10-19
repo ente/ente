@@ -1,5 +1,6 @@
 import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
+import { setImmediate } from "node:timers/promises";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -339,7 +340,7 @@ describe("video streaming percentage", () => {
                 [],
             );
             await videoProcessingSyncIfNeeded();
-            await new Promise<void>(setImmediate);
+            await setImmediate();
             await expectProcessedFraction(1);
         },
     );
@@ -389,7 +390,7 @@ describe("video streaming percentage", () => {
         await initVideoProcessing();
         await toggleHLSGeneration();
         gate.resolve(undefined);
-        await new Promise<void>(setImmediate);
+        await setImmediate();
         expect(hlsGenerationStatusSnapshot()).toEqual({ enabled: false });
     });
 
@@ -432,7 +433,7 @@ describe("video streaming percentage", () => {
         await initVideoProcessing();
         resetVideoState();
         gate.resolve(undefined);
-        await new Promise<void>(setImmediate);
+        await setImmediate();
         expect(hlsGenerationStatusSnapshot()).toBeUndefined();
     });
 
@@ -457,7 +458,7 @@ describe("video streaming percentage", () => {
         mocks.collectionFilesReadGate = gate.promise;
         await initVideoProcessing();
         gate.reject(new Error("storage read failed"));
-        await new Promise<void>(setImmediate);
+        await setImmediate();
         mocks.collectionFilesReadGate = undefined;
         await initVideoProcessing();
         await expectProcessedFraction(0);

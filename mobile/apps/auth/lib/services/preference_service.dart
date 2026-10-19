@@ -9,6 +9,7 @@ enum CodeSortKey {
   mostFrequentlyUsed,
   recentlyUsed,
   manual,
+  newestFirst,
 }
 
 class PreferenceService {
@@ -32,6 +33,13 @@ class PreferenceService {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+  }
+
+  String get lastSelectedTag => _prefs.getString("lastSelectedTag") ?? "";
+  set lastSelectedTag(String tag) {
+    if (lastSelectedTag != tag) {
+      _prefs.setString("lastSelectedTag", tag).ignore();
+    }
   }
 
   bool hasShownCoachMark() {

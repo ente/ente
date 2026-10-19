@@ -7,7 +7,7 @@ use std::{
 use html_escape::decode_html_entities;
 use once_cell::sync::Lazy;
 use plsfix::fix_text;
-use regex::Regex;
+use regex::{Regex, regex};
 
 use crate::error::{MlError, MlResult};
 
@@ -15,25 +15,13 @@ use super::CLIP_TEXT_TOKEN_COUNT;
 
 const BPE_MERGES_END_EXCLUSIVE: usize = 49152 - 256 - 2 + 1;
 
-#[expect(
-    clippy::expect_used,
-    reason = "The tokenizer regex is a fixed valid literal"
-)]
-static TOKEN_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(
+fn token_pattern() -> &'static Regex {
+    regex!(
         // Keep this aligned with MobileCLIP's Python tokenizer path
         // (open_clip SimpleTokenizer), including Unicode token classes.
-        r"(?i)<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+",
+        r"(?i)<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+"
     )
-    .expect("valid clip tokenizer regex")
-});
-
-#[expect(
-    clippy::expect_used,
-    reason = "The whitespace regex is a fixed valid literal"
-)]
-static WHITESPACE_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\s+").expect("valid whitespace regex"));
+}
 
 struct TokenizerState {
     vocab_path: String,
@@ -90,7 +78,10 @@ impl ClipTextTokenizer {
     fn from_vocabulary(vocabulary: &str) -> MlResult<Self> {
         let (byte_encoder, byte_encoder_values) = bytes_to_unicode()?;
 
-        let split = vocabulary.split('\n').collect::<Vec<_>>();
+        let split = vocabulary
+            .split('\n')
+            .take(BPE_MERGES_END_EXCLUSIVE)
+            .collect::<Vec<_>>();
         if split.len() < BPE_MERGES_END_EXCLUSIVE {
             return Err(MlError::Runtime(format!(
                 "invalid clip vocab: expected at least {BPE_MERGES_END_EXCLUSIVE} lines, got {}",
@@ -174,7 +165,7 @@ impl ClipTextTokenizer {
     fn encode(&mut self, text: &str) -> MlResult<Vec<i32>> {
         let mut bpe_tokens = Vec::<i32>::new();
         let clean_text = whitespace_clean(&basic_clean(text)).to_lowercase();
-        for matched in TOKEN_PATTERN.find_iter(&clean_text) {
+        for matched in token_pattern().find_iter(&clean_text) {
             let mut token = String::new();
             for byte in matched.as_str().as_bytes() {
                 let value = self.byte_encoder.get(byte).ok_or_else(|| {
@@ -269,7 +260,7 @@ fn basic_clean(text: &str) -> String {
 }
 
 fn whitespace_clean(text: &str) -> String {
-    let replaced = WHITESPACE_PATTERN.replace_all(text, " ");
+    let replaced = regex!(r"\s+").replace_all(text, " ");
     replaced.trim().to_string()
 }
 
@@ -337,11 +328,13 @@ fn bytes_to_unicode() -> MlResult<(HashMap<u8, String>, Vec<String>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClipTextTokenizer, TOKEN_PATTERN, basic_clean, whitespace_clean};
+    use super::{
+        BPE_MERGES_END_EXCLUSIVE, ClipTextTokenizer, basic_clean, token_pattern, whitespace_clean,
+    };
 
     fn cleaned_tokens(text: &str) -> Vec<String> {
         let clean_text = whitespace_clean(&basic_clean(text)).to_lowercase();
-        TOKEN_PATTERN
+        token_pattern()
             .find_iter(&clean_text)
             .map(|matched| matched.as_str().to_string())
             .collect()
@@ -351,6 +344,8 @@ mod tests {
     fn basic_clean_matches_ftfy_style_repairs() {
         assert_eq!(basic_clean(" âœ” No problems "), "✔ No problems");
         assert_eq!(basic_clean("Tom &amp;amp; Jerry"), "Tom & Jerry");
+        assert_eq!(basic_clean("A&#x20;B"), "A B");
+        assert_eq!(basic_clean("A&#x1b;B"), "A&#x1b;B");
     }
 
     #[test]
@@ -386,5 +381,39 @@ mod tests {
             err.to_string().contains("invalid clip vocab"),
             "unexpected error: {err}",
         );
+    }
+
+    #[test]
+    fn uses_the_last_supported_merge_and_ignores_later_merges() {
+        let vocabulary = format!(
+            "#version: 0.2\n{}a b</w>",
+            "\n".repeat(BPE_MERGES_END_EXCLUSIVE - 2),
+        );
+        let mut tokenizer = ClipTextTokenizer::from_vocabulary(&vocabulary).unwrap();
+        let expected = tokenizer.tokenize("ab ac").unwrap();
+        assert_eq!(tokenizer.encode("ab").unwrap(), [512]);
+
+        for suffix in ["\n", "\na c</w>", "\na c</w>\n"] {
+            let mut extended =
+                ClipTextTokenizer::from_vocabulary(&format!("{vocabulary}{suffix}")).unwrap();
+            assert_eq!(extended.tokenize("ab ac").unwrap(), expected);
+            assert!(!extended.encoder.contains_key("ac</w>"));
+        }
+    }
+
+    #[test]
+    fn counts_the_trailing_empty_line_at_the_vocabulary_boundary() {
+        let vocabulary = "\n".repeat(BPE_MERGES_END_EXCLUSIVE - 2);
+        let Err(error) = ClipTextTokenizer::from_vocabulary(&vocabulary) else {
+            panic!("expected incomplete vocabulary to fail");
+        };
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "runtime error: invalid clip vocab: expected at least {BPE_MERGES_END_EXCLUSIVE} lines, got {}",
+                BPE_MERGES_END_EXCLUSIVE - 1,
+            ),
+        );
+        assert!(ClipTextTokenizer::from_vocabulary(&format!("{vocabulary}\n")).is_ok());
     }
 }

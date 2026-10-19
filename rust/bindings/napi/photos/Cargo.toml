@@ -10,12 +10,12 @@ crate-type = ["cdylib"]
 ente-assets.workspace = true
 ente-ml.workspace = true
 log = { workspace = true, features = ["std"] }
-napi = { version = "3.0.0", default-features = false, features = ["napi10", "tokio_rt"] }
-napi-derive = "3.0.0"
+napi = { version = "3.13.0", default-features = false, features = ["napi10", "tokio_rt"] }
+napi-derive = "3.6.9"
 ort = { workspace = true, features = ["load-dynamic"] }
 
 [build-dependencies]
-napi-build = "2.0.0"
+napi-build = "2.5.0"
 
 [lints]
 workspace = true

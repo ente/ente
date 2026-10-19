@@ -60,6 +60,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
   StreamSubscription<MediaExtentionAction>? _intentActionSubscription;
   StreamSubscription<Uri?>? _widgetClickedSubscription;
   bool _didInitWidgetLaunchHandling = false;
+  bool _wasPaused = false;
   late Future<Widget> _initialAndroidHome;
   bool get _isPickerLaunch =>
       widget.initialMediaExtensionAction?.action == IntentAction.pick;
@@ -222,6 +223,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
         initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
         builder: (lightTheme, dartTheme) => MaterialApp(
           navigatorKey: AppNavigationService.instance.navigatorKey,
+          navigatorObservers: [AppNavigationService.instance.routeObserver],
           title: "ente",
           themeMode: ThemeMode.system,
           theme: lightTheme,
@@ -262,7 +264,10 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
       if (_isPickerLaunch) {
         return;
       }
-      unawaited(_reloadCachesUpdatedInBackground(lastAppOpenTime));
+      if (_wasPaused) {
+        _wasPaused = false;
+        unawaited(_reloadCachesUpdatedInBackground(lastAppOpenTime));
+      }
       SyncService.instance.sync();
       unawaited(BackgroundTasks.configure().catchError((Object _) {}));
       if (Platform.isIOS) {
@@ -270,6 +275,9 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
       }
     } else {
       AppLifecycleService.instance.onAppInBackground(stateChangeReason);
+      if (state == AppLifecycleState.paused) {
+        _wasPaused = true;
+      }
       if (Platform.isIOS && state == AppLifecycleState.paused) {
         MLService.instance.stopActiveRun(MlStopReason.appPaused);
       }

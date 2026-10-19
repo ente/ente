@@ -1,6 +1,5 @@
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:ente_utils/share_utils.dart";
 import "package:flutter/material.dart";
@@ -8,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/services/files/links/links_service.dart";
 import "package:locker/services/files/sync/models/file.dart";
+import "package:locker/ui/components/locker_progress_dialog.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:locker/utils/error_sheet.dart";
 
@@ -146,14 +146,12 @@ class _ShareLinkSheetState extends State<ShareLinkSheet> {
     );
 
     if (confirmed == true && context.mounted) {
-      final dialog = createProgressDialog(
-        context,
-        l10n.deletingShareLink,
-        isDismissible: false,
-      );
-
+      LockerProgressDialog? dialog;
       try {
-        await dialog.show();
+        dialog = await showLockerProgressDialog(
+          context,
+          l10n.deletingShareLink,
+        );
         await LinksService.instance.deleteLink(widget.file.uploadedFileID!);
         await dialog.hide();
 
@@ -161,7 +159,7 @@ class _ShareLinkSheetState extends State<ShareLinkSheet> {
           showToast(context, l10n.linkDeletedSuccessfully);
         }
       } catch (e) {
-        await dialog.hide();
+        await dialog?.hide();
 
         if (context.mounted) {
           await showLockerErrorSheet(context, e);

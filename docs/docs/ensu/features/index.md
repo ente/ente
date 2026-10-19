@@ -77,6 +77,8 @@ Native downloads use ranged HTTP requests and retry automatically. The web versi
 
 ### Chat sessions and sidebar
 
+![Ensu web sidebar expanded with Today grouping and two chat sessions, plus New chat and collapse controls](https://docs-assets.ente.com/screenshots/ensu-web-sidebar-sessions.png){width=720px}
+
 Every conversation is a separate session, listed in the sidebar.
 
 - **On desktop**: the sidebar lives on the left edge of the window. Click the handle to expand or collapse it. Sessions are grouped by recency (Today, Yesterday, This week, This month, Older).

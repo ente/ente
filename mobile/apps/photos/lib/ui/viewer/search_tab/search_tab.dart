@@ -30,9 +30,14 @@ import "package:photos/ui/viewer/search_tab/search_tab_preview_limits.dart";
 import "package:photos/ui/wrapped/wrapped_discovery_section.dart";
 
 class SearchTab extends StatefulWidget {
-  const SearchTab({super.key, this.shouldConsumeBackNotifier});
+  const SearchTab({
+    super.key,
+    this.shouldConsumeBackNotifier,
+    this.isOnSearchTab,
+  });
 
   final ValueNotifier<bool>? shouldConsumeBackNotifier;
+  final ValueListenable<bool>? isOnSearchTab;
 
   @override
   State<SearchTab> createState() => _SearchTabState();
@@ -105,7 +110,10 @@ class _SearchTabState extends State<SearchTab> {
                   duration: const Duration(milliseconds: 150),
                   index: index,
                   children: [
-                    AllSearchSections(previewLimits: previewLimits),
+                    AllSearchSections(
+                      previewLimits: previewLimits,
+                      isOnSearchTab: widget.isOnSearchTab,
+                    ),
                     const SearchSuggestionsWidget(),
                     const NoResultWidget(),
                   ],
@@ -204,8 +212,13 @@ class _SearchHeaderTitle extends StatelessWidget {
 
 class AllSearchSections extends StatefulWidget {
   final SearchTabPreviewLimits previewLimits;
+  final ValueListenable<bool>? isOnSearchTab;
 
-  const AllSearchSections({super.key, required this.previewLimits});
+  const AllSearchSections({
+    super.key,
+    required this.previewLimits,
+    this.isOnSearchTab,
+  });
 
   @override
   State<AllSearchSections> createState() => _AllSearchSectionsState();
@@ -255,8 +268,7 @@ class _AllSearchSectionsState extends State<AllSearchSections> {
           List<GenericSearchResult> examplesFor(SectionType type) =>
               resultsBySection[type]! as List<GenericSearchResult>;
 
-          final hasSurfacedOfflineFaces =
-              isLocalGalleryMode &&
+          final hasSurfacedFaces =
               resultsBySection[SectionType.face]!.isNotEmpty;
           final sectionWidgets = [
             if (hasGrantedMLConsent)
@@ -304,17 +316,16 @@ class _AllSearchSectionsState extends State<AllSearchSections> {
                 itemCount: sectionWidgets.length + 1,
                 itemBuilder: (context, index) {
                   if (index == 0) {
-                    if (!isLocalGalleryMode) {
+                    if (hasSurfacedFaces) {
                       return const SizedBox.shrink();
                     }
-                    if (hasSurfacedOfflineFaces) {
-                      return const SizedBox.shrink();
-                    }
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: searchTabSectionHorizontalPadding,
                       ),
-                      child: MLProgressBanner(),
+                      child: MLProgressBanner(
+                        isOnSearchTab: widget.isOnSearchTab,
+                      ),
                     );
                   }
                   return sectionWidgets[index - 1];

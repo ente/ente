@@ -1,5 +1,4 @@
 import 'package:ente_auth/ui/settings/data/import_page.dart';
-import 'package:ente_auth/utils/navigation_util.dart' as auth_nav;
 import 'package:ente_auth/utils/platform_util.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -134,10 +133,7 @@ class HomeEmptyStateWidget extends StatelessWidget {
                                 size: ButtonComponentSize.small,
                                 variant: ButtonComponentVariant.link,
                                 onTap: () {
-                                  auth_nav.routeToPage(
-                                    context,
-                                    const ImportCodePage(),
-                                  );
+                                  routeToPage(context, const ImportCodePage());
                                 },
                               ),
                               ButtonComponent(

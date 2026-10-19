@@ -17,6 +17,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import 'package:photos/module/download/download_error.dart';
 import "package:photos/module/download/file.dart";
+import "package:photos/module/download/progressive_video_stream.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
@@ -76,6 +77,11 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   bool _isGuestView = false;
   StreamSubscription<StreamSwitchedEvent>? _streamSwitchedSubscription;
   StreamSubscription<DownloadTask>? _downloadTaskSubscription;
+  ProgressiveVideoStream? _progressive;
+  Future<void>? _progressiveCleanup;
+  int _videoLoad = 0;
+  String? _loadedSource;
+  StreamSubscription<String>? _playerErrors;
   final _transformationController = TransformationController();
   bool _isZooming = false;
 
@@ -86,7 +92,6 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     );
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
     if (widget.selectedPreview) {
       loadPreview();
     } else {
@@ -160,13 +165,29 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     }
   }
 
-  void loadPreview() {
+  void loadPreview() async {
+    final generation = ++_videoLoad;
+    final cleanup = _disposeProgressive();
+    if (cleanup != null) {
+      await cleanup;
+      if (!mounted || generation != _videoLoad) {
+        return;
+      }
+    }
     final preview = widget.preview;
     if (preview == null) return;
     _setVideoController(preview.path);
   }
 
-  void loadOriginal() {
+  void loadOriginal() async {
+    final generation = ++_videoLoad;
+    final cleanup = _disposeProgressive();
+    if (cleanup != null) {
+      await cleanup;
+      if (!mounted || generation != _videoLoad) {
+        return;
+      }
+    }
     if (widget.file.isRemoteOnlyFile) {
       _loadNetworkVideo();
       _setFileSizeIfNull();
@@ -178,16 +199,22 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
         _loadNetworkVideo();
       }
     } else {
-      widget.file.getAsset.then((asset) async {
+      await widget.file.getAsset.then((asset) async {
         // Android trash assets may report that they do not exist.
-        if (asset == null ||
-            !(await asset.exists || widget.file.isDeviceTrash)) {
+        final exists = await asset?.exists ?? false;
+        if (!mounted || generation != _videoLoad) {
+          return;
+        }
+        if (asset == null || !(exists || widget.file.isDeviceTrash)) {
           if (widget.file.uploadedFileID != null) {
             _loadNetworkVideo();
           }
         } else {
           // ignore: unawaited_futures
           asset.getMediaUrl().then((url) {
+            if (!mounted || generation != _videoLoad) {
+              return;
+            }
             _setVideoController(
               url ??
                   'https://user-images.githubusercontent.com/28951144/229373695-22f88f13-d18f-4288-9bf1-c3e078d83722.mp4',
@@ -209,6 +236,10 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
 
   @override
   void dispose() {
+    _videoLoad++;
+    _progressive?.dispose().ignore();
+    _progressive = null;
+    _playerErrors?.cancel();
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
@@ -253,7 +284,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
               }
             },
       child: Center(
-        child: controller != null
+        child: controller != null && _loadedSource != null
             ? common.VideoWidget(
                 widget.file,
                 controller!,
@@ -276,12 +307,80 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     );
   }
 
+  Future<void>? _disposeProgressive() {
+    final stream = _progressive;
+    _progressive = null;
+    if (stream == null) {
+      return _progressiveCleanup;
+    }
+    return _progressiveCleanup = player
+        .stop()
+        .catchError((Object _) {})
+        .whenComplete(stream.dispose);
+  }
+
   void _loadNetworkVideo() {
+    if (flagService.progressiveOriginalVideoPlayback) {
+      unawaited(_loadProgressively());
+    } else {
+      _loadNetworkVideoFully();
+    }
+  }
+
+  Future<void> _loadProgressively() async {
+    final generation = _videoLoad;
+    bool isCurrent() => mounted && generation == _videoLoad;
+    final stream = ProgressiveVideoStream(
+      widget.file,
+      onProgress: (count, total) {
+        if (isCurrent()) {
+          _progressNotifier.value = count / total;
+        }
+      },
+    );
+    _progressive = stream;
+    try {
+      final url = await stream.open();
+      if (!isCurrent()) {
+        return;
+      }
+      if (url != null) {
+        _playerErrors ??= player.stream.error.listen((_) {
+          final stream = _progressive;
+          if (stream != null &&
+              stream.url != null &&
+              stream.url == _loadedSource) {
+            stream.playbackFailed();
+          }
+        });
+        _setVideoController(url);
+        await stream.failure;
+        return;
+      }
+    } catch (error) {
+      if (isCurrent()) {
+        _logger.info('Progressive playback unavailable (${error.runtimeType})');
+      }
+    }
+    if (!isCurrent()) {
+      return;
+    }
+    setState(() => _loadedSource = null);
+    await _disposeProgressive();
+    if (!isCurrent()) {
+      return;
+    }
+    _loadNetworkVideoFully(generation: generation);
+  }
+
+  void _loadNetworkVideoFully({int? generation}) {
+    bool isCurrent() =>
+        mounted && (generation == null || generation == _videoLoad);
     getFileFromServer(
           widget.file,
           throwOnDecryptionFailure: true,
           progressCallback: (count, total) {
-            if (!mounted) {
+            if (!isCurrent()) {
               return;
             }
             _progressNotifier.value = count / (widget.file.fileSize ?? total);
@@ -293,12 +392,14 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           },
         )
         .then((file) {
-          if (file != null) {
+          if (file != null && isCurrent()) {
             _setVideoController(file.path);
           }
         })
         .onError((error, stackTrace) {
-          if (!mounted) return;
+          if (!mounted || !isCurrent()) {
+            return;
+          }
           if (error is DownloadDecryptionError) {
             showDownloadDecryptionFailedDialog(context: context);
           } else {
@@ -336,7 +437,16 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           controller = VideoController(player);
         }
         _applyVolume();
-        player.open(Media(url), play: _isAppInFG && widget.isActive);
+        _loadedSource = url;
+        final stream = _progressive?.url == url ? _progressive : null;
+        player.open(Media(url), play: _isAppInFG && widget.isActive).catchError(
+          (Object error, StackTrace stack) {
+            if (stream == null) {
+              Error.throwWithStackTrace(error, stack);
+            }
+            stream.playbackFailed();
+          },
+        );
       });
       int duration = controller!.player.state.duration.inSeconds;
       if (duration == 0) {

@@ -128,7 +128,6 @@ Future<T?> showEntePopupMenu<T>({
 
   return showMenu<T>(
     context: context,
-    color: Colors.transparent,
     elevation: elevation,
     surfaceTintColor: Colors.transparent,
     menuPadding: EdgeInsets.zero,
@@ -151,35 +150,28 @@ Future<T?> showEntePopupMenu<T>({
             final borderSide = BorderSide(color: colors.strokeFaint);
             final isFirst = index == 0;
             final isLast = index == options.length - 1;
-            return Ink(
-              color: colors.fillLight,
-              child: Container(
-                key: ValueKey('ente-popup-menu-item-$index'),
-                height: itemHeight,
-                padding: EdgeInsets.symmetric(
-                  horizontal: itemHorizontalPadding,
-                ),
-                decoration: BoxDecoration(
-                  border: option.showDivider && !isLast
-                      ? Border(bottom: borderSide)
-                      : null,
-                ),
-                foregroundDecoration: BoxDecoration(
-                  border: Border(
-                    top: isFirst ? borderSide : BorderSide.none,
-                    bottom: isLast ? borderSide : BorderSide.none,
-                    left: borderSide,
-                    right: borderSide,
-                  ),
-                  borderRadius: BorderRadius.vertical(
-                    top: isFirst ? Radius.circular(borderRadius) : Radius.zero,
-                    bottom: isLast
-                        ? Radius.circular(borderRadius)
-                        : Radius.zero,
-                  ),
-                ),
-                child: _EntePopupMenuRow(option: option),
+            return Container(
+              key: ValueKey('ente-popup-menu-item-$index'),
+              height: itemHeight,
+              padding: EdgeInsets.symmetric(horizontal: itemHorizontalPadding),
+              decoration: BoxDecoration(
+                border: option.showDivider && !isLast
+                    ? Border(bottom: borderSide)
+                    : null,
               ),
+              foregroundDecoration: BoxDecoration(
+                border: Border(
+                  top: isFirst ? borderSide : BorderSide.none,
+                  bottom: isLast ? borderSide : BorderSide.none,
+                  left: borderSide,
+                  right: borderSide,
+                ),
+                borderRadius: BorderRadius.vertical(
+                  top: isFirst ? Radius.circular(borderRadius) : Radius.zero,
+                  bottom: isLast ? Radius.circular(borderRadius) : Radius.zero,
+                ),
+              ),
+              child: _EntePopupMenuRow(option: option),
             );
           },
         ),

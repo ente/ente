@@ -19,13 +19,8 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-            - name: Free runner disk space
-              run: sudo rm -rf /usr/share/dotnet
-
-            - name: Install Linux dependencies
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc libdbus-1-dev
+            - name: Setup Linux for Rust
+              uses: ./.github/actions/setup-rust-linux
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache

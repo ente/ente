@@ -73,12 +73,12 @@ const ChangelogContent: React.FC = () => {
         <Stack sx={{ gap: 2, mb: 1 }}>
             <Typography variant="h6">
                 {ut(
-                    "Improved hidden album organization, video stream processing progress, Windows installer fixes, and more",
+                    "Album slideshows, view more RAW formats, better video loading in viewer, and more",
                 )}
             </Typography>
             <Typography sx={{ color: "text.muted" }}>
                 {ut(
-                    "Move photos between hidden albums and view video stream processing progress in Preferences. Title bars now match your theme on Windows and Linux. and bug fixes.",
+                    "Album slideshows, previews for more RAW formats, video loading progress and retry in the viewer, updated All People view, improved RAW and Ultra HDR thumbnails on Windows and Linux, plus fixes for video sizing, maps, and more.",
                 )}
             </Typography>
         </Stack>

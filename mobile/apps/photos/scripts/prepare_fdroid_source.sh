@@ -17,6 +17,9 @@ remove_direct_dependencies() {
 
 remove_playstore_sources() {
     ../../packages/install_source/scripts/prepare_fdroid_source.sh
+    sed -i.bak '/com.google.gms.google-services/d' android/app/build.gradle
+    rm android/app/build.gradle.bak
+    rm -f android/app/google-services.json
 }
 
 copy_fdroid_overlay() {

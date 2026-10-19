@@ -1,4 +1,3 @@
-import { SpaceFriendRequestCanceledToast } from "components/FriendRequestCanceledToast";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
 import log from "ente-base/log";
@@ -7,26 +6,23 @@ import { MessagesScreen } from "screens/MessagesScreen";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import { spaceInviteURL } from "services/invite";
 import {
-    confirmCurrentFriendRequest,
-    deleteCurrentFriendRequest,
     deleteCurrentMessage,
-    loadCurrentMessageActivityPostPreview,
-    loadCurrentMessageConversationAvatar,
+    loadCurrentFriendAvatarURL,
     loadCurrentMessageConversations,
     loadCurrentMessageThread,
+    loadCurrentPostPreview,
     loadCurrentSpaceProfile,
     markCurrentMessagesRead,
     replyToCurrentMessage,
     sendCurrentMessage,
     sendCurrentPoke,
-    setCurrentMessageLiked,
+    setCurrentMessageReaction,
     shouldAutoReadMessageActivities,
     type SpaceMessage,
     type SpaceMessageConversation,
 } from "services/space";
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
-import { isFriendRequestCanceledError } from "utils/friend-errors";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
@@ -38,16 +34,7 @@ const friendSpaceId = (friend: SpaceMessageConversation["friend"]) =>
     friend.spaceId ?? friend.id;
 
 const conversationId = (conversation: SpaceMessageConversation) =>
-    conversation.latestActivity.type == "friend_request"
-        ? conversation.latestActivity.id
-        : friendSpaceId(conversation.friend);
-
-const friendRequestIdFromConversation = (
-    conversation: SpaceMessageConversation,
-) => Number(conversation.latestActivity.id.split(":")[1]);
-
-const isFriendRequestConversation = (conversation: SpaceMessageConversation) =>
-    conversation.latestActivity.type == "friend_request";
+    friendSpaceId(conversation.friend);
 
 let nextLocalMessageID = 0;
 
@@ -116,34 +103,30 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
 }) => {
     const router = useSpaceRouter();
     const {
+        friends,
         postPublication,
         profile,
         profileLoadError,
         profileLoadStatus,
         setFriends,
-        setPendingPostPhotoFiles,
     } = useSpaceAppState();
     const [conversations, setConversations] = React.useState<
         SpaceMessageConversation[]
     >([]);
-    const [latestPostCreatedAtMs, setLatestPostCreatedAtMs] = React.useState<
-        number | null
-    >();
     const [isConversationsLoading, setIsConversationsLoading] =
         React.useState(true);
     const [isThreadLoading, setIsThreadLoading] = React.useState(false);
-    const [showFriendRequestCanceledToast, setShowFriendRequestCanceledToast] =
-        React.useState(false);
     const [messages, setMessages] = React.useState<SpaceMessage[]>([]);
+    const reactionQueues = React.useRef(new Map<string, Promise<void>>());
+    const savedReactions = React.useRef(new Map<string, string | undefined>());
+    const localReactions = React.useRef(new Map<string, string | undefined>());
+
     const [selectedFriendProfile, setSelectedFriendProfile] =
         React.useState<SpaceMessageConversation["friend"]>();
     const [
         selectedFriendProfileLoadFailedSpaceId,
         setSelectedFriendProfileLoadFailedSpaceId,
     ] = React.useState<string>();
-    const [newConversationIds, setNewConversationIds] = React.useState<
-        string[]
-    >([]);
     const selectedFriendSpaceIdRef = React.useRef<string | undefined>(
         undefined,
     );
@@ -163,23 +146,17 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
         [conversations, selectedSpaceId],
     );
     const conversationFriends = React.useMemo(
-        () =>
-            conversations
-                .filter(
-                    (conversation) =>
-                        !isFriendRequestConversation(conversation),
-                )
-                .map((conversation) => conversation.friend),
+        () => conversations.map((conversation) => conversation.friend),
         [conversations],
     );
     const selectedFriendFromFriends = React.useMemo(
         () =>
             selectedSpaceId
-                ? conversationFriends.find(
+                ? friends.find(
                       (friend) => friendSpaceId(friend) == selectedSpaceId,
                   )
                 : undefined,
-        [conversationFriends, selectedSpaceId],
+        [friends, selectedSpaceId],
     );
     const selectedLoadedFriendProfile =
         selectedFriendProfile &&
@@ -229,9 +206,6 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             const actorSpaceId = profile?.spaceId;
             if (!actorSpaceId) return;
 
-            setNewConversationIds((currentIds) =>
-                currentIds.filter((id) => id != spaceId),
-            );
             setConversations((currentConversations) => {
                 return currentConversations.map((conversation) =>
                     conversationId(conversation) == spaceId
@@ -259,7 +233,6 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
 
         const generation = ++conversationsLoadGenerationRef.current;
         setIsConversationsLoading(true);
-        setLatestPostCreatedAtMs(undefined);
         try {
             const page = await loadCurrentMessageConversations(actorSpaceId);
             if (conversationsLoadGenerationRef.current != generation) {
@@ -271,9 +244,6 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 if (createdAtDiff != 0) return createdAtDiff;
                 return b.latestActivity.id.localeCompare(a.latestActivity.id);
             });
-            const unreadConversationIds = items
-                .filter((conversation) => conversation.notificationUnread)
-                .map(conversationId);
             const passiveUnreadConversationIds = items
                 .filter((conversation) =>
                     shouldAutoReadMessageActivities(
@@ -281,21 +251,11 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                     ),
                 )
                 .map(conversationId);
-            setNewConversationIds(unreadConversationIds);
             setConversations(items);
-            setLatestPostCreatedAtMs(page.latestPostCreatedAtMs);
-            setFriends(
-                items
-                    .filter(
-                        (conversation) =>
-                            !isFriendRequestConversation(conversation),
-                    )
-                    .map((conversation) => conversation.friend),
-            );
+            setFriends(items.map((conversation) => conversation.friend));
             for (const conversation of items) {
                 const friend = conversation.friend;
                 if (
-                    isFriendRequestConversation(conversation) ||
                     friend.avatarUrl ||
                     !friend.avatarObjectID ||
                     !friend.avatarKeyVersion
@@ -305,7 +265,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
 
                 const itemID = conversationId(conversation);
                 const itemFriendSpaceID = friendSpaceId(friend);
-                void loadCurrentMessageConversationAvatar(actorSpaceId, friend)
+                void loadCurrentFriendAvatarURL(friend, actorSpaceId)
                     .then((avatarUrl) => {
                         if (
                             !avatarUrl ||
@@ -386,70 +346,13 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
 
     const openConversation = React.useCallback(
         (conversation: SpaceMessageConversation) => {
-            if (isFriendRequestConversation(conversation)) return;
             void router.push(spaceRoutes.message(conversationId(conversation)));
         },
         [router],
     );
 
-    const confirmFriendRequest = React.useCallback(
-        async (conversation: SpaceMessageConversation) => {
-            const actorSpaceId = profile?.spaceId;
-            if (!actorSpaceId) throw new Error("Missing space.");
-
-            try {
-                await confirmCurrentFriendRequest(
-                    actorSpaceId,
-                    friendRequestIdFromConversation(conversation),
-                );
-            } catch (error: unknown) {
-                if (!isFriendRequestCanceledError(error)) throw error;
-                setConversations((currentConversations) =>
-                    currentConversations.filter(
-                        (candidate) =>
-                            conversationId(candidate) !=
-                            conversationId(conversation),
-                    ),
-                );
-                setShowFriendRequestCanceledToast(true);
-                void refreshConversations();
-                return;
-            }
-            window.location.reload();
-        },
-        [profile?.spaceId, refreshConversations],
-    );
-
-    const deleteFriendRequest = React.useCallback(
-        async (conversation: SpaceMessageConversation) => {
-            const actorSpaceId = profile?.spaceId;
-            if (!actorSpaceId) throw new Error("Missing space.");
-
-            try {
-                await deleteCurrentFriendRequest(
-                    actorSpaceId,
-                    friendRequestIdFromConversation(conversation),
-                );
-            } catch (error: unknown) {
-                if (!isFriendRequestCanceledError(error)) throw error;
-                setConversations((currentConversations) =>
-                    currentConversations.filter(
-                        (candidate) =>
-                            conversationId(candidate) !=
-                            conversationId(conversation),
-                    ),
-                );
-                setShowFriendRequestCanceledToast(true);
-                void refreshConversations();
-                return;
-            }
-            void refreshConversations();
-        },
-        [profile?.spaceId, refreshConversations],
-    );
-
     const closeConversation = React.useCallback(() => {
-        if (selectedSpaceId) void router.push(spaceRoutes.messages);
+        if (selectedSpaceId) void router.back(spaceRoutes.messages);
     }, [router, selectedSpaceId]);
 
     const appendMessageIfThreadIsCurrent = React.useCallback(
@@ -611,6 +514,10 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
 
         let cancelled = false;
         selectedFriendSpaceIdRef.current = selectedSpaceId;
+        for (const messageId of localReactions.current.keys()) {
+            if (!reactionQueues.current.has(messageId))
+                localReactions.current.delete(messageId);
+        }
         setMessages([]);
         setIsThreadLoading(true);
         const viewer = currentProfileMessageActor(profile);
@@ -627,7 +534,19 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                         page.items.map((message) => message.id),
                     );
                     setMessages((currentMessages) => [
-                        ...page.items,
+                        ...page.items.map((message) => {
+                            if (!localReactions.current.has(message.id))
+                                return message;
+                            const reaction = localReactions.current.get(
+                                message.id,
+                            );
+                            return {
+                                ...message,
+                                reaction,
+                                liked: Boolean(reaction),
+                                viewerLiked: Boolean(reaction),
+                            };
+                        }),
                         ...currentMessages.filter(
                             (message) => !loadedMessageIds.has(message.id),
                         ),
@@ -685,12 +604,8 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 isThreadReadOnly={isThreadReadOnly}
                 isThreadRecipientLoading={isThreadRecipientLoading}
                 messages={messages}
-                newConversationIds={newConversationIds}
-                latestPostCreatedAtMs={latestPostCreatedAtMs}
-                onBack={() => void router.push(spaceRoutes.home)}
+                onBack={() => void router.back(spaceRoutes.home)}
                 onCloseThread={closeConversation}
-                onConfirmFriendRequest={confirmFriendRequest}
-                onDeleteFriendRequest={deleteFriendRequest}
                 onOpenSelectedFriendProfile={(friend) => {
                     const username = friend.username || friend.spaceSlug;
                     if (username)
@@ -709,44 +624,12 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                     )
                 }
                 onOpenThread={openConversation}
-                onPostPhotoSelect={(file) => {
-                    setPendingPostPhotoFiles(file);
-                }}
                 onLoadActivityPost={(post) =>
-                    loadCurrentMessageActivityPostPreview(post, actorSpaceId)
+                    loadCurrentPostPreview(post, actorSpaceId)
                 }
-                onSendPoke={async (spaceId) => {
-                    const sender = currentProfileMessageActor(profile);
-                    const recipient =
-                        selectedFriend ?? placeholderFriend(spaceId);
-                    const optimisticMessage = createLocalMessage({
-                        kind: "poke",
-                        profile,
-                        recipient,
-                        text: "Poked",
-                    });
-                    appendMessageIfThreadIsCurrent(spaceId, optimisticMessage);
-                    try {
-                        const message = await sendCurrentPoke(
-                            actorSpaceId,
-                            spaceId,
-                            sender,
-                            recipient,
-                        );
-                        replaceMessageIfThreadIsCurrent(
-                            spaceId,
-                            optimisticMessage.id,
-                            message,
-                        );
-                    } catch (error) {
-                        removeMessageIfThreadIsCurrent(
-                            spaceId,
-                            optimisticMessage.id,
-                        );
-                        throw error;
-                    }
-                    void refreshConversations();
-                }}
+                onPokeFriend={(spaceId, requestID) =>
+                    sendCurrentPoke(actorSpaceId, spaceId, requestID)
+                }
                 onSendMessage={async (spaceId, text) => {
                     const sender = currentProfileMessageActor(profile);
                     const recipient =
@@ -815,20 +698,56 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                     }
                     void refreshConversations();
                 }}
-                onSetMessageLiked={async (messageId, liked) => {
-                    await setCurrentMessageLiked(
-                        actorSpaceId,
-                        messageId,
-                        liked,
-                    );
-                    setMessages((currentMessages) =>
-                        currentMessages.map((message) =>
-                            message.id == messageId
-                                ? { ...message, liked, viewerLiked: liked }
-                                : message,
-                        ),
-                    );
-                    void refreshConversations();
+                onSetMessageReaction={async (messageId, emoji) => {
+                    const message = messages.find(
+                        (item) => item.id == messageId,
+                    )!;
+                    const previous = reactionQueues.current.get(messageId);
+                    if (!previous)
+                        savedReactions.current.set(messageId, message.reaction);
+                    const update = (reaction: string | undefined) => {
+                        localReactions.current.set(messageId, reaction);
+                        setMessages((items) =>
+                            items.map((item) =>
+                                item.id == messageId
+                                    ? {
+                                          ...item,
+                                          reaction,
+                                          liked: Boolean(reaction),
+                                          viewerLiked: Boolean(reaction),
+                                      }
+                                    : item,
+                            ),
+                        );
+                    };
+                    update(emoji);
+                    const request = (previous ?? Promise.resolve())
+                        .catch(() => undefined)
+                        .then(async () => {
+                            await setCurrentMessageReaction(
+                                actorSpaceId,
+                                message.sender.spaceId!,
+                                messageId,
+                                emoji,
+                            );
+                            savedReactions.current.set(messageId, emoji);
+                        });
+                    reactionQueues.current.set(messageId, request);
+                    try {
+                        await request;
+                        if (reactionQueues.current.get(messageId) == request)
+                            update(emoji);
+                    } catch (error) {
+                        if (reactionQueues.current.get(messageId) == request)
+                            update(savedReactions.current.get(messageId));
+                        throw error;
+                    } finally {
+                        if (reactionQueues.current.get(messageId) == request) {
+                            reactionQueues.current.delete(messageId);
+                            savedReactions.current.delete(messageId);
+                            void refreshConversations();
+                        }
+                    }
                 }}
                 profileLink={spaceInviteURL({
                     spaceUsername: profile.username,
@@ -845,11 +764,6 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 profile={profile}
                 selectedFriend={selectedFriend}
             />
-            {showFriendRequestCanceledToast && (
-                <SpaceFriendRequestCanceledToast
-                    onClose={() => setShowFriendRequestCanceledToast(false)}
-                />
-            )}
         </>
     );
 };

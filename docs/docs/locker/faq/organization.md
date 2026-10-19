@@ -62,6 +62,16 @@ To add an item to additional collections:
 4. Select the new collection
 5. Tap **Save**
 
+## Duplicate uploads {#duplicate-uploads}
+
+### Does Locker detect duplicate files? {#locker-duplicate-uploads}
+
+No. Locker does not currently detect duplicate uploads. Uploading a file again can create another copy, including when you upload a folder more than once.
+
+Before removing a duplicate, open the copy you intend to keep and check that it is complete. Keep a backup outside Locker if you are unsure. If you move unwanted copies to Trash, do not permanently delete them while you are still checking your files. Restore anything you need before the [Trash retention period](#locker-trash-retention) ends.
+
+If one upload creates multiple copies, [contact support](/locker/faq/troubleshooting#locker-contact-support) so we can investigate. Include the Locker version, device and OS, what you uploaded, and [debug logs](/locker/faq/troubleshooting#locker-share-logs). Duplicates alone do not establish that you uploaded the file more than once.
+
 ## Trash
 
 ### How long do deleted items stay in Trash? {#locker-trash-retention}

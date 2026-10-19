@@ -18,6 +18,15 @@ class StorageLimitExceededError extends Error {}
 
 class FileTooLargeForPlanError extends Error {}
 
+class ImportFileTooLargeException implements Exception {
+  final int maxBytes;
+
+  const ImportFileTooLargeException(this.maxBytes);
+
+  @override
+  String toString() => 'Import file exceeds the $maxBytes byte limit';
+}
+
 class SilentlyCancelUploadsError extends Error {}
 
 class UserCancelledUploadError extends Error {}

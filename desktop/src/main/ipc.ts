@@ -218,8 +218,14 @@ export const attachIPCHandlers = () => {
 
     handle("fsFindFiles", (_, folderPath: string) => fsFindFiles(folderPath));
 
-    handle("convertToJPEG", (_, imageData: Uint8Array) =>
-        convertToJPEG(imageData),
+    handle(
+        "convertToJPEG",
+        (
+            _,
+            imageData: Uint8Array,
+            detectedExtension: string,
+            fileName: string,
+        ) => convertToJPEG(imageData, detectedExtension, fileName),
     );
 
     handle(
@@ -229,7 +235,14 @@ export const attachIPCHandlers = () => {
             pathOrZipItem: string | ZipItem,
             maxDimension: number,
             maxSize: number,
-        ) => generateImageThumbnail(pathOrZipItem, maxDimension, maxSize),
+            extension: string,
+        ) =>
+            generateImageThumbnail(
+                pathOrZipItem,
+                maxDimension,
+                maxSize,
+                extension,
+            ),
     );
 
     handle(

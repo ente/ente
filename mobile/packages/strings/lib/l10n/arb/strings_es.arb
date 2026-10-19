@@ -1,4 +1,16 @@
 {
+  "bringMemoriesTogether": "Reúne tus recuerdos",
+  "createMyAccount": "Crear mi cuenta",
+  "localGalleryPermissionDesc": "Concede permiso para acceder y organizar tus fotos mediante reconocimiento facial. Todo el procesamiento se realiza en tu dispositivo.",
+  "onboardingOrganizeDesc": "Organiza tus fotos y vídeos. Todos tus recuerdos en un solo lugar.",
+  "wallpaper": "Fondo de pantalla",
+  "setWallpaper": "Establecer fondo de pantalla",
+  "wallpaperHome": "Pantalla de inicio",
+  "wallpaperLock": "Pantalla de bloqueo",
+  "wallpaperBoth": "Pantallas de inicio y bloqueo",
+  "wallpaperSet": "Fondo de pantalla establecido",
+  "wallpaperFailed": "No se pudo establecer fondo de pantalla",
+  "wallpaperUnavailable": "No se permiten cambios del fondo de pantalla en este dispositivo",
   "about": "Acerca de",
   "acceptTrustInvite": "Aceptar invitación",
   "account": "Cuenta",
@@ -14,21 +26,40 @@
       }
     }
   },
+  "accountRecovery": "Recuperar cuenta",
   "accountSetupIncompleteCreateAccount": "Configuración de la cuenta incompleta. Crea una cuenta para finalizar la configuración.",
   "@accountSetupIncompleteCreateAccount": {
     "description": "Error shown when account exists but signup is incomplete"
   },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{Acción incompatible con {count} archivo compartido} other{Acción incompatible con {count} archivos compartidos}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
   "actionNotSupportedOnFavouritesAlbum": "Acción no compatible con el álbum de Favoritos",
+  "activeLinksWillShowUpHere": "Los enlaces activos se mostrarán aquí",
   "activeSessions": "Sesiones activas",
   "@activeSessions": {
     "description": "Title for active sessions page"
   },
   "add": "Añadir",
-  "addAdmin": "Añadir administrador",
-  "addANewEmail": "Agregar nuevo correo electrónico",
+  "addAlbumWidgetPrompt": "Añadir un widget de álbum a la pantalla de inicio para personalizarlo aquí.",
+  "addANameAndPhoto": "Añadir un nombre y una foto",
   "addCode": "Añadir código",
-  "addCollaborator": "Agregar colaborador",
-  "addedAs": "Agregado como",
+  "addedAMemoryTo": "añadió un recuerdo a {albumName}",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
   "addedBy": "Añadido por {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -52,7 +83,6 @@
   "addLocationButton": "Añadir",
   "addMember": "Añadir miembro",
   "addMore": "Añadir más",
-  "addMoreAdmins": "Añadir más administradores",
   "addName": "Añadir nombre",
   "addNew": "Añadir nuevo",
   "@addNew": {
@@ -68,7 +98,11 @@
       "storageAmount": {}
     }
   },
-  "addParticipants": "Añadir participantes",
+  "addPage": "Añadir página",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
+  "addPeopleWidgetPrompt": "Añadir un widget de personas a la pantalla de inicio para personalizarlo aquí.",
   "addPerson": "Añadir persona",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -86,14 +120,12 @@
     "description": "Action label to add selected files to an existing person."
   },
   "addTrustedContact": "Añadir contacto de emergencia",
+  "addTrustedPerson": "Añadir a una persona de confianza",
   "addUpTo5MembersFree": "Añadir hasta 5 miembros gratis",
-  "addViewer": "Añadir espectador",
   "addYourPhotosNow": "Añade tus fotos ahora",
   "adjust": "Ajustar",
+  "adjustCrop": "Ajustar recorte",
   "admin": "Administrador",
-  "admins": "Administradores",
-  "adminsAndCollaboratorsCanAddPhotosDescription": "Los administradores y colaboradores pueden añadir fotos. Los administradores también pueden administrar fotos y participantes.",
-  "adminsCanManagePhotosAndParticipants": "Los administradores pueden administrar fotos y participantes.",
   "admiringThem": "Admirando a {name}",
   "@admiringThem": {
     "placeholders": {
@@ -107,28 +139,44 @@
   "after1Month": "Después de un mes",
   "after1Week": "Después de una semana",
   "after1Year": "Después de un año",
+  "albumDescriptionHint": "Introduce una descripción para este álbum",
+  "albumEditsWillNotBeSaved": "Las modificaciones de este álbum no se guardarán.",
   "albumLayout": "Diseño del álbum",
-  "albumOwner": "Propietario",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
+  "albumName": "Nombre del álbum",
   "albums": "Álbumes",
+  "albumsCount": "{count, plural, one{{count} álbum} other{{count} álbumes}}",
+  "@albumsCount": {
+    "description": "Number of albums with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "albumsOnDevicePermissionCta": "Permitir acceso",
+  "albumsOnEnteEmptyCta": "Selecciona los álbumes que respaldar en Ente",
+  "albumsOnEnteEmptyTitle": "Respalda tus recuerdos",
+  "albumsReceivedEmptyTitle": "Ver recuerdos compartidos contigo",
   "albumsWidgetDesc": "Selecciona los álbumes que quieres ver en tu pantalla de inicio.",
   "albumTitle": "Título del álbum",
   "albumUpdated": "Álbum actualizado",
   "algorithm": "Algoritmo",
   "align": "Alinear",
+  "all": "Todas",
   "allClear": "✨ Todo limpio",
   "allFilesAlreadyMarkedAsImportant": "Todos los elementos ya estan marcados como importantes",
   "allMemoriesPreserved": "Todos los recuerdos preservados",
   "allow": "Permitir",
+  "allowAccessToYourPhotos": "Permitir el acceso a tus fotos",
   "allowAddingPhotos": "Permitir añadir fotos",
   "@allowAddingPhotos": {
     "description": "Switch button to enable uploading photos to a public link"
   },
   "allowAppToOpenSharedAlbumLinks": "Permitir a la aplicación abrir enlaces de álbum compartidos",
   "allowDownloads": "Permitir descargas",
+  "allowJoining": "Permitir unirse",
   "allowJoiningAlbum": "Permitir unirse al álbum",
+  "allowJoiningDescription": "Quienes pueden ver tu álbum y tienen una cuenta de Ente pueden unirse a él y mantenerse al día",
   "allowPermBody": "Por favor, permite el acceso a tus fotos desde Ajustes para que Ente pueda mostrar y hacer una copia de seguridad de tu biblioteca.",
   "allowPermTitle": "Permitir el acceso a las fotos",
   "allPersonGroupingWillReset": "Se eliminarán todas las agrupaciones para esta persona, y se eliminarán todas sus sugerencias",
@@ -164,9 +212,18 @@
     }
   },
   "aNewVersionOfEnteIsAvailable": "Hay una nueva versión de Ente disponible.",
+  "aNewVersionOfEnteLockerIsAvailable": "Hay disponible una nueva versión de Ente Locker.",
+  "anythingElse": "¿Algo más?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
   "appearance": "Apariencia",
   "appIcon": "Icono de la aplicación",
   "appleId": "ID de Apple",
+  "applePhotosUnsupportedResource": "No se ha podido guardar este archivo en Apple Fotos. Todavía puedes verlo en Ente.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
   "appLock": "Bloqueo de aplicación",
   "@appLock": {
     "description": "App lock setting title"
@@ -193,6 +250,11 @@
     "description": "Action of 'Archiving' an element"
   },
   "archiveAlbum": "Archivar álbum",
+  "archiveCollectionName": "Archivar",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archivedItemsWillShowUpHere": "Los elementos archivados se mostrarán aquí",
   "archiving": "Archivando...",
   "areThey": "¿Son ellos",
   "areYouSure": "¿Estás seguro?",
@@ -208,12 +270,19 @@
   "areYouSureYouWantToExit": "¿Estás seguro de que deseas salir?",
   "areYouSureYouWantToIgnoreThesePersons": "¿Estás seguro de que quieres ignorar a estas personas?",
   "areYouSureYouWantToIgnoreThisPerson": "¿Estás seguro de que quieres ignorar a esta persona?",
+  "areYouSureYouWantToLogout": "¿Estás seguro de que quieres cerrar sesión?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
   "areYouSureYouWantToRenew": "¿Estás seguro de que quieres renovar?",
   "areYouSureYouWantToResetThisPerson": "¿Seguro que desea eliminar esta persona?",
   "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "¿Estás seguro de que quieres mostrar otra vez a estas personas en la sección de personas?",
   "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "¿Estás seguro de que quieres mostrar otra vez a esta persona en la sección de personas?",
   "artisticPortraits": "Retratos artísticos",
+  "askAQuestion": "Haz una pregunta",
   "askCancelReason": "Tu suscripción ha sido cancelada. ¿Quieres compartir el motivo?",
+  "attachLogs": "Adjuntar registros",
+  "attachLogsHelper": "Nos ayuda a diagnosticar el problema más rápido",
   "authenticateGeneric": "Por favor, autentícate",
   "authenticating": "Autenticando...",
   "authenticationFailedPleaseTryAgain": "Error de autenticación, por favor inténtalo de nuevo",
@@ -225,12 +294,15 @@
     "description": "Success message when authentication is successful"
   },
   "authToChangeEmailVerificationSetting": "Por favor, autentícate para cambiar la verificación por correo electrónico",
+  "authToChangeLockscreenSetting": "Por favor, autentícate para cambiar la configuración de la pantalla de bloqueo",
   "authToChangeYourEmail": "Por favor, autentícate para cambiar tu correo electrónico",
   "authToChangeYourPassword": "Por favor, autentícate para cambiar tu contraseña",
   "authToConfigureTwofactorAuthentication": "Por favor, autentícate para configurar la autenticación de dos factores",
   "authToExportCodes": "Por favor, autentícate para exportar tus códigos",
+  "authToInitiateAccountDeletion": "Desbloquear para eliminar tu cuenta",
   "authToInitiateSignIn": "Por favor, autentícate para iniciar la sesión para realizar la copia de seguridad.",
   "authToManageLegacy": "Por favor, autentícate para administrar tus contactos de confianza",
+  "authToManageLegacyKit": "Autenticar para administrar kits heredados",
   "authToSetBackupPassword": "Autenticar para establecer la contraseña de la copia de seguridad",
   "authToUpdateBackupPassword": "Autenticar para actualizar contraseña de la copia de seguridad",
   "authToViewPasskey": "Por favor, autentícate para ver tu clave de acceso",
@@ -256,9 +328,12 @@
   "@autoLockFeatureDescription": {
     "description": "Description of auto lock feature"
   },
+  "autoLogoutMessage": "Debido a un fallo técnico, has sido desconectado. Disculpa las molestias.",
   "automaticallyAnalyzeAndSplitGrouping": "Analizaremos automáticamente la agrupación para determinar si hay varias personas presentes, y separarlas de nuevo. Esto puede tardar unos segundos.",
   "autoPair": "Emparejamiento automático",
   "autumnColors": "Esplendor otoñal",
+  "babySmiles": "Sonrisas de bebé",
+  "backedUpAutomatically": "Respaldado automáticamente",
   "backedUpFolders": "Carpetas con copia de seguridad",
   "background": "Fondo",
   "backgroundWithThem": "Preciosas vistas con {name}",
@@ -270,11 +345,23 @@
   "backingUpLastSevenDaysPhotos": "Respaldar fotos de los últimos 7 días",
   "backup": "Copia de seguridad",
   "backupAndSync": "Copia de seguridad y sincronización",
+  "backupAndSyncDesc": "Realizar copias de seguridad automáticamente, mostrar estadísticas de sincronización y subidas",
   "backupCreated": "¡Copia de seguridad creada!",
   "backupFailed": "La copia de seguridad ha fallado",
   "backupFile": "Archivo de copia de seguridad",
   "backupFolderLabel": "Carpeta de las copias de seguridad:",
   "backupLocationChoiceDescription": "¿Dónde quieres guardar tus copias de seguridad?",
+  "backupModeCheckingForMoreItems": "Buscando más elementos",
+  "backupModeFinishYourBackup": "Finaliza tu copia de seguridad",
+  "backupModeKeepAppOpen": "Mantener la aplicación abierta",
+  "backupModeNoBackupInProgress": "No hay copia de seguridad en progreso",
+  "backupModeNoBackupInProgressDescription": "Inicia una copia de seguridad. Luego, vuelve al modo de copia de seguridad.",
+  "backupModePlugInPhone": "Carga tu teléfono. Las copias de seguridad consumen batería.",
+  "backupModePreservingYourMemories": "Guardando tus recuerdos",
+  "backupModeScreenDimmingDescription": "La pantalla se atenúa para ahorrar batería. Toca en cualquier momento para encender.",
+  "backupModeScreenWillDim": "La pantalla se atenuará automáticamente para ahorrar batería",
+  "backupModeSettingsDescription": "Mantén la aplicación abierta para terminar la copia de seguridad",
+  "backupModeStart": "Iniciar modo de copia de seguridad",
   "backupOnlyNewPhotos": "Copia de seguridad de solo fotos nuevas",
   "backupOnlyNewPhotosAllFoldersSelected": "Todas las carpetas están seleccionadas para la copia de seguridad.\n\nPuedes continuar por ahora, o actualizar las carpetas seleccionadas.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "No hay carpetas seleccionadas para la copia de seguridad.\n\nPuedes continuar por ahora, o actualizar las carpetas seleccionadas.",
@@ -352,12 +439,6 @@
       }
     }
   },
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} no podrá añadir más fotos a este álbum\n\nTodavía podrán eliminar las fotos ya añadidas por ellos",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "No se pueden eliminar los archivos compartidos",
   "cannotMoveToSharedAlbums": "No se puede mover a álbumes compartidos",
   "cannotMoveToSharedAlbumsMessage": "Los elementos solo pueden añadirse a los álbumes compartidos, no movidos. ¿Te gustaría añadir en su lugar?",
@@ -383,7 +464,6 @@
     "description": "Change password title"
   },
   "changePermissions": "Cambiar permisos",
-  "changePermissionsQuestion": "¿Cambiar permisos?",
   "changeYourReferralCode": "Cambiar tu código",
   "checkForUpdates": "Comprobar actualizaciones",
   "checking": "Comprobando...",
@@ -434,7 +514,6 @@
   "codeCopiedToClipboard": "Código copiado al portapapeles",
   "codeIssuerHint": "Emisor",
   "collaborator": "Colaborador",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Colaboradores pueden añadir fotos y vídeos al álbum compartido.",
   "collageLayout": "Disposición",
   "collageSaved": "Collage guardado en la galería",
   "collectionCannotBeDeleted": "Esta coleccion no se puede eliminar",
@@ -1516,11 +1595,9 @@
   "@magic": {
     "description": "Section header for magic search results"
   },
-  "manage": "Administrar",
   "manageDeviceStorage": "Gestionar almacenamiento caché del dispositivo",
   "manageFamily": "Administrar familia",
   "manageLink": "Administrar enlace",
-  "manageParticipants": "Administrar",
   "managePaymentMethod": "Gestionar métodos de pago",
   "manageSubscription": "Administrar tu suscripción",
   "manualSort": "Personalizado",
@@ -1792,7 +1869,6 @@
   "openLink": "Abrir para ver",
   "openstreetmapContributors": "Contribuidores de OpenStreetMap",
   "optionalAsShortAsYouLike": "Opcional, tan corto como quieras...",
-  "orPickAnExistingOne": "O elige uno existente",
   "orRemoveYourself": "O eliminarte como contacto de confianza de {email}",
   "@orRemoveYourself": {
     "description": "Text shown before remove contact button in ready state",
@@ -2127,12 +2203,6 @@
   "remoteVideos": "Vídeos remotos",
   "remove": "Quitar",
   "removeAccess": "Eliminar acceso",
-  "removeAlbumParticipantBody": "{userEmail} será eliminado de este álbum compartido\n\nCualquier foto añadida por ellos también será eliminada del álbum",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeCollectionParticipantBody": "{userEmail} sera eliminado de esta coleccion compartida\n\nTodos los elementos agregados por esta persona tambien seran eliminados de la coleccion",
   "@removeCollectionParticipantBody": {
     "placeholders": {
@@ -2536,7 +2606,6 @@
   "selectFile": "Seleccionar archivo",
   "selectFolder": "Seleccionar carpeta",
   "selectFolders": "Seleccionar carpetas",
-  "selectFoldersForBackup": "Seleccionar carpetas para la copia de seguridad",
   "selectFolderToContinue": "Selecciona un archivo para continuar",
   "selectItemsToAdd": "Selecciona elementos para agregar",
   "selectMailApp": "Seleccionar app de correo",
@@ -2600,7 +2669,6 @@
   "shareALink": "Compartir un enlace",
   "shareCodes": "Compartir código",
   "shareCodesDuration": "Selecciona la duración durante la cual deseas compartir el código.",
-  "sharedAlbumSectionDescription": "Crea álbumes compartidos y colaborativos con otros usuarios de Ente, incluyendo usuarios de planes gratuitos.",
   "sharedPhotoNotifications": "Nuevas fotos y álbumes compartidos",
   "sharedWith": "Compartido con",
   "shareKey": "Compartir clave",
@@ -2696,7 +2764,6 @@
       }
     }
   },
-  "startWithLatestPhotos": "Iniciar con las últimas fotos",
   "status": "Estado",
   "sticker": "Pegatina",
   "stopCastingBody": "¿Quieres dejar de transmitir?",

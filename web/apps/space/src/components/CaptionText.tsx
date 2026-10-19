@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { visuallyHidden } from "@mui/utils";
 import React from "react";
+import { spaceSurface } from "styles/colors";
 
 const captionBubbleSx = {
     borderRadius: "5px",
@@ -18,7 +19,8 @@ const captionSegmenter =
 export const SpaceCaptionText: React.FC<{
     caption: string;
     lineClamp?: number;
-}> = ({ caption, lineClamp }) => {
+    onTruncationChange?: (isTruncated: boolean) => void;
+}> = ({ caption, lineClamp, onTruncationChange }) => {
     const measureRef = React.useRef<HTMLSpanElement>(null);
     const [clampedCaption, setClampedCaption] = React.useState(caption);
 
@@ -33,6 +35,7 @@ export const SpaceCaptionText: React.FC<{
             text.textContent = caption;
             if (measure.getBoundingClientRect().height <= maxHeight) {
                 setClampedCaption(caption);
+                onTruncationChange?.(false);
                 return;
             }
 
@@ -57,6 +60,7 @@ export const SpaceCaptionText: React.FC<{
             }
             text.textContent = caption;
             setClampedCaption(truncated(start));
+            onTruncationChange?.(true);
         };
 
         updateCaption();
@@ -67,7 +71,7 @@ export const SpaceCaptionText: React.FC<{
             observer.disconnect();
             document.fonts.removeEventListener("loadingdone", updateCaption);
         };
-    }, [caption, lineClamp]);
+    }, [caption, lineClamp, onTruncationChange]);
 
     const displayCaption = lineClamp ? clampedCaption : caption;
     const layerSx = {
@@ -104,7 +108,7 @@ export const SpaceCaptionText: React.FC<{
             >
                 <Box
                     component="span"
-                    sx={{ ...captionBubbleSx, bgcolor: "#202020" }}
+                    sx={{ ...captionBubbleSx, bgcolor: spaceSurface }}
                 >
                     <Box component="span" sx={{ opacity: 0 }}>
                         {displayCaption}

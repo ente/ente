@@ -16,6 +16,19 @@ final class VideoTransformPlannerTests: XCTestCase {
         assertEqual(sourceBounds.applying(plan.transform), CGRect(origin: .zero, size: plan.renderSize))
     }
 
+    func testSpeedOnlyExportNormalizesMetadataRotation() throws {
+        let sourceBounds = CGRect(x: 0, y: 0, width: 1080, height: 1920)
+        let plan = try VideoTransformPlanner.makePlan(
+            naturalSize: sourceBounds.size,
+            preferredTransform: CGAffineTransform(a: 0, b: -1, c: 1, d: 0, tx: 0, ty: 0),
+            crop: nil,
+            rotateDegrees: nil
+        )
+
+        assertEqual(plan.renderSize, CGSize(width: 1920, height: 1080))
+        assertEqual(sourceBounds.applying(plan.transform), CGRect(origin: .zero, size: plan.renderSize))
+    }
+
     func testCropMapsDisplayRectangleToOutputBounds() throws {
         let crop = try VideoCrop(x: 20, y: 30, width: 100, height: 60)
         let plan = try VideoTransformPlanner.makePlan(

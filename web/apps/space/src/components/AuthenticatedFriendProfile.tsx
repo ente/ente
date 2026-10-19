@@ -1,3 +1,4 @@
+import { Portal } from "@mui/material";
 import { spaceDefaultProfilePicPath } from "components/AvatarImage";
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
@@ -15,6 +16,7 @@ import {
     loadCurrentSpaceProfilePostsPage,
     removeCurrentSpaceFriend,
     replyToCurrentPost,
+    sendCurrentPoke,
     setCurrentPostLiked,
     type SpaceProfilePost,
 } from "services/space";
@@ -22,17 +24,28 @@ import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
 import { profilePostItemsFromPosts } from "utils/post-display";
 import { spaceDefaultCoverImagePath } from "utils/post-image";
-import { hasPreviousSpaceRoute, useSpaceRouter } from "utils/route-transitions";
+import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
 interface AuthenticatedFriendProfileProps {
     friendSpaceId: string;
+    headerRef?: React.Ref<HTMLDivElement>;
+    isPreview?: boolean;
+    onBack?: () => void;
+    showPostLoadingIndicator?: boolean;
     username: string;
 }
 
 export const AuthenticatedFriendProfile: React.FC<
     AuthenticatedFriendProfileProps
-> = ({ friendSpaceId, username }) => {
+> = ({
+    friendSpaceId,
+    headerRef,
+    isPreview = false,
+    onBack,
+    showPostLoadingIndicator = false,
+    username,
+}) => {
     const router = useSpaceRouter();
     const { friends, profile, profileLoadError, profileLoadStatus } =
         useSpaceAppState();
@@ -93,9 +106,7 @@ export const AuthenticatedFriendProfile: React.FC<
 
         let cancelled = false;
         setFriendProfile(undefined);
-        setPosts([]);
         setIsProfileLoading(true);
-        setIsPostsLoading(true);
         void loadCurrentSpaceProfile(friendSpaceId, viewerSpaceId)
             .then((nextProfile) => {
                 if (!cancelled) setFriendProfile(nextProfile);
@@ -106,6 +117,19 @@ export const AuthenticatedFriendProfile: React.FC<
             .finally(() => {
                 if (!cancelled) setIsProfileLoading(false);
             });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [friendSpaceId, profile?.spaceId]);
+
+    React.useEffect(() => {
+        const viewerSpaceId = profile?.spaceId;
+        if (isPreview || !viewerSpaceId) return;
+
+        let cancelled = false;
+        setPosts([]);
+        setIsPostsLoading(true);
         void loadCurrentSpaceProfilePostsPage(friendSpaceId, viewerSpaceId)
             .then((page) => {
                 if (!cancelled) setPosts(page.items);
@@ -120,14 +144,10 @@ export const AuthenticatedFriendProfile: React.FC<
         return () => {
             cancelled = true;
         };
-    }, [friendSpaceId, profile?.spaceId]);
+    }, [friendSpaceId, isPreview, profile?.spaceId]);
 
     const goBack = () => {
-        if (hasPreviousSpaceRoute()) {
-            router.back();
-        } else {
-            void router.push(spaceRoutes.home);
-        }
+        void router.back(spaceRoutes.home);
     };
 
     const unfriend = React.useCallback(async () => {
@@ -160,14 +180,19 @@ export const AuthenticatedFriendProfile: React.FC<
                 title={`${friendDisplayName}'s profile`}
             />
             <ProfileScreen
+                headerRef={headerRef}
                 headerVariant="friend"
+                isPreview={isPreview}
                 isCoverLoading={isProfileLoading}
                 isNameLoading={isProfileLoading && !immediateFriendProfile}
                 isPostsLoading={isPostsLoading}
-                onBack={goBack}
+                onBack={onBack ?? goBack}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
                 onMessageFriend={() =>
                     void router.push(spaceRoutes.message(friendSpaceId))
+                }
+                onPokeFriend={(requestID) =>
+                    sendCurrentPoke(actorSpaceId, friendSpaceId, requestID)
                 }
                 onOpenProfileCover={() => setOpenProfileImage("cover")}
                 onOpenProfilePhoto={() => setOpenProfileImage("avatar")}
@@ -206,23 +231,25 @@ export const AuthenticatedFriendProfile: React.FC<
                 }
                 postItems={postItems}
                 profile={displayedProfile}
-                showPostLoadingIndicator={false}
+                showPostLoadingIndicator={showPostLoadingIndicator}
             />
             {openProfileImage && (
                 <>
                     <SpacePageMeta
                         themeColor={friendProfileImageViewerBackground}
                     />
-                    <FriendProfileImageViewerScreen
-                        displayName={friendDisplayName}
-                        imageUrl={
-                            openProfileImage == "cover"
-                                ? friendCoverUrl
-                                : friendAvatarUrl
-                        }
-                        onClose={() => setOpenProfileImage(null)}
-                        variant={openProfileImage}
-                    />
+                    <Portal>
+                        <FriendProfileImageViewerScreen
+                            displayName={friendDisplayName}
+                            imageUrl={
+                                openProfileImage == "cover"
+                                    ? friendCoverUrl
+                                    : friendAvatarUrl
+                            }
+                            onClose={() => setOpenProfileImage(null)}
+                            variant={openProfileImage}
+                        />
+                    </Portal>
                 </>
             )}
         </>

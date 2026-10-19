@@ -190,10 +190,12 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
       showBottomSheetComponent(
         context: context,
         builder: (_) => BottomSheetComponent(
-          title: context.strings.areYouSureYouWantToLogout,
+          title: context.strings.warning,
+          message: context.strings.areYouSureYouWantToLogout,
+          illustration: Image.asset("assets/warning-grey.png"),
           actions: [
             ButtonComponent(
-              label: context.strings.yesLogout,
+              label: context.strings.yes,
               variant: ButtonComponentVariant.critical,
               onTap: () async {
                 if (widget.onLogout != null) {

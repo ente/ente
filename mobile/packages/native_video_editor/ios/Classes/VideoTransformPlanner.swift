@@ -20,14 +20,11 @@ public enum VideoTransformPlanner {
                 rotateDegrees: rotateDegrees ?? 0
             )
         }
-        if let rotateDegrees, rotateDegrees != 0 {
-            return rotationPlan(
-                naturalSize: naturalSize,
-                preferredTransform: preferredTransform,
-                rotateDegrees: rotateDegrees
-            )
-        }
-        return VideoTransformPlan(transform: preferredTransform, renderSize: naturalSize)
+        return rotationPlan(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform,
+            rotateDegrees: rotateDegrees ?? 0
+        )
     }
 
     private static func cropPlan(

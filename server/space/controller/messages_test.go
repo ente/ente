@@ -104,7 +104,7 @@ func TestMessageLikeAndDeleteAccess(t *testing.T) {
 	require.True(t, errors.Is(err, ente.ErrPermissionDenied))
 	thread, _, err := repos.Messages.ListThread(ctx, aliceSpace.SpaceID, bobSpace.SpaceID, "", 10)
 	require.NoError(t, err)
-	require.Len(t, thread, 2)
+	require.Len(t, thread, 1)
 
 	require.Error(t, controller.Delete(ctx, aliceSpace, message.MessageID))
 	err = controller.Delete(ctx, bobSpace, message.MessageID)
@@ -120,7 +120,7 @@ func TestListThreadHidesDeletedTargetOwner(t *testing.T) {
 
 	page, err := controller.ListThread(ctx, aliceSpace, bobSpace.SpaceID, models.ListMessageThreadRequest{})
 	require.NoError(t, err)
-	require.Len(t, page.Items, 2)
+	require.Len(t, page.Items, 1)
 
 	_, err = repos.Spaces.DB.Exec(`UPDATE users SET encrypted_email = NULL WHERE user_id = $1`, bobID)
 	require.NoError(t, err)
@@ -226,4 +226,84 @@ func createRepoMessage(t *testing.T, repos *spacerepo.Module, senderID int64, se
 
 func spaceTestB64(value string) string {
 	return base64.StdEncoding.EncodeToString([]byte(value))
+}
+
+func TestMessageReactions(t *testing.T) {
+	controller, repos, ctx := setupMessagesControllerTest(t)
+	aliceID, alice := createMessageControllerUserAndSpace(t, repos, "alice-reactions", "alice-reactions-key")
+	bobID, bob := createMessageControllerUserAndSpace(t, repos, "bob-reactions", "bob-reactions-key")
+	require.NoError(t, testAddFriend(ctx, repos, bobID, bob.SpaceID, alice.SpaceID, "alice-share-key", alice.CurrentVersion, "bob-share-key", bob.CurrentVersion))
+	message := createRepoMessage(t, repos, bobID, bob.SpaceID, aliceID, alice.SpaceID, "")
+	notifier := newRecordingSpaceActivityNotifier()
+	controller.ActivityNotifier = notifier
+	request := models.SetMessageReactionRequest{
+		SenderEncryptedReaction:    base64.StdEncoding.EncodeToString([]byte(strings.Repeat("s", 304))),
+		RecipientEncryptedReaction: base64.StdEncoding.EncodeToString([]byte(strings.Repeat("r", 304))),
+	}
+	_, err := controller.SetReaction(ctx, bob, message.MessageID, request)
+	require.Error(t, err)
+	invalid := request
+	invalid.SenderEncryptedReaction = "not base64"
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, invalid)
+	require.Error(t, err)
+	invalid.SenderEncryptedReaction = base64.StdEncoding.EncodeToString([]byte("short"))
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, invalid)
+	require.Error(t, err)
+
+	response, err := controller.SetReaction(ctx, alice, message.MessageID, request)
+	require.NoError(t, err)
+	require.True(t, response.Liked)
+	require.Equal(t, bobID, requireSpaceActivity(t, notifier).recipientIDs[0])
+	for _, viewer := range []*spacerepo.SpaceRecord{alice, bob} {
+		loaded, err := repos.Messages.GetMessage(ctx, message.MessageID, viewer.SpaceID)
+		require.NoError(t, err)
+		expected := strings.Repeat("s", 304)
+		if viewer.SpaceID == alice.SpaceID {
+			expected = strings.Repeat("r", 304)
+		}
+		require.Equal(t, []byte(expected), loaded.EncryptedReaction)
+		require.True(t, loaded.Liked)
+		require.Equal(t, viewer.SpaceID == alice.SpaceID, loaded.ViewerLiked)
+	}
+	summaries, err := repos.Messages.ListLatestChatSummaries(ctx, bob.SpaceID, []string{alice.SpaceID})
+	require.NoError(t, err)
+	activity := summaries[alice.SpaceID].LatestActivity
+	require.Equal(t, "message_like", activity.Type)
+	require.Equal(t, []byte(strings.Repeat("s", 304)), activity.EncryptedReaction)
+	require.NoError(t, repos.Read.UpsertNotificationReadMarker(ctx, bob.SpaceID, alice.SpaceID, activity.CreatedAt))
+
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, request)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	request.SenderEncryptedReaction = base64.StdEncoding.EncodeToString([]byte(strings.Repeat("n", 304)))
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, request)
+	require.NoError(t, err)
+	requireNoSpaceActivity(t, notifier)
+	summaries, err = repos.Messages.ListLatestChatSummaries(ctx, bob.SpaceID, []string{alice.SpaceID})
+	require.NoError(t, err)
+	require.Equal(t, activity.CreatedAt, summaries[alice.SpaceID].LatestActivity.CreatedAt)
+	require.Equal(t, []byte(strings.Repeat("n", 304)), summaries[alice.SpaceID].LatestActivity.EncryptedReaction)
+	require.Empty(t, summaries[alice.SpaceID].UnreadActivities)
+
+	_, err = controller.SetLike(ctx, alice, message.MessageID, false)
+	require.NoError(t, err)
+	loaded, err := repos.Messages.GetMessage(ctx, message.MessageID, bob.SpaceID)
+	require.NoError(t, err)
+	require.Empty(t, loaded.EncryptedReaction)
+	require.False(t, loaded.Liked)
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, request)
+	require.NoError(t, err)
+	requireSpaceActivity(t, notifier)
+	require.NoError(t, controller.Delete(ctx, bob, message.MessageID))
+	loaded, err = repos.Messages.GetMessage(ctx, message.MessageID, bob.SpaceID)
+	require.NoError(t, err)
+	require.Empty(t, loaded.EncryptedReaction)
+	require.False(t, loaded.Liked)
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, request)
+	require.Error(t, err)
+
+	message = createRepoMessage(t, repos, bobID, bob.SpaceID, aliceID, alice.SpaceID, "")
+	require.NoError(t, repos.Friends.DeleteFriendship(ctx, alice.SpaceID, bob.SpaceID))
+	_, err = controller.SetReaction(ctx, alice, message.MessageID, request)
+	require.ErrorIs(t, err, ente.ErrPermissionDenied)
 }

@@ -103,28 +103,31 @@ You can delete your account at any time by using the "Delete account" option in 
 
 Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
 
+If you want to stop using only one app, see [Will deleting my Ente Auth or Locker account also delete my Photos account?](/photos/faq/security-and-privacy#shared-account-deletion).
+
 To know details of how your data is deleted, including when you delete your account, please see https://ente.com/blog/how-ente-deletes-data/.
 
 ## Lock Screen
 
 ### What happens if biometric authentication fails? {#locker-biometric-fail}
 
-After multiple failed attempts:
+If you use **Device lock**, your device may offer its passcode when biometric authentication fails. Follow the authentication options shown by your device.
 
-- Your device may require its passcode instead
-- If PIN is configured in Locker, you can use that as fallback
-- The app remains locked until successful authentication
+A custom Locker PIN or password is a separate app-lock method. It is not a fallback that remains enabled alongside Device lock. Locker stays locked until you authenticate successfully.
 
 ### Can I change my PIN? {#locker-change-pin}
 
-Yes. Open `Settings > Security > Lock screen > Change PIN` and follow the prompts.
+Yes. Open `Settings > Security > App lock`, authenticate when prompted, and select **Pin lock** to set and confirm a new PIN.
+
+Your device must have a passcode or screen lock configured before you can open the App lock settings.
 
 ### Is lock screen available on all devices? {#locker-lock-screen-availability}
 
-Lock screen is available on all iOS and Android devices. The specific biometric options depend on your device capabilities:
+App lock is available in Locker's iOS and Android apps. First configure a passcode or screen lock in your device's system settings, then open `Settings > Security > App lock` in Locker.
 
-- **iOS**: Face ID, Touch ID
-- **Android**: Fingerprint, face unlock (device dependent)
+You can choose **Device lock**, **Pin lock**, or **Password**. Device lock uses the authentication methods supported by your device, such as Face ID, Touch ID, fingerprint, or its passcode.
+
+See the [Lock screen guide](/locker/features/security/lock-screen) for setup and auto-lock options.
 
 ## Related Features
 

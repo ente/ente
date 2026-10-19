@@ -359,39 +359,61 @@ class PeopleMemoriesCalculator {
 
       final birthdate = DateTime.tryParse(person.data.birthDate ?? "");
       if (birthdate != null) {
-        final thisBirthday = DateTime(
+        var thisBirthday = DateTime(
           currentTime.year,
           birthdate.month,
           birthdate.day,
         );
-        final daysTillBirthday = thisBirthday.difference(currentTime).inDays;
-        if (daysTillBirthday < 6 && daysTillBirthday >= 0) {
-          final int newAge = currentTime.year - birthdate.year;
+        if (TimeMemoriesCalculator._calendarDayDifference(
+              currentTime,
+              thisBirthday,
+            ) <
+            0) {
+          thisBirthday = DateTime(
+            currentTime.year + 1,
+            birthdate.month,
+            birthdate.day,
+          );
+        }
+        final daysTillBirthday = TimeMemoriesCalculator._calendarDayDifference(
+          currentTime,
+          thisBirthday,
+        );
+        if (daysTillBirthday >= 0 &&
+            (daysTillBirthday <= 6 ||
+                thisBirthday.difference(currentTime).inDays < 6)) {
+          final int newAge = thisBirthday.year - birthdate.year;
+          final upcomingBirthdayStart = DateTime(
+            thisBirthday.year,
+            thisBirthday.month,
+            thisBirthday.day - 5,
+          ).microsecondsSinceEpoch;
+          final birthdayStart = thisBirthday.microsecondsSinceEpoch;
+          final birthdayEnd = DateTime(
+            thisBirthday.year,
+            thisBirthday.month,
+            thisBirthday.day + 1,
+          ).microsecondsSinceEpoch;
           final spotlightCandidate =
               personCandidates[PeopleMemoryType.spotlight]?.first;
           if (spotlightCandidate != null &&
               spotlightCandidate.personName != null) {
             final spotlightMem = await spotlightCandidate.realize();
             if (spotlightMem != null) {
-              final thisBirthday = birthdate.copyWith(year: currentTime.year);
               memoryResults.add(
                 spotlightMem.copyWith(
                   isBirthday: false,
                   newAge: newAge,
-                  firstDateToShow: thisBirthday
-                      .subtract(const Duration(days: 5))
-                      .microsecondsSinceEpoch,
-                  lastDateToShow: thisBirthday.microsecondsSinceEpoch,
+                  firstDateToShow: upcomingBirthdayStart,
+                  lastDateToShow: birthdayStart,
                 ),
               );
               memoryResults.add(
                 spotlightMem.copyWith(
                   isBirthday: true,
                   newAge: newAge,
-                  firstDateToShow: thisBirthday.microsecondsSinceEpoch,
-                  lastDateToShow: thisBirthday
-                      .add(kDayItself)
-                      .microsecondsSinceEpoch,
+                  firstDateToShow: birthdayStart,
+                  lastDateToShow: birthdayEnd,
                 ),
               );
             }
@@ -405,20 +427,16 @@ class PeopleMemoriesCalculator {
                 youAndThemMem.copyWith(
                   isBirthday: false,
                   newAge: newAge,
-                  firstDateToShow: thisBirthday
-                      .subtract(const Duration(days: 5))
-                      .microsecondsSinceEpoch,
-                  lastDateToShow: thisBirthday.microsecondsSinceEpoch,
+                  firstDateToShow: upcomingBirthdayStart,
+                  lastDateToShow: birthdayStart,
                 ),
               );
               memoryResults.add(
                 youAndThemMem.copyWith(
                   isBirthday: true,
                   newAge: newAge,
-                  firstDateToShow: thisBirthday.microsecondsSinceEpoch,
-                  lastDateToShow: thisBirthday
-                      .add(kDayItself)
-                      .microsecondsSinceEpoch,
+                  firstDateToShow: birthdayStart,
+                  lastDateToShow: birthdayEnd,
                 ),
               );
             }

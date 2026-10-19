@@ -1,1 +1,0 @@
-- Improved app responsiveness while backing up videos.

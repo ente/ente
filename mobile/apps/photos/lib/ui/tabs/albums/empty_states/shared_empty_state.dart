@@ -2,73 +2,28 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
-import "package:photos/ui/tabs/albums/empty_states/empty_state_feature_row.dart";
+import "package:photos/ui/tabs/albums/empty_states/empty_state_layout.dart";
 
 class SharedEmptyState extends StatelessWidget {
   const SharedEmptyState({super.key});
 
-  static const _topPadding = 32.0;
-  static const _sectionSpacing = 48.0;
-  static const _contentToButtonSpacing = 56.0;
-  static const _contentWidth = 343.0;
-  static const _featureWidth = 300.0;
+  static const _illustrationHeight = 111.0;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.componentColors;
     final strings = context.strings;
-    final bottomPadding = 64 + MediaQuery.paddingOf(context).bottom + 32;
-    final features = [
-      strings.albumsSharedEmptyFeatureShareLovedOnes,
-      strings.albumsSharedEmptyFeatureReactAndComment,
-      strings.albumsOnEnteEmptyFeaturePrivacy,
-    ];
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, _topPadding, 16, bottomPadding),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: _contentWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset("assets/shared.png", fit: BoxFit.contain),
-                  const SizedBox(height: _sectionSpacing),
-                  Text(
-                    strings.albumsSharedEmptyTitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyles.display2.copyWith(color: colors.textBase),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: _featureWidth,
-                    child: Column(
-                      children: [
-                        EmptyStateBulletFeatureRow(label: features[0]),
-                        const SizedBox(height: 12),
-                        EmptyStateBulletFeatureRow(label: features[1]),
-                        const SizedBox(height: 12),
-                        EmptyStateBulletFeatureRow(label: features[2]),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: _contentToButtonSpacing),
-            ButtonComponent(
-              label: strings.shareAnAlbum,
-              shouldSurfaceExecutionStates: false,
-              onTap: () => showCollectionActionSheet(
-                context,
-                actionType: CollectionActionType.shareCollection,
-              ),
-            ),
-          ],
+    return EmptyStateLayout(
+      assetPath: "assets/shared.png",
+      assetHeight: _illustrationHeight,
+      title: strings.albumsSharedEmptyTitle,
+      description: strings.albumsSharedEmptyDescription,
+      action: ButtonComponent(
+        label: strings.shareAnAlbum,
+        shouldSurfaceExecutionStates: false,
+        onTap: () => showCollectionActionSheet(
+          context,
+          actionType: CollectionActionType.shareCollection,
         ),
       ),
     );

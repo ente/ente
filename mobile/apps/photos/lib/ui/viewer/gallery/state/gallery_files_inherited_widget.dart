@@ -7,13 +7,36 @@ class GalleryFilesState extends InheritedWidget {
 
   // Keep the same file objects used by galleryGroups so mutations stay in sync.
   List<EnteFile>? _galleryFiles;
+  ({int oldest, int newest})? _captureDateRange;
+  bool _hasComputedDateRange = false;
 
   set setGalleryFiles(List<EnteFile> galleryFiles) {
     _galleryFiles = galleryFiles;
+    invalidateCaptureDateRange();
   }
 
   void removeFile(EnteFile file) {
     _galleryFiles!.remove(file);
+    invalidateCaptureDateRange();
+  }
+
+  void invalidateCaptureDateRange() => _hasComputedDateRange = false;
+
+  ({int oldest, int newest})? get captureDateRange {
+    if (_hasComputedDateRange) return _captureDateRange;
+    int? oldest;
+    int? newest;
+    for (final file in _galleryFiles ?? const <EnteFile>[]) {
+      final time = file.creationTime;
+      if (time == null || time == 0) continue;
+      if (oldest == null || time < oldest) oldest = time;
+      if (newest == null || time > newest) newest = time;
+    }
+    _captureDateRange = oldest == null || newest == null
+        ? null
+        : (oldest: oldest, newest: newest);
+    _hasComputedDateRange = true;
+    return _captureDateRange;
   }
 
   List<EnteFile>? get galleryFilesOrNull => _galleryFiles;

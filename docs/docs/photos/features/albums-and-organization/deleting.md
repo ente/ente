@@ -28,6 +28,8 @@ When you delete a photo from your Ente account:
 2. Tap the trash icon in the action bar
 3. Confirm the deletion
 
+![Delete action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-delete-action-callout.png){width=320px}
+
 Photos deleted from your Ente account move to Trash. On Android 11 and newer, photos deleted from your device's gallery move to Android's system trash. Learn more about [Android Device Trash](#android-device-trash).
 
 ### On web/desktop
@@ -35,6 +37,8 @@ Photos deleted from your Ente account move to Trash. On Android 11 and newer, ph
 1. Select the photo(s) you want to delete
 2. Click the trash icon or press the Delete key
 3. Confirm the deletion
+
+![Delete action highlighted in the header on Ente Photos web](https://docs-assets.ente.com/screenshots/web-photo-delete-action-callout.png){width=720px}
 
 The selected photos will be moved to Trash.
 
@@ -55,6 +59,10 @@ The selected photos will be moved to Trash.
 - Press Delete key or click the trash icon and confirm
 
 Photos deleted from your Ente account will be moved to Trash together.
+
+![Delete action highlighted in the selection toolbar on Ente Photos web](https://docs-assets.ente.com/screenshots/web-bulk-delete-callout.png){width=720px}
+
+![Delete files confirmation dialog to move selection to trash on Ente Photos web](https://docs-assets.ente.com/screenshots/web-bulk-delete-confirm.png){width=720px}
 
 ## The Trash Folder
 
@@ -80,12 +88,22 @@ Trash is a special folder where deleted photos are held temporarily before perma
 2. Tap on 'v' icon at the right.
 3. Tap "Trash"
 
+![Trash option highlighted in the Albums More sheet on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-albums-trash-nav.png){width=320px}
+
+![Trash view showing deleted photos on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-view.png){width=320px}
+
 **On web/desktop:**
 
 1. Open the sidebar menu
 2. Click on "Trash"
 
+![Trash item in the sidebar menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-sidebar.png){width=720px}
+
+![Trash view showing deleted photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-view.png){width=720px}
+
 ### Android device trash
+
+![Device tab highlighted next to Ente tab in Trash on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-device-tab-callout.png){width=320px}
 
 On Android 11 and newer, photos and videos deleted from your device's gallery through Ente Photos move to Android's system trash instead of being permanently removed immediately. To review or recover them in Ente:
 
@@ -122,6 +140,8 @@ If you accidentally deleted photos from your Ente account, you can restore them 
 
 ### On mobile
 
+![Restore action highlighted for a selected item in Trash on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-restore-callout.png){width=320px}
+
 1. Open the Albums tab
 2. Tap on 'v' icon at the right.
 3. Tap **Trash**, then select **Ente** if both tabs are shown
@@ -134,6 +154,8 @@ If you accidentally deleted photos from your Ente account, you can restore them 
 2. Click on "Trash"
 3. Select the items to restore
 4. Click the "Restore" button
+
+![Restore action highlighted in the header on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-restore-callout.png){width=720px}
 
 Restored photos will be moved to an album of choice.
 
@@ -165,6 +187,8 @@ To free up storage space immediately, you can permanently delete items from Tras
 2. Click/tap "Empty trash" or the trash icon
 3. Confirm that you want to permanently delete all items
 
+![Empty trash control highlighted on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-empty-callout.png){width=720px}
+
 All items in the selected trash will be permanently deleted and storage space will be freed immediately.
 
 ### Deleting specific items permanently
@@ -176,11 +200,15 @@ All items in the selected trash will be permanently deleted and storage space wi
 3. Choose "Delete permanently" from the menu
 4. Confirm the action
 
+![Delete permanently control highlighted for a selected item in Trash on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-delete-permanently-callout.png){width=720px}
+
 Only the selected items will be permanently deleted.
 
 ## Special Deletion Scenarios
 
 ### Deleting albums
+
+![Delete album confirmation dialog on Ente Photos web with Keep photos Delete photos and Cancel](https://docs-assets.ente.com/screenshots/web-delete-album-confirm.png){width=720px}
 
 When you delete an album in Ente, you'll be given two options:
 
@@ -237,6 +265,8 @@ Album owners and admins can suggest that other participants delete their photos 
 2. Select photos owned by other participants
 3. Tap the suggest deletion action
 4. Confirm the suggestion
+
+![Suggest deletion action highlighted in the selection toolbar on Ente Photos mobile, Friends album filtered to Alex with one collaborator photo selected](https://docs-assets.ente.com/screenshots/phone-suggest-deletion-callout.png){width=320px}
 
 **What happens:**
 

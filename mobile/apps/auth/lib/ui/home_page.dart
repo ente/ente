@@ -111,7 +111,7 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<IconsChangedEvent>? _iconsChangedEvent;
   StreamSubscription<MultiSelectActionRequestedEvent>?
   _multiSelectActionSubscription;
-  String selectedTag = "";
+  String selectedTag = PreferenceService.instance.lastSelectedTag;
   bool _isTrashOpen = false;
   bool hasTrashedCodes = false;
   bool hasNonTrashedCodes = false;
@@ -1142,6 +1142,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _applyFilteringAndRefresh() {
+    PreferenceService.instance.lastSelectedTag = selectedTag;
     if (_searchText.isNotEmpty && _showSearchBox && _allCodes != null) {
       final String val = _searchText.toLowerCase();
       // Show issuer matches first so searches for an email provider rank its
@@ -1233,6 +1234,9 @@ class _HomePageState extends State<HomePage> {
       case CodeSortKey.manual:
         codes.sort((a, b) => a.display.position.compareTo(b.display.position));
         break;
+      case CodeSortKey.newestFirst:
+        codes.sort(_compareNewestFirst);
+        break;
     }
     if (sortKey != CodeSortKey.manual) {
       int insertIndex = 0;
@@ -1244,6 +1248,14 @@ class _HomePageState extends State<HomePage> {
         }
       }
     }
+  }
+
+  static int _compareNewestFirst(Code a, Code b) {
+    final byCreatedAt = b.createdAt!.compareTo(a.createdAt!);
+    if (byCreatedAt != 0) {
+      return byCreatedAt;
+    }
+    return b.generatedID!.compareTo(a.generatedID!);
   }
 
   bool get _shouldFocusAddedCode {
@@ -1760,7 +1772,7 @@ class _HomePageState extends State<HomePage> {
         final list = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!anyCodeHasError) ...[
+            if (!anyCodeHasError || selectedTag.isNotEmpty || _isTrashOpen) ...[
               SizedBox(
                 height: 48,
                 child: HorizontalScrollArea(

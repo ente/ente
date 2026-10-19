@@ -1,4 +1,20 @@
 {
+  "bringMemoriesTogether": "Bring your memories together",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Create my account",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Grant permission to access and organise your photos with face recognition, processed entirely on your device.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Organize your photos and videos. Every memory, in one place.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
   "wallpaper": "Wallpaper",
   "setWallpaper": "Set wallpaper",
   "wallpaperHome": "Home screen",
@@ -46,6 +62,7 @@
   "add": "Add",
   "addAlbumWidgetPrompt": "Add an album widget to your home screen to customize it here.",
   "addANameAndPhoto": "Add a name and photo",
+  "addAnyway": "Add anyway",
   "addCode": "Add code",
   "addedAMemoryTo": "added a memory to {albumName}",
   "@addedAMemoryTo": {
@@ -117,6 +134,7 @@
       "count": {}
     }
   },
+  "addItems": "Add items",
   "addLocation": "Add location",
   "addLocationButton": "Add",
   "addMember": "Add member",
@@ -152,6 +170,7 @@
   "addTo": "Add to",
   "addToAlbum": "Add to album",
   "addToCollection": "Add to collection",
+  "addToCollections": "Add to collections",
   "addToEnte": "Add to Ente",
   "addToHiddenAlbum": "Add to hidden album",
   "addToPerson": "Add to person",
@@ -193,20 +212,25 @@
     }
   },
   "albumsOnDevicePermissionCta": "Allow access",
-  "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Allow Ente to access and organize your photos with face recognition",
-  "albumsOnDevicePermissionFeatureControlUploads": "You're in control of what gets uploaded",
-  "albumsOnDevicePermissionFeatureLocalProcessing": "All processing happens on your device",
+  "albumsOnDevicePermissionDescription": "Your photos get organized with face recognition, right on your device.",
+  "@albumsOnDevicePermissionDescription": {
+    "description": "Body of the on-device albums empty state shown before photo access is granted"
+  },
   "albumsOnEnteEmptyCta": "Select albums to backup",
-  "albumsOnEnteEmptyFeatureAccessAnyDevice": "Access them on any device",
-  "albumsOnEnteEmptyFeaturePrivacy": "Full privacy with end-to-end encryption",
-  "albumsOnEnteEmptyFeatureShareLovedOnes": "Share them with loved ones - they can react and chat, without an account",
+  "albumsOnEnteEmptyDescription": "Access them on any device and share them with loved ones.",
+  "@albumsOnEnteEmptyDescription": {
+    "description": "Body of the Ente albums empty state, under the title 'Back up your memories'"
+  },
   "albumsOnEnteEmptyTitle": "Back up your memories",
-  "albumsReceivedEmptyFeatureAcceptInvites": "Accept invites to view photos and videos",
-  "albumsReceivedEmptyFeatureSaveToLibrary": "Save shared memories to your own library",
-  "albumsReceivedEmptyFeatureSharedByOthers": "Albums shared by others will appear here",
-  "albumsReceivedEmptyTitle": "View memories shared\n with you",
-  "albumsSharedEmptyFeatureReactAndComment": "They can view, react and add comments, without an account",
-  "albumsSharedEmptyFeatureShareLovedOnes": "Share your photos and videos with loved ones",
+  "albumsReceivedEmptyDescription": "Albums shared with you appear here, ready to view and save.",
+  "@albumsReceivedEmptyDescription": {
+    "description": "Body of the received albums empty state"
+  },
+  "albumsReceivedEmptyTitle": "Memories shared with you",
+  "albumsSharedEmptyDescription": "Loved ones can view, react and add comments, without an account.",
+  "@albumsSharedEmptyDescription": {
+    "description": "Body of the shared albums and feed empty states, under the title 'Share your memories'"
+  },
   "albumsSharedEmptyTitle": "Share your memories",
   "albumsWidgetDesc": "Select the albums you want to see on your home screen.",
   "albumTitle": "Album title",
@@ -414,6 +438,10 @@
   "backupFailed": "Backup failed",
   "backupFile": "Backup file",
   "backupFolderLabel": "Backup folder:",
+  "backupLatestPhotos": "Backup latest photos",
+  "@backupLatestPhotos": {
+    "description": "Button on the photo permission screen that backs up only recent photos"
+  },
   "backupLocationChoiceDescription": "Where do you want to save your backups?",
   "backupMode": "Backup mode",
   "backupModeBackingUpItems": "{count, plural, one{Backing up {formattedCount} item} other{Backing up {formattedCount} items}}",
@@ -574,6 +602,10 @@
   "checkStatus": "Check status",
   "@checkStatus": {
     "description": "Check status button label"
+  },
+  "chooseAlbumsToBackup": "Choose albums to backup",
+  "@chooseAlbumsToBackup": {
+    "description": "Button on the photo permission screen that opens album selection for backup"
   },
   "chooseARecoveryTime": "Choose a recovery time",
   "chooseBackupLocation": "Choose a backup location",
@@ -830,6 +862,7 @@
   "credentialNotesHint": "Recovery methods, security questions, ...",
   "criticalUpdateAvailable": "Critical update available",
   "crop": "Crop",
+  "cropAndRotate": "Crop & rotate",
   "curatedMemories": "Curated memories",
   "currentBackupFolder": "Current backup folder:",
   "currentlyRunning": "currently running",
@@ -1062,6 +1095,8 @@
   "disablingTwofactorAuthentication": "Disabling two-factor authentication...",
   "discardChanges": "Discard",
   "discardEditsQuestion": "Discard edits?",
+  "discardUploadMessage": "The items you picked won't be saved.",
+  "discardUploadTitle": "Discard upload?",
   "discover": "Discover",
   "@discover": {
     "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
@@ -1092,16 +1127,16 @@
   "doesGroupContainMultiplePeople": "Does this grouping contain multiple people?",
   "dog": "Dog",
   "done": "Done",
+  "dontShowAgain": "Don’t show again",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
   "doNotSignOut": "Do not sign out",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
   },
   "dontHaveAnAccount": "Don't have an account?",
   "dontSave": "Don't save",
-  "doThisLater": "Do this later",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
   "doubleTapToViewHiddenCode": "You can double tap on an entry to view code",
   "download": "Download",
   "downloadApplicationUpdate": "Download update",
@@ -1478,62 +1513,22 @@
       }
     }
   },
-  "memoryLaneCaptionMonthsAgo": "{name} {count, plural, one{{number} month ago} other{{number} months ago}}",
-  "@memoryLaneCaptionMonthsAgo": {
-    "description": "Memory Lane caption in elapsed months. Always keep the number, including for one.",
+  "memoryLaneCaptionNow": "{name} {now}",
+  "@memoryLaneCaptionNow": {
+    "description": "Memory Lane caption for a photo taken less than a year ago, without a number. Keep both placeholders in the natural word order for your language.",
     "placeholders": {
       "name": {
         "type": "String"
       },
-      "count": {
-        "type": "int"
-      },
-      "number": {
+      "now": {
         "type": "String",
-        "description": "Placeholder rendered as a separate, larger number; retain in every plural form."
+        "description": "The localized word for now, rendered in a handwritten style. Keep this placeholder rather than writing the word directly."
       }
     }
   },
-  "memoryLaneCaptionWeeksAgo": "{name} {count, plural, one{{number} week ago} other{{number} weeks ago}}",
-  "@memoryLaneCaptionWeeksAgo": {
-    "description": "Memory Lane caption in elapsed weeks. Always keep the number, including for one.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      },
-      "number": {
-        "type": "String",
-        "description": "Placeholder rendered as a separate, larger number; retain in every plural form."
-      }
-    }
-  },
-  "memoryLaneCaptionDaysAgo": "{name} {count, plural, one{{number} day ago} other{{number} days ago}}",
-  "@memoryLaneCaptionDaysAgo": {
-    "description": "Memory Lane caption in elapsed days. Always keep the number, including for one.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      },
-      "number": {
-        "type": "String",
-        "description": "Placeholder rendered as a separate, larger number; retain in every plural form."
-      }
-    }
-  },
-  "memoryLaneCaptionToday": "{name} today",
-  "@memoryLaneCaptionToday": {
-    "description": "Memory Lane caption for a photo taken today, without a number.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
+  "memoryLaneNow": "now",
+  "@memoryLaneNow": {
+    "description": "The current moment in a Memory Lane caption, such as Ashil now. This word is styled separately from the person's name."
   },
   "facesTimelinePlaybackPause": "Pause",
   "@facesTimelinePlaybackPause": {
@@ -1833,10 +1828,12 @@
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
+  "forgotPasswordPrompt": "Forgot password?",
   "forgotRecoveryKey": "Forgot recovery key?",
   "free10GB": "10GB free on <bold-green>ente</bold-green> Photos",
   "freeStorageOffer": "10% off on <bold-green>ente</bold-green> photos",
   "freeStorageOfferDescription": "Use code \"AUTH\" to get 10% off first year",
+  "free": "Free",
   "freeTrial": "Free trial",
   "freeUpAmount": "Free up {sizeInMBorGB}",
   "@freeUpAmount": {
@@ -1893,6 +1890,9 @@
   "grantPermissionDesc": "Please allow Ente to access your library so we can organize it with face recognition. All processing happens on your device.",
   "greenery": "The green life",
   "grid": "Grid",
+  "photosInOriginalProportions": "Photos in original proportions",
+  "squarePhotos": "Square photos",
+  "photosPerRow": "Photos per row",
   "groupBy": "Group by",
   "groupByDay": "Day",
   "groupByMonth": "Month",
@@ -1951,15 +1951,48 @@
   "ignore": "Ignore",
   "ignored": "ignored",
   "ignorePerson": "Ignore person",
+  "imageEditorAlignCenter": "Align center",
+  "imageEditorAlignLeft": "Align left",
+  "imageEditorAlignRight": "Align right",
+  "imageEditorBackgroundColor": "Background color",
+  "imageEditorBlue": "Blue",
+  "imageEditorBold": "Bold",
   "imageEditorBrightness": "Brightness",
   "imageEditorContrast": "Contrast",
+  "imageEditorCustomColor": "Custom color",
+  "imageEditorDuplicate": "Duplicate",
+  "imageEditorEnterText": "Enter text",
   "imageEditorExposure": "Exposure",
   "imageEditorFade": "Fade",
+  "imageEditorGreen": "Green",
   "imageEditorHue": "Hue",
-  "imageEditorLuminance": "Luminance",
+  "imageEditorItalic": "Italic",
+  "imageEditorNoBackground": "No background",
+  "@imageEditorNoBackground": {
+    "description": "Text background style with no visible background"
+  },
+  "imageEditorOrange": "Orange",
+  "imageEditorPink": "Pink",
+  "imageEditorPurple": "Purple",
+  "imageEditorRed": "Red",
   "imageEditorSaturation": "Saturation",
-  "imageEditorSharpness": "Sharpness",
+  "imageEditorSolidBackground": "Solid background",
+  "@imageEditorSolidBackground": {
+    "description": "Text background style with a fully opaque color"
+  },
+  "imageEditorTeal": "Teal",
   "imageEditorTemperature": "Temperature",
+  "imageEditorText": "Text",
+  "@imageEditorText": {
+    "description": "Tool for adding text to a photo"
+  },
+  "imageEditorTextColor": "Text color",
+  "imageEditorTint": "Tint",
+  "imageEditorTranslucentBackground": "Translucent background",
+  "@imageEditorTranslucentBackground": {
+    "description": "Text background style with a half-transparent color"
+  },
+  "imageEditorWhite": "White",
   "imageNotAnalyzed": "Image not analyzed",
   "immediate": "Immediate",
   "immediately": "Immediately",
@@ -1978,6 +2011,15 @@
   "importEnteEncGuide": "Select the encrypted JSON file exported from Ente",
   "importEnterSetupKey": "Enter a setup key",
   "importFailureDesc": "Could not parse the selected file.",
+  "importFileTooLarge": "The selected file is too large. Maximum size: {size}.",
+  "@importFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "10 MiB"
+      }
+    }
+  },
   "importFromGallery": "Import from gallery",
   "importGoogleAuthConfirmation": "{codeCount, plural, one{Import 1 code from Google Authenticator?} other{Import {codeCount} codes from Google Authenticator?}}",
   "@importGoogleAuthConfirmation": {
@@ -2101,6 +2143,7 @@
       }
     }
   },
+  "itemsLabel": "Items",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Items show the number of days remaining before permanent deletion",
   "itemsStored": "Items stored",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{This item will be deleted from all collections. You can recover it from Trash.} other{These items will be deleted from all collections. You can recover them from Trash.}}",
@@ -2137,9 +2180,6 @@
   "lastYearsTrip": "Last year's trip",
   "layout": "Layout",
   "layoutGrouped": "Grouped",
-  "layoutJustified": "Justified",
-  "layoutJustifiedComfort": "Justified · Comfort",
-  "layoutJustifiedFlex": "Justified · Flex",
   "layoutMasonry": "Masonry",
   "layoutTrip": "Trip",
   "leave": "Leave",
@@ -2520,6 +2560,10 @@
   "@mediaManagementHintTitle": {
     "description": "Title of a sheet prompting Android users to enable media management permission."
   },
+  "meetEnteLocker": "Meet Ente Locker",
+  "@meetEnteLocker": {
+    "description": "Button in the Photos changelog that opens the Ente Locker website"
+  },
   "members": "Members",
   "memberStorageUsed": "{amount} used",
   "@memberStorageUsed": {
@@ -2531,6 +2575,8 @@
     }
   },
   "memories": "Memories",
+  "memoriesReadyNotificationTitle": "Rediscover your memories ✨",
+  "memoriesReadyNotificationBody": "Curated for you, on your phone",
   "memoriesWidgetDesc": "Select the kinds of memories you want to see on your home screen.",
   "memoryCount": "{count, plural, =0{no memories} one{{formattedCount} memory} other{{formattedCount} memories}}",
   "@memoryCount": {
@@ -2604,7 +2650,10 @@
   "mlConsent": "Enable machine learning",
   "mlConsentConfirmation": "I understand, and wish to enable machine learning",
   "mlConsentDescription": "If you enable machine learning, Ente will extract information like face geometry from files, including those shared with you.\n\nThis will happen on your device, and any generated biometric information will be end-to-end encrypted.",
-  "mlConsentPrivacy": "Please click here for more details about this feature in our privacy policy",
+  "mlConsentPrivacyDetails": "Please <policy>click here</policy> for more details about this feature in our privacy policy",
+  "@mlConsentPrivacyDetails": {
+    "description": "Machine learning consent screen sentence; only the text inside the policy tags is tappable and opens the privacy policy"
+  },
   "mlCouldNotProcessItems": "{count, plural, one{Could not process {count} item} other{Could not process {count} items}}",
   "@mlCouldNotProcessItems": {
     "description": "Title shown when machine learning could not process one or more items",
@@ -2648,6 +2697,7 @@
   "modifyYourQueryOrTrySearchingFor": "Modify your query, or try searching for",
   "moments": "Moments",
   "month": "month",
+  "mostPopular": "Most popular",
   "monthly": "Monthly",
   "@monthly": {
     "description": "The text to display for monthly plans",
@@ -2736,7 +2786,7 @@
   },
   "nightLights": "Neon nights",
   "no": "No",
-  "noAlbumsOnThisDevice": "No albums\non this device",
+  "noAlbumsOnThisDevice": "No albums on this device",
   "noAppToOpenFileDownloadInstead": "No app is available to preview this file. You can download it and open it with another app.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -2800,6 +2850,7 @@
   },
   "noResult": "No result",
   "noResultsFound": "No results found",
+  "noMatchingResultsFound": "No matching results found",
   "noSessionsFound": "No sessions found!",
   "noSimilarImagesFound": "No similar images found",
   "noSuggestionsForPerson": "No suggestions for {personName}",
@@ -2910,6 +2961,7 @@
   "openAlbumInBrowser": "Open album in browser",
   "openAlbumInBrowserTitle": "Please use the web app to add photos to this album",
   "openFile": "Open file",
+  "openInAnotherApp": "Open in another app",
   "openLink": "Open link",
   "openSettings": "Open settings",
   "openstreetmapContributors": "OpenStreetMap contributors",
@@ -2995,6 +3047,8 @@
       }
     }
   },
+  "pdfNeedsPassword": "This PDF needs a password",
+  "pdfPasswordNotSupportedOnDevice": "This device cannot unlock password-protected PDFs. Open it in another app.",
   "pending": "Pending",
   "pendingSync": "Pending sync",
   "pendingSyncs": "Warning",
@@ -3208,6 +3262,7 @@
     }
   },
   "publicLink": "Public link",
+  "publicCollectionLinkAccessDescription": "Anyone with the link can open the collection without an Ente account.",
   "publicLinkAccessDescription": "Anyone with the link can open the album without an Ente account.",
   "publicLinkCollectDescription": "Anyone with this link can add photos to your album.",
   "publicLinkEnabled": "Public link enabled",
@@ -3775,6 +3830,7 @@
   "searchLocationEmptySection": "Group photos that are taken within some radius of a photo",
   "searchPeopleEmptySection": "Invite people, and you'll see all photos shared by them here",
   "searchPersonsEmptySection": "People will be shown here once processing and syncing is complete",
+  "searchPhotosPeoplePlaces": "Search photos, people, places...",
   "searchResultCameraMake": "Camera make",
   "@searchResultCameraMake": {
     "description": "Search result subtitle label for camera make matches"
@@ -3933,7 +3989,6 @@
   "selectFile": "Select file",
   "selectFolder": "Select folder",
   "selectFolders": "Select folders",
-  "selectFoldersForBackup": "Select folders for backup",
   "selectFolderToContinue": "Select a folder to continue",
   "selectItemsToAdd": "Select items to add",
   "selectLanguage": "Select language",
@@ -3960,6 +4015,10 @@
   "@send": {
     "description": "Label for send button"
   },
+  "sendACopy": "Send a copy",
+  "@sendACopy": {
+    "description": "Share a copy of the current photo or video using the system share sheet, as opposed to sending a viewing link"
+  },
   "sendCountInvites": "{count, plural, =0{Send invites} one{Send {count} invite} other{Send {count} invites}}",
   "@sendCountInvites": {
     "placeholders": {
@@ -3968,6 +4027,10 @@
         "example": "2"
       }
     }
+  },
+  "sendFileToAnotherApp": "Send the file to another app",
+  "@sendFileToAnotherApp": {
+    "description": "Subtitle for sending a copy of the current photo or video from the file viewer"
   },
   "sendInvite": "Send invite",
   "sendLink": "Send link",
@@ -4064,6 +4127,12 @@
     }
   },
   "sharedPhotoNotifications": "New shared photos and albums",
+  "sharedPhotoLocationWarningTitle": "Keep photo locations",
+  "sharedPhotoLocationWarningMessage": "Photos shared from other apps may be missing their locations. Use “{addFromDevice}” in an album to keep them.",
+  "@sharedPhotoLocationWarningMessage": {
+    "description": "Precaution before backing up photos shared from another app. addFromDevice is the localized action label.",
+    "placeholders": {"addFromDevice": {"type": "String"}}
+  },
   "sharedPhotoNotificationsExplanation": "New photos and albums you are in or shared with you",
   "sharedWith": "Shared with",
   "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
@@ -4079,6 +4148,10 @@
   "shareKey": "Share key",
   "shareLegacyDescription": "Send each card to the person it's for. No single card works alone.",
   "shareLink": "Share link",
+  "shareLinkToThisItem": "Share a link to this item",
+  "@shareLinkToThisItem": {
+    "description": "Subtitle for sending a viewing link to the current photo or video from the file viewer"
+  },
   "shareMemory": "Share memory",
   "shareMyVerificationID": "Here's my verification ID: {verificationID} for ente.com.",
   "@shareMyVerificationID": {
@@ -4179,6 +4252,7 @@
   },
   "skip": "Skip",
   "skippedFiles": "Skipped files",
+  "sharedFilesSkipped": "Some shared files could not be read or had the same name. They were skipped.",
   "slideshow": "Slideshow",
   "slideshowSettings": "Slideshow settings",
   "smartMemories": "Smart memories",
@@ -4221,7 +4295,9 @@
   "sortAToZ": "A-Z",
   "sortNewestFirst": "Newest first",
   "sortOldestFirst": "Oldest first",
+  "sortPhotos": "Sort photos",
   "sortZToA": "Z-A",
+  "speed": "Speed",
   "sportsAction": "Game on",
   "sportsWithThem": "Sports with {name}",
   "@sportsWithThem": {
@@ -4248,9 +4324,8 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Start snapping, your photos will show up here",
+  "startSnappingYourPhotosWillShowUpHere": "Start snapping, your photos will show up here.",
   "startWithAddingPhotosOrFamiliarFaces": "Start with adding\nphotos or familiar faces",
-  "startWithLatestPhotos": "Start with latest photos",
   "status": "Status",
   "sticker": "Sticker",
   "stopCastingBody": "Do you want to stop casting?",
@@ -4285,6 +4360,7 @@
       }
     }
   },
+  "straighten": "Straighten",
   "streamDetails": "Stream details",
   "streetArt": "Street art stories",
   "streetFood": "Street food bites",
@@ -4559,6 +4635,7 @@
   "unavailableReferralCode": "This code is already taken",
   "uncategorized": "Uncategorized",
   "uncategorizedItemsWillShowUpHere": "Uncategorized items will show up here",
+  "uncategorizedUploadHint": "If you skip this, items go to Uncategorized",
   "undo": "Undo",
   "unhide": "Unhide",
   "unhideToAlbum": "Unhide to album",
@@ -4569,6 +4646,7 @@
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
   },
+  "unlockPdf": "Unlock",
   "unnamedCollection": "Unnamed collection",
   "unnamedPeopleDoingSomethingTogether": "Doing it together",
   "unnamedPeopleSpotlight": "A familiar face",
@@ -4657,6 +4735,7 @@
     }
   },
   "uploadingSingleMemory": "Preserving 1 memory...",
+  "uploadItemsRemoved": "No items left to upload",
   "uploadIsIgnoredDueToIgnorereason": "Upload is ignored due to {ignoreReason}",
   "@uploadIsIgnoredDueToIgnorereason": {
     "placeholders": {
@@ -4694,6 +4773,10 @@
   "@useRecoveryKey": {
     "description": "Use recovery key button label"
   },
+  "useTwoFactorInstead": "Use 2FA instead",
+  "@useTwoFactorInstead": {
+    "description": "Link on the passkey verification screen to verify with an authenticator code instead"
+  },
   "username": "Username",
   "usernameHint": "Login ID or email",
   "useSelectedPhoto": "Use selected photo",
@@ -4705,6 +4788,10 @@
         "example": "20 GB"
       }
     }
+  },
+  "validEmailAddress": "Valid email address",
+  "@validEmailAddress": {
+    "description": "Success message under the email field once the address is valid"
   },
   "validTill": "Valid till {endDate}",
   "@validTill": {
@@ -4839,6 +4926,10 @@
     "placeholders": {
       "count": {}
     }
+  },
+  "year": "year",
+  "@year": {
+    "description": "Billing period suffix on the pricing page (/year)"
   },
   "yearShort": "yr",
   "@yearShort": {
@@ -5010,7 +5101,7 @@
   "youAreViewer": "You are a viewer",
   "youAreCollaborator": "You are a collaborator",
   "youAreAdmin": "You are an admin",
-  "emptyAlbumShareMessage": "You have not shared this album with anyone yet.",
+  "emptyAlbumShareMessage": "Add a person to\nshare your album with them",
   "addPeople": "Add people",
   "fromYourContacts": "From your contacts",
   "chooseAccess": "Choose access",

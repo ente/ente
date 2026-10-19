@@ -69,7 +69,7 @@ class _ItemsWidgetState extends State<ItemsWidget> {
   Widget _menuItemForPicker(int deviceLimit) {
     return MenuComponent(
       key: ValueKey(deviceLimit),
-      title: deviceLimit == 0 ? context.strings.noDeviceLimit : "$deviceLimit",
+      title: deviceLimit == 0 ? context.strings.noLimit : "$deviceLimit",
       trailing: currentDeviceLimit == deviceLimit
           ? Icon(Icons.check, color: context.componentColors.primary)
           : null,

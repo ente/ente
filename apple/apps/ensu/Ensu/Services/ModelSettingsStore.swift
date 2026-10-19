@@ -1,9 +1,6 @@
 import Foundation
 
-// Compared against the memory the OS reports (ProcessInfo.physicalMemory), which runs
-// well below marketed RAM. 3.2 GB sits in the gap between 3 GB devices (~2.7-3.0 GB
-// reported) and 4 GB devices (~3.4-3.8 GB reported), so 4 GB devices pass and 3 GB don't.
-let chatMinimumRAMBytes: UInt64 = 3_200_000_000
+let chatMinimumRAMBytes: UInt64 = 1_600_000_000
 
 enum ChatDeviceCapability: Equatable {
     case supported(totalMemoryBytes: UInt64?)
@@ -30,7 +27,11 @@ enum ChatDeviceCapability: Equatable {
 }
 
 func currentChatDeviceCapability() -> ChatDeviceCapability {
-    let totalMemoryBytes = ProcessInfo.processInfo.physicalMemory
+    chatDeviceCapability(totalMemoryBytes: ProcessInfo.processInfo.physicalMemory)
+}
+
+func chatDeviceCapability(totalMemoryBytes: UInt64) -> ChatDeviceCapability {
+    guard totalMemoryBytes > 0 else { return .unknown }
     if totalMemoryBytes < chatMinimumRAMBytes {
         return .unsupportedLowMemory(
             totalMemoryBytes: totalMemoryBytes,

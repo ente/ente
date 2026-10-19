@@ -4,8 +4,10 @@ import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.KnowledgeDatasetConfig
 import io.ente.ensu.bindings.KnowledgePromptHit
 import io.ente.ensu.bindings.KnowledgeReconciliation
+import io.ente.ensu.bindings.PassageLocator
 import io.ente.ensu.bindings.RetrievalIndex
 import io.ente.ensu.bindings.knowledgePackAsset
+import io.ente.ensu.bindings.selectMixedGroundingCandidates
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -154,6 +156,22 @@ class KnowledgeProvider(private val assetStore: AssetStore) {
                     merged += hits.map { hit -> KnowledgePromptHit(dataset.stableId, hit) }
                 }
                 merged.sortedByDescending { it.hit.score }.take(maxHits.toInt())
+            }
+        }
+
+    suspend fun reload(locator: PassageLocator.EnsuPack, datasets: List<KnowledgeDatasetConfig>) =
+        withContext(Dispatchers.IO) {
+            indexGate.withLock {
+                if (datasets.none { it.stableId == locator.datasetId }) return@withLock null
+                val hit =
+                    indexes[locator.datasetId]?.index?.reloadPassage(locator)
+                        ?: return@withLock null
+                selectMixedGroundingCandidates(
+                        listOf(KnowledgePromptHit(locator.datasetId, hit)),
+                        emptyList(),
+                        0u,
+                    )
+                    .singleOrNull()
             }
         }
 

@@ -15,7 +15,7 @@ import 'package:photos/services/app_navigation_service.dart';
 import 'package:photos/services/memory_home_widget_service.dart';
 import 'package:photos/services/people_home_widget_service.dart';
 import 'package:photos/services/smart_memories_service.dart';
-import 'package:photos/ui/settings/ml/machine_learning_settings_page.dart';
+import 'package:photos/ui/settings/ml/ml_consent_sheet.dart';
 import 'package:photos/ui/settings/widgets/albums_widget_settings.dart';
 import 'package:photos/ui/settings/widgets/memories_widget_settings.dart';
 import 'package:photos/ui/settings/widgets/people_widget_settings.dart';
@@ -268,15 +268,17 @@ class HomeWidgetService {
         if (isConfigureRoute) {
           _logger.info("Navigating to People widget customization screen");
           if (!hasGrantedMLConsent) {
-            await AppNavigationService.instance.pushPage(
-              const MachineLearningSettingsPage(),
-              forceCustomPageRoute: true,
-            );
-          } else {
-            await AppNavigationService.instance.pushPage(
-              const PeopleWidgetSettings(),
-            );
+            final navigator = await AppNavigationService.instance
+                .waitForNavigator();
+            if (navigator == null ||
+                !navigator.mounted ||
+                !await showMLConsentSheet(navigator.context)) {
+              break;
+            }
           }
+          await AppNavigationService.instance.pushPage(
+            const PeopleWidgetSettings(),
+          );
         } else {
           final personId = uri.queryParameters[MAIN_KEY_PARAM] ?? "";
           await PeopleHomeWidgetService.instance.onLaunchFromWidget(

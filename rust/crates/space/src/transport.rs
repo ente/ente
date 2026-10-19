@@ -89,6 +89,8 @@ pub struct AssetDownloadResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PostObjectPayload {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub video: Option<Box<PostObjectPayload>>,
     pub object_key: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<i64>,
@@ -101,6 +103,8 @@ pub struct PostObjectPayload {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePostRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_request_id: Option<String>,
     pub encrypted_post_key: String,
     pub key_version: i32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -123,6 +127,22 @@ pub struct LikePostResponse {
 #[serde(rename_all = "camelCase")]
 pub struct SpaceUnreadStatusResponse {
     pub notifications_unread: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnreadActivityResponse {
+    pub kind: String,
+    pub message_cipher: String,
+    pub encrypted_message_key: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnreadActivityPageResponse {
+    pub items: Vec<UnreadActivityResponse>,
+    #[serde(default)]
+    pub next_cursor: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,6 +175,8 @@ pub struct MessageResponse {
     pub message_cipher: String,
     #[serde(default)]
     pub encrypted_message_key: String,
+    #[serde(default)]
+    pub encrypted_reaction: String,
     #[serde(default)]
     pub text: String,
     #[serde(default)]
@@ -201,6 +223,8 @@ pub struct MessageConversationActivity {
     #[serde(default)]
     pub encrypted_message_key: String,
     #[serde(default)]
+    pub encrypted_reaction: String,
+    #[serde(default)]
     pub reply_message_id: Option<String>,
     #[serde(default)]
     pub post_id: Option<i64>,
@@ -220,8 +244,6 @@ pub struct ConversationChatSummaryResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ConversationsResponse {
     pub friends: Vec<SpaceFriendResponse>,
-    #[serde(default)]
-    pub pending_requests: Vec<SpaceFriendRequestResponse>,
     #[serde(default)]
     pub chat_summaries: std::collections::BTreeMap<String, ConversationChatSummaryResponse>,
     #[serde(default)]
@@ -669,4 +691,33 @@ pub struct SpaceLookupResponse {
     pub owner: String,
     #[serde(default)]
     pub public_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationResponse {
+    pub notification_id: String,
+    pub notification_ids: Vec<String>,
+    pub kind: String,
+    pub actors: Vec<SpaceActorResponse>,
+    pub actor_count: i64,
+    pub post_id: Option<i64>,
+    pub friend_request_id: Option<i64>,
+    pub created_at: String,
+    pub unread: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationPageResponse {
+    #[serde(default)]
+    pub latest_post_created_at: Option<String>,
+    pub items: Vec<NotificationResponse>,
+    #[serde(default)]
+    pub next_cursor: String,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct NotificationUnreadResponse {
+    pub unread: bool,
 }

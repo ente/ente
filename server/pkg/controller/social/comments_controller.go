@@ -39,6 +39,7 @@ type CommentDiffRequest struct {
 type UpdateCommentRequest struct {
 	Actor         Actor
 	CommentID     string
+	CollectionID  int64
 	Cipher        string
 	Nonce         string
 	RequireAccess bool
@@ -161,7 +162,20 @@ func (c *CommentsController) UpdatePayload(ctx *gin.Context, req UpdateCommentRe
 	} else if !hasUserID || comment.UserID != userID {
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
-	return c.Repo.UpdateCipher(ctx, req.CommentID, req.Cipher, req.Nonce)
+	if req.RequireAccess {
+		if !hasUserID || userID <= 0 {
+			return ente.ErrAuthenticationRequired
+		}
+		if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+			CollectionID: comment.CollectionID,
+			ActorUserID:  userID,
+		}); err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+	} else if comment.CollectionID != req.CollectionID {
+		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
+	}
+	return c.Repo.UpdateCipher(ctx, req.CommentID, comment.CollectionID, req.Cipher, req.Nonce)
 }
 
 func (c *CommentsController) Delete(ctx *gin.Context, req DeleteCommentRequest) error {

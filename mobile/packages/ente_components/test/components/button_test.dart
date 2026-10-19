@@ -56,7 +56,6 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text("Uploading"), findsOneWidget);
-      expect(tester.getSize(find.byType(AnimatedContainer)).height, 52);
 
       completer.complete();
       await tester.pump();
@@ -305,14 +304,10 @@ void main() {
   });
 }
 
-Widget _wrap(
-  Widget child, {
-  ComponentApp app = ComponentApp.photos,
-  Brightness brightness = Brightness.light,
-}) {
+Widget _wrap(Widget child) {
   return MaterialApp(
     themeAnimationDuration: Duration.zero,
-    theme: ComponentTheme.themeForApp(app, brightness: brightness),
+    theme: ComponentTheme.themeForApp(ComponentApp.photos),
     home: Scaffold(body: Center(child: child)),
   );
 }

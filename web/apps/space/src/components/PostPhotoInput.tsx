@@ -19,7 +19,7 @@ export const SpacePostPhotoInput: React.FC<{
             <input
                 ref={inputRef}
                 type="file"
-                accept={spacePostImageInputAccept}
+                accept={`${spacePostImageInputAccept},video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm`}
                 multiple
                 style={{ display: "none" }}
                 onChange={(event) => {
@@ -29,8 +29,8 @@ export const SpacePostPhotoInput: React.FC<{
                     if (files.length > remaining) {
                         setError(
                             remaining == maxSpacePostPhotos
-                                ? "Only 10 photos per post."
-                                : `You can only add ${remaining} more ${remaining == 1 ? "photo" : "photos"}.`,
+                                ? "Only 10 photos and videos per post."
+                                : `You can only add ${remaining} more ${remaining == 1 ? "item" : "items"}.`,
                         );
                         return;
                     }
@@ -41,7 +41,7 @@ export const SpacePostPhotoInput: React.FC<{
             {error && (
                 <SpaceActionToast
                     autoDismissAfterMs={spaceToastAutoDismissDurationMs}
-                    closeLabel="Dismiss photo limit message"
+                    closeLabel="Dismiss post limit message"
                     icon={
                         <HugeiconsIcon
                             icon={Alert02Icon}

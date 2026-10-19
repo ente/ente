@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 enum InfoType { note, physicalRecord, accountCredential, emergencyContact }
 
 // Locker file metadata currently uses the enum's camelCase name on the wire.
@@ -195,12 +193,6 @@ class InfoItem {
       'createdAt': createdAt.toIso8601String(),
       if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
     };
-  }
-
-  String toJsonString() => jsonEncode(toJson());
-
-  static InfoItem fromJsonString(String jsonString) {
-    return InfoItem.fromJson(jsonDecode(jsonString));
   }
 
   InfoItem copyWith({

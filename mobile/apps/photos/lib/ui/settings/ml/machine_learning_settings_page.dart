@@ -10,16 +10,15 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/events/notification_event.dart";
+import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
-import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
-import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
-import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/wake_lock_service.dart";
-import "package:photos/ui/common/web_page.dart";
+import "package:photos/ui/settings/ml/ml_consent_sheet.dart";
 import "package:photos/ui/settings/ml/ml_user_dev_screen.dart";
 import "package:photos/utils/email_util.dart";
 import "package:photos/utils/ml_util.dart";
@@ -40,7 +39,7 @@ class _MachineLearningSettingsPageState
   int _titleTapCount = 0;
   Timer? _advancedOptionsTimer;
   bool _hasAcknowledgedMLConsent = false;
-  bool _hasHandledDisabledExit = false;
+  bool _isEnabling = false;
   bool _mlDecryptionRecordsReady = false;
 
   @override
@@ -69,6 +68,7 @@ class _MachineLearningSettingsPageState
   Future<void> _pruneMlDecryptionRecords() async {
     final recordedFileIDs = mlDecryptionRecordStore.fileIDs;
     try {
+      final staleFileIDs = <int>{};
       if (recordedFileIDs.isNotEmpty) {
         await MLDataDB.instance.pruneResolvedFaceErrorResults(recordedFileIDs);
         final existingFiles = await FilesDB.instance.getFileIDToFileFromIDs(
@@ -76,15 +76,15 @@ class _MachineLearningSettingsPageState
         );
         final errorResultFileIDs = await MLDataDB.instance
             .getFileIDsWithErrorResults(recordedFileIDs);
-        final staleFileIDs = recordedFileIDs
-            .where(
-              (fileID) =>
-                  !existingFiles.containsKey(fileID) ||
-                  !errorResultFileIDs.contains(fileID),
-            )
-            .toSet();
-        await mlDecryptionRecordStore.removeAll(staleFileIDs);
+        staleFileIDs.addAll(
+          recordedFileIDs.where(
+            (fileID) =>
+                !existingFiles.containsKey(fileID) ||
+                !errorResultFileIDs.contains(fileID),
+          ),
+        );
       }
+      await mlDecryptionRecordStore.removeAll(staleFileIDs);
     } catch (error, stackTrace) {
       _logger.warning(
         "Failed to prune ML decryption records",
@@ -115,7 +115,7 @@ class _MachineLearningSettingsPageState
   Widget build(BuildContext context) {
     final hasEnabled = hasGrantedMLConsent;
 
-    if (!hasEnabled) {
+    if (!hasEnabled || _isEnabling) {
       return _buildDisabledMLScreen(context);
     }
 
@@ -142,41 +142,51 @@ class _MachineLearningSettingsPageState
   }
 
   Widget _buildDisabledMLScreen(BuildContext context) {
-    return SettingsPageScaffold(
-      title: context.strings.mlConsent,
-      children: [
-        _buildDisabledMLDescription(context),
-        const SizedBox(height: 20),
-        Center(
-          child: Image.asset(
-            "assets/ducky_ml.png",
-            height: 150,
-            fit: BoxFit.contain,
+    return PopScope(
+      canPop: !_isEnabling,
+      child: SettingsPageScaffold(
+        title: context.strings.machineLearning,
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ButtonComponent(
+                  label: context.strings.mlConsent,
+                  isDisabled: !_hasAcknowledgedMLConsent,
+                  onTap: _enableAndOpenSearch,
+                ),
+                const SizedBox(height: Spacing.md),
+                MLConsentCancelLink(
+                  onTap: _isEnabling ? null : _declineAndClose,
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 18),
-        _buildDisabledConsentAckRow(context),
-        const SizedBox(height: 20),
-        ButtonComponent(
-          label: context.strings.mlConsent,
-          isDisabled: !_hasAcknowledgedMLConsent,
-          onTap: () async {
-            if (!_hasAcknowledgedMLConsent) return;
-            await toggleMlConsent();
-          },
-        ),
-        const SizedBox(height: 12),
-        ButtonComponent(
-          label: context.strings.cancel,
-          variant: ButtonComponentVariant.secondary,
-          onTap: () async {
-            await _handleDisabledScreenExit();
-            if (context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-      ],
+        children: [
+          const MLConsentDescription(),
+          const SizedBox(height: 20),
+          Center(
+            child: Image.asset(
+              "assets/ducky_ml.png",
+              height: 150,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(height: 20),
+          MLConsentAcknowledgement(
+            selected: _hasAcknowledgedMLConsent,
+            onChanged: () {
+              if (_isEnabling) return;
+              setState(() {
+                _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
+              });
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -204,115 +214,46 @@ class _MachineLearningSettingsPageState
         .ignore();
   }
 
-  Future<void> _handleDisabledScreenExit() async {
-    if (_hasHandledDisabledExit || hasGrantedMLConsent) {
-      return;
+  Future<void> _enableAndOpenSearch() async {
+    setState(() => _isEnabling = true);
+    try {
+      await enableMLConsent();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isEnabling = false);
+      }
+      rethrow;
     }
-    _hasHandledDisabledExit = true;
-    await localSettings.setHasSeenMLEnablingBanner();
-    Bus.instance.fire(NotificationEvent());
+    if (!mounted) return;
+    Navigator.of(
+      context,
+    ).popUntil((route) => route.isFirst && !route.willHandlePopInternally);
+    Bus.instance.fire(
+      TabChangedEvent(searchTabIndex, TabChangedEventSource.mlConsent),
+    );
   }
 
-  Future<void> toggleMlConsent() async {
-    final oldMlConsent = hasGrantedMLConsent;
-    final oldMlEnabled = oldMlConsent && localSettings.isMLLocalIndexingEnabled;
-    final mlConsent = !oldMlConsent;
-    await setMLConsent(mlConsent);
-    final newMlEnabled = mlConsent && localSettings.isMLLocalIndexingEnabled;
-    // Queue a memories cache refresh so People/Clip memories appear or
-    // disappear on the next scheduled recompute. We intentionally only queue
-    // here — the actual recompute will be picked up by the next updateCache
-    // invocation (runAllML after indexing, or the startup self-schedule).
+  void _declineAndClose() {
+    unawaited(markMLConsentPromptSeen());
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _disableMl() async {
+    final wasMlEnabled = localSettings.isMLLocalIndexingEnabled;
+    await setMLConsent(false);
+    // Queue a memories cache refresh so People/Clip memories disappear on the
+    // next scheduled recompute. We intentionally only queue here — the actual
+    // recompute will be picked up by the next updateCache invocation.
     memoriesCacheService.queueUpdateCache();
     Bus.instance.fire(NotificationEvent());
-    if (!mlConsent) {
-      MLService.instance.stopActiveRun(MlStopReason.manual);
-      unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
-      if (oldMlEnabled && !newMlEnabled) {
-        await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
-      }
-    } else {
-      await MLService.instance.init();
-      await SemanticSearchService.instance.init();
-      unawaited(MLService.instance.runAllML(force: true));
+    MLService.instance.stopActiveRun(MlStopReason.manual);
+    unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
+    if (wasMlEnabled) {
+      await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
     }
     if (mounted) {
       setState(() {});
     }
-  }
-
-  Widget _buildDisabledMLDescription(BuildContext context) {
-    final colors = context.componentColors;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.strings.mlConsentDescription,
-          textAlign: TextAlign.left,
-          style: TextStyles.mini.copyWith(color: colors.textLight),
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: () async => _openMLPrivacyPolicy(context),
-          child: Text(
-            context.strings.mlConsentPrivacy,
-            textAlign: TextAlign.left,
-            style: TextStyles.mini.copyWith(
-              color: colors.textLight,
-              decoration: TextDecoration.underline,
-              decorationColor: colors.textLight,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDisabledConsentAckRow(BuildContext context) {
-    final colors = context.componentColors;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() {
-          _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
-        });
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CheckboxComponent(
-            selected: _hasAcknowledgedMLConsent,
-            onChanged: (_) {
-              setState(() {
-                _hasAcknowledgedMLConsent = !_hasAcknowledgedMLConsent;
-              });
-            },
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              context.strings.mlConsentConfirmation,
-              style: TextStyles.mini.copyWith(color: colors.textLight),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _openMLPrivacyPolicy(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WebPage(
-            context.strings.privacyPolicyTitle,
-            "https://ente.com/privacy",
-          );
-        },
-      ),
-    );
   }
 
   Widget _getMlSettings(BuildContext context) {
@@ -330,9 +271,7 @@ class _MachineLearningSettingsPageState
           ),
           trailing: ToggleSwitchComponent.async(
             value: () => hasEnabled,
-            onChanged: () async {
-              await toggleMlConsent();
-            },
+            onChanged: _disableMl,
           ),
         ),
         const SizedBox(height: 8),
@@ -395,18 +334,18 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
 
   @override
   void initState() {
-    _progressStream = RemoteAssetsService.instance.progressStream.listen((
+    _progressStream = MLModelDownloadService.instance.progressStream.listen((
       event,
     ) {
-      final String url = event.$1;
+      final String model = event.$1;
       String title = "";
-      if (url.contains(ClipImageModel.remoteFileName)) {
+      if (model == "clip-image") {
         title = "Image Model";
-      } else if (url.contains(ClipTextModel.remoteFileName)) {
+      } else if (model == "clip-text") {
         title = "Text Model";
-      } else if (url.contains(FaceDetectionModel.remoteFileName)) {
+      } else if (model == "face-detection") {
         title = "Face Detection Model";
-      } else if (url.contains(FaceEmbeddingModel.remoteFileName)) {
+      } else if (model == "face-embedding") {
         title = "Face Embedding Model";
       }
       if (title.isNotEmpty) {

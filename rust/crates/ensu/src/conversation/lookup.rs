@@ -1,6 +1,5 @@
 use super::*;
-use regex::{Regex, RegexBuilder};
-use std::sync::OnceLock;
+use regex::{Regex, RegexBuilder, regex};
 
 const LOOKUP_MAX_MESSAGES: usize = 512;
 const LOOKUP_MAX_BYTES: usize = 2 * 1024 * 1024;
@@ -36,19 +35,11 @@ struct Term {
     distinctive: bool,
 }
 
-#[expect(
-    clippy::expect_used,
-    reason = "Constant query token patterns are valid"
-)]
-fn query_patterns() -> &'static (Regex, Regex) {
-    static PATTERNS: OnceLock<(Regex, Regex)> = OnceLock::new();
-    PATTERNS.get_or_init(|| {
-        (
-            Regex::new(r#"["“`]([^"”`\n]{2,256})["”`]"#).expect("quoted phrases"),
-            Regex::new(r"[\p{L}\p{M}\p{N}_]+(?:[-./:][\p{L}\p{M}\p{N}_]+)*")
-                .expect("words and identifiers"),
-        )
-    })
+fn query_patterns() -> (&'static Regex, &'static Regex) {
+    (
+        regex!(r#"["“`]([^"”`\n]{2,256})["”`]"#),
+        regex!(r"[\p{L}\p{M}\p{N}_]+(?:[-./:][\p{L}\p{M}\p{N}_]+)*"),
+    )
 }
 
 fn terms(query: &str) -> Vec<Term> {

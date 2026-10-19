@@ -143,9 +143,8 @@ void main() {
 
 Future<void> _pumpLauncher<T>(
   WidgetTester tester,
-  Future<T?> Function(BuildContext context) onTap, {
-  String label = 'Show sheet',
-}) {
+  Future<T?> Function(BuildContext context) onTap,
+) {
   return tester.pumpWidget(
     MaterialApp(
       theme: ComponentTheme.lightTheme(),
@@ -153,7 +152,7 @@ Future<void> _pumpLauncher<T>(
         builder: (context) {
           return Scaffold(
             body: ButtonComponent(
-              label: label,
+              label: 'Show sheet',
               onTap: () async {
                 await onTap(context);
               },
@@ -165,11 +164,8 @@ Future<void> _pumpLauncher<T>(
   );
 }
 
-Future<void> _openLauncher(
-  WidgetTester tester, {
-  String label = 'Show sheet',
-}) async {
-  await tester.tap(find.text(label));
+Future<void> _openLauncher(WidgetTester tester) async {
+  await tester.tap(find.text('Show sheet'));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
 }

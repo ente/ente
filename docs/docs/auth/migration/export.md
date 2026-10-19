@@ -5,11 +5,23 @@ description: Guide for exporting your 2FA codes out from Ente Auth
 
 # Exporting your data out of Ente Auth
 
+## How do I create an encrypted export? {#create-encrypted-export}
+
+1. Open `Settings > Data > Export` in Ente Auth.
+2. Select **Encrypted**.
+3. Choose a strong password for this export. This is the export-encryption password you will need when importing the file; it is not automatically your Ente account password.
+4. Complete any device-authentication prompt and save the exported file in a private location outside the app. Keep a copy somewhere you can access after a device reset or change.
+5. Keep the export password safe. Ente cannot recover it for you. Before relying on the backup or removing the original codes, verify that you can import the file on another trusted installation and that the entries you need are present and work.
+
+Keep a working copy of your codes while testing an export. Do not send the export, its password, or the underlying setup keys to support.
+
 ## Auth Encrypted Export format
 
-### Overview
+### Overview {#overview}
 
-When we export the auth codes, the data is encrypted using a key derived from the user's password. This document describes the JSON structure used to organize exported data, including versioning and key derivation parameters.
+An encrypted Auth export uses a key derived from the password you choose when creating that export. Importing the file requires that export password. Changing your Ente account password does not change the password of an existing export.
+
+The following sections describe the JSON structure, versioning, and key derivation parameters of the encrypted export.
 
 ### Export JSON Sample
 
@@ -51,9 +63,9 @@ This section contains the parameters that were using during KDF operation:
 - `opsLimit`: Operations limit for the algorithm.
 - `salt`: The salt used in the derivation process.
 
-##### Encrypted Data
+##### Encrypted Data {#encrypted-data}
 
-As mentioned above, the auth data is encrypted using a key that's derived by using user provided password & kdf params. For encryption, we are using `XChaCha20-Poly1305` algorithm.
+The Auth data is encrypted with `XChaCha20-Poly1305`. The encryption key is derived from the export password and the key derivation parameters stored in the file.
 
 ## Automated backups
 

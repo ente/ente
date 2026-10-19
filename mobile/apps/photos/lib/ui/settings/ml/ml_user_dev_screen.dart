@@ -181,7 +181,6 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
       final Set<int> emptyFileIDs = await mlDataDB.getErroredFileIDs();
       await mlDataDB.deleteFaceIndexForFiles(emptyFileIDs.toList());
       await mlDataDB.deleteClipEmbeddings(emptyFileIDs.toList());
-      await mlDataDB.deletePetDataForFiles(emptyFileIDs.toList());
       if (!context.mounted) return;
       showShortToast(context, "Deleted ${emptyFileIDs.length} entries");
     } catch (e) {

@@ -22,7 +22,6 @@ class CollectionSearchResult {
 mixin SearchMixin<T extends StatefulWidget> on State<T> {
   String _searchQuery = '';
   bool _isSearchActive = false;
-  bool _isSearching = false;
   Timer? _searchDebounceTimer;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -94,10 +93,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   Future<void> _performSearch(String query) async {
     if (!mounted) return;
 
-    setState(() {
-      _isSearching = true;
-    });
-
     try {
       final normalizedQuery = query.trim();
       if (normalizedQuery.isEmpty) {
@@ -146,12 +141,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
       debugPrint('Search error: $e');
       if (mounted) {
         onSearchResultsChanged(allCollections, allFiles);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-        });
       }
     }
   }
@@ -235,7 +224,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   String get searchQuery => _searchQuery;
   bool get isSearchActive => _isSearchActive;
-  bool get isSearching => _isSearching;
   TextEditingController get searchController => _searchController;
   FocusNode get searchFocusNode => _searchFocusNode;
 

@@ -337,6 +337,7 @@ export interface AnnotatedFaceID {
     faceID: string;
     personID: string;
     personName: string | undefined;
+    isIgnored: boolean;
 }
 
 export const getAnnotatedFacesForFile = async (
@@ -350,19 +351,25 @@ export const getAnnotatedFacesForFile = async (
     const personByFaceID = _state.peopleStateSnapshot?.personByFaceID;
     if (!personByFaceID) return [];
 
-    const sortableFaces: [AnnotatedFaceID, number][] = [];
-    for (const { faceID } of index.faces) {
+    const sortableFaces: [AnnotatedFaceID, number, boolean][] = [];
+    for (const { faceID, score } of index.faces) {
         const person = personByFaceID.get(faceID);
         if (!person) continue;
         sortableFaces.push([
-            { faceID, personID: person.id, personName: person.name },
-            person.fileIDs.length,
+            {
+                faceID,
+                personID: person.id,
+                personName: person.name,
+                isIgnored: person.type == "cgroup" && person.isHidden,
+            },
+            score,
+            person.type == "cgroup",
         ]);
     }
 
     sortableFaces.sort((a, b) => {
-        if (a[0].personName && !b[0].personName) return -1;
-        if (!a[0].personName && b[0].personName) return 1;
+        if (a[0].isIgnored != b[0].isIgnored) return a[0].isIgnored ? 1 : -1;
+        if (a[2] != b[2]) return a[2] ? -1 : 1;
         return b[1] - a[1];
     });
     return sortableFaces.map(([f]) => f);

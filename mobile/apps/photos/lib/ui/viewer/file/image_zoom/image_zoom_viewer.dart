@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:photos/ui/viewer/file/hero_image.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_geometry.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_stage_policy.dart";
 
@@ -81,7 +82,7 @@ class ImageZoomController extends ChangeNotifier {
 }
 
 class ImageZoomViewer extends StatefulWidget {
-  final ImageProvider imageProvider;
+  final ImageProvider? imageProvider;
   final ImageZoomController? controller;
   final Size? imageSizeHint;
   final Object? heroTag;
@@ -91,6 +92,7 @@ class ImageZoomViewer extends StatefulWidget {
   final FilterQuality filterQuality;
   final bool gaplessPlayback;
   final bool gesturesEnabled;
+  final bool useHeroImageAsPlaceholder;
   final ImageZoomLoadingBuilder? loadingBuilder;
   final ImageErrorWidgetBuilder? errorBuilder;
   final String? semanticLabel;
@@ -110,6 +112,7 @@ class ImageZoomViewer extends StatefulWidget {
     this.filterQuality = FilterQuality.high,
     this.gaplessPlayback = true,
     this.gesturesEnabled = true,
+    this.useHeroImageAsPlaceholder = true,
     this.loadingBuilder,
     this.errorBuilder,
     this.semanticLabel,
@@ -138,6 +141,7 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
   ImageStream? _imageStream;
   ImageStreamListener? _imageStreamListener;
   Size? _resolvedImageSize;
+  ImageHeroSource? _heroSource;
   ImageChunkEvent? _loadingProgress;
   Object? _imageError;
   StackTrace? _imageErrorStack;
@@ -179,19 +183,25 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _heroSource = ImageHeroSource.maybeOf(context, widget.heroTag);
+    _resolvedImageSize ??= _imageSizeHint;
     _resolveImage();
   }
 
   @override
   void didUpdateWidget(covariant ImageZoomViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.heroTag != widget.heroTag) {
+      _heroSource = ImageHeroSource.maybeOf(context, widget.heroTag);
+      if (!_hasImageFrame) _resolvedImageSize = _imageSizeHint;
+    }
     if (oldWidget.controller != widget.controller) {
       _detachController();
       _attachController(widget.controller);
       _publishTransform();
     }
     if (oldWidget.imageProvider != widget.imageProvider) {
-      final hint = _validSize(widget.imageSizeHint);
+      final hint = _imageSizeHint;
       if (!_hasImageFrame && hint != null) {
         _resolvedImageSize = hint;
       }
@@ -201,7 +211,7 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
       }
     } else if (oldWidget.imageSizeHint != widget.imageSizeHint &&
         !_hasImageFrame) {
-      _resolvedImageSize = _validSize(widget.imageSizeHint);
+      _resolvedImageSize = _imageSizeHint;
     }
     if (oldWidget.animationDuration != widget.animationDuration) {
       _animationController.duration = widget.animationDuration;
@@ -244,7 +254,18 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
   void _resolveImage() {
     // The visible Image owns painting; this listener only resolves decoded
     // dimensions and loading/error state for transform geometry.
-    final newStream = widget.imageProvider.resolve(
+    final imageProvider = widget.imageProvider;
+    if (imageProvider == null) {
+      _detachImageStreamListener();
+      _imageStream = null;
+      _hasImageFrame = false;
+      _resolvedImageSize = _imageSizeHint;
+      _loadingProgress = null;
+      _imageError = null;
+      _imageErrorStack = null;
+      return;
+    }
+    final newStream = imageProvider.resolve(
       createLocalImageConfiguration(context),
     );
     if (_imageStream?.key == newStream.key) return;
@@ -317,6 +338,9 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
 
   Size? _validSize(Size? size) =>
       size != null && size.isFinite && !size.isEmpty ? size : null;
+
+  Size? get _imageSizeHint =>
+      _validSize(widget.imageSizeHint) ?? _heroSource?.size;
 
   void _updateGeometry(Size viewportSize, Size imageSize) {
     final nextGeometry = ImageZoomGeometry.calculate(
@@ -667,15 +691,16 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
 
   @override
   Widget build(BuildContext context) {
-    if (_imageError != null && !_hasImageFrame) {
-      return widget.errorBuilder?.call(
-            context,
-            _imageError!,
-            _imageErrorStack,
-          ) ??
-          const Center(child: Icon(Icons.broken_image_outlined));
-    }
-    if (!_hasImageFrame || _resolvedImageSize == null) {
+    if (!_hasImageFrame &&
+        context.getInheritedWidgetOfExactType<ImageHeroSource>() == null) {
+      if (_imageError != null) {
+        return widget.errorBuilder?.call(
+              context,
+              _imageError!,
+              _imageErrorStack,
+            ) ??
+            const Center(child: Icon(Icons.broken_image_outlined));
+      }
       return widget.loadingBuilder?.call(context, _loadingProgress) ??
           const Center(child: CircularProgressIndicator());
     }
@@ -686,24 +711,57 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
         if (viewportSize.isEmpty || !viewportSize.isFinite) {
           return const SizedBox.shrink();
         }
-        _updateGeometry(viewportSize, _resolvedImageSize!);
+        _updateGeometry(viewportSize, _resolvedImageSize ?? viewportSize);
         final geometry = _geometry;
         if (geometry == null) return const SizedBox.shrink();
         final fittedSize = geometry.fittedImageSize;
 
-        Widget image = Image(
-          image: widget.imageProvider,
-          width: fittedSize.width,
-          height: fittedSize.height,
-          fit: BoxFit.fill,
-          gaplessPlayback: widget.gaplessPlayback,
-          filterQuality: widget.filterQuality,
-          semanticLabel: widget.semanticLabel,
-          errorBuilder: widget.errorBuilder,
-        );
-        if (widget.heroTag != null) {
-          image = Hero(tag: widget.heroTag!, child: image);
+        Widget image;
+        if (_hasImageFrame && widget.imageProvider != null) {
+          image = Image(
+            image: widget.imageProvider!,
+            width: fittedSize.width,
+            height: fittedSize.height,
+            fit: BoxFit.fill,
+            gaplessPlayback: widget.gaplessPlayback,
+            filterQuality: widget.filterQuality,
+            semanticLabel: widget.semanticLabel,
+            errorBuilder: widget.errorBuilder,
+          );
+        } else if (widget.useHeroImageAsPlaceholder &&
+            _heroSource?.image != null) {
+          image = RawImage(image: _heroSource!.image, fit: BoxFit.fill);
+        } else if (_imageError != null) {
+          image =
+              widget.errorBuilder?.call(
+                context,
+                _imageError!,
+                _imageErrorStack,
+              ) ??
+              const Center(child: Icon(Icons.broken_image_outlined));
+        } else {
+          image =
+              widget.loadingBuilder?.call(context, _loadingProgress) ??
+              const Center(child: CircularProgressIndicator());
         }
+        image = SizedBox.fromSize(size: fittedSize, child: image);
+        if (widget.heroTag != null &&
+            !MediaQuery.disableAnimationsOf(context)) {
+          image = Hero(
+            tag: widget.heroTag!,
+            curve: _heroSource != null
+                ? Curves.easeOutCubic
+                : Curves.fastOutSlowIn,
+            reverseCurve: Curves.fastOutSlowIn.flipped,
+            createRectTween: _heroSource != null ? imageHeroRectTween : null,
+            flightShuttleBuilder: _heroSource != null
+                ? imageHeroFlightShuttleBuilder
+                : null,
+            child: image,
+          );
+        }
+
+        final gesturesEnabled = widget.gesturesEnabled && _hasImageFrame;
 
         final transformedChild = SizedBox.expand(child: Center(child: image));
         final interactiveViewer = InteractiveViewer(
@@ -720,18 +778,18 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
 
         final content = GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onDoubleTapDown: widget.gesturesEnabled ? _onDoubleTapDown : null,
-          onDoubleTap: widget.gesturesEnabled ? _onDoubleTap : null,
-          onDoubleTapCancel: widget.gesturesEnabled ? _onDoubleTapCancel : null,
+          onDoubleTapDown: gesturesEnabled ? _onDoubleTapDown : null,
+          onDoubleTap: gesturesEnabled ? _onDoubleTap : null,
+          onDoubleTapCancel: gesturesEnabled ? _onDoubleTapCancel : null,
           child: Listener(
             behavior: HitTestBehavior.opaque,
-            onPointerDown: widget.gesturesEnabled ? _onPointerDown : null,
-            onPointerMove: widget.gesturesEnabled ? _onPointerMove : null,
-            onPointerUp: widget.gesturesEnabled ? _onPointerUp : null,
-            onPointerCancel: widget.gesturesEnabled ? _onPointerUp : null,
+            onPointerDown: gesturesEnabled ? _onPointerDown : null,
+            onPointerMove: gesturesEnabled ? _onPointerMove : null,
+            onPointerUp: gesturesEnabled ? _onPointerUp : null,
+            onPointerCancel: gesturesEnabled ? _onPointerUp : null,
             child: IgnorePointer(
               ignoring:
-                  !widget.gesturesEnabled ||
+                  !gesturesEnabled ||
                   _manualPinchActive ||
                   !_interactiveViewerOwnsGestures,
               child: interactiveViewer,

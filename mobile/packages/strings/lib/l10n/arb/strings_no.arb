@@ -1,4 +1,8 @@
 {
+  "bringMemoriesTogether": "Samle minnene dine",
+  "createMyAccount": "Opprett kontoen min",
+  "localGalleryPermissionDesc": "Gi tilgang til bildene dine og organiser dem med ansiktsgjenkjenning. All behandling skjer på enheten din.",
+  "onboardingOrganizeDesc": "Organiser bildene og videoene dine. Alle minnene dine på ett sted.",
   "about": "Om",
   "acceptTrustInvite": "Godta invitasjonen",
   "account": "Konto",
@@ -8,9 +12,6 @@
     "description": "Title for active sessions page"
   },
   "add": "Legg til",
-  "addANewEmail": "Legg til ny e-post",
-  "addCollaborator": "Legg til samarbeidspartner",
-  "addedAs": "Lagt til som",
   "addedBy": "Lagt til av {emailOrName}",
   "@addedBy": {
     "placeholders": {
@@ -48,7 +49,6 @@
   "addToAlbum": "Legg til i album",
   "addToEnte": "Legg til i Ente",
   "addToHiddenAlbum": "Legg til i skjult album",
-  "addViewer": "Legg til seer",
   "addYourPhotosNow": "Legg til bildene dine nå",
   "admiringThem": "Beundrer {name}",
   "@admiringThem": {
@@ -62,10 +62,6 @@
   "after1Month": "Etter 1 måned",
   "after1Week": "Etter 1 uke",
   "after1Year": "Etter 1 år",
-  "albumOwner": "Eier",
-  "@albumOwner": {
-    "description": "Role of the album owner"
-  },
   "albums": "Album",
   "albumTitle": "Albumtittel",
   "albumUpdated": "Album oppdatert",
@@ -177,12 +173,6 @@
   },
   "cancelRecovery": "Avbryt gjenoppretting",
   "cancelSubscription": "Avslutt abonnement",
-  "cannotAddMorePhotosAfterBecomingViewer": "{user} vil ikke kunne legge til flere bilder til dette albumet\n\nDe vil fortsatt kunne fjerne eksisterende bilder lagt til av dem",
-  "@cannotAddMorePhotosAfterBecomingViewer": {
-    "placeholders": {
-      "user": {}
-    }
-  },
   "cannotDeleteSharedFiles": "Kan ikke slette delte filer",
   "canNotOpenBody": "Beklager, dette albumet kan ikke åpnes i appen.",
   "canNotOpenTitle": "Kan ikke åpne dette albumet",
@@ -201,7 +191,6 @@
   "@changePasswordTitle": {
     "description": "Change password title"
   },
-  "changePermissionsQuestion": "Endre tillatelser?",
   "checkForUpdates": "Se etter oppdateringer",
   "checkInboxAndSpamFolder": "Vennligst sjekk innboksen din (og søppelpost) for å fullføre verifiseringen",
   "@checkInboxAndSpamFolder": {
@@ -223,7 +212,6 @@
   "codeChangeLimitReached": "Beklager, du har nådd grensen for kodeendringer.",
   "codeCopiedToClipboard": "Koden er kopiert til utklippstavlen",
   "collaborator": "Samarbeidspartner",
-  "collaboratorsCanAddPhotosAndVideosToTheSharedAlbum": "Samarbeidspartnere kan legge til bilder og videoer i det delte albumet.",
   "collageLayout": "Utforming",
   "collageSaved": "Kollasje lagret i galleriet",
   "collectPhotos": "Samle bilder",
@@ -390,10 +378,6 @@
     "description": "Do not sign out button label"
   },
   "dontSave": "Ikke lagre",
-  "doThisLater": "Gjør dette senere",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
   "download": "Last ned",
   "downloadFailed": "Nedlasting mislyktes",
   "downloading": "Laster ned...",
@@ -792,11 +776,9 @@
   "longPressAnEmailToVerifyEndToEndEncryption": "Trykk og hold på en e-post for å bekrefte ende-til-ende-kryptering.",
   "lostDevice": "Mistet enhet?",
   "machineLearning": "Maskinlæring",
-  "manage": "Administrer",
   "manageDeviceStorage": "Behandle enhetens hurtigbuffer",
   "manageFamily": "Administrer familie",
   "manageLink": "Administrer lenke",
-  "manageParticipants": "Administrer",
   "manageSubscription": "Administrer abonnement",
   "map": "Kart",
   "@map": {
@@ -944,7 +926,6 @@
   "openFile": "Åpne fil",
   "openstreetmapContributors": "OpenStreetMap bidragsytere",
   "optionalAsShortAsYouLike": "Valgfri, så kort som du vil...",
-  "orPickAnExistingOne": "Eller velg en eksisterende",
   "pair": "Par",
   "panorama": "Panora",
   "partyWithThem": "Fest med {name}",
@@ -1182,12 +1163,6 @@
   "remoteThumbnails": "Eksterne miniatyrbilder",
   "remoteVideos": "Eksterne videoer",
   "remove": "Fjern",
-  "removeAlbumParticipantBody": "{userEmail} vil bli fjernet fra dette delte albumet\n\nAlle bilder lagt til av dem vil også bli fjernet fra albumet",
-  "@removeAlbumParticipantBody": {
-    "placeholders": {
-      "userEmail": {}
-    }
-  },
   "removeFromAlbum": "Fjern fra album",
   "removeFromAlbumTitle": "Fjern fra album?",
   "removeFromFavorite": "Fjern fra favoritter",
@@ -1338,7 +1313,6 @@
       }
     }
   },
-  "selectFoldersForBackup": "Velg mapper for sikkerhetskopiering",
   "selectItemsToAdd": "Velg produkter å legge til",
   "selectLanguage": "Velg språk",
   "selectMailApp": "Velg e-post-app",
@@ -1386,7 +1360,6 @@
   "setupComplete": "Oppsett fullført",
   "share": "Del",
   "shareALink": "Del en lenke",
-  "sharedAlbumSectionDescription": "Opprett delte album du kan samarbeide om med andre Ente-brukere, inkludert brukere med gratisabonnement.",
   "shareLink": "Del link",
   "shareWithNonenteUsers": "Del med brukere som ikke har Ente",
   "sharing": "Deler...",

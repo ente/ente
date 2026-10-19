@@ -602,7 +602,7 @@ function useMapData(
                 setState((prev) => ({
                     ...prev,
                     isLoading: false,
-                    error: t("something_went_wrong"),
+                    error: t("generic_error"),
                 }));
                 onGenericError(e);
             } finally {
@@ -1500,6 +1500,7 @@ const MapCanvas = React.memo(function MapCanvas({
                     url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                     maxZoom={MAX_MAP_ZOOM}
                     updateWhenZooming
+                    referrerPolicy="strict-origin-when-cross-origin"
                 />
                 <MapControls useMap={useMap} />
                 <MapClusters

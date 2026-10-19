@@ -1,19 +1,23 @@
-use std::io::Write;
+use std::{fmt::Display, io::Write};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use chrono::{DateTime, SecondsFormat};
 use dialoguer::console::{Alignment, measure_text_width, pad_str};
+use ente_accounts::admin::{Subscription, User, UserDetails};
 use ente_photos::{
     collections::{Collection, Visibility},
     files::File,
 };
 use serde::Serialize;
+use serde_json::json as json_value;
 use uuid::Uuid;
 
 use crate::{
-    args::{DEFAULT_LIST_LIMIT, ListArgs, Product},
+    args::{App, DEFAULT_LIST_LIMIT, ListArgs},
     vault::Account,
 };
+
+pub const MAX_CANDIDATES: usize = 10;
 
 #[derive(Serialize)]
 pub struct AccountView<'a> {
@@ -21,7 +25,7 @@ pub struct AccountView<'a> {
     name: &'a str,
     email: &'a str,
     host: &'a str,
-    products: Vec<Product>,
+    apps: Vec<App>,
     selected: bool,
 }
 
@@ -32,7 +36,7 @@ impl<'a> AccountView<'a> {
             name: &account.name,
             email: &account.email,
             host: &account.origin,
-            products: account.sessions.keys().copied().collect(),
+            apps: account.sessions.keys().copied().collect(),
             selected: selected == Some(account.storage_id),
         }
     }
@@ -122,6 +126,42 @@ impl FileView {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdminUserView {
+    id: String,
+    email: String,
+    created_at: String,
+}
+
+impl AdminUserView {
+    pub fn new(user: &User) -> Result<Self> {
+        Ok(Self {
+            id: user.id.to_string(),
+            email: user.email.clone(),
+            created_at: timestamp(user.created_at)?,
+        })
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionView {
+    product_id: String,
+    pub storage_bytes: i64,
+    pub expires_at: String,
+}
+
+impl SubscriptionView {
+    pub fn new(subscription: &Subscription) -> Result<Self> {
+        Ok(Self {
+            product_id: subscription.product_id.clone(),
+            storage_bytes: subscription.storage,
+            expires_at: timestamp(subscription.expiry_time)?,
+        })
+    }
+}
+
 pub fn json(value: &impl Serialize) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     serde_json::to_writer(&mut stdout, value)?;
@@ -150,7 +190,7 @@ pub fn accounts(accounts: &[AccountView<'_>]) -> Result<()> {
                 escape_controls(account.name),
                 escape_controls(account.email),
                 escape_controls(account.host),
-                products(account),
+                apps(account),
                 account.id.clone(),
             ]
         })
@@ -168,7 +208,7 @@ pub fn account(account: &AccountView<'_>) -> Result<()> {
         ("Name", escape_controls(account.name)),
         ("Email", escape_controls(account.email)),
         ("Host", escape_controls(account.host)),
-        ("Logged in", products(account)),
+        ("Logged in", apps(account)),
         (
             "Selected",
             if account.selected { "yes" } else { "no" }.to_owned(),
@@ -192,7 +232,7 @@ pub fn albums(
             [
                 album.id,
                 escape_controls(&album.name),
-                album.kind.to_owned(),
+                type_label(album.kind).to_owned(),
                 album.visibility.to_owned(),
                 album.owner_id,
                 album.updated_at,
@@ -204,7 +244,7 @@ pub fn albums(
 pub fn album(album: &AlbumView) -> Result<()> {
     write_fields(&[
         ("Name", escape_controls(&album.name)),
-        ("Type", album.kind.to_owned()),
+        ("Type", type_label(album.kind).to_owned()),
         ("Visibility", album.visibility.to_owned()),
         ("Owner", album.owner_id.clone()),
         ("Updated", album.updated_at.clone()),
@@ -227,7 +267,7 @@ pub fn files(
             [
                 file.id,
                 escape_controls(&file.name),
-                file.kind.to_owned(),
+                type_label(file.kind).to_owned(),
                 file.created_at,
                 file.album_ids.join(","),
             ]
@@ -238,7 +278,7 @@ pub fn files(
 pub fn file(file: &FileView) -> Result<()> {
     let mut fields = vec![
         ("Name", escape_controls(&file.name)),
-        ("Type", file.kind.to_owned()),
+        ("Type", type_label(file.kind).to_owned()),
         (
             "Visibility",
             file.visibility.unwrap_or("unavailable").to_owned(),
@@ -275,23 +315,88 @@ pub fn file(file: &FileView) -> Result<()> {
     write_fields(&fields)
 }
 
+pub fn admin_users(users: Vec<User>, args: &ListArgs, as_json: bool) -> Result<()> {
+    list(
+        users.iter().map(AdminUserView::new),
+        args,
+        as_json,
+        ["ID", "EMAIL", "CREATED"],
+        "No users.",
+        |user| [user.id, escape_controls(&user.email), user.created_at],
+    )
+}
+
+pub fn admin_user(details: &UserDetails, as_json: bool) -> Result<()> {
+    let user = AdminUserView::new(&details.user)?;
+    let subscription = details
+        .subscription
+        .as_ref()
+        .map(SubscriptionView::new)
+        .transpose()?;
+    if as_json {
+        return json(&json_value!({"id": user.id, "email": user.email,
+            "createdAt": user.created_at, "subscription": subscription}));
+    }
+    let mut fields = vec![
+        ("Email", escape_controls(&user.email)),
+        ("ID", user.id),
+        ("Created", user.created_at),
+    ];
+    if let Some(subscription) = subscription {
+        fields.extend([
+            ("Plan", escape_controls(&subscription.product_id)),
+            ("Storage", storage_size(subscription.storage_bytes)),
+            ("Expires", subscription.expires_at),
+        ]);
+    } else {
+        fields.push(("Subscription", "unavailable".into()));
+    }
+    write_fields(&fields)
+}
+
+pub fn storage_size(bytes: i64) -> String {
+    for (unit, divisor) in [
+        ("TB", 1024_i64.pow(4)),
+        ("GB", 1024_i64.pow(3)),
+        ("MB", 1024_i64.pow(2)),
+    ] {
+        if bytes >= divisor {
+            let size = format!("{:.2}", bytes as f64 / divisor as f64);
+            return format!(
+                "{} {unit} ({bytes} bytes)",
+                size.trim_end_matches('0').trim_end_matches('.')
+            );
+        }
+    }
+    format!("{bytes} bytes")
+}
+
+fn type_label(kind: &str) -> &str {
+    match kind {
+        "defaultHidden" => "hidden album",
+        "quicklink" => "quick link",
+        "livephoto" => "live photo",
+        _ => kind,
+    }
+}
+
 fn timestamp(micros: i64) -> Result<String> {
     Ok(DateTime::from_timestamp_micros(micros)
         .context("timestamp is outside the supported range")?
         .to_rfc3339_opts(SecondsFormat::Micros, true))
 }
 
-fn products(account: &AccountView<'_>) -> String {
-    let products = account
-        .products
+fn apps(account: &AccountView<'_>) -> String {
+    let apps = account
+        .apps
         .iter()
-        .map(|product| product.name())
+        .map(|app| app.name())
         .collect::<Vec<_>>()
         .join(",");
-    if products.is_empty() {
+    if apps.is_empty() {
         "none".to_owned()
     } else {
-        products
+        apps
     }
 }
 
@@ -312,7 +417,36 @@ fn write_fields(fields: &[(&str, String)]) -> Result<()> {
     Ok(())
 }
 
-fn list<T: Serialize, const N: usize>(
+pub fn select<T, I: Display>(
+    mut matches: Vec<T>,
+    selector: &str,
+    kind: &str,
+    hint: &str,
+    identity: impl Fn(&T) -> (I, String),
+) -> Result<T> {
+    if matches.len() > 1 {
+        let candidates = matches
+            .iter()
+            .take(MAX_CANDIDATES)
+            .map(|item| {
+                let (id, name) = identity(item);
+                format!("  {id}  {name:?}")
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let more = if matches.len() > MAX_CANDIDATES {
+            "\nMore matches omitted."
+        } else {
+            ""
+        };
+        bail!("{kind} {selector:?} is ambiguous:\n{candidates}{more}\n{hint}");
+    }
+    matches
+        .pop()
+        .with_context(|| format!("no {kind} matches {selector:?}"))
+}
+
+pub(crate) fn list<T: Serialize, const N: usize>(
     mut items: impl Iterator<Item = Result<T>>,
     args: &ListArgs,
     as_json: bool,
@@ -399,7 +533,7 @@ fn write_row<const N: usize>(
     Ok(())
 }
 
-fn escape_controls(value: &str) -> String {
+pub(crate) fn escape_controls(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len());
     for c in value.chars() {
         if c.is_control() {

@@ -49,7 +49,18 @@ const androidConfigFiles = new Set([
 const configFile =
     /(^|\/)(\.gitattributes|\.?clippy\.toml|rust-toolchain\.toml|\.cargo\/(config|audit)\.toml|\.npmrc|\.nvmrc|\.tool-versions|\.node-version|\.python-version|gradle-wrapper\.properties)$/;
 
-export function checkFiles({ files }) {
+const normalizeGradleVersions = (text) =>
+    text
+        .replace(
+            /^([ \t]*versionName\s*=?\s*["'])\d[\w.+-]*(?=["']$)/gm,
+            (_, prefix) => `${prefix}0`,
+        )
+        .replace(
+            /^([ \t]*versionCode\b\s*=?\s*(?:[^\n]*\?:\s*)?)\d+$/gm,
+            (_, prefix) => `${prefix}0`,
+        );
+
+export function checkFiles({ files, readVersions }) {
     const binaries = files
         .filter(
             ({ path, binary, deleted }) =>
@@ -69,6 +80,15 @@ export function checkFiles({ files }) {
                 (path.startsWith("android/") &&
                     androidConfigFiles.has(basename(path))),
         )
+        .filter(({ path, added, deleted }) => {
+            if (added || deleted || !/\.gradle(\.kts)?$/.test(path))
+                return true;
+            const { before, after } = readVersions(path);
+            return (
+                normalizeGradleVersions(before) !==
+                normalizeGradleVersions(after)
+            );
+        })
         .map(({ path }) => path);
     const configs = files
         .filter(({ path }) => configFile.test(path))

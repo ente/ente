@@ -30,6 +30,7 @@ export interface RefreshSpaceProfileOptions {
 interface PendingSpaceFeedPost {
     avatarUrl?: string | null;
     caption?: string;
+    frameAspectRatio: number;
     friendID: string;
     height?: number;
     id: string;
@@ -37,13 +38,14 @@ interface PendingSpaceFeedPost {
     name: string;
     spaceId: string;
     photoCount: number;
+    postId?: number;
+    processing?: string;
     status: "pending";
     timestampMs: number;
     width?: number;
 }
 
-export type FailedSpaceFeedPost = Omit<PendingSpaceFeedPost, "status"> & {
-    reason?: "post-limit";
+type FailedSpaceFeedPost = Omit<PendingSpaceFeedPost, "status"> & {
     status: "failed";
 };
 
@@ -92,6 +94,7 @@ export interface SpaceAppState {
         images: SpaceDraftPostImage[],
         caption: string,
     ) => Promise<SpacePost>;
+    retryPost: (localPostId: string) => Promise<void>;
     refreshProfile: (
         options?: RefreshSpaceProfileOptions,
     ) => Promise<SetupProfile | null>;

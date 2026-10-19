@@ -1,5 +1,4 @@
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:locker/core/errors.dart";
@@ -11,9 +10,9 @@ import "package:locker/services/files/sync/metadata_updater_service.dart";
 import "package:locker/services/files/sync/models/file.dart";
 import "package:locker/services/info_file_service.dart";
 import "package:locker/services/trash/models/trash_file.dart";
-import "package:locker/services/trash/trash_service.dart";
 import "package:locker/ui/components/delete_confirmation_sheet.dart";
 import "package:locker/ui/components/file_edit_sheet.dart";
+import "package:locker/ui/components/locker_progress_dialog.dart";
 import "package:locker/ui/components/share_link_sheet.dart";
 import "package:locker/ui/components/subscription_required_sheet.dart";
 import "package:locker/ui/pages/account_credentials_page.dart";
@@ -74,13 +73,8 @@ class FileActions {
         .getCollections();
 
     final dialog = context.mounted
-        ? createProgressDialog(
-            context,
-            context.strings.pleaseWait,
-            isDismissible: false,
-          )
+        ? await showLockerProgressDialog(context, context.strings.pleaseWait)
         : null;
-    await dialog?.show();
 
     try {
       final currentTitle = file.displayName;
@@ -242,15 +236,12 @@ class FileActions {
   }
 
   static Future<void> shareFileLink(BuildContext context, EnteFile file) async {
-    final dialog = createProgressDialog(
-      context,
-      context.strings.creatingLink,
-      isDismissible: false,
-    );
-
+    LockerProgressDialog? dialog;
     try {
-      await dialog.show();
-
+      dialog = await showLockerProgressDialog(
+        context,
+        context.strings.creatingLink,
+      );
       final shareableLink = await LinksService.instance.getOrCreateLink(file);
 
       await dialog.hide();
@@ -265,7 +256,7 @@ class FileActions {
       }
     } catch (e, stackTrace) {
       _logger.severe("Failed to create file link", e, stackTrace);
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
         if (e is SharingNotPermittedForFreeAccountsError) {
@@ -295,16 +286,10 @@ class FileActions {
     }
 
     final dialog = context.mounted
-        ? createProgressDialog(
-            context,
-            context.strings.deletingFile,
-            isDismissible: false,
-          )
+        ? await showLockerProgressDialog(context, context.strings.deletingFile)
         : null;
 
     try {
-      await dialog?.show();
-
       final collections = await CollectionService.instance
           .getCollectionsForFile(file);
       if (collections.isNotEmpty) {
@@ -327,74 +312,6 @@ class FileActions {
     }
   }
 
-  static Future<void> deleteMultipleFiles(
-    BuildContext context,
-    List<EnteFile> files, {
-    VoidCallback? onSuccess,
-  }) async {
-    if (files.isEmpty) {
-      return;
-    }
-
-    final confirmation = await showDeleteConfirmationSheet(
-      context,
-      title: context.strings.moveToTrashQuestion,
-      body: context.strings.itemsWillBeDeletedFromAllCollections(
-        count: files.length,
-      ),
-      deleteButtonLabel: context.strings.deleteItemCount(count: files.length),
-      illustration: LockerBottomSheetIllustration.fileDelete,
-    );
-
-    if (confirmation == null) {
-      return;
-    }
-
-    final dialog = context.mounted
-        ? createProgressDialog(
-            context,
-            context.strings.deletingFile,
-            isDismissible: false,
-          )
-        : null;
-
-    try {
-      await dialog?.show();
-
-      for (final file in files) {
-        final collections = await CollectionService.instance
-            .getCollectionsForFile(file);
-
-        if (collections.isNotEmpty) {
-          await CollectionService.instance.trashFile(
-            file,
-            collections.first,
-            runSync: false,
-          );
-        }
-      }
-
-      await CollectionService.instance.sync();
-      await TrashService.instance.syncTrash();
-
-      await dialog?.hide();
-
-      if (context.mounted) {
-        showToast(context, context.strings.fileDeletedSuccessfully);
-      }
-
-      onSuccess?.call();
-    } catch (e, stackTrace) {
-      await dialog?.hide();
-
-      _logger.severe('Failed to delete files: $e', e, stackTrace);
-      if (!context.mounted) {
-        return;
-      }
-      await showLockerErrorSheet(context, e);
-    }
-  }
-
   static bool isImportant(EnteFile file) {
     return FavoritesService.instance.isFavoriteCache(file);
   }
@@ -405,17 +322,14 @@ class FileActions {
     VoidCallback? onSuccess,
   }) async {
     final isCurrentlyImportant = isImportant(file);
-    final dialog = createProgressDialog(
+    final dialog = await showLockerProgressDialog(
       context,
       isCurrentlyImportant
           ? context.strings.removingFromImportant
           : context.strings.markingAsImportant,
-      isDismissible: false,
     );
 
     try {
-      await dialog.show();
-
       if (isCurrentlyImportant) {
         await FavoritesService.instance.removeFromFavorites(file);
       } else {
@@ -449,15 +363,12 @@ class FileActions {
     List<EnteFile> files, {
     VoidCallback? onSuccess,
   }) async {
-    final dialog = createProgressDialog(
+    final dialog = await showLockerProgressDialog(
       context,
       context.strings.markingAsImportant,
-      isDismissible: false,
     );
 
     try {
-      await dialog.show();
-
       final filesToMark = files
           .where((file) => !FavoritesService.instance.isFavoriteCache(file))
           .toList();

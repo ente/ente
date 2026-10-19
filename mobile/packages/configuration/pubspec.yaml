@@ -24,7 +24,7 @@ dependencies:
   flutter_secure_storage: 9.0.0
   path: 1.9.1
   path_provider: 2.1.5
-  shared_preferences: 2.5.3
+  shared_preferences: 2.5.4
   tuple: 2.0.2
 
 dev_dependencies:

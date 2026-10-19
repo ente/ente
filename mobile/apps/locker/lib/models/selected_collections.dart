@@ -22,18 +22,6 @@ class SelectedCollections extends ChangeNotifier {
     notifyListeners();
   }
 
-  void unSelect(
-    Set<Collection> collectionsToUnselect, {
-    bool skipNotify = false,
-  }) {
-    collections.removeWhere(
-      (collection) => collectionsToUnselect.contains(collection),
-    );
-    if (!skipNotify) {
-      notifyListeners();
-    }
-  }
-
   bool isCollectionSelected(Collection collection) {
     return collections.any((element) => element.id == collection.id);
   }

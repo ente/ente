@@ -11,6 +11,7 @@ import 'package:photos/core/configuration.dart';
 import "package:photos/core/errors.dart";
 import "package:photos/models/account/two_factor.dart";
 import 'package:photos/services/account/user_service.dart';
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import "package:photos/ui/account/two_factor_authentication_page.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/notification/toast.dart";
@@ -148,98 +149,67 @@ class _PasskeyPageState extends State<PasskeyPage> {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    return Scaffold(
-      backgroundColor: colors.backgroundBase,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colors.backgroundBase,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colors.iconColor,
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(
-          context.strings.passkey,
-          style: TextStyles.large.copyWith(color: colors.textBase),
-        ),
-        centerTitle: true,
-      ),
-      body: _getBody(),
-    );
-  }
-
-  Widget _getBody() {
-    final colors = context.componentColors;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            const Spacer(),
-            Text(
-              context.strings.waitingForVerification,
-              style: TextStyles.body.copyWith(color: colors.textLight),
-              textAlign: TextAlign.center,
-            ),
-            const Spacer(),
+    return OnboardingPageScaffold(
+      title: context.strings.passkeyAuthTitle,
+      illustration: OnboardingIllustration.key,
+      isBodyCentered: true,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.strings.waitingForVerification,
+            style: TextStyles.body.copyWith(color: colors.textBase),
+            textAlign: TextAlign.center,
+          ),
+          if (widget.totp2FASessionID.isNotEmpty) ...[
+            const SizedBox(height: Spacing.sm),
             ButtonComponent(
-              label: context.strings.tryAgain,
-              onTap: () => launchPasskey(),
-            ),
-            const SizedBox(height: 16),
-            ButtonComponent(
-              label: context.strings.checkStatus,
-              variant: ButtonComponentVariant.secondary,
-              shouldSurfaceExecutionStates: true,
-              onTap: () async {
-                try {
-                  await checkStatus();
-                } catch (e) {
-                  debugPrint('failed to check status $e');
-                  if (!mounted) return;
-                  showGenericErrorBottomSheet(
-                    context: context,
-                    error: e,
-                  ).ignore();
-                }
-              },
-            ),
-            if (widget.totp2FASessionID.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              ButtonComponent(
-                label: context.strings.loginWithTOTP,
-                variant: ButtonComponentVariant.link,
-                size: ButtonComponentSize.small,
-                onTap: () async {
-                  // ignore: unawaited_futures
-                  routeToPage(
-                    context,
-                    TwoFactorAuthenticationPage(widget.totp2FASessionID),
-                  );
-                },
-              ),
-            ],
-            const SizedBox(height: 12),
-            ButtonComponent(
-              label: context.strings.recoverAccount,
+              label: context.strings.useTwoFactorInstead,
               variant: ButtonComponentVariant.link,
               size: ButtonComponentSize.small,
               onTap: () async {
                 // ignore: unawaited_futures
-                UserService.instance.recoverTwoFactor(
+                routeToPage(
                   context,
-                  widget.sessionID,
-                  TwoFactorType.passkey,
+                  TwoFactorAuthenticationPage(widget.totp2FASessionID),
                 );
               },
             ),
-            const SizedBox(height: 24),
           ],
-        ),
+        ],
       ),
+      actions: [
+        ButtonComponent(
+          label: context.strings.tryAgain,
+          onTap: () => launchPasskey(),
+        ),
+        ButtonComponent(
+          label: context.strings.checkStatus,
+          variant: ButtonComponentVariant.secondary,
+          shouldSurfaceExecutionStates: true,
+          onTap: () async {
+            try {
+              await checkStatus();
+            } catch (e) {
+              debugPrint('failed to check status $e');
+              if (!context.mounted) return;
+              showGenericErrorBottomSheet(context: context, error: e).ignore();
+            }
+          },
+        ),
+        ButtonComponent(
+          label: context.strings.recoverAccount,
+          variant: ButtonComponentVariant.link,
+          onTap: () async {
+            // ignore: unawaited_futures
+            UserService.instance.recoverTwoFactor(
+              context,
+              widget.sessionID,
+              TwoFactorType.passkey,
+            );
+          },
+        ),
+      ],
     );
   }
 }

@@ -26,25 +26,29 @@ class CheckboxComponent extends StatelessWidget {
         : Colors.transparent;
     final stroke = enabled ? colors.textLight : colors.strokeFaint;
 
-    return InkWell(
-      onTap: enabled ? () => onChanged!(!selected) : null,
-      borderRadius: BorderRadius.circular(4),
-      child: AnimatedContainer(
-        duration: Motion.quick,
-        width: 16,
-        height: 16,
-        decoration: BoxDecoration(
-          color: fill,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: selected ? fill : stroke),
+    return Semantics(
+      checked: selected,
+      enabled: enabled,
+      child: InkWell(
+        onTap: enabled ? () => onChanged!(!selected) : null,
+        borderRadius: BorderRadius.circular(4),
+        child: AnimatedContainer(
+          duration: Motion.quick,
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: selected ? fill : stroke),
+          ),
+          child: selected
+              ? Icon(
+                  Icons.check_rounded,
+                  size: IconSizes.tiny,
+                  color: colors.specialWhite,
+                )
+              : null,
         ),
-        child: selected
-            ? Icon(
-                Icons.check_rounded,
-                size: IconSizes.tiny,
-                color: colors.specialWhite,
-              )
-            : null,
       ),
     );
   }

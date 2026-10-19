@@ -1,92 +1,133 @@
 import 'dart:convert';
 
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/network/network.dart';
-import 'package:photos/ente_theme_data.dart';
 
-class BillingQuestionsWidget extends StatelessWidget {
+class BillingQuestionsWidget extends StatefulWidget {
   const BillingQuestionsWidget({super.key});
 
   @override
+  State<BillingQuestionsWidget> createState() => _BillingQuestionsWidgetState();
+}
+
+class _BillingQuestionsWidgetState extends State<BillingQuestionsWidget> {
+  late final Future<List<FaqItem>> _faqs = _loadFaqs();
+
+  Future<List<FaqItem>> _loadFaqs() async {
+    final response = await NetworkClient.instance.getDio().get(
+      "https://static.ente.com/faq.json",
+    );
+    final faqItems = <FaqItem>[];
+    if (response.data is List) {
+      for (final item in response.data as List) {
+        if (item is Map<String, dynamic>) {
+          faqItems.add(FaqItem.fromMap(item));
+        }
+      }
+    }
+    return faqItems;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: NetworkClient.instance
-          .getDio()
-          .get("https://static.ente.com/faq.json")
-          .then((response) {
-            final faqItems = <FaqItem>[];
-            if (response.data is List) {
-              for (final item in response.data as List) {
-                if (item is Map<String, dynamic>) {
-                  faqItems.add(FaqItem.fromMap(item));
-                }
-              }
-            }
-            return faqItems;
-          }),
-      builder: (BuildContext context, AsyncSnapshot snapshot) {
-        if (snapshot.hasData) {
-          final faqs = <Widget>[];
-          faqs.add(
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                "FAQs",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          );
-          for (final faq in snapshot.data as List<FaqItem>) {
-            faqs.add(FaqWidget(faq: faq));
-          }
-          faqs.add(const Padding(padding: EdgeInsets.all(16)));
-          return SingleChildScrollView(child: Column(children: faqs));
-        } else {
+    return FutureBuilder<List<FaqItem>>(
+      future: _faqs,
+      builder: (BuildContext context, AsyncSnapshot<List<FaqItem>> snapshot) {
+        final faqs = snapshot.data;
+        if (faqs == null) {
           return const EnteLoadingWidget();
         }
+        return Column(
+          children: [
+            for (var i = 0; i < faqs.length; i++) ...[
+              if (i > 0) const SizedBox(height: Spacing.sm),
+              FaqWidget(faq: faqs[i]),
+            ],
+          ],
+        );
       },
     );
   }
 }
 
-class FaqWidget extends StatelessWidget {
+class FaqWidget extends StatefulWidget {
   const FaqWidget({super.key, required this.faq});
 
   final FaqItem faq;
 
   @override
+  State<FaqWidget> createState() => _FaqWidgetState();
+}
+
+class _FaqWidgetState extends State<FaqWidget> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final expandedColor = theme.colorScheme.greenAlternative;
-    const shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(8)),
-    );
-
-    final question = faq.q ?? '';
-    final answer = faq.a ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.all(2),
-      child: ExpansionTile(
-        key: PageStorageKey(question),
-        clipBehavior: Clip.antiAlias,
-        title: Text(question),
-        tilePadding: const EdgeInsets.symmetric(horizontal: 18),
-        textColor: expandedColor,
-        collapsedTextColor: theme.textTheme.titleMedium?.color,
-        iconColor: expandedColor,
-        collapsedIconColor: theme.unselectedWidgetColor,
-        backgroundColor: theme.cardColor,
-        collapsedBackgroundColor: theme.cardColor,
-        shape: shape,
-        collapsedShape: shape,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-            child: Text(answer, style: const TextStyle(height: 1.5)),
-          ),
-        ],
+    final colors = context.componentColors;
+    return Material(
+      color: colors.fillLight,
+      borderRadius: BorderRadius.circular(Radii.button),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => setState(() => _isExpanded = !_isExpanded),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.xl,
+                Spacing.lg,
+                Spacing.xl,
+                Spacing.md,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.faq.q ?? '',
+                      style: TextStyles.bodyBold.copyWith(
+                        color: colors.textBase,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.sm),
+                  HugeIcon(
+                    icon: _isExpanded
+                        ? HugeIcons.strokeRoundedArrowUp01
+                        : HugeIcons.strokeRoundedArrowDown01,
+                    size: IconSizes.small,
+                    color: colors.textBase,
+                  ),
+                ],
+              ),
+            ),
+            AnimatedSize(
+              duration: Motion.standard,
+              curve: Curves.easeInOutCubic,
+              alignment: Alignment.topCenter,
+              child: _isExpanded
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Spacing.xl,
+                        0,
+                        Spacing.xl,
+                        Spacing.lg,
+                      ),
+                      child: Text(
+                        widget.faq.a ?? '',
+                        style: TextStyles.mini.copyWith(
+                          color: colors.textLight,
+                        ),
+                      ),
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
+          ],
+        ),
       ),
     );
   }

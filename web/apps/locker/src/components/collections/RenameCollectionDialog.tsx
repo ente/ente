@@ -1,20 +1,5 @@
-import { FormField } from "@/components/ui/FormField";
-import { lockerSheetContainerSx, lockerSheetPaperSx } from "@/styles/dialog";
-import {
-    lockerHeaderIconButtonSx,
-    lockerPrimaryButtonSx,
-} from "@/styles/fields";
-import {
-    lockerColorSx,
-    lockerTextBodyBoldSx,
-    lockerTextH2Sx,
-    lockerTextMiniSx,
-} from "@/styles/tokens";
+import { NameInputDialog } from "@/components/ui/NameInputDialog";
 import type { LockerCollection } from "@/types";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Box, Dialog, IconButton, Stack, Typography } from "@mui/material";
-import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useCallback, useEffect, useState } from "react";
@@ -96,99 +81,20 @@ export function RenameCollectionDialog({
         setRenameError(null);
     };
     return (
-        <Dialog
-            slotProps={{
-                paper: { sx: lockerSheetPaperSx },
-                container: { sx: lockerSheetContainerSx },
-            }}
+        <NameInputDialog
             open={renameCollectionOpen}
-            onClose={() => {
-                if (!renamingCollection) {
-                    onCloseRenameDialog();
-                }
+            title={t("renameCollection")}
+            label={t("enterCollectionName")}
+            value={renameValue}
+            required
+            loading={renamingCollection}
+            disabled={!renameValue.trim()}
+            error={renameError ?? undefined}
+            onChange={handleNameChange}
+            onClose={onCloseRenameDialog}
+            onSubmit={() => {
+                void handleRenameConfirm();
             }}
-            fullWidth
-            maxWidth="xs"
-        >
-            <Stack>
-                <Stack
-                    direction="row"
-                    sx={{ alignItems: "center", gap: 1.5, minHeight: 38 }}
-                >
-                    <Typography
-                        sx={{ ...lockerTextH2Sx, flex: 1, minWidth: 0 }}
-                    >
-                        {t("renameCollection")}
-                    </Typography>
-                    <IconButton
-                        aria-label={t("close")}
-                        onClick={onCloseRenameDialog}
-                        disabled={renamingCollection}
-                        sx={lockerHeaderIconButtonSx}
-                    >
-                        <HugeiconsIcon
-                            icon={Cancel01Icon}
-                            size={18}
-                            strokeWidth={1.5}
-                        />
-                    </IconButton>
-                </Stack>
-                <Box sx={{ mt: 2.5 }}>
-                    <FormField
-                        value={renameValue}
-                        onChange={(event) =>
-                            handleNameChange(event.target.value)
-                        }
-                        label={t("enterCollectionName")}
-                        required
-                        autoFocus
-                        disabled={renamingCollection}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                                void handleRenameConfirm();
-                            }
-                        }}
-                    />
-                </Box>
-                {renameError && (
-                    <Typography
-                        sx={(theme) => ({
-                            ...lockerTextMiniSx,
-                            mt: 1.5,
-                            ...lockerColorSx(theme, { color: "warning" }),
-                        })}
-                    >
-                        {renameError}
-                    </Typography>
-                )}
-                <LoadingButton
-                    fullWidth
-                    color="primary"
-                    loading={renamingCollection}
-                    disabled={!renameValue.trim()}
-                    onClick={handleRenameConfirm}
-                    sx={(theme) => ({
-                        ...lockerTextBodyBoldSx,
-                        mt: 3,
-                        borderRadius: "20px",
-                        textTransform: "none",
-                        ...lockerColorSx(theme, {
-                            backgroundColor: "primary",
-                            color: "specialWhite",
-                        }),
-                        "&:hover": {
-                            ...lockerColorSx(theme, {
-                                backgroundColor: "primaryDark",
-                            }),
-                        },
-                        ...lockerPrimaryButtonSx(theme, {
-                            loading: renamingCollection,
-                        }),
-                    })}
-                >
-                    {t("save")}
-                </LoadingButton>
-            </Stack>
-        </Dialog>
+        />
     );
 }

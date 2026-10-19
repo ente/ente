@@ -50,6 +50,20 @@ impl TextDetector {
         }
     }
 
+    pub(crate) fn load(&self) -> MlResult<()> {
+        self.session
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .load()
+    }
+
+    pub(crate) fn unload(&self) {
+        self.session
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .unload();
+    }
+
     pub(crate) fn detect(&self, working: &ImageU8) -> MlResult<TextDetection> {
         let (input_width, input_height) = detector_input_size(working.width, working.height);
         let resized = cv::resize_u8(working, input_width, input_height, cv::Interp::Bilinear)

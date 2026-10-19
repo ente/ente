@@ -2,6 +2,7 @@ import "@fontsource-variable/inter";
 import "@fontsource/nunito/800.css";
 import { CssBaseline } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { SpaceAppLayout } from "components/AppNavigation";
 import { SpacePostComposerHost } from "components/PostComposer";
 import { SpaceRouteTransitionBoundary } from "components/RouteTransitionBoundary";
 import "configure-zod";
@@ -118,7 +119,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
         >
             <CustomHead
                 title={spacePageTitle(router.pathname)}
-                viewportContent="width=device-width, initial-scale=1, maximum-scale=1"
+                viewportContent="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
             >
                 <link
                     rel="preload"
@@ -129,13 +130,13 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                 />
                 <meta name="color-scheme" content="dark" />
                 <meta name="theme-color" content={spaceAppBackgroundColor} />
-                <meta name="application-name" content="Ente Space" />
+                <meta name="application-name" content="Space" />
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
-                <meta name="apple-mobile-web-app-title" content="Ente Space" />
+                <meta name="apple-mobile-web-app-title" content="Space" />
                 <meta
                     name="apple-mobile-web-app-status-bar-style"
-                    content="black"
+                    content="black-translucent"
                 />
                 <link
                     rel="manifest"
@@ -148,12 +149,21 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                 <link
                     rel="apple-touch-icon"
                     href="/images/apple-touch-icon.png"
+                    sizes="180x180"
+                />
+                <link
+                    rel="icon"
+                    href="/favicon.ico"
+                    sizes="16x16 32x32 48x48"
+                    type="image/x-icon"
                 />
             </CustomHead>
             <CssBaseline enableColorScheme />
             <SpaceRouteTransitionBoundary>
                 <SpaceAppStateProvider>
-                    <Component {...pageProps} />
+                    <SpaceAppLayout>
+                        <Component {...pageProps} />
+                    </SpaceAppLayout>
                     <SpacePostComposerHost />
                 </SpaceAppStateProvider>
             </SpaceRouteTransitionBoundary>

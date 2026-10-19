@@ -19,12 +19,11 @@ pub(crate) struct FileSnapshot {
     pub header: Header,
     pub intended_time: i64,
     pub metadata: Value,
-    pub warnings: Vec<String>,
 }
 
 impl FileSnapshot {
     pub fn new(file: File, documents: &Documents) -> Result<Self> {
-        let (metadata, warnings) = metadata::file(&file, documents)?;
+        let metadata = metadata::file(&file, documents)?;
         Ok(Self {
             id: file.id,
             updated_at_micros: file.updated_at_micros,
@@ -35,7 +34,6 @@ impl FileSnapshot {
             header: file.header,
             intended_time: file.modified_at_micros.unwrap_or(file.created_at_micros),
             metadata,
-            warnings,
         })
     }
 }

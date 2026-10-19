@@ -78,7 +78,7 @@ const Page: React.FC = () => {
                 codeResetKey={codeResetKey}
                 errorMessage={errorMessage}
                 isSubmitting={isSubmitting}
-                onBack={() => void router.push(spaceRoutes.login)}
+                onBack={() => void router.back(spaceRoutes.login)}
                 onVerify={(code) => void verifySecondFactor(code)}
             />
         </>

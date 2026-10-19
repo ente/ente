@@ -35,7 +35,7 @@ impl Transcriber {
         *self.lock() = None;
     }
 
-    pub fn transcribe(&self, input_sample_rate: u32, pcm_le: Vec<u8>) -> Result<String> {
+    pub fn transcribe(&self, input_sample_rate: u32, pcm_le: &[u8]) -> Result<String> {
         if pcm_le.is_empty() {
             return Ok(String::new());
         }
@@ -46,7 +46,7 @@ impl Transcriber {
             return Err(TranscriptionError::VadNotDownloaded);
         }
 
-        let speech = extract_speech_from_pcm16(&self.vad_model_path, input_sample_rate, &pcm_le)?;
+        let speech = extract_speech_from_pcm16(&self.vad_model_path, input_sample_rate, pcm_le)?;
         if speech.is_empty() {
             return Ok(String::new());
         }

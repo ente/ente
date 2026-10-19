@@ -72,7 +72,6 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   String? _localFilePath;
   int _evaluationGeneration = 0;
   int _regionDetectionAttempt = 0;
-  String? _activeRegionRequestId;
   Timer? _regionRetryTimer;
   TextRegionDetectionResult? _detectedRegions;
   bool _overlayActive = false;
@@ -94,15 +93,47 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   String? _resolvedImageSizePath;
   Size? _resolvedImageSize;
   int _imageSizeRequestId = 0;
+  Animation<double>? _routeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _ocrService.onViewerOpened();
     widget.controller._attach(this);
     GestureBinding.instance.pointerRouter.addGlobalRoute(
       _handleGlobalPointerEvent,
     );
     _evaluateFile();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation != _routeAnimation) {
+      _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
+      _routeAnimation = animation;
+      _routeAnimation?.addStatusListener(_onRouteAnimationStatus);
+    }
+    _scheduleModelPreload();
+  }
+
+  void _onRouteAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _scheduleModelPreload();
+    }
+  }
+
+  void _scheduleModelPreload() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_isEligible) return;
+      if (ModalRoute.of(context)?.isCurrent == false) return;
+      final animation = _routeAnimation;
+      if (animation != null && animation.status != AnimationStatus.completed) {
+        return;
+      }
+      unawaited(_ocrService.preloadModels());
+    });
   }
 
   @override
@@ -121,7 +152,8 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
   @override
   void dispose() {
-    _cancelActiveRegionRequest();
+    _ocrService.onViewerClosed();
+    _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
     _regionRetryTimer?.cancel();
     _zoomSettleTimer?.cancel();
     _globalLongPressTimer?.cancel();
@@ -135,7 +167,6 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
   void _resetState() {
     _evaluationGeneration++;
-    _cancelActiveRegionRequest();
     _regionRetryTimer?.cancel();
     _regionRetryTimer = null;
     _regionDetectionAttempt = 0;
@@ -182,14 +213,6 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
   bool get _requiresRegionRouting => widget.file.isLiveOrMotionPhoto;
 
-  void _cancelActiveRegionRequest() {
-    final requestId = _activeRegionRequestId;
-    _activeRegionRequestId = null;
-    if (requestId != null) {
-      unawaited(_ocrService.cancelRequest(requestId).catchError((_) {}));
-    }
-  }
-
   Future<void> _evaluateFile({bool isRetry = false}) async {
     final bool isEligible = _isFileEligible(widget.file);
     final int generation = isRetry
@@ -217,6 +240,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
         _localFilePath = null;
         _detectedRegions = null;
       });
+      _scheduleModelPreload();
     }
     if (!_requiresRegionRouting) {
       return;
@@ -240,7 +264,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
     _regionDetectionAttempt++;
     try {
-      final File? localFile = await getFile(widget.file);
+      final File? localFile = await _resolveStillImage(generation);
       if (!mounted || generation != _evaluationGeneration) return;
       if (localFile == null || !localFile.existsSync()) {
         throw StateError("Live-photo still is unavailable");
@@ -257,24 +281,9 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
         throw StateError("OCR detector is not ready");
       }
 
-      final regionRequestId = "photos-$cacheKey-$generation";
-      _activeRegionRequestId = regionRequestId;
-      late final TextRegionDetectionResult result;
-      try {
-        result = await _ocrService
-            .detectTextRegions(
-              imagePath: localFile.path,
-              requestId: regionRequestId,
-            )
-            .timeout(_regionDetectionTimeout);
-      } on TimeoutException {
-        await _ocrService.cancelRequest(regionRequestId);
-        rethrow;
-      } finally {
-        if (_activeRegionRequestId == regionRequestId) {
-          _activeRegionRequestId = null;
-        }
-      }
+      final result = await _ocrService
+          .detectTextRegions(imagePath: localFile.path)
+          .timeout(_regionDetectionTimeout);
       if (!mounted || generation != _evaluationGeneration) return;
 
       _cacheRegionResult(
@@ -381,13 +390,24 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     }
   }
 
+  Future<File?> _resolveStillImage(int generation) async {
+    final file = widget.file;
+    final canUseUploadedCopy = file.isUploaded && !file.isRemoteOnlyFile;
+    File? localFile = await _ocrService.resolveImageFile(file);
+    if (!mounted || generation != _evaluationGeneration) return null;
+    if (canUseUploadedCopy && (localFile == null || !localFile.existsSync())) {
+      localFile = await getFileFromServer(file);
+    }
+    return localFile;
+  }
+
   Future<void> _prepareStillImageOnDemand() async {
     final generation = _evaluationGeneration;
     setState(() {
       _isPreparingOnDemand = true;
     });
     try {
-      final localFile = await getFile(widget.file);
+      final localFile = await _resolveStillImage(generation);
       if (!mounted || generation != _evaluationGeneration) return;
       if (localFile == null || !localFile.existsSync()) {
         throw StateError("Could not resolve image for OCR");

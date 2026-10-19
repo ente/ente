@@ -62,10 +62,6 @@
   "deleteCodeAuthMessage": "Autentikoidu poistaaksesi koodin",
   "deleteCodeMessage": "Haluatko varmasti poistaa tämän koodin? Toimintoa ei voi peruuttaa.",
   "deleteCodeTitle": "Poista koodi?",
-  "doThisLater": "Tee tämä myöhemmin",
-  "@doThisLater": {
-    "description": "Do this later button label"
-  },
   "downloadUpdate": "Lataa",
   "edit": "Muokkaa",
   "editCodeAuthMessage": "Autentikoidu muokataksesi koodia",

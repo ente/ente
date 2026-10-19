@@ -76,7 +76,8 @@ data class VideoEditRequest(
     val trimStartMs: Long?,
     val trimEndMs: Long?,
     val rotateDegrees: Int?,
-    val crop: VideoCrop?
+    val crop: VideoCrop?,
+    val speed: Float
 ) {
     init {
         require(inputPath.isNotBlank() && outputPath.isNotBlank()) { "Missing video path" }
@@ -89,6 +90,7 @@ data class VideoEditRequest(
         require(rotateDegrees == null || rotateDegrees in setOf(0, 90, 180, 270)) {
             "Invalid rotation"
         }
+        require(speed.isFinite() && speed > 0f) { "Invalid speed" }
     }
 }
 

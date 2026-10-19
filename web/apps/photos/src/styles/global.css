@@ -12,3 +12,72 @@ body {
     flex-direction: column;
     height: 100%;
 }
+
+:where(:not([data-custom-scrollbar], [data-custom-scrollbar] *)) {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+:where(:not([data-custom-scrollbar], [data-custom-scrollbar] *)):is(
+    :hover,
+    :focus-within
+) {
+    scrollbar-color: color-mix(
+            in srgb,
+            var(--mui-palette-text-base) 20%,
+            transparent
+        )
+        transparent;
+}
+
+:where([data-custom-scrollbar]) {
+    scrollbar-color: auto;
+}
+
+@supports selector(::-webkit-scrollbar) {
+    :where(:not([data-custom-scrollbar], [data-custom-scrollbar] *)),
+    :where(:not([data-custom-scrollbar], [data-custom-scrollbar] *)):is(
+        :hover,
+        :focus-within
+    ) {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
+
+    :where(
+        :not([data-custom-scrollbar], [data-custom-scrollbar] *)
+    )::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    :where(
+        :not([data-custom-scrollbar], [data-custom-scrollbar] *)
+    )::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+
+    :where(
+        :not([data-custom-scrollbar], [data-custom-scrollbar] *)
+    )::-webkit-scrollbar-thumb {
+        background-color: transparent;
+        border-radius: 4px;
+    }
+
+    :where(:not([data-custom-scrollbar], [data-custom-scrollbar] *)):is(
+            :hover,
+            :focus-within
+        )::-webkit-scrollbar-thumb {
+        background-color: color-mix(
+            in srgb,
+            var(--mui-palette-text-base) 20%,
+            transparent
+        );
+    }
+
+    :where(
+        :not([data-custom-scrollbar], [data-custom-scrollbar] *)
+    )::-webkit-scrollbar-button {
+        display: none;
+    }
+}

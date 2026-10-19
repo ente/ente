@@ -32,9 +32,8 @@ impl HashWriter {
         })
     }
 
-    pub fn finish(self) -> Result<(File, u64, String)> {
-        self.file.sync_all()?;
-        Ok((self.file, self.size, b64::encode(&self.digest.finalize()?)))
+    pub fn finish(self) -> (File, u64, String) {
+        (self.file, self.size, b64::encode(&self.digest.finalize()))
     }
 }
 
@@ -44,9 +43,7 @@ impl Write for HashWriter {
             return Err(io::Error::other(super::Cancelled));
         }
         let written = self.file.write(bytes)?;
-        self.digest
-            .update(&bytes[..written])
-            .map_err(io::Error::other)?;
+        self.digest.update(&bytes[..written]);
         self.size += written as u64;
         Ok(written)
     }
@@ -66,10 +63,10 @@ pub fn hash_cancellable(path: &Path, cancel: &watch::Receiver<bool>) -> Result<(
         if read == 0 {
             break;
         }
-        digest.update(&bytes[..read])?;
+        digest.update(&bytes[..read]);
         size += read as u64;
     }
-    Ok((size, b64::encode(&digest.finalize()?)))
+    Ok((size, b64::encode(&digest.finalize())))
 }
 
 pub fn directory(root: &Path, relative: &str) -> Result<()> {
@@ -79,28 +76,17 @@ pub fn directory(root: &Path, relative: &str) -> Result<()> {
             meta.is_dir(),
             super::Conflict(format!("expected directory at {}", path.display()))
         ),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => create_directory(&path)?,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::create_dir_all(&path)?,
         Err(error) => return Err(error.into()),
     }
     Ok(())
 }
 
-pub fn create_directory(path: &Path) -> Result<()> {
-    let mut missing = Vec::new();
-    for directory in path.ancestors() {
-        if directory.try_exists()? {
-            break;
-        }
-        missing.push(directory);
-    }
-    fs::create_dir_all(path)?;
-    for directory in missing.into_iter().rev() {
-        sync_parent(directory)?;
-    }
-    Ok(())
-}
-
 pub fn set_time(path: &Path, micros: i64) -> Result<Properties> {
+    let properties = Properties::read(path)?;
+    if properties.modified == i128::from(micros) * 1000 {
+        return Ok(properties);
+    }
     let duration = Duration::from_micros(micros.unsigned_abs());
     let time = if micros >= 0 {
         UNIX_EPOCH.checked_add(duration)
@@ -112,21 +98,21 @@ pub fn set_time(path: &Path, micros: i64) -> Result<Properties> {
     Properties::read(path)
 }
 
-pub fn sync_parent(_path: &Path) -> Result<()> {
-    #[cfg(unix)]
-    if let Some(parent) = _path.parent() {
-        File::open(parent)?.sync_all()?;
-    }
+pub fn free_rename(source: &Path, destination: &Path) -> Result<()> {
+    ensure!(
+        !destination.try_exists()? || names::same_path(source, destination),
+        super::Conflict(format!(
+            "at {}: occupied rename target",
+            destination.display()
+        ))
+    );
     Ok(())
 }
 
-pub fn sync_move(source: &Path, destination: &Path) -> Result<()> {
-    if destination.parent().is_some_and(Path::exists) {
-        sync_parent(destination)?;
-    }
-    if source.parent() != destination.parent() && source.parent().is_some_and(Path::exists) {
-        sync_parent(source)?;
-    }
+pub fn move_file(source: &Path, destination: &Path) -> Result<()> {
+    free_rename(source, destination)?;
+    fs::create_dir_all(destination.parent().context("move has no parent")?)?;
+    fs::rename(source, destination)?;
     Ok(())
 }
 
@@ -155,9 +141,6 @@ pub fn remove(path: &Path) -> Result<()> {
         Ok(()) => {}
         Err(error) if error.kind() == io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
-    }
-    if path.parent().is_some_and(Path::exists) {
-        sync_parent(path)?;
     }
     Ok(())
 }

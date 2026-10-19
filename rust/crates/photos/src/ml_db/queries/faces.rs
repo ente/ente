@@ -606,10 +606,10 @@ pub(in crate::ml_db) mod tests {
     use std::ops::RangeInclusive;
 
     use super::{FaceRow, MlDb};
-    use crate::ml_db::queries::{clip, clusters, persons, pets};
+    use crate::ml_db::Error;
+    use crate::ml_db::queries::{clip, clusters, persons};
     use crate::ml_db::tests::{cases, check, ids, open, sorted, strings};
     use crate::ml_db::vector_encoding::encode_evector;
-    use crate::ml_db::{Error, PetFaceRow};
     use tempfile::TempDir;
 
     fn face(file_id: i64, index: i64, score: f64, blur: f64, is_sideways: bool) -> FaceRow {
@@ -662,7 +662,6 @@ pub(in crate::ml_db) mod tests {
         seed(&db);
         clusters::tests::seed(&db);
         persons::tests::seed(&db);
-        pets::tests::seed(&db);
         (directory, db)
     }
 
@@ -690,7 +689,6 @@ pub(in crate::ml_db) mod tests {
             &cases![
                 "errored": ids([5]) => |db| db.get_errored_file_ids(),
                 "fully indexed": ids([1, 2, 3, 4]) => |db| db.get_fully_indexed_file_ids(false),
-                "fully indexed with pets": ids([1, 2]) => |db| db.get_fully_indexed_file_ids(true),
                 "unclustered": ids([4, 5, 6, 10]) =>
                     |db| db.get_all_file_ids_of_face_ids_not_in_any_cluster(),
                 "clustered": ids([1, 2, 3, 7, 8, 9]) =>
@@ -945,21 +943,16 @@ pub(in crate::ml_db) mod tests {
             good_face(12, 1),
         ])
         .unwrap();
-        db.bulk_insert_pet_faces(&[PetFaceRow {
-            face_score: -1.0,
-            ..pets::tests::pet_face(13, 0, 0)
-        }])
-        .unwrap();
-        let file_ids: Vec<i64> = (1..=13).chain([99]).collect();
+        let file_ids: Vec<i64> = (1..=12).chain([99]).collect();
         let many: Vec<i64> = (0..=10000).collect();
         assert_eq!(db.get_file_ids_with_error_results(&[]).unwrap(), ids([]));
         assert_eq!(
             db.get_file_ids_with_error_results(&file_ids).unwrap(),
-            ids([4, 5, 12, 13])
+            ids([4, 5, 12])
         );
         assert_eq!(
             db.get_file_ids_with_error_results(&many).unwrap(),
-            ids([4, 5, 12, 13])
+            ids([4, 5, 12])
         );
 
         db.prune_resolved_face_error_results(&[]).unwrap();
@@ -970,7 +963,7 @@ pub(in crate::ml_db) mod tests {
         assert_eq!(db.get_faces_for_given_file_id(11).unwrap().len(), 1);
         assert_eq!(
             db.get_file_ids_with_error_results(&file_ids).unwrap(),
-            ids([4, 5, 12, 13])
+            ids([4, 5, 12])
         );
     }
 

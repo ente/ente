@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { itemFormDataForSave } from "../src/components/create-item/item-form-fields-utils";
 import { updateFileItem, updateInfoItem } from "../src/services/items";
 import {
     getEncryptedFileRecord,
@@ -165,3 +166,30 @@ test("clearing optional credential fields replaces the saved info data", async (
         data: { name: "Netflix" },
     });
 });
+
+test.each([" secret", "secret ", " secret ", "   "])(
+    "renaming a Secret preserves password whitespace in metadata: %j",
+    async (password) => {
+        const data = { name: "Account", password };
+        decryptMetadataJSON.mockResolvedValue({
+            info: { type: "accountCredential", data },
+        });
+        await updateInfoItem(
+            1,
+            "accountCredential",
+            itemFormDataForSave("accountCredential", {
+                ...data,
+                name: "Renamed",
+            }),
+        );
+        const metadata = JSON.parse(
+            new TextDecoder().decode(
+                encryptBlob.mock.calls[0]![0] as Uint8Array,
+            ),
+        ) as Record<string, unknown>;
+        expect(metadata.info).toEqual({
+            type: "accountCredential",
+            data: { name: "Renamed", password },
+        });
+    },
+);

@@ -7,6 +7,20 @@ description: Frequently asked questions about albums, slideshows, hiding, archiv
 
 ## Albums {#albums-section}
 
+### How do I change an album's cover or description? {#edit-album-details}
+
+Open the album and select the three-dot menu, then **Edit details**. To change the cover, select the pencil icon on the current cover and choose a photo. You can also add or update the album description here. Save your changes when finished.
+
+See the [Albums guide](/photos/features/albums-and-organization/albums) for steps on mobile, web, and desktop.
+
+### Can I manually arrange photos and videos within an album? {#manual-album-order}
+
+Ente does not currently support dragging photos and videos into a custom order within an album. To change the order using the options available in your app:
+
+1. Open the album.
+2. Open the three-dot menu.
+3. Select **Sort by** and choose an option.
+
 ### Can Ente albums be nested? {#nested-albums}
 
 No, Ente albums cannot be nested currently. When you upload a nested folder structure using the "Separate albums" option, Ente will create a separate album for each nested folder, but these albums themselves will not be nested - they will all appear as top-level albums.
@@ -78,11 +92,11 @@ This will reliably preserve the shared album name and contents.
 
 ### What does Slideshow do? {#what-is-album-slideshow}
 
-Slideshow plays the photos in an album one after another, full screen, on your device. It is especially useful on large screen devices such as tablets and iPads, where you can leave an album playing like a photo frame.
+Slideshow plays the photos in an album one after another, full screen, on your device. It is especially useful on large screens such as tablets and computers, where you can leave an album playing like a photo frame.
 
 ### How do I start a slideshow from an album? {#start-album-slideshow}
 
-Album slideshows are available in Ente Photos on iOS and Android.
+Album slideshows are available in Ente Photos on iOS and Android for both Ente albums and **On device** albums. They are also available for Ente albums in the desktop app.
 
 **On mobile:**
 
@@ -91,17 +105,25 @@ Album slideshows are available in Ente Photos on iOS and Android.
 3. Tap the three dots in the top-right corner.
 4. Tap **Slideshow**.
 
+**On desktop:**
+
+1. Open an album.
+2. Click the three dots in the top-right corner.
+3. Click **Slideshow**.
+
 ### Can I create one slideshow from multiple albums? {#slideshow-multiple-albums}
 
-Yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
+On mobile, yes. Open the **Albums** tab. Press and hold an Ente album, then select the other albums. Tap **Slideshow** at the bottom of the screen.
 
 You can select albums you own and albums shared with you.
 
+On desktop, slideshows play photos from one open album; combining multiple albums is currently supported only on mobile.
+
 ### What can I change during a slideshow? {#album-slideshow-settings}
 
-Tap the middle of the screen to show the controls. Then tap the settings button in the top-right corner. You can choose:
+On mobile, tap the middle of the screen to show the controls. On desktop, move the pointer over the slideshow to show the controls. The controls also appear when you use the left or right arrow key to change photos or the Space bar to pause or resume. Then tap or click the settings button in the top-right corner. You can choose:
 
-- **Time per photo:** 5, 10, 15, or 30 seconds
+- **Time per photo:** 5, 10, 15, or 30 seconds; or 1, 5, or 10 minutes
 - **Photo order:** In order or Shuffle
 - **Background:** Blurred or Black
 
@@ -110,6 +132,8 @@ Tap the middle of the screen to show the controls. Then tap the settings button 
 Tap the left side of the screen to see the previous photo. Tap the right side to see the next photo. Tap the middle to show or hide the controls.
 
 Tap pause to stop the slideshow or play to continue.
+
+On desktop, you can also use the left and right arrow keys to move between photos, and the space bar to pause or resume.
 
 ### Which items appear in an album slideshow? {#album-slideshow-supported-items}
 
@@ -121,7 +145,7 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
-No. Album slideshows are available only for Ente albums after you sign in. You cannot start one from an **On device** album or while using [Gallery mode](/photos/faq/gallery-mode).
+Yes. Open an **On device** album, tap the three dots in the top-right corner, and select **Slideshow**. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
 
 ## Uncategorized
 
@@ -134,6 +158,8 @@ Photos appear in Uncategorized when:
 - You remove a photo from its last remaining album
 - You delete an album but choose to keep the photos
 - You delete a file from a [watched folder](/photos/faq/backup-and-sync#watch-folders) on desktop
+
+You cannot choose Uncategorized as the destination for mobile automatic backup. Selected device folders back up to corresponding Ente albums. See [how mobile backup maps to albums](/photos/faq/backup-and-sync#automatic-backup).
 
 Learn more in the [Uncategorized feature guide](/photos/features/albums-and-organization/uncategorized).
 
@@ -163,19 +189,23 @@ Alternatively, if you have the original photos on your device, you can delete th
 
 ### How do I clean up Uncategorized items? {#clean-uncategorized}
 
-**On mobile:**
+To remove entries that are also in another album you own:
 
-1. Open the Uncategorized album
-2. Tap the three dots (overflow menu)
-3. Select "Clean Uncategorized"
+- **On mobile:** Open Uncategorized, tap the three-dot menu, and select **Clean Uncategorized**
+- **On desktop:** Open Uncategorized and select the clean icon (broom)
 
-This will automatically remove all files from Uncategorized that are also present in another album that you own. Only files exclusive to Uncategorized will remain.
+Items that exist only in Uncategorized remain there.
 
-**Manual cleanup:** You can also manually:
+To organize those remaining items on desktop:
 
-- Add photos from Uncategorized to specific albums
-- Delete photos you don't need from Uncategorized
-- Move photos to appropriate albums by selecting them and choosing "Add to album"
+1. Select the photos in Uncategorized and choose **Move** in the action bar
+2. Choose the first destination album
+3. Open that album and select the photos again
+4. Choose **Add to album** for each additional destination, one at a time
+
+On mobile, **Add to album** lets you select multiple destination albums. Adding a photo to another album does not require uploading the original again and does not use extra photo storage.
+
+See [organizing Uncategorized photos](/photos/features/albums-and-organization/uncategorized#organize-uncategorized-photos) for details.
 
 ### Can I delete the Uncategorized album? {#delete-uncategorized}
 
@@ -272,6 +302,10 @@ Open the photo, tap the three dots menu (overflow menu), and select "Hide" (the 
 > [!NOTE]
 >
 > Hidden items may still appear in "On device" albums within Ente as long as they're present in your native device gallery. Once you remove them from your device, they'll stop showing up there.
+
+### Why does a photo appear in both Hidden and a hidden album? {#hidden-photo-in-album}
+
+A photo may appear in both Hidden and a hidden album if you first add it to Hidden, then choose **Add to album**. It is the same photo in both views, not a duplicate. Deleting it from either view deletes it everywhere.
 
 ### How do I archive photos in Ente? {#how-to-archive}
 
@@ -411,6 +445,20 @@ To restore photos deleted from your device on Android 11 and newer, select **Dev
 - Click the "Restore" button
 
 Restored photos will be moved to an album of choice.
+
+### How do I select all items in Ente Trash on mobile? {#select-all-ente-trash}
+
+The **All** option appears after you select one item.
+
+1. Open **Albums**, then open **Trash**. Choose **Ente** if you see both Ente and Device tabs.
+2. Select one item in Trash.
+3. Tap **All**.
+
+### If I restore several photos from Trash, will they return to their original albums? {#bulk-restore-original-albums}
+
+No. You can restore several photos together, but Ente moves the selection to an album you choose. It does not automatically return each photo to its previous album.
+
+If the photos came from different albums, restore them in separate groups and choose the right album for each group. If a photo was in more than one album, add it back to the other albums after restoring it. Photos in Ente Trash can be restored within 30 days.
 
 ### How do I permanently delete photos or empty trash? {#empty-trash}
 

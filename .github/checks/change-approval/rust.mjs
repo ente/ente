@@ -29,7 +29,7 @@ function rustPolicy(source) {
         if (token === "/*") {
             const comments = /\/\*|\*\//g;
             comments.lastIndex = lexer.lastIndex;
-            for (let depth = 1; depth; ) {
+            for (let depth = 1; depth;) {
                 const comment = comments.exec(source);
                 if (!comment) throw new Error("Unclosed Rust comment");
                 depth += comment[0] === "/*" ? 1 : -1;

@@ -16,7 +16,16 @@ class FeatureFlagService {
   late FlagService _flagService;
 
   bool get internalUser => _flagService.internalUser;
-  bool get documentScanner => true;
+  bool get multipartUpload => internalUser;
+  bool get pdfViewer => internalUser;
+  bool get imageViewer => internalUser;
+  bool get isInternalUserDisabled =>
+      _preferences.getBool(_internalUserDisabled) ?? false;
+
+  static const _internalUserDisabled = "ls.internal_user_disabled";
+
+  Future<void> setInternalUserDisabled(bool value) =>
+      _preferences.setBool(_internalUserDisabled, value);
 
   void init(SharedPreferences preferences) {
     _preferences = preferences;

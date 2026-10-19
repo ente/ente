@@ -9,8 +9,13 @@ const needsJPEGConversionExtensions = [
     "heic",
     "jp2",
     "nef",
+    "nrw",
+    "orf",
+    "pef",
     "psd",
+    "raf",
     "rw2",
+    "srw",
     "tif",
     "tiff",
 ];

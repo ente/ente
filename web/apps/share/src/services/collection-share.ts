@@ -1,9 +1,4 @@
-import {
-    decryptBox,
-    decryptMetadataJSON,
-    decryptStreamBytes,
-    deriveKey,
-} from "ente-base/crypto";
+import { decryptBox, decryptMetadataJSON, deriveKey } from "ente-base/crypto";
 import { fetchPublicCollectionFile } from "ente-base/file-download";
 import {
     authenticatedPublicAlbumsDeviceLimitRequestHeaders,
@@ -22,6 +17,7 @@ import {
 import { FileDiffResponse, type RemoteEnteFile } from "ente-media/file";
 import { z } from "zod";
 import type { DecryptedFileInfo, LockerInfoData } from "../types/file-share";
+import { saveStreamedFile, type DownloadProgress } from "./download";
 
 interface ParsedLockerInfoData extends LockerInfoData {
     title?: string;
@@ -53,11 +49,6 @@ export interface PublicCollectionShareMetadata {
     publicURL?: PublicURL;
     collectionKey: string;
     linkDeviceToken?: string;
-}
-
-interface DownloadProgress {
-    loaded: number;
-    total: number | null;
 }
 
 const VALID_INFO_TYPES = new Set([
@@ -359,49 +350,11 @@ export const downloadPublicCollectionFile = async (
     );
     ensureOk(response);
 
-    const totalHeader = response.headers.get("content-length");
-    const total = totalHeader ? Number.parseInt(totalHeader, 10) : null;
-
-    let encryptedData: Uint8Array<ArrayBuffer>;
-    if (response.body) {
-        const reader = response.body.getReader();
-        const chunks: Uint8Array[] = [];
-        let loaded = 0;
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
-
-            chunks.push(value);
-            loaded += value.length;
-            onProgress?.({ loaded, total });
-        }
-
-        encryptedData = new Uint8Array(loaded);
-        let offset = 0;
-        for (const chunk of chunks) {
-            encryptedData.set(chunk, offset);
-            offset += chunk.length;
-        }
-    } else {
-        encryptedData = new Uint8Array(await response.arrayBuffer());
-        onProgress?.({ loaded: encryptedData.length, total });
-    }
-
-    const decryptedData = await decryptStreamBytes(
-        { encryptedData, decryptionHeader: fileDecryptionHeader },
+    await saveStreamedFile(
+        response,
         fileKey,
+        fileName,
+        fileDecryptionHeader,
+        onProgress,
     );
-
-    const blob = new Blob([decryptedData]);
-    const blobUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = blobUrl;
-    anchor.download = fileName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(blobUrl);
 };

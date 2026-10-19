@@ -4,8 +4,6 @@
     ],
     "rust/apps/cli/src/sync/download.rs": ["clippy::expect_used"],
     "rust/apps/cli/tests/sync.rs": ["dead_code"],
-    "rust/apps/ensu/src-tauri/src/commands/notes/source.rs": ["unsafe_code"],
-    "rust/apps/ensu/src-tauri/src/commands/system.rs": ["unsafe_code"],
     "rust/apps/ensu/src-tauri/src/logging.rs": ["clippy::expect_used"],
     "rust/bindings/frb/locker/src/lib.rs": [
         "clippy::allow_attributes",
@@ -13,7 +11,6 @@
         "clippy::unwrap_used",
         "unsafe_code"
     ],
-    "rust/bindings/frb/photos/src/api/usearch_api.rs": ["unsafe_code"],
     "rust/bindings/frb/photos/src/lib.rs": [
         "clippy::allow_attributes",
         "clippy::allow_attributes_without_reason",
@@ -22,10 +19,7 @@
     ],
     "rust/bindings/uniffi/ensu/src/assets.rs": ["clippy::expect_used"],
     "rust/bindings/wasm/lib/src/logging.rs": ["clippy::expect_used"],
-    "rust/crates/accounts/src/flow.rs": [
-        "clippy::expect_used",
-        "clippy::large_enum_variant"
-    ],
+    "rust/crates/accounts/src/lifecycle.rs": ["clippy::large_enum_variant"],
     "rust/crates/assets/src/download.rs": ["clippy::expect_used"],
     "rust/crates/assets/src/store.rs": ["clippy::expect_used"],
     "rust/crates/core/examples/ping.rs": ["clippy::expect_used"],
@@ -35,11 +29,9 @@
     "rust/crates/core/src/crypto/types.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/config.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/config/knowledge.rs": ["clippy::expect_used"],
-    "rust/crates/ensu/src/conversation/lookup.rs": ["clippy::expect_used"],
-    "rust/crates/ensu/src/llm/context.rs": ["unsafe_code"],
     "rust/crates/ensu/src/llm/generate.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/model/mod.rs": ["clippy::expect_used"],
-    "rust/crates/ensu/src/retrieval/index.rs": ["unsafe_code"],
+    "rust/crates/ensu/src/platform.rs": ["unsafe_code"],
     "rust/crates/ensu/src/transcription/text.rs": ["clippy::expect_used"],
     "rust/crates/exif/src/isobmff.rs": ["clippy::expect_used"],
     "rust/crates/image/src/color_management.rs": ["clippy::expect_used"],
@@ -54,7 +46,6 @@
     "rust/crates/ml/examples/ml_goldens.rs": ["dead_code"],
     "rust/crates/ml/examples/ocr.rs": ["dead_code"],
     "rust/crates/ml/src/assets.rs": ["clippy::expect_used"],
-    "rust/crates/ml/src/clip/tokenizer.rs": ["clippy::expect_used"],
     "rust/crates/ml/src/face/align.rs": ["clippy::expect_used"],
     "rust/crates/ml/src/ocr/assets.rs": ["clippy::expect_used"],
     "rust/crates/ml/src/ocr/mod.rs": ["clippy::expect_used"],

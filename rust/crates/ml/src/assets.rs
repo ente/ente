@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use ente_assets::{Asset, AssetFile, AssetStore};
+use ente_assets::{
+    Asset, AssetDownloadProgress, AssetFile, AssetStore,
+    download::{CancellationToken, Error as DownloadError},
+};
 
 use super::models::{self, Model, ModelPaths};
 
@@ -90,6 +93,122 @@ pub fn clip_text_paths(store: &AssetStore) -> ClipTextPaths {
 
 pub fn clip_text_asset() -> Asset {
     model_asset(Model::ClipText)
+}
+
+pub async fn ensure_indexing_models(
+    store: &AssetStore,
+    legacy_dir: &Path,
+    run_faces: bool,
+    run_clip: bool,
+    run_pets: bool,
+) -> Result<ModelPaths, DownloadError> {
+    ensure_mobile_models(
+        store,
+        legacy_dir,
+        &indexing_assets(run_faces, run_clip, run_pets),
+        |_| {},
+    )
+    .await?;
+    Ok(indexing_model_paths(store, run_faces, run_clip, run_pets))
+}
+
+pub async fn ensure_clip_text(
+    store: &AssetStore,
+    legacy_dir: &Path,
+) -> Result<ClipTextPaths, DownloadError> {
+    ensure_mobile_models(store, legacy_dir, &[clip_text_asset()], |_| {}).await?;
+    Ok(clip_text_paths(store))
+}
+
+pub async fn ensure_mobile_models(
+    store: &AssetStore,
+    legacy_dir: &Path,
+    assets: &[Asset],
+    on_progress: impl FnMut(AssetDownloadProgress) + Send,
+) -> Result<(), DownloadError> {
+    store
+        .download_with_staged_import(
+            assets,
+            on_progress,
+            CancellationToken::default(),
+            |asset, staging| {
+                for model in Model::ALL {
+                    if model_asset(model) == *asset {
+                        import_mobile_model(legacy_dir, staging, model_asset_spec(model).files)?;
+                        break;
+                    }
+                }
+                Ok(())
+            },
+        )
+        .await
+}
+
+pub fn is_clip_text_available(store: &AssetStore, legacy_dir: &Path, include_vocab: bool) -> bool {
+    let spec = model_asset_spec(Model::ClipText);
+    let files = if include_vocab {
+        spec.files
+    } else {
+        &spec.files[..1]
+    };
+    files.iter().all(|file| {
+        store
+            .file_path(&clip_text_asset(), file.name)
+            .is_some_and(|path| path.is_file())
+            || store
+                .staged_file_path(&clip_text_asset(), file.name)
+                .is_some_and(|path| path.is_file())
+            || legacy_mobile_paths(legacy_dir, file.name)
+                .iter()
+                .any(|path| path.is_file())
+    })
+}
+
+fn import_mobile_model(
+    legacy_dir: &Path,
+    staging: &Path,
+    files: &[ModelAssetFile],
+) -> Result<(), ente_assets::download::Error> {
+    for name in RETIRED_LEGACY_MODEL_FILES {
+        for path in legacy_mobile_paths(legacy_dir, name) {
+            remove_file_if_exists(&path)?;
+            remove_file_if_exists(&path.with_extension("temp"))?;
+            remove_file_if_exists(&path.with_extension("temp.resume.json"))?;
+        }
+    }
+    for file in files {
+        let destination = staging.join(file.name);
+        for source in legacy_mobile_paths(legacy_dir, file.name) {
+            remove_file_if_exists(&source.with_extension("temp"))?;
+            remove_file_if_exists(&source.with_extension("temp.resume.json"))?;
+            if !source.is_file() {
+                continue;
+            }
+            if destination.exists() {
+                remove_file_if_exists(&source)?;
+            } else {
+                fs::create_dir_all(staging)?;
+                fs::rename(source, &destination)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn legacy_mobile_paths(legacy_dir: &Path, name: &str) -> [PathBuf; 2] {
+    ["com", "io"].map(|domain| {
+        let name = format!("models.ente.{domain}/{name}")
+            .chars()
+            .map(|character| {
+                if character.is_ascii_alphanumeric() {
+                    character
+                } else {
+                    '_'
+                }
+            })
+            .collect::<String>();
+        legacy_dir.join(name)
+    })
 }
 
 pub fn migrate_desktop_models(store: &AssetStore, legacy_dir: &Path) -> Vec<String> {
@@ -297,6 +416,282 @@ mod tests {
     use tempfile::TempDir;
 
     use super::*;
+
+    const MOBILE_TEST_FILES: &[ModelAssetFile] = &[
+        ModelAssetFile {
+            name: "mobileclip_s2_text_opset18_quant.onnx",
+            size: 5,
+            sha256: "9372c470eeadd5ecd9c3c74c2b3cb633f8e2f2fad799250a0f70d652b6b825e4",
+        },
+        ModelAssetFile {
+            name: "bpe_simple_vocab_16e6.txt",
+            size: 5,
+            sha256: "273e2549599ddf859b4c24385dfb4dcc23e8e66994c2c176b90c602f77a795c0",
+        },
+    ];
+
+    fn mobile_test_asset() -> Asset {
+        Asset::files(
+            model_key("mobileclip_s2_text_opset18_quant"),
+            MOBILE_TEST_FILES
+                .iter()
+                .map(|file| AssetFile {
+                    name: file.name.to_string(),
+                    url: ":".to_string(),
+                    size: file.size,
+                    sha256: file.sha256.to_string(),
+                })
+                .collect(),
+        )
+        .unwrap()
+    }
+
+    async fn acquire_mobile_test_pair(
+        store: &AssetStore,
+        root: &Path,
+    ) -> Result<(), ente_assets::download::Error> {
+        store
+            .download_with_staged_import(
+                &[mobile_test_asset()],
+                |_| {},
+                CancellationToken::default(),
+                |_, staging| import_mobile_model(root, staging, MOBILE_TEST_FILES),
+            )
+            .await
+    }
+
+    #[tokio::test]
+    async fn mobile_legacy_pair_is_renamed_and_validated_without_network() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        let bytes = [b"model", b"vocab"];
+        #[cfg(unix)]
+        let mut inodes = Vec::new();
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip(bytes) {
+            let path = &legacy_mobile_paths(root.path(), file.name)[0];
+            fs::write(path, bytes).unwrap();
+            fs::write(path.with_extension("temp"), b"partial").unwrap();
+            fs::write(path.with_extension("temp.resume.json"), b"metadata").unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                inodes.push(fs::metadata(path).unwrap().ino());
+            }
+        }
+        fs::write(root.path().join("unrelated.temp"), b"unrelated").unwrap();
+        let retired = root
+            .path()
+            .join("models_ente_io_mobilefacenet_opset15_onnx");
+        fs::write(&retired, b"retired").unwrap();
+        acquire_mobile_test_pair(&store, root.path()).await.unwrap();
+        assert!(!retired.exists());
+        for (index, file) in MOBILE_TEST_FILES.iter().enumerate() {
+            let path = store.file_path(&mobile_test_asset(), file.name).unwrap();
+            assert_eq!(fs::read(&path).unwrap(), bytes[index]);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                assert_eq!(fs::metadata(path).unwrap().ino(), inodes[index]);
+            }
+            for source in legacy_mobile_paths(root.path(), file.name) {
+                assert!(!source.exists());
+                assert!(!source.with_extension("temp").exists());
+                assert!(!source.with_extension("temp.resume.json").exists());
+            }
+        }
+        assert_eq!(
+            fs::read(root.path().join("unrelated.temp")).unwrap(),
+            b"unrelated"
+        );
+        fs::write(
+            store
+                .file_path(&mobile_test_asset(), MOBILE_TEST_FILES[0].name)
+                .unwrap(),
+            b"trusted",
+        )
+        .unwrap();
+        acquire_mobile_test_pair(&AssetStore::new(root.path()), root.path())
+            .await
+            .unwrap();
+        assert_eq!(
+            fs::read(
+                store
+                    .file_path(&mobile_test_asset(), MOBILE_TEST_FILES[0].name)
+                    .unwrap()
+            )
+            .unwrap(),
+            b"trusted"
+        );
+    }
+
+    #[tokio::test]
+    async fn mobile_cleanup_handles_retired_artifacts_without_current_legacy_models() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        let retired = RETIRED_LEGACY_MODEL_FILES
+            .iter()
+            .flat_map(|name| legacy_mobile_paths(root.path(), name))
+            .flat_map(|path| {
+                [
+                    path.with_extension("temp"),
+                    path.with_extension("temp.resume.json"),
+                    path,
+                ]
+            })
+            .collect::<Vec<_>>();
+        for path in &retired {
+            fs::write(path, b"retired").unwrap();
+        }
+        let preserved = [
+            root.path().join("models_ente_com_memory_music_mp3"),
+            legacy_mobile_paths(root.path(), "mobilefacenet_portable_static_b1.onnx")[0].clone(),
+            root.path().join("models/det_fixed_v1/det_fixed_v1.onnx"),
+        ];
+        fs::create_dir_all(preserved[2].parent().unwrap()).unwrap();
+        for path in &preserved {
+            fs::write(path, b"preserved").unwrap();
+        }
+
+        for _ in 0..2 {
+            assert!(acquire_mobile_test_pair(&store, root.path()).await.is_err());
+            assert!(retired.iter().all(|path| !path.exists()));
+            for path in &preserved {
+                assert_eq!(fs::read(path).unwrap(), b"preserved");
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn either_lone_mobile_member_survives_failure_and_is_reused() {
+        for first in [0, 1] {
+            let root = TempDir::new().unwrap();
+            let store = AssetStore::new(root.path());
+            let bytes = [b"model", b"vocab"];
+            let source = &legacy_mobile_paths(root.path(), MOBILE_TEST_FILES[first].name)[0];
+            fs::write(source, bytes[first]).unwrap();
+            assert!(acquire_mobile_test_pair(&store, root.path()).await.is_err());
+            assert!(!source.exists());
+            assert!(!store.is_downloaded(&mobile_test_asset()));
+            let remaining = 1 - first;
+            fs::write(
+                &legacy_mobile_paths(root.path(), MOBILE_TEST_FILES[remaining].name)[0],
+                bytes[remaining],
+            )
+            .unwrap();
+            acquire_mobile_test_pair(&AssetStore::new(root.path()), root.path())
+                .await
+                .unwrap();
+            for (file, bytes) in MOBILE_TEST_FILES.iter().zip(bytes) {
+                assert_eq!(
+                    fs::read(store.file_path(&mobile_test_asset(), file.name).unwrap()).unwrap(),
+                    bytes
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn mobile_import_uses_the_staged_checksum_before_publication() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"wrong", b"vocab"]) {
+            fs::write(&legacy_mobile_paths(root.path(), file.name)[0], bytes).unwrap();
+        }
+        assert!(acquire_mobile_test_pair(&store, root.path()).await.is_err());
+        assert!(!store.is_downloaded(&mobile_test_asset()));
+        assert!(!store.asset_dir(&mobile_test_asset()).exists());
+    }
+
+    #[tokio::test]
+    async fn mobile_legacy_file_beats_rust_resume_data() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        let asset = mobile_test_asset();
+        let staged = store
+            .staged_file_path(&asset, MOBILE_TEST_FILES[0].name)
+            .unwrap();
+        let partial = PathBuf::from(format!("{}.tmp", staged.display()));
+        let metadata = PathBuf::from(format!("{}.tmp.partial.json", staged.display()));
+        fs::create_dir_all(staged.parent().unwrap()).unwrap();
+        fs::write(&partial, b"rust partial").unwrap();
+        fs::write(&metadata, b"rust metadata").unwrap();
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
+            fs::write(&legacy_mobile_paths(root.path(), file.name)[0], bytes).unwrap();
+        }
+        acquire_mobile_test_pair(&store, root.path()).await.unwrap();
+        assert_eq!(
+            fs::read(store.file_path(&asset, MOBILE_TEST_FILES[0].name).unwrap()).unwrap(),
+            b"model"
+        );
+        assert!(!partial.exists());
+        assert!(!metadata.exists());
+    }
+
+    #[tokio::test]
+    async fn mobile_import_removes_duplicate_legacy_domains() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
+            for path in legacy_mobile_paths(root.path(), file.name) {
+                fs::write(path, bytes).unwrap();
+            }
+        }
+        acquire_mobile_test_pair(&store, root.path()).await.unwrap();
+        for file in MOBILE_TEST_FILES {
+            for path in legacy_mobile_paths(root.path(), file.name) {
+                assert!(!path.exists());
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn mobile_ensure_returns_only_the_requested_published_paths() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        let retired = root
+            .path()
+            .join("models_ente_io_mobilefacenet_opset15_onnx");
+        fs::write(&retired, b"retired").unwrap();
+        for model in models::selected_indexing_models(true, false, false) {
+            fs::create_dir_all(store.asset_dir(&model_asset(model))).unwrap();
+            fs::write(model_path(&store, model), b"trusted published bytes").unwrap();
+        }
+        let paths = ensure_indexing_models(&store, root.path(), true, false, false)
+            .await
+            .unwrap();
+        assert_eq!(
+            fs::read(paths.face_detection).unwrap(),
+            b"trusted published bytes"
+        );
+        assert_eq!(
+            fs::read(paths.face_embedding).unwrap(),
+            b"trusted published bytes"
+        );
+        assert!(paths.clip_image.is_empty());
+        assert!(paths.pet_face_detection.is_empty());
+        assert!(!store.asset_dir(&clip_text_asset()).exists());
+        assert_eq!(fs::read(retired).unwrap(), b"retired");
+    }
+
+    #[test]
+    fn mobile_clip_readiness_keeps_model_only_admission() {
+        let root = TempDir::new().unwrap();
+        let store = AssetStore::new(root.path());
+        let files = model_asset_spec(Model::ClipText).files;
+        fs::write(
+            &legacy_mobile_paths(root.path(), files[0].name)[0],
+            b"model",
+        )
+        .unwrap();
+        assert!(is_clip_text_available(&store, root.path(), false));
+        assert!(!is_clip_text_available(&store, root.path(), true));
+        fs::write(
+            &legacy_mobile_paths(root.path(), files[1].name)[0],
+            b"vocab",
+        )
+        .unwrap();
+        assert!(is_clip_text_available(&store, root.path(), true));
+    }
 
     #[test]
     fn catalog_keys_are_unique_and_prefix_free() {

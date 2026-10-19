@@ -6,6 +6,7 @@ use ente_photos::{collections::Collection, files::File, source::Documents};
 
 pub struct CollectionEntry {
     pub id: i64,
+    pub owner_id: i64,
     pub name: Option<String>,
     pub favorites: bool,
     pub value: Result<(Collection, Documents)>,

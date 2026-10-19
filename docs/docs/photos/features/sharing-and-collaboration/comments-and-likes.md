@@ -44,6 +44,8 @@ You can like any photo or video in a shared album:
 2. Click the heart icon in the viewer
 3. Your like is added instantly
 
+![Heart like control highlighted in the photo viewer on Ente Photos web](https://docs-assets.ente.com/screenshots/web-comments-like-callout.png){width=720px}
+
 The heart icon fills in to show you've liked. Tap or click it again to remove your like.
 
 ### Viewing who liked
@@ -52,6 +54,8 @@ To see who has liked a photo:
 
 - On mobile, long pressing the heart icon shows the likes and on web, right clicking does
 - You'll see names for Ente users and display names for anonymous likers from public links
+
+![Who liked panel listing Alex with ginger contact face and You for an outdoor shared photo on Ente Photos web](https://docs-assets.ente.com/screenshots/web-comments-who-liked.png){width=720px}
 
 ## Commenting on photos and videos
 
@@ -72,6 +76,8 @@ To see who has liked a photo:
 3. The comments sidebar opens on the right
 4. Type your comment and press Enter or click send
 
+![Multi-party comments on a shared outdoor photo: Ente Photos mobile left with Alex ginger contact face and human comments, web right](https://docs-assets.ente.com/screenshots/duo-comments-panel.png){width=900px}
+
 Your comment appears immediately for all album participants.
 
 ### Replying to comments
@@ -83,6 +89,8 @@ You can reply directly to any comment to maintain conversation threads:
 - **Long press** on a comment bubble and select "Reply", or
 - **Swipe right** on a comment to quickly start a reply
 - Type your reply and send
+
+![Long-press comment menu with Reply control highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-comment-reply-callout.png){width=320px}
 
 **On web/desktop:**
 
@@ -102,6 +110,8 @@ You can like individual comments:
 - The like count appears in the bottom-right corner of liked comments
 - Tap the like count to see who liked the comment
 
+![Long-press comment menu with Like control highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-comment-like-callout.png){width=320px}
+
 **On web/desktop:**
 
 - Right click over a comment and click like
@@ -115,6 +125,8 @@ You can delete your own comments, and album owners/admins can delete any comment
 - Long press on your comment
 - Select "Delete"
 - Confirm the deletion
+
+![Long-press comment menu with Delete control highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-comment-delete-callout.png){width=320px}
 
 **On web/desktop:**
 
@@ -162,7 +174,11 @@ When disabled, comments and likes and their buttons are hidden from public link 
 
 This helps you moderate content collected through public links.
 
+![Comments and reactions toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-comments-callout.png){width=720px}
+
 ## Feed - Social activity overview
+
+![Feed tab on Ente Photos mobile showing Alex with ginger contact face commenting and liking, including outdoor picnic photo activity](https://docs-assets.ente.com/screenshots/phone-feed-populated.png){width=320px}
 
 The Feed feature provides a centralized view of all social activity across your shared albums:
 

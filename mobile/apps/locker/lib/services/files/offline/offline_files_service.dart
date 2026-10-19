@@ -1,6 +1,5 @@
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_strings/ente_strings.dart';
-import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
 import 'package:locker/events/collections_updated_event.dart';
@@ -10,6 +9,7 @@ import 'package:locker/services/files/download/file_downloader.dart';
 import 'package:locker/services/files/offline/offline_file_storage.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/info_file_service.dart';
+import 'package:locker/ui/components/locker_progress_dialog.dart';
 import 'package:logging/logging.dart';
 
 class OfflineFilesService {
@@ -70,16 +70,13 @@ class OfflineFilesService {
         : null;
     final dialog = savingOffline == null
         ? null
-        : createProgressDialog(
+        : await showLockerProgressDialog(
             context,
             total == 1 ? savingOffline : '$savingOffline 0/$total',
-            isDismissible: false,
           );
 
     var successCount = 0;
     var failureCount = 0;
-
-    await dialog?.show();
 
     try {
       for (var index = 0; index < eligibleFiles.length; index++) {

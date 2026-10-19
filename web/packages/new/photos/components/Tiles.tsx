@@ -90,12 +90,6 @@ export const PreviewItemTile = styled(BaseTile)`
     height: 48px;
 `;
 
-export const BarItemTile = styled(BaseTile)`
-    width: 90px;
-    height: 64px;
-    color: white;
-`;
-
 export const DuplicateItemTile = styled(BaseTile)`
     cursor: initial;
 `;
@@ -119,15 +113,6 @@ export const BaseTileButton = styled(UnstyledButton)`
 export const LargeTileButton = styled(BaseTileButton)`
     width: 150px;
     height: 150px;
-`;
-
-export const TileTextOverlay = styled(Overlay)`
-    padding: 4px;
-    background: linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.1) 0%,
-        rgba(0, 0, 0, 0.5) 86.46%
-    );
 `;
 
 export const LargeTileTextOverlay = styled(Overlay)`

@@ -7,17 +7,20 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/seekbar_triggered_event.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
+import "package:photos/ui/viewer/file/video_control/mute_button.dart";
 import "package:photos/ui/viewer/file/video_seek_controller.dart";
 
 class NativeVideoProgressControls extends StatefulWidget {
   final NativeVideoPlayerController controller;
   final int? duration;
   final VideoSeekController seekController;
+  final Widget muteButton;
 
   const NativeVideoProgressControls(
     this.controller,
     this.duration,
     this.seekController, {
+    this.muteButton = const VideoMuteButton(),
     super.key,
   });
 
@@ -122,6 +125,7 @@ class _NativeVideoProgressControlsState
         );
         return VideoProgressRow(
           seekBar: seekBar,
+          muteButton: widget.muteButton,
           elapsedTime: secondsToDuration(_elapsedMilliseconds ~/ 1000),
           totalTime: secondsToDuration(
             (_effectiveDurationInMilliseconds() ?? 0) ~/ 1000,

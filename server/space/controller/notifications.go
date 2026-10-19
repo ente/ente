@@ -118,7 +118,7 @@ func (n *SpaceWebPushSender) OnSpacePostCreated(actor SpaceActivityActor, postID
 	}
 	n.send(
 		actor,
-		"posted a new photo",
+		"shared a new post",
 		"Check it out",
 		spaceActivityPostCreated,
 		fmt.Sprintf("/app/posts/%s/%d", url.PathEscape(actor.SpaceID), postID),
@@ -127,7 +127,7 @@ func (n *SpaceWebPushSender) OnSpacePostCreated(actor SpaceActivityActor, postID
 }
 
 func (n *SpaceWebPushSender) OnSpacePostLiked(actor SpaceActivityActor, recipientUserID int64) {
-	n.sendAccountActivity(actor, "liked your post", "", spaceActivityPostLiked, conversationURL(actor.SpaceID), recipientUserID)
+	n.sendAccountActivity(actor, "liked your post", "", spaceActivityPostLiked, "/app/notifications", recipientUserID)
 }
 
 func (n *SpaceWebPushSender) OnSpacePostReplied(actor SpaceActivityActor, recipientUserID int64) {
@@ -143,14 +143,14 @@ func (n *SpaceWebPushSender) OnSpacePokeSent(actor SpaceActivityActor, recipient
 }
 
 func (n *SpaceWebPushSender) OnSpaceMessageLiked(actor SpaceActivityActor, recipientUserID int64) {
-	n.sendAccountActivity(actor, "liked a message", "View conversation", spaceActivityMessageLiked, conversationURL(actor.SpaceID), recipientUserID)
+	n.sendAccountActivity(actor, "reacted to your message", "View conversation", spaceActivityMessageLiked, conversationURL(actor.SpaceID), recipientUserID)
 }
 
 func (n *SpaceWebPushSender) OnSpaceFriendAdded(actor SpaceActivityActor, recipientUserID int64) {
 	n.sendAccountActivity(
 		actor,
-		"is now your friend",
-		"Say hi to "+spaceActivityActorLabel(actor.Slug),
+		"accepted your friend request",
+		"Say hi",
 		spaceActivityFriendAdded,
 		conversationURL(actor.SpaceID),
 		recipientUserID,
@@ -158,7 +158,7 @@ func (n *SpaceWebPushSender) OnSpaceFriendAdded(actor SpaceActivityActor, recipi
 }
 
 func (n *SpaceWebPushSender) OnSpaceFriendRequested(actor SpaceActivityActor, recipientUserID int64) {
-	n.sendAccountActivity(actor, "sent you a friend request", "Review request", spaceActivityFriendRequested, "/app/messages", recipientUserID)
+	n.sendAccountActivity(actor, "sent you a friend request", "Review request", spaceActivityFriendRequested, "/app/notifications", recipientUserID)
 }
 
 func (n *SpaceWebPushSender) sendAccountActivity(

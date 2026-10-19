@@ -156,7 +156,7 @@ class MediaExtensionPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     private fun ContentResolver.encodeAsBase64(contentUri: Uri): String {
         val imageBytes = openInputStream(contentUri)?.use { contentStream ->
-            contentStream.readBytes()
+            contentStream.readBytesWithLimit(MaxInlineImageBytes)
         } ?: ByteArray(0)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Base64.getEncoder().encodeToString(imageBytes)
@@ -556,6 +556,7 @@ class MediaExtensionPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private companion object {
         private const val MediaStoreAuthority = "media"
         private const val MediaDocumentsAuthority = "com.android.providers.media.documents"
+        private const val MaxInlineImageBytes = 10L * 1024L * 1024L
         private const val MaxReadUriBytes = 100L * 1024L * 1024L
     }
 

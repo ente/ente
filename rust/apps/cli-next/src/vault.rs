@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
-use crate::{args::Product, home, parse_json};
+use crate::{account::PendingCreation, args::App, home, parse_json};
 
 const SCHEMA_VERSION: u8 = 1;
 const VAULT_FILE: &str = "vault.json";
@@ -36,6 +36,8 @@ pub(crate) struct VaultAccess {
 pub struct State {
     pub accounts: Vec<Account>,
     pub selected: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub creations: Vec<PendingCreation>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -59,7 +61,7 @@ pub struct Account {
     pub origin: String,
     pub user_id: i64,
     pub identity: AccountKeys,
-    pub sessions: BTreeMap<Product, StoredSession>,
+    pub sessions: BTreeMap<App, StoredSession>,
 }
 
 #[derive(Serialize, Deserialize, ZeroizeOnDrop)]
@@ -104,15 +106,11 @@ impl Vault {
         self.state
     }
 
-    pub fn release(self) -> (State, VaultAccess) {
-        let Self {
-            state,
-            home,
-            key,
-            _lock,
-        } = self;
-        drop(_lock);
-        (state, VaultAccess { home, key })
+    pub fn release(self) -> VaultAccess {
+        VaultAccess {
+            home: self.home,
+            key: self.key,
+        }
     }
 
     pub fn save(&self) -> Result<()> {
@@ -175,7 +173,7 @@ impl State {
         self.accounts
             .iter()
             .position(|a| a.name == name)
-            .with_context(|| format!("no account named {name:?}; use accounts list"))
+            .with_context(|| format!("no account named {name:?}; use account list"))
     }
 
     pub fn resolve(&self, name: Option<&str>) -> Result<usize> {
@@ -190,9 +188,11 @@ impl State {
             return Ok(index);
         }
         match self.accounts.len() {
-            0 => bail!("no accounts; use photos login, locker login, or auth login"),
+            0 => bail!("no accounts; use account login --app <APP>"),
             1 => Ok(0),
-            _ => bail!("no account selected; use accounts switch <name> or --account <name>"),
+            _ => bail!(
+                "no account selected; use account switch <NAME> or name an account explicitly"
+            ),
         }
     }
 
@@ -200,24 +200,38 @@ impl State {
         ensure!(!name.trim().is_empty(), "account name cannot be empty");
         ensure!(
             !self.accounts.iter().any(|a| a.name == name),
-            "account name {name:?} is already in use; choose another --name"
+            "account name {name:?} is already in use; choose another name"
         );
         Ok(())
     }
 }
 
 impl Account {
-    pub fn token(&self, product: Product) -> Result<&[u8]> {
+    pub fn app(&self, requested: Option<App>) -> Result<App> {
+        let mut apps = self.sessions.keys();
+        match (requested, apps.next(), apps.next()) {
+            (Some(app), _, _) | (None, Some(&app), None) => Ok(app),
+            _ => {
+                ensure!(
+                    self.sessions.contains_key(&App::Photos),
+                    "multiple apps are saved without Photos; select one with --app"
+                );
+                Ok(App::Photos)
+            }
+        }
+    }
+
+    pub fn token(&self, app: App) -> Result<&[u8]> {
         self.sessions
-            .get(&product)
+            .get(&app)
             .map(|s| s.token.as_slice())
             .with_context(|| {
                 format!(
-                    "account {:?} has no {} session; use {} login --account {:?}",
+                    "account {:?} is not logged into {}; use account login --account {:?} --app {}",
                     self.name,
-                    product.name(),
-                    product.name(),
-                    self.name
+                    app.display_name(),
+                    self.name,
+                    app.name()
                 )
             })
     }
@@ -286,6 +300,11 @@ fn load_key(
 
 fn keyring_error(error: keyring::Error, exists: bool) -> anyhow::Error {
     let reason = match error {
+        keyring::Error::NoEntry if exists => {
+            return anyhow::anyhow!(
+                "no saved vault key for this CLI home; if you moved the directory, restore its previous location or supply the original ENTE_CLI_VAULT_KEY"
+            );
+        }
         keyring::Error::NoEntry => "the vault key is missing".to_owned(),
         keyring::Error::NoStorageAccess(error) => {
             format!("access to system secret storage was denied: {error}")
@@ -306,8 +325,7 @@ fn keyring_error(error: keyring::Error, exists: bool) -> anyhow::Error {
 }
 
 fn decrypt(bytes: &[u8], key: &Key, home: &Path) -> Result<State> {
-    let unlock_error =
-        || anyhow::anyhow!("cannot unlock CLI vault: wrong key or damaged ciphertext");
+    let unlock_error = || anyhow::anyhow!("cannot unlock CLI vault: wrong key or damaged file");
     let encrypted: EncryptedVault =
         parse_json(bytes).context("unsupported or invalid CLI vault format")?;
     let ciphertext = b64::decode(&encrypted.data)
@@ -318,7 +336,7 @@ fn decrypt(bytes: &[u8], key: &Key, home: &Path) -> Result<State> {
         parse_json(&plaintext).context("invalid CLI vault contents")?;
     ensure!(
         version.schema_version == SCHEMA_VERSION,
-        "unsupported CLI vault schema {}; this build supports {SCHEMA_VERSION}.\nTo start fresh, move {} aside, then log in again.",
+        "cannot read CLI vault format {}; this CLI supports {SCHEMA_VERSION}.\nTo start fresh, move {} aside, then log in again.",
         version.schema_version,
         home.join(VAULT_FILE).display(),
     );

@@ -1,3 +1,4 @@
+import 'package:ente_auth/core/errors.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
@@ -33,6 +34,11 @@ Future<void> _pickOtpAuthFile(BuildContext context) async {
     showProgressBeforeProcessing: false,
     logger: _logger,
     logMessage: 'Exception while processing OTP Auth import',
+    errorMessage: (context, error) => error is ImportFileTooLargeException
+        ? context.strings.importFileTooLarge(
+            size: '${error.maxBytes ~/ (1024 * 1024)} MiB',
+          )
+        : '${context.strings.importFailureDesc}\n Error: $error',
     process: (path, progressDialog) =>
         _processOtpAuthFile(context, path, progressDialog),
   );
@@ -43,7 +49,10 @@ Future<int?> _processOtpAuthFile(
   String path,
   ProgressDialog dialog,
 ) async {
-  final fileBytes = await readPickedImportFileAsBytes(path);
+  final fileBytes = await readPickedImportFileAsBytes(
+    path,
+    maxBytes: otpAuthImportMaxBytes,
+  );
   if (!context.mounted) return null;
   final l10n = context.strings;
   while (true) {

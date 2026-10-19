@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:ente_auth/core/errors.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -15,9 +16,22 @@ Future<String> readPickedImportFileAsString(String path) async {
   }
 }
 
-Future<Uint8List> readPickedImportFileAsBytes(String path) async {
+Future<Uint8List> readPickedImportFileAsBytes(
+  String path, {
+  int? maxBytes,
+}) async {
   try {
-    return await File(path).readAsBytes();
+    final file = File(path);
+    if (maxBytes == null) return await file.readAsBytes();
+
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in file.openRead(0, maxBytes + 1)) {
+      if (bytes.length + chunk.length > maxBytes) {
+        throw ImportFileTooLargeException(maxBytes);
+      }
+      bytes.add(chunk);
+    }
+    return bytes.takeBytes();
   } finally {
     await deletePickedImportFileIfAppOwned(path);
   }

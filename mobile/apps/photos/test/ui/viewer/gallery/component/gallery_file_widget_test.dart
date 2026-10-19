@@ -10,6 +10,9 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/ui/viewer/file/gallery_photo_page_route.dart";
+import "package:photos/ui/viewer/file/hero_image.dart";
+import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
@@ -74,10 +77,10 @@ const _tinyImage = <int>[
   0x00,
   0x01,
   0xff,
-  0x89,
-  0x99,
-  0xd1,
-  0x8d,
+  0x72,
+  0x9c,
+  0x52,
+  0x67,
   0x00,
   0x00,
   0x00,
@@ -208,7 +211,7 @@ void main() {
     );
   }
 
-  testWidgets("a thumbnail tier change recreates the thumbnail loader", (
+  testWidgets("Grid thumbnail tiers and overrides recreate the loader", (
     tester,
   ) async {
     final file = EnteFile()
@@ -216,7 +219,7 @@ void main() {
       ..fileType = FileType.image
       ..title = "photo.jpg";
 
-    Widget buildGalleryTile(int thumbnailSize) {
+    Widget buildGalleryTile({required int gridSize, int? thumbnailSize}) {
       return MaterialApp(
         home: GalleryContextState(
           sortOrderAsc: false,
@@ -229,7 +232,7 @@ void main() {
               selectedFiles: null,
               limitSelectionToOne: true,
               tag: "gallery_",
-              photoGridSize: photoGridSizeDefault,
+              photoGridSize: gridSize,
               thumbnailSize: thumbnailSize,
               currentUserID: null,
             ),
@@ -238,32 +241,122 @@ void main() {
       );
     }
 
-    await tester.pumpWidget(buildGalleryTile(thumbnailSmallSize));
-    final smallThumbnailState = tester.state<State<ThumbnailWidget>>(
-      find.byType(ThumbnailWidget),
-    );
-    expect(
-      tester
-          .widget<ThumbnailWidget>(find.byType(ThumbnailWidget))
-          .thumbnailSize,
-      thumbnailSmallSize,
-    );
+    for (final useOverride in [false, true]) {
+      await tester.pumpWidget(
+        buildGalleryTile(
+          gridSize: useOverride ? 3 : 4,
+          thumbnailSize: useOverride ? thumbnailSmallSize : null,
+        ),
+      );
+      final smallThumbnailState = tester.state<State<ThumbnailWidget>>(
+        find.byType(ThumbnailWidget),
+      );
+      expect(
+        tester
+            .widget<ThumbnailWidget>(find.byType(ThumbnailWidget))
+            .thumbnailSize,
+        thumbnailSmallSize,
+      );
 
-    await tester.pumpWidget(buildGalleryTile(thumbnailLargeSize));
-    final largeThumbnailState = tester.state<State<ThumbnailWidget>>(
-      find.byType(ThumbnailWidget),
-    );
-    expect(
-      tester
-          .widget<ThumbnailWidget>(find.byType(ThumbnailWidget))
-          .thumbnailSize,
-      thumbnailLargeSize,
-    );
-    expect(largeThumbnailState, isNot(same(smallThumbnailState)));
+      await tester.pumpWidget(
+        buildGalleryTile(
+          gridSize: 3,
+          thumbnailSize: useOverride ? thumbnailLargeSize : null,
+        ),
+      );
+      final largeThumbnailState = tester.state<State<ThumbnailWidget>>(
+        find.byType(ThumbnailWidget),
+      );
+      expect(
+        tester
+            .widget<ThumbnailWidget>(find.byType(ThumbnailWidget))
+            .thumbnailSize,
+        thumbnailLargeSize,
+      );
+      expect(largeThumbnailState, isNot(same(smallThumbnailState)));
+    }
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 100));
   });
+
+  testWidgets(
+    "a justified thumbnail keeps its decoded image through the return hero",
+    (tester) async {
+      final file = EnteFile()
+        ..generatedID = 3
+        ..localID = "hero-photo"
+        ..fileType = FileType.image
+        ..title = "hero-photo.jpg";
+      final bytes = Uint8List.fromList(_tinyImage);
+      ThumbnailInMemoryLruCache.put(file, bytes, thumbnailLargeSize);
+      addTearDown(() => ThumbnailInMemoryLruCache.clearCache(file));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GalleryContextState(
+            sortOrderAsc: false,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 200,
+                height: 120,
+                child: GalleryFileWidget(
+                  file: file,
+                  selectedFiles: null,
+                  limitSelectionToOne: true,
+                  tag: "gallery_",
+                  photoGridSize: photoGridSizeDefault,
+                  thumbnailSize: thumbnailLargeSize,
+                  currentUserID: null,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        await precacheImage(
+          MemoryImage(bytes),
+          tester.element(find.byType(GalleryFileWidget)),
+        );
+      });
+      await tester.pump();
+      final thumbnail = find.byType(ThumbnailWidget, skipOffstage: false);
+      final thumbnailState = tester.state<State<ThumbnailWidget>>(thumbnail);
+      final hero = find.byType(Hero);
+      final tag = tester.widget<Hero>(hero).tag;
+      final sourceImage = imageFromHero(tester.element(hero));
+      expect(sourceImage, isNotNull);
+      final navigator = Navigator.of(tester.element(hero));
+      navigator.push(
+        GalleryPhotoPageRoute<void>(
+          tag: tag,
+          sourceImage: sourceImage,
+          page: ImageZoomViewer(
+            imageProvider: MemoryImage(bytes),
+            heroTag: tag,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.state(thumbnail), same(thumbnailState));
+      ThumbnailInMemoryLruCache.clearCache(file);
+      PaintingBinding.instance.imageCache.clear();
+
+      navigator.pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.state(thumbnail), same(thumbnailState));
+      expect(imageFromHero(thumbnailState.context), isNotNull);
+      await tester.pump(const Duration(milliseconds: 110));
+      expect(tester.state(thumbnail), same(thumbnailState));
+      expect(imageFromHero(thumbnailState.context), isNotNull);
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 100));
+    },
+  );
 
   testWidgets(
     "a requested large justified thumbnail bypasses the cached small tier",

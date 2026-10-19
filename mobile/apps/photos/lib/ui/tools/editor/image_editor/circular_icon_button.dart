@@ -11,6 +11,7 @@ class CircularIconButton extends StatelessWidget {
   final IconData? icon;
   final Widget? child;
   final double size;
+  final double width;
   final bool isSelected;
 
   const CircularIconButton({
@@ -22,6 +23,7 @@ class CircularIconButton extends StatelessWidget {
     this.icon,
     this.child,
     this.size = 60,
+    this.width = 90,
     this.isSelected = false,
   }) : assert(
          hugeIcon != null || svgPath != null || icon != null || child != null,
@@ -52,37 +54,45 @@ class CircularIconButton extends StatelessWidget {
       iconContent = child!;
     }
 
-    return SizedBox(
-      width: 90,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          GestureDetector(
-            onTap: onTap,
-            child: Container(
-              height: size,
-              width: size,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colors.primary.withValues(alpha: 0.24)
-                    : colors.fillLight,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? colors.primary : colors.fillLight,
-                  width: 2,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: width,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                height: size,
+                width: size,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? colors.primary.withValues(alpha: 0.24)
+                      : colors.fillLight,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? colors.primary : colors.fillLight,
+                    width: 2,
+                  ),
                 ),
+                child: Center(child: iconContent),
               ),
-              child: Center(child: iconContent),
-            ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyles.body.copyWith(color: colors.textBase),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyles.body.copyWith(color: colors.textBase),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        ),
       ),
     );
   }

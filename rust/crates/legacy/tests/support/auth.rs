@@ -2,116 +2,35 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use ente_accounts::auth::recovery_key_from_mnemonic_or_hex;
 use ente_accounts::{
-    AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, AuthenticatedAccount,
-    CreateAccountParams, LoginParams, OtpPurpose, SecondFactorMethod, SetupTwoFactorParams,
-    TotpPurpose,
+    AccountsClient, AccountsClientConfig, AuthenticatedAccount, TwoFactorSetup,
+    login::{LoginFlow, LoginStep},
+    signup::Signup,
 };
 use ente_core::b64;
-use ente_core::crypto::SecretVec;
 use ente_test_support::HARDCODED_OTT;
 pub use ente_test_support::account_fixture::{
     TestAccount, create_account as create_fixture_account,
 };
 use hmac::{Hmac, KeyInit, Mac};
 use sha1::Sha1;
-use zeroize::Zeroizing;
 
 use crate::CLIENT_PACKAGE;
 
 type HmacSha1 = Hmac<Sha1>;
 
-struct TestUi {
-    otp: String,
-    totp_secret: Option<String>,
-    allow_totp: bool,
-}
-
-impl TestUi {
-    fn otp_only() -> Self {
-        Self {
-            otp: HARDCODED_OTT.into(),
-            totp_secret: None,
-            allow_totp: false,
-        }
-    }
-
-    fn with_totp(secret: Option<String>) -> Self {
-        Self {
-            otp: HARDCODED_OTT.into(),
-            totp_secret: secret,
-            allow_totp: true,
-        }
-    }
-}
-
-impl AuthFlowUi for TestUi {
-    fn read_email_otp(
-        &mut self,
-        _email: &str,
-        _purpose: OtpPurpose,
-        _resent: bool,
-    ) -> ente_accounts::Result<String> {
-        Ok(self.otp.clone())
-    }
-
-    fn read_totp_code(&mut self, _purpose: TotpPurpose) -> ente_accounts::Result<String> {
-        if !self.allow_totp {
-            return Err(ente_accounts::Error::InvalidInput(
-                "TOTP was requested unexpectedly in this e2e flow".into(),
-            ));
-        }
-
-        let secret = self.totp_secret.as_deref().ok_or_else(|| {
-            ente_accounts::Error::InvalidInput("No TOTP secret captured for rust e2e flow".into())
-        })?;
-        Ok(current_totp(secret))
-    }
-
-    fn report_retryable_error(&mut self, _message: &str) -> ente_accounts::Result<()> {
-        Ok(())
-    }
-
-    fn choose_second_factor(
-        &mut self,
-        _methods: &[SecondFactorMethod],
-    ) -> ente_accounts::Result<SecondFactorMethod> {
-        Ok(SecondFactorMethod::Totp)
-    }
-
-    fn present_passkey_verification(&mut self, _url: &str) -> ente_accounts::Result<()> {
-        Err(ente_accounts::Error::InvalidInput(
-            "Passkey flow not expected in rust e2e tests".into(),
-        ))
-    }
-
-    fn wait_for_passkey_verification(&mut self) -> ente_accounts::Result<()> {
-        Err(ente_accounts::Error::InvalidInput(
-            "Passkey flow not expected in rust e2e tests".into(),
-        ))
-    }
-
-    fn present_totp_secret(
-        &mut self,
-        secret_code: &str,
-        _qr_code: &str,
-    ) -> ente_accounts::Result<()> {
-        self.totp_secret = Some(secret_code.to_string());
-        Ok(())
-    }
-}
-
 pub async fn create_account(endpoint: &str, email: String, password: String) -> TestAccount {
     let client = accounts_client(endpoint).unwrap();
-    let mut ui = TestUi::otp_only();
 
     let authenticated = tokio::time::timeout(Duration::from_secs(180), async {
-        let mut flow = AuthFlow::new(&client, &mut ui);
-        flow.create_account(CreateAccountParams {
-            email: email.clone(),
-            password: Zeroizing::new(password.clone()),
-            source: Some("testAccount".into()),
-        })
-        .await
+        client.send_otp(&email, "signup").await?;
+        let response = client
+            .verify_email(&email, HARDCODED_OTT, Some("testAccount"))
+            .await?;
+        Signup::verified(email.clone(), response)?
+            .prepare(&client, &password)
+            .await?
+            .finish(&client)
+            .await
     })
     .await
     .expect("signup timed out")
@@ -138,25 +57,22 @@ pub async fn login_without_totp(
     email: &str,
     password: &str,
 ) -> ente_accounts::Result<AuthenticatedAccount> {
-    let mut ui = TestUi::otp_only();
-    login_with_ui(endpoint, email, password, &mut ui).await
-}
-
-async fn login_with_ui<U: AuthFlowUi>(
-    endpoint: &str,
-    email: &str,
-    password: &str,
-    ui: &mut U,
-) -> ente_accounts::Result<AuthenticatedAccount> {
     let client = accounts_client(endpoint)?;
 
     tokio::time::timeout(Duration::from_secs(90), async {
-        let mut flow = AuthFlow::new(&client, ui);
-        flow.login(LoginParams {
-            email: email.to_string(),
-            password: Zeroizing::new(password.to_string()),
-        })
-        .await
+        let (mut flow, mut step) = LoginFlow::start(&client, email.into()).await?;
+        loop {
+            step = match step {
+                LoginStep::EmailCode => flow.submit_code(&client, HARDCODED_OTT).await?,
+                LoginStep::Password => flow.submit_password(&client, password).await?,
+                LoginStep::SecondFactor { .. } => {
+                    return Err(ente_accounts::Error::InvalidInput(
+                        "Second factor was requested unexpectedly in this e2e flow".into(),
+                    ));
+                }
+                LoginStep::Complete(account) => return Ok(*account),
+            };
+        }
     })
     .await
     .expect("login timed out")
@@ -165,21 +81,20 @@ async fn login_with_ui<U: AuthFlowUi>(
 pub async fn enable_totp(endpoint: &str, account: &TestAccount) -> String {
     let client = accounts_client(endpoint).unwrap();
     client.set_auth_token(Some(account.auth_token.clone()));
-    let mut ui = TestUi::with_totp(None);
 
     let result = tokio::time::timeout(Duration::from_secs(60), async {
-        let mut flow = AuthFlow::new(&client, &mut ui);
-        flow.setup_two_factor(SetupTwoFactorParams {
-            master_key: SecretVec::new(account.master_key.clone()),
-            key_attributes: Some(account.key_attributes.clone()),
-        })
-        .await
+        let setup =
+            TwoFactorSetup::start(&client, &account.master_key, &account.key_attributes).await?;
+        setup
+            .enable(&client, &current_totp(&setup.secret_code))
+            .await?;
+        Ok::<_, ente_accounts::Error>(setup)
     })
     .await
     .expect("two-factor setup timed out")
     .expect("two-factor setup failed");
 
-    result.secret_code
+    result.secret_code.clone()
 }
 
 pub async fn fetch_two_factor_status(

@@ -40,7 +40,7 @@ dependencies:
   pdf: 3.12.0
   rive: 0.14.0-dev.13
   share_plus: 12.0.0
-  shared_preferences: 2.5.3
+  shared_preferences: 2.5.4
 
 dev_dependencies:
   flutter_lints: 6.0.0

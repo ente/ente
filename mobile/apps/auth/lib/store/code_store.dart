@@ -97,6 +97,7 @@ class CodeStore {
       }
       code.generatedID = entity.generatedID;
       code.hasSynced = entity.hasSynced;
+      code.createdAt = entity.createdAt;
       codes.add(code);
       _cacheCodes[code.generatedID!] = code;
     }

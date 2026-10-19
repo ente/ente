@@ -299,6 +299,11 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
   }
 
   @override
+  // Track taps must not page the gallery; thumb dragging remains enabled.
+  // ignore: must_call_super
+  void handleTrackTapDown(TapDownDetails details) {}
+
+  @override
   void handleThumbPressStart(Offset localPosition) {
     super.handleThumbPressStart(localPosition);
     setState(() {

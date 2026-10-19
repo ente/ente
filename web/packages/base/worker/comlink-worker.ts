@@ -36,8 +36,11 @@ export class ComlinkWorker<T extends new () => InstanceType<T>> {
 
 const workerBridge = {
     logToDisk,
-    convertToJPEG: (imageData: Uint8Array) =>
-        ensureElectron().convertToJPEG(imageData),
+    convertToJPEG: (
+        imageData: Uint8Array,
+        detectedExtension: string,
+        fileName: string,
+    ) => ensureElectron().convertToJPEG(imageData, detectedExtension, fileName),
 };
 
 export type WorkerBridge = typeof workerBridge;

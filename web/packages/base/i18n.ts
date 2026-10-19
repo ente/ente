@@ -22,6 +22,7 @@ export const supportedLocales = [
     "pt-PT",
     "ru-RU",
     "tr-TR",
+    "tt-RU",
     "uk-UA",
     "vi-VN",
     "zh-CN",
@@ -125,6 +126,8 @@ const closestSupportedLocale = (
             return "ar-SA";
         } else if (ls.startsWith("tr")) {
             return "tr-TR";
+        } else if (ls.startsWith("tt")) {
+            return "tt-RU";
         } else if (ls.startsWith("cs")) {
             return "cs-CZ";
         } else if (ls.startsWith("el")) {

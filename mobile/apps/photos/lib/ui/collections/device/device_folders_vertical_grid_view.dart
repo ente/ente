@@ -168,7 +168,6 @@ class _DeviceFolderVerticalGridViewBodyState
       }
       return widget.showEmptyState
           ? SliverFillRemaining(
-              hasScrollBody: false,
               child: OnDeviceEmptyState.permission(
                 onFoldersSelected: () {
                   _refreshDeviceCollections();
@@ -208,11 +207,8 @@ class _DeviceFolderVerticalGridViewBodyState
             }
             return widget.showEmptyState
                 ? SliverFillRemaining(
-                    hasScrollBody: false,
                     child: !hasDeviceCollections
-                        ? OnDeviceEmptyState.noFolders(
-                            onFoldersSelected: _refreshDeviceCollections,
-                          )
+                        ? const OnDeviceEmptyState.noFolders()
                         : Padding(
                             padding: const EdgeInsets.all(22),
                             child: EmptyState(

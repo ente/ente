@@ -160,7 +160,7 @@ export function UploadProgressDetails() {
                         {t("failed_uploads_hint")}
                     </Typography>
                 )}
-                <Box sx={uploadRowsSx(isDone)}>
+                <Box sx={uploadRowsSx(isDone)} data-custom-scrollbar>
                     {activeStat == "inProgress" ? (
                         inProgressUploads.length ? (
                             inProgressUploads.map(

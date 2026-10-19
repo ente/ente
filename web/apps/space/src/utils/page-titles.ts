@@ -10,6 +10,7 @@ const pageTitles: Record<string, string> = {
     "/app/friends": "Friends",
     "/app/messages": "Messages",
     "/app/messages/[spaceId]": "Messages",
+    "/app/notifications": "Notifications",
     "/app/post": "Create post",
     "/app/posts/[spaceId]/[postId]": "Post",
     "/app/profile": "Your profile",

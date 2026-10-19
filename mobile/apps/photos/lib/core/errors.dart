@@ -89,6 +89,11 @@ class InvalidStateError extends AssertionError {
 
 class SrpSetupNotCompleteError extends Error {}
 
+class IncorrectPasswordError implements Exception, LocallyHandledError {
+  @override
+  String toString() => "Incorrect password";
+}
+
 class SharingNotPermittedForFreeAccountsError extends Error {}
 
 class RecipientIdentityMismatchError extends Error {}

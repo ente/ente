@@ -16,6 +16,14 @@ This page helps you solve common issues with Ente Photos. Jump to the section th
 
 ## Upload Issues
 
+### Why are uploads or sign-in blocked after my paid plan expires? {#expired-subscription-access}
+
+Check whether your Photos subscription has expired, even if your usage is within the free allowance or you can still use Ente Auth. A Photos subscription restriction can sometimes appear as a sign-in or verification failure.
+
+Contact [support@ente.com](mailto:support@ente.com) to check your subscription status and discuss renewal or returning to the free plan. Do not delete your account or reset two-factor authentication just to troubleshoot an expired subscription.
+
+See [what happens when a subscription expires](/photos/faq/storage-and-plans#subscription-expires).
+
 ### Why are my large videos failing to upload? {#video-upload-failures}
 
 If large video files (300-700+ MB) are failing to upload or getting stuck, try these solutions:
@@ -122,6 +130,18 @@ If your photos or videos aren't uploading to Ente, try these troubleshooting ste
 - Files larger than 10 GB cannot be uploaded
 - If a valid file isn't uploading, contact [support@ente.com](mailto:support@ente.com)
 
+### What does “This upload API is no longer supported” mean? {#unsupported-upload-api}
+
+If Ente reports **This upload API is no longer supported. Please update your app.**, update Ente on the device that is trying to upload. Updating another device does not update the uploading app.
+
+1. Use the same app store or distribution channel you originally installed from. See [how to update Ente](/photos/faq/account-creation#update-latest).
+2. If you use F-Droid, refresh its repository information and check the Ente Photos listing for an update.
+3. Open the updated app and check the backup status again.
+
+If the same error remains, [send logs from the affected app](#sharing-logs), along with its version and installation source.
+
+Before changing Android distribution channels, read [the channel-switching note](/photos/getting-started/installation#android). Keep unsynced originals and a working way to access your Ente account; do not uninstall your existing app or clear its data just to try an update.
+
 ### Why does upload show "Waiting to upload"? {#waiting-to-upload}
 
 This usually indicates a network connectivity issue:
@@ -149,6 +169,8 @@ If some files fail to download from your Ente library on web or desktop, you can
 **Solution:**
 
 When files fail to download, a modal dialog appears showing the failed downloads. Click the **retry icon** in the modal to attempt downloading the failed files again.
+
+If a photo or video fails to load in the desktop viewer, use **Retry** in the viewer to try the download again. The viewer shows download progress while the file loads.
 
 ### Why can't the app detect certain file types? {#file-type-detection}
 
@@ -652,7 +674,7 @@ This removes thumbnails and previews that Ente can recreate. It does not remove 
 
 ### How do I share debug logs with support? {#sharing-logs}
 
-If you need to contact support, debug logs help us diagnose issues faster.
+Debug logs help us investigate problems. Collect them from the app and device where the issue occurs; for example, send desktop logs for a desktop upload problem.
 
 > [!NOTE]
 >
@@ -664,7 +686,7 @@ Open `Settings > Help & Support > Export logs`. This will download logs which yo
 
 **On desktop:**
 
-Open `Settings > Support > Help` to view logs location, then go back to `Settings > Support` to open your email client. Attach the logs and describe your issue.
+Open **Settings > Help > View logs**. Review the notice and select **View logs** to open the logs folder. Attach the relevant logs to an email to [support@ente.com](mailto:support@ente.com) and describe the problem. You can also open your email app through **Settings > Help > Support**.
 
 **Desktop log locations:**
 

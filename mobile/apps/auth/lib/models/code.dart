@@ -22,6 +22,7 @@ class Code {
   final String rawData;
   final int counter;
   bool? hasSynced;
+  int? createdAt;
 
   final CodeDisplay display;
 
@@ -106,7 +107,7 @@ class Code {
       "&period=$updatePeriod&secret=$updatedSecret${updatedType == Type.hotp ? "&counter=$updatedCounter" : ""}",
       generatedID: generatedID,
       display: updatedDisplay,
-    );
+    )..createdAt = createdAt;
   }
 
   static Code fromAccountAndSecret(
@@ -135,7 +136,10 @@ class Code {
   }
 
   static Code fromOTPAuthUrl(String rawData, {CodeDisplay? display}) {
-    Uri uri = Uri.parse(rawData);
+    final uri = Uri.tryParse(rawData);
+    if (uri == null) {
+      throw const FormatException('OTP URL is malformed');
+    }
     final issuer = _getIssuer(uri);
     final account = _getAccount(uri, issuer);
 

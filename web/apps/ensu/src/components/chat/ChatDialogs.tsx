@@ -1,3 +1,4 @@
+import { SourceIntroductionDialog } from "@/components/chat/SourceIntroductionDialog";
 import type { KnowledgePack } from "@/services/knowledge";
 import {
     DEFAULT_TAURI_CONTEXT_SIZE,
@@ -58,12 +59,7 @@ interface SuggestedModel {
 }
 
 type ModelGateStatus =
-    | "checking"
-    | "missing"
-    | "preloading"
-    | "downloading"
-    | "ready"
-    | "error";
+    "checking" | "missing" | "preloading" | "downloading" | "ready" | "error";
 
 type SxEntry = Exclude<SxProps<Theme>, readonly unknown[]>;
 
@@ -150,18 +146,21 @@ export interface ChatDialogsProps {
     knowledgeCatalogLoading: boolean;
     knowledgeCatalogError: string | null;
     retryKnowledgeCatalog: () => void;
-    enabledKnowledgePackIds: Set<string>;
     knowledgeDownloadProgress: Record<string, number | undefined>;
     knowledgeErrors: Record<string, string | undefined>;
     handleDownloadKnowledgePack: (stableId: string) => void;
     handleCancelKnowledgePackDownload: (stableId: string) => void;
-    handleSetKnowledgePackEnabled: (stableId: string, enabled: boolean) => void;
     notesCollections: NotesCollectionView[];
     notesCollectionsLoading: boolean;
     notesCollectionsError: string | null;
     retryNotesCollections: () => void;
     handleAddNotesFolder: () => void;
     handleRemoveNotesCollection: (collectionId: string, label: string) => void;
+    onSettingsFlowVisibilityChange: (open: boolean) => void;
+    disabledNoteIds: string[];
+    disabledPackIds: string[];
+    handleSetPackEnabled: (id: string, enabled: boolean) => void;
+    handleSetNotesEnabled: (collectionId: string, enabled: boolean) => void;
     handleIndexNotesCollection: (collectionId: string, force?: boolean) => void;
     chatNotificationOpen: boolean;
     setChatNotificationOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -221,18 +220,21 @@ export const ChatDialogs = memo(
         knowledgeCatalogLoading,
         knowledgeCatalogError,
         retryKnowledgeCatalog,
-        enabledKnowledgePackIds,
         knowledgeDownloadProgress,
         knowledgeErrors,
         handleDownloadKnowledgePack,
         handleCancelKnowledgePackDownload,
-        handleSetKnowledgePackEnabled,
         notesCollections,
         notesCollectionsLoading,
         notesCollectionsError,
         retryNotesCollections,
         handleAddNotesFolder,
         handleRemoveNotesCollection,
+        onSettingsFlowVisibilityChange,
+        disabledNoteIds,
+        disabledPackIds,
+        handleSetPackEnabled,
+        handleSetNotesEnabled,
         handleIndexNotesCollection,
         chatNotificationOpen,
         setChatNotificationOpen,
@@ -277,13 +279,57 @@ export const ChatDialogs = memo(
         const [showKnowledgeSettings, setShowKnowledgeSettings] =
             React.useState(false);
         const [showNotesSettings, setShowNotesSettings] = React.useState(false);
+        const [showIntroduction, setShowIntroduction] = React.useState(false);
+        const [returnToIntroduction, setReturnToIntroduction] =
+            React.useState(false);
+        const settingsFlowVisible =
+            showSettingsModal ||
+            showNotesSettings ||
+            showKnowledgeSettings ||
+            showIntroduction ||
+            showModelSettings ||
+            showSystemPromptSettings ||
+            showBackupComingSoon;
+        React.useEffect(() => {
+            onSettingsFlowVisibilityChange(settingsFlowVisible);
+        }, [onSettingsFlowVisibilityChange, settingsFlowVisible]);
+        const checkedIntroduction = React.useRef(false);
+        React.useEffect(() => {
+            if (
+                !isTauriRuntime ||
+                modelGateStatus !== "ready" ||
+                showSettingsModal ||
+                checkedIntroduction.current
+            )
+                return;
+            checkedIntroduction.current = true;
+            try {
+                if (
+                    localStorage.getItem(
+                        "ensu.desktop.sources.introductionSeen",
+                    ) === "true"
+                )
+                    return;
+                localStorage.setItem(
+                    "ensu.desktop.sources.introductionSeen",
+                    "true",
+                );
+            } catch {
+                setShowIntroduction(true);
+                return;
+            }
+            setShowIntroduction(true);
+        }, [isTauriRuntime, modelGateStatus, showSettingsModal]);
         const [attributionPack, setAttributionPack] =
             React.useState<KnowledgePack | null>(null);
 
         const returnToSettings = () => {
             setShowKnowledgeSettings(false);
             setShowNotesSettings(false);
-            openSettingsModal();
+            if (returnToIntroduction) {
+                setReturnToIntroduction(false);
+                setShowIntroduction(true);
+            } else openSettingsModal();
         };
 
         const [draftSystemPrompt, setDraftSystemPrompt] = React.useState("");
@@ -346,6 +392,20 @@ export const ChatDialogs = memo(
 
         return (
             <>
+                <SourceIntroductionDialog
+                    open={showIntroduction}
+                    onClose={() => setShowIntroduction(false)}
+                    onSetUpPacks={() => {
+                        setShowIntroduction(false);
+                        setReturnToIntroduction(true);
+                        setShowKnowledgeSettings(true);
+                    }}
+                    onSetUpNotes={() => {
+                        setShowIntroduction(false);
+                        setReturnToIntroduction(true);
+                        setShowNotesSettings(true);
+                    }}
+                />
                 <Dialog
                     open={!!imagePreview}
                     onClose={closeImagePreview}
@@ -496,6 +556,7 @@ export const ChatDialogs = memo(
                                     <ListItemButton
                                         onClick={() => {
                                             closeSettingsModal();
+                                            setReturnToIntroduction(false);
                                             setShowNotesSettings(true);
                                         }}
                                         sx={settingsItemSx}
@@ -521,6 +582,7 @@ export const ChatDialogs = memo(
                                     <ListItemButton
                                         onClick={() => {
                                             closeSettingsModal();
+                                            setReturnToIntroduction(false);
                                             setShowKnowledgeSettings(true);
                                         }}
                                         sx={settingsItemSx}
@@ -767,7 +829,11 @@ export const ChatDialogs = memo(
                         ]}
                     >
                         <IconButton
-                            aria-label="Back to settings"
+                            aria-label={
+                                returnToIntroduction
+                                    ? "Back to setup"
+                                    : "Back to settings"
+                            }
                             onClick={returnToSettings}
                             sx={drawerIconButtonSx}
                         >
@@ -782,6 +848,13 @@ export const ChatDialogs = memo(
                     </DialogTitle>
                     <DialogContent>
                         <Stack sx={{ gap: 2 }}>
+                            <Typography
+                                variant="small"
+                                sx={{ color: "text.muted" }}
+                            >
+                                Choose notes to use for your next messages in
+                                any chat.
+                            </Typography>
                             {notesCollectionsError && (
                                 <Stack
                                     direction="row"
@@ -820,7 +893,10 @@ export const ChatDialogs = memo(
                                         : collection.activity ===
                                             "waitingForModel"
                                           ? "Indexing will start when the model is ready."
-                                          : null;
+                                          : collection.activity ===
+                                              "waitingForChat"
+                                            ? "Indexing will resume when chat is idle."
+                                            : null;
                                 return (
                                     <Stack
                                         key={collection.id}
@@ -865,22 +941,51 @@ export const ChatDialogs = memo(
                                                     )}
                                                 </Typography>
                                             </Stack>
-                                            <IconButton
-                                                aria-label={`Remove ${collection.label}`}
-                                                disabled={indexing || starting}
-                                                onClick={() =>
-                                                    handleRemoveNotesCollection(
+                                            <Switch
+                                                checked={
+                                                    !disabledNoteIds.includes(
                                                         collection.id,
-                                                        collection.label,
                                                     )
                                                 }
-                                                sx={actionButtonSx}
-                                            >
-                                                <HugeiconsIcon
-                                                    icon={Delete01Icon}
-                                                    {...compactIconProps}
-                                                />
-                                            </IconButton>
+                                                disabled={
+                                                    notesCollectionsLoading
+                                                }
+                                                onChange={(_, checked) =>
+                                                    handleSetNotesEnabled(
+                                                        collection.id,
+                                                        checked,
+                                                    )
+                                                }
+                                                slotProps={{
+                                                    input: {
+                                                        "aria-label": `Use ${collection.label} for new messages`,
+                                                    },
+                                                }}
+                                            />
+                                            {!returnToIntroduction && (
+                                                <IconButton
+                                                    aria-label={`Remove ${collection.label}`}
+                                                    title="Remove notes folder"
+                                                    disabled={
+                                                        indexing || starting
+                                                    }
+                                                    onClick={() =>
+                                                        handleRemoveNotesCollection(
+                                                            collection.id,
+                                                            collection.label,
+                                                        )
+                                                    }
+                                                    sx={[
+                                                        actionButtonSx,
+                                                        { color: "text.muted" },
+                                                    ]}
+                                                >
+                                                    <HugeiconsIcon
+                                                        icon={Delete01Icon}
+                                                        {...smallIconProps}
+                                                    />
+                                                </IconButton>
+                                            )}
                                         </Stack>
                                         {indexing && (
                                             <Stack
@@ -928,6 +1033,15 @@ export const ChatDialogs = memo(
                                                 {collection.watcherError}
                                             </Typography>
                                         )}
+                                        {collection.status === "unavailable" &&
+                                            !collection.lastError && (
+                                                <Typography
+                                                    variant="small"
+                                                    sx={{ color: "text.muted" }}
+                                                >
+                                                    Folder unavailable
+                                                </Typography>
+                                            )}
                                         {(canRetry ||
                                             collection.watcherError) && (
                                             <Button
@@ -993,7 +1107,11 @@ export const ChatDialogs = memo(
                         ]}
                     >
                         <IconButton
-                            aria-label="Back to settings"
+                            aria-label={
+                                returnToIntroduction
+                                    ? "Back to setup"
+                                    : "Back to settings"
+                            }
                             onClick={returnToSettings}
                             sx={drawerIconButtonSx}
                         >
@@ -1006,6 +1124,13 @@ export const ChatDialogs = memo(
                     </DialogTitle>
                     <DialogContent>
                         <Stack sx={{ gap: 2 }}>
+                            <Typography
+                                variant="small"
+                                sx={{ color: "text.muted" }}
+                            >
+                                Choose packs to use for your next messages in
+                                any chat.
+                            </Typography>
                             {knowledgeCatalogError && (
                                 <Stack
                                     direction="row"
@@ -1034,9 +1159,8 @@ export const ChatDialogs = memo(
                                     pack.status === "updateAvailable";
                                 const isMutating = progress !== undefined;
                                 const enabled =
-                                    enabledKnowledgePackIds.has(
-                                        pack.stableId,
-                                    ) && installed;
+                                    !disabledPackIds.includes(pack.stableId) &&
+                                    installed;
                                 return (
                                     <Stack
                                         key={pack.stableId}
@@ -1108,14 +1232,14 @@ export const ChatDialogs = memo(
                                                         knowledgeCatalogLoading
                                                     }
                                                     onChange={(_, checked) =>
-                                                        handleSetKnowledgePackEnabled(
+                                                        handleSetPackEnabled(
                                                             pack.stableId,
                                                             checked,
                                                         )
                                                     }
                                                     slotProps={{
                                                         input: {
-                                                            "aria-label": `Enable ${pack.label}`,
+                                                            "aria-label": `Use ${pack.label} for new messages`,
                                                         },
                                                     }}
                                                 />

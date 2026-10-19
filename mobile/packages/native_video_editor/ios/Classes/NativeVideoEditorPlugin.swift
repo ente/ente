@@ -337,7 +337,8 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
             trimStartMs: int64(args["trimStartMs"]),
             trimEndMs: int64(args["trimEndMs"]),
             rotateDegrees: int(args["rotateDegrees"]),
-            crop: crop
+            crop: crop,
+            speed: double(args["speed"]) ?? 1
         )
     }
 
@@ -347,6 +348,10 @@ public final class NativeVideoEditorPlugin: NSObject, @preconcurrency FlutterPlu
 
     private func int64(_ value: Any?) -> Int64? {
         (value as? NSNumber)?.int64Value
+    }
+
+    private func double(_ value: Any?) -> Double? {
+        (value as? NSNumber)?.doubleValue
     }
 
     private func flutterError(

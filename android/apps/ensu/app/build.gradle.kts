@@ -79,7 +79,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = (project.findProperty("versionCode") as? String)?.toInt() ?: 33
-        versionName = "0.1.21"
+        versionName = "0.1.23"
     }
 
     buildTypes {
@@ -99,6 +99,7 @@ android {
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
         jniLibs {
+            useLegacyPackaging = true
             pickFirsts +=
                 setOf(
                     "lib/arm64-v8a/libc++_shared.so",

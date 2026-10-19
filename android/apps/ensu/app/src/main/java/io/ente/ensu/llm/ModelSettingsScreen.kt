@@ -46,13 +46,16 @@ fun ModelSettingsScreen(
     onReset: () -> Unit,
 ) {
     val context = LocalContext.current
-    val modelChoices =
+    val modelPolicy =
         remember(totalMemoryBytes) {
-            val modelPolicy =
-                resolveModelPolicy(
-                    surface = ModelRuntimeSurface.ANDROID,
-                    totalMemoryBytes = totalMemoryBytes?.toULong(),
-                )
+            resolveModelPolicy(
+                surface = ModelRuntimeSurface.ANDROID,
+                totalMemoryBytes = totalMemoryBytes?.toULong(),
+            )
+        }
+    val usesSmallModel = modelPolicy.defaultModel.id == "lfm-350m"
+    val modelChoices =
+        remember(modelPolicy) {
             listOf(
                 ModelChoice(
                     id = DEFAULT_OPTION_ID,
@@ -159,14 +162,17 @@ fun ModelSettingsScreen(
                 OutlinedTextField(
                     value = contextLength,
                     onValueChange = { contextLength = it },
-                    placeholder = { Text(text = "8192") },
+                    placeholder = { Text(text = if (usesSmallModel) "2048" else "8192") },
                     modifier = Modifier.fillMaxWidth(),
                     isError = contextError != null,
                     supportingText = { contextError?.let { Text(it) } },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
                 Text(
-                    text = "Response length adjusts automatically to the context length.",
+                    text =
+                        if (usesSmallModel)
+                            "Context is limited to 2,048 tokens on this device. Response length adjusts automatically."
+                        else "Response length adjusts automatically to the context length.",
                     style = EnsuTypography.small,
                     color = EnsuColor.textMuted(),
                 )

@@ -38,11 +38,7 @@ interface SubscriptionDetails {
 }
 
 export type SpaceWebPushState =
-    | "denied"
-    | "recovery"
-    | "subscribed"
-    | "unavailable"
-    | "unsubscribed";
+    "denied" | "recovery" | "subscribed" | "unavailable" | "unsubscribed";
 
 let pendingPreparation: Promise<PreparedSpaceWebPush | undefined> | undefined;
 let pendingDatabase: Promise<IDBDatabase> | undefined;

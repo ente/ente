@@ -8,7 +8,9 @@ struct ChatView: View {
 
     @StateObject private var viewState = ChatViewState()
     @StateObject private var keyboard = KeyboardObserver()
-    @FocusState private var isInputFocused: Bool
+    @State private var showSourceIntroduction = false
+    @AppStorage("ensu.sources.introductionSeen") private var sourceIntroductionSeen = false
+    @State private var isInputFocused = false
 
     private var editingMessage: RenderedChatMessage? {
         guard let editingId = viewModel.editingMessageId else { return nil }
@@ -30,6 +32,19 @@ struct ChatView: View {
             && !viewState.isDrawerOpen
             && !viewState.didDismissKeyboard
             && !viewState.showSettings
+            && !showSourceIntroduction
+            && sourceIntroductionSeen
+    }
+
+    private var canShowSourceIntroduction: Bool {
+        !sourceIntroductionSeen && viewModel.isModelDownloaded && !viewModel.isDownloading
+            && !viewModel.isGenerating && !viewModel.isChatUnsupported && !viewState.isDrawerOpen
+            && !viewState.showSettings && !showSourceIntroduction
+            && viewState.pendingWhatsNew == nil
+    }
+
+    private var isChatActive: Bool {
+        scenePhase == .active && !viewState.showSettings && !showSourceIntroduction
     }
 
     private var overflowDialogPresented: Binding<Bool> {
@@ -143,8 +158,8 @@ struct ChatView: View {
                 viewModel.modelSelectionChanged()
             }
             .onChange(of: scenePhase) { newValue in
+                viewModel.setAppForeground(newValue != .background)
                 viewModel.notesStore.setForeground(newValue == .active)
-                viewModel.setChatActive(newValue == .active && !viewState.showSettings)
                 if newValue == .active {
                     viewModel.refreshModelDownloadInfo()
                 } else {
@@ -154,15 +169,17 @@ struct ChatView: View {
         }
         .environmentObject(viewModel.notesStore)
         .onAppear {
+            viewModel.setAppForeground(scenePhase != .background)
             viewModel.notesStore.setForeground(scenePhase == .active)
-            viewModel.setChatActive(scenePhase == .active && !viewState.showSettings)
+            viewModel.setChatActive(isChatActive)
         }
+        .onChange(of: isChatActive) { viewModel.setChatActive($0) }
         .onDisappear { viewModel.setChatActive(false) }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: UIApplication.didReceiveMemoryWarningNotification)
         ) { _ in
-            viewModel.suppressChatWarmup()
+            viewModel.handleMemoryPressure()
         }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(
@@ -174,8 +191,18 @@ struct ChatView: View {
                 }
             )
         }
+        .sheet(isPresented: $showSourceIntroduction) {
+            SourceIntroductionSheet(
+                knowledgeStore: viewModel.knowledgeStore, notesStore: viewModel.notesStore)
+        }
+        .task(id: canShowSourceIntroduction) {
+            if canShowSourceIntroduction {
+                isInputFocused = false
+                showSourceIntroduction = true
+                sourceIntroductionSeen = true
+            }
+        }
         .onChange(of: viewState.showSettings) { isPresented in
-            viewModel.setChatActive(!isPresented && scenePhase == .active)
             if isPresented {
                 viewState.didDismissKeyboard = true
                 isInputFocused = false
@@ -341,6 +368,7 @@ struct ChatView: View {
                     MessageInputView(
                         text: $viewModel.draftText,
                         attachments: $viewModel.draftAttachments,
+                        supportsImageAttachments: viewModel.supportsImageAttachments,
                         isGenerating: viewModel.isGenerating,
                         isSendPending: viewModel.isSendPending,
                         isDownloading: viewModel.isDownloading,

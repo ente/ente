@@ -1,5 +1,6 @@
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { Skeleton, styled, Typography } from "@mui/material";
+import { Skeleton, Stack, styled, Typography } from "@mui/material";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { EnteFile } from "ente-media/file";
 import { faceCrop, type AnnotatedFaceID } from "ente-new/photos/services/ml";
@@ -7,6 +8,7 @@ import type {
     Person,
     PreviewableFace,
 } from "ente-new/photos/services/ml/people";
+import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 import { UnstyledButton } from "./UnstyledButton";
 
@@ -21,22 +23,51 @@ export const SearchPeopleList: React.FC<SearchPeopleListProps> = ({
 }) => {
     const isSmallWidth = useIsSmallWidth();
     return (
-        <SearchPeopleContainer
-            sx={[
-                people.length > 3
-                    ? { justifyContent: "center" }
-                    : { justifyContent: "start" },
-            ]}
-        >
+        <SearchPeopleContainer>
             {people.slice(0, isSmallWidth ? 6 : 7).map((person) => (
                 <SearchPersonButton
                     key={person.id}
                     onClick={() => onSelectPerson(person.id)}
                 >
-                    <FaceCropImageView
-                        faceID={person.displayFaceID}
-                        file={person.displayFaceFile}
-                        placeholderDimension={87}
+                    <SearchPersonAvatar>
+                        <FaceCropImageView
+                            faceID={person.displayFaceID}
+                            file={person.displayFaceFile}
+                            placeholderDimension={40}
+                        />
+                    </SearchPersonAvatar>
+                    <Stack sx={{ flex: 1, minWidth: 0, gap: "4px" }}>
+                        {person.name && (
+                            <Typography
+                                component="span"
+                                sx={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    overflowWrap: "anywhere",
+                                }}
+                            >
+                                {person.name}
+                            </Typography>
+                        )}
+                        <Typography
+                            component="span"
+                            variant="mini"
+                            sx={{
+                                color: "text.muted",
+                                overflowWrap: "anywhere",
+                            }}
+                        >
+                            {`${t("people")} · ${t("photos_count", {
+                                count: person.fileIDs.length,
+                            })}`}
+                        </Typography>
+                    </Stack>
+                    <ArrowForwardIosIcon
+                        sx={{
+                            fontSize: 12,
+                            color: "text.muted",
+                            flexShrink: 0,
+                        }}
                     />
                 </SearchPersonButton>
             ))}
@@ -46,29 +77,41 @@ export const SearchPeopleList: React.FC<SearchPeopleListProps> = ({
 
 const SearchPeopleContainer = styled("div")`
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 5px;
+    flex-direction: column;
+    gap: 8px;
     margin-block-start: 12px;
     margin-block-end: 15px;
 `;
 
-const SearchPersonButton = styled(UnstyledButton)(
-    ({ theme }) => `
-    width: 87px;
-    height: 87px;
-    border-radius: 50%;
-    overflow: hidden;
-    & > img {
-        width: 100%;
-        height: 100%;
-    }
-    :hover {
-        outline: 1px solid ${theme.vars.palette.stroke.faint};
-        outline-offset: 2px;
-    }
-`,
-);
+const SearchPersonButton = styled(UnstyledButton)(({ theme }) => ({
+    display: "flex",
+    width: "100%",
+    minHeight: 56,
+    alignItems: "center",
+    gap: "12px",
+    padding: "8px 12px 8px 8px",
+    borderRadius: "12px",
+    textAlign: "left",
+    color: theme.vars.palette.text.base,
+    backgroundColor: theme.vars.palette.background.paper,
+    "&:hover": {
+        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.text.base} 8%, ${theme.vars.palette.background.paper})`,
+    },
+    "&:focus-visible": {
+        outline: `2px solid color-mix(in srgb, ${theme.vars.palette.accent.main} 55%, transparent)`,
+        outlineOffset: "-2px",
+    },
+}));
+
+const SearchPersonAvatar = styled("div")({
+    position: "relative",
+    width: 40,
+    height: 40,
+    flexShrink: 0,
+    borderRadius: "50%",
+    overflow: "hidden",
+    "& img": { width: "100%", height: "100%", objectFit: "cover" },
+});
 
 export interface FilePeopleListProps {
     file: EnteFile;
@@ -92,6 +135,29 @@ export const FilePeopleList: React.FC<FilePeopleListProps> = ({
     addPersonLabel,
 }) => (
     <FilePeopleList_>
+        {manuallyAssignedPeople
+            ?.toSorted((a, b) => {
+                const an = (a.name ?? "").toLowerCase();
+                const bn = (b.name ?? "").toLowerCase();
+                return an < bn ? -1 : an > bn ? 1 : 0;
+            })
+            .map((person) => (
+                <ManuallyAssignedPersonButton
+                    key={person.id}
+                    onClick={() => onSelectPerson?.(person.id)}
+                >
+                    <FaceCropImageView
+                        faceID={person.displayFaceID}
+                        file={person.displayFaceFile}
+                        placeholderDimension={65}
+                    />
+                    <Typography variant="small" sx={{ color: "text.muted" }}>
+                        {person.type == "cgroup" && person.isHidden
+                            ? `(${t("ignored")})`
+                            : person.name}
+                    </Typography>
+                </ManuallyAssignedPersonButton>
+            ))}
         {annotatedFaceIDs.map((annotatedFaceID) => (
             <AnnotatedFaceButton
                 key={annotatedFaceID.faceID}
@@ -103,24 +169,11 @@ export const FilePeopleList: React.FC<FilePeopleListProps> = ({
                     placeholderDimension={65}
                 />
                 <Typography variant="small" sx={{ color: "text.muted" }}>
-                    {annotatedFaceID.personName}
+                    {annotatedFaceID.isIgnored
+                        ? `(${t("ignored")})`
+                        : annotatedFaceID.personName}
                 </Typography>
             </AnnotatedFaceButton>
-        ))}
-        {manuallyAssignedPeople?.map((person) => (
-            <ManuallyAssignedPersonButton
-                key={person.id}
-                onClick={() => onSelectPerson?.(person.id)}
-            >
-                <FaceCropImageView
-                    faceID={person.displayFaceID}
-                    file={person.displayFaceFile}
-                    placeholderDimension={65}
-                />
-                <Typography variant="small" sx={{ color: "text.muted" }}>
-                    {person.name}
-                </Typography>
-            </ManuallyAssignedPersonButton>
         ))}
         {onAddPerson && (
             <AddPersonButton

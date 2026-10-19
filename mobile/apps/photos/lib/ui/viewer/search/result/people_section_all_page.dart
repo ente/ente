@@ -28,6 +28,7 @@ import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/file/no_thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/ui/viewer/people/person_gallery_suggestion.dart";
@@ -46,6 +47,13 @@ class PeopleSectionAllPage extends StatefulWidget {
 
 class _PeopleSectionAllPageState extends State<PeopleSectionAllPage> {
   final _selectedPeople = SelectedPeople();
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,20 +63,47 @@ class _PeopleSectionAllPageState extends State<PeopleSectionAllPage> {
         final hasSelection = _selectedPeople.personIds.isNotEmpty;
 
         return Scaffold(
-          body: PeopleSectionAllSelectionWrapper(
-            selectedPeople: _selectedPeople,
-            showSearchBar: true,
-            startInSearchMode: widget.startInSearchMode,
-            includeEmptyPersons: true,
+          body: GalleryBoundariesProvider(
+            child: Builder(
+              builder: (context) => Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  ValueListenableBuilder<double?>(
+                    valueListenable: GalleryBoundariesProvider.of(
+                      context,
+                    )!.selectionSheetMinHeightNotifier,
+                    builder: (context, height, _) => Padding(
+                      padding: EdgeInsets.only(
+                        bottom: hasSelection
+                            ? height ??
+                                  (MediaQuery.textScalerOf(context).scale(
+                                                    TextStyles.body.fontSize!,
+                                                  ) *
+                                                  TextStyles.body.height! +
+                                              Spacing.md * 2)
+                                          .clamp(44.0, double.infinity) +
+                                      MediaQuery.paddingOf(context).bottom
+                            : 0,
+                      ),
+                      child: PeopleSectionAllSelectionWrapper(
+                        selectedPeople: _selectedPeople,
+                        showSearchBar: true,
+                        startInSearchMode: widget.startInSearchMode,
+                        includeEmptyPersons: true,
+                        scrollController: _scrollController,
+                      ),
+                    ),
+                  ),
+                  if (hasSelection)
+                    PeopleBottomActionBarWidget(
+                      _selectedPeople,
+                      backgroundScrollController: _scrollController,
+                      onCancel: _selectedPeople.clearAll,
+                    ),
+                ],
+              ),
+            ),
           ),
-          bottomNavigationBar: hasSelection
-              ? PeopleBottomActionBarWidget(
-                  _selectedPeople,
-                  onCancel: () {
-                    _selectedPeople.clearAll();
-                  },
-                )
-              : null,
         );
       },
     );
@@ -80,6 +115,7 @@ class PeopleSectionAllSelectionWrapper extends StatefulWidget {
   final bool showSearchBar;
   final bool startInSearchMode;
   final bool includeEmptyPersons;
+  final ScrollController? scrollController;
 
   const PeopleSectionAllSelectionWrapper({
     super.key,
@@ -87,6 +123,7 @@ class PeopleSectionAllSelectionWrapper extends StatefulWidget {
     this.showSearchBar = false,
     this.startInSearchMode = false,
     this.includeEmptyPersons = false,
+    this.scrollController,
   });
 
   @override
@@ -103,6 +140,7 @@ class _PeopleSectionAllSelectionWrapperState
       showSearchBar: widget.showSearchBar,
       startInSearchMode: widget.startInSearchMode,
       includeEmptyPersons: widget.includeEmptyPersons,
+      scrollController: widget.scrollController,
     );
   }
 }
@@ -321,6 +359,7 @@ class PeopleSectionAllWidget extends StatefulWidget {
     this.showSearchBar = false,
     this.startInSearchMode = false,
     this.includeEmptyPersons = false,
+    this.scrollController,
   });
 
   final SelectedPeople? selectedPeople;
@@ -328,6 +367,7 @@ class PeopleSectionAllWidget extends StatefulWidget {
   final bool showSearchBar;
   final bool startInSearchMode;
   final bool includeEmptyPersons;
+  final ScrollController? scrollController;
 
   @override
   State<PeopleSectionAllWidget> createState() => _PeopleSectionAllWidgetState();
@@ -859,10 +899,14 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
 
   Widget _buildScrollBody(List<Widget> slivers) {
     if (!widget.showSearchBar) {
-      return CustomScrollView(slivers: slivers);
+      return CustomScrollView(
+        controller: widget.scrollController,
+        slivers: slivers,
+      );
     }
 
     return AppBarComponent(
+      controller: widget.scrollController,
       title: SectionType.face.sectionTitle(context),
       physics: const BouncingScrollPhysics(),
       titleBuilder: _buildTitle,

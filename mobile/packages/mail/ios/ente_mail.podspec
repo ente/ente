@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'AGPL-3.0-only' }
   s.author           = { 'Ente' => 'support@ente.io' }
   s.source           = { :path => '.' }
-  s.source_files     = 'Classes/**/*'
+  s.source_files     = 'ente_mail/Sources/ente_mail/**/*.swift'
   s.dependency 'Flutter'
   s.frameworks = 'Intents', 'MessageUI'
   s.platform = :ios, '13.0'

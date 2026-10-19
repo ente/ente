@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:flutter_svg/svg.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:photos/ui/tools/editor/image_editor/image_editor_adjust_slider.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_configs_mixin.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_constants.dart";
 import 'package:pro_image_editor/core/mixins/converted_configs.dart';
@@ -109,7 +110,7 @@ class _ImageEditorTuneBarState extends State<ImageEditorTuneBar>
                   final activeMatrix =
                       tuneEditor.tuneAdjustmentMatrix[tuneEditor.selectedIndex];
 
-                  return _TuneAdjustWidget(
+                  return ImageEditorAdjustSlider(
                     min: activeOption.min,
                     max: activeOption.max,
                     value: activeMatrix.value,
@@ -189,7 +190,6 @@ class TuneItem extends StatelessWidget {
       "exposure" => HugeIcons.strokeRoundedCameraLens,
       "saturation" => HugeIcons.strokeRoundedDroplet,
       "temperature" => HugeIcons.strokeRoundedTemperature,
-      "sharpness" => HugeIcons.strokeRoundedFocusPoint,
       "hue" => HugeIcons.strokeRoundedColors,
       _ => null,
     };
@@ -197,7 +197,7 @@ class TuneItem extends StatelessWidget {
 
   String? _svgPathForID(String id) {
     return switch (id) {
-      "luminance" || "fade" => "assets/image-editor/image-editor-$id.svg",
+      "fade" => "assets/image-editor/image-editor-fade.svg",
       _ => null,
     };
   }
@@ -213,6 +213,8 @@ class CircularProgressWithValue extends StatefulWidget {
   final double size;
   final Color progressColor;
   final String? svgPath;
+  final int Function(double)? displayValueBuilder;
+  final String valueSuffix;
 
   const CircularProgressWithValue({
     super.key,
@@ -222,6 +224,8 @@ class CircularProgressWithValue extends StatefulWidget {
     required this.icon,
     this.hugeIcon,
     this.svgPath,
+    this.displayValueBuilder,
+    this.valueSuffix = "",
     required this.progressColor,
     this.isSelected = false,
     this.size = 60,
@@ -300,7 +304,7 @@ class _CircularProgressWithValueState extends State<CircularProgressWithValue>
     } else if (min == -0.25 && max == 0.25) {
       return (value.abs() / 0.25).clamp(0.0, 1.0);
     } else {
-      return (value.abs() / 1.0).clamp(0.0, 1.0);
+      return (value.abs() / max.abs()).clamp(0.0, 1.0);
     }
   }
 
@@ -315,11 +319,9 @@ class _CircularProgressWithValueState extends State<CircularProgressWithValue>
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final displayValue = _normalizeValueForDisplay(
-      widget.value,
-      widget.min,
-      widget.max,
-    );
+    final displayValue =
+        widget.displayValueBuilder?.call(widget.value) ??
+        _normalizeValueForDisplay(widget.value, widget.min, widget.max);
     final displayText = displayValue.toString();
     final prefix = displayValue > 0 ? "+" : "";
     final progressColor = widget.progressColor;
@@ -383,7 +385,7 @@ class _CircularProgressWithValueState extends State<CircularProgressWithValue>
             alignment: Alignment.center,
             child: showValue
                 ? Text(
-                    "$prefix$displayText",
+                    "$prefix$displayText${widget.valueSuffix}",
                     style: TextStyles.bodyBold.copyWith(color: colors.textBase),
                   )
                 : widget.svgPath != null
@@ -408,246 +410,6 @@ class _CircularProgressWithValueState extends State<CircularProgressWithValue>
         ],
       ),
     );
-  }
-}
-
-class _TuneAdjustWidget extends StatelessWidget {
-  final double min;
-  final double max;
-  final double value;
-  final ValueChanged<double> onChanged;
-
-  const _TuneAdjustWidget({
-    required this.min,
-    required this.max,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.componentColors;
-    return SizedBox(
-      height: 40,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                color: colors.fillLight,
-              ),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(25)),
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                thumbShape: const _ColorPickerThumbShape(),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
-                activeTrackColor: colors.primary,
-                inactiveTrackColor: colors.fillLight,
-                trackShape: _CenterBasedTrackShape(isBipolar: min < 0),
-                trackHeight: 24,
-              ),
-              child: Slider(
-                value: value,
-                onChanged: onChanged,
-                min: min,
-                max: max,
-              ),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 38),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.fillBase.withAlpha(30),
-                  ),
-                ),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.fillBase.withAlpha(30),
-                  ),
-                ),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.fillBase.withAlpha(30),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ColorPickerThumbShape extends SliderComponentShape {
-  const _ColorPickerThumbShape();
-
-  static const double thumbRadius = 15.0;
-
-  @override
-  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
-    return const Size(thumbRadius * 2, thumbRadius * 2);
-  }
-
-  @override
-  void paint(
-    PaintingContext context,
-    Offset center, {
-    required Animation<double> activationAnimation,
-    required Animation<double> enableAnimation,
-    required bool isDiscrete,
-    required TextPainter labelPainter,
-    required RenderBox parentBox,
-    required Size sizeWithOverflow,
-    required SliderThemeData sliderTheme,
-    required TextDirection textDirection,
-    required double textScaleFactor,
-    required double value,
-  }) {
-    final canvas = context.canvas;
-
-    final trackRect = sliderTheme.trackShape!.getPreferredRect(
-      parentBox: parentBox,
-      offset: Offset.zero,
-      sliderTheme: sliderTheme,
-      isEnabled: true,
-      isDiscrete: isDiscrete,
-    );
-
-    final constrainedCenter = Offset(
-      center.dx.clamp(
-        trackRect.left + thumbRadius,
-        trackRect.right - thumbRadius,
-      ),
-      center.dy,
-    );
-
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(constrainedCenter, thumbRadius, paint);
-
-    final innerPaint = Paint()
-      ..color = const Color.fromRGBO(8, 194, 37, 1)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(constrainedCenter, 12.5, innerPaint);
-  }
-}
-
-class _CenterBasedTrackShape extends SliderTrackShape {
-  const _CenterBasedTrackShape({this.isBipolar = true});
-
-  static const double horizontalPadding = 6.0;
-
-  final bool isBipolar;
-
-  @override
-  Rect getPreferredRect({
-    required RenderBox parentBox,
-    Offset offset = Offset.zero,
-    required SliderThemeData sliderTheme,
-    bool isEnabled = false,
-    bool isDiscrete = false,
-  }) {
-    final double trackHeight = sliderTheme.trackHeight ?? 8;
-    final double trackLeft = offset.dx + horizontalPadding;
-    final double trackTop =
-        offset.dy + (parentBox.size.height - trackHeight) / 2;
-    final double trackWidth = parentBox.size.width - (horizontalPadding * 2);
-    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
-  }
-
-  @override
-  void paint(
-    PaintingContext context,
-    Offset offset, {
-    required RenderBox parentBox,
-    required SliderThemeData sliderTheme,
-    required Animation<double> enableAnimation,
-    required TextDirection textDirection,
-    required Offset thumbCenter,
-    Offset? secondaryOffset,
-    bool isEnabled = false,
-    bool isDiscrete = false,
-    double? additionalActiveTrackHeight,
-  }) {
-    final Canvas canvas = context.canvas;
-    final Rect trackRect = getPreferredRect(
-      parentBox: parentBox,
-      offset: offset,
-      sliderTheme: sliderTheme,
-      isEnabled: isEnabled,
-      isDiscrete: isDiscrete,
-    );
-
-    final double centerX = trackRect.left + trackRect.width / 2;
-
-    final double clampedThumbDx = thumbCenter.dx.clamp(
-      trackRect.left + _ColorPickerThumbShape.thumbRadius,
-      trackRect.right - _ColorPickerThumbShape.thumbRadius,
-    );
-
-    final double activeStartDx = isBipolar ? centerX : trackRect.left;
-
-    final Paint inactivePaint = Paint()
-      ..color = sliderTheme.inactiveTrackColor!
-      ..style = PaintingStyle.fill;
-
-    final RRect inactiveRRect = RRect.fromRectAndRadius(
-      trackRect,
-      Radius.circular(trackRect.height / 2),
-    );
-
-    canvas.drawRRect(inactiveRRect, inactivePaint);
-
-    if ((clampedThumbDx - activeStartDx).abs() >
-        _ColorPickerThumbShape.thumbRadius) {
-      final Paint activePaint = Paint()
-        ..color = sliderTheme.activeTrackColor!
-        ..style = PaintingStyle.fill;
-
-      final Rect activeRect = clampedThumbDx >= activeStartDx
-          ? Rect.fromLTWH(
-              activeStartDx,
-              trackRect.top,
-              clampedThumbDx - activeStartDx,
-              trackRect.height,
-            )
-          : Rect.fromLTWH(
-              clampedThumbDx,
-              trackRect.top,
-              activeStartDx - clampedThumbDx,
-              trackRect.height,
-            );
-
-      final RRect activeRRect = RRect.fromRectAndRadius(
-        activeRect,
-        Radius.circular(trackRect.height / 2),
-      );
-
-      canvas.drawRRect(activeRRect, activePaint);
-    }
   }
 }
 

@@ -4,6 +4,7 @@ mod common;
 pub(crate) mod config;
 pub(crate) mod conversation;
 pub(crate) mod crypto;
+pub(crate) mod followup;
 pub(crate) mod knowledge;
 pub(crate) mod llm;
 pub(crate) mod notes;

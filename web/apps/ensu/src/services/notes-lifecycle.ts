@@ -12,6 +12,7 @@ export type NotesCollectionActivity =
     | "starting"
     | "waitingForGeneration"
     | "waitingForModel"
+    | "waitingForChat"
     | "failed"
     | null;
 
@@ -20,8 +21,7 @@ export interface NotesCollectionView extends NotesCollection {
 }
 
 type NotesRemovalStart =
-    | { kind: "wait" }
-    | { kind: "start"; queuedForce?: boolean };
+    { kind: "wait" } | { kind: "start"; queuedForce?: boolean };
 
 export class NotesLifecycleController {
     private readonly active = new Set<string>();

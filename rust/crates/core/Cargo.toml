@@ -3,15 +3,14 @@ name = "ente-core"
 edition.workspace = true
 
 [dependencies]
-# Keep argon2 on stable 0.5.x for now. This retains a second digest 0.10
-# chain (via blake2 0.10) until argon2 0.6 reaches stable.
-argon2 = "0.5.0"
-base64 = "0.22.0"
-blake2b_simd = "1.0.0"
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc"] }
+base64 = { version = "0.23.1", default-features = false, features = ["std"] }
+blake2b_simd = "1.0.5"
 crypto_secretbox = { version = "0.1.0", default-features = false, features = ["alloc", "salsa20"] }
 crypto_secretstream = "=0.2.0"
 getrandom.workspace = true
-hpke = { version = "0.14.0", default-features = false, features = ["alloc", "chacha", "getrandom", "mlkem", "x25519"] }
+hmac.workspace = true
+hpke = { version = "0.14.1", default-features = false, features = ["alloc", "chacha", "getrandom", "mlkem", "x25519"] }
 log.workspace = true
 md-5.workspace = true
 rand_core_06 = { package = "rand_core", version = "0.6.0", features = ["getrandom"] }
@@ -19,22 +18,21 @@ reqwest = { workspace = true, features = ["http2", "charset", "system-proxy", "j
 salsa20 = "0.10.0"
 serde.workspace = true
 serde_json.workspace = true
+sha1.workspace = true
+sha2.workspace = true
 subtle.workspace = true
 thiserror.workspace = true
-# Remove when hpke fix for accidentally not enabling xwing zeroize is released.
-# https://github.com/rozbb/rust-hpke/issues/110
-x-wing = { version = "0.1.0", default-features = false, features = ["zeroize"] }
 x25519-dalek = { version = "3.0.0", features = ["static_secrets"] }
 zeroize.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-bytes = "1.11.1"
-futures-core = "0.3.32"
-reqwest = { workspace = true, features = ["stream"] }
+bytes = "1.12.1"
+futures-core = "0.3.34"
+reqwest = { workspace = true, features = ["stream", "gzip", "brotli"] }
 tokio = { workspace = true, features = ["time"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-gloo-timers = { version = "0.3.0", features = ["futures"] }
+gloo-timers = { version = "0.4.0", features = ["futures"] }
 
 [dev-dependencies]
 mockito.workspace = true

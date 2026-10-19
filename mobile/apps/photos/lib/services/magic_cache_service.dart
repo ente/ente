@@ -14,8 +14,10 @@ import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/file_uploaded_event.dart";
 import "package:photos/events/magic_cache_updated_event.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/main.dart" show isIOSBackgroundRefresh;
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/home_tab.dart";
 import "package:photos/models/ml/discover/prompt.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
@@ -230,7 +232,6 @@ GenericSearchResult? toGenericSearchResult(
 class MagicCacheService {
   static const _lastMagicCacheUpdateTime = "last_magic_cache_update_time";
   static const _kPromptsAssetPath = "assets/discover.json";
-  static const _kSearchTabIndex = 3;
   static const _kBackgroundUpdateDebounce = Duration(minutes: 5);
 
   // Avoid competing with other startup work.
@@ -255,7 +256,7 @@ class MagicCacheService {
     });
     Bus.instance.on<TabChangedEvent>().listen((event) {
       if (event.source == TabChangedEventSource.pageView &&
-          event.selectedIndex == _kSearchTabIndex) {
+          event.selectedIndex == searchTabIndex) {
         _runPendingUpdateForSearch();
       }
     });
@@ -332,6 +333,7 @@ class MagicCacheService {
     bool forced = false,
     bool interactive = false,
   }) async {
+    if (isIOSBackgroundRefresh) return;
     if (!enableDiscover) {
       return;
     }

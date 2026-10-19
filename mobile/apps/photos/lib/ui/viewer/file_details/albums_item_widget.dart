@@ -12,9 +12,11 @@ import 'package:photos/models/collection/collection_items.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/selected_files.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/favorites_service.dart";
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
+import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 
 class AlbumsItemWidget extends StatefulWidget {
@@ -109,10 +111,13 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
                   CollectionWithThumbnail(c, null),
                   fileToJumpTo: widget.file,
                 ),
+                useFadeTransition: true,
               );
             },
             onRemove: _canRemoveFrom(c)
-                ? () => _removeFromCollection(context, c)
+                ? () => c.type == CollectionType.favorites
+                      ? _removeFromFavorites(context)
+                      : _removeFromCollection(context, c)
                 : null,
           ),
         );
@@ -153,15 +158,31 @@ class _AlbumsItemWidgetState extends State<AlbumsItemWidget> {
 
   bool _canRemoveFrom(Collection collection) {
     if (collection.type == CollectionType.uncategorized ||
-        collection.type == CollectionType.favorites ||
-        collection.isQuickLinkCollection() ||
         collection.isDefaultHidden()) {
       return false;
+    }
+    if (collection.type == CollectionType.favorites) {
+      return collection.isOwner(widget.currentUserID);
     }
     return widget.file.ownerID == widget.currentUserID ||
         CollectionsService.instance.canRemoveFilesFromAllParticipants(
           collection,
         );
+  }
+
+  Future<void> _removeFromFavorites(BuildContext context) async {
+    try {
+      await FavoritesService.instance.removeFromFavorites(context, widget.file);
+      if (mounted) setState(() {});
+    } catch (e, s) {
+      Logger("AlbumsItemWidget").severe("Failed to remove favorite", e, s);
+      if (context.mounted) {
+        showShortToast(
+          context,
+          context.strings.sorryCouldNotRemoveFromFavorites,
+        );
+      }
+    }
   }
 
   Future<void> _removeFromCollection(

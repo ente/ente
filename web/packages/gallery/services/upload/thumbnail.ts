@@ -161,6 +161,7 @@ export const generateThumbnailNative = async (
               toPathOrZipEntry(fsUploadItem),
               maxThumbnailDimension,
               maxThumbnailSize,
+              fileTypeInfo.extension,
           )
         : ffmpeg.generateVideoThumbnailNative(electron, fsUploadItem);
 

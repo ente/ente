@@ -11,6 +11,8 @@ When you open the installed Ente Photos app on any of your devices, the first sc
 
 If you're creating a new account, select "New to Ente".
 
+![Create an account form on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-signup-create-account.png){width=900px}
+
 > [!NOTE]
 >
 > If you already have an Ente Auth account and plan to use 2FA for Ente Photos (stored in Ente Auth), we recommend keeping separate accounts for Auth and Photos for security. Otherwise, you can use the same account for both.
@@ -34,6 +36,10 @@ In any case, you can always change the email address your account is associated 
 
 Once you submit your email address, you will be asked to verify it with a 6-digit code sent to your email. You should receive the verification code within a couple of minutes. If you don't receive it, check your spam folder. If that doesn't work, reach out to support@ente.com
 
+![Email address filled on Ente Photos mobile and web signup](https://docs-assets.ente.com/screenshots/duo-signup-email.png){width=900px}
+
+![Email verification code entry on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-signup-verify.png){width=900px}
+
 ### Set up a password {#setup-password}
 
 Once your email is verified, you'll be prompted to create a password for your account. Your password is the foundation of Ente's end-to-end encryption - it's used to encrypt all your photos before they're uploaded to our servers.
@@ -41,6 +47,8 @@ Once your email is verified, you'll be prompted to create a password for your ac
 Choose a strong, unique password that you haven't used elsewhere. Ente will indicate the strength of your password as you type it.
 
 Once you've set your password, you're ready to proceed to the next step.
+
+![Password and confirm password fields on Ente Photos mobile and web signup](https://docs-assets.ente.com/screenshots/duo-signup-password.png){width=900px}
 
 ### Save the recovery key {#save-recovery-key}
 
@@ -56,6 +64,8 @@ Your recovery key is the only way to recover your account if you forget your pas
 
 Do not skip this step! Without your recovery key, losing your password means permanently losing access to your photos.
 
+![Recovery key save screen on Ente Photos mobile and web with key frosted](https://docs-assets.ente.com/screenshots/duo-signup-recovery-key.png){width=900px}
+
 ### Choose between free and paid plans {#choose-plan}
 
 The final step of account creation is choosing your plan. Ente offers a generous free plan with **10 GB of storage**, which is perfect for getting started.
@@ -63,6 +73,8 @@ The final step of account creation is choosing your plan. Ente offers a generous
 You can start with the free plan and upgrade anytime as your storage needs to grow. Paid plans offer more storage and additional features like the ability to create public links with no device limit and create family plans.
 
 Once you've made your choice, your account setup is complete and you're ready to start backing up your photos!
+
+![Choose your plan screen on Ente Photos mobile and web including free plan](https://docs-assets.ente.com/screenshots/duo-signup-choose-plan.png){width=900px}
 
 ## Logging in on other devices
 

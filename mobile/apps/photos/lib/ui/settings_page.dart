@@ -3,8 +3,7 @@ import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/settings/app_engagement_section.dart";
-import "package:ente_ui/components/settings/app_version_widget.dart";
-import "package:ente_ui/components/settings/social_icons_row.dart";
+import "package:ente_ui/components/settings/more_from_ente_footer.dart";
 import "package:ente_ui/pages/settings_search_page.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -20,6 +19,7 @@ import "package:photos/ui/account/login_page.dart";
 import "package:photos/ui/components/banners/offline_settings_banner.dart";
 import "package:photos/ui/growth/referral_screen.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/notification/update/change_log_page.dart";
 import "package:photos/ui/settings/about/about_us_page.dart";
 import "package:photos/ui/settings/account/account_settings_page.dart";
 import "package:photos/ui/settings/appearance/appearance_settings_page.dart";
@@ -162,15 +162,14 @@ class _SettingsBody extends StatelessWidget {
                 await routeToPage(context, const AboutUsPage());
               },
             ),
-            const SizedBox(height: 8),
             if (hasLoggedIn && !isLocalGalleryMode) ...[
+              const SizedBox(height: 8),
               _buildLogoutCard(context),
             ],
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
-              child: SocialIconsRow(),
+            MoreFromEnteFooter(
+              currentApp: ComponentApp.photos,
+              onVersionTap: () => showChangeLogSheet(context),
             ),
-            const AppVersionWidget(),
             if (hasLoggedIn &&
                 !isLocalGalleryMode &&
                 (flagService.flags.internalUser || kDebugMode)) ...[

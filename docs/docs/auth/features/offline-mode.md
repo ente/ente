@@ -7,6 +7,8 @@ description: Guidelines for backing up and recovering Ente Auth codes when using
 
 Ente Auth can be used without an account by choosing **Use without backups**. In offline mode, your codes are stored only on that device. They are not synced to Ente and cannot be restored from Ente's servers.
 
+Desktop and direct-download Android builds may still contact Ente to check for app updates when launched, including in offline mode.
+
 ## How offline storage works
 
 The local vault is encrypted using a key protected by the device's secure storage, such as the OS keychain, keyring, credential store, or secure storage service. If that secure-storage key becomes unavailable, Ente cannot recover the offline vault from the local database alone.

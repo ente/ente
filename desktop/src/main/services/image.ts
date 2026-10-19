@@ -4,14 +4,18 @@ import { type ZipItem } from "../../types/ipc";
 import { execAsync, isDev } from "../utils/electron";
 import {
     deleteTempFileIgnoringErrors,
+    imageInputExtension,
     makeFileForStreamOrPathOrZipItem,
     makeTempFilePath,
 } from "../utils/temp";
 
 export const convertToJPEG = async (
     imageData: Uint8Array,
+    detectedExtension: string,
+    fileName: string,
 ): Promise<Uint8Array<ArrayBuffer>> => {
-    const inputFilePath = await makeTempFilePath();
+    const extension = imageInputExtension(detectedExtension, fileName);
+    const inputFilePath = await makeTempFilePath(extension);
     const outputFilePath = await makeTempFilePath("jpeg");
 
     const command = convertToJPEGCommand(inputFilePath, outputFilePath);
@@ -61,12 +65,13 @@ export const generateImageThumbnail = async (
     pathOrZipItem: string | ZipItem,
     maxDimension: number,
     maxSize: number,
+    extension: string,
 ): Promise<Uint8Array<ArrayBuffer>> => {
     const {
         path: inputFilePath,
         isFileTemporary: isInputFileTemporary,
         writeToTemporaryFile: writeToTemporaryInputFile,
-    } = await makeFileForStreamOrPathOrZipItem(pathOrZipItem);
+    } = await makeFileForStreamOrPathOrZipItem(pathOrZipItem, extension);
 
     const outputFilePath = await makeTempFilePath("jpeg");
 

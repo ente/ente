@@ -20,18 +20,6 @@ use crate::{
     types::AccountsClientConfig,
 };
 
-const SRP_A_LEN: usize = 512;
-
-fn pad_left(data: &[u8], len: usize) -> Vec<u8> {
-    if data.len() >= len {
-        return data.to_vec();
-    }
-
-    let mut padded = vec![0u8; len - data.len()];
-    padded.extend_from_slice(data);
-    padded
-}
-
 fn require_srp_m2(auth_response: &AuthResponse) -> Result<&str> {
     auth_response
         .srp_m2
@@ -41,7 +29,7 @@ fn require_srp_m2(auth_response: &AuthResponse) -> Result<&str> {
 }
 
 pub struct AccountsClient {
-    api: Api,
+    pub(crate) api: Api,
     client_package: String,
 }
 
@@ -119,7 +107,7 @@ impl AccountsClient {
             &srp_salt,
             &creds.login_key,
         )?;
-        let a_pub = pad_left(&srp_session.public_a(), SRP_A_LEN);
+        let a_pub = srp_session.public_a();
 
         let session = self
             .create_srp_session(&srp_attrs.srp_user_id, &a_pub)
@@ -195,17 +183,14 @@ impl AccountsClient {
             email: email.to_string(),
             purpose: purpose.to_string(),
         };
-        Ok(http::retry(|| async {
-            self.api
-                .post("/users/ott")
-                .json(&request)
-                .send()
-                .await?
-                .error_for_code()
-                .await?;
-            Ok(())
-        })
-        .await?)
+        self.api
+            .post("/users/ott")
+            .json(&request)
+            .send()
+            .await?
+            .error_for_code()
+            .await?;
+        Ok(())
     }
 
     pub async fn verify_email(
@@ -228,7 +213,7 @@ impl AccountsClient {
             .error_for_code()
             .await
             .map_err(|error| match error.status_code() {
-                Some(400 | 401) => Error::IncorrectEmailVerificationCode,
+                Some(401) => Error::IncorrectEmailVerificationCode,
                 Some(410) => Error::EmailVerificationCodeExpired,
                 Some(429) => Error::EmailVerificationRateLimited,
                 _ => error.into(),
@@ -399,11 +384,7 @@ impl AccountsClient {
             .send()
             .await?
             .error_for_code()
-            .await
-            .map_err(|error| match error.status_code() {
-                Some(400 | 401) => Error::IncorrectTotp,
-                _ => error.into(),
-            })?;
+            .await?;
         Ok(())
     }
 
@@ -436,7 +417,7 @@ impl AccountsClient {
             .error_for_code()
             .await
             .map_err(|error| match error.status_code() {
-                Some(400 | 401) => Error::IncorrectTotp,
+                Some(401) => Error::IncorrectTotp,
                 Some(404 | 410) => Error::SecondFactorSessionExpired,
                 Some(429) => Error::TotpRateLimited,
                 _ => error.into(),
@@ -573,30 +554,6 @@ mod tests {
                 .with_user_agent("ente-accounts-test"),
         )
         .unwrap()
-    }
-
-    #[tokio::test]
-    async fn send_otp_retries_on_server_error() {
-        let mut server = Server::new_async().await;
-        let first = server
-            .mock("POST", "/users/ott")
-            .with_status(500)
-            .with_body("temporary failure")
-            .expect(1)
-            .create_async()
-            .await;
-        let second = server
-            .mock("POST", "/users/ott")
-            .with_status(200)
-            .expect(1)
-            .create_async()
-            .await;
-
-        let client = make_client(server.url());
-        client.send_otp("user@example.org", "login").await.unwrap();
-
-        first.assert_async().await;
-        second.assert_async().await;
     }
 
     #[tokio::test]

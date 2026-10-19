@@ -1,4 +1,3 @@
-import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/event_bus.dart";
@@ -8,7 +7,6 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
 import "package:photos/ui/components/toggle_switch_widget.dart";
-import "package:photos/ui/growth/referral_screen.dart";
 import "package:photos/ui/home/christmas/christmas_utils.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/notification/update/change_log_page.dart";
@@ -198,21 +196,7 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                             trailingIcon: Icons.chevron_right_outlined,
                             trailingIconIsMuted: true,
                             onTap: () async {
-                              final action =
-                                  await showBottomSheetComponent<
-                                    ChangeLogPageAction
-                                  >(
-                                    context: context,
-                                    builder: (context) => const ChangeLogPage(),
-                                  );
-                              if (!context.mounted ||
-                                  action != ChangeLogPageAction.openReferrals) {
-                                return;
-                              }
-                              await openReferralScreen(
-                                context,
-                                showLoadingDialog: true,
-                              );
+                              await showChangeLogSheet(context);
                             },
                           ),
                           MenuItemWidgetNew(

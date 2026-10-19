@@ -9,8 +9,8 @@ import 'package:photos/core/configuration.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/account/user_service.dart';
 import "package:photos/ui/account/login_page.dart";
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/common/web_page.dart';
-import "package:photos/ui/settings/developer_settings_tap_area.dart";
 import "package:styled_text/styled_text.dart";
 
 class EmailEntryPage extends StatefulWidget {
@@ -43,7 +43,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   double _passwordStrength = 0.0;
   bool _emailIsValid = false;
   bool _showEmailValidation = false;
-  bool _hasAgreedToTOS = true;
+  bool _hasAgreedToTOS = false;
   bool _hasInstallSource = false;
   bool _passwordsMatch = false;
   bool _passwordIsValid = false;
@@ -81,43 +81,31 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.componentColors;
-    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: colors.backgroundBase,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colors.backgroundBase,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colors.iconColor,
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: DeveloperSettingsTapArea(
-          behavior: HitTestBehavior.translucent,
-          child: Text(
-            context.strings.createAccountTitle,
-            style: TextStyles.large.copyWith(color: colors.textBase),
-          ),
-        ),
-        centerTitle: true,
-      ),
+    return OnboardingPageScaffold(
+      title: context.strings.createAccountTitle,
+      illustration: OnboardingIllustration.signUp,
+      headerHeight: OnboardingPageScaffold.compactHeaderHeight,
+      showDeveloperSettingsTapArea: true,
       body: _getBody(),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonComponent(
+      actions: [
+        ButtonComponent(
           key: const ValueKey("createAccountButton"),
           label: context.strings.createAccountTitle,
+          shouldShowSuccessState: false,
           isDisabled: !_isFormValid(),
           onTap: _isFormValid() ? _submitCreateAccount : null,
         ),
-      ),
-      bottomNavigationBar: isKeyboardOpen ? null : _getLoginPrompt(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        OnboardingAccountPrompt(
+          question: context.strings.alreadyHaveAnAccount,
+          actionLabel: context.strings.logInLabel,
+          onTap: () async {
+            FocusScope.of(context).unfocus();
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+          },
+        ),
+      ],
     );
   }
 
@@ -130,7 +118,10 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
       if (_passwordStrength > kStrongPasswordStrengthThreshold) {
         passwordMessage = context.strings.strongPassword;
         passwordMessageType = TextInputComponentMessageType.success;
-      } else if (_passwordStrength <= kMildPasswordStrengthThreshold) {
+      } else if (_passwordStrength > kMildPasswordStrengthThreshold) {
+        passwordMessage = context.strings.moderateStrength;
+        passwordMessageType = TextInputComponentMessageType.alert;
+      } else {
         passwordMessage = context.strings.weakStrength;
         passwordMessageType = TextInputComponentMessageType.alert;
       }
@@ -149,143 +140,113 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
         confirmPasswordMessageType = TextInputComponentMessageType.success;
       } else {
         confirmPasswordMessage = context.strings.passwordsDontMatch;
-        confirmPasswordMessageType = TextInputComponentMessageType.error;
+        confirmPasswordMessageType = TextInputComponentMessageType.alert;
       }
     }
 
     return AutofillGroup(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  TextInputComponent(
-                    label: context.strings.email,
-                    hintText: context.strings.email,
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    autocorrect: false,
-                    isRequired: true,
-                    onChanged: _onEmailChanged,
-                    message: _showEmailValidation && !_emailIsValid
-                        ? context.strings.invalidEmailAddress
-                        : null,
-                    messageType: _showEmailValidation && !_emailIsValid
-                        ? TextInputComponentMessageType.alert
-                        : TextInputComponentMessageType.helper,
-                  ),
-                  const SizedBox(height: 24),
-                  TextInputComponent(
-                    label: context.strings.password,
-                    hintText: context.strings.password,
-                    controller: _passwordController1,
-                    isPasswordInput: true,
-                    isRequired: true,
-                    autocorrect: false,
-                    autofillHints: const [AutofillHints.newPassword],
-                    message: passwordMessage,
-                    messageType: passwordMessageType,
-                    onChanged: (password) {
-                      if (password != _password) {
-                        _passwordStrengthTimer?.cancel();
-                        setState(() {
-                          _password = password;
-                          _passwordStrength = estimatePasswordStrength(
-                            password,
-                          );
-                          _passwordIsValid =
-                              _passwordStrength >=
-                              kMildPasswordStrengthThreshold;
-                          _passwordsMatch = _password == _cnfPassword;
-                          _showPasswordStrength = false;
-                        });
-                        _passwordStrengthTimer = Timer(
-                          const Duration(seconds: 1),
-                          () {
-                            if (mounted) {
-                              setState(() {
-                                _showPasswordStrength = true;
-                              });
-                            }
-                          },
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  TextInputComponent(
-                    label: context.strings.confirmPassword,
-                    hintText: context.strings.confirmPassword,
-                    controller: _passwordController2,
-                    isPasswordInput: true,
-                    isRequired: true,
-                    autocorrect: false,
-                    autofillHints: const [],
-                    finishAutofillContextOnEditingComplete: true,
-                    shouldUnfocusOnClearOrSubmit: true,
-                    onSubmit: _isFormValid()
-                        ? (_) => _submitCreateAccount()
-                        : null,
-                    message: confirmPasswordMessage,
-                    messageType: confirmPasswordMessageType,
-                    onChanged: (cnfPassword) {
-                      _confirmPasswordTimer?.cancel();
-                      setState(() {
-                        _cnfPassword = cnfPassword;
-                        _showConfirmPasswordValidation = false;
-                        if (_password != null && _password!.isNotEmpty) {
-                          _passwordsMatch = _password == _cnfPassword;
-                        }
-                      });
-                      _confirmPasswordTimer = Timer(
-                        const Duration(seconds: 1),
-                        () {
-                          if (mounted) {
-                            setState(() {
-                              _showConfirmPasswordValidation = true;
-                            });
-                          }
-                        },
-                      );
-                    },
-                  ),
-                  if (_showReferralSourceField) ...[
-                    const SizedBox(height: 24),
-                    TextInputComponent(
-                      label: context.strings.hearUsWhereTitle,
-                      autocorrect: false,
-                      shouldUnfocusOnClearOrSubmit: true,
-                      onSubmit: _isFormValid()
-                          ? (_) => _submitCreateAccount()
-                          : null,
-                      onChanged: (value) {
-                        _referralSource = value.trim();
-                      },
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  _getTOSAgreement(),
-                ],
-              ),
-            ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextInputComponent(
+            label: context.strings.email,
+            hintText: context.strings.emailHint,
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            autocorrect: false,
+            isRequired: true,
+            onChanged: _onEmailChanged,
+            message: _showEmailValidation
+                ? _emailIsValid
+                      ? context.strings.validEmailAddress
+                      : context.strings.invalidEmailAddress
+                : null,
+            messageType: !_showEmailValidation
+                ? TextInputComponentMessageType.helper
+                : _emailIsValid
+                ? TextInputComponentMessageType.success
+                : TextInputComponentMessageType.alert,
           ),
-          const SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverFillRemaining(
-              hasScrollBody: false,
-              child: Column(
-                children: [
-                  Expanded(child: DeveloperSettingsTapArea()),
-                  SizedBox(height: 80),
-                ],
-              ),
-            ),
+          const SizedBox(height: Spacing.xl),
+          TextInputComponent(
+            label: context.strings.password,
+            hintText: context.strings.enterYourPassword,
+            controller: _passwordController1,
+            isPasswordInput: true,
+            isRequired: true,
+            autocorrect: false,
+            autofillHints: const [AutofillHints.newPassword],
+            message: passwordMessage,
+            messageType: passwordMessageType,
+            onChanged: (password) {
+              if (password != _password) {
+                _passwordStrengthTimer?.cancel();
+                setState(() {
+                  _password = password;
+                  _passwordStrength = estimatePasswordStrength(password);
+                  _passwordIsValid =
+                      _passwordStrength >= kMildPasswordStrengthThreshold;
+                  _passwordsMatch = _password == _cnfPassword;
+                  _showPasswordStrength = false;
+                });
+                _passwordStrengthTimer = Timer(const Duration(seconds: 1), () {
+                  if (mounted) {
+                    setState(() {
+                      _showPasswordStrength = true;
+                    });
+                  }
+                });
+              }
+            },
           ),
+          const SizedBox(height: Spacing.xl),
+          TextInputComponent(
+            label: context.strings.confirmPassword,
+            hintText: context.strings.reEnterPassword,
+            controller: _passwordController2,
+            isPasswordInput: true,
+            isRequired: true,
+            autocorrect: false,
+            autofillHints: const [],
+            finishAutofillContextOnEditingComplete: true,
+            shouldUnfocusOnClearOrSubmit: true,
+            onSubmit: _isFormValid() ? (_) => _submitCreateAccount() : null,
+            message: confirmPasswordMessage,
+            messageType: confirmPasswordMessageType,
+            onChanged: (cnfPassword) {
+              _confirmPasswordTimer?.cancel();
+              setState(() {
+                _cnfPassword = cnfPassword;
+                _showConfirmPasswordValidation = false;
+                if (_password != null && _password!.isNotEmpty) {
+                  _passwordsMatch = _password == _cnfPassword;
+                }
+              });
+              _confirmPasswordTimer = Timer(const Duration(seconds: 1), () {
+                if (mounted) {
+                  setState(() {
+                    _showConfirmPasswordValidation = true;
+                  });
+                }
+              });
+            },
+          ),
+          if (_showReferralSourceField) ...[
+            const SizedBox(height: Spacing.xl),
+            TextInputComponent(
+              label: context.strings.hearUsWhereTitle,
+              autocorrect: false,
+              shouldUnfocusOnClearOrSubmit: true,
+              onSubmit: _isFormValid() ? (_) => _submitCreateAccount() : null,
+              onChanged: (value) {
+                _referralSource = value.trim();
+              },
+            ),
+          ],
+          const SizedBox(height: Spacing.xl),
+          _getTOSAgreement(),
         ],
       ),
     );
@@ -312,8 +273,6 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
       isCreateAccountScreen: true,
       purpose: "signup",
     );
-    if (!mounted) return;
-    FocusScope.of(context).unfocus();
   }
 
   Future<void> _updateReferralSourceFieldVisibility() async {
@@ -341,37 +300,11 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
     }
   }
 
-  Widget _getLoginPrompt() {
-    final colors = context.componentColors;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              context.strings.alreadyHaveAnAccount,
-              style: TextStyles.body.copyWith(color: colors.textLight),
-            ),
-            const SizedBox(width: 4),
-            ButtonComponent(
-              label: context.strings.logInLabel,
-              variant: ButtonComponentVariant.link,
-              size: ButtonComponentSize.small,
-              shouldSurfaceExecutionStates: false,
-              onTap: _goToLoginPage,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _onEmailChanged(String value) {
+    final trimmed = value.trim();
+    if (trimmed == _email) return;
     _emailValidationTimer?.cancel();
 
-    final trimmed = value.trim();
     final isValid = EmailValidator.validate(trimmed);
 
     setState(() {
@@ -401,31 +334,24 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
       },
       behavior: HitTestBehavior.translucent,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Checkbox(
-            fillColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return colors.primary;
-              }
-              return null;
-            }),
-            value: _hasAgreedToTOS,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: CheckboxComponent(
+              selected: _hasAgreedToTOS,
+              onChanged: (value) {
+                setState(() {
+                  _hasAgreedToTOS = value;
+                });
+              },
             ),
-            side: CheckboxTheme.of(context).side,
-            visualDensity: VisualDensity.compact,
-            onChanged: (value) {
-              setState(() {
-                _hasAgreedToTOS = value!;
-              });
-            },
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: StyledText(
               text: context.strings.signUpTerms,
-              style: TextStyles.mini.copyWith(color: colors.textLight),
+              style: TextStyles.body.copyWith(color: colors.textLighter),
               tags: {
                 'u-terms': StyledTextActionTag(
                   (String? text, Map<String?, String?> attrs) =>
@@ -441,7 +367,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                       ),
                   style: TextStyle(
                     decoration: TextDecoration.underline,
-                    color: colors.textLight,
+                    decorationColor: colors.textLighter,
+                    color: colors.textLighter,
                   ),
                 ),
                 'u-policy': StyledTextActionTag(
@@ -458,7 +385,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                       ),
                   style: TextStyle(
                     decoration: TextDecoration.underline,
-                    color: colors.textLight,
+                    decorationColor: colors.textLighter,
+                    color: colors.textLighter,
                   ),
                 ),
               },
@@ -474,12 +402,5 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
         _passwordsMatch &&
         _hasAgreedToTOS &&
         _passwordIsValid;
-  }
-
-  Future<void> _goToLoginPage() async {
-    FocusScope.of(context).unfocus();
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
   }
 }

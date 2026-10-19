@@ -1,0 +1,11 @@
+name: Setup Linux for Rust
+description: Free disk space and install Linux build and test dependencies
+
+runs:
+    using: composite
+    steps:
+        - shell: bash
+          run: |
+              sudo rm -rf /usr/share/dotnet
+              sudo apt-get update
+              sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc spirv-headers libdbus-1-dev dbus gnome-keyring libglib2.0-bin

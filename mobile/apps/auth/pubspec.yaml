@@ -121,7 +121,7 @@ dependencies:
   sentry: 9.6.0
   sentry_flutter: 9.6.0
   share_plus: 12.0.0
-  shared_preferences: 2.5.3
+  shared_preferences: 2.5.4
   sqflite: 2.4.2
   sqflite_common_ffi: 2.3.7+1
   sqlite3: 2.9.4
@@ -167,9 +167,6 @@ flutter:
     - assets/svg/
 
   fonts:
-    - family: Gochi Hand
-      fonts:
-        - asset: fonts/GochiHand-Regular.ttf
     - family: Inter
       fonts:
         - asset: fonts/Inter-Regular.ttf

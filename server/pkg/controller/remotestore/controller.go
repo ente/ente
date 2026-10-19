@@ -133,7 +133,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 	}
 
 	if response.InternalUser {
-		response.ServerApiFlag |= ente.LibrarySharing
+		response.ServerApiFlag |= ente.PreviewUploadV2
 	}
 	return response, nil
 }

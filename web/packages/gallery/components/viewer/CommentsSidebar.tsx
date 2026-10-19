@@ -1150,7 +1150,10 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                     </CloseButton>
                 </Header>
 
-                <CommentsContainer ref={commentsContainerRef}>
+                <CommentsContainer
+                    ref={commentsContainerRef}
+                    data-custom-scrollbar
+                >
                     {loading ? (
                         <LoadingContainer>
                             <CircularProgress size={32} />
@@ -1456,7 +1459,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                             </ReplyingToContent>
                         </ReplyingToBar>
                     )}
-                    <InputWrapper>
+                    <InputWrapper data-custom-scrollbar>
                         <StyledTextField
                             fullWidth
                             multiline

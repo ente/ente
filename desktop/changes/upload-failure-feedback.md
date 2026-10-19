@@ -1,0 +1,1 @@
+- Fixed failed uploads being shown as skipped and highlighted failures in red.

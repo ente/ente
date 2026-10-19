@@ -64,12 +64,12 @@ class _AccountCredentialsPageState
       return context.strings.accountCredentials;
     }
 
-    final controllerName = _nameController.text.trim();
+    final controllerName = _nameController.text;
     if (controllerName.isNotEmpty) {
       return controllerName;
     }
 
-    final dataName = (currentData?.name ?? '').trim();
+    final dataName = currentData?.name ?? '';
     if (dataName.isNotEmpty) {
       return dataName;
     }
@@ -85,26 +85,24 @@ class _AccountCredentialsPageState
 
   @override
   bool validateForm() {
-    return _nameController.text.trim().isNotEmpty;
+    return _nameController.text.isNotEmpty;
   }
 
   @override
   bool get hasUnsavedChanges {
-    return _nameController.text.trim() != _initialName.trim() ||
-        _usernameController.text.trim() != _initialUsername.trim() ||
-        _passwordController.text.trim() != _initialPassword.trim() ||
-        _notesController.text.trim() != _initialNotes.trim();
+    return _nameController.text != _initialName ||
+        _usernameController.text != _initialUsername ||
+        _passwordController.text != _initialPassword ||
+        _notesController.text != _initialNotes;
   }
 
   @override
   AccountCredentialData createInfoData() {
     return AccountCredentialData(
-      name: _nameController.text.trim(),
-      username: _usernameController.text.trim(),
-      password: _passwordController.text.trim(),
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
+      name: _nameController.text,
+      username: _usernameController.text,
+      password: _passwordController.text,
+      notes: _notesController.text.isEmpty ? null : _notesController.text,
     );
   }
 
@@ -160,13 +158,13 @@ class _AccountCredentialsPageState
 
     final fields = <Widget>[];
 
-    if (usernameText.trim().isNotEmpty) {
+    if (usernameText.isNotEmpty) {
       fields.add(
         buildViewField(label: context.strings.username, value: usernameText),
       );
     }
 
-    if (passwordText.trim().isNotEmpty) {
+    if (passwordText.isNotEmpty) {
       if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
       fields.add(
         buildViewField(
@@ -177,7 +175,7 @@ class _AccountCredentialsPageState
       );
     }
 
-    if (notesText.trim().isNotEmpty) {
+    if (notesText.isNotEmpty) {
       if (fields.isNotEmpty) fields.add(const SizedBox(height: 24));
       fields.add(
         buildViewField(

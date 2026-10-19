@@ -1,11 +1,51 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/ui/settings/data/import/plain_text_import_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 
 void main() {
   group('plain text import parser', () {
+    const secret = 'JBSWY3DPEHPK3PXP';
+    const validUri = 'otpauth://totp/Example:valid?secret=$secret';
+    const invalidUri = 'otpauth://totp:invalid/Example?secret=$secret';
+    final imports = {
+      'OTP URLs': '$invalidUri\n$validUri',
+      'export JSON': jsonEncode({
+        'items': [
+          {'rawData': invalidUri},
+          {'rawData': validUri},
+        ],
+      }),
+    };
+
+    for (final input in imports.entries) {
+      test('logs a safe warning for a skipped entry in ${input.key}', () {
+        final records = <LogRecord>[];
+        final subscription = Logger.root.onRecord.listen(records.add);
+        addTearDown(subscription.cancel);
+
+        final codes = parsePlainTextImport(input.value);
+
+        expect(codes.map((code) => code.rawData), [validUri]);
+        final record = records.single;
+        expect(record.level, Level.WARNING);
+        expect(
+          record.message,
+          'Skipping malformed import entry (FormatException)',
+        );
+        expect(record.error, isNull);
+        expect(record.stackTrace, isNotNull);
+      });
+    }
+
+    test('accepts empty content', () {
+      expect(parsePlainTextImport(''), isEmpty);
+      expect(parsePlainTextImport(' \n\t'), isEmpty);
+    });
+
     test('parses the offline Maestro fixture', () async {
       final content = await File(
         'test/ui/settings/data/import/fixtures/plain_text_import.txt',

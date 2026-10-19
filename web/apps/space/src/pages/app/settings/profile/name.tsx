@@ -38,14 +38,14 @@ const Page: React.FC = () => {
                 errorMessage={errorMessage}
                 initialName={profile.fullName}
                 isSaving={isSaving}
-                onBack={() => void router.push(spaceRoutes.settings)}
+                onBack={() => void router.back(spaceRoutes.settings)}
                 onSave={(fullName) => {
                     setErrorMessage(undefined);
                     setIsSaving(true);
                     void saveSpaceProfile({ ...profile, fullName })
                         .then((savedProfile) => {
                             setProfile(savedProfile);
-                            void router.push(spaceRoutes.settings);
+                            void router.backTo(spaceRoutes.settings);
                         })
                         .catch((error: unknown) => {
                             log.error("Space name update failed", error);

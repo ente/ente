@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -20,7 +19,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -155,17 +153,12 @@ internal fun DownloadToastOverlay(
                     },
                     modifier = Modifier.size(28.dp),
                 ) {
-                    Box(
-                        modifier = Modifier.size(22.dp).background(Color.White, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            painter = painterResource(HugeIcons.StopIcon),
-                            contentDescription = "Cancel download",
-                            modifier = Modifier.size(12.dp),
-                            tint = EnsuColor.stopButton,
-                        )
-                    }
+                    Icon(
+                        painter = painterResource(HugeIcons.StopIcon),
+                        contentDescription = "Cancel download",
+                        modifier = Modifier.size(18.dp),
+                        tint = EnsuColor.sendButton,
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(EnsuSpacing.sm.dp))

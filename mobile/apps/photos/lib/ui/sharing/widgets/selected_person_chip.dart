@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
@@ -7,8 +8,9 @@ import "package:photos/models/api/collection/user.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
 import "package:photos/ui/sharing/share_components.dart";
 import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/widgets/sharing_role.dart";
 
-class SelectedRecipientChips extends StatelessWidget {
+class SelectedRecipientChips extends StatefulWidget {
   const SelectedRecipientChips({
     super.key,
     required this.suggestions,
@@ -29,16 +31,43 @@ class SelectedRecipientChips extends StatelessWidget {
   final int maxVisibleRows;
 
   @override
+  State<SelectedRecipientChips> createState() => _SelectedRecipientChipsState();
+}
+
+class _SelectedRecipientChipsState extends State<SelectedRecipientChips> {
+  late final _displayedSuggestions = List<UserSuggestion>.of(
+    widget.suggestions,
+  );
+
+  @override
+  void didUpdateWidget(covariant SelectedRecipientChips oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    for (final suggestion in widget.suggestions) {
+      final index = _displayedSuggestions.indexWhere(
+        (displayed) =>
+            normalizedSharingEmail(displayed.email) ==
+            normalizedSharingEmail(suggestion.email),
+      );
+      if (index == -1) {
+        _displayedSuggestions.add(suggestion);
+      } else {
+        _displayedSuggestions[index] = suggestion;
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final chipExtent = SelectedRecipientChips.chipExtent(context);
     final maxViewportHeight =
-        maxVisibleRows * chipExtent + (maxVisibleRows - 1) * Spacing.sm;
+        widget.maxVisibleRows * chipExtent +
+        (widget.maxVisibleRows - 1) * Spacing.sm;
 
     return AnimatedSize(
       duration: Motion.standard,
       curve: Curves.easeOutCubic,
       alignment: AlignmentDirectional.topStart,
-      child: suggestions.isEmpty
+      child: _displayedSuggestions.isEmpty
           ? const SizedBox.shrink()
           : Padding(
               padding: const EdgeInsets.only(bottom: Spacing.xl),
@@ -58,10 +87,10 @@ class SelectedRecipientChips extends StatelessWidget {
                     child: shareScrollbar(
                       context,
                       key: const ValueKey("selected-people-scrollbar"),
-                      controller: scrollController,
+                      controller: widget.scrollController,
                       child: SingleChildScrollView(
                         key: const ValueKey("selected-people-scroll"),
-                        controller: scrollController,
+                        controller: widget.scrollController,
                         primary: false,
                         padding: const EdgeInsetsDirectional.only(
                           end: Spacing.md,
@@ -70,18 +99,21 @@ class SelectedRecipientChips extends StatelessWidget {
                           spacing: Spacing.sm,
                           runSpacing: Spacing.sm,
                           children: [
-                            for (final suggestion in suggestions)
+                            for (final suggestion in _displayedSuggestions)
                               SelectedPersonChip(
                                 key: ValueKey(
                                   suggestion.email.trim().toLowerCase(),
                                 ),
                                 suggestion: suggestion,
-                                onRemove: onRemove == null
+                                isRemoving: !_isSelected(suggestion),
+                                onRemovalComplete: () =>
+                                    _finishRemoval(suggestion),
+                                onRemove: widget.onRemove == null
                                     ? null
-                                    : () => onRemove!(suggestion),
-                                onLongPress: onLongPress == null
+                                    : () => _remove(suggestion),
+                                onLongPress: widget.onLongPress == null
                                     ? null
-                                    : () => onLongPress!(suggestion),
+                                    : () => widget.onLongPress!(suggestion),
                               ),
                           ],
                         ),
@@ -93,17 +125,44 @@ class SelectedRecipientChips extends StatelessWidget {
             ),
     );
   }
+
+  bool _isSelected(UserSuggestion suggestion) => widget.suggestions.any(
+    (selected) =>
+        normalizedSharingEmail(selected.email) ==
+        normalizedSharingEmail(suggestion.email),
+  );
+
+  void _remove(UserSuggestion suggestion) {
+    if (_isSelected(suggestion)) {
+      widget.onRemove!(suggestion);
+    }
+  }
+
+  void _finishRemoval(UserSuggestion suggestion) {
+    if (_isSelected(suggestion)) return;
+    setState(() {
+      _displayedSuggestions.removeWhere(
+        (displayed) =>
+            normalizedSharingEmail(displayed.email) ==
+            normalizedSharingEmail(suggestion.email),
+      );
+    });
+  }
 }
 
 class SelectedPersonChip extends StatefulWidget {
   const SelectedPersonChip({
     super.key,
     required this.suggestion,
+    required this.isRemoving,
+    required this.onRemovalComplete,
     this.onRemove,
     this.onLongPress,
   });
 
   final UserSuggestion suggestion;
+  final bool isRemoving;
+  final VoidCallback onRemovalComplete;
   final VoidCallback? onRemove;
   final VoidCallback? onLongPress;
 
@@ -115,7 +174,6 @@ class _SelectedPersonChipState extends State<SelectedPersonChip>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final CurvedAnimation _animation;
-  bool _isRemoving = false;
 
   @override
   void initState() {
@@ -129,89 +187,102 @@ class _SelectedPersonChipState extends State<SelectedPersonChip>
   }
 
   @override
+  void didUpdateWidget(covariant SelectedPersonChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isRemoving == oldWidget.isRemoving) return;
+    if (widget.isRemoving) {
+      unawaited(_animateRemoval());
+    } else {
+      _controller.forward();
+    }
+  }
+
+  @override
   void dispose() {
     _animation.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  Future<void> _remove() async {
-    if (_isRemoving || widget.onRemove == null) {
-      return;
-    }
-    _isRemoving = true;
+  Future<void> _animateRemoval() async {
     await _controller.reverse();
-    if (mounted) {
-      widget.onRemove!();
+    if (mounted && widget.isRemoving) {
+      widget.onRemovalComplete();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final label = resolveSuggestionDisplayName(widget.suggestion);
-    return AnimatedBuilder(
-      key: ValueKey(
-        "selected-person-chip-${widget.suggestion.email.trim().toLowerCase()}",
-      ),
-      animation: _animation,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onLongPress: widget.onLongPress,
-        child: Container(
-          constraints: BoxConstraints(
-            minHeight: SelectedRecipientChips.chipExtent(context),
+    return IgnorePointer(
+      ignoring: widget.isRemoving,
+      child: ExcludeSemantics(
+        excluding: widget.isRemoving,
+        child: AnimatedBuilder(
+          key: ValueKey(
+            "selected-person-chip-${widget.suggestion.email.trim().toLowerCase()}",
           ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.sm,
-            vertical: Spacing.xs,
-          ),
-          decoration: BoxDecoration(
-            color: context.componentColors.fillLight,
-            borderRadius: BorderRadius.circular(Radii.button),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              UserAvatarWidget.suggestion(
-                widget.suggestion,
-                type: AvatarType.medium,
+          animation: _animation,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onLongPress: widget.onLongPress,
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight: SelectedRecipientChips.chipExtent(context),
               ),
-              const SizedBox(width: Spacing.sm),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyles.mini,
-                ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.sm,
+                vertical: Spacing.xs,
               ),
-              if (widget.onRemove != null) ...[
-                const SizedBox(width: Spacing.xs),
-                GestureDetector(
-                  key: ValueKey(
-                    "remove-${widget.suggestion.email.trim().toLowerCase()}",
+              decoration: BoxDecoration(
+                color: context.componentColors.fillLight,
+                borderRadius: BorderRadius.circular(Radii.button),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  UserAvatarWidget.suggestion(
+                    widget.suggestion,
+                    type: AvatarType.medium,
                   ),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _remove,
-                  child: const Padding(
-                    padding: EdgeInsets.all(Spacing.xs),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedCancel01,
-                      size: IconSizes.small,
+                  const SizedBox(width: Spacing.sm),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyles.mini,
                     ),
                   ),
-                ),
-              ],
-            ],
+                  if (widget.onRemove != null) ...[
+                    const SizedBox(width: Spacing.xs),
+                    GestureDetector(
+                      key: ValueKey(
+                        "remove-${widget.suggestion.email.trim().toLowerCase()}",
+                      ),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onRemove,
+                      child: const Padding(
+                        padding: EdgeInsets.all(Spacing.xs),
+                        child: HugeIcon(
+                          icon: HugeIcons.strokeRoundedCancel01,
+                          size: IconSizes.small,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-      builder: (context, child) => Opacity(
-        opacity: _animation.value,
-        child: Transform.scale(
-          scale: 0.96 + 0.04 * _animation.value,
-          alignment: AlignmentDirectional.centerStart,
-          child: child,
+          builder: (context, child) => Opacity(
+            opacity: _animation.value,
+            child: Transform.scale(
+              scale: 0.96 + 0.04 * _animation.value,
+              alignment: AlignmentDirectional.centerStart,
+              child: child,
+            ),
+          ),
         ),
       ),
     );

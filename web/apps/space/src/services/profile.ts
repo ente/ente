@@ -96,23 +96,18 @@ const currentSpaceContextConfig = async () => {
 };
 
 let currentSpaceContext:
-    | { cacheKey: string; ctx: SpaceAccountCtxHandle }
-    | undefined;
+    { cacheKey: string; ctx: SpaceAccountCtxHandle } | undefined;
 let pendingCurrentSpaceContext:
-    | { cacheKey: string; promise: Promise<SpaceAccountCtxHandle> }
-    | undefined;
+    { cacheKey: string; promise: Promise<SpaceAccountCtxHandle> } | undefined;
 let currentOwnedSpace:
-    | { cacheKey: string; space: SpaceKeyResponse }
-    | undefined;
+    { cacheKey: string; space: SpaceKeyResponse } | undefined;
 let pendingCurrentOwnedSpace:
     | { cacheKey: string; promise: Promise<SpaceKeyResponse | undefined> }
     | undefined;
 let currentSpaceProfile:
-    | { cacheKey: string; profile: SetupProfile | null }
-    | undefined;
+    { cacheKey: string; profile: SetupProfile | null } | undefined;
 let pendingCurrentSpaceProfile:
-    | { cacheKey: string; promise: Promise<SetupProfile | null> }
-    | undefined;
+    { cacheKey: string; promise: Promise<SetupProfile | null> } | undefined;
 let currentSpaceContextGeneration = 0;
 
 const cloneSetupProfile = (profile: SetupProfile | null) =>

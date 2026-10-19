@@ -1,0 +1,1 @@
+- Fixed emoji being cut off in automatically generated Note titles.

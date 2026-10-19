@@ -62,26 +62,23 @@ class _EmergencyContactPageState
 
   @override
   bool validateForm() {
-    return _nameController.text.trim().isNotEmpty &&
-        _contactDetailsController.text.trim().isNotEmpty;
+    return _nameController.text.isNotEmpty &&
+        _contactDetailsController.text.isNotEmpty;
   }
 
   @override
   bool get hasUnsavedChanges {
-    return _nameController.text.trim() != _initialName.trim() ||
-        _contactDetailsController.text.trim() !=
-            _initialContactDetails.trim() ||
-        _notesController.text.trim() != _initialNotes.trim();
+    return _nameController.text != _initialName ||
+        _contactDetailsController.text != _initialContactDetails ||
+        _notesController.text != _initialNotes;
   }
 
   @override
   EmergencyContactData createInfoData() {
     return EmergencyContactData(
-      name: _nameController.text.trim(),
-      contactDetails: _contactDetailsController.text.trim(),
-      notes: _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim(),
+      name: _nameController.text,
+      contactDetails: _contactDetailsController.text,
+      notes: _notesController.text.isEmpty ? null : _notesController.text,
     );
   }
 
@@ -132,7 +129,7 @@ class _EmergencyContactPageState
         label: context.strings.contactDetails,
         value: _contactDetailsController.text,
       ),
-      if (_notesController.text.trim().isNotEmpty) ...[
+      if (_notesController.text.isNotEmpty) ...[
         const SizedBox(height: 24),
         buildViewField(
           label: context.strings.contactNotes,

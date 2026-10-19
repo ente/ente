@@ -4,7 +4,15 @@ import SwiftUI
 @MainActor
 final class KnowledgeStore: ObservableObject {
     @Published private(set) var packs: [KnowledgePackState]
+    @Published private(set) var disabledIDs: Set<String>
     @Published var downloadsAllowed = false
+
+    func setEnabled(_ id: String, enabled: Bool) {
+        preferences.setDatasetEnabled(id: id, enabled: enabled)
+        disabledIDs = preferences.disabledDatasetIds
+    }
+
+    private(set) var inventoryReady = false
 
     private let provider: KnowledgeProvider
     private let preferences: KnowledgePreferences
@@ -19,12 +27,13 @@ final class KnowledgeStore: ObservableObject {
         packs = datasets.map { KnowledgePackState(config: $0) }
         self.provider = provider
         preferences = KnowledgePreferences(defaults: defaults)
+        disabledIDs = preferences.migratePackSettings(
+            availablePackIDs: Set(datasets.map(\.stableId)))
     }
 
-    var enabledReadyDatasets: [KnowledgeDatasetConfig] {
+    var readyDatasets: [KnowledgeDatasetConfig] {
         packs.compactMap { pack in
-            guard pack.enabled,
-                pack.status == .ready || pack.status == .updateAvailable
+            guard pack.status == .ready || pack.status == .updateAvailable
             else {
                 return nil
             }
@@ -40,45 +49,28 @@ final class KnowledgeStore: ObservableObject {
 
         let task = Task { @MainActor [weak self] in
             guard let self else { return }
-            await bootstrapEnabledDatasets()
+            await bootstrapDatasets()
         }
         bootstrapTask = task
         await task.value
+        if !inventoryReady { bootstrapTask = nil }
     }
 
-    private func bootstrapEnabledDatasets() async {
-        let requestedEnabled = preferences.enabledDatasetIds
-        let datasets = packs.map(\.config)
-        for dataset in datasets where requestedEnabled.contains(dataset.stableId) {
-            await reconcileForBootstrap(dataset, enabled: true)
-        }
-
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            for dataset in datasets where !requestedEnabled.contains(dataset.stableId) {
-                await reconcileForBootstrap(dataset, enabled: false)
+    private func bootstrapDatasets() async {
+        var failed = false
+        for dataset in packs.map(\.config) {
+            do {
+                let result = try await provider.reconcile(dataset: dataset)
+                applyReconciliation(result, stableId: dataset.stableId)
+            } catch {
+                failed = true
+                updatePack(dataset.stableId) { pack in
+                    pack.status = .download
+                    pack.errorMessage = userFacingKnowledgeError(error)
+                }
             }
         }
-    }
-
-    private func reconcileForBootstrap(
-        _ dataset: KnowledgeDatasetConfig,
-        enabled: Bool
-    ) async {
-        do {
-            let result = try await provider.reconcile(dataset: dataset)
-            applyReconciliation(
-                result,
-                stableId: dataset.stableId,
-                enabled: enabled
-            )
-        } catch {
-            updatePack(dataset.stableId) { pack in
-                pack.status = .download
-                pack.enabled = false
-                pack.errorMessage = userFacingKnowledgeError(error)
-            }
-        }
+        inventoryReady = !failed
     }
 
     func downloadOrUpdate(stableId: String) {
@@ -108,28 +100,13 @@ final class KnowledgeStore: ObservableObject {
                         }
                     }
                 }
-                let shouldEnable = !wasInstalled && result.status == .ready
-                if shouldEnable {
-                    preferences.setDatasetEnabled(id: stableId, enabled: true)
+                applyReconciliation(result, stableId: stableId)
+                if result.activeIdentity != nil {
+                    if !wasInstalled { setEnabled(stableId, enabled: true) }
                 }
-                let preservedEnablement =
-                    packs
-                    .first(where: { $0.id == stableId })?.enabled == true
-                applyReconciliation(
-                    result,
-                    stableId: stableId,
-                    enabled: wasInstalled ? preservedEnablement : shouldEnable
-                )
             } catch {
                 if let result = try? await provider.reconcile(dataset: dataset) {
-                    let enabled =
-                        packs
-                        .first(where: { $0.id == stableId })?.enabled == true
-                    applyReconciliation(
-                        result,
-                        stableId: stableId,
-                        enabled: enabled
-                    )
+                    applyReconciliation(result, stableId: stableId)
                 }
                 updatePack(stableId) { pack in
                     pack.errorMessage = userFacingKnowledgeError(error)
@@ -157,10 +134,7 @@ final class KnowledgeStore: ObservableObject {
                 return
             }
             if let result {
-                let enabled =
-                    packs
-                    .first(where: { $0.id == stableId })?.enabled == true
-                applyReconciliation(result, stableId: stableId, enabled: enabled)
+                applyReconciliation(result, stableId: stableId)
             }
             updatePack(stableId) { pack in
                 pack.isMutating = false
@@ -170,28 +144,13 @@ final class KnowledgeStore: ObservableObject {
         }
     }
 
-    func setEnabled(stableId: String, enabled: Bool) {
-        guard let index = packs.firstIndex(where: { $0.id == stableId }),
-            packs[index].activeIdentity != nil,
-            !packs[index].isMutating
-        else {
-            return
-        }
-        updatePack(stableId) { pack in
-            pack.enabled = enabled
-        }
-        preferences.setDatasetEnabled(id: stableId, enabled: enabled)
-    }
-
     private func applyReconciliation(
         _ result: KnowledgeReconciliation,
-        stableId: String,
-        enabled: Bool
+        stableId: String
     ) {
         updatePack(stableId) { pack in
             pack.status = result.status
             pack.activeIdentity = result.activeIdentity
-            pack.enabled = enabled && result.activeIdentity != nil
             pack.errorMessage = nil
         }
     }
@@ -234,16 +193,16 @@ struct KnowledgePackState: Identifiable, Sendable {
     let config: KnowledgeDatasetConfig
     var status: KnowledgeReconciliationStatus?
     var activeIdentity: String?
-    var enabled = false
     var isMutating = false
     var progressPercent: Int?
     var progressLabel: String?
     var errorMessage: String?
 }
 
-private final class KnowledgePreferences {
+final class KnowledgePreferences {
     private enum Keys {
         static let enabledDatasetIds = "ensu.knowledge.enabled_dataset_ids"
+        static let disabledDatasetIds = "ensu.packs.disabledByDefault"
     }
 
     private let defaults: UserDefaults
@@ -252,17 +211,27 @@ private final class KnowledgePreferences {
         self.defaults = defaults
     }
 
-    var enabledDatasetIds: Set<String> {
-        Set(defaults.stringArray(forKey: Keys.enabledDatasetIds) ?? [])
+    var disabledDatasetIds: Set<String> {
+        Set(defaults.stringArray(forKey: Keys.disabledDatasetIds) ?? [])
+    }
+
+    func migratePackSettings(availablePackIDs: Set<String>) -> Set<String> {
+        if defaults.stringArray(forKey: Keys.disabledDatasetIds) != nil {
+            return disabledDatasetIds
+        }
+        let legacy = defaults.stringArray(forKey: Keys.enabledDatasetIds).map(Set.init)
+        let disabled = legacy.map { availablePackIDs.subtracting($0) } ?? []
+        defaults.set(disabled.sorted(), forKey: Keys.disabledDatasetIds)
+        return disabled
     }
 
     func setDatasetEnabled(id: String, enabled: Bool) {
-        var ids = enabledDatasetIds
+        var ids = disabledDatasetIds
         if enabled {
-            ids.insert(id)
-        } else {
             ids.remove(id)
+        } else {
+            ids.insert(id)
         }
-        defaults.set(ids.sorted(), forKey: Keys.enabledDatasetIds)
+        defaults.set(ids.sorted(), forKey: Keys.disabledDatasetIds)
     }
 }

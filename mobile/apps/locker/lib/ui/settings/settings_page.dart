@@ -4,8 +4,7 @@ import "package:ente_accounts/services/user_service.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/settings/app_engagement_section.dart";
-import "package:ente_ui/components/settings/app_version_widget.dart" as ente_ui;
-import "package:ente_ui/components/settings/social_icons_row.dart";
+import "package:ente_ui/components/settings/more_from_ente_footer.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -107,11 +106,14 @@ class SettingsWidget extends StatelessWidget {
     }
 
     contents.addAll([
-      const SizedBox(height: 24),
-      const Center(child: SocialIconsRow()),
-      const AppVersionWidget(),
+      MoreFromEnteFooter(
+        currentApp: ComponentApp.locker,
+        onVersionTap: () => _openChangeLog(context),
+      ),
       if (hasLoggedIn &&
-          (FeatureFlagService.instance.internalUser || kDebugMode)) ...[
+          (FeatureFlagService.instance.internalUser ||
+              FeatureFlagService.instance.isInternalUserDisabled ||
+              kDebugMode)) ...[
         SettingsItem(
           icon: HugeIcons.strokeRoundedBug02,
           title: "Debug",
@@ -158,15 +160,6 @@ class SettingsWidget extends StatelessWidget {
     if (shouldLogout == true && context.mounted) {
       await UserService.instance.logout(context);
     }
-  }
-}
-
-class AppVersionWidget extends StatelessWidget {
-  const AppVersionWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ente_ui.AppVersionWidget(onTap: () => _openChangeLog(context));
   }
 
   Future<void> _openChangeLog(BuildContext context) async {

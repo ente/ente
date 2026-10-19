@@ -13,7 +13,7 @@ import (
 const (
 	SpaceUploadURLExpiry    = 15 * time.Minute
 	SpaceUploadCleanupDelay = 2 * SpaceUploadURLExpiry
-	MaxActiveUploadCount    = 2 * MaxPostObjects
+	MaxActiveUploadCount    = 4 * MaxPostObjects
 )
 
 var ErrSpaceUploadLimitReached = errors.New("space upload limit reached")
