@@ -1,4 +1,5 @@
 pub mod cast_api;
+pub mod file_sort_api;
 pub mod image_processing_api;
 pub mod init;
 pub mod location_api;

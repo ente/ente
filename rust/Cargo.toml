@@ -88,6 +88,8 @@ getrandom = { version = "0.4.0", features = ["wasm_js"] }
 hkdf = "0.13.0"
 hmac = "0.13.0"
 icu_casemap = "1.5.1"
+icu_collator = "2.3.1"
+icu_locale_core = "2.3.0"
 image = "0.25.10"
 js-sys = "0.3.102"
 keyring = { version = "3.6.3", default-features = false }

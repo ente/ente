@@ -190,7 +190,7 @@ class _SharedPublicCollectionPageState
               ),
             )
           : null,
-      sortAsyncFn: () => widget.c.collection.pubMagicMetadata.asc ?? false,
+      sortOrderFn: () => widget.c.collection.pubMagicMetadata.fileSortOrder,
     );
 
     return GalleryBoundariesProvider(

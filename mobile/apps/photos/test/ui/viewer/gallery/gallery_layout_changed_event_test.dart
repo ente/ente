@@ -1,15 +1,21 @@
+import "dart:async";
+import "dart:typed_data" show Uint32List;
+
 import "package:dio/dio.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
 import "package:flutter_test/flutter_test.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/gallery_layout_changed_event.dart";
 import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery/justified_layout_strategy.dart";
@@ -17,6 +23,7 @@ import "package:photos/models/gallery/justified_layout_tuning.dart";
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/settings/local_settings.dart";
+import "package:photos/src/rust/frb_generated.dart";
 import "package:photos/ui/settings/gallery_settings_screen.dart";
 import "package:photos/ui/settings/justified_layout_tuning_screen.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
@@ -69,6 +76,85 @@ void main() {
 
   tearDown(() async {
     await localSettings.setInternalUserDisabled(false);
+  });
+
+  testWidgets("filename sort loads the full album and restores date headers", (
+    tester,
+  ) async {
+    final key = GlobalKey<GalleryState>();
+    final api = _GalleryFileSortApi();
+    EntePhotosRust.initMock(api: api);
+    addTearDown(EntePhotosRust.dispose);
+    var order = FileSortOrder.filenameAscending;
+    final limits = <int?>[];
+    final files = List.generate(
+      201,
+      (index) => _justifiedTestFile(index)
+        ..title = "IMG${201 - index}.jpg"
+        ..uploadedFileID = index + 1,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: Scaffold(
+          body: _galleryHost(
+            Gallery(
+              key: key,
+              tagPrefix: "filename_sort",
+              groupType: GroupType.day,
+              sortOrderFn: () => order,
+              forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
+              limitSelectionToOne: true,
+              showSelectAll: false,
+              asyncLoader: (start, end, {limit, asc}) async {
+                limits.add(limit);
+                return FileLoadResult(List<EnteFile>.from(files), false);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(limits, [null]);
+    expect(key.currentState!.galleryGroups!.allFiles, hasLength(201));
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG1.jpg");
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
+
+    final pendingSort = Completer<void>();
+    api.nextCall = pendingSort;
+    order = FileSortOrder.filenameAscending;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(api.nextCall, isNull);
+
+    order = FileSortOrder.oldestFirst;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    pendingSort.complete();
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.day);
+    expect(key.currentState!.galleryGroups!.groupHeaderExtent, greaterThan(2));
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+
+    order = FileSortOrder.filenameDescending;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets(
@@ -479,6 +565,25 @@ void main() {
 
 Widget _galleryHost(Gallery gallery) {
   return GalleryBoundariesProvider(child: GalleryFilesState(child: gallery));
+}
+
+class _GalleryFileSortApi extends Fake implements EntePhotosRustApi {
+  Completer<void>? nextCall;
+
+  @override
+  Future<Uint32List> crateApiFileSortApiSortedFilenameIndices({
+    required List<String> names,
+    required Int64List fileIds,
+    required String locale,
+    required bool ascending,
+  }) async {
+    final pending = nextCall;
+    nextCall = null;
+    if (pending != null) await pending.future;
+    return Uint32List.fromList(
+      List.generate(names.length, (i) => ascending ? names.length - i - 1 : i),
+    );
+  }
 }
 
 DummyFile _dummyFile(String groupID) {

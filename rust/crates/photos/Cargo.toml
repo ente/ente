@@ -9,6 +9,8 @@ ente-core.workspace = true
 ente-exif.workspace = true
 ente-location.workspace = true
 ente-vecdb.workspace = true
+icu_collator.workspace = true
+icu_locale_core.workspace = true
 log.workspace = true
 quick-xml.workspace = true
 rusqlite = { workspace = true, default-features = true }

@@ -20,6 +20,7 @@ import 'package:photos/events/subscription_purchased_event.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
@@ -56,6 +57,7 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
 import 'package:photos/utils/dialog_util.dart';
+import "package:photos/utils/file_sort_util.dart";
 import 'package:photos/utils/magic_util.dart';
 
 class GalleryAppBarWidget extends StatefulWidget {
@@ -1095,12 +1097,16 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       return null;
     }
 
+    final sortOrder = collection.pubMagicMetadata.fileSortOrder;
     final filesResult = await FilesDB.instance.getFilesInCollection(
       collection.id,
       galleryLoadStartTime,
       galleryLoadEndTime,
-      asc: collection.pubMagicMetadata.asc ?? false,
+      asc: sortOrder.ascending,
     );
+    if (sortOrder.isFilename) {
+      await sortFilesByName(filesResult.files, sortOrder);
+    }
     return filesResult.files;
   }
 
@@ -1183,7 +1189,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   }
 
   Future<void> _showSortOption(BuildContext bContext) async {
-    final bool? sortByAsc = await showMenu<bool>(
+    final sortOrder = await showMenu<FileSortOrder>(
       context: bContext,
       position: RelativeRect.fromLTRB(
         MediaQuery.of(context).size.width,
@@ -1193,18 +1199,26 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       ),
       items: [
         PopupMenuItem(
-          value: false,
+          value: FileSortOrder.newestFirst,
           child: Text(context.strings.sortNewestFirst),
         ),
         PopupMenuItem(
-          value: true,
+          value: FileSortOrder.oldestFirst,
           child: Text(context.strings.sortOldestFirst),
+        ),
+        PopupMenuItem(
+          value: FileSortOrder.filenameAscending,
+          child: Text(context.strings.sortAToZ),
+        ),
+        PopupMenuItem(
+          value: FileSortOrder.filenameDescending,
+          child: Text(context.strings.sortZToA),
         ),
       ],
     );
-    if (sortByAsc != null) {
+    if (sortOrder != null) {
       if (!bContext.mounted) return;
-      unawaited(changeSortOrder(bContext, widget.collection!, sortByAsc));
+      unawaited(changeSortOrder(bContext, widget.collection!, sortOrder));
     }
   }
 

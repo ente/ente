@@ -17,6 +17,7 @@ import "package:photos/events/homepage_swipe_to_select_in_progress_event.dart";
 import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/events/tab_changed_event.dart';
 import 'package:photos/models/file/file.dart';
+import "package:photos/models/file/file_sort_order.dart";
 import 'package:photos/models/file_load_result.dart';
 import "package:photos/models/gallery/gallery_groups.dart";
 import "package:photos/models/gallery/gallery_layout_config.dart";
@@ -40,6 +41,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
 import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
+import "package:photos/utils/file_sort_util.dart";
 import "package:photos/utils/hierarchical_search_util.dart";
 import "package:photos/utils/misc_util.dart";
 import "package:photos/utils/widget_util.dart";
@@ -54,7 +56,7 @@ typedef GalleryLoader =
 
 typedef _LayoutScrollAnchor = ({EnteFile file, bool inHeader, double progress});
 
-typedef SortAscFn = bool Function();
+typedef FileSortOrderFn = FileSortOrder Function();
 
 typedef NewLocalFilesResolver =
     Future<List<EnteFile>?> Function(LocalPhotosAddedEvent event);
@@ -95,7 +97,7 @@ class Gallery extends StatefulWidget {
   final bool disableSelection;
   final bool showSelectAll;
 
-  final SortAscFn? sortAsyncFn;
+  final FileSortOrderFn? sortOrderFn;
 
   final GroupType? groupType;
   final bool disablePinnedGroupHeader;
@@ -124,7 +126,7 @@ class Gallery extends StatefulWidget {
     this.limitSelectionToOne = false,
     this.inSelectionMode = false,
     this.disableSelection = false,
-    this.sortAsyncFn,
+    this.sortOrderFn,
     this.showSelectAll = true,
     this.reloadDebounceTime = const Duration(milliseconds: 500),
     this.reloadDebounceExecutionInterval = const Duration(seconds: 2),
@@ -163,7 +165,8 @@ class GalleryState extends State<Gallery> {
   StreamSubscription<TabDoubleTapEvent>? _tabDoubleTapEvent;
   final _forceReloadEventSubscriptions = <StreamSubscription<Event>>[];
   late String _logTag;
-  bool _sortOrderAsc = false;
+  FileSortOrder _sortOrder = FileSortOrder.newestFirst;
+  bool get _sortOrderAsc => _sortOrder.ascending;
   int _layoutChangeGeneration = 0;
   int _activeFileLoads = 0;
   List<EnteFile> _allGalleryFiles = [];
@@ -198,6 +201,7 @@ class GalleryState extends State<Gallery> {
       assert(widget.showSelectAll == false);
     }
 
+    _sortOrder = widget.sortOrderFn?.call() ?? FileSortOrder.newestFirst;
     _setGroupType();
     _debouncer = Debouncer(
       widget.reloadDebounceTime,
@@ -221,7 +225,6 @@ class GalleryState extends State<Gallery> {
           _updateGalleryGroups();
           _restoreLayoutScrollAnchor(scrollAnchor, generation);
         });
-    _sortOrderAsc = widget.sortAsyncFn != null ? widget.sortAsyncFn!() : false;
     if (widget.reloadEvent != null) {
       _reloadEventSubscription = widget.reloadEvent!.listen((event) async {
         bool shouldReloadFromDB = true;
@@ -285,10 +288,11 @@ class GalleryState extends State<Gallery> {
           event.listen((event) async {
             _debouncer.run(() async {
               _logger.info("Force refresh all files on ${event.reason}");
-              _sortOrderAsc = widget.sortAsyncFn != null
-                  ? widget.sortAsyncFn!()
-                  : false;
+              _sortOrder =
+                  widget.sortOrderFn?.call() ?? FileSortOrder.newestFirst;
               _setGroupType();
+              groupHeaderExtent = await _measureGroupHeaderExtent();
+              if (!mounted) return;
               final result = await _loadFiles();
               _setFilesAndReload(result.files);
             });
@@ -296,11 +300,15 @@ class GalleryState extends State<Gallery> {
         );
       }
     }
-    if (widget.initialFiles != null && !_sortOrderAsc) {
+    if (widget.initialFiles != null &&
+        !_sortOrderAsc &&
+        !_sortOrder.isFilename) {
       _onFilesLoaded(widget.initialFiles!);
     }
 
-    _loadFiles(limit: kInitialLoadLimit).then((result) async {
+    _loadFiles(limit: _sortOrder.isFilename ? null : kInitialLoadLimit).then((
+      result,
+    ) async {
       _setFilesAndReload(result.files);
       if (result.hasMore) {
         final result = await _loadFiles();
@@ -505,7 +513,7 @@ class GalleryState extends State<Gallery> {
   }
 
   void _setGroupType() {
-    if (!widget.enableFileGrouping) {
+    if (!widget.enableFileGrouping || _sortOrder.isFilename) {
       _groupType = GroupType.none;
     } else if (widget.groupType != null) {
       _groupType = widget.groupType!;
@@ -615,7 +623,10 @@ class GalleryState extends State<Gallery> {
 
   Future<bool> _tryAddNewLocalFiles(LocalPhotosAddedEvent event) async {
     final resolver = widget.newLocalFilesResolver;
-    if (resolver == null || !_allFilesLoaded || _activeFileLoads > 0) {
+    if (resolver == null ||
+        !_allFilesLoaded ||
+        _activeFileLoads > 0 ||
+        _sortOrder.isFilename) {
       return false;
     }
 
@@ -694,13 +705,15 @@ class GalleryState extends State<Gallery> {
     _logger.info("Loading ${limit ?? "all"} files");
     _activeFileLoads++;
     try {
+      final sortOrder = _sortOrder;
       final startTime = DateTime.now().microsecondsSinceEpoch;
       final result = await widget.asyncLoader(
         galleryLoadStartTime,
         galleryLoadEndTime,
-        limit: limit,
-        asc: _sortOrderAsc,
+        limit: sortOrder.isFilename ? null : limit,
+        asc: sortOrder.ascending,
       );
+      if (sortOrder != _sortOrder) return await _loadFiles();
       final endTime = DateTime.now().microsecondsSinceEpoch;
       final duration = Duration(microseconds: endTime - startTime);
       _logger.info(
@@ -710,6 +723,17 @@ class GalleryState extends State<Gallery> {
             duration.inMilliseconds.toString() +
             "ms",
       );
+
+      if (sortOrder.isFilename) {
+        final stopwatch = Stopwatch()..start();
+        await sortFilesByName(result.files, sortOrder);
+        if (sortOrder != _sortOrder) return await _loadFiles();
+        stopwatch.stop();
+        _logger.info(
+          "Sorted ${result.files.length} files by ${sortOrder.name} in "
+          "${stopwatch.elapsedMicroseconds / 1000} ms",
+        );
+      }
 
       if (!result.hasMore) {
         if (!mounted) {
@@ -843,7 +867,9 @@ class GalleryState extends State<Gallery> {
           (widthAvailable - (photoGridSize - 1) * GalleryGroups.spacing) /
           photoGridSize;
       final placeholder =
-          widget.initialFiles != null && widget.initialFiles!.isNotEmpty
+          !_sortOrder.isFilename &&
+              widget.initialFiles != null &&
+              widget.initialFiles!.isNotEmpty
           ? Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
