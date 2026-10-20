@@ -392,86 +392,113 @@ class _CodeWidgetState extends State<CodeWidget> {
   Widget _getBottomRow(StringsLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.only(left: 16, right: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: ValueListenableBuilder<String>(
-              valueListenable: _currentCode,
-              builder: (context, value, child) {
-                return Material(
-                  type: MaterialType.transparency,
-                  child: AutoSizeText(
-                    _getFormattedCode(value),
-                    style: TextStyle(fontSize: widget.isCompactMode ? 14 : 24),
-                    maxLines: 1,
-                    textDirection: TextDirection.ltr,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          widget.code.type.isTOTPCompatible
-              ? IgnorePointer(
-                  ignoring:
-                      CodeDisplayStore.instance.isSelectionModeActive.value,
-                  child: GestureDetector(
-                    onTap: () {
-                      _copyNextToClipboard();
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          l10n.nextTotpTitle,
-                          style: Theme.of(context).textTheme.bodySmall,
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: ValueListenableBuilder<String>(
+                valueListenable: _currentCode,
+                builder: (context, value, child) {
+                  final code = _getFormattedCode(value);
+                  final style = TextStyle(
+                    fontSize: widget.isCompactMode ? 14 : 24,
+                  );
+                  return Material(
+                    type: MaterialType.transparency,
+                    child: AutoSizeText(
+                      code,
+                      style: style,
+                      maxLines: 1,
+                      textDirection: TextDirection.ltr,
+                      // Shrink past the minimum size instead of wrapping, which
+                      // drops the digit groups that do not fit
+                      overflowReplacement: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          code,
+                          style: style,
+                          maxLines: 1,
+                          textDirection: TextDirection.ltr,
                         ),
-                        ValueListenableBuilder<String>(
-                          valueListenable: _nextCode,
-                          builder: (context, value, child) {
-                            return Material(
-                              type: MaterialType.transparency,
-                              child: Text(
-                                _getFormattedCode(value),
-                                style: TextStyle(
-                                  fontSize: widget.isCompactMode ? 12 : 18,
-                                  color: Colors.grey,
-                                ),
-                                textDirection: TextDirection.ltr,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                )
-              : IgnorePointer(
-                  ignoring:
-                      CodeDisplayStore.instance.isSelectionModeActive.value,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        l10n.nextTotpTitle,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      InkWell(
-                        onTap: _onNextHotpTapped,
-                        child: const Icon(
-                          Icons.forward_outlined,
-                          size: 32,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-        ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Shrink the next code before it outgrows the current one
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth / 2),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: _getNextColumn(l10n),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _getNextColumn(StringsLocalizations l10n) {
+    return widget.code.type.isTOTPCompatible
+        ? IgnorePointer(
+            ignoring: CodeDisplayStore.instance.isSelectionModeActive.value,
+            child: GestureDetector(
+              onTap: () {
+                _copyNextToClipboard();
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    l10n.nextTotpTitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  ValueListenableBuilder<String>(
+                    valueListenable: _nextCode,
+                    builder: (context, value, child) {
+                      return Material(
+                        type: MaterialType.transparency,
+                        child: Text(
+                          _getFormattedCode(value),
+                          style: TextStyle(
+                            fontSize: widget.isCompactMode ? 12 : 18,
+                            color: Colors.grey,
+                          ),
+                          textDirection: TextDirection.ltr,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          )
+        : IgnorePointer(
+            ignoring: CodeDisplayStore.instance.isSelectionModeActive.value,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  l10n.nextTotpTitle,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                InkWell(
+                  onTap: _onNextHotpTapped,
+                  child: const Icon(
+                    Icons.forward_outlined,
+                    size: 32,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          );
   }
 
   Widget _getTopRow({required bool isSelected}) {
