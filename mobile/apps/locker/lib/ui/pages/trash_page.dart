@@ -159,6 +159,22 @@ class _TrashPageState extends State<TrashPage> {
     final safeBottomInset = MediaQuery.of(context).padding.bottom;
     final bottomPadding = safeBottomInset + 24.0;
     return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            0,
+            Spacing.lg,
+            Spacing.lg,
+          ),
+          child: Text(
+            context.strings.trashAutoDeleteNotice,
+            style: TextStyles.body.copyWith(
+              color: context.componentColors.textLight,
+            ),
+          ),
+        ),
+      ),
       SliverPadding(
         padding: EdgeInsets.fromLTRB(16.0, 0, 16.0, bottomPadding),
         sliver: SliverToBoxAdapter(
