@@ -465,6 +465,8 @@
     "album_cover": "",
     "set_cover": "Estableix la portada",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "Selecciona la foto de portada",
     "reset_to_default": "Restableix per defecte",

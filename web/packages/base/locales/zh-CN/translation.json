@@ -465,6 +465,8 @@
     "album_cover": "相册封面",
     "set_cover": "设置封面",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "选择封面照片",
     "reset_to_default": "恢复默认",

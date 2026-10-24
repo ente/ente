@@ -465,6 +465,8 @@
     "album_cover": "",
     "set_cover": "Definir capa",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "Selecionar foto de capa",
     "reset_to_default": "",

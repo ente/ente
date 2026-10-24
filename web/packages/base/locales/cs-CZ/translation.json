@@ -465,6 +465,8 @@
     "album_cover": "",
     "set_cover": "Nastavit úvodní fotku",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "Vybrat úvodní fotku",
     "reset_to_default": "Obnovit výchozí",
