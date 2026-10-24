@@ -4549,6 +4549,7 @@
   },
   "totalSize": "Total size",
   "trash": "Trash",
+  "trashAutoDeleteNotice": "Items in Trash are permanently deleted after 30 days",
   "restoreOrPermanentlyDeleteItems": "Restore or permanently delete items",
   "trashClearedSuccessfully": "Trash cleared successfully",
   "trashCode": "Trash code?",
