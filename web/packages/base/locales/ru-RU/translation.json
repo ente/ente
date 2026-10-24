@@ -465,6 +465,8 @@
     "album_cover": "Обложка альбома",
     "set_cover": "Выбрать обложку",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "Выберите обложку",
     "reset_to_default": "Сброс по умолчанию",

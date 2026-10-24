@@ -465,6 +465,8 @@
     "album_cover": "",
     "set_cover": "کور سیٹ کریں",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "کور تصویر منتخب کریں",
     "reset_to_default": "ڈیفالٹ پر ری سیٹ کریں",

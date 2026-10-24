@@ -465,6 +465,8 @@
     "album_cover": "Couverture de l'album",
     "set_cover": "Définir la couverture",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "Sélectionnez la photo de couverture",
     "reset_to_default": "Réinitialiser par défaut",

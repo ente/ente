@@ -465,6 +465,8 @@
     "album_cover": "Альбом тышлыгы",
     "set_cover": "Тышлыкны сайлау",
     "choose_cover": "",
+    "pick_cover_from_album": "",
+    "current_cover": "",
     "set_as_cover": "",
     "select_cover_photo": "Тышлык фотосын сайлагыз",
     "reset_to_default": "Башлангыч көйләүләргә кайтару",
