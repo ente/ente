@@ -1,0 +1,1 @@
+- Refresh face review suggestions after photos are deleted or hidden, groups are edited, or review is completed on another page.

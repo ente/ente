@@ -4,22 +4,24 @@ import "dart:typed_data";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:flutter/foundation.dart" show kDebugMode;
+import "package:flutter/foundation.dart" show kDebugMode, visibleForTesting;
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/events/event.dart";
+import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/face/person.dart";
 import 'package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/people/cluster_page.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/file_face_widget.dart";
 import "package:photos/ui/viewer/people/person_clusters_page.dart";
+import "package:photos/ui/viewer/people/review_suggestion_changes.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
@@ -32,8 +34,24 @@ class SuggestionUserFeedback {
 
 class PersonReviewClusterSuggestion extends StatefulWidget {
   final PersonEntity person;
+  @visibleForTesting
+  final Future<List<ClusterSuggestion>> Function()? loadSuggestions;
+  @visibleForTesting
+  final Future<void> Function(ClusterSuggestion, bool)? saveFeedback;
+  @visibleForTesting
+  final Future<Map<int, Uint8List?>> Function(List<EnteFile>, String)?
+  generateFaceThumbnails;
+  @visibleForTesting
+  final Future<Object?> Function(Widget)? openPage;
 
-  const PersonReviewClusterSuggestion(this.person, {super.key});
+  const PersonReviewClusterSuggestion(
+    this.person, {
+    super.key,
+    this.loadSuggestions,
+    this.saveFeedback,
+    this.generateFaceThumbnails,
+    this.openPage,
+  });
 
   @override
   State<PersonReviewClusterSuggestion> createState() => _PersonClustersState();
@@ -50,17 +68,32 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
   late final mlDataDB = MLDataDB.instance;
 
   late Future<List<ClusterSuggestion>> futureClusterSuggestions;
-  StreamSubscription<PeopleChangedEvent>? _peopleChangedEvent;
+  late final StreamSubscription<PeopleChangedEvent> _peopleChangedEvent;
+  late final StreamSubscription<FilesUpdatedEvent> _filesUpdatedEvent;
+  PeopleChangedEvent? _lastReviewedEvent;
+  int _suggestionLoadID = 0;
+  bool _previewOpen = false;
+  bool _savingFeedback = false;
+  bool _loadingSuggestions = false;
+  bool _suggestionsInvalidated = false;
 
   @override
   void initState() {
     super.initState();
+    _peopleChangedEvent = Bus.instance.on<PeopleChangedEvent>().listen(
+      _onSuggestionChanged,
+    );
+    _filesUpdatedEvent = Bus.instance.on<FilesUpdatedEvent>().listen(
+      _onSuggestionChanged,
+    );
     _fetchClusterSuggestions();
   }
 
   @override
   void dispose() {
-    _peopleChangedEvent?.cancel();
+    _suggestionLoadID++;
+    _peopleChangedEvent.cancel();
+    _filesUpdatedEvent.cancel();
     super.dispose();
   }
 
@@ -95,8 +128,6 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             if (snapshot.data!.isEmpty) {
-              _peopleChangedEvent?.cancel();
-              _peopleChangedEvent = null;
               return Center(
                 child: Text(
                   context.strings.noSuggestionsForPerson(
@@ -121,51 +152,13 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
                   clusterID,
                 );
 
-            _peopleChangedEvent?.cancel();
-            _peopleChangedEvent = Bus.instance.on<PeopleChangedEvent>().listen((
-              event,
-            ) {
-              if (event.source == clusterID.toString()) {
-                if (event.type == PeopleEventType.removedFilesFromCluster) {
-                  for (var updatedFile in event.relevantFiles!) {
-                    files.remove(updatedFile);
-                  }
-                  setState(() {});
-                }
-                if (event.type == PeopleEventType.removedFaceFromCluster) {
-                  for (final String removedFaceID in event.relevantFaceIDs!) {
-                    final int fileID = getFileIdFromFaceId<int>(removedFaceID);
-                    files.removeWhere((file) => file.uploadedFileID == fileID);
-                  }
-                  setState(() {});
-                }
-              }
-            });
-
             return Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: SingleChildScrollView(
                     child: GestureDetector(
-                      onTap: () {
-                        final List<EnteFile> sortedFiles = List<EnteFile>.from(
-                          currentSuggestion.filesInCluster,
-                        );
-                        sortedFiles.sort(
-                          (a, b) => b.creationTime!.compareTo(a.creationTime!),
-                        );
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => ClusterPage(
-                              sortedFiles,
-                              personID: widget.person,
-                              clusterID: clusterID,
-                              showNamingBanner: false,
-                            ),
-                          ),
-                        );
-                      },
+                      onTap: () => _navigateToCluster(currentSuggestion),
                       behavior: HitTestBehavior.opaque,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -275,69 +268,63 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
     bool yesOrNo,
     int numberOfSuggestions,
   ) async {
-    if (!canGiveFeedback) {
-      return;
-    }
-    pastUserFeedback.add(
-      SuggestionUserFeedback(yesOrNo, allSuggestions[currentSuggestionIndex]),
-    );
-    if (yesOrNo) {
-      canGiveFeedback = false;
-      await ClusterFeedbackService.instance.addClusterToExistingPerson(
-        person: widget.person,
-        clusterID: clusterID,
-      );
-      _notifySuggestionReviewed();
-      if (mounted) {
-        setState(() => currentSuggestionIndex++);
-      }
-
-      if (currentSuggestionIndex >= (numberOfSuggestions)) {
-        setState(() {
-          currentSuggestionIndex = 0;
-          futureBuilderKeySuggestions = UniqueKey();
-          futureBuilderKeyFaceThumbnails = UniqueKey();
-          _fetchClusterSuggestions();
-        });
-      } else {
-        futureBuilderKeyFaceThumbnails = UniqueKey();
-        setState(() {});
-      }
-    } else {
-      await _rejectSuggestion(clusterID, numberOfSuggestions);
-    }
-  }
-
-  Future<void> _rejectSuggestion(
-    String clusterID,
-    int numberOfSuggestions,
-  ) async {
+    if (!canGiveFeedback || _savingFeedback) return;
+    final suggestion = allSuggestions[currentSuggestionIndex];
+    _savingFeedback = true;
     canGiveFeedback = false;
-    await mlDataDB.captureNotPersonFeedback(
-      personID: widget.person.remoteID,
-      clusterID: clusterID,
-    );
-    _notifySuggestionReviewed();
-    setState(() {
-      currentSuggestionIndex = 0;
-      futureBuilderKeySuggestions = UniqueKey();
-      futureBuilderKeyFaceThumbnails = UniqueKey();
-      _fetchClusterSuggestions();
-    });
+    try {
+      if (widget.saveFeedback != null) {
+        await widget.saveFeedback!(suggestion, yesOrNo);
+      } else if (yesOrNo) {
+        await ClusterFeedbackService.instance.addClusterToExistingPerson(
+          person: widget.person,
+          clusterID: clusterID,
+        );
+      } else {
+        await mlDataDB.captureNotPersonFeedback(
+          personID: widget.person.remoteID,
+          clusterID: clusterID,
+        );
+      }
+      _notifySuggestionReviewed();
+      if (!mounted) return;
+      _savingFeedback = false;
+      pastUserFeedback.add(SuggestionUserFeedback(yesOrNo, suggestion));
+      if (_suggestionsInvalidated ||
+          !yesOrNo ||
+          currentSuggestionIndex + 1 >= numberOfSuggestions) {
+        _reloadSuggestions();
+      } else {
+        setState(() {
+          currentSuggestionIndex++;
+          futureBuilderKeyFaceThumbnails = UniqueKey();
+        });
+      }
+    } catch (error, stack) {
+      _logger.severe("Error saving review feedback", error, stack);
+      if (!mounted) return;
+      _savingFeedback = false;
+      if (_suggestionsInvalidated) {
+        _reloadSuggestions();
+      } else {
+        setState(() => canGiveFeedback = true);
+      }
+    }
   }
 
   void _notifySuggestionReviewed() {
-    Bus.instance.fire(
-      PeopleChangedEvent(
-        person: widget.person,
-        type: PeopleEventType.reviewedSuggestion,
-        source: runtimeType.toString(),
-      ),
+    final event = PeopleChangedEvent(
+      person: widget.person,
+      type: PeopleEventType.reviewedSuggestion,
+      source: runtimeType.toString(),
     );
+    _lastReviewedEvent = event;
+    Bus.instance.fire(event);
   }
 
   Future<void> _saveAsAnotherPerson() async {
     if (!canGiveFeedback ||
+        _savingFeedback ||
         allSuggestions.isEmpty ||
         currentSuggestionIndex >= allSuggestions.length) {
       return;
@@ -348,40 +335,104 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
       final clusterID = currentSuggestion.clusterIDToMerge;
       final someFile = currentSuggestion.filesInCluster.first;
 
-      final result = await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
-        ),
+      final result = await _openPage<Object>(
+        SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
       );
-      if (result == null || result == false) {
-        return;
+      if (result != null && result != false) {
+        _notifySuggestionReviewed();
       }
-      _notifySuggestionReviewed();
-      if (mounted) {
-        setState(() => currentSuggestionIndex++);
-      }
-      final numberOfSuggestions = allSuggestions.length;
-      if (currentSuggestionIndex >= numberOfSuggestions) {
-        setState(() {
-          currentSuggestionIndex = 0;
-          futureBuilderKeySuggestions = UniqueKey();
-          futureBuilderKeyFaceThumbnails = UniqueKey();
-          _fetchClusterSuggestions();
-        });
-      } else {
-        futureBuilderKeyFaceThumbnails = UniqueKey();
-        setState(() {});
+      if (!mounted) return;
+      if (_suggestionsInvalidated) {
+        _reloadSuggestions();
+      } else if (result != null && result != false) {
+        if (currentSuggestionIndex + 1 >= allSuggestions.length) {
+          _reloadSuggestions();
+        } else {
+          setState(() {
+            currentSuggestionIndex++;
+            futureBuilderKeyFaceThumbnails = UniqueKey();
+          });
+        }
       }
     } catch (e, s) {
       _logger.severe("Error saving as another person", e, s);
     }
   }
 
+  Future<T?> _openPage<T>(Widget page) async {
+    _previewOpen = true;
+    try {
+      if (widget.openPage != null) return await widget.openPage!(page) as T?;
+      return await Navigator.of(
+        context,
+      ).push<T>(MaterialPageRoute(builder: (_) => page));
+    } finally {
+      _previewOpen = false;
+    }
+  }
+
+  Future<void> _navigateToCluster(ClusterSuggestion suggestion) async {
+    final sortedFiles = List<EnteFile>.from(suggestion.filesInCluster)
+      ..sort((a, b) => b.creationTime!.compareTo(a.creationTime!));
+    await _openPage<Object>(
+      ClusterPage(
+        sortedFiles,
+        personID: widget.person,
+        clusterID: suggestion.clusterIDToMerge,
+        showNamingBanner: false,
+      ),
+    );
+    if (mounted && _suggestionsInvalidated) _reloadSuggestions();
+  }
+
+  void _onSuggestionChanged(Event event) {
+    if (identical(event, _lastReviewedEvent)) return;
+    if (!reviewSuggestionsAffectedBy(
+      event,
+      allSuggestions.skip(currentSuggestionIndex),
+      previewOpen: _previewOpen,
+      suggestionsLoading: _loadingSuggestions,
+      personID: widget.person.remoteID,
+    )) {
+      return;
+    }
+    _suggestionsInvalidated = true;
+    if (!_previewOpen && !_savingFeedback) _reloadSuggestions();
+  }
+
+  void _reloadSuggestions() {
+    _suggestionsInvalidated = false;
+    setState(() {
+      currentSuggestionIndex = 0;
+      allSuggestions = [];
+      futureBuilderKeySuggestions = UniqueKey();
+      futureBuilderKeyFaceThumbnails = UniqueKey();
+      _fetchClusterSuggestions();
+    });
+  }
+
   void _fetchClusterSuggestions() {
-    debugPrint("Fetching suggestions for ${widget.person.data.name}");
-    futureClusterSuggestions = ClusterFeedbackService.instance
-        .getSuggestionForPerson(widget.person);
+    final loadID = ++_suggestionLoadID;
+    _loadingSuggestions = true;
+    allSuggestions = [];
+    canGiveFeedback = false;
+    futureClusterSuggestions =
+        (widget.loadSuggestions?.call() ??
+                ClusterFeedbackService.instance.getSuggestionForPerson(
+                  widget.person,
+                ))
+            .then((suggestions) {
+              if (!mounted || loadID != _suggestionLoadID) {
+                return <ClusterSuggestion>[];
+              }
+              allSuggestions = suggestions;
+              return suggestions;
+            })
+            .whenComplete(() {
+              if (mounted && loadID == _suggestionLoadID) {
+                _loadingSuggestions = false;
+              }
+            });
   }
 
   Widget _buildSuggestionView(
@@ -424,7 +475,7 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final faceThumbnails = snapshot.data!;
-          canGiveFeedback = true;
+          canGiveFeedback = !_savingFeedback;
           return Column(
             children: <Widget>[
               Row(
@@ -506,6 +557,9 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
     List<EnteFile> files,
     String clusterID,
   ) async {
+    if (widget.generateFaceThumbnails != null) {
+      return widget.generateFaceThumbnails!(files, clusterID);
+    }
     final futures = <Future<Uint8List?>>[];
     for (final file in files) {
       futures.add(
@@ -564,6 +618,7 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
         );
       }
       _notifySuggestionReviewed();
+      if (!mounted) return;
 
       futureClusterSuggestions = futureClusterSuggestions.then((list) {
         return list.sublist(currentSuggestionIndex)

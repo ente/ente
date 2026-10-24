@@ -86,7 +86,9 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
       event,
     ) {
       if (mounted && isPerson && event.person?.remoteID == widget.personId) {
-        setState(() => faceCropFuture = _startFaceCropLoad());
+        setState(() {
+          faceCropFuture = _startFaceCropLoad();
+        });
       }
     });
     faceCropFuture = _startFaceCropLoad();
