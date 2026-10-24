@@ -4,8 +4,8 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/loading_widget.dart';
+import 'package:ente_ui/components/subscription/plan_card.dart';
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/subscription_purchased_event.dart";
@@ -25,6 +25,7 @@ import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/payment_web_page.dart';
 import 'package:photos/ui/payment/subscription_common_widgets.dart';
+import "package:photos/ui/payment/subscription_page_scaffold.dart";
 import 'package:photos/ui/payment/subscription_plan_widget.dart';
 import "package:photos/ui/payment/view_add_on_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
@@ -139,36 +140,12 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
   @override
   Widget build(BuildContext context) {
     colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
     if (!_isLoading) {
       _isLoading = true;
       _dialog = createProgressDialog(context, context.strings.pleaseWait);
       _fetchSub();
     }
-    if (widget.isOnboarding) {
-      return _buildOnboardingPage();
-    }
-
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundColour,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(context.strings.subscription, style: textTheme.largeBold),
-        centerTitle: true,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [Expanded(child: _getBody())],
-      ),
-    );
+    return _buildSubscriptionPage();
   }
 
   Widget _getBody() {
@@ -178,35 +155,20 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     return const EnteLoadingWidget();
   }
 
-  Widget _buildOnboardingPage() {
-    final colors = context.componentColors;
-    return OnboardingPageScaffold(
-      key: _scaffoldKey,
-      title: context.strings.chooseYourPlan,
-      illustration: OnboardingIllustration.pricing,
-      headerHeight: OnboardingPageScaffold.planHeaderHeight,
-      titleBarStyle: OnboardingTitleBarStyle.header,
-      headerTrailing: IconButtonComponent(
-        variant: IconButtonComponentVariant.unfilled,
-        size: 48,
-        iconSize: IconSizes.medium,
-        icon: HugeIcon(
-          icon: HugeIcons.strokeRoundedHelpCircle,
-          color: colors.specialWhite,
-        ),
-        tooltip: context.strings.faqs,
-        onTap: () => showPlanFaqSheet(context),
-      ),
+  Widget _buildSubscriptionPage() {
+    return SubscriptionPageScaffold(
+      scaffoldKey: _scaffoldKey,
+      onHelpTap: () => showPlanFaqSheet(context),
       isBodyCentered: !_hasLoadedData,
-      pinActions: true,
-      body: _hasLoadedData
-          ? _buildOnboardingPlans()
-          : const EnteLoadingWidget(),
+      body: widget.isOnboarding
+          ? (_hasLoadedData
+                ? _buildOnboardingPlans()
+                : const EnteLoadingWidget())
+          : _getBody(),
       actions: [
-        if (_hasLoadedData)
-          ButtonComponent(
-            label: context.strings.continueLabel,
-            shouldShowSuccessState: false,
+        if (widget.isOnboarding && _hasLoadedData)
+          SubscriptionContinueButton(
+            label: _continueLabel(),
             isDisabled: _selectedPlanProductID == null,
             onTap: _selectedPlanProductID == null
                 ? null
@@ -214,6 +176,21 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           ),
       ],
     );
+  }
+
+  String _continueLabel() {
+    final selected = _selectedPlanProductID;
+    final storage = selected == freeProductID
+        ? _freePlan.storage
+        : _plans
+              .where((plan) => plan.stripeID == selected)
+              .firstOrNull
+              ?.storage;
+    return storage == null
+        ? context.strings.continueLabel
+        : context.strings.subscriptionContinueWithPlan(
+            storage: subscriptionStorageLabel(storage),
+          );
   }
 
   Widget _buildOnboardingPlans() {
@@ -254,7 +231,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
     widgets.add(
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        padding: const EdgeInsets.only(bottom: Spacing.lg),
         child: SubscriptionToggle(
           isYearly: _showYearlyPlan,
           onToggle: _onToggleBillingPeriod,
@@ -264,7 +241,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
     widgets.add(
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.only(bottom: Spacing.xxl),
         child: SubscriptionPlanList(children: _getStripePlanWidgets()),
       ),
     );
@@ -287,7 +264,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (_currentSubscription!.productID == freeProductID) {
       widgets.add(
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(vertical: Spacing.xs),
           child: SubFaqWidget(),
         ),
       );
@@ -299,15 +276,9 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (!widget.isOnboarding) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: MenuItemWidgetNew(
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+          child: SubscriptionFamilyWidget(
             title: context.strings.manageFamily,
-            menuItemColor: colorScheme.fillFaint,
-            pressedColor: colorScheme.fillFaintPressed,
-            trailingWidget: Icon(
-              Icons.chevron_right_outlined,
-              color: colorScheme.strokeBase,
-            ),
             onTap: () async {
               late final UserDetails userDetails;
               try {
@@ -342,7 +313,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (_currentSubscription!.productID != freeProductID) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
           child: MenuItemWidgetNew(
             title: "Manage payment method",
             menuItemColor: colorScheme.fillFaint,
@@ -362,7 +333,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     if (_hasActiveSubscription && _isStripeSubscriber) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
           child: _stripeRenewOrCancelButton(),
         ),
       );
@@ -370,11 +341,9 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
     widgets.add(const SizedBox(height: 80));
 
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: widgets,
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widgets,
     );
   }
 
@@ -538,6 +507,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
             isActive: widget.isOnboarding
                 ? _selectedPlanProductID == freeProductID
                 : _isFreePlanUser(),
+            isCurrentPlan: _isFreePlanUser(),
           ),
         ),
       );
@@ -626,6 +596,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
             isActive: widget.isOnboarding
                 ? _selectedPlanProductID == productID
                 : isActive && !_hideCurrentPlanSelection,
+            isCurrentPlan: isActive && !_hideCurrentPlanSelection,
             isPopular: _isPopularPlan(plan),
             monthlyPrice: _monthlyPriceFor(plan),
           ),

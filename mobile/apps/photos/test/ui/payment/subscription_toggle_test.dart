@@ -25,7 +25,7 @@ void main() {
       final toggleAlignment = tester.widget<AnimatedAlign>(
         find.byType(AnimatedAlign),
       );
-      expect(toggleAlignment.alignment, Alignment.centerLeft);
+      expect(toggleAlignment.alignment, Alignment.centerRight);
     });
   });
 }

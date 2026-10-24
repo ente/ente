@@ -40,6 +40,7 @@ class ButtonComponent extends StatefulWidget {
     this.shouldShowSuccessConfirmation = false,
     this.progressStatus,
     this.leading,
+    this.labelStyle,
     this.dismissModalOnSuccess = false,
   });
 
@@ -54,6 +55,7 @@ class ButtonComponent extends StatefulWidget {
   final bool shouldShowSuccessConfirmation;
   final ValueListenable<String>? progressStatus;
   final Widget? leading;
+  final TextStyle? labelStyle;
 
   // Only popup routes such as dialogs and sheets are dismissed.
   final bool dismissModalOnSuccess;
@@ -240,9 +242,11 @@ class _ButtonComponentState extends State<ButtonComponent>
     final underlined =
         widget.variant == ButtonComponentVariant.link ||
         widget.variant == ButtonComponentVariant.tertiaryCritical;
-    final labelStyle = widget.density == ButtonComponentDensity.compact
-        ? TextStyles.body
-        : TextStyles.bodyBold;
+    final labelStyle =
+        widget.labelStyle ??
+        (widget.density == ButtonComponentDensity.compact
+            ? TextStyles.body
+            : TextStyles.bodyBold);
     final label = Text(
       widget.label,
       overflow: TextOverflow.ellipsis,

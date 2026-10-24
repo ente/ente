@@ -4398,6 +4398,35 @@
   "subscribe": "Subscribe",
   "subscribeToChangeLinkSetting": "You need a paid subscription to change this link setting.",
   "subscribeToEnableSharing": "You need an active paid subscription to enable sharing.",
+  "subscriptionLearnMore": "Learn more",
+  "subscriptionCurrentPlan": "Current plan",
+  "subscriptionFaqDescription": "Your questions, answered",
+  "subscriptionFamilyDescription": "Share your plan with your family",
+  "subscriptionContinueWithPlan": "Continue with {storage} plan",
+  "@subscriptionContinueWithPlan": {
+    "description": "Continue button on the Photos plan picker with the selected storage allowance",
+    "placeholders": {
+      "storage": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionLockerItems": "+ {count} items on {appName}",
+  "@subscriptionLockerItems": {
+    "description": "Locker allowance included with a Photos plan",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "appName": {
+        "type": "String",
+        "description": "Placeholder for the styled Locker app name"
+      }
+    }
+  },
+  "subscriptionLockerTitle": "Some things\ndeserve a Locker.",
+  "subscriptionLockerDescription": "Passports, certificates, and life’s important documents. Keep them private and together.",
   "subscription": "Subscription",
   "subscriptionRequiredForSharing": "You need a paid subscription to share links",
   "subWillBeCancelledOn": "Your subscription will be cancelled on {endDate}",
