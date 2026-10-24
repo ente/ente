@@ -1089,9 +1089,16 @@ class _AlbumsTabState extends State<AlbumsTab>
                           fit: StackFit.expand,
                           children: [
                             for (final previousChild in previousChildren)
-                              Positioned.fill(child: previousChild),
+                              Positioned.fill(
+                                child: HeroMode(
+                                  enabled: false,
+                                  child: previousChild,
+                                ),
+                              ),
                             if (currentChild != null)
-                              Positioned.fill(child: currentChild),
+                              Positioned.fill(
+                                child: HeroMode(child: currentChild),
+                              ),
                           ],
                         );
                       },
