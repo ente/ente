@@ -378,6 +378,7 @@ func main() {
 		EmailNotificationCtrl: emailNotificationCtrl,
 		CollectionLinkRepo:    collectionLinkRepo,
 		FileLinkRepo:          fileLinkRepo,
+		MemoryShareRepo:       memoryShareRepo,
 		CollectionRepo:        collectionRepo,
 		UserRepo:              userRepo,
 		JwtSecret:             jwtSecretBytes,
