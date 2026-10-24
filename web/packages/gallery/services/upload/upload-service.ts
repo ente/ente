@@ -929,6 +929,11 @@ const extractImageOrVideoMetadata = async (
         if (h) publicMagicMetadata.h = ensureInteger(h);
     }
 
+    // Left unset when the Exif could not be read, so that the mobile apps can
+    // still check the file later.
+    if (fileType == FileType.image && parsedMetadata?.isPanorama !== undefined)
+        publicMagicMetadata.mediaType = parsedMetadata.isPanorama ? 1 : 0;
+
     const caption =
         parsedMetadataJSON?.description ?? parsedMetadata?.description;
     if (

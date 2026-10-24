@@ -1,4 +1,4 @@
-import type { RawExifTags } from "ente-gallery/services/exif";
+import { parseExif, type RawExifTags } from "ente-gallery/services/exif";
 import {
     parseDateFromDigitGroups,
     tryParseEpochMicrosecondsFromFileName,
@@ -387,5 +387,35 @@ describe("Apple Photos XMP sidecars", () => {
         expect(matchJSONMetadata(undefined, 0, "IMG_9.HEIC", map)).toBe(
             uppercaseMetadata,
         );
+    });
+});
+
+describe("panorama detection", () => {
+    test.each(["equirectangular", "cylindrical"])(
+        "detects a %s Photo Sphere projection",
+        (projection) => {
+            expect(
+                parseExif({ xmp: { ProjectionType: xmpTag(projection) } })
+                    .isPanorama,
+            ).toBe(true);
+        },
+    );
+
+    test("detects the Exif CustomRendered panorama value", () => {
+        expect(
+            parseExif({
+                exif: {
+                    CustomRendered: { id: 0xa401, value: 6, description: "" },
+                },
+            }).isPanorama,
+        ).toBe(true);
+    });
+
+    test.each([
+        { xmp: { ProjectionType: xmpTag("cubemap") } },
+        { exif: { CustomRendered: { id: 0xa401, value: 1, description: "" } } },
+        {},
+    ] satisfies RawExifTags[])("does not mark %o as a panorama", (tags) => {
+        expect(parseExif(tags).isPanorama).toBe(false);
     });
 });

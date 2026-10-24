@@ -22,7 +22,17 @@ export const parseExif = (tags: RawExifTags) => {
     if (description) metadata.description = description;
     if (camera?.make) metadata.cameraMake = camera.make;
     if (camera?.model) metadata.cameraModel = camera.model;
+    metadata.isPanorama = parseIsPanorama(tags);
     return metadata;
+};
+
+// The same checks as the mobile app: a Photo Sphere (GPano) projection, or
+// the Exif CustomRendered value for a panorama.
+const parseIsPanorama = (tags: RawExifTags) => {
+    const projectionType = tags.xmp?.ProjectionType?.value;
+    if (projectionType == "equirectangular" || projectionType == "cylindrical")
+        return true;
+    return tags.exif?.CustomRendered?.value == 6;
 };
 
 const parseLocation = (tags: RawExifTags) => {

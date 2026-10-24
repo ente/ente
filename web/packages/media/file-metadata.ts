@@ -81,6 +81,10 @@ export interface FilePublicMagicMetadataData {
     // Streaming version. A client that decides a video does not need an HLS
     // stream sets this to 1, and other clients then skip processing it.
     sv?: number;
+    // Bit flags describing the media. Bit 0 (value 1) marks a panorama, which
+    // the mobile apps open in their panorama viewer. Unset means the file has
+    // not been checked yet.
+    mediaType?: number;
 }
 
 export const FilePublicMagicMetadataData = z.looseObject({
@@ -101,6 +105,7 @@ export const FilePublicMagicMetadataData = z.looseObject({
     lat: z.number().nullish().transform(nullToUndefined),
     long: z.number().nullish().transform(nullToUndefined),
     sv: z.number().nullish().transform(nullToUndefined),
+    mediaType: z.number().nullish().transform(nullToUndefined),
 });
 
 export const metadataHash = (metadata: FileMetadata) => {
@@ -197,6 +202,7 @@ export interface ParsedMetadata {
     description?: string;
     cameraMake?: string;
     cameraModel?: string;
+    isPanorama?: boolean;
 }
 
 // Photo dates often have no UTC offset.
