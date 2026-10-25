@@ -1,0 +1,35 @@
+{
+    "name": "ente-auth-extension",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Chrome extension that autofills TOTP codes from your Ente Auth account.",
+    "type": "module",
+    "scripts": {
+        "build": "wxt build",
+        "build:firefox": "wxt build -b firefox",
+        "compile": "tsc --noEmit",
+        "dev": "wxt",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "postinstall": "wxt prepare",
+        "zip": "wxt zip"
+    },
+    "dependencies": {
+        "@noble/hashes": "2.4.0",
+        "otpauth": "9.5.2",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
+        "zod": "4.6.7"
+    },
+    "devDependencies": {
+        "@types/react": "19.3.0",
+        "@types/react-dom": "19.3.0",
+        "@wxt-dev/module-react": "1.2.2",
+        "prettier": "3.9.9",
+        "prettier-plugin-organize-imports": "4.3.0",
+        "prettier-plugin-packagejson": "3.0.3",
+        "typescript": "6.0.3",
+        "vite-plugin-wasm": "3.6.0",
+        "wxt": "0.21.4"
+    }
+}

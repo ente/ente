@@ -1,0 +1,274 @@
+:root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #1db954;
+    --accent-fg: #ffffff;
+    --error: #dc2626;
+    --surface: #f9fafb;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #16181c;
+        --fg: #f3f4f6;
+        --muted: #9ca3af;
+        --border: #2a2d34;
+        --surface: #1e2126;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    width: 340px;
+    min-height: 200px;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    font-size: 14px;
+    color: var(--fg);
+    background: var(--bg);
+}
+
+.screen {
+    padding: 16px;
+}
+
+.centered {
+    display: grid;
+    place-items: center;
+    padding: 40px;
+    color: var(--muted);
+}
+
+.header h1 {
+    font-size: 16px;
+    margin: 0 0 4px;
+}
+
+.header .subtitle {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+input {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 14px;
+}
+
+input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+}
+
+button {
+    padding: 9px 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+button.link {
+    background: none;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 8px 0 0;
+    text-align: left;
+}
+
+button.icon {
+    background: var(--surface);
+    color: var(--fg);
+    padding: 4px 8px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+}
+
+button.secondary {
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 8px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.error {
+    color: var(--error);
+    font-size: 12px;
+    margin: 0;
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0;
+}
+
+code {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+}
+
+.server {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vault {
+    padding: 12px;
+}
+
+.vault-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.actions {
+    display: flex;
+    gap: 6px;
+}
+
+.codes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.code-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.code-row .meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.issuer {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.otp {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    color: var(--fg);
+    padding: 4px 6px 6px;
+}
+
+.otp .digits {
+    font-family: ui-monospace, monospace;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+}
+
+.otp .progress {
+    display: block;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.otp .progress > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.9s linear;
+}
+
+.otp .copied {
+    position: absolute;
+    top: -14px;
+    font-size: 10px;
+    color: var(--accent);
+}

@@ -1,0 +1,8 @@
+{
+    "tabWidth": 4,
+    "objectWrap": "collapse",
+    "plugins": [
+        "prettier-plugin-organize-imports",
+        "prettier-plugin-packagejson"
+    ]
+}

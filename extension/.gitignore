@@ -1,0 +1,7 @@
+node_modules/
+.output/
+.wxt/
+stats.html
+.env
+.env.*
+!.env.example
