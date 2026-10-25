@@ -1530,10 +1530,20 @@ export class FileViewerPhotoSwipe<
                         cb = handleDelete;
                         break;
                     case "ArrowLeft":
+                        if (
+                            document.activeElement?.tagName ===
+                            "MEDIA-VOLUME-RANGE"
+                        )
+                            return;
                         cb = handleSeekBackOrPreviousSlide;
                         pswpEvent.preventDefault();
                         break;
                     case "ArrowRight":
+                        if (
+                            document.activeElement?.tagName ===
+                            "MEDIA-VOLUME-RANGE"
+                        )
+                            return;
                         cb = handleSeekForwardOrNextSlide;
                         pswpEvent.preventDefault();
                         break;
@@ -1579,6 +1589,7 @@ export class FileViewerPhotoSwipe<
             const target = e.target;
             if (target instanceof HTMLElement) {
                 switch (target.tagName) {
+                    case "MEDIA-VOLUME-RANGE":
                     case "MEDIA-TIME-RANGE":
                     case "MEDIA-PLAY-BUTTON":
                     case "MEDIA-MUTE-BUTTON":
