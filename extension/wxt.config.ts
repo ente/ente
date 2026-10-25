@@ -26,7 +26,15 @@ export default defineConfig({
             extension_pages:
                 "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
         },
-        action: { default_title: "Ente Auth" },
+        action: {
+            default_title: "Ente Auth",
+            default_icon: {
+                16: "icon/16.png",
+                32: "icon/32.png",
+                48: "icon/48.png",
+                128: "icon/128.png",
+            },
+        },
     },
 
     vite: () => ({

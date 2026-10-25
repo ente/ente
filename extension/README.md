@@ -115,5 +115,7 @@ worker, so the background never loads it. Instead:
 
 ## Icons
 
-Add PNG icons under `public/icon/{16,32,48,128}.png` to give the extension a
-toolbar icon; WXT picks them up automatically.
+PNG icons live under `public/icon/{16,32,48,128}.png` and are wired into both
+`manifest.icons` and the toolbar button (`manifest.action.default_icon`). They
+are rendered from the official Ente Auth app icon
+(`mobile/apps/auth/ios/Runner/Assets.xcassets/IconDefault.appiconset/IconDefaultAny.png`).
