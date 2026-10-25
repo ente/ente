@@ -98,6 +98,7 @@ export interface CollectionHeaderProps {
     onAddSaveGroup: AddSaveGroup;
     onShowMap: () => void;
     onBackToAlbums: () => void;
+    onBackToHidden?: () => void;
     onDescriptionHeightChange?: (height: number) => void;
 }
 
@@ -157,11 +158,15 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                         ...(isAlbum && { gridArea: "summary" }),
                     }}
                 >
-                    {(type == "hiddenItems" || type == "archiveItems") && (
+                    {(type == "hiddenItems" ||
+                        type == "archiveItems" ||
+                        props.onBackToHidden) && (
                         <Tooltip title={t("go_back")}>
                             <IconButton
                                 aria-label={t("go_back")}
-                                onClick={props.onBackToAlbums}
+                                onClick={
+                                    props.onBackToHidden ?? props.onBackToAlbums
+                                }
                                 sx={{ width: 32, height: 32 }}
                             >
                                 <ArrowBackIcon sx={{ fontSize: 20 }} />

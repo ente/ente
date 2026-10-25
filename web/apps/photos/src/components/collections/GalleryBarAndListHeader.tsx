@@ -5,8 +5,10 @@ import {
     type CollectionShareProps,
 } from "@/components/collections/CollectionShare";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
+import { HiddenAlbumsHeader } from "@/components/gallery/HiddenAlbumsHeader";
 import { PeopleHeader } from "@/components/gallery/PeopleHeader";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import type { Collection } from "ente-media/collection";
 import {
@@ -29,6 +31,7 @@ type GalleryBarAndListHeaderProps = {
     mode: GalleryBarMode;
     shouldHide: boolean;
     collectionSummary: CollectionSummary | undefined;
+    hiddenAlbums: CollectionSummary[];
     activeCollection: Collection | undefined;
     activePerson: Person | undefined;
     people: Person[];
@@ -58,6 +61,7 @@ export const GalleryBarAndListHeader: React.FC<
     mode,
     user,
     collectionSummary,
+    hiddenAlbums,
     activeCollection,
     setActiveCollectionID,
     setBlockingLoad,
@@ -101,9 +105,27 @@ export const GalleryBarAndListHeader: React.FC<
     const albumDescription =
         activeCollection?.pubMagicMetadata?.data.caption?.trim();
     const [descriptionHeight, setDescriptionHeight] = useState(0);
+    const compact = useMediaQuery(useTheme().breakpoints.down("md"));
 
     useEffect(() => {
         if (shouldHide || mode == "links") return;
+
+        if (
+            mode == "hidden-albums" &&
+            collectionSummary?.id == PseudoCollectionID.hiddenItems
+        ) {
+            setFileListHeader({
+                component: (
+                    <HiddenAlbumsHeader
+                        albums={hiddenAlbums}
+                        onSelectAlbum={setActiveCollectionID}
+                        onBackToAlbums={onBackToAlbums}
+                    />
+                ),
+                height: hiddenAlbums.length ? (compact ? 238 : 274) : 48,
+            });
+            return;
+        }
 
         // Pseudo-collections need header actions despite having no Collection.
         const shouldRenderCollectionHeader =
@@ -126,6 +148,14 @@ export const GalleryBarAndListHeader: React.FC<
                         onBackToAlbums,
                     }}
                     collectionSummary={collectionSummary}
+                    onBackToHidden={
+                        mode == "hidden-albums"
+                            ? () =>
+                                  setActiveCollectionID(
+                                      PseudoCollectionID.hiddenItems,
+                                  )
+                            : undefined
+                    }
                     onCollectionShare={openCollectionShare}
                     onCollectionManageLink={openCollectionManageLink}
                     onCollectionCast={showCollectionCast}
@@ -156,6 +186,8 @@ export const GalleryBarAndListHeader: React.FC<
         shouldHide,
         mode,
         collectionSummary,
+        hiddenAlbums,
+        compact,
         activeCollection,
         isActiveCollectionDownloadInProgress,
         activePerson,

@@ -123,7 +123,8 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
     const albumListRef = useRef<VariableSizeList | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
-    const [linksExpanded, setLinksExpanded] = useState(true);
+    const [collectionGroupExpanded, setCollectionGroupExpanded] =
+        useState(true);
     const searchQuery = mode == "people" ? peopleSearchQuery : albumSearchQuery;
     const setSearchQuery =
         mode == "people" ? setPeopleSearchQuery : onAlbumSearchQueryChange;
@@ -171,8 +172,18 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
     }, [albumFilter]);
     useEffect(() => {
         setPeopleSearchQuery("");
-        if (mode == "links") setLinksExpanded(true);
+        if (mode == "links" || mode == "hidden-albums")
+            setCollectionGroupExpanded(true);
     }, [mode]);
+
+    useEffect(() => {
+        if (
+            mode == "hidden-albums" &&
+            activeCollectionID !== undefined &&
+            activeCollectionID != PseudoCollectionID.hiddenItems
+        )
+            setCollectionGroupExpanded(true);
+    }, [mode, activeCollectionID]);
 
     useEffect(() => {
         if (
@@ -199,7 +210,10 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
                 ? {
                       type: "collections",
                       collectionSummaries: displayedCollectionSummaries,
-                      indented: mode == "albums" || mode == "links",
+                      indented:
+                          mode == "albums" ||
+                          mode == "links" ||
+                          mode == "hidden-albums",
                       activeCollectionID: activeCollectionID!,
                       onSelectCollectionID,
                   }
@@ -690,30 +704,51 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
                         )}
                     </AutoSizer>
                 </Box>
-            ) : mode == "links" ? (
+            ) : mode == "links" || mode == "hidden-albums" ? (
                 <Stack
                     role="group"
-                    aria-label={t("links")}
+                    aria-label={
+                        mode == "links" ? t("links") : t("section_hidden")
+                    }
                     sx={{ flex: 1, minHeight: 0, minWidth: 0 }}
                 >
                     <BarCard
                         aria-current={
-                            activeCollectionID === undefined
+                            (
+                                mode == "links"
+                                    ? activeCollectionID === undefined
+                                    : activeCollectionID ==
+                                      PseudoCollectionID.hiddenItems
+                            )
                                 ? "page"
                                 : undefined
                         }
-                        aria-expanded={isSearching || linksExpanded}
+                        aria-expanded={isSearching || collectionGroupExpanded}
                         onClick={() => {
-                            setLinksExpanded(
-                                activeCollectionID !== undefined ||
-                                    !linksExpanded,
+                            setCollectionGroupExpanded(
+                                (mode == "links"
+                                    ? activeCollectionID !== undefined
+                                    : activeCollectionID !=
+                                      PseudoCollectionID.hiddenItems) ||
+                                    !collectionGroupExpanded,
                             );
-                            onShowLinksOverview();
-                            mobileDrawerProps.onClose();
+                            if (mode == "links") {
+                                onShowLinksOverview();
+                                mobileDrawerProps.onClose();
+                            } else {
+                                void onShowCollectionSummary(
+                                    PseudoCollectionID.hiddenItems,
+                                    true,
+                                ).then((success) => {
+                                    if (success) mobileDrawerProps.onClose();
+                                });
+                            }
                         }}
                         sx={{ flexShrink: 0, height: rowHeight }}
                     >
-                        <CardText>{t("links")}</CardText>
+                        <CardText>
+                            {mode == "links" ? t("links") : t("section_hidden")}
+                        </CardText>
                         <Box
                             component={HugeiconsIcon}
                             icon={ArrowDown01Icon}
@@ -722,13 +757,13 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
                             sx={{
                                 color: "text.muted",
                                 transform:
-                                    isSearching || linksExpanded
+                                    isSearching || collectionGroupExpanded
                                         ? undefined
                                         : "rotate(-90deg)",
                             }}
                         />
                     </BarCard>
-                    {(isSearching || linksExpanded) && items}
+                    {(isSearching || collectionGroupExpanded) && items}
                 </Stack>
             ) : (
                 items

@@ -242,7 +242,10 @@ describe("Hidden and Archive sidebars", () => {
             expect(html).toContain('aria-label="search_in_albums"');
             expect(html).toContain('aria-label="Family"');
             expect(html).toContain('aria-label="Holiday album"');
-            for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
+            if (mode == "hidden-albums")
+                expect(html).toContain('role="group" aria-label="Hidden"');
+            else expect(html).not.toContain('aria-label="Hidden"');
+            for (const label of ["Uncategorized", "Archive", "Trash"])
                 expect(html).not.toContain(`aria-label="${label}"`);
         },
     );
