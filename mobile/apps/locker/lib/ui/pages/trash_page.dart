@@ -117,7 +117,7 @@ class _TrashPageState extends State<TrashPage> {
           AppBarComponent(
             title: context.strings.trash,
             subtitle: hasTrashFiles
-                ? context.strings.items(count: _trashFiles.length)
+                ? context.strings.trashAutoDeleteNotice
                 : null,
             actions: hasTrashFiles
                 ? [
@@ -158,42 +158,7 @@ class _TrashPageState extends State<TrashPage> {
 
     final safeBottomInset = MediaQuery.of(context).padding.bottom;
     final bottomPadding = safeBottomInset + 24.0;
-    final collapseExtent = SliverAppBarComponent.resolveGeometry(
-      context,
-      subtitle: context.strings.items(count: _trashFiles.length),
-    ).collapseExtent;
     return [
-      SliverLayoutBuilder(
-        builder: (context, _) {
-          final visibility = (1 - _scrollController.offset / collapseExtent)
-              .clamp(0.0, 1.0);
-          return SliverOpacity(
-            opacity: visibility,
-            sliver: SliverToBoxAdapter(
-              child: ClipRect(
-                child: Align(
-                  alignment: AlignmentDirectional.topStart,
-                  heightFactor: visibility,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      Spacing.lg,
-                      0,
-                      Spacing.lg,
-                      Spacing.lg,
-                    ),
-                    child: Text(
-                      context.strings.trashAutoDeleteNotice,
-                      style: TextStyles.body.copyWith(
-                        color: context.componentColors.textLight,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
       SliverPadding(
         padding: EdgeInsets.fromLTRB(16.0, 0, 16.0, bottomPadding),
         sliver: SliverToBoxAdapter(
