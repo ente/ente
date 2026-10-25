@@ -530,6 +530,7 @@ const VaultScreen = ({ onLoggedOut }: { onLoggedOut: () => Promise<void> }) => {
     const [error, setError] = useState<string | undefined>();
     const [refreshing, setRefreshing] = useState(false);
     const [now, setNow] = useState(Date.now());
+    const [query, setQuery] = useState("");
 
     const load = useCallback(async () => {
         setRefreshing(true);
@@ -549,6 +550,16 @@ const VaultScreen = ({ onLoggedOut }: { onLoggedOut: () => Promise<void> }) => {
         const tick = window.setInterval(() => setNow(Date.now()), 1000);
         return () => window.clearInterval(tick);
     }, [load]);
+
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return codes;
+        return codes.filter((code) =>
+            `${code.issuer ?? ""} ${code.account ?? ""}`
+                .toLowerCase()
+                .includes(q),
+        );
+    }, [codes, query]);
 
     return (
         <div className="screen vault">
@@ -572,14 +583,34 @@ const VaultScreen = ({ onLoggedOut }: { onLoggedOut: () => Promise<void> }) => {
                     </button>
                 </div>
             </div>
+            <div className="search">
+                <input
+                    type="search"
+                    placeholder="Search accounts"
+                    aria-label="Search accounts"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                    <button
+                        className="icon clear"
+                        title="Clear search"
+                        onClick={() => setQuery("")}
+                    >
+                        ✕
+                    </button>
+                )}
+            </div>
             {error && <p className="error">{error}</p>}
             {codes.length === 0 && !error ? (
                 <p className="hint">
                     No authenticator items found in this account.
                 </p>
+            ) : filtered.length === 0 ? (
+                <p className="hint">No accounts match “{query.trim()}”.</p>
             ) : (
                 <ul className="codes">
-                    {codes.map((code) => (
+                    {filtered.map((code) => (
                         <CodeRow
                             key={code.id}
                             code={code}

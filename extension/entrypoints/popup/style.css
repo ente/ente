@@ -188,6 +188,32 @@ code {
     gap: 6px;
 }
 
+.search {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.search input {
+    width: 100%;
+    padding-right: 34px;
+}
+
+.search input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+}
+
+.search .clear {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 2px 6px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 12px;
+}
+
 .codes {
     list-style: none;
     margin: 0;
