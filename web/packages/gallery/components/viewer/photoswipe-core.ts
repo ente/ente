@@ -1530,22 +1530,22 @@ export class FileViewerPhotoSwipe<
                         cb = handleDelete;
                         break;
                     case "ArrowLeft":
+                        pswpEvent.preventDefault();
                         if (
                             document.activeElement?.tagName ===
                             "MEDIA-VOLUME-RANGE"
                         )
                             return;
                         cb = handleSeekBackOrPreviousSlide;
-                        pswpEvent.preventDefault();
                         break;
                     case "ArrowRight":
+                        pswpEvent.preventDefault();
                         if (
                             document.activeElement?.tagName ===
                             "MEDIA-VOLUME-RANGE"
                         )
                             return;
                         cb = handleSeekForwardOrNextSlide;
-                        pswpEvent.preventDefault();
                         break;
                     case "?":
                         cb = handleHelp;
