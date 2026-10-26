@@ -7,6 +7,18 @@ description: Release notes of recent updates to Ente Locker
 
 A short summary list of changes to Ente Locker.
 
+## v1.0.11 (mobile) - Oct 2026
+
+- Open images right in Locker. Pinch or double-tap to zoom.
+- A fresh look for adding files to Locker.
+- Added Korean language support.
+- Improved document scanner opening and closing on Android and iOS.
+- Preserved spaces in Notes, Things and Secrets when saving, editing, viewing and copying.
+- Fixed emoji being cut off in automatically generated Note titles.
+- Fixed app locks remaining enabled after logout.
+- Fixed Important collection selection and icons for JPEG files.
+- Improved collection file counts, menus and loading dialogs.
+
 ## v1.0.10 (mobile) - Oct 2026
 
 - Improved document scanning. Retake individual pages before saving.
