@@ -1,1 +1,0 @@
-- Added a confirmation before closing file info with an unsaved description.

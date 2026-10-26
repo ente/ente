@@ -1,1 +1,0 @@
-- Removed the redundant three-dot menu from Hidden items and moved the download button to the right.

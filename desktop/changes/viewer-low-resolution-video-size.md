@@ -1,1 +1,0 @@
-- Fixed low-resolution videos appearing too small in the viewer.

@@ -1,1 +1,0 @@
-- Updated All People to match the All Albums design.

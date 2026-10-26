@@ -1,1 +1,0 @@
-- Improved desktop previews for RAF, ORF, PEF, NRW, and SRW camera RAW photos.
