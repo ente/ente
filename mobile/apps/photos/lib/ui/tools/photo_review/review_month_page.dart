@@ -47,6 +47,11 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 
   final _service = PhotoReviewService.instance;
   final _stackController = ReviewSwipeStackController();
+  final _reloadDebouncer = Debouncer(
+    const Duration(milliseconds: 500),
+    executionInterval: const Duration(seconds: 2),
+    leading: true,
+  );
   late final StreamSubscription<FilesUpdatedEvent> _filesSubscription;
 
   List<EnteFile> _files = [];
@@ -73,6 +78,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   @override
   void dispose() {
     _filesSubscription.cancel();
+    _reloadDebouncer.cancelDebounceTimer();
     super.dispose();
   }
 
@@ -142,20 +148,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   }
 
   void _onFilesUpdated(FilesUpdatedEvent event) {
-    if (!_loaded || _deleting) return;
-    final affected = event.type == EventType.addedOrUpdated
-        ? event.updatedFiles.any(_outdatesDeck)
-        : event.updatedFiles.any(
-            (file) => _loadedFile(file) != null || _isInMonth(file),
-          );
-    if (affected) unawaited(_load(resetView: false));
-  }
-
-  bool _outdatesDeck(EnteFile file) {
-    final loaded = _loadedFile(file);
-    if (loaded == null) return _isInMonth(file);
-    if (!_isInMonth(file)) return true;
-    return loaded.uploadedFileID == null && file.uploadedFileID != null;
+    if (_deleting) return;
+    _reloadDebouncer.run(() => _load(resetView: false));
   }
 
   EnteFile? _loadedFile(EnteFile file) => _files.firstWhereOrNull(
@@ -165,13 +159,6 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
             loaded.uploadedFileID == file.uploadedFileID) ||
         (file.localID != null && loaded.localID == file.localID),
   );
-
-  bool _isInMonth(EnteFile file) {
-    final creationTime = file.creationTime;
-    return creationTime != null &&
-        creationTime >= widget.monthKey.startMicros &&
-        creationTime <= widget.monthKey.endMicros;
-  }
 
   void _rebuildUndecided() {
     _undecided
@@ -200,7 +187,10 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 
   int get _decidedCount => _files.length - _undecided.length;
 
-  Future<void> _onSwiped(EnteFile swiped, ReviewSwipeDirection direction) async {
+  Future<void> _onSwiped(
+    EnteFile swiped,
+    ReviewSwipeDirection direction,
+  ) async {
     final file = _loadedFile(swiped);
     if (file == null) return;
     setState(() {

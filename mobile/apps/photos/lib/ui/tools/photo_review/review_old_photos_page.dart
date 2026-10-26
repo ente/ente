@@ -40,12 +40,13 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   Object? _error;
   final Set<ReviewMonthKey> _selected = {};
   final Set<int> _expandedYears = {};
-  bool _selectionMode = false;
   final _selectionBarKey = GlobalKey();
   double _selectionBarHeight = 0;
   int _loadGeneration = 0;
   bool _covered = false;
   bool _reloadWhenUncovered = false;
+
+  bool get _selectionMode => _selected.isNotEmpty;
 
   @override
   void initState() {
@@ -128,7 +129,6 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
         _overview = overview;
         _error = null;
         _selected.retainAll(existingKeys);
-        if (_selected.isEmpty) _selectionMode = false;
       });
     } catch (e, s) {
       _logger.severe("Failed to load review overview", e, s);
@@ -145,7 +145,6 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
     unawaited(HapticFeedback.selectionClick());
     setState(() {
       if (!_selected.remove(key)) _selected.add(key);
-      _selectionMode = _selected.isNotEmpty;
     });
   }
 
@@ -159,14 +158,12 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
       } else {
         _selected.addAll(keys);
       }
-      _selectionMode = _selected.isNotEmpty;
     });
   }
 
   void _clearSelection() {
     setState(() {
       _selected.clear();
-      _selectionMode = false;
     });
   }
 
@@ -331,7 +328,6 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
                       setState(() {
                         if (allSelected) {
                           _selected.clear();
-                          _selectionMode = false;
                         } else {
                           _selected.addAll(
                             overview?.months.map((month) => month.key) ??

@@ -161,7 +161,7 @@ class ReviewMonthCard extends StatelessWidget {
                 ),
               ),
               if (selected)
-                const Positioned(top: -9, left: 71, child: _SelectedTick())
+                const Positioned(top: -9, left: 71, child: ReviewSelectedTick())
               else if (state == ReviewMonthState.normal)
                 Positioned(top: -8, left: 70, child: _CountBadge(count: count)),
             ],
@@ -251,13 +251,6 @@ class _ProgressPill extends StatelessWidget {
 
 class ReviewSelectedTick extends StatelessWidget {
   const ReviewSelectedTick({super.key});
-
-  @override
-  Widget build(BuildContext context) => const _SelectedTick();
-}
-
-class _SelectedTick extends StatelessWidget {
-  const _SelectedTick();
 
   @override
   Widget build(BuildContext context) {

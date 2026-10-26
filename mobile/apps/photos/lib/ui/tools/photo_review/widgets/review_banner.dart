@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 
@@ -253,36 +254,14 @@ class _ArrowButton extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(Radii.sm),
         ),
-        child: CustomPaint(
-          painter: _ChevronPainter(color: context.componentColors.specialWhite),
+        child: Center(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedArrowRight01,
+            size: IconSizes.small,
+            color: context.componentColors.specialWhite,
+          ),
         ),
       ),
     );
   }
-}
-
-class _ChevronPainter extends CustomPainter {
-  const _ChevronPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.width / 28;
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.394 * scale
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path()
-      ..moveTo(11.4545 * scale, 8.4848 * scale)
-      ..lineTo(17.3939 * scale, 14 * scale)
-      ..lineTo(11.4545 * scale, 19.5152 * scale);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChevronPainter oldDelegate) =>
-      oldDelegate.color != color;
 }

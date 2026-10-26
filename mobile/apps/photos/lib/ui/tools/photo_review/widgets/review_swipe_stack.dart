@@ -2,16 +2,15 @@ import "dart:async";
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
-import "package:photos/ui/viewer/file/file_icons_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 enum ReviewSwipeDirection { left, right }
@@ -132,7 +131,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
     _tween = Tween(
       begin: _drag,
       end: target,
-    ).animate(CurvedAnimation(parent: _animation, curve: curve));
+    ).chain(CurveTween(curve: curve)).animate(_animation);
     _animation
       ..reset()
       ..duration = Motion.slow;
@@ -413,14 +412,10 @@ class _ReviewCard extends StatelessWidget {
                   Positioned(
                     right: Spacing.lg,
                     top: Spacing.lg,
-                    child: SvgPicture.asset(
-                      "assets/photo_review/favorite_star.svg",
-                      width: 20,
-                      height: 20,
-                      colorFilter: ColorFilter.mode(
-                        colors.specialWhite,
-                        BlendMode.srcIn,
-                      ),
+                    child: Icon(
+                      EnteIcons.favoriteFilled,
+                      size: 20,
+                      color: colors.specialWhite,
                     ),
                   ),
               ],
@@ -474,7 +469,7 @@ class _VideoIndicator extends StatelessWidget {
               borderRadius: BorderRadius.circular(38),
             ),
             child: Text(
-              formatVideoDuration(seconds),
+              secondsToDuration(seconds),
               style: TextStyles.mini.copyWith(color: colors.specialWhite),
             ),
           ),
