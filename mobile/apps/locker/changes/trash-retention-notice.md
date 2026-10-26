@@ -1,0 +1,1 @@
+- Added a 30-day deletion notice to Trash. (@fosszil)
