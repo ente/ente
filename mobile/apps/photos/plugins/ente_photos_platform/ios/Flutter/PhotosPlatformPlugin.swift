@@ -6,11 +6,13 @@ public final class PhotosPlatformPlugin: NSObject, @preconcurrency FlutterPlugin
     private let countryNamesAdapter: CountryNamesChannelAdapter
     private let deviceHealthAdapter: DeviceHealthChannelAdapter
     private let processLockAdapter: ProcessLockChannelAdapter
+    private let deviceFolderTransferAdapter: DeviceFolderTransferChannelAdapter
 
     private init(registrar: FlutterPluginRegistrar) {
         countryNamesAdapter = CountryNamesChannelAdapter(registrar: registrar)
         deviceHealthAdapter = DeviceHealthChannelAdapter(registrar: registrar)
         processLockAdapter = ProcessLockChannelAdapter(registrar: registrar)
+        deviceFolderTransferAdapter = DeviceFolderTransferChannelAdapter(registrar: registrar)
         super.init()
     }
 
@@ -22,5 +24,6 @@ public final class PhotosPlatformPlugin: NSObject, @preconcurrency FlutterPlugin
         countryNamesAdapter.detach()
         deviceHealthAdapter.detach()
         processLockAdapter.detach()
+        deviceFolderTransferAdapter.detach()
     }
 }
