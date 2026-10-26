@@ -159,7 +159,7 @@ Learn more: [Collaboration guide](/photos/features/sharing-and-collaboration/col
 
 ### Can collaborators delete photos from shared albums? {#collab-permissions}
 
-Permissions depend on your role:
+For albums shared directly with other Ente users, permissions depend on your role:
 
 **Viewers can:**
 
@@ -171,7 +171,7 @@ Permissions depend on your role:
 
 - Everything viewers can do, plus:
 - Add photos to the shared album
-- Delete photos they uploaded themselves
+- Remove photos they uploaded from the album
 
 **Admins can:**
 
@@ -185,6 +185,20 @@ Permissions depend on your role:
 - Everything admins can do, plus:
 - Manage link settings (passwords, expiry, device limits)
 - Delete the entire album
+
+### Who can edit photo details in a shared album? {#shared-photo-metadata}
+
+Only a photo's owner can rename it or edit its description, date, or location. Album permissions, including Admin, do not let you edit metadata for photos owned by someone else.
+
+### Are people names and face labels shared with other members? {#shared-face-labels}
+
+No. Names you assign to people and face labels are not shared with other accounts, including family members.
+
+### How can I share names and family history with a photo? {#shared-photo-descriptions}
+
+The photo's owner can add names, relationships, and historical context to its description. In an album shared directly with other Ente accounts, recipients can read and search these descriptions in their Ente app after the shared album has synced.
+
+This does not share your [Assigned People Names or Face Labels](#shared-face-labels).
 
 ### What happens when I remove a collaborator from an album? {#remove-collaborator}
 
@@ -223,6 +237,7 @@ Admins have elevated permissions that help them manage shared albums:
 - Manage link settings (passwords, expiry, device limits)
 - Delete the album itself
 - Permanently delete photos they don't own
+- [Edit Metadata for Photos They Don't Own](#shared-photo-metadata)
 
 Admins are ideal for trusted participants who help curate and manage the album, such as family members or event co-organizers.
 
@@ -747,7 +762,13 @@ To share in both directions, each partner enables library sharing for the other.
 
 Not by default. Family members have private libraries and share only the storage allowance. A member can use [library sharing](/photos/features/sharing-and-collaboration/library-sharing) to share current and future albums with another family member.
 
-Tags, face labels, and machine-learning data are not shared, and Ente does not deduplicate photos across family accounts.
+[Assigned People Names and Face Labels](#shared-face-labels) are not shared, and Ente does not deduplicate photos across family accounts.
+
+### Why can't a family member add photos to a shared album? {#family-member-cannot-add-photos}
+
+Family membership and album permissions are separate. Open that album's sharing settings and check that the family member is an **Admin** or **Collaborator** on that specific album. A Viewer cannot add photos.
+
+If they still cannot upload after checking their role, contact [support@ente.com](mailto:support@ente.com) with their app version, device, and a description of what happens when they try.
 
 ### Can I change the initial shown on shared photos? {#shared-photo-initial}
 
