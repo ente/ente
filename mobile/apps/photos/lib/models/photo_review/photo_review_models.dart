@@ -62,10 +62,12 @@ class ReviewDecisionRecord {
     required this.monthKey,
     required this.decision,
     required this.updatedAt,
+    this.generatedID,
   });
 
   final String fileKey;
   final int? uploadedFileID;
+  final int? generatedID;
   final String? localID;
   final String monthKey;
   final ReviewDecision decision;

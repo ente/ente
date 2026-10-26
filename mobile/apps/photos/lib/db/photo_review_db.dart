@@ -11,6 +11,7 @@ class PhotoReviewDB with SqlDbBase {
 
   static const columnFileKey = "file_key";
   static const columnUploadedFileID = "uploaded_file_id";
+  static const columnGeneratedID = "generated_id";
   static const columnLocalID = "local_id";
   static const columnMonthKey = "month_key";
   static const columnDecision = "decision";
@@ -28,6 +29,7 @@ class PhotoReviewDB with SqlDbBase {
     CREATE TABLE IF NOT EXISTS $decisionsTable (
       $columnFileKey TEXT PRIMARY KEY,
       $columnUploadedFileID INTEGER,
+      $columnGeneratedID INTEGER,
       $columnLocalID TEXT,
       $columnMonthKey TEXT NOT NULL,
       $columnDecision INTEGER NOT NULL,
@@ -37,6 +39,8 @@ class PhotoReviewDB with SqlDbBase {
     ON $decisionsTable($columnMonthKey);
     CREATE INDEX IF NOT EXISTS review_decisions_local_id_index
     ON $decisionsTable($columnLocalID);
+    CREATE INDEX IF NOT EXISTS review_decisions_generated_id_index
+    ON $decisionsTable($columnGeneratedID);
     CREATE TABLE IF NOT EXISTS $monthsTable (
       $columnMonthKey TEXT PRIMARY KEY,
       $columnMarkedReviewed INTEGER NOT NULL DEFAULT 0,
@@ -67,17 +71,19 @@ class PhotoReviewDB with SqlDbBase {
 
   Future<List<ReviewDecisionRecord>> getDecisionsForFiles(
     List<String> fileKeys,
-    List<String> localIDs,
-  ) async {
+    List<String> localIDs, {
+    List<int> generatedIDs = const [],
+  }) async {
     final db = await database;
     return db.readTransaction((tx) async {
       final records = <ReviewDecisionRecord>[];
       for (final (column, values) in [
         (columnFileKey, fileKeys),
         (columnLocalID, localIDs),
+        (columnGeneratedID, generatedIDs),
       ]) {
         for (final chunk in values.slices(_lookupChunkSize)) {
-          final placeholders = List.filled(chunk.length, "?").join(",");
+          final placeholders = SqlDbBase.getParams(chunk.length);
           final rows = await tx.getAll(
             "SELECT * FROM $decisionsTable WHERE $column IN ($placeholders)",
             chunk,
@@ -119,18 +125,34 @@ class PhotoReviewDB with SqlDbBase {
     });
   }
 
-  Future<void> rekeyDecisions(
-    List<ReviewDecisionRecord> records,
-    List<String> staleKeys,
-  ) async {
+  Future<void> rekeyDecisions(Map<String, ReviewDecisionRecord> records) async {
     if (records.isEmpty) return;
     final db = await database;
     await db.writeTransaction((tx) async {
-      await _upsertDecisions(tx, records);
+      await tx.executeBatch(
+        '''
+        UPDATE OR IGNORE $decisionsTable
+        SET $columnFileKey = ?, $columnUploadedFileID = ?,
+            $columnLocalID = ?, $columnMonthKey = ?, $columnGeneratedID = ?
+        WHERE $columnFileKey = ?
+        ''',
+        [
+          for (final entry in records.entries)
+            [
+              entry.value.fileKey,
+              entry.value.uploadedFileID,
+              entry.value.localID,
+              entry.value.monthKey,
+              entry.value.generatedID,
+              entry.key,
+            ],
+        ],
+      );
       await tx.executeBatch(
         "DELETE FROM $decisionsTable WHERE $columnFileKey = ?",
         [
-          for (final key in staleKeys) [key],
+          for (final entry in records.entries)
+            if (entry.key != entry.value.fileKey) [entry.key],
         ],
       );
     });
@@ -245,8 +267,8 @@ class PhotoReviewDB with SqlDbBase {
       '''
       INSERT OR REPLACE INTO $decisionsTable (
         $columnFileKey, $columnUploadedFileID, $columnLocalID,
-        $columnMonthKey, $columnDecision, $columnUpdatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        $columnMonthKey, $columnDecision, $columnUpdatedAt, $columnGeneratedID
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
       ''',
       [
         for (final record in records)
@@ -257,6 +279,7 @@ class PhotoReviewDB with SqlDbBase {
             record.monthKey,
             record.decision.storedValue,
             record.updatedAt,
+            record.generatedID,
           ],
       ],
     );
@@ -282,6 +305,7 @@ class PhotoReviewDB with SqlDbBase {
     return ReviewDecisionRecord(
       fileKey: row[columnFileKey] as String,
       uploadedFileID: row[columnUploadedFileID] as int?,
+      generatedID: row[columnGeneratedID] as int?,
       localID: row[columnLocalID] as String?,
       monthKey: row[columnMonthKey] as String,
       decision: ReviewDecision.fromStoredValue(row[columnDecision] as int),
