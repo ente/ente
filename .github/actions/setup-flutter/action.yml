@@ -16,7 +16,7 @@ runs:
               # https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
               # https://storage.googleapis.com/flutter_infra_release/releases/releases_macos.json
               # https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json
-              FLUTTER_VERSION: 3.47.2
+              FLUTTER_VERSION: 3.47.8
               CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
           run: |
               set -euo pipefail
@@ -28,19 +28,19 @@ runs:
               case "$RUNNER_OS-$RUNNER_ARCH" in
               Linux-X64)
                   archive="stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
-                  archive_sha256="447878859d01ca9bfdb99a85f245af07ed8a15fedcd9d189c4749e8e92d1f185"
+                  archive_sha256="baf7dcc5a3dbba60fe863bf493a6cf203195621f7786eaa5a1bba02cd0d87dd2"
                   ;;
               macOS-X64)
                   archive="stable/macos/flutter_macos_${FLUTTER_VERSION}-stable.zip"
-                  archive_sha256="b6fd6ba98c8503d5ee06a6670627b5b1c36167ece3427435ec83b66e9b28c6b5"
+                  archive_sha256="b8a3c255a51a8c0c0943a4d5bdf9b26008c34f02febf69640c8aab413afd896f"
                   ;;
               macOS-ARM64)
                   archive="stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
-                  archive_sha256="f456fd6733053d9301828a2e702d6cbec872923126809aa8c48eb0a696d6cc01"
+                  archive_sha256="6114edc2dae3636cfefb7e4456a4510399ee856e324149b34dbacb509e329d05"
                   ;;
               Windows-X64)
                   archive="stable/windows/flutter_windows_${FLUTTER_VERSION}-stable.zip"
-                  archive_sha256="37934f2128a55d77a38baba12fd611157ed23a47bf7d2b7d17e9e84da118409d"
+                  archive_sha256="11e19ea3409808fe3b3765ea8149640c299e58cce6eda7c9f38fc1b4a193eb6e"
                   ;;
               *) echo "Unsupported runner: $RUNNER_OS-$RUNNER_ARCH" >&2; exit 1 ;;
               esac
