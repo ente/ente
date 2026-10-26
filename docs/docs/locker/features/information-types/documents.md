@@ -50,7 +50,7 @@ To retake a page, select it in the review screen and tap the retake icon. Take a
 2. Tap the **+** button
 3. Select **File**
 4. Choose one or more files from your device
-5. To rename a file, tap the pencil icon beside its name. Enter a new name and tap **Save**
+5. To rename a file, open the menu beside its name and select **Rename**. Enter a new name and tap **Save**
 6. Select one or more collections, or leave them unselected to save to **Uncategorized**
 7. Tap **Save** to upload
 
@@ -79,7 +79,11 @@ Check the app for the complete list of supported formats.
 
 ### Secure viewing
 
-View your uploaded documents directly within the app. Documents are decrypted on your device for viewing and remain encrypted in storage.
+Tap an uploaded image to open it directly in the Locker mobile app. Pinch or double-tap to zoom, and drag to move around a zoomed image.
+
+If an image cannot be displayed, use the option to open it in another app. PDFs and other document types open in a compatible app on your device.
+
+Files are decrypted on your device for viewing and remain encrypted in storage.
 
 ### Document details
 
