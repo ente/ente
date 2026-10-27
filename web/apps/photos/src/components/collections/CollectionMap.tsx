@@ -1487,7 +1487,7 @@ const MapControls = React.memo(function MapControls({
     }, [map]);
 
     const handleOpenInMaps = useCallback(() => {
-        const center = map.getCenter();
+        const center = map.getCenter().wrap();
         const url = `https://www.google.com/maps?q=${center.lat},${center.lng}&z=${map.getZoom()}`;
         window.open(url, "_blank", "noopener,noreferrer");
     }, [map]);
