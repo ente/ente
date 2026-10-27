@@ -86,8 +86,8 @@ class FileSelectionActionsWidget extends StatefulWidget {
       _FileSelectionActionsWidgetState();
 }
 
-class _FileSelectionActionsWidgetState
-    extends State<FileSelectionActionsWidget> {
+class _FileSelectionActionsWidgetState extends State<FileSelectionActionsWidget>
+    with WidgetsBindingObserver {
   static final _logger = Logger("FileSelectionActionsWidget");
   late int currentUserID;
   late FilesSplit split;
@@ -119,21 +119,31 @@ class _FileSelectionActionsWidgetState
     if (widget.selectedFiles.files.isNotEmpty) {
       _selectFileChangeListener();
     }
-    if (Platform.isIOS &&
-        isLocalGalleryMode &&
-        ((widget.type == GalleryType.localFolder &&
-                widget.deviceCollection != null) ||
-            widget.type.showAddToAlbum())) {
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_loadDeviceTransferSupport());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
       unawaited(_loadDeviceTransferSupport());
     }
   }
 
   Future<void> _loadDeviceTransferSupport() async {
+    if (!Platform.isIOS ||
+        !isLocalGalleryMode ||
+        !((widget.type == GalleryType.localFolder &&
+                widget.deviceCollection != null) ||
+            widget.type.showAddToAlbum())) {
+      return;
+    }
     try {
       final operations = await DeviceFolderTransferService.instance
           .supportedOperations(sourceFolderID: widget.deviceCollection?.id);
       if (mounted) setState(() => _deviceTransferOperations = operations);
     } catch (error, stackTrace) {
+      if (mounted) setState(() => _deviceTransferOperations = {});
       _logger.warning(
         'Could not check device transfer support',
         error,
@@ -144,6 +154,7 @@ class _FileSelectionActionsWidgetState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _progressController.close();
     widget.selectedFiles.removeListener(_selectFileChangeListener);
     super.dispose();

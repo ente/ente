@@ -7,8 +7,16 @@ struct DeviceFolderTransferResult: Sendable {
 }
 
 struct DeviceFolderTransferService: Sendable {
+    private let authorizationStatus: @Sendable () -> PHAuthorizationStatus
+
+    init(authorizationStatus: @escaping @Sendable () -> PHAuthorizationStatus = {
+        PHPhotoLibrary.authorizationStatus(for: .readWrite)
+    }) {
+        self.authorizationStatus = authorizationStatus
+    }
+
     func supportedOperations(sourceFolderID: String?) -> [String] {
-        guard hasPhotoAccess else { return [] }
+        guard hasFullPhotoAccess else { return [] }
         var operations = ["add"]
         if let source = collection(sourceFolderID), canRemove(from: source) {
             operations.append("move")
@@ -47,7 +55,7 @@ struct DeviceFolderTransferService: Sendable {
                 failures: Dictionary(uniqueKeysWithValues: ids.map { ($0, reason) })
             )
         }
-        guard hasPhotoAccess else { return failed("permissionDenied") }
+        guard hasFullPhotoAccess else { return failed("permissionDenied") }
         guard operation == "add" || operation == "move" else { return failed("unsupported") }
         guard targetFolderID != sourceFolderID,
               let target = collection(targetFolderID), canAdd(to: target) else {
@@ -120,9 +128,8 @@ struct DeviceFolderTransferService: Sendable {
         return result
     }
 
-    private var hasPhotoAccess: Bool {
-        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        return status == .authorized || status == .limited
+    private var hasFullPhotoAccess: Bool {
+        authorizationStatus() == .authorized
     }
 
     private func collection(_ id: String?) -> PHAssetCollection? {
