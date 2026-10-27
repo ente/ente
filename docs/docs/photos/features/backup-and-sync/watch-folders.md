@@ -24,7 +24,7 @@ Paired with the option to run Ente automatically when your computer starts, this
 
 5. When the app is syncing in the background it'll show a small progress status in the bottom right. You can expand it to see more details if needed.
 
-6. You can stop watching any folder by clicking on the three dots next to the watch folder entry, and then selecting **Stop watching**.
+6. You can stop watching any folder by clicking the **Stop watching** button next to the watch folder entry, then confirming with **Yes, stop**.
 
 > Note: In case you start a new upload while an existing sync is in progress, the sync will be paused then and resumed when your upload is done.
 

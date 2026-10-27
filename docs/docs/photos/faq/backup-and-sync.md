@@ -620,15 +620,15 @@ When you rename a folder inside a watched folder, the desktop app sees every fil
 
 Do not rename the folder back. That repeats the same process. You can keep the new name.
 
-To put the photos back in their albums:
+To restore the photos to albums:
 
 1. Open the desktop app and click **Watch folders** in the sidebar.
-2. Click the three dots next to the main watched folder and select **Stop watching**, then **Yes, stop**. This does not delete any photos from Ente.
+2. Click the **Stop watching** button next to the main watched folder, then **Yes, stop**. This does not delete any photos from Ente.
 3. Click **Add folder** and select the same main folder again.
 4. Choose the same option you used before, for example **Separate albums**.
 5. Wait for the sync to finish.
 
-Ente finds the files that are already uploaded and adds them back to their albums without uploading them again.
+Ente finds files that are already uploaded and adds them to the albums for the current folder structure without uploading them again. With **Separate albums**, a renamed subfolder becomes a new album with its new name. The old album is not refilled. Once you have checked the photos in the new album, you can delete the empty old album.
 
 To remove the leftover copies, open Uncategorized and select the clean icon (broom). This removes only the items that are also in another album.
 
@@ -668,8 +668,8 @@ While the app may work with network drives in some cases, we've found that netwo
 
 1. Click "Watch folders" in the sidebar
 2. Find the folder you want to stop watching
-3. Click the three dots next to that folder entry
-4. Select "Stop watching"
+3. Click the **Stop watching** button next to that folder entry
+4. Confirm with **Yes, stop**
 
 The folder will no longer be monitored, but all files that were already uploaded to Ente will remain there. Stopping watch does not delete any photos from Ente.
 
