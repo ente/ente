@@ -1467,6 +1467,12 @@ const MapControls = React.memo(function MapControls({
     }, [map]);
 
     useEffect(() => {
+        const observer = new ResizeObserver(() => map.invalidateSize());
+        observer.observe(map.getContainer());
+        return () => observer.disconnect();
+    }, [map]);
+
+    useEffect(() => {
         const fillMapWithWorld = () => {
             const { x, y } = map.getSize();
             map.setMinZoom(
