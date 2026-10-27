@@ -628,9 +628,11 @@ To restore the photos to albums:
 4. Choose the same option you used before, for example **Separate albums**.
 5. Wait for the sync to finish.
 
-Ente finds files that are already uploaded and adds them to the albums for the current folder structure without uploading them again. With **Separate albums**, a renamed subfolder becomes a new album with its new name. The old album is not refilled. Once you have checked the photos in the new album, you can delete the empty old album.
+Ente checks for photos it has already uploaded. When it recognizes a match, it adds the photo to an album without uploading the file again. If you renamed a photo in Ente, it may upload again because its name no longer matches the file on your computer.
 
-To remove the leftover copies, open Uncategorized and select the clean icon (broom). This removes only the items that are also in another album.
+With **Separate albums**, each photo goes into an album named after its immediate parent folder. If the renamed folder directly contains photos, they appear in a new album with that folder's new name. The old album is not refilled by those photos. Photos in deeper subfolders can return to their existing albums. Check where the photos appear before deleting any empty album.
+
+To remove leftover entries, open Uncategorized and select the clean icon (broom). This removes only items that are also in another album. Review anything left in Uncategorized before deleting it.
 
 To avoid this next time, stop watching the main folder before you rename a folder inside it, then add the main folder again.
 
