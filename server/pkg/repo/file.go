@@ -56,7 +56,7 @@ func (repo *FileRepository) Create(
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING file_id`,
 		file.OwnerID, app, file.Metadata.EncryptedData, file.File.DecryptionHeader,
 		file.Thumbnail.DecryptionHeader, file.Metadata.DecryptionHeader,
-		file.MagicMetadata, file.PubicMagicMetadata, file.Info,
+		file.MagicMetadata, file.PublicMagicMetadata, file.Info,
 		file.UpdationTime).Scan(&fileID)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
@@ -143,7 +143,7 @@ func (repo *FileRepository) CreateMetaFile(
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING file_id`,
 		metaFile.OwnerID, app, metaFile.Metadata.EncryptedData, "",
 		"", metaFile.Metadata.DecryptionHeader,
-		metaFile.MagicMetadata, metaFile.PubicMagicMetadata, info,
+		metaFile.MagicMetadata, metaFile.PublicMagicMetadata, info,
 		metaFile.UpdationTime).Scan(&fileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -175,7 +175,7 @@ func (repo *FileRepository) CreateMetaFile(
 		UpdationTime:       metaFile.UpdationTime,
 		OwnerID:            metaFile.OwnerID,
 		Metadata:           metaFile.Metadata,
-		PubicMagicMetadata: metaFile.PubicMagicMetadata,
+		PublicMagicMetadata: metaFile.PublicMagicMetadata,
 		MagicMetadata:      metaFile.MagicMetadata,
 		EncryptedKey:       metaFile.EncryptedKey,
 		KeyDecryptionNonce: metaFile.KeyDecryptionNonce,
@@ -648,7 +648,7 @@ func (repo *FileRepository) GetFileAttributesForCopy(fileIDs []int64) ([]ente.Fi
 	defer rows.Close()
 	for rows.Next() {
 		var file ente.File
-		err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PubicMagicMetadata)
+		err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PublicMagicMetadata)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
@@ -660,7 +660,7 @@ func (repo *FileRepository) GetFileAttributesForCopy(fileIDs []int64) ([]ente.Fi
 func (repo *FileRepository) GetFileAttributes(fileID int64) (*ente.File, error) {
 	rows := repo.DB.QueryRow(`SELECT file_id, owner_id, file_decryption_header, thumbnail_decryption_header, metadata_decryption_header, encrypted_metadata, pub_magic_metadata, info FROM files WHERE file_id = $1`, fileID)
 	var file ente.File
-	err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PubicMagicMetadata, &file.Info)
+	err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PublicMagicMetadata, &file.Info)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -751,7 +751,7 @@ func convertRowsToFiles(rows *sql.Rows) ([]ente.File, error) {
 			&file.EncryptedKey, &file.KeyDecryptionNonce,
 			&file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader,
 			&file.Metadata.DecryptionHeader,
-			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PubicMagicMetadata,
+			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PublicMagicMetadata,
 			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt)
 		if err != nil {
 			return files, stacktrace.Propagate(err, "")

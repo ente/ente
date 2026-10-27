@@ -497,7 +497,7 @@ func convertRowsToTrash(rows *sql.Rows) ([]ente.Trash, error) {
 		)
 		err := rows.Scan(&trash.File.ID, &trash.File.OwnerID, &trash.File.CollectionID, &trash.File.EncryptedKey, &trash.File.KeyDecryptionNonce,
 			&trash.File.File.DecryptionHeader, &trash.File.Thumbnail.DecryptionHeader, &trash.File.Metadata.DecryptionHeader,
-			&trash.File.Metadata.EncryptedData, &trash.File.MagicMetadata, &trash.File.PubicMagicMetadata, &trash.File.UpdationTime, &trash.File.Info, &trash.IsDeleted, &trash.IsRestored,
+			&trash.File.Metadata.EncryptedData, &trash.File.MagicMetadata, &trash.File.PublicMagicMetadata, &trash.File.UpdationTime, &trash.File.Info, &trash.IsDeleted, &trash.IsRestored,
 			&trash.CreatedAt, &trash.UpdatedAt, &trash.DeleteBy)
 		if err != nil {
 			return trashFiles, stacktrace.Propagate(err, "")

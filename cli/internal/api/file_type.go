@@ -13,7 +13,7 @@ type File struct {
 	IsDeleted          bool           `json:"isDeleted"`
 	UpdationTime       int64          `json:"updationTime"`
 	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
-	PubicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
+	PublicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
 	Info               *FileInfo      `json:"info,omitempty"`
 }
 

@@ -115,8 +115,8 @@ func TestGetFileForViewer(t *testing.T) {
 	if viewerFile.MagicMetadata != nil || viewerFile.Action != nil || viewerFile.ActionUserID != nil {
 		t.Fatalf("viewer received owner-private file fields: %+v", viewerFile)
 	}
-	if viewerFile.PubicMagicMetadata == nil || viewerFile.PubicMagicMetadata.Data != "public-file" {
-		t.Fatalf("viewer public magic metadata = %+v", viewerFile.PubicMagicMetadata)
+	if viewerFile.PublicMagicMetadata == nil || viewerFile.PublicMagicMetadata.Data != "public-file" {
+		t.Fatalf("viewer public magic metadata = %+v", viewerFile.PublicMagicMetadata)
 	}
 	if viewerFile.EncryptedKey != "collection-file-key" || viewerFile.Metadata.EncryptedData != "encrypted-metadata" {
 		t.Fatalf("viewer shared file fields were not preserved: %+v", viewerFile)

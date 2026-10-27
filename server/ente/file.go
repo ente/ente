@@ -22,7 +22,7 @@ type File struct {
 	IsDeleted          bool           `json:"isDeleted"`
 	UpdationTime       int64          `json:"updationTime"`
 	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
-	PubicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
+	PublicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
 	Info               *FileInfo      `json:"info,omitempty"`
 	// Action and ActionUser are optionally set to drive client-side behavior during diffs
 	Action       *string `json:"action,omitempty"`
@@ -40,7 +40,7 @@ type MetaFile struct {
 	IsDeleted          bool           `json:"isDeleted"`
 	UpdationTime       int64          `json:"updationTime"`
 	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
-	PubicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
+	PublicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
 }
 
 type FileInfo struct {
