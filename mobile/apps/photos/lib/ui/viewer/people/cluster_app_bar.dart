@@ -153,14 +153,12 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
         widget.selectedFiles.files.isEmpty &&
             !isLocalGalleryMode &&
             Configuration.instance.hasConfiguredAccount()
-        ? GalleryFilesState.maybeOf(context)?.galleryFilesOrNull
-              ?.where(
-                (file) =>
-                    file.uploadedFileID != null &&
-                    file.ownerID == currentUserID,
-              )
-              .toList()
+        ? GalleryFilesState.maybeOf(context)?.galleryFilesOrNull?.where(
+            (file) =>
+                file.uploadedFileID != null && file.ownerID == currentUserID,
+          )
         : null;
+    final hasShareableFiles = shareableFiles?.isNotEmpty ?? false;
     return GalleryAppBarWidget.sliverConfig(
       widget.type,
       _appBarTitle,
@@ -182,7 +180,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
             context,
             onCover: onCover,
             foregroundColor: foregroundColor,
-            shareableFiles: shareableFiles,
+            shareableFiles: hasShareableFiles ? shareableFiles : null,
           ),
     ).buildSliver(context);
   }
@@ -191,7 +189,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
     BuildContext context, {
     required bool onCover,
     Color? foregroundColor,
-    required List<EnteFile>? shareableFiles,
+    required Iterable<EnteFile>? shareableFiles,
   }) {
     final hasAccount = Configuration.instance.hasConfiguredAccount();
     final List<Widget> actions = <Widget>[];
@@ -200,7 +198,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
     }
 
     if (!isLocalGalleryMode && hasAccount) {
-      if (shareableFiles != null && shareableFiles.isNotEmpty) {
+      if (shareableFiles != null) {
         actions.add(
           IconButtonComponent(
             key: shareButtonKey,
@@ -217,7 +215,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
             shouldSurfaceExecutionStates: false,
             onTap: () => showSharePersonSheet(
               context,
-              files: shareableFiles,
+              files: shareableFiles.toList(),
               shareButtonKey: shareButtonKey,
             ),
           ),
