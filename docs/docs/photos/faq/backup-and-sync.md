@@ -614,6 +614,26 @@ Ente treats a renamed file as a deleted file plus a new one. The new file is upl
 
 You can review and delete those copies in Uncategorized.
 
+### Why are my albums empty after I renamed a folder inside a watched folder? {#rename-folder-in-watched-folder}
+
+When you rename a folder inside a watched folder, the desktop app sees every file in it as deleted and added again. This can remove the photos from their albums and move them to [Uncategorized](/photos/faq/albums-and-organization#uncategorized). Your photos are not deleted.
+
+Do not rename the folder back. That repeats the same process. You can keep the new name.
+
+To put the photos back in their albums:
+
+1. Open the desktop app and click **Watch folders** in the sidebar.
+2. Click the three dots next to the main watched folder and select **Stop watching**, then **Yes, stop**. This does not delete any photos from Ente.
+3. Click **Add folder** and select the same main folder again.
+4. Choose the same option you used before, for example **Separate albums**.
+5. Wait for the sync to finish.
+
+Ente finds the files that are already uploaded and adds them back to their albums without uploading them again.
+
+To remove the leftover copies, open Uncategorized and select the clean icon (broom). This removes only the items that are also in another album.
+
+To avoid this next time, stop watching the main folder before you rename a folder inside it, then add the main folder again.
+
 ### Why are my watch folders not syncing? {#watch-folders-not-syncing}
 
 Common issues and solutions:
