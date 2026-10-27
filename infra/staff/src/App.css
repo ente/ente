@@ -9,6 +9,107 @@
     margin: 0 auto;
 }
 
+.token-entry {
+    width: 100vw;
+    max-width: none;
+    min-height: 100svh;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background-color: light-dark(#f7faf8, #1c211e);
+}
+
+.token-entry-card {
+    width: min(100%, 440px);
+    padding: 36px;
+    box-sizing: border-box;
+    border: 1px solid light-dark(#e1e9e3, #39443d);
+    border-radius: 18px;
+    background-color: light-dark(#ffffff, #292f2b);
+    box-shadow: 0 16px 48px light-dark(rgb(29 73 44 / 8%), rgb(0 0 0 / 20%));
+}
+
+.token-entry-image {
+    display: block;
+    width: 96px;
+    height: auto;
+    margin: 0 auto 12px;
+}
+
+.token-entry h1 {
+    margin: 0 0 8px;
+    font-size: 36px;
+}
+
+.token-entry p {
+    margin: 0;
+    color: light-dark(#596860, #c0cac2);
+    line-height: 1.5;
+}
+
+.token-entry .token-entry-hint {
+    margin-top: 20px;
+    font-size: 13px;
+}
+
+.token-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+    margin: 8px auto;
+}
+
+.token-entry .token-form {
+    max-width: none;
+    margin-top: 28px;
+}
+
+.token-entry .MuiInputLabel-root,
+.token-entry .MuiOutlinedInput-root {
+    color: inherit;
+}
+
+.token-entry .MuiInputAdornment-root,
+.token-entry .MuiInputAdornment-root .MuiIconButton-root {
+    color: inherit;
+}
+
+.token-entry .MuiOutlinedInput-notchedOutline {
+    border-color: light-dark(#cbd7ce, #637067);
+}
+
+.token-entry .MuiInputLabel-root.Mui-focused {
+    color: #168f40;
+}
+
+.token-entry
+    .MuiOutlinedInput-root.Mui-focused
+    .MuiOutlinedInput-notchedOutline {
+    border-color: #1db954;
+}
+
+.token-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.token-entry .token-form-actions .token-submit-button {
+    width: 100%;
+    height: 48px;
+}
+
+.token-submit-button.MuiButton-contained {
+    color: white;
+    background-color: #1db954;
+}
+
+.token-submit-button.MuiButton-contained:hover {
+    background-color: #00b33c;
+}
+
 .input-form {
     display: flex;
     flex-direction: column;
@@ -126,11 +227,30 @@
     font-weight: bold;
 }
 
-.empty-state-image {
-    margin-top: 150px;
+.empty-state {
+    margin-top: 120px;
+    padding: 0 24px;
+}
+
+.empty-state h2 {
+    margin: 16px 0 6px;
+    font-size: 20px;
+}
+
+.empty-state p {
+    margin: 0;
+    color: light-dark(#596860, #c0cac2);
 }
 
 @media screen and (max-width: 475px) {
+    .token-entry-card {
+        padding: 28px 24px;
+    }
+
+    .token-entry h1 {
+        font-size: 32px;
+    }
+
     .link-text {
         font-size: 30px;
         text-align: center;

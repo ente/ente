@@ -9,16 +9,21 @@ import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/events/event.dart";
+import "package:photos/models/local_entity_data.dart";
 import "package:photos/models/search/album_search_result.dart";
 import "package:photos/models/search/generic_search_result.dart";
+import "package:photos/models/search/hierarchical/location_filter.dart";
 import "package:photos/models/search/hierarchical/magic_filter.dart";
 import "package:photos/models/search/recent_searches.dart";
+import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/states/location_screen_state.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
+import "package:photos/ui/viewer/location/location_screen.dart";
 import "package:photos/ui/viewer/search/result/magic_result_screen.dart";
 import "package:photos/ui/viewer/search/result/searchable_item.dart";
 
@@ -252,10 +257,31 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
                                   result.getHierarchicalSearchFilter()
                                       as MagicFilter,
                             ),
+                            useFadeTransition: true,
                           );
                         },
                       );
                     } else if (result is GenericSearchResult) {
+                      final filter = result.getHierarchicalSearchFilter();
+                      final locationID = result.params[kLocationParamID];
+                      if (filter is LocationFilter && locationID is String) {
+                        final tagPrefix = "searchable_item" + result.heroTag();
+                        return SearchableItemWidget(
+                          result,
+                          onResultTap: () => routeToPage(
+                            context,
+                            LocationScreenStateProvider(
+                              LocalEntity(filter.locationTag, locationID),
+                              LocationScreen(
+                                initialFiles: result.resultFiles(),
+                                coverHeroTag: tagPrefix,
+                                tagPrefix: tagPrefix,
+                              ),
+                            ),
+                            useFadeTransition: true,
+                          ),
+                        );
+                      }
                       return SearchableItemWidget(
                         result,
                         onResultTap: result.onResultTap != null

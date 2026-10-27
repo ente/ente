@@ -15,6 +15,7 @@ interface GalleryItemsSummaryProps {
     descriptionMaxWidth?: number;
     nameProps?: TypographyProps;
     fileCount: number;
+    countLabel?: string;
     endIcon?: React.ReactNode;
     // This cannot be the only way to invoke the action; it is mouse-only.
     onNameClick?: () => void;
@@ -27,6 +28,7 @@ export const GalleryItemsSummary: React.FC<GalleryItemsSummaryProps> = ({
     descriptionMaxWidth,
     nameProps,
     fileCount,
+    countLabel,
     endIcon,
     onNameClick,
     onDescriptionHeightChange,
@@ -58,8 +60,8 @@ export const GalleryItemsSummary: React.FC<GalleryItemsSummaryProps> = ({
             sx={{
                 gap: 1.5,
                 // Keep the header height stable without an end icon.
-                minHeight: "24px",
-                mt: "4px",
+                minHeight: "20px",
+                mt: "2px",
             }}
         >
             <Typography
@@ -68,10 +70,10 @@ export const GalleryItemsSummary: React.FC<GalleryItemsSummaryProps> = ({
                     color: "text.muted",
                     fontSize: "14px",
                     fontWeight: 500,
-                    lineHeight: "18px",
+                    lineHeight: "20px",
                 }}
             >
-                {t("photos_count", { count: fileCount })}
+                {countLabel ?? t("photos_count", { count: fileCount })}
             </Typography>
             {endIcon && (
                 <Box sx={{ svg: { fontSize: "17px", color: "text.muted" } }}>
@@ -164,3 +166,14 @@ export const GalleryItemsHeaderAdapter = styled("div")`
     width: 100%;
     margin-bottom: 12px;
 `;
+
+export const GalleryItemsCoverTile = styled("div")({
+    width: 54,
+    height: 54,
+    flexShrink: 0,
+    borderRadius: 12,
+    overflow: "hidden",
+    position: "relative",
+    alignSelf: "flex-start",
+    "& > img": { width: "100%", height: "100%", objectFit: "cover" },
+});

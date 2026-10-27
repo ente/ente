@@ -79,8 +79,7 @@ function wasmRoots() {
 }
 
 function nativeRoots(workflow) {
-    if (workflow === "rust-cli-test")
-        return [resolve(root, "rust/apps/cli-next")];
+    if (workflow === "rust-cli-test") return [resolve(root, "rust/apps/cli")];
     return [
         ...globSync(`rust/bindings/${bindings[workflow]}/*/Cargo.toml`, {
             cwd: root,

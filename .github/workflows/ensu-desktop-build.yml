@@ -1,0 +1,45 @@
+name: "Build (Ensu desktop)"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: |
+                      rust/apps/ensu/package-lock.json
+                      web/package-lock.json
+
+            - uses: ./.github/actions/setup-rust-linux
+
+            - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              with:
+                  workspaces: rust
+                  shared-key: rust-workspace
+                  cache-targets: false
+                  save-if: false
+
+            - uses: ./.github/actions/restore-rust-target
+              with:
+                  shared-key: rust-workspace
+
+            - run: rustup target add wasm32-unknown-unknown
+
+            - run: npm ci --prefix web
+
+            - run: npm ci --prefix rust/apps/ensu
+
+            - name: Build Ensu desktop
+              run: npm run build --prefix rust/apps/ensu -- --ci --no-bundle -- --locked

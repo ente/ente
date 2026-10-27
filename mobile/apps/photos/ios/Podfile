@@ -1,4 +1,3 @@
-source 'https://github.com/ente/ffmpeg-kit-custom-repo-ios.git'
 platform :ios, '15.1'
 
 source 'https://cdn.cocoapods.org/'

@@ -165,6 +165,103 @@ test("concurrent players share a download and receive their own playback URLs", 
     expect(createURL.mock.calls[0]![0]).toBe(createURL.mock.calls[1]![0]);
 });
 
+test("canceling one player preserves a download joined through the cache lookup", async () => {
+    const firstController = new AbortController();
+    const secondController = new AbortController();
+    const joined = vi.spyOn(secondController.signal, "addEventListener");
+    const bytes = Promise.withResolvers<Uint8Array>();
+    const download = vi.fn((signal?: AbortSignal) => {
+        signal!.addEventListener("abort", () => bytes.reject(signal!.reason), {
+            once: true,
+        });
+        return bytes.promise;
+    });
+    const first = cachedSpaceMediaBlobURL(
+        "video",
+        download,
+        "video/mp4",
+        firstController.signal,
+    );
+    const canceled = expect(first).rejects.toMatchObject({
+        name: "AbortError",
+    });
+    await vi.waitFor(() => expect(download).toHaveBeenCalledOnce());
+    const second = cachedSpaceMediaBlobURLIfPresent(
+        "video",
+        "video/mp4",
+        secondController.signal,
+    );
+    await vi.waitFor(() => expect(joined).toHaveBeenCalled());
+    firstController.abort();
+    await canceled;
+    expect(download.mock.calls[0]![0]!.aborted).toBe(false);
+    bytes.resolve(new Uint8Array([7]));
+    await expect(second).resolves.toBe("blob:media");
+    expect(createURL).toHaveBeenCalledOnce();
+});
+
+test("leaving the last player aborts the shared download and permits a fresh load", async () => {
+    const firstController = new AbortController();
+    const secondController = new AbortController();
+    const download = vi.fn(
+        (signal?: AbortSignal) =>
+            new Promise<Uint8Array>((_, reject) => {
+                signal!.addEventListener(
+                    "abort",
+                    () => reject(signal!.reason as Error),
+                    { once: true },
+                );
+            }),
+    );
+    const first = cachedSpaceMediaBlobURL(
+        "video",
+        download,
+        "video/mp4",
+        firstController.signal,
+    );
+    const second = cachedSpaceMediaBlobURL(
+        "video",
+        download,
+        "video/mp4",
+        secondController.signal,
+    );
+    const firstCanceled = expect(first).rejects.toMatchObject({
+        name: "AbortError",
+    });
+    const secondCanceled = expect(second).rejects.toMatchObject({
+        name: "AbortError",
+    });
+    await vi.waitFor(() => expect(download).toHaveBeenCalledOnce());
+    firstController.abort();
+    await firstCanceled;
+    expect(download.mock.calls[0]![0]!.aborted).toBe(false);
+    secondController.abort();
+    await secondCanceled;
+    expect(download.mock.calls[0]![0]!.aborted).toBe(true);
+    expect(stored.size).toBe(0);
+    expect(createURL).not.toHaveBeenCalled();
+    download.mockResolvedValueOnce(new Uint8Array([9]));
+    await expect(
+        cachedSpaceMediaBlobURL("video", download, "video/mp4"),
+    ).resolves.toBe("blob:media");
+    expect(download).toHaveBeenCalledTimes(2);
+});
+
+test("canceling before a video starts loading avoids its network request", async () => {
+    const controller = new AbortController();
+    const download = vi.fn();
+    const pending = cachedSpaceMediaBlobURL(
+        "video",
+        download,
+        "video/mp4",
+        controller.signal,
+    );
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(download).not.toHaveBeenCalled();
+    expect(createURL).not.toHaveBeenCalled();
+});
+
 test("a published video is available from the cache without downloading", async () => {
     const blob = new Blob(["published video"], { type: "video/mp4" });
     await rememberCachedSpaceVideoBlob("video", blob);

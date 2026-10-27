@@ -4,12 +4,11 @@ import {
     type DuplicateGroup,
 } from "@/services/dedup";
 import DoneIcon from "@mui/icons-material/Done";
-import RemoveCircleOutlinedIcon from "@mui/icons-material/RemoveCircleOutlined";
 import SortIcon from "@mui/icons-material/Sort";
 import {
     Box,
+    Button,
     Checkbox,
-    Divider,
     LinearProgress,
     Stack,
     styled,
@@ -33,18 +32,8 @@ import {
     ItemCard,
     TileBottomTextOverlay,
 } from "ente-new/photos/components/Tiles";
-import {
-    computeThumbnailGridLayoutParams,
-    type ThumbnailGridLayoutParams,
-} from "ente-new/photos/components/utils/thumbnail-grid-layout";
 import { t } from "i18next";
-import React, {
-    memo,
-    useCallback,
-    useEffect,
-    useMemo,
-    useReducer,
-} from "react";
+import React, { memo, useCallback, useEffect, useReducer } from "react";
 import Autosizer from "react-virtualized-auto-sizer";
 import {
     areEqual,
@@ -112,7 +101,6 @@ export function DuplicatesView({ onRemoteFilesPull }: DuplicatesViewProps) {
                     return (
                         <Duplicates
                             duplicateGroups={state.duplicateGroups}
-                            sortOrder={state.sortOrder}
                             onToggleSelection={(index) =>
                                 dispatch({ type: "toggleSelection", index })
                             }
@@ -127,8 +115,10 @@ export function DuplicatesView({ onRemoteFilesPull }: DuplicatesViewProps) {
     })();
 
     return (
-        <Stack sx={{ flex: 1, minHeight: 0 }}>
+        <Stack sx={{ flex: 1, minHeight: 0, px: { xs: "16px", md: "24px" } }}>
             <Navbar
+                duplicateGroups={state.duplicateGroups}
+                disabled={state.dedupeProgress !== undefined}
                 sortOrder={state.sortOrder}
                 onChangeSortOrder={(sortOrder) =>
                     dispatch({ type: "changeSortOrder", sortOrder })
@@ -211,7 +201,10 @@ const dedupReducer: React.Reducer<DedupState, DedupAction> = (
         case "toggleSelection": {
             const duplicateGroups = [...state.duplicateGroups];
             const duplicateGroup = duplicateGroups[action.index]!;
-            duplicateGroup.isSelected = !duplicateGroup.isSelected;
+            duplicateGroups[action.index] = {
+                ...duplicateGroup,
+                isSelected: !duplicateGroup.isSelected,
+            };
             const { prunableCount, prunableSize } =
                 deducePrunableCountAndSize(duplicateGroups);
             return { ...state, duplicateGroups, prunableCount, prunableSize };
@@ -278,32 +271,86 @@ const deducePrunableCountAndSize = (duplicateGroups: DuplicateGroup[]) => {
 };
 
 interface NavbarProps {
+    duplicateGroups: DuplicateGroup[];
+    disabled: boolean;
     sortOrder: SortOrder;
     onChangeSortOrder: (sortOrder: SortOrder) => void;
     onDeselectAll: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({
+    duplicateGroups,
+    disabled,
     sortOrder,
     onChangeSortOrder,
     onDeselectAll,
 }) => {
+    const totalSize = duplicateGroups.reduce(
+        (sum, group) => sum + group.prunableSize,
+        0,
+    );
     return (
         <Stack
             direction="row"
-            sx={(theme) => ({
-                alignItems: "center",
+            sx={{
+                alignItems: "flex-start",
                 justifyContent: "space-between",
-                padding: "8px 24px",
-                minHeight: "56px",
-                borderBottom: `1px solid ${theme.vars.palette.divider}`,
-            })}
+                gap: 2,
+                flexWrap: "wrap",
+                mb: "24px",
+            }}
         >
-            <Typography variant="h6">{t("remove_duplicates")}</Typography>
-            <Stack direction="row" sx={{ gap: "4px" }}>
-                <SortMenu {...{ sortOrder, onChangeSortOrder }} />
-                <OptionsMenu {...{ onDeselectAll }} />
+            <Stack sx={{ gap: "2px", flex: "1 1 280px" }}>
+                <Typography
+                    component="h1"
+                    sx={{
+                        fontFamily: "'Outfit Variable', sans-serif",
+                        fontSize: "24px",
+                        fontWeight: 600,
+                        lineHeight: "32px",
+                    }}
+                >
+                    {t("duplicates")}
+                </Typography>
+                {duplicateGroups.length > 0 && (
+                    <Typography
+                        sx={{
+                            fontSize: "13px",
+                            lineHeight: "19px",
+                            color: "text.muted",
+                        }}
+                    >
+                        {t("duplicates_summary", {
+                            count: duplicateGroups.length,
+                            size: formattedByteSize(totalSize),
+                        })}
+                    </Typography>
+                )}
             </Stack>
+            {duplicateGroups.length > 0 && (
+                <Stack direction="row" sx={{ alignItems: "center" }}>
+                    <Button
+                        variant="text"
+                        color="secondary"
+                        disabled={
+                            disabled ||
+                            !duplicateGroups.some((group) => group.isSelected)
+                        }
+                        onClick={onDeselectAll}
+                        sx={{
+                            height: "40px",
+                            px: "18px",
+                            borderRadius: "24px",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            color: "text.muted",
+                        }}
+                    >
+                        {t("deselect_all")}
+                    </Button>
+                    <SortMenu {...{ sortOrder, onChangeSortOrder }} />
+                </Stack>
+            )}
         </Stack>
     );
 };
@@ -337,19 +384,6 @@ const SortMenu: React.FC<SortMenuProps> = ({
     </OverflowMenu>
 );
 
-type OptionsMenuProps = Pick<NavbarProps, "onDeselectAll">;
-
-const OptionsMenu: React.FC<OptionsMenuProps> = ({ onDeselectAll }) => (
-    <OverflowMenu ariaID="duplicates-options">
-        <OverflowMenuOption
-            startIcon={<RemoveCircleOutlinedIcon />}
-            onClick={onDeselectAll}
-        >
-            {t("deselect_all")}
-        </OverflowMenuOption>
-    </OverflowMenu>
-);
-
 const Loading: React.FC = () => (
     <CenteredFill>
         <ActivityIndicator />
@@ -372,17 +406,16 @@ const NoDuplicatesFound: React.FC = () => (
 
 type DuplicatesProps = Pick<
     DuplicatesListProps,
-    "duplicateGroups" | "sortOrder" | "onToggleSelection"
+    "duplicateGroups" | "onToggleSelection"
 > &
     DeduplicateButtonProps;
 
 const Duplicates: React.FC<DuplicatesProps> = ({
     duplicateGroups,
-    sortOrder,
     onToggleSelection,
     ...deduplicateButtonProps
 }) => (
-    <Stack sx={{ flex: 1 }}>
+    <Stack sx={{ flex: 1, minHeight: 0 }}>
         <Box sx={{ flex: 1, overflow: "hidden", paddingBlockEnd: 1 }}>
             <Autosizer>
                 {({ width, height }) => (
@@ -391,7 +424,6 @@ const Duplicates: React.FC<DuplicatesProps> = ({
                             width,
                             height,
                             duplicateGroups,
-                            sortOrder,
                             onToggleSelection,
                         }}
                     />
@@ -408,56 +440,42 @@ interface DuplicatesListProps {
     width: number;
     height: number;
     duplicateGroups: DuplicateGroup[];
-    sortOrder: SortOrder;
     onToggleSelection: (index: number) => void;
 }
 
 type DuplicatesListItemData = Pick<
     DuplicatesListProps,
     "duplicateGroups" | "onToggleSelection"
-> & { layoutParams: ThumbnailGridLayoutParams };
+> & { columns: number };
 
 const DuplicatesList: React.FC<DuplicatesListProps> = ({
     width,
     height,
     duplicateGroups,
-    sortOrder,
     onToggleSelection,
 }) => {
-    const layoutParams = useMemo(
-        () => computeThumbnailGridLayoutParams(width),
-        [width],
+    // Leave room for a conventional scrollbar and some space beside the tiles.
+    const scrollbarAllowance = 24;
+    const columns = Math.max(
+        1,
+        Math.floor((width - scrollbarAllowance + 10) / 142),
     );
-
-    const itemData = { layoutParams, duplicateGroups, onToggleSelection };
-    const itemCount = duplicateGroups.length;
-    const itemSize = (index: number) => {
-        // 42px checkbox + 1px divider + the surrounding fixed spacing.
-        const fixedHeight = 24 + 42 + 4 + 1 + 20 + 16;
-
-        const duplicateGroup = duplicateGroups[index]!;
-        const rowCount = Math.ceil(
-            duplicateGroup.items.length / layoutParams.columns,
-        );
-        const rowHeight = layoutParams.itemHeight + layoutParams.gap;
-
-        return fixedHeight + rowCount * rowHeight;
-    };
-    const itemKey = (index: number, itemData: DuplicatesListItemData) =>
-        itemData.duplicateGroups[index]!.id;
-
-    // Remount to invalidate react-window's cached item sizes.
-    const key = `${width}-${sortOrder}`;
-
     return (
         <VariableSizeList
-            key={key}
-            style={
-                {
-                    "--et-padding-inline": `${layoutParams.paddingInline}px`,
-                } as React.CSSProperties
+            // Invalidate cached heights when groups are reordered or wrap differently.
+            key={`${columns}-${duplicateGroups.map((group) => `${group.id}:${group.items.length}`).join(",")}`}
+            {...{ width, height }}
+            itemData={{ duplicateGroups, onToggleSelection, columns }}
+            itemCount={duplicateGroups.length}
+            itemSize={(index) => {
+                const rows = Math.ceil(
+                    duplicateGroups[index]!.items.length / columns,
+                );
+                return 20 + 10 + rows * 132 + (rows - 1) * 10 + 20;
+            }}
+            itemKey={(index, data: DuplicatesListItemData) =>
+                data.duplicateGroups[index]!.id
             }
-            {...{ height, width, itemData, itemCount, itemSize, itemKey }}
         >
             {ListItem}
         </VariableSizeList>
@@ -466,79 +484,105 @@ const DuplicatesList: React.FC<DuplicatesListProps> = ({
 
 const ListItem: React.FC<ListChildComponentProps<DuplicatesListItemData>> =
     memo(({ index, style, data }) => {
-        const { layoutParams, duplicateGroups, onToggleSelection } = data;
-
-        const hideDivider = layoutParams.isSmallerLayout;
-
-        const duplicateGroup = duplicateGroups[index]!;
-        const items = duplicateGroup.items;
-        const count = items.length;
-        const itemSize = formattedByteSize(duplicateGroup.itemSize);
-        const checked = duplicateGroup.isSelected;
-        const onChange = () => onToggleSelection(index);
-
+        const group = data.duplicateGroups[index]!;
+        const label = t("duplicate_saved_times", { count: group.items.length });
         return (
-            <Stack
-                {...{ style }}
-                sx={[
-                    { paddingBlockEnd: "16px" },
-                    checked ? { opacity: 1 } : { opacity: 0.8 },
-                ]}
-            >
-                <SpacedRow
+            <Stack style={style} sx={{ gap: "10px", pb: "20px" }}>
+                <SpacedRow sx={{ height: "20px", flexShrink: 0, gap: 1 }}>
+                    <Stack
+                        component="label"
+                        direction="row"
+                        sx={{
+                            gap: "10px",
+                            alignItems: "center",
+                            cursor: "pointer",
+                        }}
+                    >
+                        <Checkbox
+                            color="accent"
+                            checked={group.isSelected}
+                            onChange={() => data.onToggleSelection(index)}
+                            size="small"
+                            sx={{
+                                p: 0,
+                                width: "20px",
+                                height: "20px",
+                                flexShrink: 0,
+                                "& .MuiSvgIcon-root": {
+                                    fontSize: "20px",
+                                    display: "block",
+                                },
+                            }}
+                        />
+                        <Typography
+                            sx={{
+                                fontSize: "13px",
+                                fontWeight: 500,
+                                lineHeight: "20px",
+                                display: "flex",
+                                alignItems: "center",
+                            }}
+                        >
+                            {label}
+                        </Typography>
+                    </Stack>
+                    <Typography
+                        sx={{
+                            fontSize: "12px",
+                            lineHeight: "17px",
+                            color: "text.muted",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        {t("duplicate_frees_size", {
+                            size: formattedByteSize(group.prunableSize),
+                        })}
+                    </Typography>
+                </SpacedRow>
+                <Box
                     sx={{
-                        paddingInline: "var(--et-padding-inline)",
-                        paddingBlock: "24px 0px",
+                        display: "grid",
+                        gridTemplateColumns: `repeat(${data.columns}, 132px)`,
+                        gap: "10px",
                     }}
                 >
-                    <Typography
-                        sx={{ color: checked ? "text.base" : "text.muted" }}
-                    >
-                        {t("duplicate_group_description", { count, itemSize })}
-                    </Typography>
-                    <Checkbox {...{ checked, onChange }} />
-                </SpacedRow>
-                <Divider
-                    sx={[
-                        {
-                            marginBlock: "4px 20px",
-                            marginInline: "var(--et-padding-inline)",
-                        },
-                        hideDivider ? { opacity: 0 } : { opacity: 0.8 },
-                    ]}
-                />
-                <ItemGrid {...{ layoutParams }}>
-                    {items.map((item, j) => (
+                    {group.items.map((item) => (
                         <ItemCard
-                            key={j}
-                            TileComponent={DuplicateItemTile}
+                            key={item.file.id}
+                            TileComponent={DuplicatePreview}
                             coverFile={item.file}
                         >
-                            <TileBottomTextOverlay>
-                                <Ellipsized2LineTypography variant="small">
+                            <TileBottomTextOverlay
+                                sx={{ p: "8px", justifyContent: "flex-start" }}
+                            >
+                                <Ellipsized2LineTypography
+                                    title={item.collectionName}
+                                    sx={{
+                                        fontSize: "12px",
+                                        lineHeight: "16px",
+                                        fontWeight: 400,
+                                        opacity: 0.75,
+                                        width: "100%",
+                                    }}
+                                >
                                     {item.collectionName}
                                 </Ellipsized2LineTypography>
                             </TileBottomTextOverlay>
                         </ItemCard>
                     ))}
-                </ItemGrid>
+                </Box>
             </Stack>
         );
     }, areEqual);
 
-type ItemGridProps = Pick<DuplicatesListItemData, "layoutParams">;
-
-const ItemGrid = styled("div", {
-    shouldForwardProp: (prop) => prop != "layoutParams",
-})<ItemGridProps>(
-    ({ layoutParams }) => `
-    display: grid;
-    padding-inline: ${layoutParams.paddingInline}px;
-    grid-template-columns: repeat(${layoutParams.columns}, ${layoutParams.itemWidth}px);
-    grid-auto-rows: ${layoutParams.itemHeight}px;
-    gap: ${layoutParams.gap}px;
-`,
-);
+const DuplicatePreview = styled(DuplicateItemTile)({
+    width: 132,
+    height: 132,
+    borderRadius: "10px",
+    flexShrink: 0,
+    // Keep placeholder thumbnails as borderless as photo thumbnails.
+    "& > div": { border: 0, borderRadius: "inherit" },
+});
 
 type DeduplicateButtonProps = Pick<
     DedupState,

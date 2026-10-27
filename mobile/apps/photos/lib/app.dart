@@ -176,22 +176,32 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
   Future<void> _handleAndroidIntentAction(
     MediaExtentionAction mediaExtentionAction,
   ) async {
-    AppLifecycleService.instance.setMediaExtensionAction(
-      _appLifecycleActionFor(mediaExtentionAction),
-    );
+    if (AppNavigationService.instance.isGuestViewActive) return;
+
+    void updateIntentAction() {
+      AppLifecycleService.instance.setMediaExtensionAction(
+        _appLifecycleActionFor(mediaExtentionAction),
+      );
+    }
+
     if (mediaExtentionAction.action == IntentAction.pick) {
       await AppNavigationService.instance.pushPage(
         ExternalMediaPickerPage(
           requestedType: mediaExtentionAction.type,
           allowMultiple: mediaExtentionAction.allowMultiple,
         ),
+        onBeforePush: updateIntentAction,
       );
       return;
     }
     if (!_shouldOpenFileViewer(mediaExtentionAction)) {
+      updateIntentAction();
       return;
     }
-    await AppNavigationService.instance.pushPage(const FileViewer());
+    await AppNavigationService.instance.pushPage(
+      const FileViewer(),
+      onBeforePush: updateIntentAction,
+    );
   }
 
   Widget _buildInitialAndroidHome() {

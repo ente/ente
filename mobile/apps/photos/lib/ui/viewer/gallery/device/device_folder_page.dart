@@ -1,3 +1,4 @@
+import "package:collection/collection.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -26,8 +27,9 @@ import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class DeviceFolderPage extends StatefulWidget {
   final DeviceCollection deviceCollection;
+  final String? coverHeroTag;
 
-  const DeviceFolderPage(this.deviceCollection, {super.key});
+  const DeviceFolderPage(this.deviceCollection, {this.coverHeroTag, super.key});
 
   @override
   State<DeviceFolderPage> createState() => _DeviceFolderPageState();
@@ -36,12 +38,16 @@ class DeviceFolderPage extends StatefulWidget {
 class _DeviceFolderPageState extends State<DeviceFolderPage> {
   final _logger = Logger("_DeviceFolderPageState");
   final _selectedFiles = SelectedFiles();
+  final _coverAppBarKey = GlobalKey();
   late bool _shouldBackup;
+  EnteFile? _cover;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     _shouldBackup = widget.deviceCollection.shouldBackup;
+    _cover = widget.deviceCollection.thumbnail;
   }
 
   Future<FileLoadResult> _loadFiles(
@@ -51,7 +57,8 @@ class _DeviceFolderPageState extends State<DeviceFolderPage> {
     bool? asc,
   }) async {
     final int? userID = Configuration.instance.getUserID();
-    return FilesDB.instance.getFilesInDeviceCollection(
+    final generation = ++_loadGeneration;
+    final result = await FilesDB.instance.getFilesInDeviceCollection(
       widget.deviceCollection,
       userID,
       creationStartTime,
@@ -59,6 +66,17 @@ class _DeviceFolderPageState extends State<DeviceFolderPage> {
       limit: limit,
       asc: asc,
     );
+    if (mounted && generation == _loadGeneration) {
+      final thumbnail = widget.deviceCollection.thumbnail;
+      final cover =
+          result.files.firstWhereOrNull(
+            (file) => file.localID == thumbnail?.localID,
+          ) ??
+          (result.hasMore ? thumbnail : null) ??
+          result.files.firstOrNull;
+      setState(() => _cover = cover);
+    }
+    return result;
   }
 
   @override
@@ -68,8 +86,12 @@ class _DeviceFolderPageState extends State<DeviceFolderPage> {
       GalleryType.localFolder,
       widget.deviceCollection.name,
       _selectedFiles,
+      coverAppBarKey: _coverAppBarKey,
       subtitle: _shouldBackup ? l10n.backedUpAutomatically : l10n.notBackedUp,
       deviceCollection: widget.deviceCollection,
+      cover: _cover,
+      coverHeroTag:
+          widget.coverHeroTag ?? "device_folder:${widget.deviceCollection.id}",
       isDeviceFolderBackedUp: _shouldBackup,
       onDisableDeviceFolderBackup: () async {
         await _updateBackupStatus(false);
@@ -85,7 +107,7 @@ class _DeviceFolderPageState extends State<DeviceFolderPage> {
         EventType.deletedFromEverywhere,
         EventType.hide,
       },
-      tagPrefix: "device_folder:${widget.deviceCollection.name}",
+      tagPrefix: "device_folder_files:${widget.deviceCollection.id}",
       galleryType: GalleryType.localFolder,
       selectedFiles: _selectedFiles,
       header: Configuration.instance.hasConfiguredAccount()

@@ -16,3 +16,17 @@ List<double> parseAsDoubleList(List<dynamic> inputList) {
     throw FormatException('Invalid type at index $index: ${value.runtimeType}');
   }, growable: false);
 }
+
+String baseUrlForLogging(String value) {
+  try {
+    final uri = Uri.parse(value);
+    if (!uri.hasScheme || uri.host.isEmpty) return 'unknown URL';
+    return Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+    ).toString();
+  } catch (_) {
+    return 'unknown URL';
+  }
+}

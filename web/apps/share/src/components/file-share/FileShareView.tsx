@@ -13,10 +13,9 @@ export const FileShareView: React.FC = () => {
         downloading,
         error,
         fileInfo,
-        notificationAttributes,
+        notificationProps,
         handleDownload,
         handleCopyContent,
-        setNotificationAttributes,
     } = useFileShare();
     const iconInfo = fileInfo
         ? getLockerFileIcon(fileInfo.fileName, {
@@ -285,11 +284,7 @@ export const FileShareView: React.FC = () => {
                         )}
                     </Box>
 
-                    <Notification
-                        open={!!notificationAttributes}
-                        onClose={() => setNotificationAttributes(undefined)}
-                        attributes={notificationAttributes}
-                    />
+                    <Notification {...notificationProps} />
                 </Box>
             </Box>
         </>

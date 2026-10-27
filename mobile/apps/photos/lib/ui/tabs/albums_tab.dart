@@ -6,6 +6,7 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
@@ -323,13 +324,49 @@ class _AlbumsTabState extends State<AlbumsTab>
   void _revealFilter(BuildContext filterContext) {
     final filterRenderObject = filterContext.findRenderObject();
     if (filterRenderObject is! RenderBox) return;
-    final revealWidth =
-        filterRenderObject.size.width +
-        _albumsMoreOverlayWidth +
-        _kSelectedFilterTrailingGap;
-
+    final revealRect = Rect.fromLTWH(
+      0,
+      0,
+      filterRenderObject.size.width +
+          _albumsMoreOverlayWidth +
+          _kSelectedFilterTrailingGap,
+      filterRenderObject.size.height,
+    );
+    final viewport = RenderAbstractViewport.maybeOf(filterRenderObject);
+    final position = Scrollable.maybeOf(
+      filterContext,
+      axis: Axis.horizontal,
+    )?.position;
+    final filterRow = filterRenderObject.parent;
+    if (position != null && viewport != null && filterRow is RenderFlex) {
+      final previousGap = filterRow.childBefore(filterRenderObject);
+      final previousFilter = previousGap == null
+          ? null
+          : filterRow.childBefore(previousGap);
+      final isLeadingVisibleFilter =
+          previousFilter == null ||
+          viewport.getOffsetToReveal(previousFilter, 0).offset <
+              position.pixels - 1;
+      final canRevealAtStart =
+          viewport
+              .getOffsetToReveal(filterRenderObject, 1, rect: revealRect)
+              .offset <=
+          position.minScrollExtent + 1;
+      if (position.pixels > position.minScrollExtent + 1 &&
+          isLeadingVisibleFilter &&
+          canRevealAtStart) {
+        unawaited(
+          position.animateTo(
+            position.minScrollExtent,
+            duration: _kFilterScrollDuration,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+        return;
+      }
+    }
     filterRenderObject.showOnScreen(
-      rect: Rect.fromLTWH(0, 0, revealWidth, filterRenderObject.size.height),
+      rect: revealRect,
       duration: _kFilterScrollDuration,
       curve: Curves.easeOutCubic,
     );
@@ -1052,9 +1089,16 @@ class _AlbumsTabState extends State<AlbumsTab>
                           fit: StackFit.expand,
                           children: [
                             for (final previousChild in previousChildren)
-                              Positioned.fill(child: previousChild),
+                              Positioned.fill(
+                                child: HeroMode(
+                                  enabled: false,
+                                  child: previousChild,
+                                ),
+                              ),
                             if (currentChild != null)
-                              Positioned.fill(child: currentChild),
+                              Positioned.fill(
+                                child: HeroMode(child: currentChild),
+                              ),
                           ],
                         );
                       },

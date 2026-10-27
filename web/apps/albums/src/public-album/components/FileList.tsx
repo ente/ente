@@ -147,7 +147,10 @@ export const FileList: React.FC<FileListProps> = ({
     const outerRef = useRef<HTMLDivElement | null>(null);
 
     const layoutParams = useMemo(
-        () => computeThumbnailGridLayoutParams(width),
+        () =>
+            computeThumbnailGridLayoutParams(width, {
+                smallLayoutPadding: thumbnailGap,
+            }),
         [width],
     );
     const shouldUseMasonry = layout === "masonry";

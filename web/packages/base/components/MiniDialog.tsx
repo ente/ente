@@ -1,9 +1,11 @@
-import type { ButtonProps, ModalProps } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import type { ButtonProps } from "@mui/material";
 import {
     Box,
     Dialog,
     DialogContent,
     DialogTitle,
+    IconButton,
     Stack,
     Typography,
     type DialogProps,
@@ -11,16 +13,19 @@ import {
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import log from "../log";
 import { InlineErrorIndicator } from "./ErrorIndicator";
 
 export interface MiniDialogAttributes {
+    kind?: "info" | "warning" | "error";
     title?: React.ReactNode;
     icon?: React.ReactNode;
+    illustration?: React.ReactNode;
     message?: React.ReactNode;
     nonClosable?: boolean;
     nonReplaceable?: boolean;
+    dismissOnRouteChange?: boolean;
     continue?: {
         text?: string;
         color?: ButtonProps["color"];
@@ -37,13 +42,27 @@ export interface MiniDialogAttributes {
 }
 
 type MiniDialogProps = Pick<DialogProps, "open" | "sx"> & {
+    appearance?: "default" | "centered";
+    // A new request remounts the content to reset pending/error state.
+    dialogID?: number;
     onClose: () => void;
     attributes?: MiniDialogAttributes;
 };
 
 export const AttributedMiniDialog: React.FC<
     React.PropsWithChildren<MiniDialogProps>
-> = ({ open, onClose, attributes, children, sx }) => {
+> = ({ dialogID, ...props }) => <MiniDialogContent key={dialogID} {...props} />;
+
+const MiniDialogContent: React.FC<React.PropsWithChildren<MiniDialogProps>> = ({
+    open,
+    onClose,
+    attributes,
+    children,
+    sx,
+    appearance = "default",
+}) => {
+    const titleID = useId();
+    const messageID = useId();
     const [phase, setPhase] = useState<
         "loading" | "secondary-loading" | "failed" | undefined
     >();
@@ -52,12 +71,31 @@ export const AttributedMiniDialog: React.FC<
         return <></>;
     }
 
+    const centered = appearance === "centered";
+    const busy = phase === "loading" || phase === "secondary-loading";
+    const artwork =
+        attributes.illustration ??
+        (centered && attributes.kind ? (
+            <Box
+                component="img"
+                src={`/images/warning-${attributes.kind === "warning" ? "red" : "grey"}.png`}
+                alt=""
+                sx={{
+                    width: 68,
+                    height: 64,
+                    objectFit: "contain",
+                    display: "block",
+                }}
+            />
+        ) : undefined) ??
+        attributes.icon;
+
     const resetPhaseAndClose = () => {
         setPhase(undefined);
         onClose();
     };
 
-    const handleClose: ModalProps["onClose"] = () => {
+    const handleClose = () => {
         if (attributes.nonClosable) return;
         if (phase == "loading" || phase == "secondary-loading") return;
         resetPhaseAndClose();
@@ -140,9 +178,95 @@ export const AttributedMiniDialog: React.FC<
             {...{ open, sx }}
             onClose={handleClose}
             fullWidth
-            slotProps={{ paper: { sx: { maxWidth: "360px" } } }}
+            aria-labelledby={attributes.title ? titleID : undefined}
+            aria-describedby={attributes.message ? messageID : undefined}
+            aria-busy={busy}
+            slotProps={{
+                paper: {
+                    sx: centered
+                        ? {
+                              maxWidth: "440px",
+                              borderRadius: "24px",
+                              position: "relative",
+                              textAlign: "center",
+                              fontFamily: '"Inter Variable", sans-serif',
+                              "& .MuiDialogContent-root, & .MuiDialogContent-root .MuiTypography-root":
+                                  {
+                                      fontSize: "14px",
+                                      lineHeight: "20px",
+                                      fontWeight: 500,
+                                      letterSpacing: 0,
+                                  },
+                              "& .MuiButton-root": {
+                                  fontFamily: "inherit",
+                                  fontSize: "14px",
+                                  lineHeight: "20px",
+                                  letterSpacing: 0,
+                                  fontWeight: 500,
+                                  minHeight: "48px",
+                                  padding: "14px 24px",
+                                  borderRadius: "20px",
+                              },
+                          }
+                        : { maxWidth: "360px" },
+                },
+            }}
         >
-            {(attributes.icon ?? attributes.title) ? (
+            {centered && !attributes.nonClosable && (
+                <IconButton
+                    aria-label={t("close")}
+                    disabled={busy}
+                    onClick={handleClose}
+                    sx={{
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        width: 36,
+                        height: 36,
+                        backgroundColor: "fill.faint",
+                    }}
+                >
+                    <CloseIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+            )}
+            {centered ? (
+                <Stack
+                    sx={{
+                        alignItems: "center",
+                        pt: artwork ? "38px" : "64px",
+                        px: 3.5,
+                    }}
+                >
+                    {artwork && (
+                        <Box
+                            sx={{
+                                mb: 3,
+                                "& > svg": {
+                                    fontSize: 48,
+                                    color: "stroke.faint",
+                                },
+                            }}
+                        >
+                            {artwork}
+                        </Box>
+                    )}
+                    {attributes.title && (
+                        <DialogTitle
+                            id={titleID}
+                            sx={{
+                                "&&&": { p: 0 },
+                                fontFamily: '"Outfit Variable", sans-serif',
+                                fontSize: "24px",
+                                lineHeight: "32px",
+                                fontWeight: 600,
+                                letterSpacing: 0,
+                            }}
+                        >
+                            {attributes.title}
+                        </DialogTitle>
+                    )}
+                </Stack>
+            ) : (attributes.icon ?? attributes.title) ? (
                 <Stack
                     direction="row"
                     sx={[
@@ -161,6 +285,7 @@ export const AttributedMiniDialog: React.FC<
                 >
                     {attributes.title && (
                         <DialogTitle
+                            id={titleID}
                             sx={{ "&&&": { padding: 0 }, flexShrink: 1 }}
                         >
                             {attributes.title}
@@ -171,9 +296,12 @@ export const AttributedMiniDialog: React.FC<
             ) : (
                 <Box sx={{ height: "8px" }} />
             )}
-            <DialogContent>
+            <DialogContent
+                sx={centered ? { padding: "16px 28px 24px" } : undefined}
+            >
                 {attributes.message && (
                     <Typography
+                        id={messageID}
                         component={
                             typeof attributes.message == "string" ? "p" : "div"
                         }
@@ -187,7 +315,19 @@ export const AttributedMiniDialog: React.FC<
                     sx={{ pt: 3, gap: 1 }}
                     direction={attributes.buttonDirection ?? "column"}
                 >
-                    {phase == "failed" && <InlineErrorIndicator />}
+                    {phase == "failed" &&
+                        (centered ? (
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <InlineErrorIndicator />
+                            </Box>
+                        ) : (
+                            <InlineErrorIndicator />
+                        ))}
                     {attributes.buttonDirection == "row" ? (
                         <>
                             {cancelButton}

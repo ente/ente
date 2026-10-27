@@ -24,6 +24,7 @@ import "package:photos/module/metadata/exif.dart";
 import 'package:photos/module/metadata/location.dart';
 import "package:photos/module/metadata/video.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
+import "package:photos/module/upload/video_dimensions.dart";
 import "package:photos/services/sync/origin_fetch_tracker.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/utils/apple_photos_errors.dart";
@@ -108,7 +109,11 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(EnteFile file) async {
     thumbnailData = await _getThumbnailForUpload(asset, file);
     isDeleted = !(await asset.exists);
     int? h, w;
-    if (asset.width != 0 && asset.height != 0) {
+    if (file.fileType == FileType.video) {
+      final dimensions = await getVideoUploadDimensions(sourceFile);
+      w = dimensions?.width;
+      h = dimensions?.height;
+    } else if (asset.width != 0 && asset.height != 0) {
       w = asset.width;
       h = asset.height;
       if (Platform.isAndroid &&
@@ -330,10 +335,10 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(EnteFile file) async {
         }
       }
     }
-  } else if (thumbnailResult.videoInfo != null) {
-    dimensions = (
-      width: thumbnailResult.videoInfo!.displayWidth,
-      height: thumbnailResult.videoInfo!.displayHeight,
+  } else if (file.fileType == FileType.video) {
+    dimensions = await getVideoUploadDimensions(
+      sourceFile,
+      sourceVideoInfo: thumbnailResult.videoInfo,
     );
   }
 

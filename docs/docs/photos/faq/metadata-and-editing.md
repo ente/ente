@@ -331,7 +331,7 @@ See [original files during export](#modify-originals) and [file-system creation 
 
 No. Ente exports the original photos and videos without changing their embedded metadata. Metadata imported from Google Takeout JSON files and changes you make in Ente are written separately to metadata JSON files during library export.
 
-Keep those sidecars with the originals when transferring to another app that supports them. See [the export metadata format](#export-data-preserve-metadata). To export selected albums with their metadata, you can also use [CLI photo export](/photos/features/utilities/cli#exporting-photos).
+Keep those sidecars with the originals when transferring to another app that supports them. See [the export metadata format](#export-data-preserve-metadata). To export selected albums with their metadata, you can also use [CLI photo export](/cli/photos).
 
 ### How can I read the date used by Ente from my export? {#read-corrected-date-export}
 
@@ -379,7 +379,7 @@ We're working on bringing all editing features to all platforms.
 
 ### A photo I shared into Ente from WhatsApp shows the wrong date in the timeline. Why? {#whatsapp-wrong-date}
 
-Apps like WhatsApp strip the hidden "date taken" information from photos for privacy. When Ente can't find that information, and can't reliably extract it from the filename either (especially for videos), it falls back to the upload date.
+The timeline date can depend on how the file reaches Ente. On Android, a video shared directly into Ente may use a date from its filename, or the time you imported it, rather than its embedded capture date. This does not by itself show that the sending app removed metadata.
 
 To fix dates already uploaded, the easiest path is the desktop app, which supports bulk editing:
 

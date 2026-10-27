@@ -35,7 +35,13 @@ import {
 } from "ente-new/photos/services/user-details";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { DeleteAccount } from "../account/DeleteAccount";
 import { SessionsSettings } from "../account/SessionsSettings";
 import { ManageMemberSubscription } from "./ManageMemberSubscription";
@@ -70,11 +76,19 @@ export const Account: React.FC<AccountProps> = ({
     pendingAction,
     onActionHandled,
 }) => {
-    const { showMiniDialog } = useBaseContext();
+    const { showMiniDialog, onGenericError } = useBaseContext();
     const userDetails = useUserDetailsSnapshot();
     const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean>();
     const [disablingTwoFactor, setDisablingTwoFactor] = useState(false);
     const [sessionCount, setSessionCount] = useState<number>();
+    const subscriptionRequest = useRef(0);
+
+    useEffect(
+        () => () => {
+            subscriptionRequest.current += 1;
+        },
+        [open],
+    );
 
     let planSubtext: string | undefined;
     if (userDetails) {
@@ -157,11 +171,13 @@ export const Account: React.FC<AccountProps> = ({
     }, [router]);
 
     const handleManageSubscription = useCallback(() => {
+        const requestID = ++subscriptionRequest.current;
         void (async () => {
             if (!userDetails) {
                 await pullUserDetails();
             }
 
+            if (subscriptionRequest.current != requestID) return;
             const resolvedUserDetails = userDetails ?? userDetailsSnapshot();
             if (!resolvedUserDetails) return;
 
@@ -170,8 +186,13 @@ export const Account: React.FC<AccountProps> = ({
                 showManageMemberSubscription,
                 onShowPlanSelector,
             });
-        })();
-    }, [onShowPlanSelector, showManageMemberSubscription, userDetails]);
+        })().catch(onGenericError);
+    }, [
+        onShowPlanSelector,
+        showManageMemberSubscription,
+        userDetails,
+        onGenericError,
+    ]);
 
     const handleRecoveryKey = useCallback(async () => {
         if (isDesktop) {

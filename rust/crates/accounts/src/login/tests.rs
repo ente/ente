@@ -55,11 +55,13 @@ async fn email_login_retries_password_and_accepts_plain_token_without_recovery_k
     let mut attributes = generated.key_attributes;
     attributes.recovery_key_encrypted_with_master_key = None;
     attributes.recovery_key_decryption_nonce = None;
+    let mut initial_attributes = attributes.clone();
+    initial_attributes.kek_salt = b64::encode(&[1; 16]);
     let token = [255; 32];
     let mut server = Server::new_async().await;
     let (client, mut flow) = start_email_login(
         &mut server,
-        &attributes,
+        &initial_attributes,
         json!({"id": 77, "keyAttributes": attributes, "token": b64::encode_url_safe(&token)}),
     )
     .await;
@@ -208,6 +210,12 @@ async fn login_retries_email_and_totp() {
     let incorrect_email = server
         .mock("POST", "/users/verify-email")
         .match_body(Matcher::PartialJson(serde_json::json!({"ott": "wrong"})))
+        .with_status(401)
+        .create_async()
+        .await;
+    let invalid_email = server
+        .mock("POST", "/users/verify-email")
+        .match_body(Matcher::PartialJson(json!({"ott": "invalid"})))
         .with_status(400)
         .create_async()
         .await;
@@ -230,7 +238,7 @@ async fn login_retries_email_and_totp() {
     let incorrect_totp = server
         .mock("POST", "/users/two-factor/verify")
         .match_body(Matcher::PartialJson(serde_json::json!({"code": "wrong"})))
-        .with_status(400)
+        .with_status(401)
         .create_async()
         .await;
     let verify_totp = server
@@ -259,6 +267,10 @@ async fn login_retries_email_and_totp() {
         Err(Error::EmailVerificationCodeExpired)
     ));
     flow.resend_code(&client).await.unwrap();
+    assert!(matches!(
+        flow.submit_code(&client, "invalid").await,
+        Err(Error::Http(error)) if error.status_code() == Some(400)
+    ));
     assert!(matches!(
         flow.submit_code(&client, "wrong").await,
         Err(Error::IncorrectEmailVerificationCode)
@@ -290,6 +302,7 @@ async fn login_retries_email_and_totp() {
     ott.assert_async().await;
     expired_email.assert_async().await;
     incorrect_email.assert_async().await;
+    invalid_email.assert_async().await;
     incorrect_totp.assert_async().await;
     verify_email.assert_async().await;
     verify_totp.assert_async().await;
@@ -301,7 +314,7 @@ async fn totp_errors_are_preserved() {
         auth::generate_keys_with_strength("password", KeyDerivationStrength::Interactive)
             .unwrap()
             .key_attributes;
-    for status in [404, 429] {
+    for status in [400, 404, 429] {
         let mut server = Server::new_async().await;
         let (client, mut flow) = start_email_login(
             &mut server,
@@ -319,10 +332,11 @@ async fn totp_errors_are_preserved() {
             .create_async()
             .await;
         let error = flow.submit_code(&client, "654321").await.err().unwrap();
-        assert!(matches!(
-            (status, error),
-            (404, Error::SecondFactorSessionExpired) | (429, Error::TotpRateLimited)
-        ));
+        assert!(match (status, error) {
+            (400, Error::Http(error)) => error.status_code() == Some(400),
+            (404, Error::SecondFactorSessionExpired) | (429, Error::TotpRateLimited) => true,
+            _ => false,
+        });
         verify.assert_async().await;
     }
 }

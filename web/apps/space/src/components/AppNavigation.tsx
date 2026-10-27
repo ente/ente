@@ -55,13 +55,15 @@ export const SpaceAppLayout = ({ children }: { children: React.ReactNode }) => {
             typeof router.query.friend == "string" &&
             router.query.expanded == "1");
     const isNotificationsPage = router.pathname == spaceRoutes.notifications;
+    const isPostPage = router.pathname.startsWith("/app/posts/");
     const showNavigation =
         isAppPage &&
         Boolean(profile) &&
         !isConversation &&
         !isSettingsPage &&
         !isProfilePage &&
-        !isNotificationsPage;
+        !isNotificationsPage &&
+        !isPostPage;
     const spaceID =
         isAppPage && profileLoadStatus == "ready"
             ? profile?.spaceId
@@ -192,6 +194,7 @@ export const SpaceAppLayout = ({ children }: { children: React.ReactNode }) => {
                 data-space-settings={isSettingsPage || undefined}
                 data-space-profile={isProfilePage || undefined}
                 data-space-notifications={isNotificationsPage || undefined}
+                data-space-post={isPostPage || undefined}
             >
                 {children}
                 {showNavigation && (

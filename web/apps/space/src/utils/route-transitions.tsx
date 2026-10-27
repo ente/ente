@@ -124,8 +124,10 @@ const startSpaceRouteTransition = async <T,>(
         typeof destination == "string"
             ? destination
             : (destination.pathname ?? "");
-    root.dataset.spaceRouteMotion = [fromPath, toPath].some((path) =>
-        path.startsWith(`${spaceRoutes.messages}/`),
+    root.dataset.spaceRouteMotion = [fromPath, toPath].some(
+        (path) =>
+            path.startsWith(`${spaceRoutes.messages}/`) ||
+            path.startsWith("/app/posts/"),
     )
         ? "fade-with-navigation"
         : "fade";

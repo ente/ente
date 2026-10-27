@@ -136,7 +136,9 @@ class _PasskeyPageState extends State<PasskeyPage> {
           json,
         );
       } else {
-        _logger.info('ignored deeplink: $link mounted $mounted');
+        _logger.info(
+          'ignored deeplink: ${baseUrlForLogging(link)} mounted $mounted',
+        );
       }
     } catch (e, s) {
       _logger.severe('passKey: failed to handle deeplink', e, s);

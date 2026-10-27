@@ -122,31 +122,33 @@ struct MessageInputView: View {
                     }
 
                     HStack(alignment: .bottom, spacing: EnsuSpacing.xs) {
-                        ActionButton(
-                            icon: "ImagePlusIcon", tooltip: "Add photos",
-                            color: EnsuColor.textPrimary, size: 32
-                        ) {
-                            dismissInput()
-                            showPhotos = true
-                        }
-                        .disabled(
-                            editingMessage != nil || !supportsImageAttachments
-                                || isGenerating || isSendPending || isDownloading
-                                || isImageAttachmentLimitReached
-                        )
-                        .photosPicker(
-                            isPresented: $showPhotos, selection: $selectedPhotoItem,
-                            matching: .images
-                        )
-                        .onChange(of: selectedPhotoItem) { item in
-                            guard let item, !isImageAttachmentLimitReached else {
-                                selectedPhotoItem = nil; return
+                        if supportsImageAttachments {
+                            ActionButton(
+                                icon: "ImagePlusIcon", tooltip: "Add photos",
+                                color: EnsuColor.textPrimary, size: 32
+                            ) {
+                                dismissInput()
+                                showPhotos = true
                             }
-                            Task {
-                                let data = try? await item.loadTransferable(type: Data.self)
-                                await MainActor.run {
-                                    if let data { onAddImage(data, nil) }
-                                    selectedPhotoItem = nil
+                            .disabled(
+                                editingMessage != nil || !supportsImageAttachments
+                                    || isGenerating || isSendPending || isDownloading
+                                    || isImageAttachmentLimitReached
+                            )
+                            .photosPicker(
+                                isPresented: $showPhotos, selection: $selectedPhotoItem,
+                                matching: .images
+                            )
+                            .onChange(of: selectedPhotoItem) { item in
+                                guard let item, !isImageAttachmentLimitReached else {
+                                    selectedPhotoItem = nil; return
+                                }
+                                Task {
+                                    let data = try? await item.loadTransferable(type: Data.self)
+                                    await MainActor.run {
+                                        if let data { onAddImage(data, nil) }
+                                        selectedPhotoItem = nil
+                                    }
                                 }
                             }
                         }

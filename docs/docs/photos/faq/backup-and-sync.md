@@ -63,13 +63,17 @@ Yes. You can enable this during signup/login on the permissions screen, or later
 - **During onboarding**: Ente backs up from the **last 7 days** onward, so you have some recent photos available right away.
 - **Via the settings toggle**: Ente uses the current moment as the cutoff - only photos taken from that point forward are backed up.
 
-In both cases, photos older than the cutoff will not be uploaded to Ente.
+The cutoff applies when Ente selects photos for automatic backup. Turning it on does not cancel uploads already queued, and manually selected older photos can still be uploaded.
 
 The totals shown in **Backed up folders** still include older items in each device folder. Those totals do not mean older items are eligible for automatic upload. Use [Backup status](#check-backup-status) to check pending uploads.
 
 To resume backing up your full library, toggle the setting off.
 
 Learn more in the [Backup only new photos](/photos/features/backup-and-sync/#backup-only-new-photos) guide.
+
+### Does a restarting Backup mode counter mean my library is uploading again? {#backup-mode-counter-restarts}
+
+No. Backup mode progress relates to the current upload session. The counter can restart when a new session begins. A reset alone does not mean your entire library is uploading again. Check [Backup status](#check-backup-status) for pending items.
 
 ### Can I backup over mobile data or only WiFi? {#mobile-data}
 
@@ -219,6 +223,8 @@ Ente supports all files with mime types of `image/*` or `video/*`, regardless of
 
 - Maximum file size: 10 GB
 - Some video formats cannot be streamed on web browsers and must be downloaded
+
+Backup support and preview support can differ. A JPEG XL original may upload while its thumbnail or in-app preview is unavailable, including on Linux desktop. A missing preview alone does not tell you whether the original uploaded. Check [Backup status](#check-backup-status), and download the original if you need to verify it.
 
 ### Does Ente compress my photos during backup? {#does-ente-compress}
 
@@ -384,14 +390,16 @@ If Ente isn't picking these up:
 
 ### Can I pick photos from Ente in other apps? {#pick-photos-in-other-apps}
 
-On supported Android apps, yes. If an app (such as WhatsApp) opens the system photo picker, you can choose Ente Photos as the source and select photos or videos from your Ente library.
+In some Android apps, yes. If an app offers Ente Photos in its app chooser or under **Browse**, select it to open Ente's own picker and choose photos or videos from your Ente library.
 
 A few details to keep in mind:
 
-- This works through Android's picker integration, so it depends on the third-party app using the standard picker flow.
+- The option depends on the third-party app's picker flow and may not appear in every app.
 - Ente returns the files you select to that app for sending or attaching.
-- The picker shows the photos and videos available in your Ente gallery on that device.
+- A cloud-only item may need to download before Ente can return it. Ente can reuse a cached copy.
 - On iPhone, iOS does not currently let Ente plug into other apps' photo pickers in the same way.
+
+This opens Ente's picker. It does not add your Ente cloud library as a source inside Android's system Photo Picker. See the [cloud media provider answer](#android-cloud-media-provider).
 
 ### Can Ente be my Android cloud media provider (system gallery source for photo picker)? {#android-cloud-media-provider}
 
@@ -594,6 +602,40 @@ If you delete a file from a watched folder on your computer, the corresponding f
 
 If you want to remove it completely from Ente, you'll need to manually delete it from the Uncategorized album.
 
+### Why don't metadata changes to a file in my watched folder show up in Ente? {#watch-folder-edited-files}
+
+Watch folders upload new files and react to deleted files, but they don't pick up changes to a file that has already been uploaded. So a new description or location saved to the file in another app won't reach Ente.
+
+You can change the description and location in Ente directly, from the photo's info panel.
+
+### What happens if I rename a file in my watched folder? {#rename-in-watched-folder}
+
+Ente treats a renamed file as a deleted file plus a new one. The new file is uploaded, and the old copy is removed from the album and moved to [Uncategorized](/photos/faq/albums-and-organization#uncategorized), not deleted.
+
+You can review and delete those copies in Uncategorized.
+
+### Why are my albums empty after I renamed a folder inside a watched folder? {#rename-folder-in-watched-folder}
+
+When you rename a folder inside a watched folder, the desktop app sees every file in it as deleted and added again. This can remove the photos from their albums and move them to [Uncategorized](/photos/faq/albums-and-organization#uncategorized). Your photos are not deleted.
+
+Do not rename the folder back. That repeats the same process. You can keep the new name.
+
+To restore the photos to albums:
+
+1. Open the desktop app and click **Watch folders** in the sidebar.
+2. Click the **Stop watching** button next to the main watched folder, then **Yes, stop**. This does not delete any photos from Ente.
+3. Click **Add folder** and select the same main folder again.
+4. Choose the same option you used before, for example **Separate albums**.
+5. Wait for the sync to finish.
+
+Ente checks for photos it has already uploaded. When it recognizes a match, it adds the photo to an album without uploading the file again. If you renamed a photo in Ente, it may upload again because its name no longer matches the file on your computer.
+
+With **Separate albums**, each photo goes into an album named after its immediate parent folder. If the renamed folder directly contains photos, they appear in a new album with that folder's new name. The old album is not refilled by those photos. Photos in deeper subfolders can return to their existing albums. Check where the photos appear before deleting any empty album.
+
+To remove leftover entries, open Uncategorized and select the clean icon (broom). This removes only items that are also in another album. Review anything left in Uncategorized before deleting it.
+
+To avoid this next time, stop watching the main folder before you rename a folder inside it, then add the main folder again.
+
 ### Why are my watch folders not syncing? {#watch-folders-not-syncing}
 
 Common issues and solutions:
@@ -628,8 +670,8 @@ While the app may work with network drives in some cases, we've found that netwo
 
 1. Click "Watch folders" in the sidebar
 2. Find the folder you want to stop watching
-3. Click the three dots next to that folder entry
-4. Select "Stop watching"
+3. Click the **Stop watching** button next to that folder entry
+4. Confirm with **Yes, stop**
 
 The folder will no longer be monitored, but all files that were already uploaded to Ente will remain there. Stopping watch does not delete any photos from Ente.
 
@@ -822,6 +864,8 @@ If you are sure you no longer need those files, manually delete them from the lo
 Ente supports all files that have a mime type of `image/*` or `video/*` regardless of their specific format.
 
 However, we only have limited support for RAW currently. We are working towards adding full support, and you can watch this [thread](https://github.com/ente/ente/discussions/625) for updates.
+
+Backup support and viewing support can differ. For example, JPEG XL files may upload even when Ente cannot show a thumbnail or preview. Check [Backup status](#check-backup-status) rather than treating a missing preview as proof that the original failed to upload.
 
 If you find an issue with ente's ability to parse a certain file type, please write to [support@ente.com](mailto:support@ente.com) with details of the unsupported file format and we will do our best to help you out.
 

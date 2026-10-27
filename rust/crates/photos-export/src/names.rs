@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs,
     path::{Component, Path},
 };
@@ -100,8 +101,12 @@ pub fn reserved(name: &str, album: bool) -> bool {
 
 fn device(name: &str) -> bool {
     let folded = folded(name);
-    let device = folded.split('.').next().unwrap_or_default();
-    ["con", "prn", "aux", "nul", "clock$"].contains(&device)
+    let device = folded
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches(' ');
+    ["con", "prn", "aux", "nul", "clock$", "conin$", "conout$"].contains(&device)
         || ["com", "lpt"].iter().any(|prefix| {
             device.strip_prefix(prefix).is_some_and(|n| {
                 matches!(
@@ -170,12 +175,18 @@ pub fn allocate(
     kind: &str,
     extensions: Option<(&str, &str)>,
     owner: &str,
+    occupied: &HashSet<String>,
 ) -> Result<Vec<String>> {
     for suffix in 0u64.. {
         let Some(candidates) = candidates(name, kind == "album", extensions, suffix)? else {
             continue;
         };
-        if available(store, folder, &candidates, owner, kind)? {
+        if (occupied.is_empty()
+            || candidates
+                .iter()
+                .all(|name| !occupied.contains(&folded(name))))
+            && available(store, folder, &candidates, owner, kind)?
+        {
             return Ok(candidates);
         }
     }

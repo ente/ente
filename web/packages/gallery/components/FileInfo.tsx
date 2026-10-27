@@ -1,28 +1,28 @@
+import {
+    ArrowLeft01Icon,
+    Calendar04Icon,
+    Camera01Icon,
+    CameraLensIcon,
+    Cancel01Icon,
+    Edit02Icon,
+    Image01Icon,
+    Location01Icon,
+    UserAdd01Icon,
+    Video02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 // TODO: Split this file to deal with the ente-new/photos imports.
 
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import CameraOutlinedIcon from "@mui/icons-material/CameraOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import DoneIcon from "@mui/icons-material/Done";
-import EditIcon from "@mui/icons-material/Edit";
-import FaceRetouchingNaturalIcon from "@mui/icons-material/FaceRetouchingNatural";
-import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardOptionKeyIcon from "@mui/icons-material/KeyboardOptionKey";
-import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
-import PhotoOutlinedIcon from "@mui/icons-material/PhotoOutlined";
-import TextSnippetOutlinedIcon from "@mui/icons-material/TextSnippetOutlined";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import {
     Box,
     Button,
     CircularProgress,
-    Dialog,
-    DialogContent,
-    DialogTitle,
     IconButton,
-    InputAdornment,
     Link,
     Stack,
     styled,
@@ -34,22 +34,17 @@ import {
 import { LinkButtonUndecorated } from "ente-base/components/LinkButton";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
-import {
-    SidebarDrawer,
-    SidebarDrawerTitlebar,
-} from "ente-base/components/mui/SidebarDrawer";
-import { SingleInputForm } from "ente-base/components/SingleInputForm";
-import { EllipsizedTypography } from "ente-base/components/Typography";
+import { SidebarDrawer } from "ente-base/components/mui/SidebarDrawer";
 import {
     useModalVisibility,
     type ModalVisibilityProps,
 } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
-import { nameAndExtension } from "ente-base/file-name";
 import { formattedDate, formattedTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import type { Location } from "ente-base/types";
 import { CopyButton } from "ente-gallery/components/FileInfoComponents";
+import { RenameFileDialog } from "ente-gallery/components/RenameFileDialog";
 import { tagNumericValue, type RawExifTags } from "ente-gallery/services/exif";
 import { getLeafletWithDefaultIcons } from "ente-gallery/utils/leaflet";
 import { formattedByteSize } from "ente-gallery/utils/units";
@@ -261,13 +256,31 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     }, [onNavigationLockChange, navigationLocked]);
 
     return (
-        <BottomAlignedFileInfoSidebar open={open} onClose={handleClose}>
-            <SidebarDrawerTitlebar
-                onClose={handleClose}
-                onRootClose={handleClose}
-                title={t("info")}
-            />
-            <Stack sx={{ pt: 1, pb: 3, gap: "20px" }}>
+        <FileInfoSidebar open={open} onClose={handleClose}>
+            <FileInfoHeader>
+                <IconButton
+                    aria-label={t("go_back")}
+                    onClick={handleClose}
+                    sx={{ width: 24, height: 40, flexShrink: 0, p: 0 }}
+                >
+                    <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
+                </IconButton>
+                <Typography
+                    component="h2"
+                    sx={{
+                        flex: 1,
+                        fontSize: 20,
+                        lineHeight: "28px",
+                        fontWeight: 600,
+                    }}
+                >
+                    {t("details")}
+                </Typography>
+                <IconButton aria-label={t("close")} onClick={handleClose}>
+                    <HugeiconsIcon icon={Cancel01Icon} size={18} />
+                </IconButton>
+            </FileInfoHeader>
+            <Stack sx={{ pb: 2.5, gap: 2.5 }}>
                 <Caption
                     {...{
                         file,
@@ -277,99 +290,127 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                         onEditStateChange: setCaptionEditState,
                     }}
                 />
-                <CreationTime
-                    {...{
-                        file,
-                        allowEdits,
-                        onFileMetadataUpdate,
-                        onNavigationLockChange: setDateTimeNavigationLocked,
-                    }}
-                />
-                <FileName
-                    {...{
-                        file,
-                        annotatedExif,
-                        allowEdits,
-                        onFileMetadataUpdate,
-                        onNavigationLockChange: setRenameNavigationLocked,
-                    }}
-                />
-
-                {annotatedExif?.takenOnDevice && (
-                    <InfoItem
-                        icon={<CameraOutlinedIcon />}
-                        title={annotatedExif.takenOnDevice}
-                        caption={createMultipartCaption(
-                            annotatedExif.fNumber,
-                            annotatedExif.exposureTime,
-                            annotatedExif.iso,
-                        )}
+                <Stack sx={{ gap: "2px" }}>
+                    <CreationTime
+                        {...{
+                            file,
+                            allowEdits,
+                            onFileMetadataUpdate,
+                            onNavigationLockChange: setDateTimeNavigationLocked,
+                        }}
                     />
-                )}
+                    <FileName
+                        {...{
+                            file,
+                            annotatedExif,
+                            allowEdits,
+                            onFileMetadataUpdate,
+                            onNavigationLockChange: setRenameNavigationLocked,
+                        }}
+                    />
 
-                {location ? (
-                    <>
+                    {annotatedExif?.takenOnDevice && (
                         <InfoItem
-                            icon={<LocationOnOutlinedIcon />}
-                            title={t("location")}
-                            caption={
-                                !mapEnabled || !allowMap ? (
-                                    <Link
-                                        href={openStreetMapLink(location)}
-                                        target="_blank"
-                                        rel="noopener"
-                                        sx={{ fontWeight: "medium" }}
-                                    >
-                                        {t("view_on_map")}
-                                    </Link>
-                                ) : (
-                                    <LinkButtonUndecorated
-                                        onClick={() => updateMapEnabled(false)}
-                                    >
-                                        {t("disable_map")}
-                                    </LinkButtonUndecorated>
-                                )
+                            icon={
+                                <HugeiconsIcon icon={Camera01Icon} size={18} />
                             }
-                            trailingButton={
-                                <Stack direction="row" sx={{ gap: 1 }}>
-                                    {allowEdits && (
-                                        <EditButton
-                                            onClick={showEditLocation}
+                            title={annotatedExif.takenOnDevice}
+                            caption={createMultipartCaption(
+                                annotatedExif.fNumber,
+                                annotatedExif.exposureTime,
+                                annotatedExif.iso,
+                            )}
+                        />
+                    )}
+                </Stack>
+                {(location || allowEdits) && (
+                    <FileInfoSection title={t("location")}>
+                        {location ? (
+                            <>
+                                <InfoItem
+                                    icon={
+                                        <HugeiconsIcon
+                                            icon={Location01Icon}
+                                            size={18}
                                         />
-                                    )}
-                                    <CopyButton
-                                        size="medium"
-                                        text={openStreetMapLink(location)}
+                                    }
+                                    caption={
+                                        !mapEnabled || !allowMap ? (
+                                            <Link
+                                                href={openStreetMapLink(
+                                                    location,
+                                                )}
+                                                target="_blank"
+                                                rel="noopener"
+                                                sx={{ fontWeight: "medium" }}
+                                            >
+                                                {t("view_on_map")}
+                                            </Link>
+                                        ) : (
+                                            <LinkButtonUndecorated
+                                                onClick={() =>
+                                                    updateMapEnabled(false)
+                                                }
+                                            >
+                                                {t("disable_map")}
+                                            </LinkButtonUndecorated>
+                                        )
+                                    }
+                                    trailingButton={
+                                        <Stack
+                                            direction="row"
+                                            sx={{
+                                                gap: { xs: 0, sm: 1 },
+                                                flexShrink: 0,
+                                            }}
+                                        >
+                                            {allowEdits && (
+                                                <EditButton
+                                                    onClick={showEditLocation}
+                                                />
+                                            )}
+                                            <CopyButton
+                                                size="small"
+                                                text={openStreetMapLink(
+                                                    location,
+                                                )}
+                                            />
+                                        </Stack>
+                                    }
+                                />
+                                {allowMap && (
+                                    <MapBox
+                                        key={`${location.latitude}-${location.longitude}`}
+                                        location={location}
+                                        mapEnabled={mapEnabled}
                                     />
-                                </Stack>
-                            }
-                        />
-                        {allowMap && (
-                            <MapBox
-                                key={`${location.latitude}-${location.longitude}`}
-                                location={location}
-                                mapEnabled={mapEnabled}
-                            />
+                                )}
+                            </>
+                        ) : (
+                            allowEdits && (
+                                <InfoItem
+                                    icon={
+                                        <HugeiconsIcon
+                                            icon={Location01Icon}
+                                            size={18}
+                                        />
+                                    }
+                                    caption={
+                                        <LinkButtonUndecorated
+                                            onClick={showEditLocation}
+                                        >
+                                            {t("add_location_button")}
+                                        </LinkButtonUndecorated>
+                                    }
+                                />
+                            )
                         )}
-                    </>
-                ) : (
-                    allowEdits && (
-                        <InfoItem
-                            icon={<LocationOnOutlinedIcon />}
-                            title={t("location")}
-                            caption={
-                                <LinkButtonUndecorated
-                                    onClick={showEditLocation}
-                                >
-                                    {t("add_location_button")}
-                                </LinkButtonUndecorated>
-                            }
-                        />
-                    )
+                    </FileInfoSection>
                 )}
+                <FileInfoDivider />
                 <InfoItem
-                    icon={<TextSnippetOutlinedIcon />}
-                    title={t("details")}
+                    icon={<HugeiconsIcon icon={CameraLensIcon} size={18} />}
+                    title={t("exif")}
                     caption={
                         !exif ? (
                             <ActivityIndicator size={12} />
@@ -386,20 +427,32 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                     (annotatedFaces.length > 0 ||
                         manuallyAssignedPeople.length > 0 ||
                         canAddPerson) && (
-                        <InfoItem icon={<FaceRetouchingNaturalIcon />}>
-                            <FilePeopleList
-                                file={file}
-                                annotatedFaceIDs={annotatedFaces}
-                                onSelectFace={handleSelectFace}
-                                manuallyAssignedPeople={manuallyAssignedPeople}
-                                onSelectPerson={onSelectPerson}
-                                onAddPerson={
-                                    canAddPerson ? showAssignPerson : undefined
-                                }
-                                addPersonTitle={t("add_a_person")}
-                                addPersonLabel={t("add")}
-                            />
-                        </InfoItem>
+                        <FileInfoSection title={t("people")}>
+                            <FileInfoPeople>
+                                <FilePeopleList
+                                    file={file}
+                                    annotatedFaceIDs={annotatedFaces}
+                                    onSelectFace={handleSelectFace}
+                                    manuallyAssignedPeople={
+                                        manuallyAssignedPeople
+                                    }
+                                    onSelectPerson={onSelectPerson}
+                                    onAddPerson={
+                                        canAddPerson
+                                            ? showAssignPerson
+                                            : undefined
+                                    }
+                                    addPersonTitle={t("add_a_person")}
+                                    addPersonLabel={t("add")}
+                                    addPersonIcon={
+                                        <HugeiconsIcon
+                                            icon={UserAdd01Icon}
+                                            size={24}
+                                        />
+                                    }
+                                />
+                            </FileInfoPeople>
+                        </FileInfoSection>
                     )}
                 {showCollections &&
                     fileCollectionIDs &&
@@ -418,19 +471,19 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                 {uploaderName && (
                     <Typography
                         variant="small"
-                        sx={{ m: 2, textAlign: "right", color: "text.muted" }}
+                        sx={{
+                            fontSize: 12,
+                            lineHeight: "16px",
+                            textAlign: "right",
+                            color: "text.muted",
+                        }}
                     >
                         {t("added_by_name", { name: uploaderName })}
                     </Typography>
                 )}
             </Stack>
             <FileInfoNavigationHint />
-            <RawExif
-                {...rawExifVisibilityProps}
-                onInfoClose={handleClose}
-                tags={exif?.tags}
-                fileName={fileFileName(file)}
-            />
+            <RawExif {...rawExifVisibilityProps} tags={exif?.tags} />
 
             {canAddPerson && (
                 <AssignPersonDialog
@@ -448,7 +501,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                     onConfirm={handleEditLocationConfirm}
                 />
             )}
-        </BottomAlignedFileInfoSidebar>
+        </FileInfoSidebar>
     );
 };
 
@@ -462,7 +515,7 @@ const FileInfoNavigationHint: React.FC = () => (
             display: { xs: "none", sm: "block" },
             mt: "auto",
             pb: 3,
-            px: 2,
+            px: 0,
             color: "text.muted",
             opacity: 0.24,
         }}
@@ -592,6 +645,8 @@ const FileInfoSidebar = styled(
     (props: Pick<DialogProps, "open" | "onClose" | "children">) => (
         <SidebarDrawer
             {...props}
+            maxWidth="425px"
+            disableAppTitlebarBackdrop
             anchor="right"
             // Avoid MUI's aria-hidden focus warning when this closes.
             disableRestoreFocus={true}
@@ -604,16 +659,39 @@ const FileInfoSidebar = styled(
             backgroundColor: theme.vars.palette.backdrop.faint,
         },
     }),
-}));
-
-const BottomAlignedFileInfoSidebar = styled(FileInfoSidebar)({
-    ".MuiDrawer-paper": { display: "flex", flexDirection: "column" },
+    ".MuiDrawer-paper": {
+        display: "flex",
+        flexDirection: "column",
+        top: "calc(env(titlebar-area-height, 0px) + 12px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        height: "auto",
+        borderRadius: 20,
+        [theme.breakpoints.down("sm")]: {
+            bottom: 0,
+            borderRadius: "20px 20px 0 0",
+        },
+    },
     ".MuiDrawer-paper > .MuiBox-root": {
         flex: 1,
         display: "flex",
         flexDirection: "column",
+        padding: "0 clamp(28px, 6vw, 30px)",
+        minWidth: 0,
+        [theme.breakpoints.down("sm")]: {
+            paddingInline: "20px",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        },
     },
-});
+    [theme.breakpoints.down("sm")]: {
+        "& .MuiIconButton-root": {
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            padding: 12,
+            "& > svg": { width: 20, height: 20 },
+        },
+    },
+}));
 
 interface InfoItemProps {
     icon: React.ReactNode;
@@ -622,6 +700,71 @@ interface InfoItemProps {
     trailingButton?: React.ReactNode;
 }
 
+const FileInfoHeader = styled(Stack)(({ theme }) => ({
+    position: "sticky",
+    top: 0,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 92,
+    paddingTop: 18,
+    [theme.breakpoints.down("sm")]: {
+        minHeight: 64,
+        paddingTop: 0,
+        gap: 4,
+        "& .MuiIconButton-root:first-of-type": { marginLeft: -12 },
+        "& .MuiIconButton-root:last-of-type": { marginRight: -12 },
+    },
+    flexShrink: 0,
+    backgroundColor: theme.vars.palette.background.paper,
+    "& .MuiIconButton-root": { color: theme.vars.palette.text.base },
+}));
+const FileInfoDivider = styled("hr")(({ theme }) => ({
+    width: "100%",
+    margin: 0,
+    border: 0,
+    borderTop: `1px solid ${theme.vars.palette.stroke.faint}`,
+    ...theme.applyStyles("dark", {
+        borderColor: `color-mix(in srgb, ${theme.vars.palette.stroke.faint} 55%, transparent)`,
+    }),
+}));
+const FileInfoSection: React.FC<React.PropsWithChildren<{ title: string }>> = ({
+    title,
+    children,
+}) => (
+    <Stack component="section" sx={{ gap: 1.75 }}>
+        <FileInfoDivider sx={{ mb: 0.75 }} />
+        <Typography
+            component="h3"
+            sx={{ fontSize: 18, lineHeight: "24px", fontWeight: 600 }}
+        >
+            {title}
+        </Typography>
+        {children}
+    </Stack>
+);
+// Keep the shared people lists unchanged outside File Info.
+const FileInfoPeople = styled(Box)(({ theme }) => ({
+    "& > div": { gap: "14px 18px", marginBlockEnd: 0 },
+    "& button": { width: 60, minWidth: 0, gap: 7 },
+    "& button > img, & button > div, & button > .MuiSkeleton-root": {
+        width: 60,
+        height: 60,
+        borderRadius: 20,
+    },
+    "& button > div": { border: 0 },
+    "& .MuiTypography-root": {
+        fontSize: 14,
+        lineHeight: "20px",
+        color: theme.vars.palette.text.base,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        width: "100%",
+        textAlign: "center",
+    },
+}));
 const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
     icon,
     title,
@@ -631,18 +774,38 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
 }) => (
     <Stack
         direction="row"
-        sx={{ alignItems: "flex-start", flex: 1, gap: "12px" }}
+        sx={{
+            alignItems: "center",
+            minHeight: 56,
+            gap: { xs: "8px", sm: "10px" },
+            p: { xs: "8px 0", sm: "8px 10px" },
+            minWidth: 0,
+        }}
     >
         <InfoItemIconContainer>{icon}</InfoItemIconContainer>
         {children ? (
-            <Box sx={{ flex: 1, mt: "4px" }}>{children}</Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
         ) : (
-            <Stack sx={{ flex: 1, mt: "4px", gap: "4px" }}>
-                <Typography sx={{ wordBreak: "break-all" }}>{title}</Typography>
+            <Stack sx={{ flex: 1, minWidth: 0, gap: "4px" }}>
+                {title && (
+                    <Typography
+                        sx={{
+                            overflowWrap: "anywhere",
+                            fontSize: 14,
+                            lineHeight: "20px",
+                        }}
+                    >
+                        {title}
+                    </Typography>
+                )}
                 <Typography
-                    variant="small"
+                    variant="mini"
                     {...(typeof caption != "string" && { component: "div" })}
-                    sx={{ color: "text.muted" }}
+                    sx={{
+                        color: "text.muted",
+                        fontSize: 12,
+                        lineHeight: "16px",
+                    }}
                 >
                     {caption}
                 </Typography>
@@ -651,26 +814,33 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
         {trailingButton}
     </Stack>
 );
-
-const InfoItemIconContainer = styled("div")(
-    ({ theme }) => `
-    width: 48px;
-    aspect-ratio: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: ${theme.vars.palette.stroke.muted}
-`,
-);
-
+const InfoItemIconContainer = styled("div")(({ theme }) => ({
+    width: 34,
+    height: 34,
+    flexShrink: 0,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    color: theme.vars.palette.text.muted,
+    "& > svg": { width: 18, height: 18 },
+    [theme.breakpoints.down("sm")]: {
+        width: 32,
+        "& > svg": { width: 20, height: 20 },
+    },
+}));
 type EditButtonProps = ButtonishProps & { loading?: boolean };
-
 const EditButton: React.FC<EditButtonProps> = ({ onClick, loading }) => (
-    <IconButton onClick={onClick} disabled={!!loading} color="secondary">
+    <IconButton
+        aria-label={t("edit_details")}
+        onClick={onClick}
+        disabled={!!loading}
+        color="secondary"
+        sx={{ width: 40, height: 40, flexShrink: 0, color: "text.muted" }}
+    >
         {!loading ? (
-            <EditIcon />
+            <HugeiconsIcon icon={Edit02Icon} size={18} />
         ) : (
-            <CircularProgress size={"24px"} color="inherit" />
+            <CircularProgress size={18} color="inherit" />
         )}
     </IconButton>
 );
@@ -736,6 +906,7 @@ const Caption: React.FC<CaptionProps> = ({
         <CaptionForm onSubmit={handleSubmit}>
             <TextField
                 id="caption"
+                sx={{ m: { sm: 0 } }}
                 name="caption"
                 type="text"
                 multiline
@@ -753,6 +924,7 @@ const Caption: React.FC<CaptionProps> = ({
             {values.caption != caption && (
                 <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
                     <IconButton
+                        aria-label={t("save")}
                         type="submit"
                         disabled={isSaving}
                         sx={{ minWidth: "48px" }}
@@ -763,7 +935,11 @@ const Caption: React.FC<CaptionProps> = ({
                             <DoneIcon />
                         )}
                     </IconButton>
-                    <IconButton onClick={() => resetForm()} disabled={isSaving}>
+                    <IconButton
+                        aria-label={t("cancel")}
+                        onClick={() => resetForm()}
+                        disabled={isSaving}
+                    >
                         <CloseIcon />
                     </IconButton>
                 </Stack>
@@ -773,7 +949,22 @@ const Caption: React.FC<CaptionProps> = ({
 };
 
 const CaptionForm = styled("form")(({ theme }) => ({
-    padding: theme.spacing(1),
+    "& .MuiFilledInput-root": {
+        backgroundColor: "transparent",
+        borderRadius: 12,
+        padding: "6px 0",
+        fontSize: 14,
+        lineHeight: "20px",
+        color: theme.vars.palette.text.muted,
+        "&:hover": { backgroundColor: theme.vars.palette.fill.fainter },
+        "&.Mui-focused": { backgroundColor: theme.vars.palette.fill.fainter },
+        "&::before": { borderBottom: 0 },
+        "&:hover:not(.Mui-disabled, .Mui-error)::before": { borderBottom: 0 },
+        "&.Mui-disabled": { backgroundColor: "transparent" },
+    },
+    "& textarea.Mui-disabled": {
+        WebkitTextFillColor: theme.vars.palette.text.muted,
+    },
 }));
 
 type CreationTimeProps = Pick<
@@ -820,7 +1011,7 @@ const CreationTime: React.FC<CreationTimeProps> = ({
     return (
         <>
             <InfoItem
-                icon={<CalendarTodayIcon />}
+                icon={<HugeiconsIcon icon={Calendar04Icon} size={18} />}
                 title={formattedDate(originalDate)}
                 caption={formattedTime(originalDate)}
                 trailingButton={
@@ -871,9 +1062,9 @@ const FileName: React.FC<FileNameProps> = ({
 
     const icon =
         file.metadata.fileType == FileType.video ? (
-            <VideocamOutlinedIcon />
+            <HugeiconsIcon icon={Video02Icon} size={18} />
         ) : (
-            <PhotoOutlinedIcon />
+            <HugeiconsIcon icon={Image01Icon} size={18} />
         );
 
     const fileSize = file.info?.fileSize;
@@ -907,63 +1098,12 @@ const createMultipartCaption = (
     p2: string | undefined,
     p3: string | undefined,
 ) => (
-    <Stack direction="row" sx={{ gap: 1 }}>
+    <Stack direction="row" sx={{ gap: 1, flexWrap: "wrap" }}>
         {p1 && <div>{p1}</div>}
         {p2 && <div>{p2}</div>}
         {p3 && <div>{p3}</div>}
     </Stack>
 );
-
-type RenameFileDialogProps = ModalVisibilityProps & {
-    fileName: string;
-    onRename: (newFileName: string) => Promise<void>;
-};
-
-const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
-    open,
-    onClose,
-    fileName,
-    onRename,
-}) => {
-    const [name, extension] = nameAndExtension(fileName);
-
-    const handleSubmit = async (newName: string) => {
-        const newFileName = [newName, extension].filter((x) => !!x).join(".");
-        if (newFileName != fileName) {
-            await onRename(newFileName);
-        }
-        onClose();
-    };
-
-    return (
-        <Dialog {...{ open, onClose }} fullWidth maxWidth="xs">
-            <DialogTitle sx={{ "&&&": { paddingBlock: "26px 0px" } }}>
-                {t("rename_file")}
-            </DialogTitle>
-            <DialogContent>
-                <SingleInputForm
-                    label={t("file_name")}
-                    placeholder={t("file_name")}
-                    initialValue={name}
-                    submitButtonColor="primary"
-                    submitButtonTitle={t("rename")}
-                    onSubmit={handleSubmit}
-                    onCancel={onClose}
-                    slotProps={{
-                        input: {
-                            sx: { alignItems: "baseline" },
-                            endAdornment: extension && (
-                                <InputAdornment position="end">
-                                    {`.${extension}`}
-                                </InputAdornment>
-                            ),
-                        },
-                    }}
-                />
-            </DialogContent>
-        </Dialog>
-    );
-};
 
 const openStreetMapLink = ({ latitude, longitude }: Location) =>
     `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=15/${latitude}/${longitude}`;
@@ -1044,8 +1184,11 @@ const MapBox: React.FC<MapBoxProps> = ({ location, mapEnabled }) => {
 };
 
 const MapBoxContainer = styled("div")`
-    height: 200px;
+    height: 156px;
     width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    flex-shrink: 0;
 `;
 
 const MapBoxEnableContainer = styled(MapBoxContainer)(
@@ -1061,26 +1204,13 @@ const MapBoxEnableContainer = styled(MapBoxContainer)(
 interface RawExifProps {
     open: boolean;
     onClose: () => void;
-    onInfoClose: () => void;
     tags: RawExifTags | undefined;
-    fileName: string;
 }
 
-const RawExif: React.FC<RawExifProps> = ({
-    open,
-    onClose,
-    onInfoClose,
-    tags,
-    fileName,
-}) => {
+const RawExif: React.FC<RawExifProps> = ({ open, onClose, tags }) => {
     if (!tags) {
         return <></>;
     }
-
-    const handleRootClose = () => {
-        onClose();
-        onInfoClose();
-    };
 
     const items: (readonly [string, string, string, string])[] = Object.entries(
         tags,
@@ -1109,52 +1239,89 @@ const RawExif: React.FC<RawExifProps> = ({
         .flat()
         .filter(([, , , description]) => description);
 
+    const namespaces = [...new Set(items.map(([, namespace]) => namespace))];
+
     return (
         <FileInfoSidebar open={open} onClose={onClose}>
-            <SidebarDrawerTitlebar
-                onClose={onClose}
-                onRootClose={handleRootClose}
-                title={t("exif")}
-                caption={fileName}
-                showRootCloseButton={false}
-                actionButton={
-                    <CopyButton size="small" text={JSON.stringify(tags)} />
-                }
-            />
-            <Stack sx={{ gap: 2, py: 3, px: 1 }}>
-                {items.map(([key, namespace, tagName, description]) => (
-                    <ExifItem key={key}>
-                        <Stack direction="row" sx={{ gap: 1 }}>
-                            <Typography
-                                variant="small"
-                                sx={{ color: "text.muted" }}
-                            >
-                                {tagName}
-                            </Typography>
-                            <Typography
-                                variant="tiny"
-                                sx={{ color: "text.faint" }}
-                            >
-                                {namespace}
-                            </Typography>
-                        </Stack>
-                        <EllipsizedTypography sx={{ width: "100%" }}>
-                            {description}
-                        </EllipsizedTypography>
-                    </ExifItem>
+            <FileInfoHeader>
+                <IconButton
+                    aria-label={t("go_back")}
+                    onClick={onClose}
+                    sx={{
+                        width: 40,
+                        height: 40,
+                        flexShrink: 0,
+                        p: 0,
+                        ml: -1.25,
+                        borderRadius: "50%",
+                    }}
+                >
+                    <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
+                </IconButton>
+                <Typography
+                    component="h2"
+                    sx={{
+                        flex: 1,
+                        fontSize: 20,
+                        lineHeight: "28px",
+                        fontWeight: 600,
+                    }}
+                >
+                    {t("exif")}
+                </Typography>
+                <CopyButton size="small" text={JSON.stringify(tags)} />
+            </FileInfoHeader>
+            <Stack sx={{ gap: 2.5, pb: 3 }}>
+                {namespaces.map((namespace) => (
+                    <FileInfoSection
+                        key={namespace}
+                        title={
+                            namespace.charAt(0).toUpperCase() +
+                            namespace.slice(1)
+                        }
+                    >
+                        <Box component="dl" sx={{ m: 0, pl: 2 }}>
+                            {items
+                                .filter(
+                                    ([, itemNamespace]) =>
+                                        itemNamespace === namespace,
+                                )
+                                .map(([key, , tagName, description]) => (
+                                    <Stack
+                                        key={key}
+                                        sx={{ py: 1.25, gap: 0.5 }}
+                                    >
+                                        <Typography
+                                            component="dt"
+                                            variant="small"
+                                            sx={{
+                                                color: "text.muted",
+                                                overflowWrap: "anywhere",
+                                            }}
+                                        >
+                                            {tagName}
+                                        </Typography>
+                                        <Typography
+                                            component="dd"
+                                            sx={{
+                                                m: 0,
+                                                fontSize: 14,
+                                                lineHeight: "22px",
+                                                overflowWrap: "anywhere",
+                                                whiteSpace: "pre-wrap",
+                                            }}
+                                        >
+                                            {description}
+                                        </Typography>
+                                    </Stack>
+                                ))}
+                        </Box>
+                    </FileInfoSection>
                 ))}
             </Stack>
         </FileInfoSidebar>
     );
 };
-
-const ExifItem = styled("div")`
-    padding-left: 8px;
-    padding-right: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-`;
 
 type AlbumsProps = Required<
     Pick<
@@ -1170,7 +1337,7 @@ const Albums: React.FC<AlbumsProps> = ({
     hiddenCollectionIDs,
     onSelectCollection,
 }) => (
-    <InfoItem icon={<FolderOutlinedIcon />}>
+    <FileInfoSection title={t("albums")}>
         <Stack
             direction="row"
             sx={{
@@ -1202,9 +1369,19 @@ const Albums: React.FC<AlbumsProps> = ({
                     );
                 })}
         </Stack>
-    </InfoItem>
+    </FileInfoSection>
 );
 
 const ChipButton = styled((props: ButtonProps) => (
     <Button color="secondary" {...props} />
-))(({ theme }) => ({ ...theme.typography.small, padding: "8px" }));
+))(({ theme }) => ({
+    ...theme.typography.mini,
+    minHeight: 38,
+    padding: "10px 16px",
+    borderRadius: 24,
+    color: theme.vars.palette.text.muted,
+    backgroundColor: theme.vars.palette.fill.fainter,
+    textTransform: "none",
+    overflowWrap: "anywhere",
+    maxWidth: "100%",
+}));

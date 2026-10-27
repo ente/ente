@@ -500,7 +500,14 @@ func (r *FriendsRepository) DeleteFriendship(ctx context.Context, actorSpaceID s
 		return stacktrace.Propagate(err, "")
 	}
 	if _, err := tx.ExecContext(ctx, `
-		DELETE FROM space_notifications WHERE kind IN ('friend_accepted', 'poke')
+		DELETE FROM space_pokes
+		WHERE (sender_space_id = $1 AND recipient_space_id = $2)
+		   OR (sender_space_id = $2 AND recipient_space_id = $1)
+	`, actorSpaceID, targetSpaceID); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM space_notifications WHERE kind = 'friend_accepted'
 		AND ((recipient_space_id = $1 AND actor_space_id = $2) OR (recipient_space_id = $2 AND actor_space_id = $1))
 	`, actorSpaceID, targetSpaceID); err != nil {
 		return stacktrace.Propagate(err, "")

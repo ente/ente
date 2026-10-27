@@ -52,7 +52,7 @@ You can also access Ente Photos directly in your browser without installing anyt
 
 Ente Photos also offers a command-line interface (CLI) for advanced users and automation. The CLI is particularly useful for server environments, scheduled backups, and scripting workflows.
 
-Learn more in the [CLI feature guide](/photos/features/utilities/cli).
+Learn more in [Install Ente CLI](/cli/install).
 
 ## Next steps
 

@@ -32,6 +32,9 @@ pub enum Error {
 
     #[error("legacy kit is inactive")]
     LegacyKitInactive,
+
+    #[error("legacy kit recovery access expired")]
+    LegacyKitSessionExpired,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

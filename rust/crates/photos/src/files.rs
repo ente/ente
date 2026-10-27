@@ -63,6 +63,10 @@ pub struct Location {
 pub enum Error {
     #[error(transparent)]
     Http(#[from] http::Error),
+    #[error(
+        "HTTP 404 at /files/download/v3/{0}\nFile downloads require the v3 API. Update your Ente server or check its proxy configuration."
+    )]
+    DownloadApiUnavailable(i64),
     #[error(transparent)]
     Crypto(#[from] crypto::Error),
     #[error(transparent)]
@@ -87,19 +91,20 @@ pub async fn download<W: std::io::Write>(
     use futures_util::StreamExt;
 
     http::retry_if(
+        http::RetryProfile::Background,
         || {
             let output = output();
             async move {
                 let output = output?;
-                let signed: DownloadUrl = session
+                let response = session
                     .api
                     .get(&format!("/files/download/v3/{id}"))
                     .send()
-                    .await?
-                    .error_for_code()
-                    .await?
-                    .json()
                     .await?;
+                if response.status() == 404 {
+                    return Err(Error::DownloadApiUnavailable(id));
+                }
+                let signed: DownloadUrl = response.error_for_code().await?.json().await?;
                 let response = session
                     .api
                     .http()

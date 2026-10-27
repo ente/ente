@@ -236,6 +236,11 @@ class HomeWidgetService {
   }
 
   Future<void> onLaunchFromWidget(Uri? uri) async {
+    if (AppNavigationService.instance.isGuestViewActive) {
+      _logger.info("Ignoring widget launch because Guest View is active");
+      return;
+    }
+
     if (uri == null) {
       _logger.warning("Widget launch failed: URI is null");
       return;
@@ -270,7 +275,8 @@ class HomeWidgetService {
           if (!hasGrantedMLConsent) {
             final navigator = await AppNavigationService.instance
                 .waitForNavigator();
-            if (navigator == null ||
+            if (AppNavigationService.instance.isGuestViewActive ||
+                navigator == null ||
                 !navigator.mounted ||
                 !await showMLConsentSheet(navigator.context)) {
               break;

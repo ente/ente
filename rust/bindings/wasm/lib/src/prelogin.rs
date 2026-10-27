@@ -17,7 +17,7 @@ pub struct GeneratedSrpSetup {
 pub fn auth_derive_kek(
     password: &str,
     kek_salt_b64: &str,
-    mem_limit: u32,
+    mem_limit: u64,
     ops_limit: u32,
 ) -> Result<String, AccountsError> {
     let kek = auth::derive_kek(password, kek_salt_b64, mem_limit, ops_limit)?;

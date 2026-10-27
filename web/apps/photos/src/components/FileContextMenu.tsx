@@ -18,13 +18,8 @@ import {
     ViewOffSlashIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import {
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    styled,
-} from "@mui/material";
+import { ListItemIcon, ListItemText } from "@mui/material";
+import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { t } from "i18next";
 import React, { memo, useCallback, useMemo } from "react";
 
@@ -103,7 +98,7 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = memo(
         }, [actions]);
 
         return (
-            <StyledMenu
+            <ContextMenu
                 open={open}
                 onClose={onClose}
                 disableAutoFocusItem
@@ -119,71 +114,34 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = memo(
                 {primaryActions.map((action) => {
                     const { label, Icon } = actionConfigs[action];
                     return (
-                        <StyledMenuItem
+                        <ContextMenuItem
                             key={action}
                             onClick={() => handleActionClick(action)}
                         >
                             <ListItemIcon>{Icon}</ListItemIcon>
                             <ListItemText>{t(label)}</ListItemText>
-                        </StyledMenuItem>
+                        </ContextMenuItem>
                     );
                 })}
 
                 {destructiveActions.map((action) => {
                     const { label, Icon } = actionConfigs[action];
                     return (
-                        <StyledMenuItem
+                        <ContextMenuItem
                             key={action}
                             onClick={() => handleActionClick(action)}
-                            sx={{
-                                color: "critical.main",
-                                "&:hover": {
-                                    backgroundColor: "critical.main",
-                                    color: "#fff",
-                                },
-                            }}
+                            destructive
                         >
                             <ListItemIcon sx={{ color: "inherit" }}>
                                 {Icon}
                             </ListItemIcon>
                             <ListItemText>{t(label)}</ListItemText>
-                        </StyledMenuItem>
+                        </ContextMenuItem>
                     );
                 })}
-            </StyledMenu>
+            </ContextMenu>
         );
     },
 );
 
 FileContextMenu.displayName = "FileContextMenu";
-
-const StyledMenu = styled(Menu)(({ theme }) => ({
-    "& .MuiPaper-root": {
-        backgroundColor: "#1f1f1f",
-        minWidth: 220,
-        borderRadius: 12,
-        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)",
-        marginTop: 6,
-    },
-    "& .MuiList-root": { padding: theme.spacing(1) },
-    ...theme.applyStyles("dark", {
-        "& .MuiPaper-root": {
-            backgroundColor: "#161616",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.6)",
-        },
-    }),
-}));
-
-const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: theme.spacing(1.5, 2),
-    borderRadius: 10,
-    color: "#f5f5f5",
-    fontSize: 15,
-    "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.08)" },
-    "& .MuiListItemIcon-root": { minWidth: 0, color: "inherit" },
-    "& .MuiListItemText-root": { margin: 0 },
-    "& .MuiListItemText-primary": { color: "inherit", fontSize: "inherit" },
-}));

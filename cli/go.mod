@@ -2,7 +2,7 @@ module github.com/ente/cli
 
 go 1.26.0
 
-toolchain go1.26.8
+toolchain go1.26.10
 
 require (
 	github.com/go-resty/resty/v2 v2.7.0

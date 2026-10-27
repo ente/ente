@@ -18,6 +18,40 @@ import "package:photos/ui/viewer/gallery/component/album_cover_app_bar.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
 void main() {
+  testWidgets("supports a device folder cover with its backup status", (
+    tester,
+  ) async {
+    final cover = EnteFile()..generatedID = 7;
+    ThumbnailInMemoryLruCache.put(cover, base64Decode(_onePixelPng));
+    for (final theme in [lightThemeData, darkThemeData]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                AlbumCoverAppBar(
+                  cover: cover,
+                  title: "Camera",
+                  subtitle: "Backup status",
+                  backgroundColor: theme.scaffoldBackgroundColor,
+                  collapsedHeight: kToolbarHeight,
+                  actionsBuilder: (_) => const [],
+                  coverActions: const [],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text("Backup status"), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets("centers responsive cover content and preserves toolbar spacing", (
     tester,
   ) async {
@@ -64,7 +98,7 @@ void main() {
     ]) {
       tester.view.physicalSize = size;
       final header = _coverHeader(cover);
-      header.collection.pubMagicMetadata = CollectionPubMagicMetadata(
+      header.collection!.pubMagicMetadata = CollectionPubMagicMetadata(
         description: caption,
       );
       await tester.pumpWidget(
@@ -157,7 +191,7 @@ void main() {
           valueListenable: files,
           builder: (_, files, _) {
             final header = _coverHeader(cover);
-            header.collection.pubMagicMetadata = CollectionPubMagicMetadata(
+            header.collection!.pubMagicMetadata = CollectionPubMagicMetadata(
               description:
                   "An album description that wraps onto several lines.",
             );

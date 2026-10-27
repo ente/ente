@@ -1,0 +1,1 @@
+- Added album cover headers and smooth transitions to locations.

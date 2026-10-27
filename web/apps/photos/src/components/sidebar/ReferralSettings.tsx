@@ -11,16 +11,13 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import EditIcon from "@mui/icons-material/Edit";
 import { Box, Button, IconButton, Stack, Typography } from "@mui/material";
-import { TitledMiniDialog } from "ente-base/components/MiniDialog";
 import {
     RowButton,
     RowButtonDivider,
     RowButtonGroup,
 } from "ente-base/components/RowButton";
-import {
-    SingleInputForm,
-    type SingleInputFormProps,
-} from "ente-base/components/SingleInputForm";
+import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
+import type { SingleInputFormProps } from "ente-base/components/SingleInputForm";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import {
     TitledNestedSidebarDrawer,
@@ -595,7 +592,6 @@ const EditCodeDialog: React.FC<EditCodeDialogProps> = ({
         const normalized = normalizeReferralCode(code);
 
         if (normalized == normalizeReferralCode(currentCode)) {
-            onClose();
             return;
         }
 
@@ -611,7 +607,6 @@ const EditCodeDialog: React.FC<EditCodeDialogProps> = ({
         try {
             await changeReferralCode(normalized);
             await onChanged();
-            onClose();
         } catch (e) {
             log.error("Failed to change referral code", e);
 
@@ -637,15 +632,14 @@ const EditCodeDialog: React.FC<EditCodeDialogProps> = ({
     };
 
     return (
-        <TitledMiniDialog {...{ open, onClose }} title={t("change_code")}>
-            <SingleInputForm
-                initialValue={currentCode}
-                label={t("enter_referral_code")}
-                submitButtonTitle={t("save")}
-                onCancel={onClose}
-                onSubmit={handleSubmit}
-            />
-        </TitledMiniDialog>
+        <SingleInputDialog
+            {...{ open, onClose }}
+            title={t("change_code")}
+            initialValue={currentCode}
+            label={t("enter_referral_code")}
+            submitButtonTitle={t("save")}
+            onSubmit={handleSubmit}
+        />
     );
 };
 
@@ -710,29 +704,15 @@ const ApplyCodeDialog: React.FC<ApplyCodeDialogProps> = ({
     };
 
     return (
-        <TitledMiniDialog {...{ open, onClose }} title={t("apply_code")}>
-            <Stack sx={{ gap: 1 }}>
-                <Typography
-                    id="referral-code-apply-description"
-                    sx={{ color: "text.muted" }}
-                >
-                    {t("apply_code_description")}
-                </Typography>
-                <SingleInputForm
-                    label={t("enter_referral_code")}
-                    slotProps={{
-                        htmlInput: {
-                            "aria-describedby":
-                                "referral-code-apply-description",
-                            style: { textTransform: "uppercase" },
-                        },
-                    }}
-                    submitButtonTitle={t("apply_code")}
-                    onCancel={onClose}
-                    onSubmit={handleSubmit}
-                />
-            </Stack>
-        </TitledMiniDialog>
+        <SingleInputDialog
+            {...{ open, onClose }}
+            title={t("apply_code")}
+            description={t("apply_code_description")}
+            label={t("enter_referral_code")}
+            inputProps={{ style: { textTransform: "uppercase" } }}
+            submitButtonTitle={t("apply_code")}
+            onSubmit={handleSubmit}
+        />
     );
 };
 

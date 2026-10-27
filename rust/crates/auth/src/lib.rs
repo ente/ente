@@ -33,8 +33,6 @@ pub enum Error {
     InvalidBackup,
     #[error("unsupported Auth export version")]
     UnsupportedVersion,
-    #[error("Auth export key derivation parameters exceed supported bounds")]
-    UnsafeKdf,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

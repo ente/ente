@@ -178,14 +178,10 @@ services:
     environment:
       # Pass-in the config to connect to the DB and MinIO
       ENTE_CREDENTIALS_FILE: /credentials.yaml
-     # ENTE_CLI_SECRETS_PATH: /cli-data/secret.txt
-     # ENTE_CLI_CONFIG_PATH: /cli-data/
     volumes:
       - /home/ubuntu/docker/ente/custom-logs:/var/logs
       - /home/ubuntu/docker/ente/museum.yaml:/museum.yaml:ro
       - /home/ubuntu/docker/ente/scripts/compose/credentials.yaml:/credentials.yaml:ro
-     #- /home/ubuntu/docker/ente/cli-data:/cli-data
-     #- /home/ubuntu/docker/ente/exports/ente-photos:/exports
       - /home/ubuntu/docker/ente/data:/data:ro
     networks:
       - ente
@@ -272,30 +268,19 @@ networks:
 
 > Thats it. Run `docker compose up -d`. Wait until every container becomes healthy. Open a web browser. Make sure tailscale is installed on the machine. Visit https://ente.xyz.ts.net/ping. It will pong. All good if you see it. First time it will take minute or two to get SSL cert. Downnload Desktop or mobile app. Tap 7 time on the screen, which will prompt developer mode. Add https://ente.xyz.ts.net. Add new user. When asked for OTP, go to your linux terminal and run `docker logs ente-museum-1`. Search for userauth. Feed the six digit and Done.
 
-> For getting 100TB (limitless) storage, install ente-cli for windows. Extract it and add folder. Name it **export**. Add config.yaml file along and populate it with the following:
+To increase storage, [install Ente CLI](/cli/install) and log in to your server. In PowerShell, from the folder containing `ente.exe`:
 
-```
-endpoint:
-  api: "https://ente.xyz.ts.net"
-  accounts: "http://localhost:3001"
-
-log: false
+```powershell
+.\ente.exe account login --account home-server --app photos --host https://ente.xyz.ts.net
+.\ente.exe account list
 ```
 
-Right-Click in the directory where you have extracted ente-cli. Select `open in terminal`. Run
+Use the email and password of the account you created in Ente Photos. Copy its ID from the account list, [whitelist it as an administrator](/self-hosting/administration/users#whitelist-admins), and restart Museum. Then run:
 
-```
-.\ente.exe account bob # change bob to yours
-```
-
-Hit Enter twice. For export directory, just write export, as you already created the **export** folder earlier. **Write email. The one which is already used before when creating ente account in ente desktop app.** Type the same password used before for the account. Run
-
-```
-.\ente.ext account list
+```powershell
+.\ente.exe admin user update-subscription you@example.com --no-limit --account home-server
 ```
 
-This will list all account details. Copy Acount ID.
-
-> Navigate to museum.yaml file. `cd docker/ente`. Run `sudo nano museum.yaml` and add the account ID under Admins. Delete any previous entries. Restart ente-museum-1 container from linux terminal. Run `docker restart ente-museum-1`. All well, now you will have 100TB storage. Repeat if for any other accounts you want to give unlimited storage access.
+Replace `you@example.com` with the account whose storage you want to change. Confirm the displayed changes. Learn more in [Administration](/cli/admin#change-a-free-subscription).
 
 > **Credits:** [A4alli](https://github.com/A4alli)

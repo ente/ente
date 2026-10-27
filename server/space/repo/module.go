@@ -7,6 +7,7 @@ import (
 )
 
 type Module struct {
+	Comments      *CommentsRepository
 	Spaces        *SpacesRepository
 	Posts         *PostsRepository
 	Friends       *FriendsRepository
@@ -108,6 +109,8 @@ type SpacePostRecord struct {
 	KeyVersion       int
 	CreatedAt        int64
 	ViewerLiked      bool
+	CommentCount     int64
+	LikeCount        int64
 }
 
 type SpacePostAssetRecord struct {
@@ -268,6 +271,7 @@ type SpaceWebPushSubscriptionRecord struct {
 
 func NewModule(db *sql.DB, s3Config *s3config.S3Config) *Module {
 	return &Module{
+		Comments:      &CommentsRepository{DB: db},
 		Spaces:        &SpacesRepository{DB: db},
 		Posts:         &PostsRepository{DB: db},
 		Friends:       &FriendsRepository{DB: db},

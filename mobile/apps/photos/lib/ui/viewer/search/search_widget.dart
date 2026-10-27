@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
@@ -15,7 +16,6 @@ import "package:photos/models/search/search_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/search/search_query_utils.dart";
 import "package:photos/ui/viewer/search/search_suffix_icon_widget.dart";
-import "package:photos/utils/pending_translation.dart";
 
 class SearchWidget extends StatefulWidget {
   const SearchWidget({
@@ -178,7 +178,7 @@ class SearchWidgetState extends State<SearchWidget> {
       child: TextInputComponent(
         controller: textController,
         focusNode: focusNode,
-        hintText: pendingTranslation("Search photos, people, places..."),
+        hintText: context.strings.searchPhotosPeoplePlaces,
         shouldUnfocusOnClearOrSubmit: true,
         prefix: HugeIcon(
           icon: HugeIcons.strokeRoundedSearch01,

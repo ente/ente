@@ -309,6 +309,11 @@ func (c *UserController) resetUserAccess(ctx context.Context, userID int64, logg
 	if err := c.RemoveTokensForApps(userID, []ente.App{ente.Locker, ente.Photos}); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	if c.SpaceAccessResetter != nil {
+		if err := c.SpaceAccessResetter.RevokeBrowserSessions(ctx, userID); err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+	}
 
 	if err := c.CollectionCtrl.ResetUserSharingAccess(ctx, userID, logger); err != nil {
 		return stacktrace.Propagate(err, "")

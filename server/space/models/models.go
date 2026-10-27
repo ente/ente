@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 type AssetRedirectRequest struct {
 	SpaceID       string `form:"spaceId"`
 	ViewerSpaceID string `form:"viewerSpaceId"`
@@ -384,11 +386,16 @@ type ConversationsResponse struct {
 }
 
 type PostObjectPayload struct {
-	Video          *PostObjectPayload `json:"video,omitempty" binding:"omitempty"`
-	ObjectKey      string             `json:"objectKey" binding:"required"`
-	Size           int64              `json:"size,omitempty" binding:"omitempty,gt=0"`
-	Position       int                `json:"position,omitempty" binding:"gte=0"`
-	MetadataCipher string             `json:"metadataCipher" binding:"required"`
+	Video *PostAssetPayload `json:"video,omitempty" binding:"omitempty"`
+	PostAssetPayload
+}
+
+type PostAssetPayload struct {
+	NestedVideo    *json.RawMessage `json:"video,omitempty"`
+	ObjectKey      string           `json:"objectKey" binding:"required"`
+	Size           int64            `json:"size,omitempty" binding:"omitempty,gt=0"`
+	Position       int              `json:"position,omitempty" binding:"gte=0"`
+	MetadataCipher string           `json:"metadataCipher" binding:"required"`
 }
 
 type PostResponse struct {
@@ -402,6 +409,8 @@ type PostResponse struct {
 	Objects          []PostObjectPayload `json:"objects,omitempty"`
 	CreatedAt        string              `json:"createdAt"`
 	ViewerLiked      bool                `json:"viewerLiked"`
+	CommentCount     int64               `json:"commentCount"`
+	LikeCount        int64               `json:"likeCount"`
 }
 
 type SpaceUnreadStatusResponse struct {
@@ -439,6 +448,10 @@ type ReadNotificationsRequest struct {
 }
 
 type NotificationResponse struct {
+	PostSpaceID     string               `json:"postSpaceId,omitempty"`
+	PostOwnerSlug   string               `json:"postOwnerSlug,omitempty"`
+	CommentID       string               `json:"commentId,omitempty"`
+	ReplyToID       string               `json:"replyToId,omitempty"`
 	NotificationID  string               `json:"notificationId"`
 	NotificationIDs []string             `json:"notificationIds"`
 	Kind            string               `json:"kind"`

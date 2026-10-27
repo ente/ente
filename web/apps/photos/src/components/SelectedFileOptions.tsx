@@ -114,6 +114,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     const handleDeletePermanently = () =>
         showMiniDialog({
             title: t("delete_files_title"),
+            kind: "warning",
             message: t("delete_files_message"),
             continue: {
                 text: t("delete"),

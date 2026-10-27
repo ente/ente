@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import type { SpaceLoginCredentials } from "screens/LoginScreen";
 import type { SetupProfile } from "screens/SetupProfileScreen";
+import { clearCommentCounts } from "services/comment-counts";
 import { clearSpaceFeedMemoryCache } from "services/feed-cache";
 import type { PendingSpacePasskeyVerification } from "services/passkey-verification";
 import { logoutRevokedSpaceSession } from "services/persistent-session";
@@ -586,6 +587,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         clearCurrentSpaceContext();
         clearSpaceFriendsCache();
         clearSpaceFeedMemoryCache();
+        clearCommentCounts();
         setLocalFeedPosts([]);
         clearSpaceMediaURLCache();
         applyProfile(null);

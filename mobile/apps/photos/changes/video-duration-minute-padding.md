@@ -1,0 +1,1 @@
+- Fixed video durations over an hour showing minutes without a leading zero in the gallery.

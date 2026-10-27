@@ -53,6 +53,7 @@ pub struct Record {
     pub name: String,
     pub hash: Option<String>,
     pub parts: Vec<Part>,
+    pub candidates: Vec<String>,
     pub go_record: Option<String>,
     pub desktop: bool,
 }
@@ -153,6 +154,7 @@ pub fn scan(
                         name: paths[0].name.clone(),
                         hash: None,
                         parts: paths,
+                        candidates: Vec::new(),
                         go_record: None,
                         desktop: true,
                     };
@@ -221,6 +223,7 @@ pub fn scan(
                 Some(record.owner_id),
                 true,
             )?;
+            let candidates = same_stem_files(&root.join(&path))?;
             for entry in fs::read_dir(identity.parent().context("missing metadata parent")?)? {
                 let entry = entry?;
                 if entry.file_name() == "album_meta.json"
@@ -244,6 +247,14 @@ pub fn scan(
                         .as_str()
                         .context("missing legacy file title")?
                         .to_owned();
+                    let siblings = if info.file_names.len() == 1 {
+                        candidates
+                            .get(&names::folded(names::split(&info.file_names[0], false).0))
+                            .cloned()
+                            .unwrap_or_default()
+                    } else {
+                        Vec::new()
+                    };
                     let record = Record {
                         album: record.id,
                         file: info.id,
@@ -255,6 +266,7 @@ pub fn scan(
                             .into_iter()
                             .map(|name| Part { name, role: None })
                             .collect(),
+                        candidates: siblings,
                         go_record: Some(format!(".meta/{name}")),
                         desktop: false,
                     };
@@ -267,6 +279,22 @@ pub fn scan(
         failures.record(result, &path)?;
     }
     Ok(())
+}
+
+fn same_stem_files(directory: &Path) -> Result<BTreeMap<String, Vec<String>>> {
+    let mut files: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        if entry.file_type()?.is_file()
+            && let Ok(name) = entry.file_name().into_string()
+        {
+            files
+                .entry(names::folded(names::split(&name, false).0))
+                .or_default()
+                .push(name);
+        }
+    }
+    Ok(files)
 }
 
 fn album(

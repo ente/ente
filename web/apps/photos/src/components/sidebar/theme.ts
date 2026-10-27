@@ -6,8 +6,8 @@ const inter =
 const sidebarHeadingFont = '"Outfit Variable", Outfit, sans-serif';
 
 // Keep the settings palette local, including drawers and portalled menus.
-export const sidebarTheme = (theme: Theme): Theme => {
-    const colors: CSSObject = {
+export const sidebarStyles = (theme: Theme): CSSObject => {
+    return {
         "--mui-palette-background-default": "#F4F4F4",
         "--mui-palette-background-paper": "#FFFFFF",
         "--mui-palette-background-paper2": "#FFFFFF",
@@ -98,6 +98,10 @@ export const sidebarTheme = (theme: Theme): Theme => {
             color: "#969696",
         },
     };
+};
+
+export const sidebarTheme = (theme: Theme): Theme => {
+    const colors = sidebarStyles(theme);
 
     return {
         ...theme,

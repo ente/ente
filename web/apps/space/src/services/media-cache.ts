@@ -99,16 +99,25 @@ const blobURLForSpaceMedia = async (
 
 export const cachedSpaceMediaBlobURL = async (
     cacheKey: string,
-    load: () => Promise<Uint8Array>,
+    load: (signal?: AbortSignal) => Promise<Uint8Array>,
     mediaType?: string,
+    signal?: AbortSignal,
 ) => {
     const storageKey = await spaceMediaStorageKey(cacheKey);
-    if (mediaType?.startsWith("video/"))
-        return URL.createObjectURL(
-            await cachedSpaceVideoBlob(storageKey, async () =>
-                blobForBytes(await loadSpaceMedia(load), mediaType),
-            ),
+    signal?.throwIfAborted();
+    if (mediaType?.startsWith("video/")) {
+        const blob = await cachedSpaceVideoBlob(
+            storageKey,
+            async (signal) =>
+                blobForBytes(
+                    await loadSpaceMedia(() => load(signal)),
+                    mediaType,
+                ),
+            signal,
         );
+        signal?.throwIfAborted();
+        return URL.createObjectURL(blob);
+    }
     const cached = spaceMediaURLCache.get(storageKey);
     if (cached) {
         spaceMediaURLCache.delete(storageKey);
@@ -131,10 +140,13 @@ export const cachedSpaceMediaBlobURL = async (
 export const cachedSpaceMediaBlobURLIfPresent = async (
     cacheKey: string,
     mediaType?: string,
+    signal?: AbortSignal,
 ) => {
     const storageKey = await spaceMediaStorageKey(cacheKey);
+    signal?.throwIfAborted();
     if (mediaType?.startsWith("video/")) {
-        const blob = await cachedSpaceVideoBlobIfPresent(storageKey);
+        const blob = await cachedSpaceVideoBlobIfPresent(storageKey, signal);
+        signal?.throwIfAborted();
         return blob ? URL.createObjectURL(blob) : undefined;
     }
     const cached = spaceMediaURLCache.get(storageKey);

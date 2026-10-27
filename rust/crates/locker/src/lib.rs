@@ -13,7 +13,7 @@ pub struct FileLinkPayload {
     pub encrypted_file_key: String,
     pub encrypted_file_key_nonce: String,
     pub kdf_nonce: String,
-    pub kdf_mem_limit: u32,
+    pub kdf_mem_limit: u64,
     pub kdf_ops_limit: u32,
 }
 

@@ -1,1 +1,0 @@
-- Improved performance when counting files in collections.

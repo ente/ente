@@ -171,17 +171,19 @@ class DartMLDataDB
   ) async {
     final db = await asyncDB;
     const batchSize = 500;
-    final numBatches = (faceIDToClusterID.length / batchSize).ceil();
+    final entries = faceIDToClusterID.entries.toList(growable: false);
+    final numBatches = (entries.length / batchSize).ceil();
     for (int i = 0; i < numBatches; i++) {
       final start = i * batchSize;
-      final end = min((i + 1) * batchSize, faceIDToClusterID.length);
-      final batch = faceIDToClusterID.entries.toList().sublist(start, end);
+      final end = min((i + 1) * batchSize, entries.length);
+      final batch = entries.sublist(start, end);
 
       const String sql =
           '''
         INSERT INTO $faceClustersTable ($faceIDColumn, $clusterIDColumn)
         VALUES (?, ?)
         ON CONFLICT($faceIDColumn) DO UPDATE SET $clusterIDColumn = excluded.$clusterIDColumn
+        WHERE $faceClustersTable.$clusterIDColumn IS NOT excluded.$clusterIDColumn
       ''';
       final parameterSets = batch.map((e) => [e.key, e.value]).toList();
 

@@ -1,0 +1,1 @@
+- Added album covers and a Sort photos sheet to Discover galleries.

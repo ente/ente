@@ -31,7 +31,7 @@ pub fn extract<R: Read + Seek, W: Write>(
         if entry.is_dir() {
             continue;
         }
-        let name = entry.name();
+        let name = entry.name()?;
         let (role, extension) = if let Some(extension) = name.strip_prefix("image") {
             (Role::Image, extension)
         } else if let Some(extension) = name.strip_prefix("video") {
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn limits_declared_and_actual_combined_expansion() {
+    fn rejects_excessive_expansion_and_understated_sizes() {
         let mut bytes = archive([9 * 1024 * 1024; 2], zip::CompressionMethod::Deflated);
         let written = Cell::new(0);
         let mut opened = 0;
@@ -141,13 +141,12 @@ mod tests {
         for offset in headers {
             bytes[offset + 24..offset + 28].copy_from_slice(&1u32.to_le_bytes());
         }
-        let limit = bytes.len() as u64 * 20 + 16 * 1024 * 1024;
         let result = extract(Cursor::new(&bytes), |_, _| {
             opened += 1;
             Ok(Count(&written))
         });
-        assert!(matches!(result, Err(Error::ExpansionLimit)));
-        assert_eq!(opened, 2);
-        assert_eq!(written.get(), limit);
+        assert!(
+            matches!(result, Err(Error::Io(error)) if error.kind() == std::io::ErrorKind::InvalidData)
+        );
     }
 }

@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { deriveKey } from "../index";
 import {
     authDeriveSrpLoginKey,
     authGenerateInteractiveKek,
@@ -6,7 +7,7 @@ import {
     cryptoGenerateKey,
 } from "../pkg/ente_prelogin_wasm.js";
 
-test("generates an interactive kek bundle", () => {
+test("generates an interactive kek bundle", async () => {
     const generated = authGenerateInteractiveKek(
         "correct horse battery staple",
     );
@@ -15,6 +16,17 @@ test("generates an interactive kek bundle", () => {
     expect(Buffer.from(generated.salt, "base64")).toHaveLength(16);
     expect(generated.memLimit).toBe(67_108_864);
     expect(generated.opsLimit).toBe(2);
+    await expect(
+        deriveKey(
+            "correct horse battery staple",
+            generated.salt,
+            generated.opsLimit,
+            generated.memLimit,
+        ),
+    ).resolves.toBe(generated.key);
+    await expect(
+        deriveKey("password", generated.salt, 5, 2 ** 32),
+    ).rejects.toThrow("Password derivation exceeds supported resource limits");
 });
 
 test("generates SRP setup attributes from a kek", () => {

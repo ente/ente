@@ -127,7 +127,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -164,11 +164,6 @@ jobs:
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
                   # Allow rebuilds to keep updating the rolling RC draft.
                   EP_GH_IGNORE_TIME: true
-                  # Workaround recommended in
-                  # https://github.com/electron-userland/electron-builder/issues/3179
-                  USE_HARD_LINKS: false
-                  # TODO: Remove when updating to the next electron-builder version.
-                  ELECTRON_BUILDER_7Z_FILTER: BCJ
 
             - name: Upload to nightly
               uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0

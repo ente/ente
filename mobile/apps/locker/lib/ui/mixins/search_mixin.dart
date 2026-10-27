@@ -104,6 +104,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
       final List<Collection> filteredCollections = [];
       final List<EnteFile> collectionFiles = [];
+      final Set<String> addedFileIds = {};
 
       for (final collection in allCollections) {
         if (!mounted) return;
@@ -114,14 +115,15 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
         if (searchResult.matches) {
           filteredCollections.add(collection);
           if (searchResult.nameMatches) {
-            collectionFiles.addAll(searchResult.files);
+            collectionFiles.addAll(
+              searchResult.files.where(
+                (file) => addedFileIds.add(file.uploadedFileID.toString()),
+              ),
+            );
           }
         }
       }
 
-      final Set<String> addedFileIds = collectionFiles
-          .map((f) => f.uploadedFileID.toString())
-          .toSet();
       final filteredFiles = allFiles.where((file) {
         if (addedFileIds.contains(file.uploadedFileID.toString())) {
           return false;

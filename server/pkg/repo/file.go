@@ -91,11 +91,11 @@ func (repo *FileRepository) Create(
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, file.File.ObjectKey, hotDC)
+	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.File.ObjectKey, file.OwnerID, app)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
-	err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, file.Thumbnail.ObjectKey, hotDC)
+	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.Thumbnail.ObjectKey, file.OwnerID, app)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
@@ -253,7 +253,7 @@ func (repo *FileRepository) ResetNeedsReplication(file ente.File, hotDC string) 
 	}
 }
 
-func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, stagedObjects []string) error {
+func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, stagedObjects []string, app ente.App) error {
 	hotDC := repo.S3Config.GetHotDataCenter()
 	dcsForNewEntry := pq.StringArray{hotDC}
 	// iOS may retry after backgrounding before receiving a successful response.
@@ -322,7 +322,7 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 		return stacktrace.Propagate(err, "")
 	}
 	for _, objectKey := range stagedObjects {
-		if err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, objectKey, hotDC); err != nil {
+		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, objectKey, file.OwnerID, app); err != nil {
 			return stacktrace.Propagate(err, "")
 		}
 	}
@@ -402,7 +402,7 @@ func (repo *FileRepository) UpdateMagicAttributes(
 	return tx.Commit()
 }
 
-func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, userID int64, thumbnail ente.FileAttributes, thumbnailSize int64, usageDiff int64, oldThumbnailObject *string) error {
+func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, userID int64, thumbnail ente.FileAttributes, thumbnailSize int64, usageDiff int64, oldThumbnailObject *string, app ente.App) error {
 	hotDC := repo.S3Config.GetHotDataCenter()
 	dcsForNewEntry := pq.StringArray{hotDC}
 
@@ -460,7 +460,7 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 	}
 
 	if oldThumbnailObject != nil {
-		if err = repo.ObjectCleanupRepo.RemoveTempObjectKey(ctx, tx, thumbnail.ObjectKey, hotDC); err != nil {
+		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, thumbnail.ObjectKey, userID, app); err != nil {
 			return stacktrace.Propagate(err, "")
 		}
 	}
@@ -484,6 +484,13 @@ func (repo *FileRepository) GetOwnerID(fileID int64) (int64, error) {
 	var ownerID int64
 	err := row.Scan(&ownerID)
 	return ownerID, stacktrace.Propagate(err, "failed to get file owner")
+}
+
+func (repo *FileRepository) GetOwnerAndApp(fileID int64) (int64, ente.App, error) {
+	var ownerID int64
+	var app sql.NullString
+	err := repo.DB.QueryRow(`SELECT owner_id, app FROM files WHERE file_id = $1`, fileID).Scan(&ownerID, &app)
+	return ownerID, ente.App(app.String), stacktrace.Propagate(err, "failed to get file owner and app")
 }
 
 func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs []int64) (map[int64]int64, error) {

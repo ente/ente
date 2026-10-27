@@ -4,8 +4,8 @@ const FullScreenBreakpoint = 491;
 
 export const collectionDialogFullScreenQuery = `(width < ${FullScreenBreakpoint}px)`;
 
-export const collectionDialogSurfaceStroke = "#e0e0e0";
-export const collectionDialogSurfaceStrokeDark = "rgba(255 255 255 / 0.12)";
+const collectionDialogSurfaceStroke = "#e0e0e0";
+const collectionDialogSurfaceStrokeDark = "rgba(255 255 255 / 0.12)";
 
 export const collectionDialogPaperSx: SxProps<Theme> = (theme) => ({
     position: "relative",
@@ -67,13 +67,6 @@ export const collectionDialogIconButtonSx = (theme: Theme) => ({
     "&:hover": { backgroundColor: "fill.faintHover" },
     ...theme.applyStyles("dark", {
         backgroundColor: "rgba(255 255 255 / 0.12)",
-    }),
-});
-export const collectionDialogDividerSx = (theme: Theme) => ({
-    height: "1px",
-    backgroundColor: "rgba(0 0 0 / 0.06)",
-    ...theme.applyStyles("dark", {
-        backgroundColor: "rgba(255 255 255 / 0.08)",
     }),
 });
 export const collectionDialogNoResultsSx = {

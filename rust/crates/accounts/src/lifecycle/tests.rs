@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex};
 
 use crate::test_support::{SetupSrpPayload, SrpState, make_client, parse_request_body, srp_proofs};
 
+const TOTP_SECRET: &str = "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP";
+const PASSKEY_SECRET: &str = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateSrpPayload {
@@ -25,10 +28,13 @@ struct ConfigurePasskeyRecoveryPayload {
 #[tokio::test]
 async fn setup_two_factor_encrypts_secret_with_recovery_key() {
     let password = "pw";
+    let secret_code = TOTP_SECRET;
     let key_gen =
         auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
             .unwrap();
     let recovery_key = key_gen.private_key_attributes.recovery_key.into_string();
+    let expected_recovery_key =
+        crypto::Key::try_from_slice(&hex::decode(&recovery_key).unwrap()).unwrap();
     let master_key = b64::decode(&key_gen.private_key_attributes.key).unwrap();
     let key_attributes = key_gen.key_attributes.clone();
 
@@ -41,7 +47,7 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
         .with_status(200)
         .with_body(
             serde_json::json!({
-                "secretCode": "JBSWY3DPEHPK3PXP",
+                "secretCode": secret_code,
                 "qrCode": "qr-png-b64"
             })
             .to_string(),
@@ -53,8 +59,21 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
         .mock("POST", "/users/two-factor/enable")
         .match_header("x-auth-token", "session-token")
         .match_header("x-client-package", "io.ente.photos")
-        .match_body(Matcher::Regex("\"encryptedTwoFactorSecret\"".into()))
         .with_status(200)
+        .match_request(move |request| {
+            let payload: serde_json::Value = parse_request_body(request);
+            let ciphertext =
+                b64::decode(payload["encryptedTwoFactorSecret"].as_str().unwrap()).unwrap();
+            let nonce =
+                b64::decode(payload["twoFactorSecretDecryptionNonce"].as_str().unwrap()).unwrap();
+            let decrypted = secretbox::decrypt(
+                &ciphertext,
+                &crypto::Nonce::try_from_slice(&nonce).unwrap(),
+                &expected_recovery_key,
+            )
+            .unwrap();
+            b64::encode(&decrypted) == secret_code
+        })
         .create_async()
         .await;
 
@@ -76,7 +95,7 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
         .await
         .unwrap();
 
-    assert_eq!(result.secret_code, "JBSWY3DPEHPK3PXP");
+    assert_eq!(result.secret_code, secret_code);
     assert_eq!(result.recovery_key, recovery_key);
 
     setup.assert_async().await;
@@ -114,7 +133,7 @@ async fn configure_passkey_recovery_accepts_hex_recovery_key() {
         .match_header("x-auth-token", "session-token")
         .match_header("x-client-package", "io.ente.photos")
         .with_status(200)
-        .with_body_from_request(move |request| {
+        .match_request(move |request| {
             let payload: ConfigurePasskeyRecoveryPayload = parse_request_body(request);
             let cipher = b64::decode(&payload.user_secret_cipher).unwrap();
             let nonce = b64::decode(&payload.user_secret_nonce).unwrap();
@@ -124,9 +143,7 @@ async fn configure_passkey_recovery_accepts_hex_recovery_key() {
                 &crypto::Key::try_from_slice(&expected_recovery_key).unwrap(),
             )
             .unwrap();
-            assert_eq!(payload.secret, "reset-secret");
-            assert_eq!(String::from_utf8(decrypted).unwrap(), "reset-secret");
-            Vec::new()
+            payload.secret == PASSKEY_SECRET && b64::encode(&decrypted) == PASSKEY_SECRET
         })
         .create_async()
         .await;
@@ -134,11 +151,61 @@ async fn configure_passkey_recovery_accepts_hex_recovery_key() {
     let client = make_client(server.url());
     client.set_auth_token(Some("session-token".into()));
 
-    configure_passkey_recovery(&client, "reset-secret", &recovery_key_hex)
+    configure_passkey_recovery(&client, PASSKEY_SECRET, &recovery_key_hex)
         .await
         .unwrap();
 
     configure.assert_async().await;
+}
+
+#[tokio::test]
+async fn two_factor_recovery_preserves_secret_encoding() {
+    let keys =
+        auth::generate_keys_with_strength("pw", auth::KeyDerivationStrength::Interactive).unwrap();
+    let recovery_key_hex = keys.private_key_attributes.recovery_key.into_string();
+    let recovery_key =
+        crypto::Key::try_from_slice(&hex::decode(&recovery_key_hex).unwrap()).unwrap();
+    let mut server = Server::new_async().await;
+    let client = make_client(server.url());
+
+    for (factor, secret) in [
+        (TwoFactorType::Totp, TOTP_SECRET),
+        (TwoFactorType::Passkey, PASSKEY_SECRET),
+    ] {
+        let encrypted = secretbox::encrypt(&b64::decode(secret).unwrap(), &recovery_key);
+        let remove = server
+            .mock("POST", "/users/two-factor/remove")
+            .match_body(Matcher::Json(serde_json::json!({
+                "sessionId": "recovery-session",
+                "secret": secret,
+                "twoFactorType": factor,
+            })))
+            .with_status(200)
+            .with_body(
+                serde_json::json!({
+                    "id": 1,
+                    "keyAttributes": keys.key_attributes,
+                    "encryptedToken": "encrypted-token",
+                })
+                .to_string(),
+            )
+            .create_async()
+            .await;
+
+        recover_two_factor(
+            &client,
+            factor,
+            "recovery-session",
+            &TwoFactorRecoveryResponse {
+                encrypted_secret: b64::encode(&encrypted.encrypted_data),
+                secret_decryption_nonce: b64::encode(encrypted.nonce.as_bytes()),
+            },
+            &recovery_key_hex,
+        )
+        .await
+        .unwrap();
+        remove.assert_async().await;
+    }
 }
 
 #[tokio::test]

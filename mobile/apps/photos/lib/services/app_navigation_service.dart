@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:photos/service_locator.dart';
 
 // External entry points must use the inner Photos navigator. A BuildContext may
 // resolve to AppLock's outer navigator while the app is locked or resuming.
@@ -23,11 +24,16 @@ class AppNavigationService {
 
   NavigatorState? get navigator => navigatorKey.currentState;
 
+  bool get isGuestViewActive => localSettings.isOnGuestView();
+
   Future<T?> pushPage<T extends Object>(
     Widget page, {
     bool forceCustomPageRoute = false,
     bool useFadeTransition = false,
+    VoidCallback? onBeforePush,
   }) {
+    if (isGuestViewActive) return Future<T?>.value();
+
     final pushResult = Completer<T?>();
     final scheduledPush = _lastScheduledPush
         .catchError((Object _, StackTrace _) {})
@@ -43,7 +49,16 @@ class AppNavigationService {
             return;
           }
 
+          if (isGuestViewActive) {
+            _logger.info("Skipping navigation because Guest View is active");
+            if (!pushResult.isCompleted) {
+              pushResult.complete(null);
+            }
+            return;
+          }
+
           try {
+            onBeforePush?.call();
             final routeFuture = _pushWithNavigator<T>(
               navigator,
               page,

@@ -303,7 +303,7 @@ impl From<ente_space::transport::UpdateSpaceProfileResponse> for UpdateSpaceProf
 
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-struct SpaceActorResponse {
+pub struct SpaceActorResponse {
     space_id: String,
     space_slug: String,
     public_key: String,
@@ -326,6 +326,8 @@ pub struct PostResponse {
     is_unavailable: bool,
     created_at: String,
     viewer_liked: bool,
+    comment_count: i64,
+    like_count: i64,
 }
 
 #[derive(Serialize, Tsify)]
@@ -338,6 +340,10 @@ pub struct PostPage {
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct Notification {
+    post_space_id: Option<String>,
+    post_owner_slug: Option<String>,
+    comment_id: Option<String>,
+    reply_to_id: Option<String>,
     notification_id: String,
     notification_ids: Vec<String>,
     kind: String,
@@ -366,6 +372,10 @@ impl From<ente_space::NotificationPage> for NotificationPage {
                 .into_iter()
                 .map(|item| Notification {
                     notification_id: item.notification_id,
+                    post_space_id: item.post_space_id,
+                    post_owner_slug: item.post_owner_slug,
+                    comment_id: item.comment_id,
+                    reply_to_id: item.reply_to_id,
                     notification_ids: item.notification_ids,
                     kind: item.kind,
                     actors: item.actors.into_iter().map(Into::into).collect(),
@@ -713,6 +723,8 @@ impl From<ente_space::Post> for PostResponse {
             is_unavailable,
             created_at: post.created_at,
             viewer_liked: post.viewer_liked,
+            comment_count: post.comment_count,
+            like_count: post.like_count,
         }
     }
 }
@@ -972,12 +984,10 @@ impl SpaceLinkCtxHandle {
     pub async fn download_post_asset(
         &self,
         asset: <PostAsset as Tsify>::JsType,
-    ) -> Result<Vec<u8>, Error> {
-        let asset = PostAsset::from_js(asset)?;
-        self.inner
-            .download_post_asset(&asset.into())
-            .await
-            .map_err(Into::into)
+        signal: Option<AbortSignal>,
+    ) -> Result<Vec<u8>, JsValue> {
+        let asset = PostAsset::from_js(asset).map_err(Error::from)?;
+        with_abort_signal(self.inner.download_post_asset(&asset.into()), signal).await
     }
 
     #[wasm_bindgen(js_name = downloadAvatar)]
@@ -1385,12 +1395,15 @@ impl SpaceAccountCtxHandle {
         &self,
         asset: <PostAsset as Tsify>::JsType,
         viewer_space_id: Option<String>,
-    ) -> Result<Vec<u8>, Error> {
-        let asset = PostAsset::from_js(asset)?;
-        self.inner
-            .download_post_asset(&asset.into(), viewer_space_id.as_deref())
-            .await
-            .map_err(Into::into)
+        signal: Option<AbortSignal>,
+    ) -> Result<Vec<u8>, JsValue> {
+        let asset = PostAsset::from_js(asset).map_err(Error::from)?;
+        with_abort_signal(
+            self.inner
+                .download_post_asset(&asset.into(), viewer_space_id.as_deref()),
+            signal,
+        )
+        .await
     }
 
     #[wasm_bindgen(js_name = downloadSpaceAvatar)]
@@ -1431,6 +1444,24 @@ impl SpaceAccountCtxHandle {
             )
             .await
             .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = listPostLikes)]
+    pub async fn list_post_likes(
+        &self,
+        space_id: String,
+        post_id: i64,
+    ) -> Result<Vec<<SpaceActorResponse as Tsify>::JsType>, Error> {
+        self.inner
+            .list_post_likes(&space_id, post_id)
+            .await?
+            .into_iter()
+            .map(|actor| {
+                SpaceActorResponse::from(actor)
+                    .into_js()
+                    .map_err(Into::into)
+            })
+            .collect()
     }
 
     #[wasm_bindgen(js_name = likePost)]
@@ -1485,6 +1516,94 @@ impl SpaceAccountCtxHandle {
             .reply_to_message(&sender_space_id, &space_id, &message_id, &text)
             .await?;
         MessageResponse::from(message).into_js().map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = listComments)]
+    pub async fn list_comments(
+        &self,
+        viewer: String,
+        post_space_id: String,
+        post_id: i64,
+        cursor: Option<String>,
+    ) -> Result<<CommentPage as Tsify>::JsType, Error> {
+        CommentPage::from(
+            self.inner
+                .list_comments(&viewer, &post_space_id, post_id, cursor.as_deref())
+                .await?,
+        )
+        .into_js()
+        .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = createComment)]
+    pub async fn create_comment(
+        &self,
+        viewer: String,
+        post_space_id: String,
+        post_id: i64,
+        comment_id: String,
+        reply_to_id: Option<String>,
+        text: String,
+    ) -> Result<(), Error> {
+        self.inner
+            .create_comment(
+                &viewer,
+                &post_space_id,
+                post_id,
+                &comment_id,
+                reply_to_id.as_deref(),
+                &text,
+            )
+            .await
+            .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = deleteComment)]
+    pub async fn delete_comment(
+        &self,
+        viewer: String,
+        post_id: i64,
+        comment_id: String,
+    ) -> Result<(), Error> {
+        self.inner
+            .delete_comment(&viewer, post_id, &comment_id)
+            .await
+            .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = removeCommentReaction)]
+    pub async fn remove_comment_reaction(
+        &self,
+        viewer: String,
+        post_id: i64,
+        comment_id: String,
+        actor_space_id: String,
+    ) -> Result<(), Error> {
+        self.inner
+            .remove_comment_reaction(&viewer, post_id, &comment_id, &actor_space_id)
+            .await
+            .map_err(Into::into)
+    }
+
+    #[wasm_bindgen(js_name = setCommentReaction)]
+    pub async fn set_comment_reaction(
+        &self,
+        viewer: String,
+        post_space_id: String,
+        post_id: i64,
+        comment_id: String,
+        emoji: Option<String>,
+    ) -> Result<(), Error> {
+        self.inner
+            .set_comment_reaction(
+                &viewer,
+                &post_space_id,
+                post_id,
+                &comment_id,
+                emoji.as_deref(),
+            )
+            .await
+            .map_err(Into::into)
     }
 
     #[wasm_bindgen(js_name = replyToPost)]
@@ -1663,5 +1782,67 @@ impl SpaceAccountCtxHandle {
             .unfriend_by_space(&actor_space_id, &space_id)
             .await
             .map_err(Into::into)
+    }
+}
+
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CommentReaction {
+    actor: SpaceActorResponse,
+    emoji: String,
+    is_own: bool,
+}
+
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct Comment {
+    comment_id: String,
+    unread_notification_ids: Vec<String>,
+    author: Option<SpaceActorResponse>,
+    parent_id: String,
+    reply_to_id: String,
+    text: Option<String>,
+    deleted: bool,
+    created_at: String,
+    can_delete: bool,
+    reactions: Vec<CommentReaction>,
+}
+
+#[derive(Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct CommentPage {
+    items: Vec<Comment>,
+    next_cursor: String,
+}
+
+impl From<ente_space::models::CommentPage> for CommentPage {
+    fn from(page: ente_space::models::CommentPage) -> Self {
+        Self {
+            next_cursor: page.next_cursor,
+            items: page
+                .items
+                .into_iter()
+                .map(|item| Comment {
+                    comment_id: item.comment_id,
+                    unread_notification_ids: item.unread_notification_ids,
+                    author: item.author.map(Into::into),
+                    parent_id: item.parent_id,
+                    reply_to_id: item.reply_to_id,
+                    text: item.text,
+                    deleted: item.deleted,
+                    created_at: item.created_at,
+                    can_delete: item.can_delete,
+                    reactions: item
+                        .reactions
+                        .into_iter()
+                        .map(|reaction| CommentReaction {
+                            actor: reaction.actor.into(),
+                            emoji: reaction.emoji,
+                            is_own: reaction.is_own,
+                        })
+                        .collect(),
+                })
+                .collect(),
+        }
     }
 }

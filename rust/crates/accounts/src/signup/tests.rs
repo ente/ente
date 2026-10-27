@@ -236,7 +236,7 @@ async fn create_account_uploads_keys_and_completes_srp_setup() {
         .with_body_from_request(move |request| {
             let payload: SetUserAttributesPayload = parse_request_body(request);
             let key_attributes = payload.key_attributes;
-            let mem_limit = u64::from(key_attributes.mem_limit);
+            let mem_limit = key_attributes.mem_limit;
             let ops_limit = u64::from(key_attributes.ops_limit);
 
             assert_eq!(mem_limit * ops_limit, 4_294_967_296);

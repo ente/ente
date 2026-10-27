@@ -1,8 +1,9 @@
-import { Stack, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
+import { AccountsPageContents } from "ente-accounts/components/layouts/centered-paper";
 import {
-    AccountsPageContents,
-    AccountsPageTitle,
-} from "ente-accounts/components/layouts/centered-paper";
+    singleInputPagePaperSx,
+    v2TitleSx,
+} from "ente-base/components/SingleInput.styles";
 import {
     SingleInputForm,
     type SingleInputFormProps,
@@ -32,21 +33,15 @@ export const EmbedPasswordForm: React.FC<EmbedPasswordFormProps> = ({
     };
 
     return (
-        <AccountsPageContents>
-            <AccountsPageTitle>{t("password")}</AccountsPageTitle>
-            <Stack>
-                <Typography variant="small" sx={{ color: "text.muted", mb: 2 }}>
-                    {t("link_password_description")}
-                </Typography>
-                <SingleInputForm
-                    autoFocus={false}
-                    inputType="password"
-                    label={t("password")}
-                    submitButtonColor="primary"
-                    submitButtonTitle={t("unlock")}
-                    onSubmit={handleSubmit}
-                />
-            </Stack>
+        <AccountsPageContents paperSx={singleInputPagePaperSx}>
+            <Typography sx={v2TitleSx}>{t("password")}</Typography>
+            <SingleInputForm
+                autoFocus={false}
+                inputType="password"
+                label={t("password")}
+                submitButtonTitle={t("unlock")}
+                onSubmit={handleSubmit}
+            />
         </AccountsPageContents>
     );
 };

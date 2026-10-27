@@ -59,6 +59,14 @@ func (c *UserController) SetupTwoFactor(userID int64) (ente.TwoFactorSecret, err
 }
 
 func (c *UserController) EnableTwoFactor(userID int64, request ente.TwoFactorEnableRequest) error {
+	recoverySecret, err := base64.StdEncoding.DecodeString(request.EncryptedTwoFactorSecret)
+	if err != nil || len(recoverySecret) != 40 {
+		return ente.NewBadRequestWithMessage("Invalid two-factor recovery data. Update your client and try again.")
+	}
+	recoveryNonce, err := base64.StdEncoding.DecodeString(request.TwoFactorSecretDecryptionNonce)
+	if err != nil || len(recoveryNonce) != 24 {
+		return ente.NewBadRequestWithMessage("Invalid two-factor recovery nonce")
+	}
 	encryptedSecrets, hashedSecrets, err := c.TwoFactorRepo.GetTempTwoFactorSecret(userID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")

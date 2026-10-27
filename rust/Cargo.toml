@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "apps/cli",
-    "apps/cli-next",
     "apps/ensu/src-tauri",
     "bindings/frb/lib",
     "bindings/frb/locker",
@@ -82,6 +81,7 @@ ente-test-support = { path = "crates/test-support" }
 ente-uniffi-log = { path = "bindings/uniffi/log" }
 ente-vecdb = { path = "crates/vecdb" }
 ente-wasm-lib = { path = "bindings/wasm/lib" }
+env_logger = { version = "0.11.11", default-features = false }
 fast_image_resize = { version = "6.1.0", features = ["image"] }
 flate2 = "1.1.10"
 flutter_rust_bridge = "=2.13.0"
@@ -97,6 +97,7 @@ keyring = { version = "3.6.3", default-features = false }
 log = "0.4.34"
 md-5 = "0.11.0"
 mockito = "1.7.2"
+open = "5.4.4"
 ort = { version = "=2.0.0-rc.13", default-features = false }
 ort-sys = { version = "=2.0.0-rc.13", default-features = false }
 quick-xml = "0.42.0"
@@ -126,7 +127,11 @@ wasm-bindgen = "0.2.125"
 wasm-bindgen-futures = "0.4.75"
 web-sys = "0.3.102"
 zeroize = { version = "1.9.0", features = ["derive"] }
-zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "9.0.4", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+
+[patch.crates-io]
+# TODO: Remove after tauri-plugin-updater 2.14.1 ships the ZIP 9 fix.
+tauri-plugin-updater = { git = "https://github.com/tauri-apps/plugins-workspace", rev = "ba98bfadc4c868c9a7e1a226c83af528e1f11b89" }
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "deny", check-cfg = ['cfg(frb_expand)'] }

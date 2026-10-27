@@ -152,6 +152,7 @@ Photos:
 
 - `io.ente.frame` -> `Photos App Store`
 - `io.ente.frame.ShareExtension` -> `Photos Share Extension App Store`
+- `io.ente.frame.NotificationServiceExtension` -> `Photos Notification Service Extension App Store`
 - `io.ente.frame.EnteAlbumWidget` -> `Photos Album Widget App Store`
 - `io.ente.frame.EnteMemoryWidget` -> `Photos Memory Widget App Store`
 - `io.ente.frame.EntePeopleWidget` -> `Photos People Widget App Store`

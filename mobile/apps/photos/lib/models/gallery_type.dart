@@ -416,7 +416,6 @@ extension GalleryAppBarExtn on GalleryType {
       case GalleryType.archive:
       case GalleryType.hiddenSection:
       case GalleryType.trash:
-      case GalleryType.localFolder:
       case GalleryType.locationTag:
       case GalleryType.searchResults:
       case GalleryType.magic:
@@ -424,6 +423,7 @@ extension GalleryAppBarExtn on GalleryType {
       case GalleryType.deleteSuggestions:
       case GalleryType.cleanupHiddenFromDevice:
         return false;
+      case GalleryType.localFolder:
       case GalleryType.uncategorized:
       case GalleryType.cluster:
       case GalleryType.peopleTag:

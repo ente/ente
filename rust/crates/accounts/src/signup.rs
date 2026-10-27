@@ -100,6 +100,10 @@ impl Signup {
         Ok(prepared)
     }
 
+    pub fn token(&self) -> &[u8] {
+        &self.token
+    }
+
     pub fn recovery_key(&self) -> Result<Option<String>> {
         self.keys
             .as_ref()

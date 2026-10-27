@@ -1,0 +1,1 @@
+- Fixed push notification registration on iOS.

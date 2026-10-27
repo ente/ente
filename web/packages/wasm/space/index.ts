@@ -7,6 +7,9 @@ import type {
 } from "./pkg/ente_space_wasm";
 
 export type {
+    Comment,
+    CommentPage,
+    CommentReaction,
     DecryptedSpaceProfile,
     MessageConversationActivity,
     MessageResponse,

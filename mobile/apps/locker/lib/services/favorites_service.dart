@@ -7,6 +7,7 @@ import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/configuration.dart';
 import 'package:locker/services/db/locker_db.dart';
 import 'package:locker/services/files/sync/models/file.dart';
+import 'package:locker/utils/collection_list_util.dart';
 import 'package:logging/logging.dart';
 
 class FavoritesService {
@@ -58,6 +59,8 @@ class FavoritesService {
           }
         }
       }
+    } else {
+      clearCache();
     }
   }
 
@@ -132,18 +135,14 @@ class FavoritesService {
   }
 
   Future<void> addToFavorites(EnteFile file) async {
-    final collectionID = await _getOrCreateFavoriteCollectionID();
+    final favCollection = await _getOrCreateFavoriteCollection();
 
     final List<EnteFile> files = [file];
     if (file.uploadedFileID == null) {
       _logger.severe("Cannot favorite file without uploadedFileID");
       throw AssertionError("Can only favorite uploaded items");
     } else {
-      final collection = await _collectionService.getCollectionByID(
-        collectionID,
-      );
-
-      await _collectionService.addToCollection(collection!, files[0]);
+      await _collectionService.addToCollection(favCollection, files[0]);
     }
 
     _updateFavoriteFilesCache(files, favFlag: true);
@@ -159,23 +158,19 @@ class FavoritesService {
     if (files.any((f) => f.ownerID != currentUserID)) {
       throw AssertionError("Can not favorite files owned by others");
     }
-    final collectionID = await _getOrCreateFavoriteCollectionID();
+    final favCollection = await _getOrCreateFavoriteCollection();
     if (favFlag) {
-      final collection = await _collectionService.getCollectionByID(
-        collectionID,
-      );
       for (final file in files) {
-        await _collectionService.addToCollection(collection!, file);
+        await _collectionService.addToCollection(favCollection, file);
       }
     } else {
-      final Collection? favCollection = await getFavoritesCollection();
       for (final file in files) {
         final currentCollections = await _collectionService
             .getCollectionsForFile(file);
 
         Collection? targetCollection;
         for (final col in currentCollections) {
-          if (col.id != favCollection!.id) {
+          if (col.id != favCollection.id) {
             targetCollection = col;
             break;
           }
@@ -184,7 +179,7 @@ class FavoritesService {
         targetCollection ??= await _collectionService
             .getOrCreateUncategorizedCollection();
 
-        await _collectionService.move([file], favCollection!, targetCollection);
+        await _collectionService.move([file], favCollection, targetCollection);
       }
     }
     _updateFavoriteFilesCache(files, favFlag: favFlag);
@@ -195,11 +190,15 @@ class FavoritesService {
     if (inUploadID == null) {
     } else {
       final Collection? favCollection = await getFavoritesCollection();
+      if (favCollection == null) {
+        _updateFavoriteFilesCache([file], favFlag: false);
+        return;
+      }
 
       if (file.ownerID != _config.getUserID() &&
           file.hash != null &&
           _cachedFavFileHashes.containsKey(file.hash!)) {
-        final favFiles = await _db.getFilesInCollection(favCollection!);
+        final favFiles = await _db.getFilesInCollection(favCollection);
         final favFile = favFiles.firstWhere(
           (f) => f.uploadedFileID == _cachedFavFileHashes[file.hash!],
           orElse: () => file,
@@ -207,7 +206,7 @@ class FavoritesService {
         file = favFile;
       }
 
-      if (file.collectionID != favCollection!.id) {
+      if (file.collectionID != favCollection.id) {
         final favFiles = await _db.getFilesInCollection(favCollection);
         final favFile = favFiles.firstWhere(
           (f) => f.uploadedFileID == file.uploadedFileID,
@@ -238,20 +237,33 @@ class FavoritesService {
   }
 
   Future<Collection?> getFavoritesCollection() async {
-    if (_cachedFavoritesCollectionID == null) {
-      final collections = await _collectionService.getCollections();
-
-      for (final collection in collections) {
-        if (collection.owner.id == _config.getUserID() &&
-            collection.type == CollectionType.favorites) {
-          _cachedFavoritesCollectionID = collection.id;
-          return collection;
-        }
-      }
+    final userID = _config.getUserID();
+    if (userID == null) {
+      clearCache();
       return null;
     }
+    final cachedID = _cachedFavoritesCollectionID;
+    if (cachedID != null) {
+      final cachedCollection = await _collectionService.getCollectionByID(
+        cachedID,
+      );
+      if (cachedCollection != null &&
+          !cachedCollection.isDeleted &&
+          cachedCollection.isOwner(userID) &&
+          cachedCollection.type == CollectionType.favorites) {
+        return cachedCollection;
+      }
+      clearCache();
+    }
 
-    return _collectionService.getCollectionByID(_cachedFavoritesCollectionID!);
+    final collections = await _collectionService.getCollections();
+    final collection = findOwnedCollection(
+      collections,
+      ownerID: userID,
+      type: CollectionType.favorites,
+    );
+    _cachedFavoritesCollectionID = collection?.id;
+    return collection;
   }
 
   Future<int?> getFavoriteCollectionID() async {
@@ -259,15 +271,16 @@ class FavoritesService {
     return collection?.id;
   }
 
-  Future<int> _getOrCreateFavoriteCollectionID() async {
-    if (_cachedFavoritesCollectionID != null) {
-      return _cachedFavoritesCollectionID!;
+  Future<Collection> _getOrCreateFavoriteCollection() async {
+    final existingCollection = await getFavoritesCollection();
+    if (existingCollection != null) {
+      return existingCollection;
     }
 
     final collection = await _collectionService
         .getOrCreateImportantCollection();
     _cachedFavoritesCollectionID = collection.id;
 
-    return collection.id;
+    return collection;
   }
 }

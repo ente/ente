@@ -7,12 +7,15 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"net/http"
 
 	"github.com/ente/museum/ente"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/stacktrace"
 	"github.com/google/uuid"
 )
+
+const recoveryTokenLifetime = 24 * timeutil.MicroSecondsInOneHour
 
 type Repository struct {
 	DB *sql.DB
@@ -296,7 +299,7 @@ func (r *Repository) GetSessionByIDAndTokenForUse(
 	}
 	defer tx.Rollback()
 
-	session, err := getSessionByIDAndTokenForUpdate(ctx, tx, sessionID, sessionToken)
+	session, err := getSessionByIDAndTokenForUpdate(ctx, tx, sessionID, sessionToken, now)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -485,7 +488,7 @@ func (r *Repository) CompleteRecovery(
 	if kit.IsDeleted || kit.UserID != userID {
 		return stacktrace.Propagate(ente.ErrNotFound, "legacy kit not found")
 	}
-	session, err := getSessionByIDAndTokenForUpdate(ctx, tx, sessionID, sessionToken)
+	session, err := getSessionByIDAndTokenForUpdate(ctx, tx, sessionID, sessionToken, timeutil.Microseconds())
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return stacktrace.Propagate(ente.ErrNotFound, "legacy kit recovery session not found")
@@ -630,16 +633,31 @@ func getActiveSessionByKitForUpdate(ctx context.Context, tx *sql.Tx, kitID uuid.
 	return session, nil
 }
 
-func getSessionByIDAndTokenForUpdate(ctx context.Context, tx *sql.Tx, sessionID uuid.UUID, sessionToken string) (*RecoverySessionRow, error) {
+func getSessionByIDAndTokenForUpdate(ctx context.Context, tx *sql.Tx, sessionID uuid.UUID, sessionToken string, now int64) (*RecoverySessionRow, error) {
+	tokenHash := hashSessionToken(sessionToken)
 	row := tx.QueryRowContext(ctx, `
 		SELECT s.id, s.kit_id, s.user_id, s.status, s.effective_notice_period_in_hrs,
 		       s.wait_till, s.next_reminder_at, s.initiators, s.created_at, s.updated_at
 		FROM legacy_kit_recovery_session s
 		JOIN legacy_kit_recovery_session_token t ON t.session_id = s.id
-		WHERE s.id = $1 AND t.token_hash = $2
+		WHERE s.id = $1 AND t.token_hash = $2 AND t.created_at > $3
 		FOR UPDATE OF s`,
-		sessionID, hashSessionToken(sessionToken))
-	return scanRecoverySessionRow(row)
+		sessionID, tokenHash, now-recoveryTokenLifetime)
+	session, err := scanRecoverySessionRow(row)
+	if err != sql.ErrNoRows {
+		return session, err
+	}
+	var expired bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM legacy_kit_recovery_session_token
+		WHERE session_id = $1 AND token_hash = $2 AND created_at <= $3)`,
+		sessionID, tokenHash, now-recoveryTokenLifetime).Scan(&expired); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to check legacy kit token expiry")
+	}
+	if expired {
+		return nil, &ente.ApiError{Code: ente.SessionExpired, Message: "Legacy kit recovery access expired", HttpStatusCode: http.StatusGone}
+	}
+	return nil, sql.ErrNoRows
 }
 
 func ensureSessionReadyForUseTx(

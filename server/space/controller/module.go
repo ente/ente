@@ -7,6 +7,7 @@ import (
 )
 
 type Module struct {
+	Comments      *CommentsController
 	Spaces        *SpacesController
 	Posts         *PostsController
 	Friends       *FriendsController
@@ -44,6 +45,7 @@ func NewModule(
 	assets := &AssetsController{AssetsRepo: repos.Assets, SpacesRepo: repos.Spaces, auth: authDeps}
 	links := &LinksController{LinksRepo: repos.Links, SpacesRepo: repos.Spaces, FriendsRepo: repos.Friends, Posts: posts, Assets: assets}
 	return &Module{
+		Comments:      &CommentsController{Repo: repos.Comments, ActivityNotifier: activityNotifier},
 		Spaces:        spaces,
 		Posts:         posts,
 		Friends:       &FriendsController{FriendsRepo: repos.Friends, SpacesRepo: repos.Spaces, ActivityNotifier: activityNotifier},

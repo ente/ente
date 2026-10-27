@@ -303,7 +303,7 @@ func (m *CollectionLinkMiddleware) validateOrigin(c *gin.Context, ownerID int64)
 		"req_id":  reqId,
 		"origin":  origin,
 	})
-	alertMessage := fmt.Sprintf("custom domain %s", reqId)
+	alertMessage := "custom domain"
 	domain, err := m.RemoteStoreRepo.GetEffectiveDomain(c, ownerID)
 	if err != nil {
 		logger.WithError(err).Error("domainFetchFailed")

@@ -55,12 +55,12 @@ export function ThemedLoadingBar({
                     ? `${loadingBarProgress} 10s ease-out forwards`
                     : "none",
                 bgcolor: "accent.main",
+                bottom: 0,
                 height: "2px",
                 left: 0,
                 opacity: isVisible ? 1 : 0,
                 pointerEvents: "none",
                 position: "fixed",
-                top: 0,
                 transform: isRunning ? "scaleX(0)" : "scaleX(1)",
                 transformOrigin: "left",
                 transition: !isRunning

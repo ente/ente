@@ -41,7 +41,7 @@ impl fmt::Debug for DecryptedSecrets {
 pub struct GeneratedKek {
     pub key: SecretVec,
     pub salt: Vec<u8>,
-    pub mem_limit: u32,
+    pub mem_limit: u64,
     pub ops_limit: u32,
 }
 
@@ -97,7 +97,7 @@ pub fn derive_srp_credentials(password: &str, srp_attrs: &SrpAttributes) -> Resu
 pub fn derive_kek(
     password: &str,
     kek_salt: &str,
-    mem_limit: u32,
+    mem_limit: u64,
     ops_limit: u32,
 ) -> Result<SecretVec> {
     let salt_bytes = b64::decode(kek_salt).map_err(|e| Error::Decode(format!("kek_salt: {e}")))?;

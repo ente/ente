@@ -43,6 +43,7 @@ interface DraftPhoto {
     originalPhoto?: SpaceViewerPhoto;
     edit?: SpacePostPhotoEdit;
     videoEdit?: SpacePostVideoEdit;
+    videoStartTime?: number;
 }
 
 let nextDraftPhotoID = 0;
@@ -132,13 +133,6 @@ const SpacePostComposer: React.FC<{
         controllers.forEach((controller, id) =>
             preparingRef.current.set(id, controller),
         );
-        if (pending.some((draft) => isSpaceVideoFile(draft.file))) {
-            void import("utils/video-encoding/web")
-                .then(({ preloadVideoEncoderWeb }) => preloadVideoEncoderWeb())
-                .catch((error: unknown) =>
-                    log.warn("Failed to preload video encoder", error),
-                );
-        }
         void (async () => {
             for (const draft of pending) {
                 if (!isActiveDraft(draft.id)) continue;
@@ -148,8 +142,10 @@ const SpacePostComposer: React.FC<{
                     signal.throwIfAborted();
                     let photo: SpaceViewerPhoto;
                     let videoEdit: SpacePostVideoEdit | undefined;
+                    let videoStartTime: number | undefined;
                     if (isSpaceVideoFile(draft.file)) {
                         const info = await spaceVideoInfo(draft.file, signal);
+                        videoStartTime = info.startTime;
                         videoEdit = initialSpaceVideoEdit(info.duration);
                         const cover = await spaceVideoCover(
                             draft.file,
@@ -166,8 +162,8 @@ const SpacePostComposer: React.FC<{
                             video: {
                                 url,
                                 durationMs: info.duration * 1000,
-                                start: videoEdit.start,
-                                end: videoEdit.end,
+                                start: videoStartTime + videoEdit.start,
+                                end: videoStartTime + videoEdit.end,
                                 muted: videoEdit.muted,
                             },
                         };
@@ -205,6 +201,7 @@ const SpacePostComposer: React.FC<{
                                       photo,
                                       originalPhoto: photo,
                                       videoEdit,
+                                      videoStartTime,
                                   }
                                 : item,
                         ),
@@ -345,8 +342,8 @@ const SpacePostComposer: React.FC<{
             if (photo.video && videoEdit)
                 photo.video = {
                     ...photo.video,
-                    start: videoEdit.start,
-                    end: videoEdit.end,
+                    start: draft.videoStartTime! + videoEdit.start,
+                    end: draft.videoStartTime! + videoEdit.end,
                     muted: videoEdit.muted,
                 };
             return { ...draft, edit: result.edit, videoEdit, photo };
@@ -478,6 +475,7 @@ const SpacePostComposer: React.FC<{
                             ? {
                                   file: draft.file,
                                   sourceURL: draft.originalPhoto!.video!.url!,
+                                  startTime: draft.videoStartTime!,
                                   duration:
                                       draft.originalPhoto!.video!.durationMs /
                                       1000,

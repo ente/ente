@@ -5,7 +5,7 @@ import {
     Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box } from "@mui/material";
+import { Box, Collapse, useMediaQuery } from "@mui/material";
 import { keyframes } from "@mui/material/styles";
 import type { SpaceActionPhase } from "components/ActionFeedback";
 import {
@@ -21,12 +21,11 @@ import {
     spaceControlBackgroundHover,
     spaceMenuHover,
     spaceText,
-    spaceTextMuted,
 } from "styles/colors";
 
 const green = "#08C225";
 const textBase = spaceText;
-const textSecondary = spaceTextMuted;
+const textSecondary = "#C4C4C8";
 const controlBackground = spaceControlBackground;
 const controlBackgroundHover = spaceControlBackgroundHover;
 const controlBackgroundActive = spaceMenuHover;
@@ -54,8 +53,58 @@ const viewerActionButtonSx = {
     "&:hover": { bgcolor: controlBackgroundHover },
 };
 
+export const SpacePostInputButton: React.FC<{
+    backgroundColor?: string;
+    hoverBackgroundColor?: string;
+    disabled?: boolean;
+    label: string;
+    placeholder: string;
+    onClick: () => void;
+}> = ({
+    backgroundColor = controlBackground,
+    hoverBackgroundColor = controlBackgroundHover,
+    disabled,
+    label,
+    placeholder,
+    onClick,
+}) => (
+    <Box
+        component="button"
+        type="button"
+        aria-label={label}
+        title={label}
+        disabled={disabled}
+        onClick={onClick}
+        sx={{
+            ...viewerActionButtonSx,
+            bgcolor: backgroundColor,
+            borderRadius: "24px",
+            color: textSecondary,
+            display: "block",
+            flex: "1 1 auto",
+            font: "inherit",
+            fontSize: 14,
+            fontWeight: 400,
+            lineHeight: "20px",
+            minWidth: 0,
+            overflow: "hidden",
+            px: `${replyInputPaddingLeft}px`,
+            textAlign: "left",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            width: "auto",
+            "&:disabled": { cursor: "default" },
+            "&:hover": { bgcolor: hoverBackgroundColor },
+        }}
+    >
+        {placeholder}
+    </Box>
+);
+
 interface SpacePostReplyControlsProps {
+    ref?: React.Ref<HTMLDivElement>;
     canSendReply: boolean;
+    commentsButton?: React.ReactNode;
     disabled?: boolean;
     isLikePending?: boolean;
     isReplyMode: boolean;
@@ -63,6 +112,7 @@ interface SpacePostReplyControlsProps {
     likePopID: number;
     likeToggleID: number;
     postKey: string;
+    onBlur?: React.FocusEventHandler<HTMLDivElement>;
     onLike: () => void;
     onSendReply: () => void;
     replyActionPhase: SpaceActionPhase | null;
@@ -71,7 +121,9 @@ interface SpacePostReplyControlsProps {
 }
 
 export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
+    ref,
     canSendReply,
+    commentsButton,
     disabled = false,
     isLikePending = false,
     isReplyMode,
@@ -79,6 +131,7 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
     likePopID,
     likeToggleID,
     postKey,
+    onBlur,
     onLike,
     onSendReply,
     replyActionPhase,
@@ -91,20 +144,37 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
     const replyInputRef = externalReplyInputRef ?? internalReplyInputRef;
     const isLikePopping = !isReplyMode && liked && likePopID > 0;
     const isSendActive = isReplyMode && canSendReply;
+    const prefersReducedMotion = useMediaQuery(
+        "(prefers-reduced-motion: reduce)",
+    );
     React.useLayoutEffect(() => {
         const input = replyInputRef.current;
         if (!input) return;
-        input.style.height = `${spacePostReplyInputMinHeight}px`;
-        input.style.height = `${Math.max(spacePostReplyInputMinHeight, Math.min(input.scrollHeight, captionInputMaxHeight))}px`;
-        input.style.overflowY =
-            input.scrollHeight > captionInputMaxHeight ? "auto" : "hidden";
-    }, [replyInputRef, replyInputProps?.value]);
+        const resize = () => {
+            input.style.height = `${spacePostReplyInputMinHeight}px`;
+            input.style.overflowY = "hidden";
+            if (!isReplyMode) return;
+            input.style.height = `${Math.max(spacePostReplyInputMinHeight, Math.min(input.scrollHeight, captionInputMaxHeight))}px`;
+            input.style.overflowY =
+                input.scrollHeight > captionInputMaxHeight ? "auto" : "hidden";
+        };
+        resize();
+        let width = input.clientWidth;
+        const observer = new ResizeObserver(() => {
+            if (input.clientWidth == width) return;
+            width = input.clientWidth;
+            resize();
+        });
+        observer.observe(input);
+        return () => observer.disconnect();
+    }, [isReplyMode, replyInputRef, replyInputProps?.value]);
     return (
         <Box
+            ref={ref}
+            onBlur={onBlur}
             sx={{
                 alignItems: "flex-end",
                 display: "flex",
-                gap: "8px",
                 justifyContent: "flex-end",
                 width: "100%",
             }}
@@ -113,25 +183,26 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
                 <Box
                     ref={replyInputRef}
                     component="textarea"
-                    aria-label="Reply to photo"
+                    aria-label="Reply privately"
                     disabled={disabled || replyActionPhase != null}
-                    placeholder="Reply..."
+                    placeholder="Reply privately…"
                     rows={1}
                     {...replyInputProps}
                     sx={{
                         bgcolor: controlBackground,
                         border: 0,
-                        borderRadius: "16px",
+                        borderRadius: "24px",
                         boxSizing: "border-box",
                         color: textBase,
                         flex: "1 1 auto",
                         fontFamily: '"Inter Variable", Inter, sans-serif',
                         fontSize: 14,
-                        fontWeight: 500,
+                        fontWeight: 400,
                         lineHeight: "20px",
                         maxHeight: captionInputMaxHeight,
                         minHeight: spacePostReplyInputMinHeight,
                         minWidth: 0,
+                        mr: 1,
                         outline: 0,
                         overflow: "hidden",
                         pb: `${replyInputPadding}px`,
@@ -139,11 +210,29 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
                         pr: `${replyInputPadding}px`,
                         pt: `${replyInputPadding}px`,
                         resize: "none",
+                        textOverflow: isReplyMode ? "clip" : "ellipsis",
+                        whiteSpace: isReplyMode ? "pre-wrap" : "nowrap",
                         "&::placeholder": { color: textSecondary },
                         "&:disabled": { opacity: 0.74 },
                         "&:focus": { bgcolor: controlBackgroundHover },
                     }}
                 />
+            )}
+            {commentsButton && (
+                <Collapse
+                    in={!isReplyMode}
+                    inert={isReplyMode}
+                    orientation="horizontal"
+                    timeout={prefersReducedMotion ? 0 : 220}
+                    easing="cubic-bezier(0.22, 1, 0.36, 1)"
+                    sx={{
+                        flexShrink: 0,
+                        opacity: isReplyMode ? 0 : 1,
+                        transitionProperty: "width, opacity",
+                    }}
+                >
+                    <Box sx={{ pr: 1 }}>{commentsButton}</Box>
+                </Collapse>
             )}
             <Box
                 sx={{

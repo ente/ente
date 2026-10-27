@@ -44,7 +44,11 @@ class EntePdfRendererPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     executor.execute {
       try {
         val reply: Any? = when (call.method) {
-          "open" -> open(call.argument<String>("path")!!, call.argument<String>("password"))
+          "open" -> open(
+            call.argument<String>("path")!!,
+            call.argument<String>("password"),
+            call.argument<Int>("maxPages")!!,
+          )
           "render" -> render(
             call.argument<Int>("id")!!,
             call.argument<Int>("page")!!,
@@ -63,13 +67,13 @@ class EntePdfRendererPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         mainThread.post { result.success(reply) }
       } catch (e: PdfError) {
         mainThread.post { result.error(e.code, e.message, null) }
-      } catch (e: Exception) {
+      } catch (e: Throwable) {
         mainThread.post { result.error("invalid", e.toString(), null) }
       }
     }
   }
 
-  private fun open(path: String, password: String?): Map<String, Any> {
+  private fun open(path: String, password: String?, maxPages: Int): Map<String, Any> {
     val descriptor = ParcelFileDescriptor.open(File(path), ParcelFileDescriptor.MODE_READ_ONLY)
     val renderer = try {
       if (supportsPasswords && password != null) {
@@ -77,7 +81,7 @@ class EntePdfRendererPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
       } else {
         PdfRenderer(descriptor)
       }
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       descriptor.close()
       when {
         e !is SecurityException -> throw e
@@ -86,16 +90,19 @@ class EntePdfRendererPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         else -> throw PdfError("password_incorrect", "Wrong password")
       }
     }
-    val widths = ArrayList<Double>(renderer.pageCount)
-    val heights = ArrayList<Double>(renderer.pageCount)
+    val widths = ArrayList<Double>()
+    val heights = ArrayList<Double>()
     try {
+      if (renderer.pageCount > maxPages) {
+        throw PdfError("too_many_pages", "PDF has ${renderer.pageCount} pages")
+      }
       for (index in 0 until renderer.pageCount) {
         renderer.openPage(index).use {
           widths.add(it.width.toDouble())
           heights.add(it.height.toDouble())
         }
       }
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
       renderer.close()
       throw e
     }

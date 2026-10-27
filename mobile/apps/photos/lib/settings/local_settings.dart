@@ -116,6 +116,8 @@ class LocalSettings {
   static const _kLocalGalleryOnboardingPending =
       "ls.local_gallery_onboarding_pending";
   static const _kDeletePreference = "delete_preference";
+  static const _kSharedPhotoLocationWarningDismissed =
+      "shared_photo_location_warning_dismissed";
   static const _kMediaManagementHintDeleteAttempts =
       "media_management_hint_delete_attempts";
   static const _kMediaManagementHintDismissedAt =
@@ -757,6 +759,13 @@ class LocalSettings {
       _kMediaManagementHintDismissedAt,
       DateTime.now().millisecondsSinceEpoch,
     );
+  }
+
+  bool get isSharedPhotoLocationWarningDismissed =>
+      _prefs.getBool(_kSharedPhotoLocationWarningDismissed) ?? false;
+
+  Future<void> dismissSharedPhotoLocationWarning() async {
+    await _prefs.setBool(_kSharedPhotoLocationWarningDismissed, true);
   }
 
   DeletePreference? getDeletePreference() {

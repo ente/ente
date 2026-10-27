@@ -32,6 +32,7 @@ import {
     useTheme,
     type Theme,
 } from "@mui/material";
+import { isDesktop } from "ente-base/app";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
@@ -163,6 +164,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                     slotProps={{
                         paper: {
                             "aria-label": t("search"),
+                            inert: !open,
                             sx: {
                                 width: "621px",
                                 maxWidth: "calc(100% - 24px)",
@@ -376,6 +378,10 @@ interface SearchCategoryProps {
     };
 }
 
+const searchTabs = searchCategories.filter(
+    (category) => isDesktop || category !== "people",
+);
+
 function SearchMenu(props: MenuProps<SearchOption, false>) {
     const {
         searchCategory: { category, setCategory },
@@ -422,7 +428,7 @@ function SearchMenu(props: MenuProps<SearchOption, false>) {
                         },
                     }}
                 >
-                    {searchCategories.map((category) => (
+                    {searchTabs.map((category) => (
                         <Tab
                             key={category}
                             value={category}

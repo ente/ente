@@ -1860,16 +1860,20 @@ internal class ChatStoreActions(
         val builder = StringBuilder(text)
         val documents = attachments.filter { it.type == io.ente.ensu.chat.AttachmentType.Document }
         val images = attachments.filter { it.type == io.ente.ensu.chat.AttachmentType.Image }
+        val imageFiles = images.mapNotNull { attachment ->
+            val path = attachment.localPath ?: return@mapNotNull null
+            java.io.File(path).takeIf { it.exists() }
+        }
+
+        if (imageFiles.isNotEmpty() && text.isBlank()) {
+            builder.clear()
+            builder.append("Describe the attached images.")
+        }
 
         documents.forEachIndexed { index, attachment ->
             builder.append("\n\n----- BEGIN DOCUMENT: Document ${index + 1} -----\n")
             builder.append("Attached document: ${attachment.name}\n")
             builder.append("----- END DOCUMENT: Document ${index + 1} -----")
-        }
-
-        val imageFiles = images.mapNotNull { attachment ->
-            val path = attachment.localPath ?: return@mapNotNull null
-            java.io.File(path).takeIf { it.exists() }
         }
 
         if (imageFiles.isNotEmpty()) {

@@ -26,6 +26,7 @@ import "package:photos/ui/home/memories/memory_progress_indicator.dart";
 import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
 import "package:photos/ui/viewer/people/memory_lane_caption.dart";
+import "package:photos/ui/viewer/people/memory_lane_scrubber.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 import "package:photos/utils/share_util.dart";
@@ -253,12 +254,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
     });
   }
 
-  void _seekFromPosition(double x, double width) {
-    if (width <= 0) return;
-    final index = (x / width * _entries.length).floor().clamp(
-      0,
-      _entries.length - 1,
-    );
+  void _seekToIndex(int index) {
     setState(() {
       _playbackTimer?.cancel();
       _playbackToken = null;
@@ -572,8 +568,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                       ),
                     ),
                     actions: [
-                      if (widget.person != null &&
-                          flagService.enableMemoryShareLink &&
+                      if (flagService.enableMemoryShareLink &&
                           !isLocalGalleryMode)
                         // TODO: Replace with an Ente component when it supports this pressed overlay.
                         SizedBox.square(
@@ -773,115 +768,13 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                             SizedBox(height: screenSize.height * 0.01),
                           ],
                           if (_entries.isNotEmpty)
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(minHeight: 32),
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: screenSize.width * 0.16,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: .center,
-                                  children: [
-                                    Expanded(
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          const maxDotSize = 15.0;
-                                          const dotSpacing = 5.0;
-                                          final dotCount =
-                                              ((constraints.maxWidth +
-                                                          dotSpacing) /
-                                                      (maxDotSize + dotSpacing))
-                                                  .floor()
-                                                  .clamp(1, _entries.length);
-                                          final activeDot =
-                                              i * dotCount ~/ _entries.length;
-                                          return GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onTapUp: (details) {
-                                              if (constraints.maxWidth <= 0) {
-                                                return;
-                                              }
-                                              final index =
-                                                  (details.localPosition.dx /
-                                                          constraints.maxWidth *
-                                                          _entries.length)
-                                                      .floor()
-                                                      .clamp(
-                                                        0,
-                                                        _entries.length - 1,
-                                                      );
-                                              unawaited(
-                                                _play(
-                                                  index,
-                                                  fastTransition: true,
-                                                ),
-                                              );
-                                            },
-                                            onHorizontalDragStart: (details) {
-                                              _seekFromPosition(
-                                                details.localPosition.dx,
-                                                constraints.maxWidth,
-                                              );
-                                            },
-                                            onHorizontalDragUpdate: (details) =>
-                                                _seekFromPosition(
-                                                  details.localPosition.dx,
-                                                  constraints.maxWidth,
-                                                ),
-                                            onHorizontalDragEnd: (_) =>
-                                                unawaited(_play(i)),
-                                            onHorizontalDragCancel: () =>
-                                                unawaited(_play(i)),
-                                            child: Row(
-                                              spacing: dotSpacing,
-                                              children: List.generate(dotCount, (
-                                                index,
-                                              ) {
-                                                final distance =
-                                                    (index - activeDot).abs();
-                                                final double size =
-                                                    switch (distance) {
-                                                      0 => maxDotSize,
-                                                      1 => 10,
-                                                      2 => 7.5,
-                                                      _ => 5,
-                                                    };
-                                                return Expanded(
-                                                  child: SizedBox(
-                                                    height: 40,
-                                                    child: Center(
-                                                      child: AnimatedContainer(
-                                                        duration:
-                                                            const Duration(
-                                                              milliseconds: 200,
-                                                            ),
-                                                        width: size,
-                                                        height: size,
-                                                        decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          color: Colors.white
-                                                              .withValues(
-                                                                alpha:
-                                                                    distance ==
-                                                                        0
-                                                                    ? 1
-                                                                    : 0.5,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              }),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            MemoryLaneScrubber(
+                              totalEntries: _entries.length,
+                              currentIndex: i,
+                              onTap: (index) =>
+                                  unawaited(_play(index, fastTransition: true)),
+                              onSeek: _seekToIndex,
+                              onSeekEnd: () => unawaited(_play(i)),
                             ),
                           SizedBox(height: screenSize.height * 0.055),
                         ],
@@ -923,13 +816,12 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
     if (!flagService.enableMemoryShareLink ||
         isLocalGalleryMode ||
         timeline == null ||
-        person == null ||
         !timeline.isEligible ||
         timeline.entries.isEmpty) {
       return;
     }
     final l10n = context.strings;
-    final name = person.data.name.trim();
+    final name = person?.data.name.trim() ?? "";
     var title = l10n.facesTimelineAppBarTitle;
     if (name.isNotEmpty) {
       title = l10n.memoryLaneCardTitle(
@@ -945,9 +837,9 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
             .getOrCreateMemoryLaneLink(
               entries: timeline.entries,
               title: title,
-              personId: person.remoteID,
-              personName: person.data.name,
-              birthDate: person.data.birthDate,
+              personId: person?.remoteID,
+              personName: person?.data.name,
+              birthDate: person?.data.birthDate,
             );
         await dialog.hide();
         if (!mounted) return;

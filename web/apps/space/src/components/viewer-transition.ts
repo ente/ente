@@ -28,9 +28,20 @@ export const findViewerOrigin = (key: string | undefined) =>
 
 interface ViewerFlightTarget {
     origin: HTMLElement;
-    src: string;
+    src: string | HTMLCanvasElement;
     photo: { width: number; height: number };
 }
+
+export const viewerVideoFrame = (
+    video: HTMLVideoElement | null | undefined,
+) => {
+    if (!video || video.readyState < video.HAVE_CURRENT_DATA) return undefined;
+    const frame = document.createElement("canvas");
+    frame.width = video.videoWidth;
+    frame.height = video.videoHeight;
+    frame.getContext("2d")!.drawImage(video, 0, 0);
+    return frame;
+};
 
 const rectOf = (element: Element): ViewerRect => {
     const { left, top, width, height } = element.getBoundingClientRect();
@@ -113,7 +124,11 @@ const runSpring = ({
 };
 
 // A cropping window and the photo inside it, both moved with transforms.
-const createFlyer = (root: HTMLElement, src: string, base: ViewerRect) => {
+const createFlyer = (
+    root: HTMLElement,
+    src: string | HTMLCanvasElement,
+    base: ViewerRect,
+) => {
     const flyer = document.createElement("div");
     flyer.setAttribute("aria-hidden", "true");
     Object.assign(flyer.style, {
@@ -128,9 +143,10 @@ const createFlyer = (root: HTMLElement, src: string, base: ViewerRect) => {
         willChange: "transform",
         zIndex: "1",
     });
-    const image = document.createElement("img");
-    image.alt = "";
-    image.src = src;
+    const image =
+        typeof src == "string"
+            ? Object.assign(document.createElement("img"), { alt: "", src })
+            : src;
     Object.assign(image.style, {
         display: "block",
         height: `${base.h}px`,
@@ -293,7 +309,9 @@ export const playViewerOpen = (
         tileImage?.complete && tileImage.naturalWidth > 0
             ? tileImage
             : thumbnail;
-    const flightSrc = preview?.currentSrc || src;
+    const flightSrc =
+        viewerVideoFrame(origin.querySelector("video")) ??
+        (preview?.currentSrc || src);
     const { flyer, image, draw } = createFlyer(root, flightSrc, to);
     let rider: ReturnType<typeof createRider>;
     let started = false;
@@ -318,7 +336,7 @@ export const playViewerOpen = (
         origin.style.opacity = "";
         rider?.reveal();
     };
-    void image.decode().then(
+    void ("decode" in image ? image.decode() : Promise.resolve()).then(
         () => {
             if (disposed) return;
             started = true;

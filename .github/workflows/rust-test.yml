@@ -58,7 +58,7 @@ jobs:
                       ~/.cache/go-build
                       ~/.cache/.theseus/postgresql
 
-            - run: cargo test --locked --workspace --exclude ente-cli-next --features museum,ente-ml/ml-assets
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets
               if: matrix.suite == 'workspace'
               # postgresql_embedded downloads its binaries from GitHub.
               # GITHUB_TOKEN raises the API rate limit for those downloads.
@@ -66,10 +66,10 @@ jobs:
                   GITHUB_TOKEN: ${{ github.token }}
 
             # Avoid unifying SQLCipher into other packages' SQLite tests.
-            - run: cargo test --locked -p ente-cli-next --features museum
+            - run: cargo test --locked -p ente-cli --features museum
               if: matrix.suite == 'cli'
               env:
                   GITHUB_TOKEN: ${{ github.token }}
 
-            - run: apps/cli-next/scripts/test-with-keyring-linux.sh --features museum
+            - run: apps/cli/scripts/test-with-keyring-linux.sh --features museum
               if: matrix.suite == 'cli'

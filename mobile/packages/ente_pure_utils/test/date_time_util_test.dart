@@ -31,4 +31,18 @@ void main() {
       expect(nextStart.isUtc, isTrue);
     });
   });
+
+  group('secondsToDuration', () {
+    test('omits hours under an hour', () {
+      expect(secondsToDuration(5), '0:05');
+      expect(secondsToDuration(303), '5:03');
+      expect(secondsToDuration(3599), '59:59');
+    });
+
+    test('pads minutes when hours are shown', () {
+      expect(secondsToDuration(3600), '1:00:00');
+      expect(secondsToDuration(3754), '1:02:34');
+      expect(secondsToDuration(90061), '25:01:01');
+    });
+  });
 }

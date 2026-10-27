@@ -100,4 +100,4 @@ If Auth cannot start and Windows reports that `MSVCP140.dll` is missing, see the
 
 # CLI
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/releases?q=tag%3Acli-v0).
+Use the CLI to back up your Auth codes or show a current code. Learn more in [Install Ente CLI](/cli/install) and [Auth](/cli/auth).

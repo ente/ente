@@ -28,7 +28,7 @@ impl Failures {
     pub fn record(&mut self, result: Result<()>, context: &str) -> Result<()> {
         if let Err(error) = result {
             if crate::fatal(&error) {
-                return Err(error.context(format!("adoption preflight incomplete: {context}")));
+                return Err(error.context(format!("cannot take over this export: {context}")));
             }
             self.count += 1;
             if self.examples.len() < 10 {
@@ -55,7 +55,7 @@ impl Failures {
     pub fn finish(&self) -> Result<()> {
         ensure!(
             self.count == 0,
-            "adoption preflight failed: {}",
+            "cannot take over this export: {}",
             self.message()
         );
         Ok(())
@@ -171,7 +171,7 @@ impl Preflight<'_> {
             if result.is_err() {
                 store.db.execute("UPDATE desired_albums SET failure='adoption album preflight failed' WHERE id=?1",[id])?;
             }
-            failures.record(result, &format!("album:{id}"))?;
+            failures.record(result, &format!("album {:?} (ID {id})", record.album.name))?;
         }
         let mut after = (0, String::new());
         let mut expected = None;
@@ -239,7 +239,10 @@ impl Preflight<'_> {
             .await;
             failures.record(
                 result,
-                &format!("file:{}:{}", item.placement.album, item.placement.file),
+                &format!(
+                    "file {:?} (ID {}, album {})",
+                    item.placement.name, item.placement.file, item.placement.album
+                ),
             )?;
         }
         failures.record((|| {
@@ -252,9 +255,9 @@ impl Preflight<'_> {
         if !self.matching_root && verified == 0 && failures.count == 0 {
             failures.record(
                 Err(anyhow::anyhow!(
-                    "at least one existing active original must verify"
+                    "no existing original could be matched to this account"
                 )),
-                "source association",
+                "account verification",
             )?;
         }
         failures.finish()
@@ -288,7 +291,6 @@ pub fn move_leftovers(root: &Path, index: &Index, cancel: &watch::Receiver<bool>
                 }
                 fs::free_rename(&source, &destination)?;
                 disk::rename(&source, &destination)?;
-                fs::sync_move(&source, &destination)?;
                 record.album.path = name.clone();
                 adopt::save_album(index, &record)?;
                 break;
@@ -385,7 +387,7 @@ fn move_one(
     let source = names::check(root, source)?;
     let parent = names::check(root, directory)?;
     if Properties::optional(&source)?.is_none() {
-        return fs::sync_move(&source, &parent.join(name));
+        return Ok(());
     }
     for suffix in 0.. {
         ensure!(!*cancel.borrow(), crate::Cancelled);
@@ -459,7 +461,6 @@ pub fn finish(root: &Path, store: &Store, cancel: &watch::Receiver<bool>) -> Res
             }
             if disk::read_dir(&meta)?.next().is_none() {
                 disk::remove_dir(&meta)?;
-                fs::sync_parent(&meta)?;
             }
         }
         let absent: bool = store.db.query_row(
@@ -472,7 +473,6 @@ pub fn finish(root: &Path, store: &Store, cancel: &watch::Receiver<bool>) -> Res
                 let path = names::check(root, &relative)?;
                 if path.is_dir() && disk::read_dir(&path)?.next().is_none() {
                     disk::remove_dir(&path)?;
-                    fs::sync_parent(&path)?;
                 }
             }
         }

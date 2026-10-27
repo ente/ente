@@ -23,7 +23,7 @@ type authRouteTestTokens struct {
 	payment string
 }
 
-func TestRejectAuthAppKeepsAuthRoutesAndBlocksStorageRoutes(t *testing.T) {
+func TestAppScopedRoutes(t *testing.T) {
 	router, tokens, _ := setupAuthRouteTest(t)
 
 	tests := []struct {
@@ -39,6 +39,27 @@ func TestRejectAuthAppKeepsAuthRoutesAndBlocksStorageRoutes(t *testing.T) {
 			token:      tokens.auth,
 			clientPkg:  "io.ente.auth",
 			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "photos token cannot access auth route",
+			path:       "/authenticator/entity/diff?sinceTime=0&limit=1",
+			token:      tokens.photos,
+			clientPkg:  "io.ente.photos",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "locker token cannot access auth route",
+			path:       "/authenticator/entity/diff?sinceTime=0&limit=1",
+			token:      tokens.locker,
+			clientPkg:  "io.ente.locker",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "photos token with auth header remains invalid",
+			path:       "/authenticator/entity/diff?sinceTime=0&limit=1",
+			token:      tokens.photos,
+			clientPkg:  "io.ente.auth",
+			wantStatus: http.StatusUnauthorized,
 		},
 		{
 			name:       "auth token cannot access storage route",
@@ -220,7 +241,9 @@ func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens, *userco
 	}
 	privateAPI := router.Group("/")
 	privateAPI.Use(authMiddleware.TokenAuthMiddleware(nil))
-	privateAPI.GET("/authenticator/entity/diff", func(c *gin.Context) {
+	authenticatorAPI := privateAPI.Group("/authenticator")
+	authenticatorAPI.Use(RequireAuthApp())
+	authenticatorAPI.GET("/entity/diff", func(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 	})
 	familyAPI := router.Group("/")

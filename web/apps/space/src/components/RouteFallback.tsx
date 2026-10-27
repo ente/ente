@@ -1,11 +1,15 @@
+import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import { SpacePageMeta } from "components/PageMeta";
 import React from "react";
 import { spaceAppBackground, spaceText } from "styles/colors";
+import { spaceTouchTargetSize } from "styles/touch-targets";
 
 interface SpaceRouteFallbackProps {
     background: string;
     message?: string;
+    onBack?: () => void;
     preview?: "home" | "invite";
 }
 
@@ -43,10 +47,46 @@ export const SpaceLoadingSpinner: React.FC<SpaceLoadingSpinnerProps> = ({
 export const SpaceRouteFallback: React.FC<SpaceRouteFallbackProps> = ({
     background,
     message,
+    onBack,
     preview,
 }) => (
     <>
         <SpacePageMeta themeColor={background} preview={preview} />
+        {onBack && (
+            <Box
+                component="button"
+                type="button"
+                aria-label="Back"
+                onClick={onBack}
+                sx={{
+                    alignItems: "center",
+                    bgcolor: "transparent",
+                    border: 0,
+                    color: spaceText,
+                    cursor: "pointer",
+                    display: "flex",
+                    height: spaceTouchTargetSize,
+                    justifyContent: "flex-start",
+                    left: "max(16px, var(--space-ios-safe-area-left, 0px))",
+                    p: 0,
+                    position: "fixed",
+                    top: "calc(12px + var(--space-ios-safe-area-top, 0px))",
+                    width: spaceTouchTargetSize,
+                    zIndex: 1,
+                    "&:focus-visible": {
+                        borderRadius: "50%",
+                        outline: "2px solid #08C225",
+                        outlineOffset: 2,
+                    },
+                }}
+            >
+                <HugeiconsIcon
+                    icon={ArrowLeft02Icon}
+                    size={24}
+                    strokeWidth={1.8}
+                />
+            </Box>
+        )}
         <Box
             sx={{
                 alignItems: "center",

@@ -261,8 +261,7 @@ pub async fn recover_two_factor(
     .map_err(|_| Error::IncorrectRecoveryKey)?;
     let request = RemoveTwoFactorRequest {
         session_id: session_id.to_string(),
-        secret: String::from_utf8(secret)
-            .map_err(|e| Error::Protocol(format!("invalid recovery secret: {e}")))?,
+        secret: b64::encode(&secret),
         two_factor_type,
     };
     client.remove_two_factor(&request).await
@@ -275,7 +274,7 @@ pub async fn configure_passkey_recovery(
 ) -> Result<()> {
     let recovery_key = auth::recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex)?;
     let encrypted = secretbox::encrypt(
-        secret.as_bytes(),
+        &b64::decode(secret)?,
         &crypto::Key::try_from_slice(&recovery_key)?,
     );
     let request = ConfigurePasskeyRecoveryRequest {
@@ -334,7 +333,7 @@ fn encrypt_two_factor_secret(
     let recovery_key =
         hex::decode(recovery_key_hex).map_err(|e| Error::Decode(format!("recovery_key: {e}")))?;
     let encrypted = secretbox::encrypt(
-        secret_code.as_bytes(),
+        &b64::decode(secret_code)?,
         &crypto::Key::try_from_slice(&recovery_key)?,
     );
 

@@ -336,7 +336,7 @@ test("a carousel swipe supersedes an earlier manual video selection", () => {
     expect([...playing]).toEqual(["carousel"]);
 });
 
-test("the interacted carousel keeps focus until it leaves the viewport", () => {
+test("scrolling releases the interacted carousel before it leaves the viewport", () => {
     const carousel = addVideo("carousel", 100, false);
     addVideo("lower", 500);
     flush();
@@ -344,7 +344,7 @@ test("the interacted carousel keeps focus until it leaves the viewport", () => {
     carousel.control.setActive(true);
     flush();
     scrollTo(250);
-    expect([...playing]).toEqual(["carousel"]);
+    expect([...playing]).toEqual(["lower"]);
     scrollTo(351);
     expect([...playing]).toEqual(["lower"]);
 });

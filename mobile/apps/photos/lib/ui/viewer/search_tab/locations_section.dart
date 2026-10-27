@@ -147,9 +147,7 @@ class LocationRecommendation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final heroTag =
-        locationSearchResult.heroTag() +
-        (locationSearchResult.previewThumbnail()?.tag ?? "");
+    final heroTag = locationSearchResult.heroTag();
     final textTheme = getEnteTextTheme(context);
     return GestureDetector(
       onTap: () {
@@ -157,7 +155,11 @@ class LocationRecommendation extends StatelessWidget {
         if (locationSearchResult.onResultTap != null) {
           locationSearchResult.onResultTap!(context);
         } else {
-          routeToPage(context, SearchResultPage(locationSearchResult));
+          routeToPage(
+            context,
+            SearchResultPage(locationSearchResult),
+            useFadeTransition: true,
+          );
         }
       },
       child: RepaintBoundary(
@@ -169,24 +171,27 @@ class LocationRecommendation extends StatelessWidget {
             children: [
               Stack(
                 children: [
-                  ClipSmoothRect(
-                    radius: SmoothBorderRadius(
-                      cornerRadius: outerCornerRadius,
-                      cornerSmoothing: cornerSmoothing,
-                    ),
-                    child: SizedBox(
-                      width: sideOfThumbnail,
-                      height: sideOfThumbnail,
-                      child: locationSearchResult.previewThumbnail() != null
-                          ? Hero(
-                              tag: heroTag,
-                              child: ThumbnailWidget(
+                  Hero(
+                    tag: heroTag,
+                    createRectTween: (begin, end) =>
+                        RectTween(begin: begin, end: end),
+                    transitionOnUserGestures: true,
+                    child: ClipSmoothRect(
+                      radius: SmoothBorderRadius(
+                        cornerRadius: outerCornerRadius,
+                        cornerSmoothing: cornerSmoothing,
+                      ),
+                      child: SizedBox(
+                        width: sideOfThumbnail,
+                        height: sideOfThumbnail,
+                        child: locationSearchResult.previewThumbnail() != null
+                            ? ThumbnailWidget(
                                 locationSearchResult.previewThumbnail()!,
                                 shouldShowSyncStatus: false,
                                 shouldShowFavoriteIcon: false,
-                              ),
-                            )
-                          : const NoThumbnailWidget(),
+                              )
+                            : const NoThumbnailWidget(),
+                      ),
                     ),
                   ),
                   Positioned(

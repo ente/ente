@@ -7,6 +7,19 @@ description: Release notes of recent updates to Ente Auth
 
 A short summary list of changes to the Ente Auth mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v4.4.26 - Oct 2026
+
+- Fixed 2FAS token imports.
+- Added type-to-search on desktop for faster code lookup (@StDensity).
+- Import multi-QR Google Authenticator exports in a single session.
+- Preserve notes when importing Aegis and Bitwarden exports.
+- Limited iOS QR scanning to the visible scan frame.
+- Added an optional menu bar mode on macOS for quick access to your 2FA codes (@ivnnv).
+- Show troubleshooting guidance when an offline-only Auth installation cannot access its encryption key.
+- Fixed OTP Auth imports for entries without an issuer.
+- Kept multi-select actions visible when codes have long notes.
+- Added and improved custom icons and aliases for more services.
+
 ## v4.4.25 - Aug 2026
 
 - Refreshed design for settings, setup, imports, and code management

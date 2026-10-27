@@ -231,7 +231,7 @@ export const sidebar = [
                             },
                             {
                                 text: "CLI",
-                                link: "/photos/features/utilities/cli",
+                                link: "/cli/photos",
                             },
                             {
                                 text: "Collage",
@@ -602,6 +602,23 @@ export const sidebar = [
         ],
     },
     {
+        text: "CLI",
+        collapsed: true,
+        items: [
+            { text: "Introduction", link: "/cli/" },
+            { text: "Installation", link: "/cli/install" },
+            { text: "Accounts", link: "/cli/accounts" },
+            { text: "Photos", link: "/cli/photos" },
+            { text: "Auth", link: "/cli/auth" },
+            { text: "Paste", link: "/cli/paste" },
+            { text: "Administration", link: "/cli/admin" },
+            { text: "Automation", link: "/cli/automation" },
+            { text: "Migration", link: "/cli/migration" },
+            { text: "Troubleshooting", link: "/cli/troubleshooting" },
+            { text: "Changelog", link: "/cli/changelog" },
+        ],
+    },
+    {
         text: "Toys",
         collapsed: false,
         items: [
@@ -701,7 +718,7 @@ export const sidebar = [
                     },
                     {
                         text: "Ente CLI",
-                        link: "/self-hosting/administration/cli",
+                        link: "/cli/admin",
                     },
                     {
                         text: "Backup",
@@ -771,7 +788,7 @@ export const sidebar = [
                     },
                     {
                         text: "Ente CLI",
-                        link: "/self-hosting/troubleshooting/cli",
+                        link: "/cli/troubleshooting",
                     },
                 ],
             },

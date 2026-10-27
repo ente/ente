@@ -1,0 +1,1 @@
+- Added support for receiving encrypted notifications on Android.

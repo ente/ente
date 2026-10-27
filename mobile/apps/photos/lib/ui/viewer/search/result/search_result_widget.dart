@@ -49,7 +49,13 @@ class SearchResultWidget extends StatelessWidget {
             if (searchResult.type() == ResultType.shared) {
               routeToPage(context, ContactResultPage(searchResult));
             } else {
-              routeToPage(context, SearchResultPage(searchResult));
+              routeToPage(
+                context,
+                SearchResultPage(searchResult),
+                useFadeTransition:
+                    searchResult.type() == ResultType.location ||
+                    searchResult.type() == ResultType.locationSuggestion,
+              );
             }
           }
         },

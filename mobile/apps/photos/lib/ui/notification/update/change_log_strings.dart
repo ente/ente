@@ -64,7 +64,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'New look for your gallery',
           description:
-              'See photos in their original proportions with the new mosaic layout. Pinch to switch layouts and change how many photos fit on your screen.',
+              'See photos in their original proportions with the new mosaic layout.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Pinch to change gallery layout',
+          description:
+              'You can now pinch in or out to switch layouts and choose how many photos fit on your screen.',
         ),
         ChangeLogEntryStrings(
           title: 'Image editor improvements',
@@ -106,7 +111,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nou aspecte per a la teva galeria',
           description:
-              'Mira les fotos amb les proporcions originals amb el nou disseny en mosaic. Ajunta o separa dos dits per canviar de disseny i ajustar quantes fotos caben a la pantalla.',
+              'Mira les fotos amb les proporcions originals amb el nou disseny en mosaic.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ajunta els dits per canviar la disposició de la galeria',
+          description:
+              'Ara pots ajuntar o separar dos dits per canviar de disposició i triar quantes fotos caben a la pantalla.',
         ),
         ChangeLogEntryStrings(
           title: 'Millores a l’editor d’imatges',
@@ -148,7 +158,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nový vzhled vaší galerie',
           description:
-              'Prohlížejte si fotografie v původních proporcích díky novému mozaikovému rozložení. Stažením nebo roztažením dvou prstů můžete přepínat rozložení a měnit počet fotografií na obrazovce.',
+              'Prohlížejte si fotografie v původních proporcích díky novému mozaikovému rozložení.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Změna rozložení galerie stažením prstů',
+          description:
+              'Nyní můžete stažením nebo roztažením dvou prstů přepínat rozložení a zvolit, kolik fotografií se vejde na obrazovku.',
         ),
         ChangeLogEntryStrings(
           title: 'Vylepšení editoru obrázků',
@@ -190,7 +205,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Neuer Look für deine Galerie',
           description:
-              'Sieh dir Fotos mit dem neuen Mosaiklayout in ihren ursprünglichen Proportionen an. Ziehe zwei Finger zusammen oder auseinander, um das Layout zu wechseln und anzupassen, wie viele Fotos auf deinen Bildschirm passen.',
+              'Sieh dir Fotos mit dem neuen Mosaiklayout in ihren ursprünglichen Proportionen an.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Galerie-Layout durch Zusammenziehen zweier Finger ändern',
+          description:
+              'Du kannst jetzt zwei Finger zusammenziehen oder auseinanderziehen, um das Layout zu wechseln und auszuwählen, wie viele Fotos auf deinen Bildschirm passen.',
         ),
         ChangeLogEntryStrings(
           title: 'Verbesserungen im Bildeditor',
@@ -232,7 +252,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nuevo aspecto para tu galería',
           description:
-              'Ve las fotos con sus proporciones originales con el nuevo diseño de mosaico. Junta o separa dos dedos para cambiar de diseño y ajustar cuántas fotos caben en la pantalla.',
+              'Ve las fotos con sus proporciones originales con el nuevo diseño de mosaico.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Junta los dedos para cambiar el diseño de la galería',
+          description:
+              'Ahora puedes juntar o separar dos dedos para cambiar de diseño y elegir cuántas fotos caben en la pantalla.',
         ),
         ChangeLogEntryStrings(
           title: 'Mejoras en el editor de imágenes',
@@ -274,7 +299,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nouveau look pour votre galerie',
           description:
-              'Affichez vos photos dans leurs proportions d’origine grâce à la nouvelle disposition en mosaïque. Rapprochez ou écartez deux doigts pour changer de disposition et ajuster le nombre de photos à l’écran.',
+              'Affichez vos photos dans leurs proportions d’origine grâce à la nouvelle disposition en mosaïque.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Pincez pour changer la disposition de la galerie',
+          description:
+              'Vous pouvez maintenant rapprocher ou écarter deux doigts pour changer de disposition et choisir combien de photos tiennent à l’écran.',
         ),
         ChangeLogEntryStrings(
           title: 'Améliorations de l’éditeur d’images',
@@ -316,7 +346,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nuovo look per la tua galleria',
           description:
-              'Guarda le foto nelle loro proporzioni originali con il nuovo layout a mosaico. Avvicina o allontana due dita per cambiare layout e regolare quante foto entrano nello schermo.',
+              'Guarda le foto nelle loro proporzioni originali con il nuovo layout a mosaico.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Pizzica per cambiare il layout della galleria',
+          description:
+              'Ora puoi avvicinare o allontanare due dita per cambiare layout e scegliere quante foto entrano nello schermo.',
         ),
         ChangeLogEntryStrings(
           title: 'Miglioramenti all’editor di immagini',
@@ -357,8 +392,12 @@ class ChangeLogStrings {
       entries: [
         ChangeLogEntryStrings(
           title: 'ギャラリーが新しい見た目に',
+          description: '新しいモザイクレイアウトで、写真を元の縦横比のまま表示できます。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'ピンチ操作でギャラリーのレイアウトを変更',
           description:
-              '新しいモザイクレイアウトで、写真を元の縦横比のまま表示できます。2本の指でつまんだり広げたりすると、レイアウトや画面に表示する写真の枚数を変更できます。',
+              '2本の指でつまんだり広げたりして、レイアウトを切り替えたり、画面に表示する写真の枚数を選んだりできるようになりました。',
         ),
         ChangeLogEntryStrings(
           title: '画像エディターの改善',
@@ -397,8 +436,11 @@ class ChangeLogStrings {
       entries: [
         ChangeLogEntryStrings(
           title: '새로워진 갤러리',
-          description:
-              '새로운 모자이크 레이아웃으로 사진을 원래 비율 그대로 감상하세요. 두 손가락을 오므리거나 벌려 레이아웃을 바꾸고 화면에 표시되는 사진 수를 조절할 수 있어요.',
+          description: '새로운 모자이크 레이아웃으로 사진을 원래 비율 그대로 감상하세요.',
+        ),
+        ChangeLogEntryStrings(
+          title: '손가락을 오므려 갤러리 레이아웃 바꾸기',
+          description: '이제 두 손가락을 오므리거나 벌려 레이아웃을 바꾸고 화면에 표시할 사진 수를 선택할 수 있어요.',
         ),
         ChangeLogEntryStrings(
           title: '이미지 편집기 개선',
@@ -438,7 +480,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nieuwe look voor je galerij',
           description:
-              'Bekijk foto’s in hun oorspronkelijke verhoudingen met de nieuwe mozaïekindeling. Beweeg twee vingers naar elkaar toe of uit elkaar om van indeling te wisselen en aan te passen hoeveel foto’s op je scherm passen.',
+              'Bekijk foto’s in hun oorspronkelijke verhoudingen met de nieuwe mozaïekindeling.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Knijp om de galerijindeling te wijzigen',
+          description:
+              'Je kunt nu twee vingers naar elkaar toe of uit elkaar bewegen om van indeling te wisselen en te kiezen hoeveel foto’s op je scherm passen.',
         ),
         ChangeLogEntryStrings(
           title: 'Verbeteringen in de afbeeldingseditor',
@@ -480,7 +527,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nytt utseende for galleriet ditt',
           description:
-              'Se bilder i de opprinnelige proporsjonene med det nye mosaikkoppsettet. Før to fingre sammen eller fra hverandre for å bytte oppsett og endre hvor mange bilder som får plass på skjermen.',
+              'Se bilder i de opprinnelige proporsjonene med det nye mosaikkoppsettet.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Endre gallerioppsettet ved å knipe',
+          description:
+              'Du kan nå føre to fingre sammen eller fra hverandre for å bytte oppsett og velge hvor mange bilder som får plass på skjermen.',
         ),
         ChangeLogEntryStrings(
           title: 'Forbedret bilderedigering',
@@ -522,7 +574,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Nowy wygląd Twojej galerii',
           description:
-              'Oglądaj zdjęcia w oryginalnych proporcjach dzięki nowemu układowi mozaiki. Zsuń lub rozsuń dwa palce, aby zmienić układ i liczbę zdjęć mieszczących się na ekranie.',
+              'Oglądaj zdjęcia w oryginalnych proporcjach dzięki nowemu układowi mozaiki.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Zsuń palce, aby zmienić układ galerii',
+          description:
+              'Teraz możesz zsuwać lub rozsuwać dwa palce, aby zmieniać układ i wybierać, ile zdjęć mieści się na ekranie.',
         ),
         ChangeLogEntryStrings(
           title: 'Ulepszenia edytora obrazów',
@@ -564,7 +621,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Novo visual para sua galeria',
           description:
-              'Veja as fotos nas proporções originais com o novo layout em mosaico. Junte ou afaste dois dedos para mudar o layout e ajustar quantas fotos cabem na tela.',
+              'Veja as fotos nas proporções originais com o novo layout em mosaico.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Junte os dedos para mudar o layout da galeria',
+          description:
+              'Agora você pode juntar ou afastar dois dedos para mudar o layout e escolher quantas fotos cabem na tela.',
         ),
         ChangeLogEntryStrings(
           title: 'Melhorias no editor de imagens',
@@ -606,7 +668,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Novo visual para a sua galeria',
           description:
-              'Veja as fotografias nas proporções originais com o novo esquema em mosaico. Junte ou afaste dois dedos para mudar o esquema e ajustar quantas fotografias cabem no ecrã.',
+              'Veja as fotografias nas proporções originais com o novo esquema em mosaico.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Junte os dedos para mudar o esquema da galeria',
+          description:
+              'Agora pode juntar ou afastar dois dedos para mudar o esquema e escolher quantas fotografias cabem no ecrã.',
         ),
         ChangeLogEntryStrings(
           title: 'Melhorias no editor de imagens',
@@ -648,7 +715,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Aspect nou pentru galeria ta',
           description:
-              'Vezi fotografiile în proporțiile originale cu noul aranjament mozaic. Apropie sau depărtează două degete pentru a schimba aranjamentul și numărul de fotografii care încap pe ecran.',
+              'Vezi fotografiile în proporțiile originale cu noul aranjament mozaic.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Apropie degetele pentru a schimba aranjamentul galeriei',
+          description:
+              'Acum poți apropia sau depărta două degete pentru a schimba aranjamentul și a alege câte fotografii încap pe ecran.',
         ),
         ChangeLogEntryStrings(
           title: 'Îmbunătățiri ale editorului de imagini',
@@ -690,7 +762,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Новый облик вашей галереи',
           description:
-              'Смотрите фотографии в исходных пропорциях с новой мозаичной раскладкой. Сводите или разводите два пальца, чтобы менять раскладку и количество фотографий на экране.',
+              'Смотрите фотографии в исходных пропорциях с новой мозаичной раскладкой.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Сведите пальцы, чтобы изменить раскладку галереи',
+          description:
+              'Теперь вы можете сводить или разводить два пальца, чтобы переключать раскладки и выбирать, сколько фотографий помещается на экране.',
         ),
         ChangeLogEntryStrings(
           title: 'Улучшения редактора изображений',
@@ -733,7 +810,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Galeriniz için yeni görünüm',
           description:
-              'Yeni mozaik düzeniyle fotoğraflarınızı özgün oranlarında görün. Düzenler arasında geçiş yapmak ve ekrana kaç fotoğraf sığacağını değiştirmek için iki parmağınızı birleştirin veya ayırın.',
+              'Yeni mozaik düzeniyle fotoğraflarınızı özgün oranlarında görün.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Galeri düzenini değiştirmek için parmaklarınızı birleştirin',
+          description:
+              'Artık iki parmağınızı birleştirerek veya ayırarak düzenler arasında geçiş yapabilir ve ekranınıza kaç fotoğraf sığacağını seçebilirsiniz.',
         ),
         ChangeLogEntryStrings(
           title: 'Görsel düzenleyicide iyileştirmeler',
@@ -775,7 +857,12 @@ class ChangeLogStrings {
         ChangeLogEntryStrings(
           title: 'Новий вигляд вашої галереї',
           description:
-              'Переглядайте фотографії в оригінальних пропорціях із новою мозаїчною розкладкою. Зводьте або розводьте два пальці, щоб змінювати розкладку й кількість фотографій на екрані.',
+              'Переглядайте фотографії в оригінальних пропорціях із новою мозаїчною розкладкою.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Зведіть пальці, щоб змінити розкладку галереї',
+          description:
+              'Тепер ви можете зводити або розводити два пальці, щоб перемикати розкладки й вибирати, скільки фотографій вміщується на екрані.',
         ),
         ChangeLogEntryStrings(
           title: 'Покращення редактора зображень',
@@ -817,8 +904,12 @@ class ChangeLogStrings {
       entries: [
         ChangeLogEntryStrings(
           title: 'Diện mạo mới cho thư viện',
+          description: 'Xem ảnh với tỷ lệ gốc bằng bố cục khảm mới.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Chụm hai ngón tay để đổi bố cục thư viện',
           description:
-              'Xem ảnh với tỷ lệ gốc bằng bố cục khảm mới. Chụm hoặc tách hai ngón tay để đổi bố cục và điều chỉnh số ảnh hiển thị trên màn hình.',
+              'Giờ đây, bạn có thể chụm hoặc tách hai ngón tay để chuyển đổi bố cục và chọn số ảnh hiển thị trên màn hình.',
         ),
         ChangeLogEntryStrings(
           title: 'Cải tiến trình chỉnh sửa ảnh',
@@ -860,7 +951,11 @@ class ChangeLogStrings {
       entries: [
         ChangeLogEntryStrings(
           title: '图库焕然一新',
-          description: '全新的拼贴布局让照片以原始比例显示。双指捏合或张开，即可切换布局并调整屏幕上显示的照片数量。',
+          description: '全新的拼贴布局让照片以原始比例显示。',
+        ),
+        ChangeLogEntryStrings(
+          title: '双指捏合，更改图库布局',
+          description: '现在，您可以通过双指捏合或张开来切换布局，并选择屏幕上显示的照片数量。',
         ),
         ChangeLogEntryStrings(
           title: '图片编辑器改进',
@@ -896,7 +991,11 @@ class ChangeLogStrings {
       entries: [
         ChangeLogEntryStrings(
           title: '圖片庫煥然一新',
-          description: '全新的拼貼版面配置讓照片以原始比例顯示。雙指捏合或張開，即可切換版面配置並調整螢幕上顯示的照片數量。',
+          description: '全新的拼貼版面配置讓照片以原始比例顯示。',
+        ),
+        ChangeLogEntryStrings(
+          title: '雙指捏合，變更圖片庫版面配置',
+          description: '現在，你可以透過雙指捏合或張開來切換版面配置，並選擇螢幕上顯示的照片數量。',
         ),
         ChangeLogEntryStrings(
           title: '圖片編輯器改善',

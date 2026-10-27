@@ -3,6 +3,7 @@ import {
     FileContextMenu,
     type ContextMenuPosition,
 } from "@/components/FileContextMenu";
+import { AlbumEmptyState } from "@/components/gallery/AlbumEmptyState";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
 import {
     selectedFavoriteCount as countSelectedFavorites,
@@ -47,7 +48,6 @@ import {
     type CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
 import { batch } from "ente-utils/array";
-import { t } from "i18next";
 import React, {
     memo,
     useCallback,
@@ -102,6 +102,7 @@ export interface FileListProps {
     height: number;
     width: number;
     listBorderRadius?: string;
+    gridLayout?: "map";
     annotatedFiles: FileListAnnotatedFile[];
     mode?: GalleryBarMode;
     modePlus?: GalleryBarMode | "search";
@@ -137,6 +138,7 @@ export const FileList: React.FC<FileListProps> = ({
     height,
     width,
     listBorderRadius,
+    gridLayout,
     mode,
     modePlus,
     header,
@@ -186,10 +188,26 @@ export const FileList: React.FC<FileListProps> = ({
     const listRef = useRef<VariableSizeList | null>(null);
     const outerRef = useRef<HTMLDivElement | null>(null);
 
-    const layoutParams = useMemo(
-        () => computeThumbnailGridLayoutParams(width),
-        [width],
-    );
+    const layoutParams = useMemo(() => {
+        if (gridLayout !== "map")
+            return computeThumbnailGridLayoutParams(width);
+        const columns = 3;
+        const paddingInline = 20;
+        const itemWidth = Math.max(
+            0,
+            (width - 2 * paddingInline - (columns - 1) * thumbnailGap) /
+                columns,
+        );
+        return {
+            containerWidth: width,
+            isSmallerLayout: true,
+            paddingInline,
+            columns,
+            itemWidth,
+            itemHeight: itemWidth,
+            gap: thumbnailGap,
+        };
+    }, [width, gridLayout]);
 
     useEffect(() => {
         // Defer resize-heavy list rebuilds so React can discard stale renders.
@@ -290,13 +308,14 @@ export const FileList: React.FC<FileListProps> = ({
 
         if (!annotatedFiles.length) {
             items.push({
-                height: height - 48,
+                height: Math.max(
+                    340,
+                    height - (header?.height ?? 0) - (footer?.height ?? 0),
+                ),
                 type: "span",
                 component: (
                     <NoFilesListItem>
-                        <Typography sx={{ color: "text.faint" }}>
-                            {t("nothing_here")}
-                        </Typography>
+                        <AlbumEmptyState />
                     </NoFilesListItem>
                 ),
             });

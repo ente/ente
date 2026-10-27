@@ -50,6 +50,7 @@ import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/similar_images_service.dart";
 import "package:photos/services/memory_share_service.dart";
+import 'package:photos/services/notification_key_service.dart';
 import "package:photos/services/notification_service.dart";
 import 'package:photos/services/photos_contacts_service.dart';
 import 'package:photos/services/search_service.dart';
@@ -148,6 +149,9 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       // https://github.com/mogol/flutter_secure_storage/issues/541
       if (e is PlatformException) {
         final PlatformException error = e;
+        if (error.code == 'notification_key_store') {
+          rethrow;
+        }
         final bool isBadPaddingError =
             error.toString().contains('BadPaddingException') ||
             (error.message ?? '').contains('BadPaddingException');
@@ -199,9 +203,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     _logger.info("Logging out, autoLogout: $autoLogout");
     MLService.instance.stopActiveRun(MlStopReason.logout);
     if (!autoLogout) {
-      if (flagService.stopStreamProcess) {
-        VideoPreviewService.instance.stop('logout');
-      }
+      VideoPreviewService.instance.stop('logout');
       if (SyncService.instance.isSyncInProgress()) {
         SyncService.instance.stopSync();
         try {
@@ -214,6 +216,9 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       }
     }
 
+    if (Platform.isIOS) {
+      await NotificationKeyService.setNotificationPrivateKey(null);
+    }
     await _clearTempFolderOnLogout();
 
     await _preferences.clear();

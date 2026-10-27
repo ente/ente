@@ -31,7 +31,14 @@ import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class LocationScreen extends StatefulWidget {
   final String tagPrefix;
-  const LocationScreen({this.tagPrefix = "", super.key});
+  final List<EnteFile>? initialFiles;
+  final String? coverHeroTag;
+  const LocationScreen({
+    this.tagPrefix = "",
+    this.initialFiles,
+    this.coverHeroTag,
+    super.key,
+  });
 
   @override
   State<LocationScreen> createState() => _LocationScreenState();
@@ -59,6 +66,8 @@ class _LocationScreenState extends State<LocationScreen> {
             body: LocationGalleryWidget(
               tagPrefix: widget.tagPrefix,
               selectedFiles: selectedFiles,
+              initialFiles: widget.initialFiles,
+              coverHeroTag: widget.coverHeroTag,
             ),
           ),
         ),
@@ -69,10 +78,14 @@ class _LocationScreenState extends State<LocationScreen> {
 
 class LocationGalleryWidget extends StatefulWidget {
   final String tagPrefix;
+  final List<EnteFile>? initialFiles;
+  final String? coverHeroTag;
   final SelectedFiles selectedFiles;
   const LocationGalleryWidget({
     required this.tagPrefix,
     required this.selectedFiles,
+    this.initialFiles,
+    this.coverHeroTag,
     super.key,
   });
 
@@ -85,7 +98,8 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
   late final List<EnteFile> allFilesWithLocation;
 
   final _selectedFiles = SelectedFiles();
-  late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdateEvent;
+  final _coverAppBarKey = GlobalKey();
+  StreamSubscription<LocalPhotosUpdatedEvent>? _filesUpdateEvent;
   @override
   void initState() {
     super.initState();
@@ -105,6 +119,7 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
         )
         .then((value) {
           allFilesWithLocation = value.files;
+          if (!mounted) return value;
           _filesUpdateEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen(
             (event) {
               if (event.type == EventType.deletedFromDevice ||
@@ -127,7 +142,7 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
   @override
   void dispose() {
     InheritedLocationScreenState.memoryCountNotifier.value = null;
-    _filesUpdateEvent.cancel();
+    _filesUpdateEvent?.cancel();
     super.dispose();
   }
 
@@ -142,14 +157,9 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
     final centerPoint = InheritedLocationScreenState.of(
       context,
     ).locationTagEntity.item.centerPoint;
-    final appBar = GalleryAppBarWidget.sliverConfig(
-      GalleryType.locationTag,
-      locationTag.name,
-      _selectedFiles,
-    );
-
     Future<FileLoadResult> filterFiles() async {
       await fileLoadResult;
+      if (!mounted) return FileLoadResult([], false);
       final stopWatch = Stopwatch()..start();
       final filesInLocation = allFilesWithLocation;
       filesInLocation.removeWhere((f) {
@@ -169,9 +179,21 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
       return Future.value(FileLoadResult(filesInLocation, false));
     }
 
-    return FutureBuilder(
+    return FutureBuilder<FileLoadResult>(
       key: ValueKey("$centerPoint$selectedRadius"),
       builder: (context, snapshot) {
+        final files = snapshot.data?.files;
+        final appBar = GalleryAppBarWidget.sliverConfig(
+          GalleryType.locationTag,
+          locationTag.name,
+          _selectedFiles,
+          coverAppBarKey: _coverAppBarKey,
+          cover: files == null
+              ? widget.initialFiles?.firstOrNull
+              : files.firstOrNull,
+          coverHeroTag: widget.coverHeroTag,
+          files: files ?? widget.initialFiles,
+        );
         if (snapshot.hasData) {
           return SelectionState(
             selectedFiles: _selectedFiles,
@@ -187,7 +209,7 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
                       builder: (context, value, _) {
                         return value
                             ? HierarchicalSearchGallery(
-                                tagPrefix: widget.tagPrefix,
+                                tagPrefix: "${widget.tagPrefix}_files",
                                 selectedFiles: _selectedFiles,
                                 appBar: appBar,
                               )
@@ -209,7 +231,7 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
                                       limit,
                                       asc,
                                     }) async {
-                                      return snapshot.data as FileLoadResult;
+                                      return snapshot.data!;
                                     },
                                 reloadEvent: Bus.instance
                                     .on<LocalPhotosUpdatedEvent>(),
@@ -218,7 +240,7 @@ class _LocationGalleryWidgetState extends State<LocationGalleryWidget> {
                                   EventType.deletedFromEverywhere,
                                 },
                                 selectedFiles: _selectedFiles,
-                                tagPrefix: widget.tagPrefix,
+                                tagPrefix: "${widget.tagPrefix}_files",
                               );
                       },
                     );

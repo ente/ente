@@ -43,6 +43,7 @@ type CollectionLinkController struct {
 	EmailNotificationCtrl *emailCtrl.EmailNotificationController
 	CollectionLinkRepo    *public.CollectionLinkRepo
 	FileLinkRepo          *public.FileLinkRepository
+	MemoryShareRepo       *repo.MemoryShareRepository
 	CollectionRepo        *repo.CollectionRepository
 	UserRepo              *repo.UserRepository
 	JwtSecret             []byte
@@ -212,7 +213,11 @@ func (c *CollectionLinkController) HandleAccountDeletion(ctx context.Context, us
 			return stacktrace.Propagate(err, "")
 		}
 	}
-	return c.FileLinkRepo.DisableLinksForUser(ctx, userID)
+	err = c.FileLinkRepo.DisableLinksForUser(ctx, userID)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	return c.MemoryShareRepo.DeleteForUser(ctx, userID)
 }
 
 func (c *CollectionLinkController) GetPublicCollection(ctx *gin.Context, mustAllowCollect bool) (ente.Collection, error) {

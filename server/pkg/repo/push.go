@@ -15,13 +15,17 @@ type PushTokenRepository struct {
 }
 
 func (repo *PushTokenRepository) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
-	result, err := repo.DB.Exec(`INSERT INTO push_tokens(user_id, fcm_token, apns_token, session_token_hash, platform)
-			SELECT user_id, $2, $3, token_hash, $5 FROM tokens
+	var publicKey any
+	if token.NotificationKey != nil {
+		publicKey = token.NotificationKey
+	}
+	result, err := repo.DB.Exec(`INSERT INTO push_tokens(user_id, fcm_token, apns_token, session_token_hash, platform, notification_public_key)
+			SELECT user_id, $2, $3, token_hash, $5, $6 FROM tokens
 			WHERE user_id = $1 AND token_hash = $4 AND is_deleted = false FOR SHARE
 			ON CONFLICT (fcm_token) DO UPDATE
 			SET user_id = EXCLUDED.user_id, apns_token = EXCLUDED.apns_token, session_token_hash = EXCLUDED.session_token_hash,
-				platform = EXCLUDED.platform`,
-		userID, token.FCMToken, token.APNSToken, sessionTokenHash, token.Platform)
+				platform = EXCLUDED.platform, notification_public_key = EXCLUDED.notification_public_key`,
+		userID, token.FCMToken, token.APNSToken, sessionTokenHash, token.Platform, publicKey)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

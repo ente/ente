@@ -1,1 +1,0 @@
-- Improved the logout confirmation on the lock screen.

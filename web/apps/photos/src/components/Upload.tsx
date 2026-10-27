@@ -21,7 +21,7 @@ import {
     uploadManager,
 } from "@/services/upload-manager";
 import watcher from "@/services/watch";
-import DiscFullIcon from "@mui/icons-material/DiscFull";
+import { Database02Icon } from "@hugeicons/core-free-icons";
 import { Dialog, type DialogProps } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
@@ -1115,7 +1115,6 @@ export const Upload: React.FC<UploadProps> = ({
             case subscriptionExpiredErrorMessage:
                 showNotification({
                     color: "critical",
-                    captionFirst: true,
                     caption: t("subscription_expired"),
                     title: t("renew_now"),
                     onClick: () =>
@@ -1125,17 +1124,17 @@ export const Upload: React.FC<UploadProps> = ({
             case storageLimitExceededErrorMessage:
                 showNotification({
                     color: "critical",
-                    captionFirst: true,
                     caption: t("storage_quota_exceeded"),
                     title: t("upgrade_now"),
                     onClick: onShowPlanSelector,
-                    startIcon: <DiscFullIcon />,
+                    startIcon: Database02Icon,
                 });
                 break;
             default:
                 showNotification({
                     color: "critical",
-                    title: t("generic_error_retry"),
+                    title: t("upload_reason_failed"),
+                    caption: t("generic_error_retry"),
                 });
         }
     };
@@ -1257,7 +1256,6 @@ export const Upload: React.FC<UploadProps> = ({
             />
             <SingleInputDialog
                 {...newAlbumNameInputVisibilityProps}
-                variant="v2"
                 onClose={handleNewAlbumNameInputClose}
                 title={t("new_album")}
                 label={t("album_name")}

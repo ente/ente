@@ -216,3 +216,26 @@ test("closing or pausing a loading preview cancels its timeout", async () => {
     await vi.advanceTimersByTimeAsync(30_000);
     expect(onError).not.toHaveBeenCalled();
 });
+
+test("offset videos preview zero-based editor times on the source timeline", () => {
+    playback.dispose();
+    range = { start: 0.5, end: 2 };
+    playback = createVideoTrimPlayback(
+        video as unknown as HTMLVideoElement,
+        () => range,
+        onError,
+        5,
+    );
+    playback.seek(1);
+    expect(video.currentTime).toBe(6);
+    playback.toggle();
+    expect(video.currentTime).toBe(5.5);
+    video.currentTime = 6.25;
+    playback.toggle();
+    playback.toggle();
+    expect(video.currentTime).toBe(6.25);
+    video.currentTime = 7.01;
+    renderFrame();
+    expect(video.paused).toBe(true);
+    expect(video.currentTime).toBe(5.5);
+});

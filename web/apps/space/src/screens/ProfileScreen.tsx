@@ -362,10 +362,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
     const shouldShowCoverSkeleton =
         isCoverLoading || isCoverURLPending || isCoverImageLoading;
-    const selectedPostActionMode: SpaceViewerPostActionMode =
-        isOwnerProfile || (isPublicProfile && !onAddFriendForPostAction)
-            ? "hidden"
-            : "like-only";
+    const selectedPostActionMode: SpaceViewerPostActionMode = isOwnerProfile
+        ? "likes"
+        : isPublicProfile && !onAddFriendForPostAction
+          ? "hidden"
+          : "like-only";
     const postImageLoadRootMargin = isAnonymousPublicProfile
         ? publicProfilePostLoadRootMargin
         : profilePostLoadRootMargin;

@@ -1,0 +1,1 @@
+- Updated the dio_http2_adapter dependency to 2.8.0.

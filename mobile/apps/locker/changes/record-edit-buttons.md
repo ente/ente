@@ -1,1 +1,0 @@
-- Updated edit buttons for notes, secrets, things, and emergency contacts to match other toolbar buttons.

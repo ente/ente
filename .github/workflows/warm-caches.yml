@@ -66,11 +66,11 @@ jobs:
                       ~/.cache/go-build
                       ~/.cache/.theseus/postgresql
 
-            - run: cargo test --locked --workspace --exclude ente-cli-next --features museum,ente-ml/ml-assets
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets
               env:
                   GITHUB_TOKEN: ${{ github.token }}
 
-            - run: cargo test --locked -p ente-cli-next --features museum --no-run
+            - run: cargo test --locked -p ente-cli --features museum --no-run
 
             - run: node .github/actions/restore-rust-target/mtimes.mjs save
               working-directory: ${{ github.workspace }}
@@ -111,7 +111,7 @@ jobs:
                   lookup-only: true
                   shared-key: rust-cli
 
-            - run: cargo test --locked -p ente-cli-next --test cli --no-run
+            - run: cargo test --locked -p ente-cli --test cli --no-run
 
             - run: node .github/actions/restore-rust-target/mtimes.mjs save
               working-directory: ${{ github.workspace }}

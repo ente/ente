@@ -11,7 +11,7 @@ Trusted Contacts can initiate a recovery, and if not blocked within the chosen w
 
 ## Adding a trusted contact
 
-You can add a trusted contact for your account using the mobile app for Ente Photos. Open `Settings > Account > Legacy`, and click on "Add Trusted Contact".
+You can add a trusted contact for your account using the Ente Photos mobile app. Open `Settings > Legacy` and tap **Add Trusted Contact**.
 
 You would be asked to enter the email address of the trusted contact you want to add or choose from a list of contacts on Ente. Please note that the trusted contact must be an Ente user.
 
@@ -21,7 +21,7 @@ You would be asked to enter the email address of the trusted contact you want to
 
 </div>
 
-The trusted contact must accept your request. They can do so by going to Settings -> Account -> Legacy in the Ente Photos mobile app, and clicking on your email address within the Legacy accounts sections. Ente would also send an email notification to the trusted contact to nudge them to accept the invite.
+The trusted contact must accept your request. They can open `Settings > Legacy` in the Ente Photos mobile app and tap your account in the Legacy section. Ente also sends them an email notification about the request.
 
 <div align="center">
 
@@ -31,7 +31,7 @@ The trusted contact must accept your request. They can do so by going to Setting
 
 ## Recovering an account as a trusted contact
 
-As a trusted contact, you can recover an account by going to Settings -> Account -> Legacy in the Ente photos app, tapping on the email address of the account within the Legacy account sections.
+As a trusted contact, open `Settings > Legacy` in the Ente Photos mobile app and tap the account you want to recover.
 
 <div align="center">
 
@@ -43,8 +43,8 @@ Once the recovery is initiated, the account owner would get 7, 14, or 30 days (a
 
 ## Blocking account recovery by a trusted contact
 
-After a trusted contact initiates a recover, you, as the account owner, would get 7, 14, or 30 days (as configured) to block the recovery. To do this, you must go to `Settings > Account > Legacy`, where you will see a message that recovery of the account has been initiated. Tapping on that will allow you to block the recovery.
+After a trusted contact starts recovery, you have 7, 14, or 30 days (as configured) to block it. Open `Settings > Legacy` in the Ente Photos mobile app and tap the recovery notice to block it.
 
 ## Removing a trusted contact
 
-You can remove a trusted contact by going to `Settings > Account > Legacy`, tapping on the trusted contact you want to remove, and choosing "Remove" in the popup.
+Open `Settings > Legacy` in the Ente Photos mobile app, tap the trusted contact, and select **Remove**.

@@ -72,7 +72,7 @@ const update = () => {
                 video.active &&
                 (interactedPost ?? focusedPost)?.contains(video.element),
         );
-    if (next && next != selected && next != manual) {
+    if (next && next != selected && next != manual && !interactedPost) {
         if (pending != next) {
             pending = next;
             clearTimeout(selectionTimer);
@@ -99,6 +99,11 @@ const scheduleUpdate = () => {
     });
 };
 
+const handleScroll = () => {
+    interactedPost = undefined;
+    scheduleUpdate();
+};
+
 export const focusFeedPost = (element: HTMLElement) => {
     interactedPost = element;
     manual = undefined;
@@ -118,7 +123,7 @@ export const registerFeedPost = (element: HTMLElement) => {
             },
             { threshold: [0, 0.5, 1] },
         );
-        window.addEventListener("scroll", scheduleUpdate, { passive: true });
+        window.addEventListener("scroll", handleScroll, { passive: true });
         window.addEventListener("resize", scheduleUpdate);
         document.addEventListener("visibilitychange", update);
     }
@@ -140,7 +145,7 @@ export const registerFeedPost = (element: HTMLElement) => {
             clearTimeout(selectionTimer);
             selectionTimer = undefined;
             pending = undefined;
-            window.removeEventListener("scroll", scheduleUpdate);
+            window.removeEventListener("scroll", handleScroll);
             window.removeEventListener("resize", scheduleUpdate);
             document.removeEventListener("visibilitychange", update);
         }

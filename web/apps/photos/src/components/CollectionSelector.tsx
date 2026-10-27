@@ -1,13 +1,10 @@
 import {
-    CreateAlbumTile,
+    CollectionDialogTileButton as AlbumButton,
+    CollectionDialogTileCover as AlbumCover,
     CollectionDialogSearchField as SearchField,
-    CollectionTileButton as TileButton,
-    CollectionTileTextOverlay as TopGradientOverlay,
 } from "@/components/CollectionDialog/Primitives";
 import {
     collectionDialogFullScreenQuery,
-    collectionDialogBodyMutedSx as countSx,
-    collectionDialogDividerSx as dividerSx,
     collectionDialogHeaderActionsSx as headerActionsSx,
     collectionDialogHeaderRowSx as headerRowSx,
     collectionDialogHeaderSx as headerSx,
@@ -17,8 +14,13 @@ import {
     collectionDialogTitleSx as titleSx,
 } from "@/components/CollectionDialog/styles";
 import { CollectionsSortOptions } from "@/components/CollectionsSortOptions";
+import {
+    Cancel01Icon,
+    Image01Icon,
+    ImageAdd02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import ArchiveIcon from "@mui/icons-material/Archive";
-import CloseIcon from "@mui/icons-material/Close";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import {
@@ -26,11 +28,15 @@ import {
     Dialog,
     IconButton,
     Stack,
-    Tooltip,
+    Tab,
+    Tabs,
     Typography,
     useMediaQuery,
+    type Theme,
 } from "@mui/material";
+import { CenteredFill } from "ente-base/components/containers";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { isSxArray } from "ente-base/components/utils/sx";
 import type { Collection } from "ente-media/collection";
 import { ItemCard } from "ente-new/photos/components/Tiles";
 import {
@@ -84,6 +90,10 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
     const isFullScreen = useMediaQuery(collectionDialogFullScreenQuery);
 
     const [searchTerm, setSearchTerm] = useState("");
+    const [scrollFade, setScrollFade] = useState(0);
+    const [category, setCategory] = useState<
+        "all" | "mine" | "shared" | "received"
+    >("all");
     const [sortBy, setSortBy] =
         useCollectionSelectorSortByLocalState("name-asc");
     const [filteredCollections, setFilteredCollections] = useState<
@@ -92,6 +102,8 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
 
     const handleExited = useCallback(() => {
         setSearchTerm("");
+        setScrollFade(0);
+        setCategory("all");
         onExited?.();
     }, [onExited]);
 
@@ -116,33 +128,17 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
                     return true;
                 }
 
-                const isUserFavorites =
-                    collectionSummary.type === "userFavorites";
-                if (
-                    attributes.action === "add" ||
-                    attributes.action === "move"
-                ) {
-                    return (
-                        canAddToCollection(collectionSummary) &&
-                        !isUserFavorites
-                    );
-                }
-                if (attributes.action === "upload") {
-                    return (
-                        (canAddToCollection(collectionSummary) ||
-                            collectionSummary.type === "uncategorized") &&
-                        !isUserFavorites
-                    );
-                }
-                if (attributes.action === "restore") {
-                    return (
-                        (canMoveToCollection(collectionSummary) ||
-                            collectionSummary.type === "uncategorized") &&
-                        !isUserFavorites
-                    );
-                }
+                if (collectionSummary.type === "userFavorites") return false;
+                const canSelect =
+                    attributes.action === "restore" ||
+                    attributes.action === "unhide"
+                        ? canMoveToCollection
+                        : canAddToCollection;
                 return (
-                    canMoveToCollection(collectionSummary) && !isUserFavorites
+                    canSelect(collectionSummary) ||
+                    ((attributes.action === "upload" ||
+                        attributes.action === "restore") &&
+                        collectionSummary.type === "uncategorized")
                 );
             },
         );
@@ -168,16 +164,31 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
     }, [collectionSummaries, attributes, open, onClose, sortBy, handleExited]);
 
     const searchFilteredCollections = useMemo(() => {
-        if (!searchTerm.trim()) return filteredCollections;
-        const searchLower = searchTerm.toLowerCase();
-        return filteredCollections.filter((collectionSummary) =>
-            collectionSummary.name.toLowerCase().includes(searchLower),
-        );
-    }, [filteredCollections, searchTerm]);
+        const searchLower = searchTerm.trim() ? searchTerm.toLowerCase() : "";
+        return filteredCollections.filter((collectionSummary) => {
+            const { attributes } = collectionSummary;
+            const isReceived = attributes.has("sharedIncoming");
+            const matchesCategory =
+                category == "all" ||
+                (category == "mine" && !isReceived) ||
+                (category == "shared" &&
+                    !isReceived &&
+                    (attributes.has("sharedOutgoing") ||
+                        attributes.has("sharedViaLink"))) ||
+                (category == "received" && isReceived);
+            return (
+                matchesCategory &&
+                collectionSummary.name.toLowerCase().includes(searchLower)
+            );
+        });
+    }, [filteredCollections, searchTerm, category]);
 
     const showCreateButton =
-        !searchTerm.trim() ||
-        t("create_albums").toLowerCase().includes(searchTerm.toLowerCase());
+        (category == "all" || category == "mine") &&
+        (!searchTerm.trim() ||
+            t("create_albums")
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase()));
 
     if (!filteredCollections.length || !attributes) return null;
 
@@ -201,29 +212,50 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
             fullScreen={isFullScreen}
             maxWidth={false}
             slotProps={{
-                paper: { sx: paperSx },
+                paper: {
+                    sx: [
+                        ...(isSxArray(paperSx) ? paperSx : [paperSx]),
+                        {
+                            width: isFullScreen
+                                ? "100%"
+                                : "min(600px, calc(100svw - 64px))",
+                            maxWidth: isFullScreen ? "100%" : 600,
+                            maxHeight: isFullScreen
+                                ? "100%"
+                                : "min(600px, calc(100svh - 64px))",
+                            boxSizing: "border-box",
+                        },
+                    ],
+                },
                 transition: { onExited: handleExited },
             }}
         >
-            <Stack sx={headerSx}>
-                <Stack direction="row" sx={headerRowSx}>
-                    <Stack sx={{ minWidth: 0, gap: "2px" }}>
-                        <Typography sx={titleSx}>
-                            {collectionSelectorTitle(action)}
-                        </Typography>
-                        <Typography sx={countSx}>
-                            {searchTerm
-                                ? `${searchFilteredCollections.length} / ${filteredCollections.length} ${t("albums")}`
-                                : t("albums_count", {
-                                      count: filteredCollections.length,
-                                  })}
-                        </Typography>
-                    </Stack>
+            <Stack
+                sx={{
+                    ...headerSx,
+                    gap: "20px",
+                    pb: 0,
+                    position: "relative",
+                    zIndex: 1,
+                    flexShrink: 0,
+                }}
+            >
+                <Stack
+                    direction="row"
+                    sx={{ ...headerRowSx, alignItems: "center" }}
+                >
+                    <Typography
+                        sx={{
+                            ...titleSx,
+                            fontFamily: '"Outfit Variable", sans-serif',
+                        }}
+                    >
+                        {collectionSelectorTitle(action)}
+                    </Typography>
                     <Stack direction="row" sx={headerActionsSx}>
                         <CollectionsSortOptions
                             activeSortBy={sortBy}
                             onChangeSortBy={setSortBy}
-                            nestedInDialog
                             variant="v2"
                         />
                         <IconButton
@@ -231,13 +263,32 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
                             onClick={handleClose}
                             sx={iconButtonSx}
                         >
-                            <CloseIcon sx={{ fontSize: 18 }} />
+                            <HugeiconsIcon icon={Cancel01Icon} size={18} />
                         </IconButton>
                     </Stack>
                 </Stack>
-                <SearchField value={searchTerm} onChange={setSearchTerm} />
+                <Stack sx={{ gap: "16px" }}>
+                    <SearchField value={searchTerm} onChange={setSearchTerm} />
+                    <Tabs
+                        value={category}
+                        onChange={(_, value: typeof category) =>
+                            setCategory(value)
+                        }
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        aria-label={t("filter_albums")}
+                        sx={categoryTabsSx}
+                    >
+                        <Tab value="all" label={t("all")} />
+                        <Tab value="mine" label="Ente" />
+                        <Tab value="shared" label={t("shared_albums_label")} />
+                        <Tab
+                            value="received"
+                            label={t("received_albums_label")}
+                        />
+                    </Tabs>
+                </Stack>
             </Stack>
-            <Box sx={dividerSx} />
             {searchFilteredCollections.length === 0 && !showCreateButton ? (
                 <Box sx={noResultsSx}>
                     <Typography sx={{ color: "text.muted" }}>
@@ -245,15 +296,32 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
                     </Typography>
                 </Box>
             ) : (
-                <Box sx={gridSx}>
+                <Box
+                    sx={gridSx}
+                    style={{
+                        maskImage: `linear-gradient(to bottom, rgba(0, 0, 0, ${1 - scrollFade}), #000 64px)`,
+                    }}
+                    onScroll={(event) =>
+                        setScrollFade(
+                            Math.min(
+                                Math.max(event.currentTarget.scrollTop, 0) / 32,
+                                1,
+                            ),
+                        )
+                    }
+                >
                     {showCreateButton && (
-                        <CreateAlbumTile onClick={onCreateCollection} />
+                        <AlbumTile onClick={onCreateCollection} />
                     )}
                     {searchFilteredCollections.map((collectionSummary) => (
-                        <CollectionSummaryButton
+                        <AlbumTile
                             key={collectionSummary.id}
                             collectionSummary={collectionSummary}
-                            onClick={handleCollectionSummaryClick}
+                            onClick={() =>
+                                void handleCollectionSummaryClick(
+                                    collectionSummary.id,
+                                )
+                            }
                         />
                     ))}
                 </Box>
@@ -262,20 +330,16 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
     );
 };
 
-const collectionSelectorTitle = (action: CollectionSelectorAction) => {
-    switch (action) {
-        case "upload":
-            return t("upload_to_album");
-        case "add":
-            return t("add_to_album");
-        case "move":
-            return t("move_to_album");
-        case "restore":
-            return t("restore_to_album");
-        case "unhide":
-            return t("unhide_to_album");
-    }
-};
+const collectionSelectorTitle = (action: CollectionSelectorAction) =>
+    t(
+        {
+            upload: "upload_to_album",
+            add: "add_to_album",
+            move: "move_to_album",
+            restore: "restore_to_album",
+            unhide: "unhide_to_album",
+        }[action],
+    );
 
 const useCollectionSelectorSortByLocalState = (
     initialValue: CollectionsSortBy,
@@ -298,77 +362,134 @@ const useCollectionSelectorSortByLocalState = (
     return [value, setter] as const;
 };
 
+const categoryTabsSx = (theme: Theme) => ({
+    minHeight: 26,
+    borderBottom: "1px solid",
+    borderColor: "rgba(0 0 0 / 0.04)",
+    ...theme.applyStyles("dark", { borderColor: "rgba(255 255 255 / 0.06)" }),
+    "& .MuiTabs-list": { gap: "24px", px: "4px" },
+    "& .MuiTabs-indicator": {
+        height: 2,
+        borderRadius: "1px",
+        bgcolor: "text.base",
+    },
+    "& .MuiTab-root": {
+        minWidth: 0,
+        minHeight: 26,
+        p: "0 0 8px",
+        fontSize: 13,
+        lineHeight: "16px",
+        fontWeight: 500,
+        textTransform: "none",
+        color: "text.muted",
+        "&.Mui-selected": { color: "text.base", fontWeight: 600 },
+    },
+});
+
 const gridSx = {
     flex: 1,
     minHeight: 0,
     p: "16px 20px 20px",
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(4, minmax(0, 124px))",
+    justifyContent: "space-between",
+    "@media (width < 600px)": {
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    },
+    "@media (width < 360px)": {
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    },
     gridAutoRows: "max-content",
-    gap: "8px",
+    columnGap: "16px",
+    rowGap: "24px",
     alignContent: "start",
     overflowY: "auto",
 };
-interface CollectionSummaryButtonProps {
-    collectionSummary: CollectionSummary;
-    onClick: (collectionSummaryID: number) => void;
-}
-
-const CollectionSummaryButton: React.FC<CollectionSummaryButtonProps> = ({
-    collectionSummary,
-    onClick,
-}) => {
-    const isFavorite = collectionSummary.type === "userFavorites";
+const AlbumTile: React.FC<{
+    collectionSummary?: CollectionSummary;
+    onClick: () => void;
+}> = ({ collectionSummary, onClick }) => {
+    const isFavorite = collectionSummary?.type === "userFavorites";
     const isPinned =
-        collectionSummary.attributes.has("pinned") ||
-        collectionSummary.attributes.has("shareePinned");
-    const isArchived = collectionSummary.attributes.has("archived");
+        collectionSummary?.attributes.has("pinned") ||
+        collectionSummary?.attributes.has("shareePinned");
+    const isArchived = collectionSummary?.attributes.has("archived");
+    const name = collectionSummary?.name ?? t("new_album");
+    const emptyCover = (
+        <CenteredFill
+            sx={{ position: "absolute", inset: 0, color: "text.muted" }}
+        >
+            <HugeiconsIcon
+                icon={collectionSummary ? Image01Icon : ImageAdd02Icon}
+                size={36}
+                strokeWidth={1.5}
+            />
+        </CenteredFill>
+    );
 
     return (
-        <ItemCard
-            TileComponent={TileButton}
-            coverFile={collectionSummary.coverFile}
-            onClick={() => onClick(collectionSummary.id)}
+        <AlbumButton
+            title={collectionSummary?.name}
+            aria-label={collectionSummary ? undefined : name}
+            onClick={onClick}
         >
-            <TopGradientOverlay>
-                <Tooltip title={collectionSummary.name} arrow>
+            {collectionSummary ? (
+                <ItemCard
+                    TileComponent={AlbumCover}
+                    coverFile={collectionSummary.coverFile}
+                >
+                    {!collectionSummary.coverFile && emptyCover}
+                    {(isFavorite || isPinned || isArchived) && (
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                bottom: 8,
+                                left: 8,
+                                display: "flex",
+                                gap: 0.5,
+                                color: "white",
+                                filter: "drop-shadow(0 1px 2px rgba(0,0,0,.4))",
+                            }}
+                        >
+                            {isFavorite && (
+                                <FavoriteIcon sx={{ fontSize: 16 }} />
+                            )}
+                            {isPinned && <PushPinIcon sx={{ fontSize: 16 }} />}
+                            {isArchived && (
+                                <ArchiveIcon sx={{ fontSize: 16 }} />
+                            )}
+                        </Box>
+                    )}
+                </ItemCard>
+            ) : (
+                <AlbumCover>{emptyCover}</AlbumCover>
+            )}
+            <Stack
+                component="span"
+                sx={{ minWidth: 0, width: "100%", gap: "2px" }}
+            >
+                <Typography component="span" noWrap sx={albumNameSx}>
+                    {name}
+                </Typography>
+                {collectionSummary && (
                     <Typography
+                        component="span"
+                        noWrap
                         sx={{
-                            fontSize: 14,
-                            lineHeight: "20px",
+                            fontSize: 12,
+                            lineHeight: "16px",
                             fontWeight: 500,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical",
+                            color: "text.muted",
                         }}
                     >
-                        {collectionSummary.name}
+                        {t("album_items_count", {
+                            count: collectionSummary.fileCount,
+                        })}
                     </Typography>
-                </Tooltip>
-            </TopGradientOverlay>
-            {(isFavorite || isPinned || isArchived) && (
-                <Box
-                    sx={{
-                        position: "absolute",
-                        bottom: 8,
-                        right: 8,
-                        display: "flex",
-                        gap: 0.5,
-                    }}
-                >
-                    {isFavorite && (
-                        <FavoriteIcon sx={{ fontSize: 20, color: "white" }} />
-                    )}
-                    {isPinned && (
-                        <PushPinIcon sx={{ fontSize: 20, color: "white" }} />
-                    )}
-                    {isArchived && (
-                        <ArchiveIcon sx={{ fontSize: 20, color: "white" }} />
-                    )}
-                </Box>
-            )}
-        </ItemCard>
+                )}
+            </Stack>
+        </AlbumButton>
     );
 };
+
+const albumNameSx = { fontSize: 14, lineHeight: "20px", fontWeight: 500 };

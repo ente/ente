@@ -23,6 +23,7 @@ import "package:photos/theme/text_style.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/components/toggle_switch_widget.dart";
+import "package:photos/ui/tools/similar_image_file_info.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -804,7 +805,6 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
     List<EnteFile> allFiles,
     int index,
   ) {
-    final textTheme = getEnteTextTheme(context);
     return ListenableBuilder(
       listenable: _selectedFiles,
       builder: (context, _) {
@@ -883,14 +883,10 @@ class _SimilarImagesPageState extends State<SimilarImagesPage> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                file.displayName,
-                style: textTheme.small,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              SimilarImageFileInfo(
+                displayName: file.displayName,
+                fileSize: file.fileSize,
               ),
-              const SizedBox(height: 2),
-              Text(formatBytes(file.fileSize!), style: textTheme.miniMuted),
               const SizedBox(height: 16),
             ],
           ),

@@ -64,11 +64,15 @@ impl LoginFlow {
             return Err(Error::InvalidInput("Password is not expected".into()));
         };
         if let Some(response) = response {
+            let attributes = response
+                .key_attributes
+                .as_ref()
+                .ok_or(Error::MissingKeyAttributes)?;
             let kek = derive_kek(
                 password,
-                &self.attributes.kek_salt,
-                self.attributes.mem_limit,
-                self.attributes.ops_limit,
+                &attributes.kek_salt,
+                attributes.mem_limit,
+                attributes.ops_limit,
             )?;
             let account = build_authenticated_account(response, &kek)?;
             self.state = State::Complete;

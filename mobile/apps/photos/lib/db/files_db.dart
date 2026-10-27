@@ -1293,7 +1293,7 @@ class FilesDB with SqlDbBase {
     int userID,
   ) async {
     final db = await sqliteAsyncDB;
-    final List<String> hashes = [];
+    final hashes = <String>{};
     for (final file in files) {
       if (file.hash != null && file.hash != '') {
         hashes.add(file.hash!);
@@ -1302,11 +1302,23 @@ class FilesDB with SqlDbBase {
     if (hashes.isEmpty) {
       return {};
     }
-    final inParam = hashes.map((e) => "'$e'").join(',');
-    final rows = await db.getAll('''
-      SELECT * FROM $filesTable WHERE $columnHash IN ($inParam) AND $columnOwnerID = $userID;
-      ''');
-    final matchedFiles = convertToFiles(rows);
+
+    const maxInParams = 900;
+    final hashList = hashes.toList(growable: false);
+    final matchedFiles = <EnteFile>[];
+    for (var i = 0; i < hashList.length; i += maxInParams) {
+      final end = min(i + maxInParams, hashList.length);
+      final chunk = hashList.sublist(i, end);
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final rows = await db.getAll(
+        '''
+        SELECT * FROM $filesTable
+        WHERE $columnHash IN ($placeholders) AND $columnOwnerID = ?;
+        ''',
+        [...chunk, userID],
+      );
+      matchedFiles.addAll(convertToFiles(rows));
+    }
     return Map.fromIterable(matchedFiles, key: (e) => e.hash);
   }
 

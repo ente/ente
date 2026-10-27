@@ -3,19 +3,11 @@ import {
     findLargeFiles,
     largeFilesInitialState,
     largeFilesReducer,
+    MIN_LARGE_FILE_SIZE,
     type LargeFileFilter,
     type LargeFileItem,
 } from "@/services/large-files";
-import ImageIcon from "@mui/icons-material/Image";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import {
-    Box,
-    Chip,
-    LinearProgress,
-    Stack,
-    styled,
-    Typography,
-} from "@mui/material";
+import { Box, LinearProgress, Stack, styled, Typography } from "@mui/material";
 import { CenteredFill, Overlay } from "ente-base/components/containers";
 import { ActivityErrorIndicator } from "ente-base/components/ErrorIndicator";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
@@ -28,10 +20,7 @@ import {
     ItemCard,
     LargeFileTileOverlay,
 } from "ente-new/photos/components/Tiles";
-import {
-    computeThumbnailGridLayoutParams,
-    type ThumbnailGridLayoutParams,
-} from "ente-new/photos/components/utils/thumbnail-grid-layout";
+import type { ThumbnailGridLayoutParams } from "ente-new/photos/components/utils/thumbnail-grid-layout";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import React, {
@@ -171,8 +160,21 @@ export function LargeFilesView({ onRemoteFilesPull }: LargeFilesViewProps) {
     })();
 
     return (
-        <Stack sx={{ flex: 1, minHeight: 0 }}>
+        <Stack
+            sx={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                px: { xs: 2, md: "36px" },
+                pb: { xs: 2, md: "36px" },
+                pt: 0,
+                gap: 3,
+            }}
+        >
             <Navbar
+                largeFiles={state.largeFiles}
+                analysisCompleted={state.analysisStatus === "completed"}
+                disabled={state.deleteProgress !== undefined}
                 filter={state.filter}
                 onChangeFilter={(filter) =>
                     dispatch({ type: "changeFilter", filter })
@@ -193,26 +195,68 @@ export function LargeFilesView({ onRemoteFilesPull }: LargeFilesViewProps) {
 }
 
 interface NavbarProps {
+    largeFiles: LargeFileItem[];
+    analysisCompleted: boolean;
+    disabled: boolean;
     filter: LargeFileFilter;
     onChangeFilter: (filter: LargeFileFilter) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ filter, onChangeFilter }) => {
+const Navbar: React.FC<NavbarProps> = ({
+    largeFiles,
+    analysisCompleted,
+    disabled,
+    filter,
+    onChangeFilter,
+}) => {
+    const totalSize = useMemo(
+        () => largeFiles.reduce((sum, item) => sum + item.size, 0),
+        [largeFiles],
+    );
     return (
-        <Stack>
+        <Stack
+            direction={{ xs: "column", sm: "row" }}
+            sx={{
+                gap: 2,
+                justifyContent: "space-between",
+                alignItems: { sm: "center" },
+            }}
+        >
+            <Stack sx={{ gap: "2px" }}>
+                <Typography
+                    component="h1"
+                    sx={{
+                        fontFamily: '"Outfit Variable", sans-serif',
+                        fontSize: 24,
+                        lineHeight: "32px",
+                        fontWeight: 600,
+                    }}
+                >
+                    {t("large_files_title")}
+                </Typography>
+                {analysisCompleted && (
+                    <Typography
+                        sx={{
+                            color: "text.muted",
+                            fontSize: 13,
+                            lineHeight: "19px",
+                            fontWeight: 400,
+                        }}
+                    >
+                        {t("large_files_summary", {
+                            count: largeFiles.length,
+                            threshold: formattedByteSize(MIN_LARGE_FILE_SIZE),
+                            size: formattedByteSize(totalSize),
+                        })}
+                    </Typography>
+                )}
+            </Stack>
             <Stack
                 direction="row"
-                sx={(theme) => ({
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px 24px",
-                    minHeight: "56px",
-                    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-                })}
+                sx={{ gap: 1, alignItems: "center", flexWrap: "wrap" }}
             >
-                <Typography variant="h6">{t("large_files_title")}</Typography>
+                <FilterChips {...{ filter, onChangeFilter, disabled }} />
             </Stack>
-            <FilterChips {...{ filter, onChangeFilter }} />
         </Stack>
     );
 };
@@ -220,45 +264,43 @@ const Navbar: React.FC<NavbarProps> = ({ filter, onChangeFilter }) => {
 interface FilterChipsProps {
     filter: LargeFileFilter;
     onChangeFilter: (filter: LargeFileFilter) => void;
+    disabled: boolean;
 }
-
-const filterChipSx = (isSelected: boolean, hasIcon: boolean) => ({
-    height: { xs: 28, sm: 32 },
-    fontSize: { xs: "0.75rem", sm: "0.8125rem" },
-    ...(hasIcon
-        ? { pl: { xs: 1, sm: 1.5 }, pr: { xs: 0.5, sm: 1 } }
-        : { px: { xs: 1, sm: 1.5 } }),
-    ...(!isSelected && { backgroundColor: "rgba(255, 255, 255, 0.12)" }),
-});
 
 const FilterChips: React.FC<FilterChipsProps> = ({
     filter,
     onChangeFilter,
+    disabled,
 }) => (
-    <Stack direction="row" sx={{ gap: 1, px: 3, py: 4, flexWrap: "wrap" }}>
-        <Chip
-            label={t("all")}
-            variant={filter === "all" ? "filled" : "outlined"}
-            color={filter === "all" ? "primary" : "default"}
-            onClick={() => onChangeFilter("all")}
-            sx={filterChipSx(filter === "all", false)}
-        />
-        <Chip
-            icon={<ImageIcon sx={{ fontSize: "18px !important" }} />}
-            label={t("photos")}
-            variant={filter === "photos" ? "filled" : "outlined"}
-            color={filter === "photos" ? "primary" : "default"}
-            onClick={() => onChangeFilter("photos")}
-            sx={filterChipSx(filter === "photos", true)}
-        />
-        <Chip
-            icon={<VideocamIcon sx={{ fontSize: "18px !important" }} />}
-            label={t("videos")}
-            variant={filter === "videos" ? "filled" : "outlined"}
-            color={filter === "videos" ? "primary" : "default"}
-            onClick={() => onChangeFilter("videos")}
-            sx={filterChipSx(filter === "videos", true)}
-        />
+    <Stack direction="row" sx={{ gap: 1 }}>
+        {(["all", "photos", "videos"] as const).map((value) => (
+            <FocusVisibleButton
+                key={value}
+                variant="text"
+                disabled={disabled}
+                aria-pressed={filter === value}
+                onClick={() => onChangeFilter(value)}
+                sx={{
+                    minWidth: 0,
+                    height: 40,
+                    px: "18px",
+                    gap: "4px",
+                    borderRadius: "24px",
+                    fontSize: 12,
+                    lineHeight: "16px",
+                    fontWeight: 500,
+                    backgroundColor:
+                        filter === value ? "text.base" : "transparent",
+                    color: filter === value ? "background.paper" : "text.muted",
+                    "&:hover": {
+                        backgroundColor:
+                            filter === value ? "text.base" : "fill.faint",
+                    },
+                }}
+            >
+                {t(value)}
+            </FocusVisibleButton>
+        ))}
     </Stack>
 );
 
@@ -309,7 +351,15 @@ const LargeFiles: React.FC<LargeFilesProps> = ({
     onDeselectAll,
     filter,
 }) => (
-    <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
+    <Box
+        sx={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            position: "relative",
+            overflow: "hidden",
+        }}
+    >
         <Autosizer>
             {({ width, height }) => (
                 <LargeFilesGrid
@@ -361,10 +411,25 @@ const LargeFilesGrid: React.FC<LargeFilesGridProps> = ({
     onToggleSelection,
     onOpenViewer,
 }) => {
-    const layoutParams = useMemo(
-        () => computeThumbnailGridLayoutParams(width),
-        [width],
-    );
+    const layoutParams = useMemo(() => {
+        const gap = 4;
+        const isSmallerLayout = width < 600;
+        const targetItemWidth = isSmallerLayout ? 120 : 200;
+        const columns = Math.max(
+            2,
+            Math.floor((width + gap) / (targetItemWidth + gap)),
+        );
+        const itemWidth = Math.max(0, (width - (columns - 1) * gap) / columns);
+        return {
+            containerWidth: width,
+            isSmallerLayout,
+            paddingInline: 0,
+            columns,
+            itemWidth,
+            itemHeight: itemWidth,
+            gap,
+        };
+    }, [width]);
 
     const columns = layoutParams.columns;
     const dataRowCount = Math.ceil(largeFiles.length / columns);
@@ -540,9 +605,13 @@ const GridItem: React.FC<GridItemProps> = memo(({ item, onToggle, onOpen }) => {
             </ItemCard>
             <Check
                 type="checkbox"
+                aria-label={t("select_file", {
+                    filename: item.file.metadata.title,
+                })}
                 checked={checked}
                 onChange={handleCheckboxChange}
                 onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
             />
             {checked && <SelectedOverlay />}
         </TileContainer>
@@ -748,92 +817,58 @@ const LargeFileTile = styled("div")`
 
 const SizeLabel = styled(Typography)`
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.7) 0%,
-        transparent 100%
-    );
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 16px 6px 6px;
-    text-align: center;
-    font-size: 0.75rem;
+    padding: 3px 8px;
+    font-size: 12px;
+    line-height: 16px;
     font-weight: 500;
-    border-radius: 0 0 4px 4px;
-
-    @media (min-width: 600px) {
-        padding: 25px 8px 12px;
-        font-size: 1rem;
-    }
+    border-radius: 35px;
 `;
 
 // Safari requires block-level positioned pseudo-elements here.
 const Check = styled("input")(
     ({ theme }) => `
     appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
     position: absolute;
     z-index: 10;
     top: 0;
-    left: 0;
-    outline: none;
+    right: 0;
+    margin: 0;
     cursor: pointer;
-    width: 31px;
-    height: 31px;
+    width: 32px;
+    height: 32px;
     box-sizing: border-box;
-
-    @media (pointer: coarse) {
-        pointer-events: none;
-    }
-
     &::before {
         content: "";
         display: block;
-        width: 19px;
-        height: 19px;
-        background-color: ${theme.vars.palette.grey[300]};
+        position: absolute;
+        inset: 8px;
+        border: 1px solid ${theme.vars.palette.text.muted};
         border-radius: 50%;
-        margin: 6px;
-        transition: background-color 0.3s ease, opacity 0.3s ease;
-        position: relative;
+        background: rgba(255, 255, 255, 0.15);
     }
-
-    &::after {
+    &:checked::before {
+        background: ${theme.vars.palette.accent.main};
+        border-color: ${theme.vars.palette.accent.main};
+    }
+    &:checked::after {
         content: "";
-        display: block;
         position: absolute;
         top: 50%;
         left: 50%;
-        width: 5px;
-        height: 11px;
-        border: solid ${theme.vars.palette.grey[800]};
-        border-width: 0 2px 2px 0;
+        width: 4px;
+        height: 8px;
+        border: solid white;
+        border-width: 0 1.5px 1.5px 0;
         transform: translate(-50%, -60%) rotate(45deg);
-        transition: border-color 0.3s ease, opacity 0.3s ease;
-        transform-origin: center;
     }
-
-    visibility: hidden;
-
-    &:hover {
-        visibility: visible;
-        opacity: 0.7;
-    }
-
-    &:checked {
-        visibility: visible;
-        opacity: 1 !important;
-    }
-
-    &:checked::before {
-        background-color: ${theme.vars.palette.accent.main};
-    }
-
-    &:checked::after {
-        border-color: ${theme.vars.palette.grey[300]};
+    &:focus-visible {
+        outline: 2px solid ${theme.vars.palette.accent.main};
+        outline-offset: -2px;
+        border-radius: 4px;
     }
 `,
 );

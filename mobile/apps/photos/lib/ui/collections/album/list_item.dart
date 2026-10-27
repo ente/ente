@@ -21,6 +21,7 @@ class AlbumListItemWidget extends StatelessWidget {
       getAvatarSize(AvatarType.medium) + getOverlapPadding(AvatarType.medium);
 
   final Collection collection;
+  final String? tag;
   final void Function(Collection)? onTapCallback;
   final void Function(Collection)? onLongPressCallback;
   final SelectedAlbums? selectedAlbums;
@@ -29,6 +30,7 @@ class AlbumListItemWidget extends StatelessWidget {
   const AlbumListItemWidget(
     this.collection, {
     super.key,
+    this.tag,
     this.onTapCallback,
     this.onLongPressCallback,
     this.selectedAlbums,
@@ -76,7 +78,15 @@ class AlbumListItemWidget extends StatelessWidget {
       onLongPress: onLongPressCallback == null
           ? null
           : () => onLongPressCallback!(collection),
-      leading: AlbumListItemCover(collection: collection),
+      leading: AlbumListItemCover(
+        collection: collection,
+        heroTag: tag == null
+            ? null
+            : (isOwner ? "collection" : "shared_collection") +
+                  tag! +
+                  "_" +
+                  collection.id.toString(),
+      ),
       title: _buildTitle(
         context,
         showSharingIndicator: showSharingIndicator,
@@ -265,16 +275,18 @@ class AlbumListItemWidget extends StatelessWidget {
 class AlbumListItemCover extends StatelessWidget {
   const AlbumListItemCover({
     required this.collection,
+    this.heroTag,
     this.borderRadius = ThumbnailListItem.defaultLeadingRadius,
     super.key,
   });
 
   final Collection collection;
+  final String? heroTag;
   final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    final cover = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: SizedBox.expand(
         child: FutureBuilder<EnteFile?>(
@@ -300,6 +312,13 @@ class AlbumListItemCover extends StatelessWidget {
           },
         ),
       ),
+    );
+    if (heroTag == null) return cover;
+    return Hero(
+      tag: heroTag!,
+      createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+      transitionOnUserGestures: true,
+      child: cover,
     );
   }
 }

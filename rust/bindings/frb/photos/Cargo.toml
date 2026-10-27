@@ -18,7 +18,7 @@ ente-photos.workspace = true
 ente-vecdb.workspace = true
 flutter_rust_bridge.workspace = true
 log.workspace = true
-numkong = "7.8.5"
+numkong = "7.8.6"
 
 [lints]
 workspace = true

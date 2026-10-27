@@ -17,7 +17,7 @@ interface FriendProfileSheetProps {
 }
 
 type SheetSnap = "collapsed" | "expanded" | "closed";
-const handleHeight = 28;
+const handleHeight = 24;
 
 export const FriendProfileSheet: React.FC<FriendProfileSheetProps> = ({
     expanded,

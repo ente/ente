@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -76,7 +77,7 @@ func TestPokesCreateDuringShareChanges(t *testing.T) {
 	}
 }
 
-func TestPokesCreateNotificationsOnceAndGroupReadState(t *testing.T) {
+func TestPokesKeepLatestNotificationAndReadState(t *testing.T) {
 	module := newSpaceTestModule(t)
 	ctx := t.Context()
 	alice, bob := notificationTestSpaces(t, module)
@@ -111,6 +112,10 @@ func TestPokesCreateNotificationsOnceAndGroupReadState(t *testing.T) {
 	unread, err := module.Read.HasUnreadNotifications(ctx, alice.SpaceID)
 	require.NoError(t, err)
 	require.False(t, unread)
+	first, _, err := module.Notifications.List(ctx, alice.SpaceID, "", 20)
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	require.NoError(t, module.Notifications.MarkRead(ctx, alice.SpaceID, first[0].NotificationIDs))
 	_, err = module.Pokes.Create(ctx, bob.SpaceID, alice.SpaceID, "second")
 	require.NoError(t, err)
 	page, cursor, err := module.Notifications.List(ctx, alice.SpaceID, "", 1)
@@ -121,6 +126,11 @@ func TestPokesCreateNotificationsOnceAndGroupReadState(t *testing.T) {
 	require.Equal(t, bob.SpaceID, page[0].Actors[0].SpaceID)
 	require.Equal(t, int64(1), page[0].ActorCount)
 	require.True(t, page[0].Unread)
+	require.Len(t, page[0].NotificationIDs, 1)
+	require.NotEqual(t, first[0].NotificationID, page[0].NotificationID)
+	require.Greater(t, page[0].CreatedAt, first[0].CreatedAt)
+	require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_pokes`))
+	require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_notifications WHERE kind = 'poke'`))
 	require.NoError(t, module.Notifications.MarkRead(ctx, bob.SpaceID, page[0].NotificationIDs))
 	unread, err = module.Notifications.HasUnread(ctx, alice.SpaceID)
 	require.NoError(t, err)
@@ -131,13 +141,35 @@ func TestPokesCreateNotificationsOnceAndGroupReadState(t *testing.T) {
 	require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_notifications WHERE read_at IS NULL`))
 	page, _, err = module.Notifications.List(ctx, alice.SpaceID, "", 20)
 	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.True(t, page[0].Unread)
+	require.Equal(t, []string{page[0].NotificationID}, page[0].NotificationIDs)
+	latest := page[0]
 	require.NoError(t, module.Notifications.MarkRead(ctx, alice.SpaceID, page[0].NotificationIDs))
 	unread, err = module.Notifications.HasUnread(ctx, alice.SpaceID)
 	require.NoError(t, err)
 	require.False(t, unread)
-	_, err = module.Pokes.DB.ExecContext(ctx, `DELETE FROM space_pokes WHERE client_request_id = 'third'`)
+	page, _, err = module.Notifications.List(ctx, alice.SpaceID, "", 20)
 	require.NoError(t, err)
-	require.Equal(t, int64(2), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_notifications`))
+	require.Len(t, page, 1)
+	require.False(t, page[0].Unread)
+	require.Equal(t, []string{}, page[0].NotificationIDs)
+	require.Equal(t, latest.NotificationID, page[0].NotificationID)
+	require.Equal(t, latest.CreatedAt, page[0].CreatedAt)
+	require.Equal(t, latest.Actors, page[0].Actors)
+	created, err := module.Pokes.Create(ctx, bob.SpaceID, alice.SpaceID, "third")
+	require.NoError(t, err)
+	require.False(t, created)
+	page, _, err = module.Notifications.List(ctx, alice.SpaceID, "", 20)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.False(t, page[0].Unread)
+	require.Equal(t, latest.NotificationID, page[0].NotificationID)
+	require.Equal(t, latest.CreatedAt, page[0].CreatedAt)
+	_, err = module.Pokes.Create(ctx, alice.SpaceID, bob.SpaceID, "reverse")
+	require.NoError(t, err)
+	require.Equal(t, int64(2), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_pokes`))
+	require.Equal(t, int64(2), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_notifications WHERE kind = 'poke'`))
 	require.NoError(t, module.Friends.DeleteFriendship(ctx, alice.SpaceID, bob.SpaceID))
 	_, err = module.Pokes.Create(ctx, bob.SpaceID, alice.SpaceID, "not-friends")
 	require.Error(t, err)
@@ -145,4 +177,43 @@ func TestPokesCreateNotificationsOnceAndGroupReadState(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, page)
 	require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_notifications`))
+	require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_pokes`))
+}
+
+func TestPokesConcurrentRequestsKeepOneRowPerDirection(t *testing.T) {
+	module := newSpaceTestModule(t)
+	alice, bob := notificationTestSpaces(t, module)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	results := make(chan bool, 32)
+	failures := make(chan error, 32)
+	var workers sync.WaitGroup
+	for i := range 32 {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			sender, recipient := alice.SpaceID, bob.SpaceID
+			if i%2 == 0 {
+				sender, recipient = recipient, sender
+			}
+			created, err := module.Pokes.Create(ctx, sender, recipient, strconv.Itoa(i))
+			results <- created
+			failures <- err
+		}()
+	}
+	workers.Wait()
+	close(results)
+	close(failures)
+	for err := range failures {
+		require.NoError(t, err)
+	}
+	for created := range results {
+		require.True(t, created)
+	}
+	require.Equal(t, int64(2), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_pokes`))
+	require.Equal(t, int64(2), countSpaceRows(t, module, `SELECT COUNT(*) FROM space_notifications WHERE kind = 'poke'`))
+	require.Equal(t, int64(0), countSpaceRows(t, module, `
+		SELECT COUNT(*) FROM space_pokes p JOIN space_notifications n ON n.poke_id = p.poke_id
+		WHERE n.created_at <> p.created_at OR n.read_at IS NOT NULL
+	`))
 }

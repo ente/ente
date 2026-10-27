@@ -232,7 +232,7 @@ pub struct UpdatedKeyAttr {
     pub encrypted_key: String,
     pub key_decryption_nonce: String,
     pub ops_limit: u32,
-    pub mem_limit: u32,
+    pub mem_limit: u64,
 }
 
 impl From<&KeyAttributes> for UpdatedKeyAttr {

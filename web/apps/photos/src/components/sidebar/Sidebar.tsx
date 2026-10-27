@@ -62,6 +62,7 @@ import { Trans } from "react-i18next";
 import { FreeUpSpace, type FreeUpSpaceAction } from "./FreeUpSpace";
 import { Help, type HelpAction } from "./Help";
 import { ReferralSettings } from "./ReferralSettings";
+import { SettingsSearch } from "./SettingsSearch";
 import { WatchFolder } from "./WatchFolder";
 import { SubscriptionCard } from "./account/SubscriptionCard";
 import { Account, type AccountAction } from "./accounts/Account";
@@ -78,7 +79,7 @@ type SidebarProps = ModalVisibilityProps & {
     onShowPlanSelector: () => void;
     collectionNameByID: Map<number, string>;
     onCloseOverlays: () => void;
-    children?: React.ReactNode;
+    children?: (onRootClose: () => void) => React.ReactNode;
     onAuthenticateUser: () => Promise<boolean>;
 };
 
@@ -176,6 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         () =>
             showMiniDialog({
                 message: t("logout_message"),
+                kind: "info",
                 continue: {
                     text: t("logout"),
                     color: "critical",
@@ -294,7 +296,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClose={onClose}
             onEnter={pendingAction || hasOpenSection ? undefined : showAccount}
             menu={
-                <>
+                <SettingsSearch
+                    key={String(open)}
+                    onSelect={performSidebarAction}
+                >
                     <UserDetailsSection
                         sidebarOpen={open}
                         {...{
@@ -333,23 +338,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <ExitSection onLogout={handleLogout} />
                         <InfoSection />
                     </Stack>
-                </>
+                </SettingsSearch>
             }
         >
             <AttributedMiniDialog
                 {...downloadAppDialogProps}
-                sx={(theme) => ({
-                    "& .MuiDialog-paper": { borderRadius: "20px" },
-                    "& .MuiDialog-paper > .MuiStack-root": {
-                        p: "24px 24px 8px",
-                    },
-                    "& .MuiDialogContent-root": { p: "16px 24px 24px" },
-                    "& .MuiDialogTitle-root": theme.typography.h2,
-                    "& .MuiButton-root": {
-                        borderRadius: "12px",
-                        minHeight: 48,
-                    },
-                })}
+                appearance="centered"
             />
             {open && exportVisibilityProps.open && (
                 <Export
@@ -407,7 +401,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onActionHandled={setPendingFreeUpSpaceAction}
                 />
             )}
-            {children}
+            {children?.(onClose)}
         </RootSidebarDrawer>
     );
 };
@@ -437,7 +431,19 @@ function RootSidebarContents({
     if (!wide) {
         return (
             <>
-                <SidebarDrawer open={open} onClose={onClose} maxWidth="440px">
+                <SidebarDrawer
+                    open={open}
+                    onClose={onClose}
+                    maxWidth="440px"
+                    sx={{
+                        "& .MuiDrawer-paper > .MuiBox-root": {
+                            display: "flex",
+                            flexDirection: "column",
+                            flex: 1,
+                            minHeight: 0,
+                        },
+                    }}
+                >
                     <HeaderSection onCloseSidebar={onClose} />
                     {menu}
                 </SidebarDrawer>
@@ -524,7 +530,10 @@ function RootSidebarContents({
                     >
                         <Box
                             sx={{
-                                overflowY: "auto",
+                                display: "flex",
+                                flexDirection: "column",
+                                minHeight: 0,
+                                overflow: "hidden",
                                 "& .MuiDivider-root": {
                                     borderColor: "stroke.muted",
                                 },

@@ -61,7 +61,8 @@ html[data-space-ios-pwa]
 .space-app-layout[data-space-conversation],
 .space-app-layout[data-space-settings],
 .space-app-layout[data-space-profile],
-.space-app-layout[data-space-notifications] {
+.space-app-layout[data-space-notifications],
+.space-app-layout[data-space-post] {
     --space-bottom-nav-height: 0px;
 }
 

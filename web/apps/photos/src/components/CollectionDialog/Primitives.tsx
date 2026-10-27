@@ -1,8 +1,8 @@
-import AddIcon from "@mui/icons-material/Add";
+import { Search01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import CloseIcon from "@mui/icons-material/Close";
-import SearchIcon from "@mui/icons-material/Search";
 import { InputBase, Stack, styled, type Theme } from "@mui/material";
-import { BaseTileButton } from "ente-new/photos/components/Tiles";
+import { UnstyledButton } from "ente-new/photos/components/UnstyledButton";
 import { t } from "i18next";
 import React, { useRef } from "react";
 
@@ -20,12 +20,19 @@ export const CollectionDialogSearchField: React.FC<{
 
     return (
         <Stack direction="row" sx={searchFieldSx}>
-            <SearchIcon sx={searchIconSx} />
+            <Stack sx={searchIconSx}>
+                <HugeiconsIcon
+                    icon={Search01Icon}
+                    size={18}
+                    color="currentColor"
+                />
+            </Stack>
             <InputBase
                 inputRef={inputRef}
                 fullWidth
                 autoFocus
                 placeholder={placeholder}
+                inputProps={{ "aria-label": placeholder }}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 sx={searchInputSx}
@@ -44,7 +51,6 @@ export const CollectionDialogSearchField: React.FC<{
 };
 
 const searchIconSx = (theme: Theme) => ({
-    fontSize: 20,
     flexShrink: 0,
     color: "rgba(0 0 0 / 0.4)",
     ...theme.applyStyles("dark", { color: "rgba(255 255 255 / 0.4)" }),
@@ -52,13 +58,15 @@ const searchIconSx = (theme: Theme) => ({
 
 const searchFieldSx = (theme: Theme) => ({
     alignItems: "center",
-    gap: "10px",
+    minWidth: 0,
+    gap: "12px",
     height: 44,
     borderRadius: "16px",
     backgroundColor: "background.paper",
-    px: "14px",
+    px: "16px",
     ...theme.applyStyles("dark", { backgroundColor: "#282828" }),
 });
+
 const searchInputSx = {
     fontSize: 14,
     lineHeight: "20px",
@@ -72,51 +80,40 @@ const clearIconSx = {
     "&:hover": { color: "text.base" },
 };
 
-export const CollectionTileButton = styled(BaseTileButton)`
-    flex: none;
-    width: var(--tile-size, 100%);
-    height: auto;
-    aspect-ratio: 1;
-    border-radius: 16px;
-`;
-
-export const CollectionTileTextOverlay = styled("div")`
-    position: absolute;
-    inset: 0;
-    padding: 10px;
-    color: #fff;
-    background: linear-gradient(
-        -10deg,
-        rgba(0, 0, 0, 0.1) 0%,
-        rgba(0, 0, 0, 0.2) 50%,
-        rgba(0, 0, 0, 0.4) 60%,
-        rgba(0, 0, 0, 0.6) 100%
-    );
-`;
-
-export const CreateAlbumTile: React.FC<{ onClick: () => void }> = ({
-    onClick,
-}) => (
-    <CollectionTileButton aria-label={t("new_album")} onClick={onClick}>
-        <CreateTileInner>
-            <AddIcon />
-        </CreateTileInner>
-    </CollectionTileButton>
+export const CollectionDialogTileButton = styled(UnstyledButton)(
+    ({ theme }) => ({
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 8,
+        minWidth: 0,
+        width: "100%",
+        textAlign: "left",
+        color: theme.vars.palette.text.base,
+        borderRadius: 20,
+        "&:hover": { opacity: 0.86 },
+        "&:focus-visible": {
+            outline: `2px solid ${theme.vars.palette.stroke.base}`,
+            outlineOffset: 4,
+        },
+    }),
 );
 
-const CreateTileInner = styled("span")(({ theme }) => ({
-    position: "absolute",
-    inset: 0,
-    padding: 10,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px dashed",
-    borderColor: theme.vars.palette.stroke.muted,
-    borderRadius: 16,
-    color: theme.vars.palette.text.muted,
-    "&:hover": { borderColor: "rgba(0 0 0 / 0.45)" },
+export const CollectionDialogTileCover = styled("div")(({ theme }) => ({
+    backgroundColor: theme.vars.palette.background.paper,
     ...theme.applyStyles("dark", {
-        "&:hover": { borderColor: "rgba(255 255 255 / 0.45)" },
+        backgroundColor: theme.vars.palette.fill.faint,
     }),
+    width: "100%",
+    aspectRatio: "1",
+    flexShrink: 0,
+    borderRadius: 20,
+    overflow: "hidden",
+    position: "relative",
+    "& > img": {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block",
+    },
 }));

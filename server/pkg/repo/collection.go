@@ -117,8 +117,9 @@ func (repo *CollectionRepository) WithSharingDetailsForUser(c ente.Collection, a
 	}
 	if actorUserID != c.Owner.ID {
 		var encryptedKey sql.NullString
-		err := repo.DB.QueryRow(`SELECT encrypted_key FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3`,
-			c.ID, actorUserID, false).Scan(&encryptedKey)
+		var sharedAt sql.NullInt64
+		err := repo.DB.QueryRow(`SELECT encrypted_key, magic_metadata, shared_at FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3`,
+			c.ID, actorUserID, false).Scan(&encryptedKey, &c.SharedMagicMetadata, &sharedAt)
 		if err != nil {
 			return ente.Collection{}, stacktrace.Propagate(err, "failed to fetch sharee encrypted key")
 		}
@@ -126,6 +127,9 @@ func (repo *CollectionRepository) WithSharingDetailsForUser(c ente.Collection, a
 			return ente.Collection{}, stacktrace.Propagate(fmt.Errorf("share key missing for user %d collection %d", actorUserID, c.ID), "")
 		}
 		c.EncryptedKey = encryptedKey.String
+		if sharedAt.Valid {
+			c.SharedAt = &sharedAt.Int64
+		}
 	}
 	return c, nil
 }
@@ -263,7 +267,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.pub_magic_metadata END,
 			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.magic_metadata END,
 			CASE WHEN collection_shares.is_deleted THEN collection_shares.updation_time ELSE GREATEST(collection_shares.updation_time, collections.updation_time) END AS effective_updation_time,
-			collection_shares.is_deleted,
+			collection_shares.is_deleted OR collections.is_deleted,
 			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.role_type END,
 			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.shared_at END
 		FROM collections
@@ -272,7 +276,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		INNER JOIN collection_shares
 			ON collections.collection_id = collection_shares.collection_id
 		WHERE collection_shares.to_user_id = $1
-			AND (collection_shares.is_deleted = TRUE OR users.encrypted_email IS NOT NULL)
+			AND (collection_shares.is_deleted = TRUE OR collections.is_deleted = TRUE OR users.encrypted_email IS NOT NULL)
 			AND collections.app = $3
 			AND (
 				(collection_shares.is_deleted = FALSE AND (collection_shares.updation_time > $2 OR collections.updation_time > $2))
@@ -663,8 +667,16 @@ func (repo *CollectionRepository) ShareAutomatically(
 		return ente.CollectionAlreadyShared, nil
 	}
 
-	if _, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2`, updationTime, collectionID); err != nil {
+	result, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
+	if err != nil {
 		return "", stacktrace.Propagate(err, "")
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if updated == 0 {
+		return "", stacktrace.Propagate(ente.ErrCollectionDeleted, "")
 	}
 	if err := tx.Commit(); err != nil {
 		return "", stacktrace.Propagate(err, "")
@@ -709,6 +721,22 @@ func (repo *CollectionRepository) UpdateShareeMetadata(
 func (repo *CollectionRepository) UnShare(collectionID int64, toUserID int64) error {
 	_, err := repo.UnShareContext(context.Background(), collectionID, toUserID)
 	return err
+}
+
+func (repo *CollectionRepository) RepairDeletedCollectionShare(ctx context.Context, collectionID, toUserID int64) (int64, error) {
+	result, err := repo.DB.ExecContext(ctx, `UPDATE collection_shares AS cs
+		SET is_deleted = TRUE,
+			updation_time = GREATEST(cs.updation_time, c.updation_time, $3) + 1
+		FROM collections AS c
+		WHERE cs.collection_id = c.collection_id
+			AND cs.collection_id = $1 AND cs.to_user_id = $2
+			AND c.is_deleted = TRUE AND cs.is_deleted = FALSE`,
+		collectionID, toUserID, time.Microseconds())
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	updated, err := result.RowsAffected()
+	return updated, stacktrace.Propagate(err, "")
 }
 
 func (repo *CollectionRepository) UnShareContext(

@@ -1,0 +1,2 @@
+- Updated video processing to FFmpeg 9.0.2.
+- Saving edited videos now takes priority over preview generation.

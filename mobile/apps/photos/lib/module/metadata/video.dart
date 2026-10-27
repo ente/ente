@@ -2,16 +2,14 @@ import "dart:io";
 
 import "package:logging/logging.dart";
 import "package:photos/models/ffmpeg/ffprobe_props.dart";
-import "package:photos/services/isolated_ffmpeg_service.dart";
+import "package:photos/services/ffmpeg_service.dart";
 
 final _logger = Logger("VideoMetadata");
 
 Future<FFProbeProps?> getVideoProps(File file) async {
   try {
     final stopwatch = Stopwatch()..start();
-    final mediaInfo = await IsolatedFfmpegService.instance.getVideoInfo(
-      file.path,
-    );
+    final mediaInfo = await FfmpegService.instance.getVideoInfo(file.path);
     if (mediaInfo.isEmpty) {
       return null;
     }

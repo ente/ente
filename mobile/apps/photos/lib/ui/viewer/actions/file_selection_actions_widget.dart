@@ -847,10 +847,15 @@ class _FileSelectionActionsWidgetState
         ),
       );
       await localSettings.setOnGuestView(true);
-      if (!mounted) return;
+      if (!mounted) {
+        await localSettings.setOnGuestView(false);
+        return;
+      }
       routeToPage(context, page, forceCustomPageRoute: true).ignore();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Bus.instance.fire(GuestViewEvent(true, false));
+        if (localSettings.isOnGuestView()) {
+          Bus.instance.fire(GuestViewEvent(true, false));
+        }
       });
     } else {
       await showErrorDialog(

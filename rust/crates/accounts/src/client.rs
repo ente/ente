@@ -213,7 +213,7 @@ impl AccountsClient {
             .error_for_code()
             .await
             .map_err(|error| match error.status_code() {
-                Some(400 | 401) => Error::IncorrectEmailVerificationCode,
+                Some(401) => Error::IncorrectEmailVerificationCode,
                 Some(410) => Error::EmailVerificationCodeExpired,
                 Some(429) => Error::EmailVerificationRateLimited,
                 _ => error.into(),
@@ -417,7 +417,7 @@ impl AccountsClient {
             .error_for_code()
             .await
             .map_err(|error| match error.status_code() {
-                Some(400 | 401) => Error::IncorrectTotp,
+                Some(401) => Error::IncorrectTotp,
                 Some(404 | 410) => Error::SecondFactorSessionExpired,
                 Some(429) => Error::TotpRateLimited,
                 _ => error.into(),

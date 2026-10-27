@@ -119,6 +119,7 @@ const SessionsSettingsContents: React.FC<SessionsSettingsContentsProps> = ({
 
             showMiniDialog({
                 title: t("terminate_session"),
+                kind: "info",
                 message: isCurrentDevice ? (
                     t("terminate_session_confirm_message_self")
                 ) : (
@@ -150,6 +151,7 @@ const SessionsSettingsContents: React.FC<SessionsSettingsContentsProps> = ({
                                 } else {
                                     showMiniDialog({
                                         title: t("error"),
+                                        kind: "error",
                                         message: t("terminate_session_failed"),
                                     });
                                 }

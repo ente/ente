@@ -161,6 +161,9 @@ Jump to a category:
 - [How do I set up watch folders?](/photos/faq/backup-and-sync#set-up-watch-folders)
 - [Can I watch multiple folders at once?](/photos/faq/backup-and-sync#watch-multiple-folders)
 - [What happens if I delete a file from my watched folder?](/photos/faq/backup-and-sync#delete-from-watched-folder)
+- [Why don't metadata changes to a file in my watched folder show up in Ente?](/photos/faq/backup-and-sync#watch-folder-edited-files)
+- [What happens if I rename a file in my watched folder?](/photos/faq/backup-and-sync#rename-in-watched-folder)
+- [Why are my albums empty after I renamed a folder inside a watched folder?](/photos/faq/backup-and-sync#rename-folder-in-watched-folder)
 - [Why are my watch folders not syncing?](/photos/faq/backup-and-sync#watch-folders-not-syncing)
 - [Can I watch folders on a network drive (NAS)?](/photos/faq/backup-and-sync#watch-nas)
 - [How do I stop watching a folder?](/photos/faq/backup-and-sync#stop-watching-folder)
@@ -356,6 +359,7 @@ Jump to a category:
 ### Family Plans
 
 - [Does Ente have Family Plans?](/photos/faq/storage-and-plans#family-plans-faq)
+- [Where do I manage my family plan?](/photos/faq/storage-and-plans#manage-family-plan)
 - [How many family members can I add to my plan?](/photos/faq/storage-and-plans#family-members-limit)
 - [Can family members see each other's photos?](/photos/faq/storage-and-plans#family-privacy)
 - [Can I set storage limits for family members?](/photos/faq/storage-and-plans#family-storage-limits)

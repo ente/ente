@@ -93,7 +93,7 @@ class VideoOverlayDuration extends StatelessWidget {
             size: iconSize,
           );
         } else {
-          final String formattedDuration = _getFormattedDuration(duration!);
+          final String formattedDuration = secondsToDuration(duration!);
           onDarkBackground = Padding(
             padding: const EdgeInsets.symmetric(horizontal: 1),
             child: Text(
@@ -120,17 +120,6 @@ class VideoOverlayDuration extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _getFormattedDuration(int duration) {
-    final String formattedDuration = Duration(
-      seconds: duration,
-    ).toString().split('.').first;
-    final List<String> separated = formattedDuration.split(':');
-    final String hour = (separated[0] == '0') ? '' : separated[0] + ':';
-    final String minute = int.parse(separated[1]).toString() + ':';
-    final String second = separated[2];
-    return hour + minute + second;
   }
 }
 

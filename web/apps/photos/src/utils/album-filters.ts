@@ -4,8 +4,7 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import { t } from "i18next";
 
-export type AlbumFilter =
-    "ente" | "shared" | "received" | "links" | "empty-albums";
+export type AlbumFilter = "ente" | "shared" | "received" | "empty-albums";
 
 export const albumFilters: {
     value: AlbumFilter;
@@ -22,11 +21,6 @@ export const albumFilters: {
         value: "received",
         label: () => t("received_albums_label"),
         title: () => t("received_albums_title"),
-    },
-    {
-        value: "links",
-        label: () => t("links_albums_label"),
-        title: () => t("links_albums_title"),
     },
     {
         value: "empty-albums",
@@ -61,15 +55,26 @@ export const matchesAlbumFilter = (
                 !cs.attributes.has("archived") &&
                 cs.attributes.has("sharedIncoming")
             );
-        case "links":
-            return cs.attributes.has("quickLink");
         case "empty-albums":
             return isBulkDeletableEmptyAlbum(cs);
     }
 };
 
-export const visibleAlbumFilters = (collectionSummaries: CollectionSummary[]) =>
-    albumFilters.filter(({ value }) => {
+export const visibleAlbumFilters = (
+    collectionSummaries: CollectionSummary[],
+    query = "",
+) => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return albumFilters.filter(({ value }) => {
+        if (
+            normalizedQuery &&
+            !collectionSummaries.some(
+                (cs) =>
+                    matchesAlbumFilter(cs, value) &&
+                    cs.name.toLowerCase().includes(normalizedQuery),
+            )
+        )
+            return false;
         if (value == "ente") return true;
         if (value == "empty-albums") {
             return (
@@ -79,6 +84,7 @@ export const visibleAlbumFilters = (collectionSummaries: CollectionSummary[]) =>
         }
         return collectionSummaries.some((cs) => matchesAlbumFilter(cs, value));
     });
+};
 
 export const filterAlbumSummaries = (
     summaries: CollectionSummary[],

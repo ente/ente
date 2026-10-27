@@ -233,6 +233,16 @@ export class FileViewerPhotoSwipe<
                 } else {
                     const i = newIndex;
 
+                    // New files can make an empty neighbour navigable. goTo
+                    // emits change before the refresh below, so fill it first.
+                    pswp.mainScroll.itemHolders.forEach((holder, offset) => {
+                        if (!holder.slide)
+                            pswp.setContent(
+                                holder,
+                                pswp.currIndex + offset - 1,
+                            );
+                    });
+
                     pswp.goTo(i);
                     _currentAnnotatedFile = undefined;
                     pswp.refreshSlideContent(i);

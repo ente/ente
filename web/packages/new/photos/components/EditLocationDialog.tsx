@@ -1,12 +1,11 @@
 import AddIcon from "@mui/icons-material/Add";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
 import DoneIcon from "@mui/icons-material/Done";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SearchIcon from "@mui/icons-material/Search";
 import {
     Box,
-    Button,
+    ButtonBase,
     CircularProgress,
     ClickAwayListener,
     Dialog,
@@ -16,14 +15,42 @@ import {
     styled,
     Typography,
 } from "@mui/material";
-import { useIsSmallWidth } from "ente-base/components/utils/hooks";
+import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";
+import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import { LoadingButton } from "ente-base/components/mui/LoadingButton";
+import {
+    v2CancelButtonSx,
+    v2CloseButtonSx,
+    v2HeaderRowSx,
+    v2HelperSx,
+    v2InputSx,
+    v2LabelSx,
+    v2PaperSx,
+    v2SubmitButtonSx,
+    v2TitleSx,
+} from "ente-base/components/SingleInput.styles";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { isSxArray } from "ente-base/components/utils/sx";
+import log from "ente-base/log";
 import type { Location } from "ente-base/types";
+import {
+    uploadSheetMediaQuery,
+    uploadSheetPaperSx,
+    useIsUploadSheet,
+} from "ente-gallery/components/upload-progress/bottom-sheet";
 import { getLeafletWithDefaultIcons } from "ente-gallery/utils/leaflet";
 import type { EnteFile } from "ente-media/file";
 import { fileLocation } from "ente-media/file-metadata";
 import { t } from "i18next";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useId,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
+import { SlideUpTransition } from "./mui/SlideUpTransition";
 
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.webpack.css";
 import "leaflet/dist/leaflet.css";
@@ -40,12 +67,23 @@ export const EditLocationDialog: React.FC<EditLocationDialogProps> = ({
     files,
     onConfirm,
 }) => {
-    const fullScreen = useIsSmallWidth();
+    const isSheet = useIsUploadSheet();
+    const titleID = useId();
+    const [coordinateDraft, setCoordinateDraft] = useState<Location>();
+    const [coordinatesValid, setCoordinatesValid] = useState(true);
+    const onCoordinateDraftChange = useCallback(
+        (location: Location | undefined, valid: boolean) => {
+            setCoordinateDraft(location);
+            setCoordinatesValid(valid);
+        },
+        [],
+    );
     const [selectedLocation, setSelectedLocation] = useState<
         Location | undefined
     >(undefined);
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [saveFailed, setSaveFailed] = useState(false);
 
     const initialLocation = useMemo(() => {
         if (files.length !== 1) return undefined;
@@ -60,21 +98,25 @@ export const EditLocationDialog: React.FC<EditLocationDialogProps> = ({
     useEffect(() => {
         if (open && !prevOpenRef.current) {
             setSelectedLocation(initialLocation);
+            setCoordinateDraft(undefined);
+            setCoordinatesValid(true);
             setIsLoading(false);
             setIsSuccess(false);
+            setSaveFailed(false);
             setIsAddingLocation(!files.some((file) => fileLocation(file)));
         }
         prevOpenRef.current = open;
     }, [open, initialLocation, files]);
 
+    const locationToSave = coordinateDraft ?? selectedLocation;
     const hasLocationChanged = useMemo(() => {
-        if (!selectedLocation) return false;
+        if (!locationToSave || !coordinatesValid) return false;
         if (!initialLocation) return true;
         return (
-            selectedLocation.latitude !== initialLocation.latitude ||
-            selectedLocation.longitude !== initialLocation.longitude
+            locationToSave.latitude !== initialLocation.latitude ||
+            locationToSave.longitude !== initialLocation.longitude
         );
-    }, [selectedLocation, initialLocation]);
+    }, [locationToSave, initialLocation, coordinatesValid]);
 
     const prevSelectedLocationRef = useRef(selectedLocation);
     useEffect(() => {
@@ -91,12 +133,16 @@ export const EditLocationDialog: React.FC<EditLocationDialogProps> = ({
     }, [isSuccess, selectedLocation]);
 
     const handleConfirm = async () => {
-        if (selectedLocation && hasLocationChanged && !isLoading) {
+        if (locationToSave && hasLocationChanged && !isLoading) {
             setIsLoading(true);
             setIsSuccess(false);
+            setSaveFailed(false);
             try {
-                await onConfirm(selectedLocation);
+                await onConfirm(locationToSave);
                 setIsSuccess(true);
+            } catch (error) {
+                log.error("Failed to update photo location", error);
+                setSaveFailed(true);
             } finally {
                 setIsLoading(false);
             }
@@ -111,117 +157,105 @@ export const EditLocationDialog: React.FC<EditLocationDialogProps> = ({
         return () => clearTimeout(timeoutId);
     }, [open, isSuccess, onClose]);
 
+    const busy = isLoading || isSuccess;
     return (
         <Dialog
-            {...{ open, onClose, fullScreen }}
+            open={open}
+            onClose={busy ? undefined : onClose}
             maxWidth={false}
+            aria-labelledby={titleID}
+            slots={isSheet ? { transition: SlideUpTransition } : undefined}
             slotProps={{
                 paper: {
-                    sx: !fullScreen
-                        ? {
-                              width: "min(900px, calc(100vw - 64px))",
-                              height: "min(700px, calc(100vh - 64px))",
-                          }
-                        : undefined,
+                    sx: [
+                        ...(isSxArray(v2PaperSx) ? v2PaperSx : [v2PaperSx]),
+                        {
+                            width: "min(560px, calc(100svw - 32px))",
+                            maxWidth: 560,
+                            boxSizing: "border-box",
+                        },
+                        uploadSheetPaperSx,
+                    ],
                 },
             }}
         >
-            <Stack sx={{ height: "100%", width: "100%" }}>
-                <TitleBar
-                    onClose={onClose}
-                    onConfirm={handleConfirm}
-                    canConfirm={hasLocationChanged}
-                    isLoading={isLoading}
-                    isSuccess={isSuccess}
-                    isAddingLocation={isAddingLocation}
-                />
-                <Box sx={{ flex: 1, position: "relative" }}>
+            <Stack
+                sx={{
+                    p: "20px",
+                    gap: "20px",
+                    [uploadSheetMediaQuery]: {
+                        pb: "calc(20px + env(safe-area-inset-bottom, 0px))",
+                    },
+                }}
+                aria-busy={isLoading}
+            >
+                <Stack direction="row" sx={v2HeaderRowSx}>
+                    <Typography component="h2" id={titleID} sx={v2TitleSx}>
+                        {t(isAddingLocation ? "add_location" : "edit_location")}
+                    </Typography>
+                    <IconButton
+                        onClick={onClose}
+                        disabled={busy}
+                        aria-label={t("close")}
+                        sx={v2CloseButtonSx}
+                    >
+                        <CloseIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </Stack>
+                <Box
+                    sx={{ pointerEvents: busy ? "none" : undefined }}
+                    inert={busy}
+                >
                     <EditableMap
                         open={open}
                         initialLocation={initialLocation}
                         selectedLocation={selectedLocation}
                         onLocationSelect={setSelectedLocation}
+                        onCoordinateDraftChange={onCoordinateDraftChange}
                     />
                 </Box>
+                {saveFailed && (
+                    <Box role="alert">
+                        <InlineErrorIndicator />
+                    </Box>
+                )}
+                <Stack direction="row" sx={{ gap: "12px" }}>
+                    <FocusVisibleButton
+                        onClick={onClose}
+                        disabled={busy}
+                        sx={v2CancelButtonSx}
+                    >
+                        {t("cancel")}
+                    </FocusVisibleButton>
+                    <LoadingButton
+                        onClick={handleConfirm}
+                        aria-label={t("save_location")}
+                        loading={isLoading}
+                        disabled={!hasLocationChanged || isSuccess}
+                        color="accent"
+                        sx={v2SubmitButtonSx}
+                    >
+                        {isSuccess ? (
+                            <DoneIcon aria-label={t("save_location")} />
+                        ) : (
+                            t("save_location")
+                        )}
+                    </LoadingButton>
+                </Stack>
             </Stack>
         </Dialog>
     );
 };
-
-interface TitleBarProps {
-    onClose: () => void;
-    onConfirm: () => void;
-    canConfirm: boolean;
-    isLoading: boolean;
-    isSuccess: boolean;
-    isAddingLocation: boolean;
-}
-
-const TitleBar: React.FC<TitleBarProps> = ({
-    onClose,
-    onConfirm,
-    canConfirm,
-    isLoading,
-    isSuccess,
-    isAddingLocation,
-}) => (
-    <Stack
-        direction="row"
-        sx={{
-            alignItems: "center",
-            gap: 1,
-            p: 1,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-        }}
-    >
-        <IconButton onClick={onClose} aria-label={t("close")} color="secondary">
-            <CloseIcon />
-        </IconButton>
-        <Typography variant="h6" sx={{ flex: 1 }}>
-            {t(isAddingLocation ? "add_location" : "edit_location")}
-        </Typography>
-        {isLoading ? (
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    px: 2,
-                }}
-            >
-                <CircularProgress size={24} />
-            </Box>
-        ) : isSuccess ? (
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    px: 2,
-                    color: "success.main",
-                }}
-            >
-                <DoneIcon />
-            </Box>
-        ) : (
-            <Button
-                onClick={onConfirm}
-                disabled={!canConfirm}
-                variant="contained"
-                color="accent"
-            >
-                {t("save_location")}
-            </Button>
-        )}
-    </Stack>
-);
 
 interface EditableMapProps {
     open: boolean;
     initialLocation: Location | undefined;
     selectedLocation: Location | undefined;
     onLocationSelect: (location: Location) => void;
+    onCoordinateDraftChange: (
+        location: Location | undefined,
+        valid: boolean,
+    ) => void;
 }
 
 interface NominatimResult {
@@ -236,6 +270,7 @@ const EditableMap: React.FC<EditableMapProps> = ({
     initialLocation,
     selectedLocation,
     onLocationSelect,
+    onCoordinateDraftChange,
 }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<L.Map | null>(null);
@@ -251,62 +286,32 @@ const EditableMap: React.FC<EditableMapProps> = ({
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchRequestIdRef = useRef(0);
     const searchAbortRef = useRef<AbortController | null>(null);
+    const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+        undefined,
+    );
 
+    const latitudeID = useId();
+    const longitudeID = useId();
+    const coordinateErrorID = useId();
+    const [coordinateError, setCoordinateError] = useState(false);
     const [manualLat, setManualLat] = useState<string | null>(null);
     const [manualLon, setManualLon] = useState<string | null>(null);
 
     useEffect(() => {
         setManualLat(null);
         setManualLon(null);
-    }, [open, selectedLocation]);
+        setCoordinateError(false);
+        onCoordinateDraftChange(undefined, true);
+    }, [open, selectedLocation, onCoordinateDraftChange]);
 
-    const handleSearchChange = (query: string) => {
-        setSearchQuery(query);
-        if (searchAbortRef.current) {
-            searchAbortRef.current.abort();
-            searchAbortRef.current = null;
-        }
-        setIsSearching(false);
-        setSearchResults([]);
-        setShowResults(false);
-    };
-
-    const handleSearchSubmit = async (
-        e?: React.SubmitEvent<HTMLFormElement> | React.MouseEvent,
-    ) => {
-        e?.preventDefault();
-
-        const query =
-            searchInputRef.current?.value.trim() ?? searchQuery.trim();
-        if (query.length < 3 || isSearching) {
-            if (query.length < 3) {
-                setSearchResults([]);
-                setShowResults(false);
-            }
-            return;
-        }
-
-        setSearchQuery(query);
-
-        if (searchAbortRef.current) {
-            searchAbortRef.current.abort();
-        }
-
-        const requestId = searchRequestIdRef.current + 1;
-        searchRequestIdRef.current = requestId;
+    const searchLocations = useCallback(async (query: string) => {
+        if (query.length < 3) return;
+        searchAbortRef.current?.abort();
+        const requestId = ++searchRequestIdRef.current;
         const abortController = new AbortController();
         searchAbortRef.current = abortController;
         setIsSearching(true);
-
         try {
-            await new Promise((resolve) => setTimeout(resolve, 750));
-            if (
-                searchRequestIdRef.current !== requestId ||
-                abortController.signal.aborted
-            ) {
-                return;
-            }
-
             const response = await fetch(
                 `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`,
                 {
@@ -314,24 +319,63 @@ const EditableMap: React.FC<EditableMapProps> = ({
                     signal: abortController.signal,
                 },
             );
+            if (!response.ok) {
+                throw new Error(`Location search failed: ${response.status}`);
+            }
             const data = (await response.json()) as NominatimResult[];
-            if (searchRequestIdRef.current !== requestId) return;
+            if (
+                searchRequestIdRef.current !== requestId ||
+                abortController.signal.aborted
+            )
+                return;
             setSearchResults(data);
             setShowResults(data.length > 0);
         } catch (error) {
-            if (abortController.signal.aborted) return;
-            if (searchRequestIdRef.current !== requestId) return;
-            console.error("Search failed:", error);
+            if (
+                abortController.signal.aborted ||
+                searchRequestIdRef.current !== requestId
+            )
+                return;
+            log.error("Location search failed", error);
             setSearchResults([]);
             setShowResults(false);
         } finally {
-            if (searchRequestIdRef.current === requestId) {
+            if (
+                searchRequestIdRef.current === requestId &&
+                !abortController.signal.aborted
+            ) {
                 setIsSearching(false);
+                searchAbortRef.current = null;
             }
+        }
+    }, []);
+
+    const handleSearchChange = (query: string) => {
+        clearTimeout(searchTimeoutRef.current);
+        searchAbortRef.current?.abort();
+        searchRequestIdRef.current++;
+        setSearchQuery(query);
+        setIsSearching(false);
+        setSearchResults([]);
+        setShowResults(false);
+        if (query.trim().length >= 3) {
+            searchTimeoutRef.current = setTimeout(() => {
+                void searchLocations(query.trim());
+            }, 1200);
         }
     };
 
+    const handleSearchSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        clearTimeout(searchTimeoutRef.current);
+        const query =
+            searchInputRef.current?.value.trim() ?? searchQuery.trim();
+        if (isSearching || query.length < 3) return;
+        void searchLocations(query);
+    };
+
     const handleSelectResult = (result: NominatimResult) => {
+        clearTimeout(searchTimeoutRef.current);
         const lat = parseFloat(result.lat);
         const lng = parseFloat(result.lon);
         onLocationSelect({ latitude: lat, longitude: lng });
@@ -359,37 +403,61 @@ const EditableMap: React.FC<EditableMapProps> = ({
         setShowResults(false);
     };
 
+    const parseCoordinates = (
+        latValue: string | null,
+        lonValue: string | null,
+    ): Location | undefined => {
+        const latitude =
+            latValue === null
+                ? selectedLocation?.latitude
+                : latValue.trim()
+                  ? Number(latValue)
+                  : undefined;
+        const longitude =
+            lonValue === null
+                ? selectedLocation?.longitude
+                : lonValue.trim()
+                  ? Number(lonValue)
+                  : undefined;
+        if (
+            latitude === undefined ||
+            longitude === undefined ||
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180
+        )
+            return undefined;
+        return { latitude, longitude };
+    };
+
+    const handleCoordinateChange = (
+        axis: "latitude" | "longitude",
+        value: string,
+    ) => {
+        const nextLat = axis === "latitude" ? value : manualLat;
+        const nextLon = axis === "longitude" ? value : manualLon;
+        if (axis === "latitude") setManualLat(value);
+        else setManualLon(value);
+        const location = parseCoordinates(nextLat, nextLon);
+        onCoordinateDraftChange(location, !!location);
+        setCoordinateError(false);
+    };
+
     const handleManualCoordinates = () => {
-        const latStr = manualLat ?? selectedLocation?.latitude.toFixed(6) ?? "";
-        const lonStr =
-            manualLon ?? selectedLocation?.longitude.toFixed(6) ?? "";
-        const lat = parseFloat(latStr);
-        const lon = parseFloat(lonStr);
-        if (isNaN(lat) || isNaN(lon)) return;
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
-
-        onLocationSelect({ latitude: lat, longitude: lon });
-
-        if (mapRef.current) {
-            mapRef.current.setView([lat, lon], 12);
-
-            if (markerRef.current) {
-                markerRef.current.setLatLng([lat, lon]);
-            } else if (leaflet) {
-                const marker = leaflet
-                    .marker([lat, lon], { draggable: true })
-                    .addTo(mapRef.current);
-                markerRef.current = marker;
-
-                marker.on("dragend", () => {
-                    const pos = marker.getLatLng();
-                    onLocationSelect({ latitude: pos.lat, longitude: pos.lng });
-                });
-            }
+        if (manualLat === null && manualLon === null) return;
+        const location = parseCoordinates(manualLat, manualLon);
+        if (!location) {
+            setCoordinateError(true);
+            return;
         }
-
+        onLocationSelect(location);
+        mapRef.current?.setView([location.latitude, location.longitude], 12);
         setManualLat(null);
         setManualLon(null);
+        onCoordinateDraftChange(undefined, true);
     };
 
     const urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -397,12 +465,13 @@ const EditableMap: React.FC<EditableMapProps> = ({
         '&copy; <a target="_blank" rel="noopener" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
     useEffect(() => {
+        if (!open) return;
+        setIsSearching(false);
         return () => {
-            if (searchAbortRef.current) {
-                searchAbortRef.current.abort();
-            }
+            clearTimeout(searchTimeoutRef.current);
+            searchAbortRef.current?.abort();
         };
-    }, []);
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -430,7 +499,7 @@ const EditableMap: React.FC<EditableMapProps> = ({
         const center: L.LatLngTuple = hasInitialLocation
             ? [initialLat, initialLng]
             : defaultCenter;
-        const zoom = hasInitialLocation ? 6 : defaultZoom;
+        const zoom = hasInitialLocation ? 11 : defaultZoom;
 
         const map = leaflet
             .map(mapContainer, { zoomControl: false })
@@ -525,252 +594,223 @@ const EditableMap: React.FC<EditableMapProps> = ({
     };
 
     return (
-        <MapWrapper>
-            <MapContainer ref={mapContainerRef} />
-            <SearchContainer>
-                <ClickAwayListener onClickAway={() => setShowResults(false)}>
-                    <Box
-                        component="form"
-                        onSubmit={handleSearchSubmit}
-                        sx={{ position: "relative", width: "100%" }}
-                    >
-                        <SearchInputWrapper>
-                            <InputBase
-                                placeholder={t("search_location")}
-                                value={searchQuery}
-                                onChange={(e) =>
-                                    handleSearchChange(e.target.value)
-                                }
-                                onFocus={() =>
-                                    searchResults.length > 0 &&
-                                    setShowResults(true)
-                                }
-                                inputRef={searchInputRef}
-                                sx={{ flex: 1 }}
-                                inputProps={{
-                                    style: { padding: 0, paddingLeft: 8 },
+        <Stack sx={{ gap: "20px" }}>
+            <ClickAwayListener onClickAway={() => setShowResults(false)}>
+                <Box
+                    component="form"
+                    onSubmit={handleSearchSubmit}
+                    sx={{ position: "relative", zIndex: 1001 }}
+                >
+                    <InputBase
+                        placeholder={t("search_location")}
+                        value={searchQuery}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        onFocus={() =>
+                            searchResults.length > 0 && setShowResults(true)
+                        }
+                        inputRef={searchInputRef}
+                        inputProps={{
+                            "aria-label": t("search_location"),
+                            enterKeyHint: "search",
+                        }}
+                        startAdornment={
+                            <SearchIcon
+                                sx={{
+                                    fontSize: 18,
+                                    color: "text.muted",
+                                    mr: "12px",
                                 }}
                             />
-                            <IconButton
-                                type="submit"
-                                size="small"
-                                disabled={
-                                    isSearching || searchQuery.trim().length < 3
-                                }
-                                aria-label={t("search_location")}
-                                sx={(theme) => ({
-                                    ml: 1,
-                                    p: 0,
-                                    width: 32,
-                                    height: 32,
-                                    backgroundColor:
-                                        theme.vars.palette.fill.faint,
-                                    color: theme.vars.palette.text.base,
-                                    transition:
-                                        "background-color 0.2s ease, transform 0.2s ease",
-                                    "&:hover": {
-                                        backgroundColor:
-                                            theme.vars.palette.fill.faintHover,
-                                    },
-                                    "&:active": {
-                                        backgroundColor:
-                                            theme.vars.palette.fill.faintHover,
-                                        transform: "scale(0.96)",
-                                    },
-                                    "&.Mui-disabled": {
-                                        backgroundColor:
-                                            theme.vars.palette.background
-                                                .elevatedPaper,
-                                        color: theme.vars.palette.text.faint,
-                                    },
-                                })}
-                            >
-                                {isSearching ? (
-                                    <CircularProgress
-                                        size={18}
-                                        thickness={5}
-                                        sx={{
-                                            display: "block",
-                                            color: "inherit",
-                                        }}
-                                    />
-                                ) : (
-                                    <SearchIcon
-                                        sx={{ color: "inherit", fontSize: 20 }}
-                                    />
-                                )}
-                            </IconButton>
-                        </SearchInputWrapper>
-                        {showResults && (
-                            <SearchResultsList>
-                                {searchResults.map((result) => (
-                                    <SearchResultItem
-                                        key={result.place_id}
-                                        onClick={() =>
-                                            handleSelectResult(result)
-                                        }
-                                    >
-                                        <Typography
-                                            variant="body"
-                                            sx={{
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                            }}
-                                        >
-                                            {result.display_name}
-                                        </Typography>
-                                    </SearchResultItem>
-                                ))}
-                            </SearchResultsList>
-                        )}
-                    </Box>
-                </ClickAwayListener>
-            </SearchContainer>
-            <CoordinateControls>
-                <CoordinateInputWrapper>
-                    <CoordinateInput
-                        placeholder="Lat"
-                        value={
-                            manualLat ??
-                            selectedLocation?.latitude.toFixed(6) ??
-                            ""
                         }
-                        onChange={(e) => setManualLat(e.target.value)}
-                        type="number"
-                        inputProps={{ step: "any" }}
-                    />
-                </CoordinateInputWrapper>
-                <CoordinateInputWrapper>
-                    <CoordinateInput
-                        placeholder="Lon"
-                        value={
-                            manualLon ??
-                            selectedLocation?.longitude.toFixed(6) ??
-                            ""
+                        endAdornment={
+                            isSearching ? (
+                                <CircularProgress
+                                    size={18}
+                                    sx={{ color: "text.muted", ml: 1 }}
+                                />
+                            ) : undefined
                         }
-                        onChange={(e) => setManualLon(e.target.value)}
-                        type="number"
-                        inputProps={{ step: "any" }}
+                        sx={[
+                            ...(isSxArray(v2InputSx) ? v2InputSx : [v2InputSx]),
+                            { width: "100%", boxSizing: "border-box" },
+                        ]}
                     />
-                </CoordinateInputWrapper>
-                <GoToLocationButton
-                    onClick={handleManualCoordinates}
-                    disabled={
-                        manualLat === null &&
-                        manualLon === null &&
-                        !selectedLocation
-                    }
+                    {showResults && (
+                        <SearchResultsList>
+                            {searchResults.map((result) => (
+                                <ButtonBase
+                                    key={result.place_id}
+                                    onClick={() => handleSelectResult(result)}
+                                    sx={{
+                                        width: "100%",
+                                        p: "16px",
+                                        justifyContent: "flex-start",
+                                        textAlign: "left",
+                                        "&:hover, &.Mui-focusVisible": {
+                                            bgcolor: "fill.faintHover",
+                                        },
+                                    }}
+                                >
+                                    <Typography variant="small">
+                                        {result.display_name}
+                                    </Typography>
+                                </ButtonBase>
+                            ))}
+                        </SearchResultsList>
+                    )}
+                </Box>
+            </ClickAwayListener>
+            <Box
+                sx={{
+                    position: "relative",
+                    height: 260,
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                }}
+            >
+                <Box
+                    ref={mapContainerRef}
+                    sx={{ height: "100%", width: "100%" }}
+                />
+                <Stack
+                    sx={{
+                        position: "absolute",
+                        right: 12,
+                        bottom: 28,
+                        zIndex: 1000,
+                        borderRadius: "16px",
+                        overflow: "hidden",
+                    }}
                 >
-                    <ArrowForwardIcon sx={{ fontSize: 16 }} />
-                </GoToLocationButton>
-            </CoordinateControls>
-            <ZoomControls>
-                <ZoomButton onClick={handleZoomIn} aria-label={t("zoom_in")}>
-                    <AddIcon />
-                </ZoomButton>
-                <ZoomButton onClick={handleZoomOut} aria-label={t("zoom_out")}>
-                    <RemoveIcon />
-                </ZoomButton>
-            </ZoomControls>
-        </MapWrapper>
+                    <ZoomButton
+                        onClick={handleZoomIn}
+                        aria-label={t("zoom_in")}
+                    >
+                        <AddIcon sx={{ fontSize: 20 }} />
+                    </ZoomButton>
+                    <ZoomButton
+                        onClick={handleZoomOut}
+                        aria-label={t("zoom_out")}
+                    >
+                        <RemoveIcon sx={{ fontSize: 20 }} />
+                    </ZoomButton>
+                </Stack>
+            </Box>
+            <Box>
+                <Stack
+                    direction="row"
+                    sx={{ gap: "12px" }}
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleManualCoordinates();
+                        }
+                    }}
+                >
+                    {(
+                        [
+                            {
+                                id: latitudeID,
+                                label: t("latitude"),
+                                value:
+                                    manualLat ??
+                                    selectedLocation?.latitude.toFixed(6) ??
+                                    "",
+                                axis: "latitude",
+                                min: -90,
+                                max: 90,
+                            },
+                            {
+                                id: longitudeID,
+                                label: t("longitude"),
+                                value:
+                                    manualLon ??
+                                    selectedLocation?.longitude.toFixed(6) ??
+                                    "",
+                                axis: "longitude",
+                                min: -180,
+                                max: 180,
+                            },
+                        ] as const
+                    ).map(({ id, label, value, axis, min, max }) => (
+                        <Stack
+                            key={id}
+                            sx={{ flex: 1, minWidth: 0, gap: "8px" }}
+                        >
+                            <Typography
+                                component="label"
+                                htmlFor={id}
+                                sx={v2LabelSx}
+                            >
+                                {label}
+                            </Typography>
+                            <InputBase
+                                id={id}
+                                type="number"
+                                value={value}
+                                onChange={(event) =>
+                                    handleCoordinateChange(
+                                        axis,
+                                        event.target.value,
+                                    )
+                                }
+                                onBlur={handleManualCoordinates}
+                                error={coordinateError}
+                                aria-describedby={
+                                    coordinateError
+                                        ? coordinateErrorID
+                                        : undefined
+                                }
+                                inputProps={{
+                                    step: "any",
+                                    min,
+                                    max,
+                                    inputMode: "decimal",
+                                }}
+                                sx={[
+                                    ...(isSxArray(v2InputSx)
+                                        ? v2InputSx
+                                        : [v2InputSx]),
+                                    {
+                                        boxSizing: "border-box",
+                                        "& input": {
+                                            minWidth: 0,
+                                            fontVariantNumeric: "tabular-nums",
+                                            MozAppearance: "textfield",
+                                            "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button":
+                                                {
+                                                    WebkitAppearance: "none",
+                                                    m: 0,
+                                                },
+                                        },
+                                    },
+                                ]}
+                            />
+                        </Stack>
+                    ))}
+                </Stack>
+                {coordinateError && (
+                    <Typography
+                        id={coordinateErrorID}
+                        role="alert"
+                        sx={[v2HelperSx(true), { mt: 1 }]}
+                    >
+                        {t("invalid_location_coordinates")}
+                    </Typography>
+                )}
+            </Box>
+        </Stack>
     );
 };
 
-const MapWrapper = styled("div")({
-    height: "100%",
-    width: "100%",
-    position: "relative",
-});
-
-const MapContainer = styled("div")({ height: "100%", width: "100%" });
-
-const CoordinateControls = styled("div")(({ theme }) => ({
-    position: "absolute",
-    bottom: theme.spacing(2),
-    left: theme.spacing(2),
-    zIndex: 1000,
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing(1),
-}));
-
-const CoordinateInputWrapper = styled("div")(({ theme }) => ({
-    display: "flex",
-    alignItems: "center",
-    backgroundColor: theme.vars.palette.background.paper,
-    padding: theme.spacing(1, 1.5),
-    borderRadius: "9999px",
-    boxShadow: theme.shadows[4],
-}));
-
-const CoordinateInput = styled(InputBase)(({ theme }) => ({
-    "& input": {
-        width: 82,
-        padding: 0,
-        fontSize: "0.875rem",
-        textAlign: "left",
-        "&::placeholder": { color: theme.vars.palette.text.muted, opacity: 1 },
-        "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-            WebkitAppearance: "none",
-            margin: 0,
-        },
-        MozAppearance: "textfield",
-    },
-}));
-
-const GoToLocationButton = styled(IconButton)(({ theme }) => ({
-    backgroundColor: theme.vars.palette.background.paper,
-    color: theme.vars.palette.text.base,
-    width: 36,
-    height: 36,
-    boxShadow: theme.shadows[4],
-    "&:hover": { backgroundColor: theme.vars.palette.background.elevatedPaper },
-    "&.Mui-disabled": {
-        backgroundColor: theme.vars.palette.background.elevatedPaper,
-        color: theme.vars.palette.text.faint,
-    },
-}));
-
-const ZoomControls = styled(Stack)(({ theme }) => ({
-    position: "absolute",
-    right: theme.spacing(3),
-    bottom: theme.spacing(5),
-    zIndex: 1000,
-    gap: theme.spacing(1),
-}));
-
 const ZoomButton = styled(IconButton)(({ theme }) => ({
     backgroundColor: theme.vars.palette.background.paper,
-    boxShadow: theme.shadows[4],
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    transition: "transform 0.2s ease-out",
-    "&:hover": {
-        backgroundColor: theme.vars.palette.background.paper,
-        transform: "scale(1.05)",
-    },
-}));
-
-const SearchContainer = styled("div")(({ theme }) => ({
-    position: "absolute",
-    top: theme.spacing(2),
-    left: theme.spacing(2),
-    right: theme.spacing(2),
-    zIndex: 1001,
-    display: "flex",
-    justifyContent: "center",
-}));
-
-const SearchInputWrapper = styled("div")(({ theme }) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    width: "min(100%, 360px)",
-    backgroundColor: theme.vars.palette.background.paper,
-    padding: theme.spacing(1),
-    borderRadius: "9999px",
-    boxShadow: theme.shadows[4],
+    color: theme.vars.palette.text.base,
+    width: 38,
+    height: 38,
+    borderRadius: 0,
+    "& + &": { borderTop: `1px solid ${theme.vars.palette.divider}` },
+    "&:hover": { backgroundColor: theme.vars.palette.background.elevatedPaper },
 }));
 
 const SearchResultsList = styled("div")(({ theme }) => ({
@@ -778,21 +818,11 @@ const SearchResultsList = styled("div")(({ theme }) => ({
     top: "100%",
     left: 0,
     right: 0,
-    maxWidth: 280,
     marginTop: theme.spacing(1),
     backgroundColor: theme.vars.palette.background.paper,
-    borderRadius: theme.spacing(1),
+    borderRadius: "16px",
     overflow: "hidden",
     maxHeight: 250,
     overflowY: "auto",
     boxShadow: theme.shadows[4],
-}));
-
-const SearchResultItem = styled("div")(({ theme }) => ({
-    padding: theme.spacing(1.5, 2),
-    cursor: "pointer",
-    "&:hover": { backgroundColor: theme.vars.palette.action.hover },
-    "&:not(:last-child)": {
-        borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    },
 }));

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/files_db.dart';
+import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/collection_updated_event.dart";
 import 'package:photos/events/files_updated_event.dart';
 import "package:photos/models/collection/collection.dart";
@@ -44,12 +45,19 @@ class ArchivePage extends StatefulWidget {
 class _ArchivePageState extends State<ArchivePage> {
   final _selectedFiles = SelectedFiles();
   final _archivedCollections = <Collection>[];
+  late StreamSubscription<CollectionMetaEvent> _collectionMetaEventSubscription;
   late StreamSubscription<CollectionUpdatedEvent>
   _collectionUpdatesSubscription;
 
   @override
   void initState() {
     super.initState();
+    _collectionMetaEventSubscription = Bus.instance
+        .on<CollectionMetaEvent>()
+        .where((event) => event.type == CollectionMetaEventType.orderChanged)
+        .listen((_) {
+          unawaited(_refreshArchivedCollections());
+        });
     _collectionUpdatesSubscription = Bus.instance
         .on<CollectionUpdatedEvent>()
         .listen((event) {
@@ -60,6 +68,7 @@ class _ArchivePageState extends State<ArchivePage> {
 
   @override
   void dispose() {
+    _collectionMetaEventSubscription.cancel();
     _collectionUpdatesSubscription.cancel();
     super.dispose();
   }
@@ -70,10 +79,16 @@ class _ArchivePageState extends State<ArchivePage> {
     if (!mounted) {
       return;
     }
+    final userID = Configuration.instance.getUserID();
+    bool isPinnedForCurrentUser(Collection collection) =>
+        userID != null && !collection.isOwner(userID)
+        ? collection.hasShareePinned()
+        : collection.isPinned;
     setState(() {
       _archivedCollections
         ..clear()
-        ..addAll(archivedCollections);
+        ..addAll(archivedCollections.where(isPinnedForCurrentUser))
+        ..addAll(archivedCollections.where((c) => !isPinnedForCurrentUser(c)));
     });
   }
 

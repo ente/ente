@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ente/cli/internal/api"
 	"github.com/ente/cli/pkg/mapper"
 	"github.com/ente/cli/pkg/model"
 	"github.com/ente/cli/pkg/model/export"
 	"github.com/ente/cli/utils"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -140,6 +142,13 @@ func (c *ClICtrl) downloadEntry(ctx context.Context,
 	if !diskInfo.IsFilePresent(file) {
 		decrypt, err := c.downloadAndDecrypt(ctx, file, c.KeyHolder.DeviceKey)
 		if err != nil {
+			var downloadErr *api.ApiError
+			if errors.As(err, &downloadErr) && (downloadErr.StatusCode == http.StatusBadRequest || downloadErr.StatusCode == http.StatusNotFound) {
+				if _, membershipErr := c.Client.GetFile(ctx, albumEntry.AlbumID, file.ID); api.IsFileNotInAlbumError(membershipErr) {
+					log.Printf("Skipping file %d for album %d: file is no longer in the album", file.ID, albumEntry.AlbumID)
+					return c.DeleteAlbumEntry(ctx, albumEntry)
+				}
+			}
 			return err
 		}
 		fileDiskMetadata := mapper.MapRemoteFileToDiskMetadata(file)

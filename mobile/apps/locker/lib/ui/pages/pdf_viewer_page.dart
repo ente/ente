@@ -39,6 +39,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
   static const _maxScale = 5.0;
   static const _doubleTapScale = 2.5;
   static const _maxRenderPixels = 8 * 1024 * 1024;
+  static const _maxPages = 500;
 
   final _transformation = TransformationController();
   final _currentPage = ValueNotifier(1);
@@ -83,6 +84,7 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
       final document = await EntePdfRenderer.open(
         widget.localFile.path,
         password: password,
+        maxPages: _maxPages,
       );
       if (!mounted || document.pageCount == 0) {
         await document.close();

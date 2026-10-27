@@ -45,10 +45,11 @@ type DragMode = VideoTrimHandle | "cover";
 export const SpacePostVideoEditor: React.FC<{
     file: File;
     sourceURL: string;
+    startTime: number;
     duration: number;
     edit: SpacePostVideoEdit;
     onChange: (edit: SpacePostVideoEdit) => void;
-}> = ({ file, sourceURL, duration, edit, onChange }) => {
+}> = ({ file, sourceURL, startTime, duration, edit, onChange }) => {
     const [mode, setMode] = React.useState<"trim" | "cover">("trim");
     const [frames, setFrames] = React.useState<string[]>([]);
     const [playing, setPlaying] = React.useState(false);
@@ -84,13 +85,14 @@ export const SpacePostVideoEditor: React.FC<{
             videoRef.current!,
             () => latest.current.edit,
             () => setPreviewError("Couldn't play this video preview."),
+            startTime,
         );
         playback.current = controller;
         return () => {
             controller.dispose();
             playback.current = undefined;
         };
-    }, []);
+    }, [startTime]);
 
     const seek = React.useCallback((time: number) => {
         playback.current?.seek(time);

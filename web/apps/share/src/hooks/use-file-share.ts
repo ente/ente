@@ -1,4 +1,4 @@
-import type { NotificationAttributes } from "ente-base/components/Notification";
+import { useNotification } from "ente-base/components/utils/hooks-app";
 import { apiOrigin } from "ente-base/origins";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -44,12 +44,9 @@ interface UseFileShareResult {
     error: string | null;
     fileInfo: DecryptedFileInfo | null;
     accessToken: string | null;
-    notificationAttributes: NotificationAttributes | undefined;
+    notificationProps: ReturnType<typeof useNotification>["notificationProps"];
     handleDownload: () => Promise<void>;
     handleCopyContent: (content: string) => Promise<void>;
-    setNotificationAttributes: (
-        attributes: NotificationAttributes | undefined,
-    ) => void;
 }
 
 export const useFileShare = (): UseFileShareResult => {
@@ -59,8 +56,7 @@ export const useFileShare = (): UseFileShareResult => {
     const [error, setError] = useState<string | null>(null);
     const [fileInfo, setFileInfo] = useState<DecryptedFileInfo | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
-    const [notificationAttributes, setNotificationAttributes] =
-        useState<NotificationAttributes>();
+    const { showNotification, notificationProps } = useNotification();
 
     useEffect(() => {
         const loadFileInfo = async () => {
@@ -157,10 +153,7 @@ export const useFileShare = (): UseFileShareResult => {
         try {
             await navigator.clipboard.writeText(content);
         } catch {
-            setNotificationAttributes({
-                color: "critical",
-                title: "Failed to copy",
-            });
+            showNotification({ color: "critical", title: "Failed to copy" });
         }
     };
 
@@ -170,9 +163,8 @@ export const useFileShare = (): UseFileShareResult => {
         error,
         fileInfo,
         accessToken,
-        notificationAttributes,
+        notificationProps,
         handleDownload,
         handleCopyContent,
-        setNotificationAttributes,
     };
 };

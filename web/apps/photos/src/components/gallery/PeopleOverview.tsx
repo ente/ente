@@ -1,6 +1,9 @@
 import { sortPeople, type PeopleSortBy } from "@/utils/people-sort";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
     Box,
+    Button,
     Stack,
     Typography,
     styled,
@@ -12,25 +15,44 @@ import { UnstyledButton } from "ente-new/photos/components/UnstyledButton";
 import { thumbnailGridPadding } from "ente-new/photos/components/utils/thumbnail-grid-layout";
 import type { Person } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList, type ListChildComponentProps } from "react-window";
+import { VariableSizeList, type ListChildComponentProps } from "react-window";
 import { PeopleEmptyState } from ".";
 
 export const PeopleOverview = ({
     people,
+    allPeople,
     peopleSortBy,
     onSelectPerson,
 }: {
     people: Person[];
+    allPeople: Person[];
     peopleSortBy: PeopleSortBy;
     onSelectPerson: (id: string) => void;
 }) => {
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
+    const [showingAllPeople, setShowingAllPeople] = useState(false);
     const sortedPeople = useMemo(
         () => sortPeople(people, peopleSortBy),
         [people, peopleSortBy],
     );
+    const extraPeople = useMemo(() => {
+        const visiblePersonIDs = new Set(people.map(({ id }) => id));
+        return sortPeople(
+            allPeople.filter(
+                (person) =>
+                    !visiblePersonIDs.has(person.id) &&
+                    !(person.type == "cgroup" && person.isHidden),
+            ),
+            peopleSortBy,
+        );
+    }, [allPeople, people, peopleSortBy]);
+    const primaryPeople = people.length ? sortedPeople : extraPeople;
+    const showMoreFacesButton = people.length > 0 && extraPeople.length > 0;
+    const expandedPeople =
+        showMoreFacesButton && showingAllPeople ? extraPeople : [];
+
     return (
         <Stack
             sx={{
@@ -71,11 +93,11 @@ export const PeopleOverview = ({
                             lineHeight: "18px",
                         }}
                     >
-                        {t("people_count", { count: people.length })}
+                        {t("people_count", { count: primaryPeople.length })}
                     </Typography>
                 </Stack>
             </Stack>
-            {people.length ? (
+            {primaryPeople.length ? (
                 <Box
                     sx={{
                         flex: 1,
@@ -95,23 +117,71 @@ export const PeopleOverview = ({
                                     (width - 16 + gap) / (tileWidth + gap),
                                 ),
                             );
+                            const primaryRowCount = Math.ceil(
+                                primaryPeople.length / columns,
+                            );
+                            const items: PeopleListItem[] = [];
+                            const addPeopleRows = (people: Person[]) => {
+                                for (
+                                    let index = 0;
+                                    index < people.length;
+                                    index += columns
+                                ) {
+                                    items.push({
+                                        type: "people",
+                                        people: people.slice(
+                                            index,
+                                            index + columns,
+                                        ),
+                                    });
+                                }
+                            };
+                            addPeopleRows(primaryPeople);
+                            if (showMoreFacesButton) {
+                                items.push({ type: "showMore" });
+                                if (showingAllPeople) {
+                                    items.push({
+                                        type: "header",
+                                        count: expandedPeople.length,
+                                    });
+                                    addPeopleRows(expandedPeople);
+                                }
+                            }
                             return (
-                                <FixedSizeList
+                                <VariableSizeList
+                                    key={`${columns}-${mobile}-${primaryRowCount}-${showMoreFacesButton}`}
                                     width={width}
                                     height={height}
-                                    itemCount={Math.ceil(
-                                        sortedPeople.length / columns,
-                                    )}
-                                    itemSize={mobile ? 150 : 190}
+                                    style={{ scrollbarGutter: "stable" }}
+                                    itemCount={items.length}
+                                    estimatedItemSize={mobile ? 150 : 190}
+                                    itemSize={(index) =>
+                                        items[index]?.type != "people"
+                                            ? 88
+                                            : mobile
+                                              ? 150
+                                              : 190
+                                    }
+                                    itemKey={(index) => {
+                                        const item = items[index]!;
+                                        return item.type != "people"
+                                            ? item.type
+                                            : item.people[0]!.id;
+                                    }}
                                     overscanCount={1}
                                     itemData={{
-                                        people: sortedPeople,
+                                        items,
                                         columns,
                                         onSelectPerson,
+                                        showingAllPeople,
+                                        onToggleShowingAllPeople: () =>
+                                            setShowingAllPeople(
+                                                (value) => !value,
+                                            ),
                                     }}
                                 >
                                     {PeopleRow}
-                                </FixedSizeList>
+                                </VariableSizeList>
                             );
                         }}
                     </AutoSizer>
@@ -123,28 +193,112 @@ export const PeopleOverview = ({
     );
 };
 
+type PeopleListItem =
+    | { type: "people"; people: Person[] }
+    | { type: "showMore" }
+    | { type: "header"; count: number };
+
 const PeopleRow = ({
     data,
     index,
     style,
 }: ListChildComponentProps<{
-    people: Person[];
+    items: PeopleListItem[];
     columns: number;
     onSelectPerson: (id: string) => void;
-}>) => (
-    <div
-        style={{
-            ...style,
-            display: "grid",
-            gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
-            columnGap: "var(--people-column-gap)",
-            justifyItems: "center",
-            alignItems: "start",
-        }}
-    >
-        {data.people
-            .slice(index * data.columns, (index + 1) * data.columns)
-            .map((person) => (
+    showingAllPeople: boolean;
+    onToggleShowingAllPeople: () => void;
+}>) => {
+    const item = data.items[index]!;
+    if (item.type == "header") {
+        return (
+            <Stack
+                style={style}
+                sx={{
+                    justifyContent: "center",
+                    borderTop: "1px solid",
+                    borderColor: "stroke.faint",
+                    gap: "2px",
+                }}
+            >
+                <Typography
+                    component="h2"
+                    sx={{
+                        fontFamily: '"Outfit Variable", Outfit, sans-serif',
+                        fontSize: 20,
+                        fontWeight: 600,
+                        lineHeight: "26px",
+                    }}
+                >
+                    {t("more_faces")}
+                </Typography>
+                <Typography
+                    sx={{
+                        color: "text.muted",
+                        fontSize: 14,
+                        lineHeight: "18px",
+                    }}
+                >
+                    {t("people_count", { count: item.count })}
+                </Typography>
+            </Stack>
+        );
+    }
+    if (item.type == "showMore") {
+        return (
+            <Box
+                style={style}
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    py: 2,
+                    gap: 2,
+                }}
+            >
+                <Button
+                    variant="text"
+                    onClick={data.onToggleShowingAllPeople}
+                    aria-expanded={data.showingAllPeople}
+                    startIcon={
+                        data.showingAllPeople ? (
+                            <ExpandLessIcon />
+                        ) : (
+                            <ExpandMoreIcon />
+                        )
+                    }
+                    sx={{
+                        flexShrink: 0,
+                        color: "text.muted",
+                        bgcolor: "transparent",
+                        px: 1,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        "&:hover": {
+                            color: "text.base",
+                            bgcolor: "transparent",
+                        },
+                    }}
+                >
+                    {data.showingAllPeople
+                        ? t("show_less_faces")
+                        : t("show_more_faces")}
+                </Button>
+            </Box>
+        );
+    }
+    return (
+        <div
+            style={{
+                ...style,
+                display: "grid",
+                gridTemplateColumns: `repeat(${data.columns}, minmax(0, 1fr))`,
+                columnGap: "var(--people-column-gap)",
+                justifyItems: "center",
+                alignItems: "start",
+            }}
+        >
+            {item.people.map((person) => (
                 <PersonButton
                     key={person.id}
                     onClick={() => data.onSelectPerson(person.id)}
@@ -184,8 +338,9 @@ const PeopleRow = ({
                     </Typography>
                 </PersonButton>
             ))}
-    </div>
-);
+        </div>
+    );
+};
 
 const PersonButton = styled(UnstyledButton)({
     width: "var(--people-tile-size)",

@@ -80,7 +80,7 @@ func TestUpdateFileReplicaLocations(t *testing.T) {
 				thumbnailLocations = fileLocations
 			}
 
-			require.NoError(t, repository.Update(file, file.Info.FileSize, file.Info.ThumbnailSize, usageDiff, oldObjects, stagedObjects))
+			require.NoError(t, repository.Update(file, file.Info.FileSize, file.Info.ThumbnailSize, usageDiff, oldObjects, stagedObjects, ente.Photos))
 			for _, object := range []struct {
 				kind      ente.ObjectType
 				key       string

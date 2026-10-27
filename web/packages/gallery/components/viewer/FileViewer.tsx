@@ -1,20 +1,22 @@
-import { Navigation03Icon } from "@hugeicons/core-free-icons";
+import {
+    Add01Icon,
+    Archive02Icon,
+    Copy01Icon,
+    Delete02Icon,
+    Download05Icon,
+    Edit02Icon,
+    FullScreenIcon,
+    KeyboardIcon,
+    MinimizeScreenIcon,
+    Navigation03Icon,
+    Unarchive03Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import AddIcon from "@mui/icons-material/Add";
-import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import FullscreenExitOutlinedIcon from "@mui/icons-material/FullscreenExitOutlined";
-import FullscreenOutlinedIcon from "@mui/icons-material/FullscreenOutlined";
-import UnArchiveIcon from "@mui/icons-material/Unarchive";
 import {
     Dialog,
     DialogContent,
     DialogTitle,
-    Menu,
-    MenuItem,
+    Divider,
     Stack,
     styled,
     Typography,
@@ -23,6 +25,7 @@ import {
 import type { LocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { SpacedRow } from "ente-base/components/containers";
+import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";
 import { TitledMiniDialog } from "ente-base/components/MiniDialog";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
@@ -1843,7 +1846,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 onToggleAlbum={handleToggleAlbumLike}
                 onLikeAll={handleLikeAll}
             />
-            <MoreMenu
+            <ContextMenu
                 open={!!moreMenuAnchorEl}
                 onClose={handleMoreMenuCloseIfNeeded}
                 anchorEl={moreMenuAnchorEl}
@@ -1852,88 +1855,71 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 slotProps={{ list: { "aria-labelledby": moreButtonID } }}
             >
                 {activeAnnotatedFile.annotation.showDownload == "menu" && (
-                    <MoreMenuItem onClick={handleDownloadMenuAction}>
-                        <MoreMenuItemTitle>{t("download")}</MoreMenuItemTitle>
-                        <FileDownloadOutlinedIcon />
-                    </MoreMenuItem>
+                    <ContextMenuItem onClick={handleDownloadMenuAction}>
+                        <HugeiconsIcon icon={Download05Icon} size={20} />
+                        {t("download")}
+                    </ContextMenuItem>
                 )}
                 {activeAnnotatedFile.annotation.isOwnFile &&
                     !isInTrashSection &&
                     onSendLink && (
-                        <MoreMenuItem onClick={handleSendLinkMenuAction}>
-                            <MoreMenuItemTitle>
-                                {t("send_link")}
-                            </MoreMenuItemTitle>
+                        <ContextMenuItem onClick={handleSendLinkMenuAction}>
                             <HugeiconsIcon icon={Navigation03Icon} size={20} />
-                        </MoreMenuItem>
+                            {t("send_link")}
+                        </ContextMenuItem>
                     )}
                 {activeAnnotatedFile.annotation.showDelete && (
-                    <MoreMenuItem onClick={handleConfirmDelete}>
-                        <MoreMenuItemTitle>{t("delete")}</MoreMenuItemTitle>
-                        <DeleteIcon />
-                    </MoreMenuItem>
+                    <ContextMenuItem onClick={handleConfirmDelete} destructive>
+                        <HugeiconsIcon icon={Delete02Icon} size={20} />
+                        {t("delete")}
+                    </ContextMenuItem>
                 )}
                 {isArchived !== undefined && (
-                    <MoreMenuItem
+                    <ContextMenuItem
                         onClick={toggleArchived}
                         disabled={isPendingToggleArchive}
                     >
-                        <MoreMenuItemTitle>
-                            {isArchived ? t("unarchive") : t("archive")}
-                        </MoreMenuItemTitle>
-                        {isArchived ? (
-                            <UnArchiveIcon />
-                        ) : (
-                            <ArchiveOutlinedIcon />
-                        )}
-                    </MoreMenuItem>
+                        <HugeiconsIcon
+                            icon={isArchived ? Unarchive03Icon : Archive02Icon}
+                            size={20}
+                        />
+                        {isArchived ? t("unarchive") : t("archive")}
+                    </ContextMenuItem>
                 )}
                 {handleAddFileToCollection &&
                     !(isInTrashSection || isInHiddenSection) && (
-                        <MoreMenuItem onClick={handleAddFileToCollection}>
-                            <MoreMenuItemTitle>
-                                {t("add_to_album")}
-                            </MoreMenuItemTitle>
-                            <AddIcon />
-                        </MoreMenuItem>
+                        <ContextMenuItem onClick={handleAddFileToCollection}>
+                            <HugeiconsIcon icon={Add01Icon} size={20} />
+                            {t("add_to_album")}
+                        </ContextMenuItem>
                     )}
                 {canCopyImage() && (
-                    <MoreMenuItem onClick={handleCopyImage}>
-                        <MoreMenuItemTitle>
-                            {t("copy_as_png")}
-                        </MoreMenuItemTitle>
-                        <ContentCopyIcon sx={{ "&&": { fontSize: "18px" } }} />
-                    </MoreMenuItem>
+                    <ContextMenuItem onClick={handleCopyImage}>
+                        <HugeiconsIcon icon={Copy01Icon} size={20} />
+                        {t("copy_as_png")}
+                    </ContextMenuItem>
                 )}
-
                 {activeAnnotatedFile.annotation.showEditImage && (
-                    <MoreMenuItem onClick={handleEditImage}>
-                        <MoreMenuItemTitle>{t("edit_image")}</MoreMenuItemTitle>
-                        <EditIcon />
-                    </MoreMenuItem>
+                    <ContextMenuItem onClick={handleEditImage}>
+                        <HugeiconsIcon icon={Edit02Icon} size={20} />
+                        {t("edit_image")}
+                    </ContextMenuItem>
                 )}
-                <MoreMenuItem
-                    onClick={handleToggleFullscreen}
-                    divider
-                    sx={{ borderColor: "fixed.dark.divider", pb: "14px" }}
-                >
-                    <MoreMenuItemTitle>
-                        {isFullscreen
-                            ? t("exit_fullscreen")
-                            : t("go_fullscreen")}
-                    </MoreMenuItemTitle>
-                    {isFullscreen ? (
-                        <FullscreenExitOutlinedIcon />
-                    ) : (
-                        <FullscreenOutlinedIcon />
-                    )}
-                </MoreMenuItem>
-                <MoreMenuItem onClick={handleShortcuts} sx={{ mt: "2px" }}>
-                    <Typography sx={{ color: "fixed.dark.text.faint" }}>
-                        {t("shortcuts")}
-                    </Typography>
-                </MoreMenuItem>
-            </MoreMenu>
+                <ContextMenuItem onClick={handleToggleFullscreen}>
+                    <HugeiconsIcon
+                        icon={
+                            isFullscreen ? MinimizeScreenIcon : FullScreenIcon
+                        }
+                        size={20}
+                    />
+                    {isFullscreen ? t("exit_fullscreen") : t("go_fullscreen")}
+                </ContextMenuItem>
+                <Divider />
+                <ContextMenuItem onClick={handleShortcuts}>
+                    <HugeiconsIcon icon={KeyboardIcon} size={20} />
+                    {t("shortcuts")}
+                </ContextMenuItem>
+            </ContextMenu>
             <ConfirmDeleteFileDialog
                 open={openConfirmDelete}
                 onClose={handleConfirmDeleteClose}
@@ -1955,44 +1941,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         </>
     );
 };
-
-const MoreMenu = styled(Menu)(
-    ({ theme }) => `
-    & .MuiPaper-root {
-        background-color: ${theme.vars.palette.fixed.dark.background.paper};
-    }
-    & .MuiList-root {
-        padding-block: 2px;
-    }
-`,
-);
-
-const MoreMenuItem = styled(MenuItem)(
-    ({ theme }) => `
-    min-width: 210px;
-
-    padding-block: 12px;
-    min-height: auto;
-
-    gap: 1;
-    justify-content: space-between;
-    align-items: center;
-
-    color: rgba(255 255 255 / 0.85);
-    &:hover {
-        color: rgba(255 255 255 / 1);
-        background-color: ${theme.vars.palette.fixed.dark.background.paper2}
-    }
-
-    .MuiSvgIcon-root {
-        font-size: 20px;
-    }
-`,
-);
-
-const MoreMenuItemTitle: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <Typography sx={{ fontWeight: "medium" }}>{children}</Typography>
-);
 
 type ConfirmDeleteFileDialogProps = ModalVisibilityProps & {
     onConfirm: () => Promise<void>;

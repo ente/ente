@@ -33,7 +33,7 @@ Things help you remember where important physical documents are stored. Track th
 3. Select **Thing**
 4. Fill in the fields:
     - **Name**: Document name (e.g., "Passport", "House Deed")
-    - **Location**: Where it's stored (e.g., "Home safe, top drawer")
+    - **Location**: Where it's stored (e.g., "Home safe, top drawer"), optional
     - **Notes**: Any other relevant information (optional)
 5. Select one or more collections
 6. Tap **Save**

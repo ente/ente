@@ -8,6 +8,11 @@ import { AccountsPageContents } from "ente-accounts/components/layouts/centered-
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
+import {
+    v2PaperSx,
+    v2SubmitButtonSx,
+} from "ente-base/components/SingleInput.styles";
+import { isSxArray } from "ente-base/components/utils/sx";
 import { useBaseContext } from "ente-base/context";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import { t } from "i18next";
@@ -68,88 +73,93 @@ const Page: React.FC = () => {
         }
     };
 
+    const accepting = phase == "accepting";
+    const title = t(
+        phase == "accepted"
+            ? "family_invite_accepted"
+            : phase == "invalid" || phase == "loading"
+              ? "family_plan"
+              : phase == "failed"
+                ? "generic_error_retry"
+                : "family_invite_title",
+    );
+
     return (
-        <AccountsPageContents>
+        <AccountsPageContents
+            paperSx={[
+                ...(isSxArray(v2PaperSx) ? v2PaperSx : [v2PaperSx]),
+                {
+                    width: "min(420px, calc(100svw - 32px))",
+                    maxWidth: 420,
+                    boxSizing: "border-box",
+                    "&&": { p: "20px" },
+                    minHeight: 0,
+                    gap: "20px",
+                },
+            ]}
+        >
+            <Typography
+                component="h1"
+                sx={{ fontSize: 20, lineHeight: "28px", fontWeight: 600 }}
+            >
+                {title}
+            </Typography>
             {phase == "loading" ? (
-                <Stack
-                    sx={{
-                        flex: 1,
-                        placeContent: "center",
-                        alignItems: "center",
-                    }}
-                >
+                <Stack sx={{ alignItems: "center", py: 4 }}>
                     <ActivityIndicator />
                 </Stack>
             ) : phase == "invalid" ? (
                 <FamilyInviteContents>
-                    <Box
-                        component="img"
-                        alt=""
-                        src="/images/family-invite-invalid.png"
-                        sx={{ width: 180, height: "auto" }}
-                    />
-                    <Typography sx={{ color: "text.muted" }}>
+                    <FamilyInviteIllustration src="/images/family-invite-invalid.png" />
+                    <FamilyInviteDescription>
                         {t("family_invite_invalid")}
-                    </Typography>
+                    </FamilyInviteDescription>
                 </FamilyInviteContents>
             ) : phase == "failed" ? (
-                <Stack sx={{ flex: 1, placeContent: "center", gap: 3 }}>
-                    <Typography variant="h3" sx={{ textAlign: "center" }}>
-                        {t("generic_error_retry")}
-                    </Typography>
-                    <FocusVisibleButton
-                        onClick={() => void loadInvite(token.current!)}
-                    >
-                        {t("retry")}
-                    </FocusVisibleButton>
-                </Stack>
+                <FocusVisibleButton
+                    fullWidth
+                    sx={{ ...v2SubmitButtonSx, flex: "none", fontWeight: 600 }}
+                    onClick={() => void loadInvite(token.current!)}
+                >
+                    {t("retry")}
+                </FocusVisibleButton>
             ) : phase == "accepted" ? (
                 <FamilyInviteContents>
-                    <Box
-                        component="img"
-                        alt=""
-                        src="/images/family-invite-accepted.png"
-                        sx={{ width: 200, height: "auto" }}
-                    />
-                    <Stack sx={{ gap: 1.5 }}>
-                        <Typography variant="h3">
-                            {t("family_invite_accepted")}
-                        </Typography>
-                        <Typography sx={{ color: "text.muted" }}>
-                            {t("family_invite_accepted_description", {
-                                email: invite?.adminEmail,
-                            })}
-                        </Typography>
-                    </Stack>
+                    <FamilyInviteIllustration src="/images/family-invite-accepted.png" />
+                    <FamilyInviteDescription>
+                        {t("family_invite_accepted_description", {
+                            email: invite?.adminEmail,
+                        })}
+                    </FamilyInviteDescription>
                     <FocusVisibleButton
-                        color="accent"
+                        fullWidth
                         href="https://photos.ente.com"
+                        sx={{
+                            ...v2SubmitButtonSx,
+                            flex: "none",
+                            fontWeight: 600,
+                        }}
                     >
                         {t("open_ente")}
                     </FocusVisibleButton>
                 </FamilyInviteContents>
             ) : (
                 <FamilyInviteContents>
-                    <Box
-                        component="img"
-                        alt=""
-                        src="/images/family-invite.png"
-                        sx={{ width: 160, height: "auto" }}
-                    />
-                    <Stack sx={{ gap: 1.5 }}>
-                        <Typography variant="h3">
-                            {t("family_invite_title")}
-                        </Typography>
-                        <Typography sx={{ color: "text.muted" }}>
-                            {t("family_invite_description", {
-                                email: invite?.adminEmail,
-                            })}
-                        </Typography>
-                    </Stack>
+                    <FamilyInviteIllustration src="/images/family-invite.png" />
+                    <FamilyInviteDescription>
+                        {t("family_invite_description", {
+                            email: invite?.adminEmail,
+                        })}
+                    </FamilyInviteDescription>
                     <LoadingButton
                         fullWidth
-                        color="accent"
-                        loading={phase == "accepting"}
+                        disabled={accepting}
+                        loading={accepting}
+                        sx={{
+                            ...v2SubmitButtonSx,
+                            flex: "none",
+                            fontWeight: 600,
+                        }}
                         onClick={() => void accept()}
                     >
                         {t("accept_family_invite")}
@@ -162,18 +172,46 @@ const Page: React.FC = () => {
 
 const FamilyInviteContents: React.FC<React.PropsWithChildren> = ({
     children,
+}) => <Stack sx={{ gap: 2 }}>{children}</Stack>;
+
+const FamilyInviteDescription: React.FC<React.PropsWithChildren> = ({
+    children,
 }) => (
-    <Stack
+    <Typography
         sx={{
-            flex: 1,
-            placeContent: "center",
-            alignItems: "center",
-            textAlign: "center",
-            gap: 3,
+            fontSize: 14,
+            lineHeight: "22px",
+            color: "text.muted",
+            overflowWrap: "anywhere",
         }}
     >
         {children}
-    </Stack>
+    </Typography>
+);
+
+const FamilyInviteIllustration: React.FC<{ src: string }> = ({ src }) => (
+    <Box
+        sx={(theme) => ({
+            height: 142,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: "background.paper",
+            borderRadius: "16px",
+            ...theme.applyStyles("dark", { bgcolor: "#282828" }),
+        })}
+    >
+        <Box
+            component="img"
+            alt=""
+            src={src}
+            sx={{
+                maxHeight: 116,
+                maxWidth: "min(180px, 100%)",
+                objectFit: "contain",
+            }}
+        />
+    </Box>
 );
 
 export default Page;

@@ -24,12 +24,13 @@ import (
 type rateLimitScope string
 
 const (
-	rateLimitScopeIP            rateLimitScope = "ip"
-	rateLimitScopeCollection    rateLimitScope = "collection"
-	rateLimitScopeUser          rateLimitScope = "user"
-	rateLimitScopeRouteGlobal   rateLimitScope = "route_global"
-	rateLimitScopeProcessGlobal rateLimitScope = "process_global"
-	processGlobalRateLimitURL                  = "all"
+	rateLimitScopeIP             rateLimitScope = "ip"
+	rateLimitScopeCollection     rateLimitScope = "collection"
+	rateLimitScopeUser           rateLimitScope = "user"
+	rateLimitScopeRouteGlobal    rateLimitScope = "route_global"
+	rateLimitScopeProcessGlobal  rateLimitScope = "process_global"
+	processGlobalRateLimitURL                   = "all"
+	processThumbnailRateLimitURL                = "thumbnails"
 )
 
 var rateLimitRejections = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -39,7 +40,9 @@ var rateLimitRejections = promauto.NewCounterVec(prometheus.CounterOpts{
 
 type RateLimitMiddleware struct {
 	count              int64
+	thumbnailCount     int64
 	limit              int64
+	thumbnailLimit     int64
 	reset              time.Duration
 	ticker             *time.Ticker
 	limit10ReqPerMin   *limiter.Limiter
@@ -53,7 +56,7 @@ type RateLimitMiddleware struct {
 	discordCtrl        *discord.DiscordController
 }
 
-func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit int64, reset time.Duration) *RateLimitMiddleware {
+func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumbnailLimit int64, reset time.Duration) *RateLimitMiddleware {
 	rl := &RateLimitMiddleware{
 		limit10ReqPerMin:   util.NewRateLimiter("10-M"),
 		limit60ReqPerMin:   util.NewRateLimiter("60-M"),
@@ -65,20 +68,17 @@ func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit int64,
 		limit700ReqPerSec:  util.NewRateLimiter("700-S"),
 		discordCtrl:        discordCtrl,
 		limit:              limit,
+		thumbnailLimit:     thumbnailLimit,
 		reset:              reset,
 		ticker:             time.NewTicker(reset),
 	}
 	go func() {
 		for range rl.ticker.C {
 			atomic.StoreInt64(&rl.count, 0)
+			atomic.StoreInt64(&rl.thumbnailCount, 0)
 		}
 	}()
 	return rl
-}
-
-func (r *RateLimitMiddleware) Increment() bool {
-	newCount := atomic.AddInt64(&r.count, 1)
-	return newCount <= r.limit
 }
 
 func (r *RateLimitMiddleware) Stop() {
@@ -87,15 +87,35 @@ func (r *RateLimitMiddleware) Stop() {
 
 func (r *RateLimitMiddleware) GlobalRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !r.Increment() {
-			recordRateLimitRejection(rateLimitScopeProcessGlobal, c.Request.Method, processGlobalRateLimitURL)
-			if r.count%100 == 0 {
-				go r.discordCtrl.NotifyPotentialAbuse(fmt.Sprintf("Global ratelimit (%d) breached %d", r.limit, r.count))
+		counter, limit := &r.count, r.limit
+		metricURL, name := processGlobalRateLimitURL, "Global"
+		if c.Request.Method == http.MethodGet && isThumbnailReadURLPath(c.FullPath()) {
+			counter, limit = &r.thumbnailCount, r.thumbnailLimit
+			metricURL, name = processThumbnailRateLimitURL, "Thumbnail"
+		}
+		count := atomic.AddInt64(counter, 1)
+		if count > limit {
+			recordRateLimitRejection(rateLimitScopeProcessGlobal, c.Request.Method, metricURL)
+			if count%100 == 0 {
+				go r.discordCtrl.NotifyPotentialAbuse(fmt.Sprintf("%s ratelimit (%d) breached %d", name, limit, count))
 			}
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit breached, try later"})
 			return
 		}
 		c.Next()
+	}
+}
+
+func isThumbnailReadURLPath(reqPath string) bool {
+	switch reqPath {
+	case "/files/preview/:fileID", "/files/preview/v2/:fileID", "/files/thumbnail/v3/:fileID",
+		"/public-collection/files/preview/:fileID", "/public-collection/files/thumbnail/v3/:fileID",
+		"/public-memory/files/preview/:fileID", "/public-memory/files/thumbnail/v3/:fileID",
+		"/cast/files/preview/:fileID", "/cast/files/thumbnail/v3/:fileID",
+		"/file-link/thumbnail", "/file-link/thumbnail/v3":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -19,9 +19,17 @@ class ChangeLogStrings {
     "en": ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: "Document scanner",
+          title: "Image viewer",
           description:
-              "Locker can now scan paper documents. Point the camera at a page and save it as a PDF, straight into the collection you pick.",
+              "Open images right in Locker. Pinch or double-tap to zoom.",
+        ),
+        ChangeLogEntryStrings(
+          title: "New upload screen",
+          description: "A fresh look for adding files to Locker.",
+        ),
+        ChangeLogEntryStrings(
+          title: "Now in Korean",
+          description: "You can now use Locker in Korean.",
         ),
       ],
     ),

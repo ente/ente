@@ -27,7 +27,7 @@ const domain = metadata.packages.filter((pkg) =>
 );
 
 const httpOwners = new Set([
-    "rust/apps/cli-next/Cargo.toml",
+    "rust/apps/cli/Cargo.toml",
     "rust/crates/assets/Cargo.toml",
     "rust/crates/core/Cargo.toml",
     "rust/tools/location-dataset/Cargo.toml",

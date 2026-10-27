@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ente/museum/space/models"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )
@@ -200,6 +201,60 @@ func TestNotificationsPaginationAndReadIsolation(t *testing.T) {
 	unread, err = module.Notifications.HasUnread(ctx, alice.SpaceID)
 	require.NoError(t, err)
 	require.False(t, unread)
+}
+
+func TestNotificationsHideBranchesAcrossPostsBeforePagination(t *testing.T) {
+	module := newSpaceTestModule(t)
+	ctx := t.Context()
+	owner, friend := notificationTestSpaces(t, module)
+	postIDs := make([]int64, 3)
+	for i := range postIDs {
+		postID, err := testCreatePost(ctx, module, owner.OwnerID, owner.SpaceID, "post-key", nil, 1, nil)
+		require.NoError(t, err)
+		postIDs[i] = postID
+	}
+	for _, item := range []struct {
+		id, replyTo string
+		post        int
+		createdAt   int64
+	}{
+		{"older", "", 0, 10},
+		{"newer", "", 2, 20},
+		{"hidden-parent", "", 0, 100},
+		{"hidden-child", "hidden-parent", 0, 101},
+		{"hidden-post-parent", "", 1, 200},
+		{"hidden-post-child", "hidden-post-parent", 1, 201},
+	} {
+		require.NoError(t, module.Comments.Create(ctx, friend.SpaceID, postIDs[item.post], models.CreateCommentRequest{CommentID: item.id, ReplyToID: item.replyTo}, []byte(item.id)))
+		_, err := module.Notifications.DB.ExecContext(ctx, `UPDATE space_notifications SET created_at = $2 WHERE comment_id = $1`, item.id, item.createdAt)
+		require.NoError(t, err)
+	}
+	_, err := module.Comments.DB.ExecContext(ctx, `UPDATE space_comments SET cipher = NULL WHERE comment_id IN ('hidden-parent', 'hidden-post-parent')`)
+	require.NoError(t, err)
+	first, cursor, err := module.Notifications.List(ctx, owner.SpaceID, "", 1)
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	require.Equal(t, "newer", first[0].CommentID)
+	require.Len(t, first[0].NotificationIDs, 1)
+	require.NotEmpty(t, cursor)
+	second, next, err := module.Notifications.List(ctx, owner.SpaceID, cursor, 1)
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	require.Equal(t, "older", second[0].CommentID)
+	require.Len(t, second[0].NotificationIDs, 1)
+	require.EqualValues(t, 1, second[0].ActorCount)
+	require.Empty(t, next)
+	require.NoError(t, module.Notifications.MarkRead(ctx, owner.SpaceID, first[0].NotificationIDs))
+	unread, err := module.Notifications.HasUnread(ctx, owner.SpaceID)
+	require.NoError(t, err)
+	require.True(t, unread)
+	var allIDs pq.StringArray
+	require.NoError(t, module.Notifications.DB.QueryRowContext(ctx, `SELECT array_agg(notification_id) FROM space_notifications WHERE recipient_space_id = $1`, owner.SpaceID).Scan(&allIDs))
+	require.NoError(t, module.Notifications.MarkRead(ctx, owner.SpaceID, allIDs))
+	unread, err = module.Notifications.HasUnread(ctx, owner.SpaceID)
+	require.NoError(t, err)
+	require.False(t, unread)
+	require.EqualValues(t, 4, countSpaceRows(t, module, `SELECT count(*) FROM space_notifications WHERE read_at IS NULL`))
 }
 
 func TestNotificationsPaginateCompletePostGroups(t *testing.T) {

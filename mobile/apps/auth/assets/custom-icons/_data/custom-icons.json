@@ -91,6 +91,10 @@
       ]
     },
     {
+      "title": "Allan Gray",
+      "slug": "allan_gray"
+    },
+    {
       "title": "Allegro",
       "slug": "allegro",
       "hex": "FF5A00"
@@ -703,6 +707,15 @@
     {
       "title": "DeepSeek",
       "slug": "deepseek"
+    },
+    {
+      "title": "Deepal",
+      "slug": "deepal",
+      "altNames": [
+        "deepal.com",
+        "globalchangan.com",
+        "forodeepals05"
+      ]
     },
     {
       "title": "DEGIRO"
@@ -1399,6 +1412,9 @@
       "slug": "laposte"
     },
     {
+      "title": "Labcorp"
+    },
+    {
       "title": "LabyMod",
       "slug": "labymod"
     },
@@ -1407,6 +1423,15 @@
       "slug": "laneros",
       "altNames": [
         "laneros.com"
+      ]
+    },
+    {
+      "title": "LatinX in AI",
+      "slug": "latinxinai",
+      "hex": "000000",
+      "altNames": [
+        "Latinxinai.com",
+        "latinX in AI"
       ]
     },
     {
@@ -1762,6 +1787,10 @@
       "hex": "858585"
     },
     {
+      "title": "Ninety One",
+      "slug": "ninety_one"
+    },
+    {
       "title": "Nintendo",
       "hex": "000000",
       "altNames": [
@@ -2018,6 +2047,9 @@
     },
     {
       "title": "Porkbun"
+    },
+    {
+      "title": "Posteo"
     },
     {
       "title": "Postmark",
@@ -2500,6 +2532,12 @@
       ]
     },
     {
+      "title": "Tello",
+      "altNames": [
+        "Tello Mobile"
+      ]
+    },
+    {
       "title": "Temu",
       "slug": "temu"
     },
@@ -2738,6 +2776,10 @@
         "Universiteit Utrecht",
         "uu"
       ]
+    },
+    {
+      "title": "UptimeRobot",
+      "slug": "uptimerobot"
     },
     {
       "title": "Venice AI",

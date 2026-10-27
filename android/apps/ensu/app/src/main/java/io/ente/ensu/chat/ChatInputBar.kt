@@ -259,27 +259,29 @@ internal fun MessageInput(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(
-                    onClick = {
-                        haptic.perform(HapticFeedbackType.TextHandleMove)
-                        onAttachmentSelected(AttachmentType.Image)
-                    },
-                    enabled =
-                        editingMessage == null &&
-                            supportsImageAttachments &&
-                            !isGenerating &&
-                            !isDownloading &&
-                            !isImageAttachmentLimitReached,
-                    modifier = Modifier.size(width = 32.dp, height = 36.dp),
-                ) {
-                    Icon(
-                        painterResource(HugeIcons.ImagePlusIcon),
-                        contentDescription = "Add photos",
-                        modifier = Modifier.size(composerIconSize),
-                    )
-                }
+                if (supportsImageAttachments) {
+                    IconButton(
+                        onClick = {
+                            haptic.perform(HapticFeedbackType.TextHandleMove)
+                            onAttachmentSelected(AttachmentType.Image)
+                        },
+                        enabled =
+                            editingMessage == null &&
+                                supportsImageAttachments &&
+                                !isGenerating &&
+                                !isDownloading &&
+                                !isImageAttachmentLimitReached,
+                        modifier = Modifier.size(width = 32.dp, height = 36.dp),
+                    ) {
+                        Icon(
+                            painterResource(HugeIcons.ImagePlusIcon),
+                            contentDescription = "Add photos",
+                            modifier = Modifier.size(composerIconSize),
+                        )
+                    }
 
-                Spacer(modifier = Modifier.width(EnsuSpacing.xs.dp))
+                    Spacer(modifier = Modifier.width(EnsuSpacing.xs.dp))
+                }
 
                 BasicTextField(
                     value = fieldValue,

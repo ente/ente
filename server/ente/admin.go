@@ -57,6 +57,11 @@ type AdminOpsForUserRequest struct {
 	EmailMFA *bool `json:"emailMFA"`
 }
 
+type RepairDeletedCollectionShareRequest struct {
+	CollectionID int64 `json:"collectionID" binding:"required,gt=0"`
+	ToUserID     int64 `json:"toUserID" binding:"required,gt=0"`
+}
+
 type ReQueueItemRequest struct {
 	ID        int64  `json:"id" binding:"required"`
 	QueueName string `json:"queueName" binding:"required"`

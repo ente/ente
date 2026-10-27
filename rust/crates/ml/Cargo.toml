@@ -12,7 +12,7 @@ ente-assets.workspace = true
 ente-image.workspace = true
 fast_image_resize = { workspace = true, features = ["rayon"] }
 half = "2.1.0"
-html-escape = "0.2.13"
+html-escape = "0.3.0"
 image.workspace = true
 imageproc = "0.27.0"
 log.workspace = true

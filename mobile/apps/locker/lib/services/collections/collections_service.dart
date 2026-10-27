@@ -373,10 +373,14 @@ class CollectionService {
 
   Future<Collection> getOrCreateImportantCollection() async {
     final collections = await getCollections();
-    for (final collection in collections) {
-      if (collection.type == CollectionType.favorites) {
-        return collection;
-      }
+    final userID = Configuration.instance.getUserID()!;
+    final ownedCollection = findOwnedCollection(
+      collections,
+      ownerID: userID,
+      type: CollectionType.favorites,
+    );
+    if (ownedCollection != null) {
+      return ownedCollection;
     }
     _logger.info(
       "No favorites collection found, creating important collection.",
@@ -715,11 +719,15 @@ class CollectionService {
 
   Future<Collection> _getOrCreateDocumentsCollection() async {
     final collections = await getCollections();
-    for (final collection in collections) {
-      if (collection.type == CollectionType.folder &&
-          collection.name == "Documents") {
-        return collection;
-      }
+    final userID = Configuration.instance.getUserID()!;
+    final collection = findOwnedCollection(
+      collections,
+      ownerID: userID,
+      type: CollectionType.folder,
+      name: "Documents",
+    );
+    if (collection != null) {
+      return collection;
     }
     _logger.info(
       "No Documents collection found, creating Documents collection.",

@@ -217,6 +217,8 @@ If you have multiple empty albums cluttering your album list, you can bulk delet
 
 This will delete all empty albums from your library. The feature only appears after your initial sync is complete and when you have more than 2 empty albums.
 
+Bulk-deleting empty Ente albums does not turn off backup for their device folders. If a selected folder contains media eligible for backup, Ente can create its album again. Open `Settings > Backup > Backed up folders` and turn off a folder only if you also want to stop its automatic backup.
+
 **On web / desktop:**
 
 1. Open **All Albums**

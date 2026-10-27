@@ -8,6 +8,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/gallery_type.dart';
 import 'package:photos/models/search/search_result.dart';
+import 'package:photos/models/search/search_types.dart';
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
@@ -40,6 +41,7 @@ class SearchResultPage extends StatefulWidget {
 
 class _SearchResultPageState extends State<SearchResultPage> {
   final _selectedFiles = SelectedFiles();
+  final _coverAppBarKey = GlobalKey();
   late final List<EnteFile> files;
   late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdatedEvent;
   late final SearchFilterDataProvider _searchFilterDataProvider;
@@ -74,10 +76,19 @@ class _SearchResultPageState extends State<SearchResultPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isLocation =
+        widget.searchResult.type() == ResultType.location ||
+        widget.searchResult.type() == ResultType.locationSuggestion;
+    final heroTag = widget.tagPrefix + widget.searchResult.heroTag();
+    final filesTagPrefix = isLocation ? "${heroTag}_files" : heroTag;
     final appBar = GalleryAppBarWidget.sliverConfig(
       SearchResultPage.appBarType,
       widget.searchResult.name(),
       _selectedFiles,
+      coverAppBarKey: _coverAppBarKey,
+      cover: isLocation ? files.firstOrNull : null,
+      coverHeroTag: isLocation ? heroTag : null,
+      files: isLocation ? files : null,
     );
     final gallery = Gallery(
       appBar: appBar,
@@ -99,7 +110,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
         EventType.deletedFromEverywhere,
         EventType.hide,
       },
-      tagPrefix: widget.tagPrefix + widget.searchResult.heroTag(),
+      tagPrefix: filesTagPrefix,
       selectedFiles: _selectedFiles,
       enableFileGrouping: widget.enableGrouping,
       initialFiles: widget.searchResult.resultFiles().isNotEmpty
@@ -126,7 +137,9 @@ class _SearchResultPageState extends State<SearchResultPage> {
                         builder: (context, value, _) {
                           return value
                               ? HierarchicalSearchGallery(
-                                  tagPrefix: widget.tagPrefix,
+                                  tagPrefix: isLocation
+                                      ? filesTagPrefix
+                                      : widget.tagPrefix,
                                   selectedFiles: _selectedFiles,
                                   appBar: appBar,
                                 )

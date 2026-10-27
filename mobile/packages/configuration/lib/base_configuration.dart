@@ -58,6 +58,8 @@ abstract class BaseConfiguration {
 
   List<String> get secureStorageKeys;
 
+  List<String> get lockScreenSecureStorageKeys => const [];
+
   Future<void> init(List<EnteBaseDatabase> dbs) async {
     _databases = dbs;
     _tempDocumentsDirPath =
@@ -79,6 +81,9 @@ abstract class BaseConfiguration {
     await _clearTempFolderOnLogout();
     await _preferences.clear();
     await resetSecureStorage();
+    for (final key in lockScreenSecureStorageKeys) {
+      await _secureStorage.delete(key: key);
+    }
     for (final db in _databases) {
       await db.clearTable();
     }

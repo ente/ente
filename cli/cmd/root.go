@@ -6,11 +6,9 @@ import (
 	"runtime"
 
 	"github.com/ente/cli/pkg"
-	"github.com/spf13/cobra/doc"
-
-	"github.com/spf13/viper"
-
+	"github.com/ente/cli/pkg/secrets"
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 )
 
 var version string
@@ -26,9 +24,20 @@ func GenerateDocs() error {
 	return doc.GenMarkdownTree(rootCmd, "./docs/generated")
 }
 
-func Execute(controller *pkg.ClICtrl, ver string) {
+func Execute(controller *pkg.ClICtrl, ver string, networkConfigErr error) {
 	ctrl = controller
 	version = ver
+	rootCmd.PersistentPreRunE = func(command *cobra.Command, args []string) error {
+		network := command == exportCmd || command == addAccCmd || command.Parent() == _adminCmd
+		if network && networkConfigErr != nil {
+			return networkConfigErr
+		}
+		if network || command.Parent() == accountCmd {
+			ctrl.KeyHolder = secrets.NewKeyHolder(secrets.GetOrCreateClISecret())
+			return ctrl.Init()
+		}
+		return nil
+	}
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -37,9 +46,6 @@ func Execute(controller *pkg.ClICtrl, ver string) {
 
 func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	viper.ReadInConfig()
 }
 
 func recoverWithLog() {

@@ -33,7 +33,7 @@ impl From<Error> for JsValue {
 pub struct GeneratedKek {
     pub key: String,
     pub salt: String,
-    pub mem_limit: u32,
+    pub mem_limit: u64,
     pub ops_limit: u32,
 }
 

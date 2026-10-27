@@ -1,7 +1,6 @@
 import "dart:async";
 import "dart:convert";
 import "dart:io";
-import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:dio/dio.dart";
@@ -26,6 +25,7 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/collection_updated_event.dart";
+import "package:photos/events/files_updated_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
@@ -36,10 +36,12 @@ import "package:photos/models/gallery_type.dart";
 import "package:photos/models/ignored_file.dart";
 import "package:photos/models/local_entity_data.dart";
 import "package:photos/models/metadata/collection_magic.dart";
+import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/hierarchical/camera_filter.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
+import "package:photos/models/search/hierarchical/magic_filter.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
@@ -69,6 +71,7 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
+import "package:photos/ui/viewer/search/result/magic_result_screen.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
@@ -132,6 +135,50 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
+  testWidgets("sorts Discover photos using the shared sheet", (tester) async {
+    final files = [_file(1), _file(3), _file(2)];
+    final originalOrder = List<EnteFile>.of(files);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: MagicResultScreen(
+          files,
+          name: "Discovery",
+          heroTag: "discovery",
+          magicFilter: MagicFilter(filterName: "Discovery", occurrence: 3),
+        ),
+      ),
+    );
+    await _expectCover(tester, files.first, count: 3);
+    for (final (current, next, expected) in [
+      ("Most relevant", "Most recent", [files[1], files[2], files[0]]),
+      ("Most recent", "Most relevant", originalOrder),
+    ]) {
+      await tester.tap(find.byTooltip("Sort"));
+      await tester.pumpAndSettle();
+      expect(find.text("Sort photos"), findsOneWidget);
+      expect(
+        tester
+            .widgetList<MenuComponent>(find.byType(MenuComponent))
+            .singleWhere((choice) => choice.trailing != null)
+            .title,
+        current,
+      );
+      await tester.tap(find.text(next));
+      await _expectCover(tester, expected.first, count: 3);
+      expect(
+        tester
+            .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+            .galleryFiles,
+        expected,
+      );
+    }
+    await tester.pump(const Duration(seconds: 4));
+    await _disposeAlbum(tester);
+  });
+
   testWidgets("keeps interactive back when the album route fades", (
     tester,
   ) async {
@@ -168,6 +215,43 @@ void main() {
     expect(find.text("Album route"), findsNothing);
     expect(find.text("Open album"), findsOneWidget);
   });
+
+  for (final isOwner in [true, false]) {
+    testWidgets(
+      "hiding ${isOwner ? 'an owned' : 'a received'} album keeps it usable until closed",
+      (tester) async {
+        final collection = _collection(ownerID: isOwner ? 1 : 2);
+        final file = _file(1);
+        await tester.runAsync(() => FilesDB.instance.insertMultiple([file]));
+        await _pumpAlbum(tester, collection);
+        await _expectCover(tester, file, count: 1);
+
+        if (isOwner) {
+          collection.mMdVersion = 1;
+          collection.magicMetadata = CollectionMagicMetadata(
+            visibility: hiddenVisibility,
+          );
+        } else {
+          collection.sharedMmdVersion = 1;
+          collection.sharedMagicMetadata = ShareeMagicMetadata(
+            visibility: hiddenVisibility,
+          );
+        }
+        Bus.instance.fire(
+          CollectionUpdatedEvent(1, [], "test_hide", type: EventType.hide),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip("More"));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheetComponent), findsOneWidget);
+
+        await _disposeAlbum(tester);
+        await _pumpAlbum(tester, collection);
+        expect(find.byType(Gallery), findsNothing);
+        await _disposeAlbum(tester);
+      },
+    );
+  }
 
   testWidgets("paints the pinned date flush with the album app bar", (
     tester,
@@ -1049,9 +1133,9 @@ void main() {
   );
 }
 
-Collection _collection() => Collection(
+Collection _collection({int ownerID = 1}) => Collection(
   1,
-  User(id: 1, email: "a@b.c"),
+  User(id: ownerID, email: "a@b.c"),
   "",
   null,
   "Album",

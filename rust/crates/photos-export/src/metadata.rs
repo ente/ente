@@ -13,18 +13,21 @@ use ente_photos::{
 };
 
 #[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct Root {
     pub format: String,
     pub version: u32,
+    #[serde(rename = "userID")]
+    pub user_id: String,
     pub source_verifier: String,
 }
 
 impl Root {
-    pub fn new(master_key: &Key) -> ente_core::crypto::Result<Self> {
+    pub fn new(master_key: &Key, user_id: i64) -> ente_core::crypto::Result<Self> {
         Ok(Self {
             format: "ente-photos-export".into(),
             version: 1,
+            user_id: user_id.to_string(),
             source_verifier: b64::encode(&kdf::derive_subkey(master_key, 32, 1, b"photoexp")?),
         })
     }
@@ -57,7 +60,7 @@ pub struct Component {
 }
 
 pub fn album(album: &Collection, documents: &Documents) -> Result<Value, MetadataError> {
-    let mut metadata = json!({"albumID": album.id.to_string(), "type": album.kind.name()});
+    let mut metadata = json!({"albumID": album.id.to_string(), "ownerID": album.owner_id.to_string(), "type": album.kind.name()});
     for (name, bytes) in [
         ("magicMetadata", &documents.private),
         ("pubMagicMetadata", &documents.public),
@@ -73,8 +76,12 @@ pub fn album(album: &Collection, documents: &Documents) -> Result<Value, Metadat
     Ok(json!({"title": album.name, "ente": metadata}))
 }
 
-pub fn album_categories(record: &Value) -> Result<(Option<bool>, bool), MetadataError> {
+pub fn album_categories(record: &Value, user_id: i64) -> Result<(bool, bool), MetadataError> {
     let metadata = &record["ente"];
+    let owner = metadata["ownerID"]
+        .as_str()
+        .and_then(|text| text.parse::<i64>().ok())
+        .ok_or(MetadataError("invalid album ownerID"))?;
     for name in ["magicMetadata", "pubMagicMetadata", "sharedMagicMetadata"] {
         if let Some(document) = metadata.get(name)
             && !document.is_object()
@@ -82,15 +89,19 @@ pub fn album_categories(record: &Value) -> Result<(Option<bool>, bool), Metadata
             return Err(MetadataError("invalid album metadata document"));
         }
     }
-    let private = metadata.get("magicMetadata");
-    let shared = metadata.get("sharedMagicMetadata");
-    let visibility = private.or(shared).map_or(Ok(None), |document| {
+    let shared = owner != user_id;
+    let document = metadata.get(if shared {
+        "sharedMagicMetadata"
+    } else {
+        "magicMetadata"
+    });
+    let visibility = document.map_or(Ok(None), |document| {
         serde_json::from_value::<Option<u8>>(document["visibility"].clone())
             .map_err(|_| MetadataError("invalid album visibility"))
     })?;
     let hidden = metadata["type"] == "defaultHidden"
         || matches!(Visibility::from_value(visibility)?, Visibility::Hidden);
-    Ok((private.map(|_| false).or(shared.map(|_| true)), hidden))
+    Ok((shared, hidden))
 }
 
 pub fn file(file: &File, documents: &Documents) -> Result<Value, MetadataError> {

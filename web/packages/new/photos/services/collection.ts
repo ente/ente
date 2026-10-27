@@ -115,8 +115,31 @@ const createCollection = async (
     return decryptRemoteKeyAndCollection(remoteCollection);
 };
 
-const decryptRemoteKeyAndCollection = async (collection: RemoteCollection) =>
-    decryptRemoteCollection(collection, await decryptCollectionKey(collection));
+const decryptRemoteKeyAndCollection = async (collection: RemoteCollection) => {
+    try {
+        return await decryptRemoteCollection(
+            collection,
+            await decryptCollectionKey(collection),
+        );
+    } catch (e) {
+        throw collectionDecryptionError(collection.id, e);
+    }
+};
+
+export const collectionDecryptionError = (
+    collectionID: number,
+    cause: unknown,
+) => {
+    const error = new Error(
+        `${cause instanceof Error ? cause.message : String(cause)} (collectionID: ${collectionID})`,
+        { cause },
+    );
+    // The logger prints only the top-level stack, without following the cause.
+    if (cause instanceof Error && cause.stack) {
+        error.stack = `${error.name}: ${error.message}\nCaused by: ${cause.stack}`;
+    }
+    return error;
+};
 
 const decryptCollectionKey = async (
     collection: RemoteCollection,
@@ -260,7 +283,9 @@ export const pullCollectionFiles = async (
                     const file = await decryptRemoteFile(
                         change,
                         collection.key,
-                    );
+                    ).catch((e: unknown) => {
+                        throw collectionDecryptionError(collection.id, e);
+                    });
                     await clearCachedThumbnailIfContentChanged(
                         thisCollectionFilesByID.get(change.id),
                         file,
@@ -1372,6 +1397,17 @@ export const updatePublicURL = async (
     });
     ensureOk(res);
     return z.object({ result: RemotePublicURL }).parse(await res.json()).result;
+};
+
+export const removePublicLink = async (collection: Collection) => {
+    if (
+        collection.magicMetadata?.data.subType == CollectionSubType.quicklink &&
+        collection.sharees.length === 0
+    ) {
+        await deleteCollection(collection.id, { keepFiles: true });
+    } else {
+        await deleteShareURL(collection.id);
+    }
 };
 
 export const deleteShareURL = async (collectionID: number) =>

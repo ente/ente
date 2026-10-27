@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="126" height="121" viewBox="0 0 126 121" fill="none">
+  <title>Enter your name</title>
+  <defs>
+    <clipPath id="enter-name-head"><circle cx="63" cy="43" r="22"/></clipPath>
+    <clipPath id="enter-name-body"><path d="M63 68C45 68 31 79 31 94V98C31 101 34 103 38 103H88C92 103 95 101 95 98V94C95 79 81 68 63 68Z"/></clipPath>
+  </defs>
+  <g transform="rotate(-6 63 63)" stroke="#232323" stroke-width="5.5" stroke-linejoin="round">
+    <circle cx="63" cy="43" r="22" fill="#08C225"/>
+    <path d="M63 68C45 68 31 79 31 94V98C31 101 34 103 38 103H88C92 103 95 101 95 98V94C95 79 81 68 63 68Z" fill="#08C225"/>
+    <g stroke="none" fill="#24B41F">
+      <path clip-path="url(#enter-name-head)" d="M76 23C97 40 83 67 58 66C76 58 83 40 76 23Z"/>
+      <path clip-path="url(#enter-name-body)" d="M88 77C91 92 69 99 30 98L30 108H101V77H88Z"/>
+    </g>
+    <circle cx="63" cy="43" r="22"/>
+    <path d="M63 68C45 68 31 79 31 94V98C31 101 34 103 38 103H88C92 103 95 101 95 98V94C95 79 81 68 63 68Z"/>
+    <path d="M51 36C53 32 56 30 60 30" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M43 86C46 81 50 79 55 78" stroke="#fff" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <path d="M113 15C106 16 102 20 101 26C102 20 98 16 92 14C98 13 103 9 104 3C103 9 107 13 113 15Z" fill="#08C225"/>
+  <path d="M25 63C18 65 14 70 14 76C14 70 9 66 3 64C9 62 13 57 13 51C13 57 18 61 25 63Z" fill="#08C225"/>
+  <path d="M123 93C115 94 109 99 108 106C109 99 105 93 98 89C106 88 112 83 113 76C112 83 116 89 123 93Z" fill="#08C225"/>
+</svg>

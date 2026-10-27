@@ -387,11 +387,15 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   final Map<Uri, (bool, int)> _linkedPublicAlbums = {};
+  bool get _isGuestViewActive =>
+      AppNavigationService.instance.isGuestViewActive;
+
   Future<void> _handlePublicAlbumLink(Uri uri, String via) async {
     if (!mounted) {
       _logger.warning("Cannot handle public album link - widget not mounted");
       return;
     }
+    if (_isGuestViewActive) return;
     try {
       _logger.info("Handling public album link: via $via");
       final int currentTime = DateTime.now().millisecondsSinceEpoch;
@@ -410,7 +414,7 @@ class _HomeWidgetState extends State<HomeWidget> {
 
       final Collection? collection = await CollectionsService.instance
           .getCollectionFromPublicLink(context, uri);
-      if (!mounted) {
+      if (!mounted || _isGuestViewActive) {
         return;
       }
       if (collection == null) {
@@ -484,7 +488,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                               collection.pubMagicMetadata.asc ?? false,
                             );
                         await dialog.hide();
-                        if (!mounted) return;
+                        if (!mounted || _isGuestViewActive) return;
                         Navigator.of(context).pop();
 
                         if (!mounted) return;
@@ -518,7 +522,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         );
         await dialog.hide();
 
-        if (!mounted) return;
+        if (!mounted || _isGuestViewActive) return;
         await routeToPage(
           context,
           SharedPublicCollectionPage(
@@ -528,7 +532,7 @@ class _HomeWidgetState extends State<HomeWidget> {
           ),
         );
         if (sharedFiles.length == 1) {
-          if (!mounted) return;
+          if (!mounted || _isGuestViewActive) return;
           await routeToPage(
             context,
             DetailPage(
@@ -637,7 +641,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   Future<void> _handleSharedMediaStream(List<SharedMediaFile> value) async {
-    if (!mounted || value.isEmpty) {
+    if (!mounted || _isGuestViewActive || value.isEmpty) {
       return;
     }
 
@@ -648,11 +652,12 @@ class _HomeWidgetState extends State<HomeWidget> {
     }
 
     if (await _consumeAndroidMediaViewIntent()) {
+      if (!mounted || _isGuestViewActive) return;
       _scheduleMediaViewFallbackNavigation();
       return;
     }
 
-    if (!mounted) {
+    if (!mounted || _isGuestViewActive) {
       return;
     }
     if (value[0].mimeType != null &&
@@ -684,7 +689,7 @@ class _HomeWidgetState extends State<HomeWidget> {
             );
           },
         ).then((shouldOpenFile) {
-          if (!mounted || shouldOpenFile == null) {
+          if (!mounted || _isGuestViewActive || shouldOpenFile == null) {
             return;
           }
           if (shouldOpenFile) {
@@ -710,7 +715,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   Future<void> _handleInitialSharedMedia(List<SharedMediaFile> value) async {
-    if (!mounted) {
+    if (!mounted || _isGuestViewActive) {
       return;
     }
     if (value.isNotEmpty && _isPublicAlbumUrl(value[0].path)) {
@@ -720,7 +725,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     }
 
     if (await _consumeAndroidMediaViewIntent()) {
-      if (!mounted) {
+      if (!mounted || _isGuestViewActive) {
         return;
       }
       unawaited(
@@ -736,7 +741,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       return;
     }
 
-    if (value.isEmpty || !mounted) {
+    if (value.isEmpty || !mounted || _isGuestViewActive) {
       return;
     }
 
@@ -747,20 +752,22 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   Future<bool> _consumeAndroidMediaViewIntent() async {
-    if (!Platform.isAndroid) {
+    if (!Platform.isAndroid || _isGuestViewActive) {
       return false;
     }
 
     final mediaExtensionAction = await initIntentAction();
-    AppLifecycleService.instance.setMediaExtensionAction(mediaExtensionAction);
+    if (!mounted || _isGuestViewActive) return false;
 
-    if (!_isMediaViewAction(mediaExtensionAction)) {
-      return false;
+    final isMediaView = _isMediaViewAction(mediaExtensionAction);
+    if (isMediaView) {
+      _logger.info("Consuming shared media callback for Android media view");
+      await ReceiveSharingIntent.instance.reset();
+      if (!mounted || _isGuestViewActive) return false;
     }
 
-    _logger.info("Consuming shared media callback for Android media view");
-    await ReceiveSharingIntent.instance.reset();
-    return true;
+    AppLifecycleService.instance.setMediaExtensionAction(mediaExtensionAction);
+    return isMediaView;
   }
 
   bool _isMediaViewAction(MediaExtentionAction action) {
@@ -775,7 +782,9 @@ class _HomeWidgetState extends State<HomeWidget> {
     _mediaViewFallbackNavigationScheduled = true;
     Future<void>.delayed(const Duration(milliseconds: 200), () {
       _mediaViewFallbackNavigationScheduled = false;
-      if (!mounted || ModalRoute.of(context)?.isCurrent != true) {
+      if (!mounted ||
+          _isGuestViewActive ||
+          ModalRoute.of(context)?.isCurrent != true) {
         return;
       }
       unawaited(
@@ -800,7 +809,9 @@ class _HomeWidgetState extends State<HomeWidget> {
         if (_isPublicAlbumDeepLink(initialUri)) {
           await _handlePublicAlbumLink(initialUri, "appLinks.getInitialLink");
         } else {
-          _logger.info("Ignoring deep link: $initialUri");
+          _logger.info(
+            "Ignoring deep link: ${baseUrlForLogging(initialUri.toString())}",
+          );
         }
       } else {
         _logger.info(
@@ -817,7 +828,9 @@ class _HomeWidgetState extends State<HomeWidget> {
           if (_isPublicAlbumDeepLink(uri)) {
             _handlePublicAlbumLink(uri, "appLinks.uriLinkStream");
           } else {
-            _logger.info("Ignoring deep link: $uri");
+            _logger.info(
+              "Ignoring deep link: ${baseUrlForLogging(uri.toString())}",
+            );
           }
         } else {
           _logger.info("No link received in public album link subscription.");
@@ -1290,7 +1303,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   void _onDidReceiveNotificationResponse(
     NotificationResponse notificationResponse,
   ) async {
-    if (!mounted) return;
+    if (!mounted || _isGuestViewActive) return;
     final String? payload = notificationResponse.payload;
     if (payload != null) {
       debugPrint('notification payload: $payload');

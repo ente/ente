@@ -83,7 +83,7 @@ pub fn claim(index: &Index, album: &Album, item: &str, name: &str, kind: &str) -
     Ok(())
 }
 
-pub fn scan(root: &Path, index: &Index, desktop: Option<&Desktop>) -> Result<()> {
+pub fn scan(root: &Path, index: &Index, desktop: Option<&Desktop>, user_id: i64) -> Result<()> {
     for entry in fs::read_dir(root)? {
         let entry = entry?;
         if entry.file_name() == "Trash"
@@ -96,11 +96,11 @@ pub fn scan(root: &Path, index: &Index, desktop: Option<&Desktop>) -> Result<()>
             for entry in fs::read_dir(entry.path())? {
                 let entry = entry?;
                 if entry.file_type()?.is_dir() {
-                    scan_album(root, index, &entry.path(), true, desktop)?;
+                    scan_album(root, index, &entry.path(), true, desktop, user_id)?;
                 }
             }
         } else if entry.file_type()?.is_dir() {
-            scan_album(root, index, &entry.path(), false, desktop)?;
+            scan_album(root, index, &entry.path(), false, desktop, user_id)?;
         }
     }
     Ok(())
@@ -112,8 +112,9 @@ fn scan_album(
     directory: &Path,
     retained: bool,
     desktop: Option<&Desktop>,
+    user_id: i64,
 ) -> Result<()> {
-    let Some(record) = parse_album(root, directory, retained)? else {
+    let Some(record) = parse_album(root, directory, retained, user_id)? else {
         return Ok(());
     };
     let album = &record.album;
@@ -216,7 +217,12 @@ fn scan_album(
     Ok(())
 }
 
-fn parse_album(root: &Path, directory: &Path, retained: bool) -> Result<Option<AlbumRecord>> {
+fn parse_album(
+    root: &Path,
+    directory: &Path,
+    retained: bool,
+    user_id: i64,
+) -> Result<Option<AlbumRecord>> {
     let path = directory.join("metadata.json");
     let Some(properties) = Properties::optional(&path)? else {
         return Ok(None);
@@ -249,7 +255,7 @@ fn parse_album(root: &Path, directory: &Path, retained: bool) -> Result<Option<A
         .contains(&identity["type"].as_str().unwrap_or_default()),
         "unsupported album type in {folder}"
     );
-    crate::metadata::album_categories(&record)?;
+    crate::metadata::album_categories(&record, user_id)?;
     ensure!(
         retained || !names::reserved(&folder, true),
         "reserved active album path {folder}"

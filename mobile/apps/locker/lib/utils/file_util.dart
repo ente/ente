@@ -400,9 +400,8 @@ class FileUtil {
       file,
       fallbackPath: localFile.path,
     ).toLowerCase();
-    final flags = FeatureFlagService.instance;
-    final isPdf = extension == ".pdf" && flags.pdfViewer;
-    final isImage = _imageExtensions.contains(extension) && flags.imageViewer;
+    final isPdf = extension == ".pdf" && FeatureFlagService.instance.pdfViewer;
+    final isImage = _imageExtensions.contains(extension);
     if (context == null || !context.mounted || !(isPdf || isImage)) {
       return _openExternally(context, localFile, file);
     }

@@ -220,9 +220,17 @@ const IMAGE_SELECTOR_EXTENSIONS = [
 ] as const;
 const MAX_IMAGE_ATTACHMENTS_PER_MESSAGE = 2;
 
-const buildPromptWithImages = (text: string, imageCount: number) => {
-    if (imageCount <= 0) return text;
+const buildPromptWithImages = (
+    text: string,
+    imageCount: number,
+    documents: DocumentAttachment[],
+) => {
     let prompt = text;
+    if (imageCount > 0 && !prompt.trim()) {
+        prompt = "Describe the attached images.";
+    }
+    prompt = buildPromptWithDocuments(prompt, documents);
+    if (imageCount <= 0) return prompt;
     prompt += `\n\n[${imageCount} image attachment${imageCount === 1 ? "" : "s"} provided]`;
     for (let index = 0; index < imageCount; index += 1) {
         prompt += `\n${MEDIA_MARKER}`;
@@ -576,6 +584,9 @@ const Page: React.FC = () => {
         ResolvedModelPreset[] | null
     >(null);
     const [selectedModelId, setSelectedModelId] = useState("");
+    const [imageAttachmentModelId, setImageAttachmentModelId] = useState<
+        string | null
+    >(null);
     const [contextLength, setContextLength] = useState("");
     const [systemPrompt, setSystemPrompt] = useState(
         DEFAULT_CHAT_SYSTEM_PROMPT_BODY,
@@ -1683,7 +1694,8 @@ const Page: React.FC = () => {
     const drawerWidth = isSmall ? 300 : drawerCollapsed ? 0 : 320;
     const desktopBreakpoint = theme.breakpoints.values.lg;
     const isDesktopOverlay = !isSmall && chatViewportWidth >= desktopBreakpoint;
-    const showImageAttachment = isTauriRuntime;
+    const showImageAttachment =
+        isTauriRuntime && imageAttachmentModelId === selectedModelId;
     const showDownloadProgress =
         !!downloadStatus?.status && downloadStatus.status !== "Ready";
     const showModelGate =
@@ -2173,6 +2185,9 @@ const Page: React.FC = () => {
             const availability =
                 await provider.checkModelAvailability(settings);
             if (!isCurrentRequest()) return;
+            setImageAttachmentModelId(
+                availability.model.mmprojUrl ? (settings.modelId ?? "") : null,
+            );
             const mmprojReady =
                 availability.mmprojAvailable === undefined ||
                 availability.mmprojAvailable;
@@ -2240,7 +2255,11 @@ const Page: React.FC = () => {
                 downloadIfMissing: true,
             });
             if (!isCurrentRequest()) return;
-            setLoadedModelName(provider.getCurrentModel()?.name ?? null);
+            const model = provider.getCurrentModel();
+            setImageAttachmentModelId(
+                model?.mmprojUrl ? (settings.modelId ?? "") : null,
+            );
+            setLoadedModelName(model?.name ?? null);
             setIsDownloading(false);
             setDownloadStatus({ percent: 100, status: "Ready" });
             setModelGateStatus("ready");
@@ -3174,7 +3193,7 @@ const Page: React.FC = () => {
                             collection.status !== "error",
                     )
                     .map((collection) => collection.id);
-                const knowledgeQuery = parseDocumentBlocks(promptText)
+                const knowledgeQuery = parseDocumentBlocks(parentMessage.text)
                     .text.replaceAll(MEDIA_MARKER, "")
                     .replace(/\[\d+ image attachments? provided\]/gi, "")
                     .trim();
@@ -4286,8 +4305,9 @@ const Page: React.FC = () => {
                 await refreshSessions();
             }
 
+            const userText = trimmed.replaceAll("\0", "");
             const messageText = buildPromptWithDocuments(
-                trimmed.replaceAll("\0", ""),
+                userText,
                 pendingDocuments,
             );
             const persistedAttachmentIds = new Set(
@@ -4392,8 +4412,9 @@ const Page: React.FC = () => {
             }
 
             const promptText = buildPromptWithImages(
-                messageText,
+                userText,
                 inferenceImagePaths.length,
+                pendingDocuments,
             );
 
             composerRef.current?.setText("");
@@ -4742,7 +4763,7 @@ const Page: React.FC = () => {
                                     : "Loading sources for this chat…"
                                 : undefined
                         }
-                        showAttachmentPicker={isTauriRuntime}
+                        showAttachmentPicker={showImageAttachment}
                         openPhotoPicker={openPhotoPicker}
                         showImageAttachment={showImageAttachment}
                         isImageAttachmentLimitReached={

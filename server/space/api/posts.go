@@ -65,6 +65,15 @@ func (h *Handlers) LikePost(c *gin.Context, space *spacerepo.SpaceRecord) {
 	h.setPostLike(c, space, true)
 }
 
+func (h *Handlers) ListPostLikes(c *gin.Context, space *spacerepo.SpaceRecord) {
+	postID, ok := positiveInt64Param(c, "postID")
+	if !ok {
+		return
+	}
+	resp, err := h.Module.Posts.ListLikes(c, space, postID)
+	respondJSON(c, resp, err)
+}
+
 func (h *Handlers) UnlikePost(c *gin.Context, space *spacerepo.SpaceRecord) {
 	h.setPostLike(c, space, false)
 }

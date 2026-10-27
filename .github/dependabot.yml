@@ -97,6 +97,8 @@ updates:
       # Breaks Photos and Locker iOS builds: https://github.com/rust-lang/libc/issues/5601
       - dependency-name: "libc"
         versions: ["=0.2.190"]
+      # Remove after validating Ensu inference upgrades with representative models.
+      - dependency-name: "llama-cpp-*"
       # Remove when crypto_secretbox also uses salsa20 0.11.
       - dependency-name: "salsa20"
         versions: ["=0.11.0"]
@@ -105,3 +107,9 @@ updates:
         applies-to: "version-updates"
         patterns:
           - "*"
+
+  - package-ecosystem: "pub"
+    directory: "/mobile"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0

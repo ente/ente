@@ -21,6 +21,10 @@ func (c *NotificationsController) List(ctx context.Context, space *repo.SpaceRec
 	for _, record := range records {
 		item := models.NotificationResponse{
 			NotificationID:  record.NotificationID,
+			PostSpaceID:     record.PostSpaceID,
+			PostOwnerSlug:   record.PostOwnerSlug,
+			CommentID:       record.CommentID,
+			ReplyToID:       record.ReplyToID,
 			NotificationIDs: record.NotificationIDs,
 			Kind:            record.Kind,
 			Actors:          make([]models.SpaceActorResponse, 0, len(record.Actors)),

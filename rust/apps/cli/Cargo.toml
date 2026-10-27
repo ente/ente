@@ -1,42 +1,54 @@
 [package]
-name = "ente-rs"
-version = "0.0.1"
+name = "ente-cli"
+version = "0.4.2"
 edition.workspace = true
-description = "Command-line interface for Ente"
-homepage = "https://ente.com"
-repository = "https://github.com/ente/ente"
-license = "AGPL-3.0-only"
+publish = false
+
+[[bin]]
+name = "ente"
+path = "src/main.rs"
 
 [features]
 museum = []
 
 [dependencies]
-chrono = { workspace = true, default-features = true }
-clap = { workspace = true, features = ["derive", "env"] }
-dialoguer = { workspace = true, default-features = true }
+anyhow.workspace = true
+chrono = { workspace = true, features = ["std", "clock"] }
+clap = { workspace = true, features = ["derive", "string"] }
+clap_complete.workspace = true
+dialoguer = { workspace = true, features = ["password"] }
 dirs.workspace = true
 ente-accounts.workspace = true
+ente-auth.workspace = true
+ente-collections.workspace = true
 ente-core.workspace = true
 ente-paste.workspace = true
-env_logger = "0.11.11"
-futures = "0.3.34"
-indicatif = "0.18.6"
-log.workspace = true
-open = "5.4.4"
-rusqlite = { workspace = true, default-features = true, features = ["serde_json"] }
+ente-photos.workspace = true
+ente-photos-export.workspace = true
+env_logger.workspace = true
+keyring = { workspace = true, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
+open.workspace = true
+reqwest.workspace = true
+rusqlite = { workspace = true, features = ["bundled-sqlcipher"] }
 serde.workspace = true
 serde_json.workspace = true
+tempfile.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["full"] }
-urlencoding.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+url.workspace = true
 uuid = { workspace = true, features = ["serde", "v4"] }
 zeroize.workspace = true
-zip.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+rusqlite = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 
 [dev-dependencies]
 ente-test-support.workspace = true
+futures-util.workspace = true
 mockito.workspace = true
-url.workspace = true
+same-file.workspace = true
+sha2.workspace = true
+zip.workspace = true
 
 [lints]
 workspace = true

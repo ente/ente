@@ -56,7 +56,7 @@ jobs:
                   security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
                   security list-keychains -d user -s "$keychain"
                   security default-keychain -d user -s "$keychain"
-                  python3 apps/cli-next/scripts/native-keyring.py test --sign 'Ente CLI CI'
+                  python3 apps/cli/scripts/native-keyring.py test --sign 'Ente CLI CI'
 
             - name: Remove the disposable keychain
               if: always()
@@ -91,4 +91,4 @@ jobs:
                   shared-key: rust-cli
 
             - name: Run with Windows Credential Manager
-              run: python apps/cli-next/scripts/native-keyring.py test
+              run: python apps/cli/scripts/native-keyring.py test

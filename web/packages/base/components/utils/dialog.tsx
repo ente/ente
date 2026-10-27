@@ -1,30 +1,39 @@
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useReducer } from "react";
 import type { MiniDialogAttributes } from "../MiniDialog";
+import { miniDialogReducer } from "./mini-dialog-state";
 
 export const useAttributedMiniDialog = () => {
-    const [attributes, setAttributes] = useState<
-        MiniDialogAttributes | undefined
-    >(undefined);
-
-    const [open, setOpen] = useState(false);
+    const [dialog, dispatch] = useReducer(miniDialogReducer, {
+        open: false,
+        id: 0,
+    });
 
     const showMiniDialog = useCallback(
         (newAttributes: MiniDialogAttributes) => {
-            setAttributes((attributes) =>
-                attributes?.nonReplaceable ? attributes : newAttributes,
-            );
-            setOpen(true);
+            dispatch({ type: "show", attributes: newAttributes });
         },
         [],
     );
 
-    const handleClose = useCallback(() => setOpen(false), []);
+    const handleClose = useCallback(() => {
+        dispatch({ type: "close", id: dialog.id });
+    }, [dialog.id]);
+
+    const dismissRouteScopedMiniDialog = useCallback(() => {
+        dispatch({ type: "routeChange" });
+    }, []);
 
     return {
         showMiniDialog,
-        miniDialogProps: { open, onClose: handleClose, attributes },
+        dismissRouteScopedMiniDialog,
+        miniDialogProps: {
+            dialogID: dialog.id,
+            open: dialog.open,
+            onClose: handleClose,
+            attributes: dialog.attributes,
+        },
     };
 };
 
@@ -36,6 +45,7 @@ export const errorDialogAttributes = (
     const message = optionalMessage ?? messageOrTitle;
 
     return {
+        kind: "error",
         title,
         icon: <ErrorOutlinedIcon />,
         message,

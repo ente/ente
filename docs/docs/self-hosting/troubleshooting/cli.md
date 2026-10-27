@@ -5,6 +5,8 @@ description: A quick hotfix for keyring errors while running Ente CLI.
 
 # Ente CLI
 
+This page covers the previous CLI. For the current CLI, see [Troubleshooting](/cli/troubleshooting). To switch versions, follow [Migration](/cli/migration).
+
 ## Secrets
 
 Ente CLI makes use of your system keyring for storing sensitive information such as passwords.

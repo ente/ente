@@ -62,6 +62,7 @@
   "add": "Add",
   "addAlbumWidgetPrompt": "Add an album widget to your home screen to customize it here.",
   "addANameAndPhoto": "Add a name and photo",
+  "addAnyway": "Add anyway",
   "addCode": "Add code",
   "addedAMemoryTo": "added a memory to {albumName}",
   "@addedAMemoryTo": {
@@ -1079,6 +1080,9 @@
     "description": "Instructions for enabling device lock"
   },
   "deviceNotFound": "Device not found",
+  "devicePickerLimitedAccess": "Showing the photos you allowed",
+  "devicePickerPermissionHint": "To add photos and videos to this album, allow access in settings.",
+  "devicePickerSelectionChanged": "Some selected items couldn't be found. Check your selection and try again.",
   "didYouKnow": "Did you know?",
   "digits": "Digits",
   "disableBackup": "Disable backup",
@@ -1126,6 +1130,10 @@
   "doesGroupContainMultiplePeople": "Does this grouping contain multiple people?",
   "dog": "Dog",
   "done": "Done",
+  "dontShowAgain": "Don’t show again",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
   "doNotSignOut": "Do not sign out",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
@@ -2883,6 +2891,7 @@
   "nothingToCleanUp": "Nothing to clean up",
   "nothingToTidyUpHere": "Nothing to tidy up here",
   "notifications": "Notifications",
+  "notificationNewActivity": "New activity",
   "notifyMe": "Notify me",
   "notPersonLabel": "Not {name}?",
   "@notPersonLabel": {
@@ -3825,6 +3834,7 @@
   "searchLocationEmptySection": "Group photos that are taken within some radius of a photo",
   "searchPeopleEmptySection": "Invite people, and you'll see all photos shared by them here",
   "searchPersonsEmptySection": "People will be shown here once processing and syncing is complete",
+  "searchPhotosPeoplePlaces": "Search photos, people, places...",
   "searchResultCameraMake": "Camera make",
   "@searchResultCameraMake": {
     "description": "Search result subtitle label for camera make matches"
@@ -3939,6 +3949,20 @@
       "count": {
         "type": "int",
         "example": "3"
+      }
+    }
+  },
+  "selectedCountWithLimit": "{count}/{limit} selected",
+  "@selectedCountWithLimit": {
+    "description": "Selected item count and the selection limit",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "limit": {
+        "type": "int",
+        "example": "50"
       }
     }
   },
@@ -4121,6 +4145,12 @@
     }
   },
   "sharedPhotoNotifications": "New shared photos and albums",
+  "sharedPhotoLocationWarningTitle": "Keep photo locations",
+  "sharedPhotoLocationWarningMessage": "Photos shared from other apps may be missing their locations. Use “{addFromDevice}” in an album to keep them.",
+  "@sharedPhotoLocationWarningMessage": {
+    "description": "Precaution before backing up photos shared from another app. addFromDevice is the localized action label.",
+    "placeholders": {"addFromDevice": {"type": "String"}}
+  },
   "sharedPhotoNotificationsExplanation": "New photos and albums you are in or shared with you",
   "sharedWith": "Shared with",
   "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
@@ -4519,6 +4549,7 @@
   },
   "totalSize": "Total size",
   "trash": "Trash",
+  "trashAutoDeleteNotice": "Items in Trash are permanently deleted after 30 days",
   "restoreOrPermanentlyDeleteItems": "Restore or permanently delete items",
   "trashClearedSuccessfully": "Trash cleared successfully",
   "trashCode": "Trash code?",

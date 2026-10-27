@@ -20,6 +20,10 @@ type SpaceNotificationRecord struct {
 	Actors          []SpaceActorRecord
 	ActorCount      int64
 	PostID          sql.NullInt64
+	PostSpaceID     string
+	PostOwnerSlug   string
+	CommentID       string
+	ReplyToID       string
 	FriendRequestID sql.NullInt64
 	CreatedAt       int64
 	Unread          bool
@@ -28,35 +32,60 @@ type SpaceNotificationRecord struct {
 const notificationSourcesSQL = `
 	FROM space_notifications n
 	LEFT JOIN space_post_likes l ON l.like_id = n.post_like_id
-	LEFT JOIN space_posts p ON p.post_id = l.post_id AND p.is_deleted = FALSE
+	LEFT JOIN space_comments c ON c.comment_id = n.comment_id AND c.cipher IS NOT NULL
+	LEFT JOIN space_posts p ON p.post_id = COALESCE(l.post_id, c.post_id) AND p.is_deleted = FALSE
 	JOIN spaces actor ON actor.space_id = n.actor_space_id
 	JOIN users actor_owner ON actor_owner.user_id = actor.owner_id AND actor_owner.encrypted_email IS NOT NULL
 `
 
-const notificationVisibleSQL = `
+func notificationHiddenCommentsCTE(filter string) string {
+	return hiddenCommentsCTE(`c.post_id IN (
+        SELECT c.post_id FROM space_notifications n
+        JOIN space_comments c ON c.comment_id = n.comment_id
+        WHERE ` + filter + `
+    )`)
+}
+
+func notificationVisibleSQL(commentVisibilitySQL string) string {
+	return `
 	(n.kind = 'friend_request' OR (
+        n.comment_id IS NOT NULL AND c.comment_id IS NOT NULL AND p.post_id IS NOT NULL
+        AND EXISTS (SELECT 1 FROM spaces s JOIN users u ON u.user_id = s.owner_id AND u.encrypted_email IS NOT NULL WHERE s.space_id = p.space_id)
+        AND ` + commentVisibilitySQL + `
+        AND (p.space_id = n.recipient_space_id OR EXISTS (SELECT 1 FROM space_friend_shares f WHERE f.space_id = p.space_id AND f.friend_space_id = n.recipient_space_id))
+        AND (p.space_id = n.actor_space_id OR EXISTS (SELECT 1 FROM space_friend_shares f WHERE f.space_id = p.space_id AND f.friend_space_id = n.actor_space_id))
+        AND (n.kind <> 'comment' OR p.space_id = n.recipient_space_id OR EXISTS (SELECT 1 FROM space_friend_shares f WHERE f.space_id = n.recipient_space_id AND f.friend_space_id = n.actor_space_id))
+    ) OR (n.comment_id IS NULL AND
 		(n.kind IN ('friend_accepted', 'poke') OR p.post_id IS NOT NULL)
 		AND EXISTS (SELECT 1 FROM space_friend_shares share
 			WHERE share.space_id = n.recipient_space_id AND share.friend_space_id = n.actor_space_id)
 	))
 `
+}
 
 func (r *NotificationsRepository) List(ctx context.Context, recipientSpaceID, cursor string, limit int) ([]SpaceNotificationRecord, string, error) {
 	limit = optionalInt(limit, 50)
 	if limit > 100 {
 		limit = 100
 	}
-	query := `WITH visible AS (
-		SELECT n.*, l.post_id, CASE
-			WHEN n.kind = 'post_like' THEN l.post_id::text
+	const filter = `n.recipient_space_id = $1`
+	query := `WITH RECURSIVE ` + notificationHiddenCommentsCTE(filter) + `, visible AS (
+		SELECT n.*, p.post_id, p.space_id AS post_space_id, c.reply_to_id, CASE
+			WHEN n.kind IN ('post_like', 'comment') THEN p.post_id::text
+			WHEN n.kind = 'comment_reaction' THEN n.comment_id
+			WHEN n.kind = 'comment_reply' THEN c.reply_to_id
 			WHEN n.kind IN ('friend_accepted', 'poke') THEN n.actor_space_id
 			ELSE n.notification_id
 		END AS group_id
-		` + notificationSourcesSQL + ` WHERE n.recipient_space_id = $1 AND ` + notificationVisibleSQL + `
+		` + notificationSourcesSQL + ` WHERE ` + filter + ` AND ` + notificationVisibleSQL(commentNotHiddenSQL) + `
 	), ranked AS (
-		SELECT notification_id, kind, actor_space_id, post_id, friend_request_id, created_at, group_id,
-			ROW_NUMBER() OVER (PARTITION BY kind, group_id ORDER BY created_at DESC, notification_id DESC) AS position
+		SELECT notification_id, kind, actor_space_id, post_id, post_space_id, comment_id, reply_to_id, friend_request_id, created_at, group_id,
+			ROW_NUMBER() OVER (PARTITION BY kind, group_id ORDER BY created_at DESC, notification_id DESC) AS position,
+			ROW_NUMBER() OVER (PARTITION BY kind, group_id, actor_space_id ORDER BY created_at DESC, notification_id DESC) AS actor_position
 		FROM visible
+	), actors AS (
+		SELECT *, ROW_NUMBER() OVER (PARTITION BY kind, group_id ORDER BY created_at DESC, notification_id DESC) AS actor_rank
+		FROM ranked WHERE actor_position = 1
 	), page AS (
 		SELECT * FROM ranked WHERE position = 1`
 	args := []any{recipientSpaceID}
@@ -68,21 +97,24 @@ func (r *NotificationsRepository) List(ctx context.Context, recipientSpaceID, cu
 	query += ` ORDER BY created_at DESC, notification_id DESC LIMIT $` + strconv.Itoa(len(args)) + `
 	), grouped AS MATERIALIZED (
 		SELECT visible.kind, visible.group_id,
-			ARRAY_AGG(visible.notification_id) AS notification_ids,
-			CASE WHEN visible.kind = 'post_like' THEN COUNT(*) ELSE 1 END AS actor_count,
+			COALESCE(ARRAY_AGG(visible.notification_id) FILTER (
+				WHERE visible.kind <> 'poke' OR visible.read_at IS NULL
+			), '{}') AS notification_ids,
+			COUNT(DISTINCT visible.actor_space_id) AS actor_count,
 			BOOL_OR(visible.read_at IS NULL) AS unread
 		FROM visible
 		JOIN page ON page.kind = visible.kind AND page.group_id = visible.group_id
 		GROUP BY visible.kind, visible.group_id
 	)
-	SELECT page.notification_id, grouped.notification_ids, page.kind, page.post_id, page.friend_request_id, page.created_at, grouped.actor_count, grouped.unread, ` + spaceActorSelectColumns("actor", "avatar", "actor") + `
+	SELECT page.notification_id, grouped.notification_ids, page.kind, page.post_id, COALESCE(page.post_space_id, ''), COALESCE(post_owner.space_slug, ''), COALESCE(page.comment_id, ''), COALESCE(page.reply_to_id, ''), page.friend_request_id, page.created_at, grouped.actor_count, grouped.unread, (actor.space_id = $1 OR EXISTS (SELECT 1 FROM space_friend_shares f WHERE f.space_id = actor.space_id AND f.friend_space_id = $1)), ` + spaceActorSelectColumns("actor", "avatar", "actor") + `
 	FROM page
+	LEFT JOIN spaces post_owner ON post_owner.space_id = page.post_space_id
 	JOIN grouped ON grouped.kind = page.kind AND grouped.group_id = page.group_id
-	JOIN ranked sample ON sample.kind = page.kind AND sample.group_id = page.group_id
-		AND sample.position <= CASE WHEN page.kind = 'post_like' THEN 2 ELSE 1 END
+	JOIN actors sample ON sample.kind = page.kind AND sample.group_id = page.group_id
+		AND sample.actor_rank <= CASE WHEN page.kind IN ('post_like', 'comment', 'comment_reply', 'comment_reaction') THEN 2 ELSE 1 END
 	JOIN spaces actor ON actor.space_id = sample.actor_space_id
 	` + spaceActorAvatarJoin("actor", "avatar") + `
-	ORDER BY page.created_at DESC, page.notification_id DESC, sample.position`
+	ORDER BY page.created_at DESC, page.notification_id DESC, sample.actor_rank`
 	rows, err := r.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, "", stacktrace.Propagate(err, "")
@@ -92,13 +124,22 @@ func (r *NotificationsRepository) List(ctx context.Context, recipientSpaceID, cu
 	for rows.Next() {
 		var item SpaceNotificationRecord
 		var actor SpaceActorRecord
-		dest := []any{&item.NotificationID, pq.Array(&item.NotificationIDs), &item.Kind, &item.PostID, &item.FriendRequestID, &item.CreatedAt, &item.ActorCount, &item.Unread}
+		var private bool
+		dest := []any{&item.NotificationID, pq.Array(&item.NotificationIDs), &item.Kind, &item.PostID, &item.PostSpaceID, &item.PostOwnerSlug, &item.CommentID, &item.ReplyToID, &item.FriendRequestID, &item.CreatedAt, &item.ActorCount, &item.Unread, &private}
 		dest = append(dest, spaceActorScanDest(&actor)...)
 		if err := rows.Scan(dest...); err != nil {
 			return nil, "", stacktrace.Propagate(err, "")
 		}
 		if len(items) == 0 || items[len(items)-1].NotificationID != item.NotificationID {
 			items = append(items, item)
+		}
+		if !private {
+			actor.EncryptedProfile = nil
+			actor.PublicKey = nil
+			actor.KeyVersion = 0
+			actor.AvatarObjectID = sql.NullString{}
+			actor.AvatarKeyVersion = sql.NullInt64{}
+			actor.AvatarSize = sql.NullInt64{}
 		}
 		last := &items[len(items)-1]
 		last.Actors = append(last.Actors, actor)
@@ -117,15 +158,17 @@ func (r *NotificationsRepository) List(ctx context.Context, recipientSpaceID, cu
 
 func (r *NotificationsRepository) HasUnread(ctx context.Context, recipientSpaceID string) (bool, error) {
 	var unread bool
-	err := r.DB.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 `+notificationSourcesSQL+` WHERE n.recipient_space_id = $1 AND n.read_at IS NULL AND `+notificationVisibleSQL+`)`, recipientSpaceID).Scan(&unread)
+	const filter = `n.recipient_space_id = $1 AND n.read_at IS NULL`
+	err := r.DB.QueryRowContext(ctx, `WITH RECURSIVE `+notificationHiddenCommentsCTE(filter)+`
+        SELECT EXISTS (SELECT 1 `+notificationSourcesSQL+` WHERE `+filter+` AND `+notificationVisibleSQL(commentNotHiddenSQL)+`)`, recipientSpaceID).Scan(&unread)
 	return unread, stacktrace.Propagate(err, "")
 }
 
 func (r *NotificationsRepository) MarkRead(ctx context.Context, recipientSpaceID string, notificationIDs []string) error {
-	_, err := r.DB.ExecContext(ctx, `
-		WITH visible AS (
+	const filter = `n.recipient_space_id = $1 AND n.notification_id = ANY($2) AND n.read_at IS NULL`
+	_, err := r.DB.ExecContext(ctx, `WITH RECURSIVE `+notificationHiddenCommentsCTE(filter)+`, visible AS (
 			SELECT n.notification_id
-			`+notificationSourcesSQL+` WHERE n.recipient_space_id = $1 AND n.notification_id = ANY($2) AND `+notificationVisibleSQL+`
+			`+notificationSourcesSQL+` WHERE `+filter+` AND `+notificationVisibleSQL(commentNotHiddenSQL)+`
 		)
 		UPDATE space_notifications n SET read_at = now_utc_micro_seconds()
 		FROM visible item

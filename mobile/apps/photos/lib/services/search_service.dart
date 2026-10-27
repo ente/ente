@@ -1141,10 +1141,18 @@ class SearchService {
             ResultType.location,
             name,
             entry.value,
+            params: {kLocationParamID: entry.key.id},
             onResultTap: (ctx) {
               routeToPage(
                 ctx,
-                LocationScreenStateProvider(entry.key, const LocationScreen()),
+                LocationScreenStateProvider(
+                  entry.key,
+                  LocationScreen(
+                    initialFiles: entry.value,
+                    coverHeroTag: "${ResultType.location}_${entry.key.id}",
+                  ),
+                ),
+                useFadeTransition: true,
               );
             },
             hierarchicalSearchFilter: LocationFilter(
@@ -1206,6 +1214,9 @@ class SearchService {
             ResultType.location,
             city.city,
             results[city]!,
+            params: {
+              kLocationParamID: "${city.country}_${city.lat}_${city.lng}",
+            },
             hierarchicalSearchFilter: TopLevelGenericFilter(
               filterName: city.city,
               occurrence: kMostRelevantFilter,
@@ -1670,16 +1681,19 @@ class SearchService {
               ResultType.location,
               entry.key.item.name,
               entry.value,
+              params: {kLocationParamID: entry.key.id},
               onResultTap: (ctx) {
                 routeToPage(
                   ctx,
                   LocationScreenStateProvider(
                     entry.key,
                     LocationScreen(
-                      tagPrefix:
-                          "${ResultType.location.toString()}_${entry.key.item.name}",
+                      initialFiles: entry.value,
+                      coverHeroTag: "${ResultType.location}_${entry.key.id}",
+                      tagPrefix: "${ResultType.location}_${entry.key.id}",
                     ),
                   ),
+                  useFadeTransition: true,
                 );
               },
               hierarchicalSearchFilter: LocationFilter(
@@ -1707,6 +1721,9 @@ class SearchService {
               ResultType.locationSuggestion,
               city.city,
               results[city]!,
+              params: {
+                kLocationParamID: "${city.country}_${city.lat}_${city.lng}",
+              },
               hierarchicalSearchFilter: TopLevelGenericFilter(
                 filterName: city.city,
                 occurrence: kMostRelevantFilter,
@@ -1835,6 +1852,7 @@ class SearchService {
                   matchedUploadedIDs: filesToUploadedFileIDs(files),
                 ),
               ),
+              useFadeTransition: true,
             );
           },
           hierarchicalSearchFilter: MagicFilter(

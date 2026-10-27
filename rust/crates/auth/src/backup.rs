@@ -19,18 +19,9 @@ struct Backup {
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct KdfParams {
-    mem_limit: u32,
+    mem_limit: u64,
     ops_limit: u32,
     salt: String,
-}
-
-fn validate_params(params: argon::Params) -> Result<()> {
-    params.validate()?;
-    let strength = u64::from(params.mem_limit) * u64::from(params.ops_limit);
-    if params.mem_limit > argon::Params::SENSITIVE.mem_limit || strength > 1_u64 << 32 {
-        return Err(Error::UnsafeKdf);
-    }
-    Ok(())
 }
 
 pub fn encrypt(plaintext: &[u8], password: &str) -> Result<Vec<u8>> {
@@ -58,7 +49,7 @@ pub fn decrypt(input: &[u8], password: &str) -> Result<Zeroizing<Vec<u8>>> {
         mem_limit: backup.kdf_params.mem_limit,
         ops_limit: backup.kdf_params.ops_limit,
     };
-    validate_params(params)?;
+    params.validate()?;
     let salt = Salt::try_from_slice(&b64::decode(&backup.kdf_params.salt)?)?;
     let header = Header::try_from_slice(&b64::decode(&backup.encryption_nonce)?)?;
     let encrypted = b64::decode(&backup.encrypted_data)?;
@@ -75,39 +66,6 @@ pub fn decrypt(input: &[u8], password: &str) -> Result<Zeroizing<Vec<u8>>> {
 mod tests {
     use super::*;
     use ente_core::crypto::stream::Encryptor;
-
-    #[test]
-    fn admits_existing_producer_profiles_without_deriving_keys() {
-        let mut memory = 1 << 30;
-        let mut operations = 4;
-        while memory >= 8192 {
-            assert!(
-                validate_params(argon::Params {
-                    mem_limit: memory,
-                    ops_limit: operations
-                })
-                .is_ok()
-            );
-            memory /= 2;
-            operations *= 2;
-        }
-        for (memory, operations) in [
-            (8191, 1),
-            (8193, 1),
-            (8192, 0),
-            (1 << 30, 5),
-            ((1 << 30) + 1024, 1),
-            (8192, u32::MAX),
-        ] {
-            assert!(
-                validate_params(argon::Params {
-                    mem_limit: memory,
-                    ops_limit: operations
-                })
-                .is_err()
-            );
-        }
-    }
 
     #[test]
     fn decryption_authenticates_legacy_bytes_without_interpreting_them() {
@@ -129,6 +87,16 @@ mod tests {
         };
         let encoded = serde_json::to_vec(&backup).unwrap();
         assert_eq!(decrypt(&encoded, password).unwrap().as_slice(), bytes);
+        backup.kdf_params.mem_limit = 1 << 32;
+        backup.kdf_params.ops_limit = 5;
+        assert!(matches!(
+            decrypt(&serde_json::to_vec(&backup).unwrap(), password),
+            Err(Error::Crypto(
+                ente_core::crypto::Error::InvalidKeyDerivationParams(_)
+            ))
+        ));
+        backup.kdf_params.mem_limit = 8192;
+        backup.kdf_params.ops_limit = 1;
         assert!(decrypt(&encoded, "wrong").is_err());
         let mut damaged = encrypted;
         damaged[0] ^= 1;

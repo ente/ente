@@ -1,7 +1,7 @@
 import { CollectionMappingChoice } from "@/components/CollectionMappingChoice";
 import watcher from "@/services/watch";
-import CheckIcon from "@mui/icons-material/Check";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Add01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
 import {
@@ -12,12 +12,14 @@ import {
     Stack,
     Tooltip,
     Typography,
-    useTheme,
 } from "@mui/material";
+import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import {
-    TitledNestedSidebarDrawer,
+    NestedSidebarDrawer,
+    SidebarDrawerTitlebar,
     type NestedSidebarDrawerVisibilityProps,
 } from "ente-base/components/mui/SidebarDrawer";
+import { SidebarPanelContext } from "ente-base/components/mui/SidebarDrawerContext";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { RowCard } from "ente-base/components/v2/RowCard";
 import { useBaseContext } from "ente-base/context";
@@ -26,17 +28,18 @@ import {
     suppressMainWindowBlurForTrustedPrompt,
 } from "ente-base/electron";
 import { dirname } from "ente-base/file-name";
+import { ut } from "ente-base/i18n";
 import log from "ente-base/log";
 import type { CollectionMapping, FolderWatch } from "ente-base/types/ipc";
 import { t } from "i18next";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 
 export const WatchFolder: React.FC<NestedSidebarDrawerVisibilityProps> = ({
     open,
     onClose,
     onRootClose,
 }) => {
-    const theme = useTheme();
+    const inSettingsPanel = !!useContext(SidebarPanelContext);
     const [watches, setWatches] = useState<FolderWatch[] | undefined>();
     const [savedFolderPath, setSavedFolderPath] = useState<
         string | undefined
@@ -137,73 +140,50 @@ export const WatchFolder: React.FC<NestedSidebarDrawerVisibilityProps> = ({
 
     return (
         <>
-            <TitledNestedSidebarDrawer
+            <NestedSidebarDrawer
                 maxWidth="440px"
                 {...{ open, onClose }}
                 onRootClose={handleRootClose}
-                title={t("watch_folders")}
-                caption="Folders on this computer that are backed up automatically whenever files change."
             >
-                <Stack sx={{ px: 2, py: 1, gap: 1 }}>
-                    <WatchList {...{ watches, removeWatch, refreshWatches }} />
-                    <Divider sx={{ opacity: 0.4 }} />
-                    <Box
-                        component="button"
-                        type="button"
-                        onClick={addNewWatch}
-                        sx={[
-                            {
-                                display: "flex",
-                                width: "100%",
-                                padding: "8px 8px 8px 0.5rem",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                border: 0,
-                                color: "inherit",
-                                font: "inherit",
-                                textAlign: "left",
-                                cursor: "pointer",
-                                borderRadius: "10px",
-                                bgcolor: "transparent",
-                                "&:hover": { bgcolor: "fill.faintHover" },
-                            },
-                            (theme) =>
-                                theme.applyStyles("dark", {
-                                    "&:hover": { bgcolor: "backdrop.muted" },
-                                }),
-                        ]}
-                    >
-                        <span
-                            style={{ display: "flex", flexDirection: "column" }}
-                        >
-                            <span
-                                style={{
-                                    color: theme.vars.palette.accent.main,
-                                }}
-                            >
-                                {t("add_folder")}
-                            </span>
-                            <span
-                                style={{
-                                    fontSize: "14px",
-                                    lineHeight: "20px",
-                                    fontWeight: 400,
-                                    color: theme.vars.palette.text.muted,
-                                }}
-                            >
-                                Choose a folder to watch
-                            </span>
-                        </span>
-                        <span style={{ display: "flex", padding: "8px" }}>
-                            <ChevronRightIcon
-                                className="ente-chevron-right"
-                                sx={{ fontSize: "20px", color: "text.muted" }}
+                {!inSettingsPanel && (
+                    <SidebarDrawerTitlebar
+                        title={t("watch_folders")}
+                        onClose={onClose}
+                        onRootClose={handleRootClose}
+                        titleInline
+                    />
+                )}
+                <Stack sx={{ p: { xs: 2, sm: 3.5 }, gap: 2.5 }}>
+                    {inSettingsPanel && (
+                        <Typography variant="h3">
+                            {t("watch_folders")}
+                        </Typography>
+                    )}
+                    {watches?.length === 0 ? (
+                        <NoWatches onChooseFolder={addNewWatch} />
+                    ) : (
+                        <Stack sx={{ gap: 1 }}>
+                            <WatchList
+                                {...{ watches, removeWatch, refreshWatches }}
                             />
-                        </span>
-                    </Box>
-                    <Divider sx={{ opacity: 0.4 }} />
+                            <Divider sx={{ opacity: 0.4 }} />
+                            <RowCard
+                                title={
+                                    <Box
+                                        component="span"
+                                        sx={{ color: "accent.main" }}
+                                    >
+                                        {t("add_folder")}
+                                    </Box>
+                                }
+                                subtitle={ut("Choose a folder to watch")}
+                                onClick={addNewWatch}
+                            />
+                            <Divider sx={{ opacity: 0.4 }} />
+                        </Stack>
+                    )}
                 </Stack>
-            </TitledNestedSidebarDrawer>
+            </NestedSidebarDrawer>
             <CollectionMappingChoice
                 {...mappingChoiceVisibilityProps}
                 onSelect={handleCollectionMappingSelect}
@@ -227,7 +207,7 @@ const WatchList: React.FC<WatchListProps> = ({
         <Stack sx={{ alignItems: "center", py: 2 }}>
             <CircularProgress size={24} aria-label="Loading watched folders" />
         </Stack>
-    ) : watches.length ? (
+    ) : (
         <Stack sx={{ gap: 1 }}>
             {watches.map((watch) => (
                 <WatchEntry
@@ -238,40 +218,51 @@ const WatchList: React.FC<WatchListProps> = ({
                 />
             ))}
         </Stack>
-    ) : (
-        <NoWatches />
     );
 
-const NoWatches: React.FC = () => (
-    <Stack sx={{ p: "14px 8px 14px 0.5rem", gap: 1 }}>
-        <Typography sx={{ fontWeight: "medium" }}>
-            {t("no_folders_added")}
+const NoWatches: React.FC<{ onChooseFolder: () => void }> = ({
+    onChooseFolder,
+}) => (
+    <Stack sx={{ pt: 12, gap: 2, alignItems: "center", textAlign: "center" }}>
+        <Box
+            component="img"
+            src="/images/empty-state/no-matches.svg"
+            alt=""
+            draggable={false}
+            sx={{ width: 104.4, height: "auto", flexShrink: 0 }}
+        />
+        <Typography sx={{ fontSize: 18, lineHeight: "26px", fontWeight: 600 }}>
+            {ut("Nothing watched yet")}
         </Typography>
-        <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
-            <Check />
-            <Typography
-                variant="small"
-                sx={{ color: "text.muted", fontWeight: 400 }}
-            >
-                {t("watch_folders_hint_2")}
-            </Typography>
-        </Stack>
-        <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
-            <Check />
-            <Typography
-                variant="small"
-                sx={{ color: "text.muted", fontWeight: 400 }}
-            >
-                {t("watch_folders_hint_3")}
-            </Typography>
-        </Stack>
+        <Typography
+            sx={{
+                maxWidth: 360,
+                fontSize: 13,
+                lineHeight: "19px",
+                color: "text.muted",
+            }}
+        >
+            {ut(
+                "Point ente at a folder and everything inside it backs up and keeps backing up as you add to it.",
+            )}
+        </Typography>
+        <FocusVisibleButton
+            color="accent"
+            onClick={onChooseFolder}
+            startIcon={
+                <HugeiconsIcon icon={Add01Icon} size={24} strokeWidth={1.5} />
+            }
+            sx={{
+                height: 52,
+                px: 3,
+                borderRadius: 2.5,
+                lineHeight: "20px",
+                "& .MuiButton-startIcon": { m: 0, mr: 1 },
+            }}
+        >
+            {ut("Choose a folder")}
+        </FocusVisibleButton>
     </Stack>
-);
-
-const Check: React.FC = () => (
-    <CheckIcon
-        sx={{ display: "inline", fontSize: "15px", color: "stroke.muted" }}
-    />
 );
 
 interface WatchEntryProps {

@@ -85,7 +85,7 @@ fn source_changed(component: &Component, file: &FileSnapshot, signature: &str) -
             && component
                 .signature
                 .as_ref()
-                .is_some_and(|original| original != signature))
+                .is_none_or(|original| original != signature))
 }
 
 fn verify(
@@ -208,14 +208,8 @@ pub async fn prepare(run: &Run<'_>, session: &Session, file: &FileSnapshot) -> R
         before = rowid;
         let components = store::lock(run.store)?.components(&id)?;
         for component in components {
-            if !roles.contains(&component.role)
+            if source_changed(&component, file, &signature)
                 || reusable.iter().any(|source| source.role == component.role)
-                || expected_hash(file, &component.role).is_some_and(|hash| hash != component.hash)
-                || (expected_hash(file, &component.role).is_none()
-                    && component
-                        .signature
-                        .as_ref()
-                        .is_some_and(|original| original != &signature))
             {
                 continue;
             }
@@ -279,7 +273,7 @@ pub async fn prepare(run: &Run<'_>, session: &Session, file: &FileSnapshot) -> R
         HashWriter::new(output, run.cancel).map_err(std::io::Error::other)
     });
     let writer = tokio::select! { result=download => result?, _=cancel.changed() => return Err(super::Cancelled.into()) };
-    let (archive, size, hash) = writer.finish()?;
+    let (archive, size, hash) = writer.finish();
     let components = if file.kind == "livephoto" {
         let mut temporaries = Vec::new();
         let extracted = crate::live_photo::extract(archive, |role, extension| {
@@ -292,7 +286,7 @@ pub async fn prepare(run: &Run<'_>, session: &Session, file: &FileSnapshot) -> R
         let mut components = Vec::with_capacity(2);
         for ((role, extension, writer), (_, _, temporary)) in extracted.into_iter().zip(temporaries)
         {
-            let (_, size, hash) = writer.finish()?;
+            let (_, size, hash) = writer.finish();
             if let Some(expected) = expected_hash(file, &role) {
                 ensure!(
                     hash == expected,

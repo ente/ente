@@ -30,7 +30,13 @@ import {
     type LegacyKitRecoverySession,
     type LegacyKitShare,
 } from "ente-legacy-wasm";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import {
     LegacyKitQRDecodeError,
     readLegacyKitCodeFromFile,
@@ -182,7 +188,9 @@ const RecoveryFlow: React.FC<{ parser: LegacyKitParser }> = ({ parser }) => {
     const [session, setSession] = useState<LegacyKitRecoverySession>();
     const [isOpening, setIsOpening] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const refreshInFlight = useRef(false);
     const [isKitInactive, setIsKitInactive] = useState(false);
+    const [isSessionExpired, setIsSessionExpired] = useState(false);
     const [openError, setOpenError] = useState<string>();
     const [showQRDecodeWarning, setShowQRDecodeWarning] = useState(false);
 
@@ -297,6 +305,7 @@ const RecoveryFlow: React.FC<{ parser: LegacyKitParser }> = ({ parser }) => {
             });
             setSession(opened.session());
             setHandle(opened);
+            setIsSessionExpired(false);
         } catch (error) {
             log.error("Legacy kit recovery open failed", error);
             if (isInactiveLegacyKitError(error)) {
@@ -310,32 +319,38 @@ const RecoveryFlow: React.FC<{ parser: LegacyKitParser }> = ({ parser }) => {
     }, [pairError, shares]);
 
     const refreshSession = useCallback(async () => {
-        if (!handle) {
+        if (!handle || refreshInFlight.current) {
             return;
         }
+        refreshInFlight.current = true;
         setIsRefreshing(true);
         setOpenError(undefined);
         try {
             setSession(await handle.refreshSession());
         } catch (error) {
             log.error("Legacy kit recovery refresh failed", error);
+            if (isNamedError(error, "legacy_kit_session_expired")) {
+                setIsSessionExpired(true);
+                return;
+            }
             if (isInactiveLegacyKitError(error)) {
                 setIsKitInactive(true);
                 return;
             }
             setOpenError(getErrorMessage(error));
         } finally {
+            refreshInFlight.current = false;
             setIsRefreshing(false);
         }
     }, [handle]);
 
     useEffect(() => {
-        if (!handle || session?.status !== "WAITING") {
+        if (!handle || isSessionExpired || session?.status !== "WAITING") {
             return;
         }
         const timer = setInterval(() => void refreshSession(), 30_000);
         return () => clearInterval(timer);
-    }, [handle, refreshSession, session?.status]);
+    }, [handle, isSessionExpired, refreshSession, session?.status]);
 
     const handlePasswordSubmit = useCallback(
         async (
@@ -353,6 +368,10 @@ const RecoveryFlow: React.FC<{ parser: LegacyKitParser }> = ({ parser }) => {
                 );
             } catch (error) {
                 log.error("Legacy kit password change failed", error);
+                if (isNamedError(error, "legacy_kit_session_expired")) {
+                    setIsSessionExpired(true);
+                    return;
+                }
                 if (isInactiveLegacyKitError(error)) {
                     setIsKitInactive(true);
                     return;
@@ -367,6 +386,21 @@ const RecoveryFlow: React.FC<{ parser: LegacyKitParser }> = ({ parser }) => {
         <>
             {isKitInactive ? (
                 <InactiveLegacyKitStep />
+            ) : isSessionExpired ? (
+                <StatusLayout
+                    icon={<LockResetRoundedIcon sx={{ fontSize: 48 }} />}
+                    title="Resume recovery"
+                    description="Your recovery access has expired. Resume with the sheets you already provided. An active recovery will keep its waiting period."
+                >
+                    {openError && <Alert severity="error">{openError}</Alert>}
+                    <LoadingButton
+                        loading={isOpening}
+                        onClick={() => void openRecovery()}
+                        sx={buttonSx}
+                    >
+                        Resume recovery
+                    </LoadingButton>
+                </StatusLayout>
             ) : !session ? (
                 <UploadStep
                     slots={slots}

@@ -4,6 +4,7 @@ export const createVideoTrimPlayback = (
     video: HTMLVideoElement,
     getRange: () => { start: number; end: number },
     onError: () => void,
+    startTime = 0,
 ) => {
     let pendingSeek: number | undefined;
     let frame: number | undefined;
@@ -42,15 +43,16 @@ export const createVideoTrimPlayback = (
     const seek = (time: number) => {
         pause();
         restartOnPlay = true;
-        pendingSeek = time;
+        pendingSeek = startTime + time;
         applySeek();
     };
 
     const checkRange = () => {
         if (video.paused || video.seeking) return;
         const { start, end } = getRange();
-        if (video.currentTime >= end) seek(start);
-        else if (video.currentTime < start) video.currentTime = start;
+        if (video.currentTime >= startTime + end) seek(start);
+        else if (video.currentTime < startTime + start)
+            video.currentTime = startTime + start;
     };
 
     const checkFrame = () => {
@@ -94,7 +96,9 @@ export const createVideoTrimPlayback = (
             pause();
             return;
         }
-        const { start, end } = getRange();
+        const range = getRange();
+        const start = startTime + range.start;
+        const end = startTime + range.end;
         const time =
             restartOnPlay ||
             video.currentTime < start ||

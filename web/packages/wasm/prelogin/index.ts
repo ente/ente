@@ -18,7 +18,8 @@ export const deriveKey = async (
     saltB64: string,
     opsLimit: number,
     memLimit: number,
-) => (await wasm()).authDeriveKek(password, saltB64, memLimit, opsLimit);
+) =>
+    (await wasm()).authDeriveKek(password, saltB64, BigInt(memLimit), opsLimit);
 
 export const deriveSensitiveKey = async (password: string) =>
     (await wasm()).authGenerateSensitiveKek(password);

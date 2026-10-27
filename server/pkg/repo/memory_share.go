@@ -255,6 +255,14 @@ func (r *MemoryShareRepository) Delete(ctx context.Context, shareID int64, userI
 	return nil
 }
 
+func (r *MemoryShareRepository) DeleteForUser(ctx context.Context, userID int64) error {
+	_, err := r.DB.ExecContext(ctx, `
+		UPDATE memory_shares SET is_deleted = true, updated_at = $1
+		WHERE user_id = $2 AND is_deleted = false`,
+		time.Microseconds(), userID)
+	return stacktrace.Propagate(err, "failed to delete memory shares for user")
+}
+
 func (r *MemoryShareRepository) GetFileOwnerMap(ctx context.Context, shareID int64) (map[int64]int64, error) {
 	rows, err := r.DB.QueryContext(ctx, `
 		SELECT file_id, file_owner_id FROM memory_share_files WHERE memory_share_id = $1`, shareID)

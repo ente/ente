@@ -1,27 +1,23 @@
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
-import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/db/files_db.dart";
-import "package:photos/locale.dart";
 import 'package:photos/models/collection/collection.dart';
 import "package:photos/models/selected_files.dart";
-import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
+import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
+import "package:photos/ui/device_picker/device_picker_page.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
-import "package:photos/utils/dialog_util.dart";
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 Future<dynamic> showAddPhotosSheet(
   BuildContext context,
@@ -30,11 +26,13 @@ Future<dynamic> showAddPhotosSheet(
   return await showBottomSheetComponent<dynamic>(
     context: context,
     builder: (context) {
-      return FractionallySizedBox(
-        heightFactor: _sheetHeightFactor,
-        alignment: Alignment.bottomCenter,
-        child: GalleryBoundariesProvider(
-          child: AddPhotosPhotoWidget(collection),
+      return LayoutBuilder(
+        builder: (context, _) => FractionallySizedBox(
+          heightFactor: _sheetHeightFactor,
+          alignment: Alignment.bottomCenter,
+          child: GalleryBoundariesProvider(
+            child: AddPhotosPhotoWidget(collection),
+          ),
         ),
       );
     },
@@ -42,23 +40,31 @@ Future<dynamic> showAddPhotosSheet(
   );
 }
 
-const double _sheetHeightFactor = 0.86;
+const double _sheetHeightFactor = 0.98;
 
-class AddPhotosPhotoWidget extends StatelessWidget {
+class AddPhotosPhotoWidget extends StatefulWidget {
   final Collection collection;
 
   const AddPhotosPhotoWidget(this.collection, {super.key});
 
   @override
+  State<AddPhotosPhotoWidget> createState() => _AddPhotosPhotoWidgetState();
+}
+
+class _AddPhotosPhotoWidgetState extends State<AddPhotosPhotoWidget> {
+  final _selectedFiles = SelectedFiles();
+
+  @override
+  void dispose() {
+    _selectedFiles.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ValueNotifier<bool> isFileSelected = ValueNotifier(false);
-    final selectedFiles = SelectedFiles();
-    selectedFiles.addListener(() {
-      isFileSelected.value = selectedFiles.files.isNotEmpty;
-    });
     final Set<int> hiddenCollectionIDs = CollectionsService.instance
         .getHiddenCollectionIds();
-    hiddenCollectionIDs.add(collection.id);
+    hiddenCollectionIDs.add(widget.collection.id);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -75,7 +81,8 @@ class AddPhotosPhotoWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _AppBarWithBoundary(
+            _SheetBoundary(
+              position: BoundaryPosition.top,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   Spacing.xl,
@@ -112,65 +119,91 @@ class AddPhotosPhotoWidget extends StatelessWidget {
             ),
             const SizedBox(height: Spacing.lg),
             Expanded(
-              child: DelayedGallery(
-                hiddenCollectionIDs: hiddenCollectionIDs,
-                selectedFiles: selectedFiles,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DelayedGallery(
+                    hiddenCollectionIDs: hiddenCollectionIDs,
+                    selectedFiles: _selectedFiles,
+                  ),
+                  PositionedDirectional(
+                    start: Spacing.lg,
+                    end: Spacing.lg,
+                    bottom: Spacing.md,
+                    child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: ListenableBuilder(
+                        listenable: _selectedFiles,
+                        builder: (context, _) => _selectedFiles.files.isEmpty
+                            ? const SizedBox.shrink()
+                            : ActionBarWidget(
+                                selectedFiles: _selectedFiles,
+                                onCancel: () => _selectedFiles.clearAll(),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 428),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Spacing.xl,
-                    Spacing.lg,
-                    Spacing.xl,
-                    Spacing.sm,
-                  ),
-                  child: Column(
-                    children: [
-                      ValueListenableBuilder(
-                        valueListenable: isFileSelected,
-                        builder: (context, bool value, _) {
-                          return AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            switchInCurve: Curves.easeInOutExpo,
-                            switchOutCurve: Curves.easeInOutExpo,
-                            child: ButtonComponent(
-                              key: ValueKey(value),
-                              variant: ButtonComponentVariant.primary,
-                              isDisabled: !value,
-                              label: context.strings.addSelected,
+            ListenableBuilder(
+              listenable: _selectedFiles,
+              builder: (context, _) {
+                final isFileSelected = _selectedFiles.files.isNotEmpty;
+                return _SheetBoundary(
+                  position: BoundaryPosition.bottom,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 428),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          Spacing.xl,
+                          Spacing.lg,
+                          Spacing.xl,
+                          Spacing.sm,
+                        ),
+                        child: Column(
+                          children: [
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              switchInCurve: Curves.easeInOutExpo,
+                              switchOutCurve: Curves.easeInOutExpo,
+                              child: ButtonComponent(
+                                key: ValueKey(isFileSelected),
+                                variant: ButtonComponentVariant.primary,
+                                isDisabled: !isFileSelected,
+                                label: context.strings.addSelected,
+                                onTap: () async {
+                                  final selectedFile = _selectedFiles.files;
+                                  final ca = CollectionActions(
+                                    CollectionsService.instance,
+                                  );
+                                  await ca.addToCollection(
+                                    context,
+                                    widget.collection.id,
+                                    false,
+                                    selectedFiles: selectedFile.toList(),
+                                  );
+                                  if (!context.mounted) return;
+                                  Navigator.pop(context, selectedFile);
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: Spacing.md),
+                            ButtonComponent(
+                              variant: ButtonComponentVariant.secondary,
+                              label: context.strings.addFromDevice,
                               onTap: () async {
-                                final selectedFile = selectedFiles.files;
-                                final ca = CollectionActions(
-                                  CollectionsService.instance,
-                                );
-                                await ca.addToCollection(
-                                  context,
-                                  collection.id,
-                                  false,
-                                  selectedFiles: selectedFile.toList(),
-                                );
-                                if (!context.mounted) return;
-                                Navigator.pop(context, selectedFile);
+                                await _onPickFromDeviceClicked(context);
                               },
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: Spacing.md),
-                      ButtonComponent(
-                        variant: ButtonComponentVariant.secondary,
-                        label: context.strings.addFromDevice,
-                        onTap: () async {
-                          await _onPickFromDeviceClicked(context);
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),
@@ -179,89 +212,16 @@ class AddPhotosPhotoWidget extends StatelessWidget {
   }
 
   Future<void> _onPickFromDeviceClicked(BuildContext context) async {
-    try {
-      final assetPickerTextDelegate = await _getAssetPickerTextDelegate();
-      if (!context.mounted) return;
-      final List<AssetEntity>? result = await AssetPicker.pickAssets(
-        context,
-        pickerConfig: AssetPickerConfig(
-          keepScrollOffset: true,
-          maxAssets: maxPickAssetLimit,
-          textDelegate: assetPickerTextDelegate,
-          gridCount: 6,
-          pageSize: 120,
-        ),
-      );
-      if (result != null && result.isNotEmpty) {
-        final ca = CollectionActions(CollectionsService.instance);
-        if (!context.mounted) return;
-        await ca.addToCollection(
+    final result = await showDevicePicker(context);
+    if (!context.mounted || result == null || result.isEmpty) return;
+    final added = await CollectionActions(CollectionsService.instance)
+        .addToCollection(
           context,
-          collection.id,
+          widget.collection.id,
           false,
           picketAssets: result,
         );
-        if (!context.mounted) return;
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      if (e is StateError) {
-        final PermissionState ps = await permissionService
-            .requestPhotoMangerPermissions();
-        if (ps != PermissionState.authorized && ps != PermissionState.limited) {
-          if (!context.mounted) return;
-          await showChoiceDialog(
-            context,
-            title: context.strings.grantPermission,
-            body: context.strings.pleaseGrantPermissions,
-            firstButtonLabel: context.strings.ok,
-            secondButtonLabel: context.strings.cancel,
-            firstButtonOnTap: () async {
-              await PhotoManager.openSetting();
-            },
-          );
-        } else {
-          if (!context.mounted) return;
-          await showErrorDialog(
-            context,
-            context.strings.oops,
-            context.strings.somethingWentWrong + (kDebugMode ? "\n$e" : ""),
-          );
-        }
-      }
-    }
-  }
-
-  // AssetPicker's fallback is Chinese. Unsupported locales use its English
-  // delegate.
-  Future<AssetPickerTextDelegate> _getAssetPickerTextDelegate() async {
-    final Locale locale = (await getLocale())!;
-    switch (locale.languageCode.toLowerCase()) {
-      case "en":
-        return const EnglishAssetPickerTextDelegate();
-      case "he":
-        return const HebrewAssetPickerTextDelegate();
-      case "de":
-        return const GermanAssetPickerTextDelegate();
-      case "ru":
-        return const RussianAssetPickerTextDelegate();
-      case "ja":
-        return const JapaneseAssetPickerTextDelegate();
-      case "ar":
-        return const ArabicAssetPickerTextDelegate();
-      case "fr":
-        return const FrenchAssetPickerTextDelegate();
-      case "vi":
-        return const VietnameseAssetPickerTextDelegate();
-      case "tr":
-        return const TurkishAssetPickerTextDelegate();
-      case "ko":
-        return const KoreanAssetPickerTextDelegate();
-      case "zh":
-        return const AssetPickerTextDelegate();
-      default:
-        return const EnglishAssetPickerTextDelegate();
-    }
+    if (context.mounted && added) Navigator.of(context).pop();
   }
 }
 
@@ -318,6 +278,14 @@ class _DelayedGalleryState extends State<DelayedGallery> {
               },
               tagPrefix: "pick_add_photos_gallery",
               selectedFiles: widget.selectedFiles,
+              footer: ListenableBuilder(
+                listenable: widget.selectedFiles,
+                builder: (context, _) => SizedBox(
+                  height: widget.selectedFiles.files.isEmpty
+                      ? 0
+                      : MediaQuery.textScalerOf(context).scale(kToolbarHeight),
+                ),
+              ),
               showSelectAll: true,
               sortAsyncFn: () => false,
               disablePinnedGroupHeader: true,
@@ -333,19 +301,24 @@ class _DelayedGalleryState extends State<DelayedGallery> {
   }
 }
 
-class _AppBarWithBoundary extends StatefulWidget {
+class _SheetBoundary extends StatefulWidget {
+  final BoundaryPosition position;
   final Widget child;
 
-  const _AppBarWithBoundary({required this.child});
+  const _SheetBoundary({required this.position, required this.child});
 
   @override
-  State<_AppBarWithBoundary> createState() => _AppBarWithBoundaryState();
+  State<_SheetBoundary> createState() => _SheetBoundaryState();
 }
 
-class _AppBarWithBoundaryState extends State<_AppBarWithBoundary>
-    with BoundaryReporter {
+class _SheetBoundaryState extends State<_SheetBoundary> with BoundaryReporter {
   @override
   Widget build(BuildContext context) {
-    return boundaryWidget(position: BoundaryPosition.top, child: widget.child);
+    return AnimatedBuilder(
+      animation: ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation,
+      builder: (context, child) =>
+          boundaryWidget(position: widget.position, child: child!),
+      child: widget.child,
+    );
   }
 }

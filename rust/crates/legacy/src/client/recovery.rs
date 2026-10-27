@@ -326,7 +326,7 @@ struct LegacyUpdatedKeyAttr {
     kek_salt: String,
     encrypted_key: String,
     key_decryption_nonce: String,
-    mem_limit: u32,
+    mem_limit: u64,
     ops_limit: u32,
 }
 

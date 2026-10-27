@@ -111,6 +111,7 @@ class BottomSheetComponent extends StatelessWidget {
     this.borderSide,
     this.isKeyboardAware = false,
     this.isScrollable = false,
+    this.shrinkWrap = false,
     this.initialChildSize = 0.5,
     this.snap = false,
     this.snapSizes,
@@ -140,6 +141,7 @@ class BottomSheetComponent extends StatelessWidget {
 
   final bool isKeyboardAware;
   final bool isScrollable;
+  final bool shrinkWrap;
 
   final double initialChildSize;
 
@@ -213,7 +215,7 @@ class BottomSheetComponent extends StatelessWidget {
     );
 
     late final Widget sheetBody;
-    if (isDesktop && isScrollable) {
+    if (isScrollable && (isDesktop || shrinkWrap)) {
       sheetBody = SingleChildScrollView(padding: padding, child: contentColumn);
     } else if (isScrollable) {
       sheetBody = DraggableScrollableSheet(

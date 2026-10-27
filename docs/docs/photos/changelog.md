@@ -7,6 +7,38 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.66 (mobile) - Oct 2026
+
+- Added a mosaic gallery layout that shows photos in their original proportions.
+- Pinch in or out to switch gallery layouts and choose how many photos fit on your screen, including when selecting photos.
+- Add text to photos with a choice of fonts, colors, backgrounds, and alignment.
+- You can now straighten tilted photos.
+- Select text, stickers, and drawings to duplicate or delete them.
+- Updated photo adjustments with Tint and corrected Fade. Removed Sharpness and Luminance.
+- Redesigned albums with larger covers and quick slideshow and map buttons.
+- Refreshed album options and photo-selection menus.
+- Added Memory Lane to the home screen.
+- Made preparing photos and videos for upload faster.
+- Added Korean language support.
+- Updated maps with rounded photo markers and clearer photo counts.
+- Videos opened from other apps now support double-tap seeking and press-and-hold 2× playback.
+- Replaced Chewie with the Native/MediaKit player for videos opened from other apps.
+- Choose between sharing a copy and sharing a link from the photo viewer.
+- Made album participants’ roles clearer and their sharing options easier to access.
+- Added notifications when your first curated memories are ready.
+- Improved screen reader support for checkboxes.
+- Refreshed setup screens, empty Feed and Albums screens, and the logout confirmation.
+- Smoothed transitions between the gallery and photo viewer.
+- Fixed missing editor tools after cancelling an edit and improved the visibility of status and navigation icons in light and dark themes.
+- Fixed Photos, Videos, and Live Photos filters showing empty results in hidden albums.
+- Fixed overflowing album names in photo details, flickering people filters, and missing sharing recipients.
+- Fixed errors when viewing photo details with invalid exposure times.
+- Fixed the missing map back button when no photos have location information.
+- Fixed memories continuing to play behind the What’s New sheet.
+- Removed the Feed tab from Local Gallery.
+- Migrated machine-learning model downloads to the Rust assets crate.
+- Improved translations for sharing, account recovery, storage cleanup, and onboarding.
+
 ## v1.7.30 (desktop) - Oct 2026
 
 - Added slideshows for albums.

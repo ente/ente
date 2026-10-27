@@ -1,0 +1,141 @@
+name: Release Ente CLI
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ente-cli-release
+    cancel-in-progress: false
+
+jobs:
+    build:
+        if: github.ref == 'refs/heads/main'
+        runs-on: ${{ matrix.runner }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - { runner: ubuntu-latest, target: x86_64-unknown-linux-musl, suffix: linux-amd64.tar.gz }
+                    - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, suffix: linux-arm64.tar.gz }
+                    - { runner: macos-15-intel, target: x86_64-apple-darwin, suffix: darwin-amd64.tar.gz }
+                    - { runner: macos-latest, target: aarch64-apple-darwin, suffix: darwin-arm64.tar.gz }
+                    - { runner: windows-latest, target: x86_64-pc-windows-msvc, suffix: windows-amd64.zip }
+                    - { runner: windows-11-arm, target: aarch64-pc-windows-msvc, suffix: windows-arm64.zip }
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            TARGET: ${{ matrix.target }}
+            SUFFIX: ${{ matrix.suffix }}
+            CFLAGS_aarch64_unknown_linux_musl: -mno-outline-atomics
+        outputs:
+            version: ${{ steps.build.outputs.version }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.sha }}
+                  persist-credentials: false
+            - name: Install Linux build tools
+              if: runner.os == 'Linux'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y musl-tools
+            - name: Build release asset
+              id: build
+              shell: bash
+              run: |
+                  rustup target add "$TARGET"
+                  features=()
+                  binary=ente
+                  if [[ "$RUNNER_OS" = Windows ]]; then
+                      export OPENSSL_SRC_PERL="C:/Strawberry/perl/bin/perl.exe"
+                      target_env=$(printf '%s' "$TARGET" | tr '[:lower:]-' '[:upper:]_')
+                      export "CARGO_TARGET_${target_env}_RUSTFLAGS=-C target-feature=+crt-static"
+                      binary=ente.exe
+                  fi
+                  if [[ "$RUNNER_OS" = Linux ]]; then features=(--features rusqlite/bundled-sqlcipher-vendored-openssl,keyring/vendored); fi
+                  version=$(node ../.github/scripts/cli-version.mjs get)
+                  cargo build --locked --release -p ente-cli --bin ente --target "$TARGET" "${features[@]}"
+                  cd "target/$TARGET/release"
+                  [[ "$(./"$binary" --version)" = "ente $version" ]]
+                  asset="ente-cli-v$version-$SUFFIX"
+                  dist="$RUNNER_TEMP/cli-release"
+                  mkdir -p "$dist"
+                  if [[ "$RUNNER_OS" = Windows ]]; then
+                      python -m zipfile -c "$dist/$asset" "$binary"
+                  else
+                      tar -czf "$dist/$asset" "$binary"
+                  fi
+                  printf 'version=%s\nasset=%s\npath=%s\n' "$version" "$asset" "$dist/$asset" >> "$GITHUB_OUTPUT"
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: ${{ steps.build.outputs.asset }}
+                  path: ${{ steps.build.outputs.path }}
+                  if-no-files-found: error
+                  compression-level: 0
+
+    release:
+        needs: build
+        runs-on: ubuntu-latest
+        environment: release-branch-push
+        env:
+            GH_REPO: ${{ github.repository }}
+            VERSION: ${{ needs.build.outputs.version }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.sha }}
+                  persist-credentials: false
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: ente-cli-v${{ needs.build.outputs.version }}-*
+                  path: assets
+                  merge-multiple: true
+            - name: Read release notes
+              id: notes
+              run: node .github/scripts/release-notes.mjs rust/apps/cli/changes >> "$GITHUB_OUTPUT"
+            - name: Mint release App token
+              id: app-token
+              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              with:
+                  client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
+                  private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
+                  repositories: ente
+                  permission-contents: write
+                  permission-pull-requests: write
+            - name: Publish release
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  NOTES: ${{ steps.notes.outputs.release_body }}
+              run: |
+                  tag="ente-cli-v$VERSION"
+                  existing=$(git ls-remote --tags origin "refs/tags/$tag")
+                  [[ -z "$existing" ]] || { echo "::error::$tag already exists"; exit 1; }
+                  printf '%s\n\n%s\n' \
+                      'This is Ente’s new CLI for terminals and agents. Commands have changed; see the [documentation](https://ente.com/help/cli/) and [migration guide](https://ente.com/help/cli/migration) before switching from the previous CLI.' \
+                      "$NOTES" > "$RUNNER_TEMP/release-notes.md"
+                  cd assets
+                  sha256sum *.tar.gz *.zip > SHA256SUMS
+                  gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file "$RUNNER_TEMP/release-notes.md" --latest=false *
+            - name: Open release follow-up PR
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+                  RELEASE_BODY: ${{ steps.notes.outputs.release_body }}
+              run: |
+                  IFS=. read -r major minor patch <<< "$VERSION"
+                  next_version="$major.$minor.$((patch + 1))"
+                  branch="ente-cli-v$next_version"
+                  git switch -c "$branch"
+                  node .github/scripts/cli-version.mjs set "$next_version"
+                  node .github/scripts/sync-help-changelog.mjs cli "$VERSION"
+                  find rust/apps/cli/changes -maxdepth 1 -type f -name '*.md' ! -name README.md -delete
+                  bot_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+                  git config user.name "${APP_SLUG}[bot]"
+                  git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+                  git commit -am "Start Ente CLI $next_version"
+                  git -c http.https://github.com/.extraheader= push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+                  gh pr create --base main --head "$branch" --title "[rust] Start Ente CLI $next_version" --body ""

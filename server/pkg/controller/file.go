@@ -215,11 +215,7 @@ func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, 
 			if err != nil {
 				return file, stacktrace.Propagate(err, "")
 			}
-			file, err = c.onDuplicateObjectDetected(ctx, file, existing, hotDC)
-			if err != nil {
-				return file, stacktrace.Propagate(err, "")
-			}
-			return file, nil
+			return c.onDuplicateObjectDetected(ctx, file, existing, hotDC, app)
 		}
 		return file, stacktrace.Propagate(err, "")
 	}
@@ -251,11 +247,11 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}
-	ownerID, err := c.FileRepo.GetOwnerID(file.ID)
+	ownerID, fileApp, err := c.FileRepo.GetOwnerAndApp(file.ID)
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}
-	if ownerID != userID {
+	if ownerID != userID || (fileApp != "" && fileApp != app) {
 		return response, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	file.OwnerID = ownerID
@@ -316,7 +312,7 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 			ThumbnailSize: thumbnailSize,
 		}
 	}
-	err = c.FileRepo.Update(file, fileSize, thumbnailSize, diff, oldObjects, stagedObjects)
+	err = c.FileRepo.Update(file, fileSize, thumbnailSize, diff, oldObjects, stagedObjects, app)
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}
@@ -703,11 +699,11 @@ func (c *FileController) UpdateThumbnail(ctx *gin.Context, fileID int64, newThum
 	if !strings.HasPrefix(newThumbnail.ObjectKey, objectPathPrefix) {
 		return stacktrace.Propagate(ente.ErrBadRequest, "Incorrect object key reported")
 	}
-	ownerID, err := c.FileRepo.GetOwnerID(fileID)
+	ownerID, fileApp, err := c.FileRepo.GetOwnerAndApp(fileID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	if ownerID != userID {
+	if ownerID != userID || (fileApp != "" && fileApp != app) {
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	existingThumbnailObject, err := c.ObjectRepo.GetObject(fileID, ente.THUMBNAIL)
@@ -732,7 +728,7 @@ func (c *FileController) UpdateThumbnail(ctx *gin.Context, fileID int64, newThum
 	if existingThumbnailObjectKey != newThumbnail.ObjectKey {
 		oldObject = &existingThumbnailObjectKey
 	}
-	err = c.FileRepo.UpdateThumbnail(ctx, fileID, userID, newThumbnail, newThumbnailSize, diff, oldObject)
+	err = c.FileRepo.UpdateThumbnail(ctx, fileID, userID, newThumbnail, newThumbnailSize, diff, oldObject, app)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -961,7 +957,7 @@ func (c *FileController) sizeOf(ctx context.Context, objectKey string) (int64, e
 	return -1, stacktrace.Propagate(err, "")
 }
 
-func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.File, existing ente.File, hotDC string) (ente.File, error) {
+func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.File, existing ente.File, hotDC string, app ente.App) (ente.File, error) {
 	newJSON, _ := json.Marshal(file)
 	existingJSON, _ := json.Marshal(existing)
 	log.Info("Comparing " + string(newJSON) + " against " + string(existingJSON))
@@ -974,12 +970,18 @@ func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.F
 		file.Metadata.EncryptedData == existing.Metadata.EncryptedData &&
 		file.Metadata.DecryptionHeader == existing.Metadata.DecryptionHeader &&
 		file.OwnerID == existing.OwnerID {
+		_, existingApp, err := c.FileRepo.GetOwnerAndApp(existing.ID)
+		if err != nil {
+			return file, stacktrace.Propagate(err, "")
+		}
+		if existingApp != "" && existingApp != app {
+			return file, stacktrace.Propagate(ente.ErrPermissionDenied, "file app does not match request app")
+		}
 		file.ID = existing.ID
 		return file, nil
-	} else {
-		go c.onExistingObjectsReplaced(ctx, file, hotDC)
-		return ente.File{}, ente.ErrBadRequest
 	}
+	go c.onExistingObjectsReplaced(ctx, file, hotDC)
+	return ente.File{}, ente.ErrBadRequest
 }
 
 func (c *FileController) safeAlert(msg string) {

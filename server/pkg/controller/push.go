@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"crypto/hpke"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -100,6 +101,11 @@ func newFCMClient() (*fcmClient, error) {
 }
 
 func (c *PushController) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
+	if token.NotificationKey != nil {
+		if _, err := hpke.MLKEM768X25519().NewPublicKey(token.NotificationKey); err != nil {
+			return ente.NewBadRequestWithMessage("invalid notification public key")
+		}
+	}
 	return stacktrace.Propagate(c.PushRepo.AddToken(userID, sessionTokenHash, token), "")
 }
 

@@ -24,10 +24,10 @@ public class EntePdfRendererPlugin: NSObject, FlutterPlugin {
         let reply: Any?
         switch call.method {
         case "open":
-          guard let path = arguments["path"] as? String else {
-            throw PdfError(code: "invalid", message: "Missing path")
+          guard let path = arguments["path"] as? String, let maxPages = arguments["maxPages"] as? Int else {
+            throw PdfError(code: "invalid", message: "Missing open arguments")
           }
-          reply = try self.open(path: path, password: arguments["password"] as? String)
+          reply = try self.open(path: path, password: arguments["password"] as? String, maxPages: maxPages)
         case "render":
           guard let id = arguments["id"] as? Int, let page = arguments["page"] as? Int,
                 let width = arguments["width"] as? Int, let height = arguments["height"] as? Int else {
@@ -59,7 +59,7 @@ public class EntePdfRendererPlugin: NSObject, FlutterPlugin {
     return page.rotation % 180 == 0 ? bounds.size : CGSize(width: bounds.height, height: bounds.width)
   }
 
-  private func open(path: String, password: String?) throws -> [String: Any] {
+  private func open(path: String, password: String?, maxPages: Int) throws -> [String: Any] {
     guard let document = PDFDocument(url: URL(fileURLWithPath: path)) else {
       throw PdfError(code: "invalid", message: "Not a readable PDF")
     }
@@ -70,6 +70,9 @@ public class EntePdfRendererPlugin: NSObject, FlutterPlugin {
       guard document.unlock(withPassword: password) else {
         throw PdfError(code: "password_incorrect", message: "Wrong password")
       }
+    }
+    guard document.pageCount <= maxPages else {
+      throw PdfError(code: "too_many_pages", message: "PDF has \(document.pageCount) pages")
     }
     var widths: [Double] = []
     var heights: [Double] = []

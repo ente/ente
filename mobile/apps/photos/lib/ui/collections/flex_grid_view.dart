@@ -340,6 +340,7 @@ class _CollectionsFlexiGridViewWidgetState
 
             item = AlbumListItemWidget(
               collection,
+              tag: widget.tag,
               selectedAlbums: widget.selectedAlbums,
               isSelected: selectionCallbacks?.isSelected(collection) ?? false,
               onTapCallback: _handleCollectionTap,

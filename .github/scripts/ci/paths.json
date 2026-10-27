@@ -60,6 +60,13 @@
         "rust/tools/codegen/**"
     ],
     "docs-verify-build": [".github/workflows/docs-verify-build.yml", "docs/**"],
+    "ensu-desktop-build": [
+        ".github/workflows/ensu-desktop-build.yml",
+        "rust/Cargo.lock",
+        "rust/apps/ensu/package-lock.json",
+        "rust/apps/ensu/package.json",
+        "web/package-lock.json"
+    ],
     "infra-lint-staff": [
         ".github/workflows/infra-lint-staff.yml",
         "infra/staff/**"
@@ -106,7 +113,7 @@
         "rust/.cargo/config.toml",
         "rust/Cargo.lock",
         "rust/Cargo.toml",
-        "rust/apps/cli-next/**",
+        "rust/apps/cli/**",
         "rust/crates/accounts/**",
         "rust/crates/assets/**",
         "rust/crates/auth/**",

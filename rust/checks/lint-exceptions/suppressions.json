@@ -1,9 +1,4 @@
 {
-    "rust/apps/cli/src/models/export_metadata.rs": [
-        "clippy::trivially_copy_pass_by_ref"
-    ],
-    "rust/apps/cli/src/sync/download.rs": ["clippy::expect_used"],
-    "rust/apps/cli/tests/sync.rs": ["dead_code"],
     "rust/apps/ensu/src-tauri/src/logging.rs": ["clippy::expect_used"],
     "rust/bindings/frb/locker/src/lib.rs": [
         "clippy::allow_attributes",

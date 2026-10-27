@@ -506,7 +506,11 @@ const FieldRow: React.FC<FieldRowProps> = ({
                         minWidth: 0,
                         letterSpacing:
                             secret && !revealed ? "0.14em" : undefined,
-                        whiteSpace: multiline ? "pre-wrap" : "nowrap",
+                        whiteSpace: multiline
+                            ? "pre-wrap"
+                            : secret
+                              ? "pre"
+                              : "nowrap",
                         overflow: multiline ? "visible" : "hidden",
                         textOverflow: multiline ? "unset" : "ellipsis",
                         wordBreak: multiline ? "break-word" : undefined,

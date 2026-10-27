@@ -482,7 +482,7 @@ fn generate_access_key() -> String {
 fn derive_link_keys(
     access_key: &str,
     encoded_salt: &str,
-    mem_limit: u32,
+    mem_limit: u64,
     ops_limit: u32,
 ) -> Result<DerivedLinkKeys> {
     if mem_limit != argon::Params::INTERACTIVE.mem_limit

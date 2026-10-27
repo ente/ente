@@ -3,6 +3,7 @@ import {
     playViewerClose,
     playViewerOpen,
     viewerOriginKey,
+    viewerVideoFrame,
 } from "../src/components/viewer-transition";
 import { fullPhotoState } from "../src/utils/viewer-geometry";
 
@@ -15,7 +16,7 @@ test("tiles are matched by space and post", () => {
     expect(viewerOriginKey("space", undefined)).toBeUndefined();
 });
 
-const pendingFlight = () => {
+const pendingFlight = (video?: HTMLVideoElement) => {
     let resolveDecode!: () => void;
     let rejectDecode!: (error: Error) => void;
     const decoded = new Promise<void>((resolve, reject) => {
@@ -29,6 +30,13 @@ const pendingFlight = () => {
         remove: vi.fn(),
     };
     const image = { style: {}, src: "", decode: () => decoded };
+    const drawFrame = vi.fn();
+    const frame = {
+        style: {},
+        width: 0,
+        height: 0,
+        getContext: () => ({ drawImage: drawFrame }),
+    };
     const origin = {
         style: { opacity: "" },
         closest: () => null,
@@ -39,12 +47,15 @@ const pendingFlight = () => {
             height: 100,
         }),
         querySelector: (selector: string) =>
-            selector == "img[aria-hidden]"
-                ? { currentSrc: "data:thumbnail" }
-                : null,
+            selector == "video"
+                ? (video ?? null)
+                : selector == "img[aria-hidden]"
+                  ? { currentSrc: "data:thumbnail" }
+                  : null,
     };
     vi.stubGlobal("document", {
-        createElement: (tag: string) => (tag == "img" ? image : flyer),
+        createElement: (tag: string) =>
+            tag == "canvas" ? frame : tag == "img" ? image : flyer,
     });
     vi.stubGlobal("window", {
         innerWidth: 390,
@@ -77,6 +88,8 @@ const pendingFlight = () => {
     return {
         flight,
         flyer,
+        frame,
+        drawFrame,
         image,
         origin,
         requestFrame,
@@ -127,7 +140,43 @@ test("a failed flyer leaves the tile visible and allows viewer handover", async 
     flight.stop();
 });
 
-const closingFlight = (src = "full-photo") => {
+test("a playing video opens with its current frame without decoding the poster", async () => {
+    const video = {
+        readyState: 2,
+        HAVE_CURRENT_DATA: 2,
+        videoWidth: 1920,
+        videoHeight: 1080,
+    } as HTMLVideoElement;
+    const { flight, flyer, frame, drawFrame, origin, requestFrame } =
+        pendingFlight(video);
+
+    expect(frame.width).toBe(1920);
+    expect(frame.height).toBe(1080);
+    expect(drawFrame).toHaveBeenCalledExactlyOnceWith(video, 0, 0);
+    expect(flight.src).toBe(frame);
+    expect(flyer.append).toHaveBeenCalledWith(frame);
+    await Promise.resolve();
+    expect(origin.style.opacity).toBe("0");
+    expect(requestFrame).toHaveBeenCalledOnce();
+    flight.stop();
+});
+
+test("a video without a decoded frame opens using its poster", async () => {
+    const { flight, drawFrame, image, origin, resolveDecode } = pendingFlight({
+        readyState: 1,
+        HAVE_CURRENT_DATA: 2,
+    } as HTMLVideoElement);
+
+    expect(drawFrame).not.toHaveBeenCalled();
+    expect(image.src).toBe("data:thumbnail");
+    expect(origin.style.opacity).toBe("");
+    resolveDecode();
+    await Promise.resolve();
+    expect(origin.style.opacity).toBe("0");
+    flight.stop();
+});
+
+const closingFlight = (src: string | HTMLCanvasElement = "full-photo") => {
     const { flight, origin, requestFrame } = pendingFlight();
     flight.stop();
     vi.mocked(cancelAnimationFrame).mockClear();
@@ -225,4 +274,27 @@ test("reopening during the thumbnail fade cancels the old overlay", () => {
     expect(fade.cancel).toHaveBeenCalledOnce();
     expect(root.remove).toHaveBeenCalledOnce();
     flight.stop();
+});
+
+test("closing a video keeps its captured frame until it fades into the tile", () => {
+    const { flight, frame } = pendingFlight();
+    flight.stop();
+    const snapshot = viewerVideoFrame({
+        readyState: 2,
+        HAVE_CURRENT_DATA: 2,
+        videoWidth: 1920,
+        videoHeight: 1080,
+    } as HTMLVideoElement)!;
+    expect(snapshot).toBe(frame);
+
+    const { root, origin, fade, finishSpring } = closingFlight(snapshot);
+    expect(origin.style.opacity).toBe("0");
+    expect(snapshot.style.transform).toBeDefined();
+    finishSpring();
+    expect(origin.style.opacity).toBe("");
+    expect(root.animate).toHaveBeenCalledOnce();
+    expect(root.remove).not.toHaveBeenCalled();
+    const finish = fade.addEventListener.mock.calls[0]![1] as () => void;
+    finish();
+    expect(root.remove).toHaveBeenCalledOnce();
 });

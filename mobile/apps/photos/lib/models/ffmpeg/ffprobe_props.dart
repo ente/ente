@@ -181,33 +181,24 @@ class FFProbeProps {
         if (key == FFProbeKeys.rFrameRate) {
           result.fps = _formatFPS(stream[key]);
           parsedData[key] = result.fps;
-        }
-        //TODO: Use `height` and `width` instead of `codedHeight` and `codedWidth`
-        //for better accuracy. `height' and `width` will give the video's "visual"
-        //height and width.
-        else if (key == FFProbeKeys.codedWidth) {
-          final width = stream[key];
+        } else if (key == FFProbeKeys.width || key == FFProbeKeys.codedWidth) {
+          var width = stream[FFProbeKeys.width];
+          if (width == null || width == 0) {
+            width = stream[FFProbeKeys.codedWidth];
+          }
           if (width != null && width != 0) {
             result._width = width.toString();
-            parsedData[key] = result._width;
+            parsedData[FFProbeKeys.width] = result._width;
           }
-        } else if (key == FFProbeKeys.codedHeight) {
-          final height = stream[key];
+        } else if (key == FFProbeKeys.height ||
+            key == FFProbeKeys.codedHeight) {
+          var height = stream[FFProbeKeys.height];
+          if (height == null || height == 0) {
+            height = stream[FFProbeKeys.codedHeight];
+          }
           if (height != null && height != 0) {
             result._height = height.toString();
-            parsedData[key] = result._height;
-          }
-        } else if (key == FFProbeKeys.width) {
-          final width = stream[key];
-          if (width != null && width != 0) {
-            result._width = width.toString();
-            parsedData[key] = result._width;
-          }
-        } else if (key == FFProbeKeys.height) {
-          final height = stream[key];
-          if (height != null && height != 0) {
-            result._height = height.toString();
-            parsedData[key] = result._height;
+            parsedData[FFProbeKeys.height] = result._height;
           }
         } else if (key == FFProbeKeys.sideDataList) {
           for (Map sideData in stream[key]) {

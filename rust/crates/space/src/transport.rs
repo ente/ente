@@ -272,6 +272,10 @@ pub struct PostResponse {
     pub objects: Vec<PostObjectPayload>,
     pub created_at: String,
     pub viewer_liked: bool,
+    #[serde(default)]
+    pub comment_count: i64,
+    #[serde(default)]
+    pub like_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -392,7 +396,7 @@ pub struct SpaceKeyVersionResponse {
 pub struct SpaceLinkWriteRequest {
     pub auth_key: String,
     pub kdf_salt: String,
-    pub kdf_mem_limit: u32,
+    pub kdf_mem_limit: u64,
     pub kdf_ops_limit: u32,
     pub key_version: i32,
     pub encrypted_space_key: String,
@@ -410,7 +414,7 @@ pub struct SpaceLinkStatusResponse {
     #[serde(default)]
     pub kdf_salt: String,
     #[serde(default)]
-    pub kdf_mem_limit: u32,
+    pub kdf_mem_limit: u64,
     #[serde(default)]
     pub kdf_ops_limit: u32,
     #[serde(default)]
@@ -423,7 +427,7 @@ pub struct SpaceLinkStatusResponse {
 #[serde(rename_all = "camelCase")]
 pub struct SpaceLinkBootstrapResponse {
     pub kdf_salt: String,
-    pub kdf_mem_limit: u32,
+    pub kdf_mem_limit: u64,
     pub kdf_ops_limit: u32,
 }
 
@@ -696,6 +700,10 @@ pub struct SpaceLookupResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationResponse {
+    pub post_space_id: Option<String>,
+    pub post_owner_slug: Option<String>,
+    pub comment_id: Option<String>,
+    pub reply_to_id: Option<String>,
     pub notification_id: String,
     pub notification_ids: Vec<String>,
     pub kind: String,
@@ -720,4 +728,34 @@ pub struct NotificationPageResponse {
 #[derive(Deserialize)]
 pub(crate) struct NotificationUnreadResponse {
     pub unread: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CommentReactionResponse {
+    pub actor: SpaceActorResponse,
+    pub cipher: String,
+    pub is_own: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CommentResponse {
+    pub comment_id: String,
+    #[serde(default)]
+    pub unread_notification_ids: Vec<String>,
+    pub author: Option<SpaceActorResponse>,
+    pub parent_id: String,
+    pub reply_to_id: String,
+    pub cipher: String,
+    pub created_at: String,
+    pub can_delete: bool,
+    pub reactions: Vec<CommentReactionResponse>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CommentPageResponse {
+    pub items: Vec<CommentResponse>,
+    pub next_cursor: String,
 }

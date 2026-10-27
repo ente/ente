@@ -67,6 +67,9 @@ impl SrpSession {
     }
 
     pub fn compute_m1(&mut self, server_b: &[u8]) -> Result<Vec<u8>> {
+        if server_b.len() > SRP_N_BYTES {
+            return Err(Error::Srp("Server SRP value is too large".into()));
+        }
         let verifier = self
             .inner
             .process_reply(
@@ -203,6 +206,10 @@ mod tests {
             k: None,
         };
 
+        assert!(matches!(
+            session.compute_m1(&[1; SRP_N_BYTES + 1]),
+            Err(Error::Srp(_))
+        ));
         let m1 = session.compute_m1(&b_pub).unwrap();
 
         let verifier_client = ClientG4096::<Sha256>::new();

@@ -31,7 +31,7 @@ pub struct PreparedFileLinkPayload {
     encrypted_file_key: String,
     encrypted_file_key_nonce: String,
     kdf_nonce: String,
-    kdf_mem_limit: u32,
+    kdf_mem_limit: u64,
     kdf_ops_limit: u32,
 }
 

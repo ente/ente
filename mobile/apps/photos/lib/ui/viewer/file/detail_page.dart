@@ -2,6 +2,8 @@ import "dart:async";
 import "dart:io";
 import "dart:math";
 
+import "package:ente_components/ente_components.dart"
+    show TextStyles, IconSizes, ThemeContext;
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
@@ -10,8 +12,10 @@ import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import "package:flutter_svg/flutter_svg.dart";
+import "package:hugeicons/hugeicons.dart";
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
+import 'package:photos/core/constants.dart';
 import 'package:photos/core/errors.dart';
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/file_caption_updated_event.dart";
@@ -56,7 +60,7 @@ const _galleryCaptionGap = 12.0;
 const _galleryCaptionLineHeight = 16.0;
 const _galleryCaptionScrimTopPadding = 12.0;
 
-enum DetailPageMode { minimalistic, full }
+enum DetailPageMode { minimalistic, full, selection }
 
 class DetailPageConfiguration {
   final List<EnteFile> files;
@@ -69,6 +73,7 @@ class DetailPageConfiguration {
   final GalleryType? galleryType;
   final FutureOr<void> Function(BuildContext context)? onBackPressed;
   final ValueChanged<EnteFile>? onDismissed;
+  final ValueChanged<EnteFile>? onSelectionRemoved;
 
   final void Function(BuildContext context)? onPageReady;
 
@@ -83,8 +88,9 @@ class DetailPageConfiguration {
     this.galleryType,
     this.onBackPressed,
     this.onDismissed,
+    this.onSelectionRemoved,
     this.onPageReady,
-  });
+  }) : assert(mode != DetailPageMode.selection || onSelectionRemoved != null);
 
   DetailPageConfiguration copyWith({
     List<EnteFile>? files,
@@ -98,6 +104,7 @@ class DetailPageConfiguration {
     GalleryType? galleryType,
     FutureOr<void> Function(BuildContext context)? onBackPressed,
     ValueChanged<EnteFile>? onDismissed,
+    ValueChanged<EnteFile>? onSelectionRemoved,
     void Function(BuildContext context)? onPageReady,
   }) {
     return DetailPageConfiguration(
@@ -111,6 +118,7 @@ class DetailPageConfiguration {
       galleryType: galleryType ?? this.galleryType,
       onBackPressed: onBackPressed ?? this.onBackPressed,
       onDismissed: onDismissed ?? this.onDismissed,
+      onSelectionRemoved: onSelectionRemoved ?? this.onSelectionRemoved,
       onPageReady: onPageReady ?? this.onPageReady,
     );
   }
@@ -118,8 +126,9 @@ class DetailPageConfiguration {
 
 class DetailPage extends StatefulWidget {
   final DetailPageConfiguration config;
+  final Widget? bottomBar;
 
-  const DetailPage(this.config, {super.key});
+  const DetailPage(this.config, {super.key, this.bottomBar});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -170,15 +179,16 @@ class _DetailPageState extends State<DetailPage> {
       zoomTransformNotifier: _zoomTransformNotifier,
       bottomControlsAdditionalInsetNotifier:
           _bottomControlsAdditionalInsetNotifier,
-      child: _Body(widget.config),
+      child: _Body(widget.config, bottomBar: widget.bottomBar),
     );
   }
 }
 
 class _Body extends StatefulWidget {
   final DetailPageConfiguration config;
+  final Widget? bottomBar;
 
-  const _Body(this.config);
+  const _Body(this.config, {this.bottomBar});
 
   @override
   State<_Body> createState() => _BodyState();
@@ -263,7 +273,7 @@ class _BodyState extends State<_Body> {
           }
         });
     if (flagService.qrFeatureEnabled &&
-        widget.config.mode != DetailPageMode.minimalistic) {
+        widget.config.mode == DetailPageMode.full) {
       _qrHelper = QrCodeDetectionHelper();
     }
 
@@ -351,6 +361,8 @@ class _BodyState extends State<_Body> {
         }
       },
       child: Scaffold(
+        extendBody: widget.bottomBar != null,
+        bottomNavigationBar: widget.bottomBar,
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(80),
           child: ValueListenableBuilder<int?>(
@@ -359,6 +371,43 @@ class _BodyState extends State<_Body> {
                 AbsorbPointer(absorbing: previewIndex != null, child: child),
             child: ValueListenableBuilder(
               builder: (BuildContext context, int selectedIndex, _) {
+                if (widget.config.mode == DetailPageMode.selection) {
+                  return AppBar(
+                    backgroundColor: context.componentColors.backgroundBase,
+                    foregroundColor: context.componentColors.textBase,
+                    elevation: 0,
+                    centerTitle: true,
+                    leading: IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: context.strings.close,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    title: Text(
+                      context.strings.selectedCountWithLimit(
+                        count: _files!.length,
+                        limit: maxPickAssetLimit,
+                      ),
+                      style: TextStyles.body.copyWith(
+                        color: context.componentColors.textBase,
+                      ),
+                    ),
+                    actions: [
+                      IconButton(
+                        tooltip: context.strings.remove,
+                        icon: HugeIcon(
+                          icon: HugeIcons.strokeRoundedDelete02,
+                          size: IconSizes.medium,
+                          color: context.componentColors.textBase,
+                        ),
+                        onPressed: () {
+                          final file = _files![selectedIndex];
+                          widget.config.onSelectionRemoved?.call(file);
+                          unawaited(_onFileRemoved(file));
+                        },
+                      ),
+                    ],
+                  );
+                }
                 return FileAppBar(
                   _files![selectedIndex],
                   _onFileRemoved,
@@ -392,7 +441,7 @@ class _BodyState extends State<_Body> {
               ValueListenableBuilder(
                 valueListenable: _selectedIndexNotifier,
                 builder: (BuildContext context, int selectedIndex, _) {
-                  if (widget.config.mode == DetailPageMode.minimalistic) {
+                  if (widget.config.mode != DetailPageMode.full) {
                     return const SizedBox.shrink();
                   }
                   if (flagService.ocrOverlayEnabled) {
@@ -438,7 +487,7 @@ class _BodyState extends State<_Body> {
                 ValueListenableBuilder(
                   valueListenable: _selectedIndexNotifier,
                   builder: (BuildContext context, int selectedIndex, _) {
-                    if (widget.config.mode == DetailPageMode.minimalistic ||
+                    if (widget.config.mode != DetailPageMode.full ||
                         isGuestView ||
                         _files![selectedIndex].isTrash) {
                       return const SizedBox.shrink();
@@ -508,7 +557,7 @@ class _BodyState extends State<_Body> {
                   files: _files!,
                   previewIndex: _filmstripCoordinator.previewIndex,
                 ),
-              if (widget.config.mode != DetailPageMode.minimalistic)
+              if (widget.config.mode == DetailPageMode.full)
                 ValueListenableBuilder<int?>(
                   valueListenable: _filmstripCoordinator.previewIndex,
                   builder: (context, previewIndex, child) => AbsorbPointer(
@@ -539,7 +588,9 @@ class _BodyState extends State<_Body> {
                     return GalleryFileViewerFilmstripOverlay(
                       files: _files!,
                       selectedIndex: selectedIndex,
-                      bottomControlsHeight: _galleryBottomBarHeight,
+                      bottomControlsHeight: widget.bottomBar == null
+                          ? _galleryBottomBarHeight
+                          : 0,
                       findChildIndexCallback: _findChildIndex,
                       enableFullScreenNotifier: InheritedDetailPageState.of(
                         context,
@@ -599,6 +650,7 @@ class _BodyState extends State<_Body> {
             }
           },
           playbackCallback: (shouldEnable, reason) {
+            if (widget.config.mode == DetailPageMode.selection) return;
             Future.delayed(Duration.zero, () {
               if (!context.mounted) return;
               InheritedDetailPageState.of(
@@ -621,7 +673,7 @@ class _BodyState extends State<_Body> {
           streamChangeController: _videoStreamChangeControllerFor(file),
           onTextSelectionStart:
               flagService.ocrOverlayEnabled &&
-                  widget.config.mode != DetailPageMode.minimalistic &&
+                  widget.config.mode == DetailPageMode.full &&
                   !file.isLiveOrMotionPhoto
               ? (details) => _inlineTextDetectionController
                     .startTextSelectionAt(file, details.globalPosition)
@@ -629,9 +681,10 @@ class _BodyState extends State<_Body> {
         );
         final page = GestureDetector(
           onTap: () {
-            file.fileType != FileType.video
-                ? InheritedDetailPageState.of(context).toggleFullScreenByUser()
-                : null;
+            if (widget.config.mode != DetailPageMode.selection &&
+                file.fileType != FileType.video) {
+              InheritedDetailPageState.of(context).toggleFullScreenByUser();
+            }
           },
           child: fileContent,
         );
@@ -916,7 +969,9 @@ class _BodyState extends State<_Body> {
     final inset = _shouldShowFilmstrip
         ? _filmstripLayout.additionalBottomInset
         : 0.0;
-    notifier.value = inset;
+    notifier.value = widget.bottomBar == null
+        ? inset
+        : inset - kVideoProgressRowBottomInset;
   }
 
   EnteFile? _fileAt(int index) {
@@ -983,6 +1038,7 @@ class _GalleryFileViewerBottomOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (mode == DetailPageMode.selection) return const SizedBox.shrink();
     final isVideo = file.fileType == FileType.video;
     final caption = file.caption;
     final captionText = caption == null || caption.isEmpty ? null : caption;
@@ -1056,7 +1112,9 @@ class _GalleryFileViewerBottomOverlay extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
-                        onTap: () => showDetailsSheet(context, file),
+                        onTap: isGuestView
+                            ? null
+                            : () => showDetailsSheet(context, file),
                         child: Text(
                           captionText,
                           maxLines: 1,
@@ -1095,7 +1153,7 @@ class _GallerySocialOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (mode == DetailPageMode.minimalistic || isGuestView || file.isTrash) {
+    if (mode != DetailPageMode.full || isGuestView || file.isTrash) {
       return const SizedBox.shrink();
     }
 
