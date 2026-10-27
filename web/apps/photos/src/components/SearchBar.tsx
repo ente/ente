@@ -169,7 +169,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                                 width: "621px",
                                 maxWidth: "calc(100% - 24px)",
                                 m: "12px",
-                                maxHeight: "calc(100dvh - 24px)",
+                                maxHeight: "calc(100% - 24px)",
                                 p: "20px",
                                 borderRadius: "20px",
                                 bgcolor: "background.default",
@@ -579,8 +579,10 @@ const createSelectStyles = (
     }),
     menuList: (style) => ({
         ...style,
-        minHeight: "clamp(120px, calc(100dvh - 280px), 320px)",
-        maxHeight: "clamp(120px, calc(100dvh - 280px), 320px)",
+        minHeight:
+            "clamp(120px, calc(100dvh - 280px - env(titlebar-area-height, 0px)), 320px)",
+        maxHeight:
+            "clamp(120px, calc(100dvh - 280px - env(titlebar-area-height, 0px)), 320px)",
         display: "flex",
         flexDirection: "column",
         gap: "8px",

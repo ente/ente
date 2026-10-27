@@ -446,7 +446,7 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
                                 maxWidth: isFullScreen ? "100%" : 600,
                                 maxHeight: isFullScreen
                                     ? "100%"
-                                    : "min(600px, calc(100svh - 64px))",
+                                    : "min(600px, calc(100% - 64px))",
                                 boxSizing: "border-box",
                             },
                         ],
