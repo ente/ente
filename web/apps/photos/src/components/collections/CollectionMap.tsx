@@ -133,6 +133,11 @@ type MapIndex = Supercluster<MapPointProperties, MapClusterProperties>;
 
 const MAX_MAP_ZOOM = 19;
 const DEFAULT_MAP_ZOOM = 10;
+// Bound only latitude so the map keeps looping horizontally.
+const LOOPING_WORLD_BOUNDS: [[number, number], [number, number]] = [
+    [-85.0511, -1e6],
+    [85.0511, 1e6],
+];
 const PREFETCH_BOUNDS_PADDING = 0.15;
 const THUMBNAIL_BATCH_SIZE = 40;
 
@@ -1389,6 +1394,8 @@ const MapCanvas = React.memo(function MapCanvas({
             <MapContainer
                 center={mapCenter}
                 zoom={DEFAULT_MAP_ZOOM}
+                maxBounds={LOOPING_WORLD_BOUNDS}
+                maxBoundsViscosity={1}
                 scrollWheelZoom
                 zoomControl={false}
                 style={{ width: "100%", height: "100%" }}
@@ -1459,6 +1466,20 @@ const MapControls = React.memo(function MapControls({
         map.attributionControl.setPrefix(leafletAttributionPrefix);
     }, [map]);
 
+    useEffect(() => {
+        const fillMapWithWorld = () => {
+            const { x, y } = map.getSize();
+            map.setMinZoom(
+                Math.max(0, Math.ceil(Math.log2(Math.max(x, y) / 256))),
+            );
+        };
+        fillMapWithWorld();
+        map.on("resize", fillMapWithWorld);
+        return () => {
+            map.off("resize", fillMapWithWorld);
+        };
+    }, [map]);
+
     const handleOpenInMaps = useCallback(() => {
         const center = map.getCenter();
         const url = `https://www.google.com/maps?q=${center.lat},${center.lng}&z=${map.getZoom()}`;
@@ -1521,6 +1542,28 @@ const MapControls = React.memo(function MapControls({
 const isClusterFeature = (feature: MapFeature): feature is MapClusterFeature =>
     feature.properties.cluster === true;
 
+const worldCopy = (lng: number) => Math.floor((lng + 180) / 360);
+
+const firstLongitudeInView = (lng: number, west: number) =>
+    lng + 360 * Math.ceil((west - lng) / 360);
+
+const featureCopiesInView = (
+    features: MapFeature[],
+    west: number,
+    east: number,
+) =>
+    features.flatMap((feature) => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const copies: MapFeature[] = [];
+        for (let x = firstLongitudeInView(lng, west); x <= east; x += 360) {
+            copies.push({
+                ...feature,
+                geometry: { ...feature.geometry, coordinates: [x, lat] },
+            });
+        }
+        return copies;
+    });
+
 interface MapClustersProps {
     useMap: typeof import("react-leaflet").useMap;
     mapIndex: MapIndex;
@@ -1558,13 +1601,15 @@ const MapClusters = React.memo(function MapClusters({
         async (
             requestId: number,
             clusters: MapFeature[],
-            bounds: { contains: (latlng: [number, number]) => boolean },
+            [west, south, east, north]: [number, number, number, number],
         ) => {
             if (requestId !== visibleRequestIdRef.current) return;
             onVisiblePhotosLoadingChange(true);
 
             const inBounds = (lat: number, lng: number) =>
-                bounds.contains([lat, lng]);
+                lat >= south &&
+                lat <= north &&
+                firstLongitudeInView(lng, west) <= east;
 
             const leaves: MapPointFeature[] = [];
             let processedClusters = 0;
@@ -1649,10 +1694,13 @@ const MapClusters = React.memo(function MapClusters({
 
         const nextZoom = Math.min(zoom + 1, MAX_MAP_ZOOM);
         const clusters = mapIndex.getClusters(bbox, zoom);
-        setFeatureState({ mapIndex, features: clusters });
+        setFeatureState({
+            mapIndex,
+            features: featureCopiesInView(clusters, bbox[0], bbox[2]),
+        });
 
         const requestId = ++visibleRequestIdRef.current;
-        void updateVisibleLeaves(requestId, clusters, bounds);
+        void updateVisibleLeaves(requestId, clusters, bbox);
 
         const prefetchBounds = bounds.pad(PREFETCH_BOUNDS_PADDING);
         const prefetchBbox: [number, number, number, number] = [
@@ -1727,7 +1775,7 @@ const MapClusters = React.memo(function MapClusters({
                     }
                     return (
                         <Marker
-                            key={`cluster-${clusterId}`}
+                            key={`cluster-${clusterId}-${worldCopy(lng)}`}
                             position={[lat, lng]}
                             icon={icon ?? undefined}
                             eventHandlers={
@@ -1758,7 +1806,7 @@ const MapClusters = React.memo(function MapClusters({
                 }
                 return (
                     <Marker
-                        key={`point-${fileId}`}
+                        key={`point-${fileId}-${worldCopy(lng)}`}
                         position={[lat, lng]}
                         icon={icon ?? undefined}
                     />
