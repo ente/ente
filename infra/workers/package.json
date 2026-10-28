@@ -5,7 +5,7 @@
         "@cloudflare/workers-types": "5.20261019.1",
         "prettier": "3.9.6",
         "typescript": "6.0.3",
-        "wrangler": "4.151.3"
+        "wrangler": "4.154.0"
     },
     "workspaces": [
         "*"
