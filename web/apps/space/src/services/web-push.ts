@@ -18,6 +18,7 @@ const vapidPublicKeyStorageKey = "ente-space-web-push-vapid-key";
 const publicTargetSyncInterval = 24 * 60 * 60 * 1000;
 
 interface StoredPushTarget {
+    auth?: string;
     endpoint: string;
     key: string;
     kind: "account" | "public";
@@ -415,7 +416,8 @@ export const reconcilePublicSpaceWebPush = async (
                     );
                 }
             }
-            await session.unsubscribeWebPush(subscription.endpoint);
+            const details = subscriptionDetails(subscription);
+            await session.unsubscribeWebPush(details.endpoint, details.auth);
         }
         return "unsubscribed";
     }
@@ -423,6 +425,7 @@ export const reconcilePublicSpaceWebPush = async (
     const details = subscriptionDetails(subscription);
     if (
         target.endpoint == details.endpoint &&
+        target.auth == details.auth &&
         target.targetId &&
         (target.lastSyncedAt ?? 0) > Date.now() - publicTargetSyncInterval
     ) {
@@ -434,6 +437,7 @@ export const reconcilePublicSpaceWebPush = async (
         details.auth,
     );
     await putTarget({
+        auth: details.auth,
         endpoint: details.endpoint,
         key,
         kind: "public",
@@ -464,11 +468,16 @@ export const subscribeToPublicSpaceWebPush = async (
     const details = subscriptionDetails(subscription);
     if (
         previousTarget?.endpoint &&
+        previousTarget.auth &&
         previousTarget.endpoint != details.endpoint
     ) {
-        await session.unsubscribeWebPush(previousTarget.endpoint);
+        await session.unsubscribeWebPush(
+            previousTarget.endpoint,
+            previousTarget.auth,
+        );
     }
     await putTarget({
+        auth: details.auth,
         endpoint: details.endpoint,
         key,
         kind: "public",
@@ -481,6 +490,7 @@ export const subscribeToPublicSpaceWebPush = async (
         details.auth,
     );
     await putTarget({
+        auth: details.auth,
         endpoint: details.endpoint,
         key,
         kind: "public",

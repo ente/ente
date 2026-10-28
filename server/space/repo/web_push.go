@@ -52,7 +52,7 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 			session_token_hash = EXCLUDED.session_token_hash,
 			p256dh = EXCLUDED.p256dh,
 			auth = EXCLUDED.auth
-		WHERE space_web_push_subscriptions.auth = EXCLUDED.auth
+		WHERE rtrim(space_web_push_subscriptions.auth, '=') = rtrim(EXCLUDED.auth, '=')
 		RETURNING target_id
 	`, targetID, endpoint, sessionTokenHash, p256dh, auth).Scan(&targetID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -108,7 +108,7 @@ func (r *WebPushRepository) UpsertLinkSubscription(
 		DO UPDATE SET
 			p256dh = EXCLUDED.p256dh,
 			auth = EXCLUDED.auth
-		WHERE space_web_push_subscriptions.auth = EXCLUDED.auth
+		WHERE rtrim(space_web_push_subscriptions.auth, '=') = rtrim(EXCLUDED.auth, '=')
 		RETURNING target_id
 	`, targetID, endpoint, activeLinkID, p256dh, auth).Scan(&targetID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -137,12 +137,12 @@ func (r *WebPushRepository) DeleteAccountSubscription(
 func (r *WebPushRepository) DeleteLinkSubscription(
 	ctx context.Context,
 	linkID int64,
-	endpoint string,
+	endpoint, auth string,
 ) error {
 	_, err := r.DB.ExecContext(ctx, `
 		DELETE FROM space_web_push_subscriptions
-		WHERE link_id = $1 AND endpoint = $2
-	`, linkID, endpoint)
+		WHERE link_id = $1 AND endpoint = $2 AND rtrim(auth, '=') = rtrim($3, '=')
+	`, linkID, endpoint, auth)
 	return stacktrace.Propagate(err, "")
 }
 

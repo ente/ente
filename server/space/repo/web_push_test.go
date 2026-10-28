@@ -5,6 +5,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ente/museum/ente"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/stretchr/testify/require"
 )
@@ -241,7 +242,15 @@ func TestWebPushSharedEndpointKeepsIndependentTargets(t *testing.T) {
 	linkTargetID, err := module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "second-p256dh", "second-auth")
 	require.NoError(t, err)
 	_, err = module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "attacker-p256dh", "attacker-auth")
-	require.Error(t, err)
+	var conflict *ente.ApiError
+	require.ErrorAs(t, err, &conflict)
+	require.Equal(t, ente.CONFLICT, conflict.Code)
+	var linkP256dh, linkAuth string
+	require.NoError(t, module.WebPush.DB.QueryRow(`
+		SELECT p256dh, auth FROM space_web_push_subscriptions WHERE target_id = $1
+	`, linkTargetID).Scan(&linkP256dh, &linkAuth))
+	require.Equal(t, "second-p256dh", linkP256dh)
+	require.Equal(t, "second-auth", linkAuth)
 	updatedLinkTargetID, err := module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "updated-link-p256dh", "second-auth")
 	require.NoError(t, err)
 	require.Equal(t, linkTargetID, updatedLinkTargetID)
@@ -256,7 +265,14 @@ func TestWebPushSharedEndpointKeepsIndependentTargets(t *testing.T) {
 	updatedAccountTargetID, err := module.WebPush.UpsertAccountSubscription(ctx, session, endpoint, "updated-account-p256dh", "first-auth")
 	require.NoError(t, err)
 	require.Equal(t, accountTargetID, updatedAccountTargetID)
-	var linkP256dh, linkAuth string
+	accountSubscriptions, err = module.WebPush.ListActiveAccountSubscriptions(ctx, ownerID)
+	require.NoError(t, err)
+	require.Equal(t, []SpaceWebPushSubscriptionRecord{{
+		TargetID: accountTargetID,
+		Endpoint: endpoint,
+		P256dh:   "updated-account-p256dh",
+		Auth:     "first-auth",
+	}}, accountSubscriptions)
 	require.NoError(t, module.WebPush.DB.QueryRow(`
 		SELECT p256dh, auth FROM space_web_push_subscriptions WHERE target_id = $1
 	`, linkTargetID).Scan(&linkP256dh, &linkAuth))
@@ -279,7 +295,7 @@ func TestWebPushSharedEndpointKeepsIndependentTargets(t *testing.T) {
 	`, endpoint, link.LinkID).Scan(&count))
 	require.Equal(t, 1, count)
 
-	require.NoError(t, module.WebPush.DeleteLinkSubscription(ctx, link.LinkID, endpoint))
+	require.NoError(t, module.WebPush.DeleteLinkSubscription(ctx, link.LinkID, endpoint, "second-auth"))
 	require.NoError(t, module.WebPush.DB.QueryRow(`
 		SELECT COUNT(*)
 		FROM space_web_push_subscriptions

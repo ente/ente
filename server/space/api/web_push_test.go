@@ -36,11 +36,12 @@ func TestSpaceWebPushAccountSubscriptionAPI(t *testing.T) {
 
 	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	require.NoError(t, err)
+	auth := base64.URLEncoding.EncodeToString(make([]byte, 16))
 	payload, err := json.Marshal(map[string]any{
 		"endpoint": "https://fcm.googleapis.com/wp/subscription",
 		"keys": map[string]string{
 			"p256dh": base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes()),
-			"auth":   base64.RawURLEncoding.EncodeToString(make([]byte, 16)),
+			"auth":   auth,
 		},
 	})
 	require.NoError(t, err)
@@ -69,16 +70,14 @@ func TestSpaceWebPushAccountSubscriptionAPI(t *testing.T) {
 	sessionHash = sha256.Sum256([]byte(sessionToken))
 	require.NoError(t, repos.Sessions.CreateBrowserSession(context.Background(), sessionHash[:], userID, "wrap-key", timeutil.NDaysFromNow(1)))
 	for _, testCase := range []struct {
-		auth   []byte
+		auth   string
 		status int
 	}{
-		{bytes.Repeat([]byte{1}, 16), http.StatusConflict},
-		{make([]byte, 16), http.StatusOK},
+		{base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{1}, 16)), http.StatusConflict},
+		{base64.RawURLEncoding.EncodeToString(make([]byte, 16)), http.StatusOK},
+		{auth, http.StatusOK},
 	} {
-		retryPayload := bytes.ReplaceAll(payload,
-			[]byte(base64.RawURLEncoding.EncodeToString(make([]byte, 16))),
-			[]byte(base64.RawURLEncoding.EncodeToString(testCase.auth)),
-		)
+		retryPayload := bytes.ReplaceAll(payload, []byte(auth), []byte(testCase.auth))
 		retryRequest := httptest.NewRequest(http.MethodPut, "/account/space/push/subscription", bytes.NewReader(retryPayload))
 		retryRequest.Header.Set(controller.SpaceBrowserSessionTokenHeader, sessionToken)
 		retryRequest.Header.Set("Content-Type", "application/json")
@@ -112,6 +111,92 @@ func TestSpaceWebPushAccountSubscriptionAPI(t *testing.T) {
 		WHERE session_token_hash = $1
 	`, sessionHash[:]).Scan(&count))
 	require.Zero(t, count)
+}
+
+func TestSpaceLinkWebPushDeletionRequiresSubscriptionAuth(t *testing.T) {
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
+	ctx := context.Background()
+	space, err := testCreateSpace(ctx, repos, userID, "space_push_link", "root", "public", "secret", "nonce", "profile")
+	require.NoError(t, err)
+	linkAuth := bytes.Repeat([]byte{1}, 32)
+	linkAuthHash := sha256.Sum256(linkAuth)
+	link, err := repos.Links.Create(ctx, space.SpaceID, linkAuthHash[:], bytes.Repeat([]byte{2}, 16), 67108864, 2, space.CurrentVersion, []byte("encrypted-space-key"), []byte("encrypted-access-key"))
+	require.NoError(t, err)
+	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	p256dh := base64.RawURLEncoding.EncodeToString(privateKey.PublicKey().Bytes())
+	auth := base64.RawURLEncoding.EncodeToString(make([]byte, 16))
+	paddedAuth := base64.URLEncoding.EncodeToString(make([]byte, 16))
+	wrongAuth := base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{1}, 16))
+	endpoint := "https://fcm.googleapis.com/wp/link-subscription"
+	targetID, err := repos.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, p256dh, paddedAuth)
+	require.NoError(t, err)
+
+	router := gin.New()
+	path := "/space/public/by-slug/:spaceSlug/link/push/subscription"
+	router.PUT(path, handlers.UpsertSpaceLinkWebPushSubscription)
+	router.DELETE(path, handlers.DeleteSpaceLinkWebPushSubscription)
+	url := "/space/public/by-slug/" + space.SpaceSlug + "/link/push/subscription"
+	for _, testCase := range []struct {
+		auth   string
+		status int
+	}{
+		{"", http.StatusBadRequest},
+		{wrongAuth, http.StatusOK},
+	} {
+		payload, err := json.Marshal(map[string]string{"endpoint": endpoint, "auth": testCase.auth})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodDelete, url, bytes.NewReader(payload))
+		request.Header.Set(controller.SpaceLinkAuthHeader, base64.StdEncoding.EncodeToString(linkAuth))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		require.Equal(t, testCase.status, recorder.Code, recorder.Body.String())
+		var storedP256dh, storedAuth string
+		require.NoError(t, repos.WebPush.DB.QueryRow(`
+			SELECT p256dh, auth FROM space_web_push_subscriptions WHERE target_id = $1
+		`, targetID).Scan(&storedP256dh, &storedAuth))
+		require.Equal(t, p256dh, storedP256dh)
+		require.Equal(t, paddedAuth, storedAuth)
+	}
+	for _, testCase := range []struct {
+		auth   string
+		status int
+	}{
+		{wrongAuth, http.StatusConflict},
+		{auth, http.StatusOK},
+		{paddedAuth, http.StatusOK},
+	} {
+		payload, err := json.Marshal(map[string]any{
+			"endpoint": endpoint,
+			"keys":     map[string]string{"p256dh": p256dh, "auth": testCase.auth},
+		})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPut, url, bytes.NewReader(payload))
+		request.Header.Set(controller.SpaceLinkAuthHeader, base64.StdEncoding.EncodeToString(linkAuth))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		require.Equal(t, testCase.status, recorder.Code, recorder.Body.String())
+		if testCase.status == http.StatusOK {
+			require.JSONEq(t, `{"targetId":"`+targetID+`"}`, recorder.Body.String())
+		}
+	}
+	for range 2 {
+		payload, err := json.Marshal(map[string]string{"endpoint": endpoint, "auth": auth})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodDelete, url, bytes.NewReader(payload))
+		request.Header.Set(controller.SpaceLinkAuthHeader, base64.StdEncoding.EncodeToString(linkAuth))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+		require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
+		var count int
+		require.NoError(t, repos.WebPush.DB.QueryRow(`
+			SELECT COUNT(*) FROM space_web_push_subscriptions WHERE target_id = $1
+		`, targetID).Scan(&count))
+		require.Zero(t, count)
+	}
 }
 
 func TestSpaceWebPushVAPIDKeyRequiresCompleteConfig(t *testing.T) {
