@@ -14,7 +14,7 @@ const spaceWebPushLinkSubscriptionLimit = 10000
 
 var (
 	ErrSpaceWebPushLinkSubscriptionLimit = errors.New("space web push link subscription limit reached")
-	ErrSpaceWebPushEndpointConflict      = errors.New("space web push endpoint belongs to another session")
+	ErrSpaceWebPushEndpointConflict      = errors.New("space web push endpoint belongs to another account")
 )
 
 func (r *WebPushRepository) UpsertAccountSubscription(
@@ -28,13 +28,13 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 	}
 	defer tx.Rollback()
 
-	var sessionExists int
+	var userID int64
 	if err := tx.QueryRowContext(ctx, `
-		SELECT 1
+		SELECT user_id
 		FROM space_browser_sessions
 		WHERE token_hash = $1
 		FOR UPDATE
-	`, sessionTokenHash).Scan(&sessionExists); err != nil {
+	`, sessionTokenHash).Scan(&userID); err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
 	if _, err := tx.ExecContext(ctx, `
@@ -52,11 +52,17 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (endpoint) WHERE session_token_hash IS NOT NULL
 		DO UPDATE SET
+			session_token_hash = EXCLUDED.session_token_hash,
 			p256dh = EXCLUDED.p256dh,
 			auth = EXCLUDED.auth
-		WHERE space_web_push_subscriptions.session_token_hash = EXCLUDED.session_token_hash
+		WHERE EXISTS (
+			SELECT 1
+			FROM space_browser_sessions
+			WHERE token_hash = space_web_push_subscriptions.session_token_hash
+			  AND user_id = $6
+		)
 		RETURNING target_id
-	`, targetID, endpoint, sessionTokenHash, p256dh, auth).Scan(&targetID); err != nil {
+	`, targetID, endpoint, sessionTokenHash, p256dh, auth, userID).Scan(&targetID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", ErrSpaceWebPushEndpointConflict
 		}
