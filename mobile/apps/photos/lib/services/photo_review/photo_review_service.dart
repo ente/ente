@@ -39,6 +39,7 @@ class PhotoReviewService {
     final index = await _reconcileDecisions(
       files,
       ReviewDecisionIndex(decisions),
+      loadAllDecisions: decisions.length <= files.length,
     );
     return buildOverview(files, index.records.toList(), months);
   }
@@ -254,8 +255,9 @@ class PhotoReviewService {
 
   Future<ReviewDecisionIndex> _reconcileDecisions(
     List<EnteFile> files,
-    ReviewDecisionIndex index,
-  ) async {
+    ReviewDecisionIndex index, {
+    bool loadAllDecisions = false,
+  }) async {
     final updated = <String, ReviewDecisionRecord>{};
     for (final file in files) {
       final record = index.lookup(file);
@@ -280,6 +282,9 @@ class PhotoReviewService {
     }
     if (updated.isEmpty) return index;
     await _db.rekeyDecisions(updated);
+    if (loadAllDecisions) {
+      return ReviewDecisionIndex(await _db.getAllDecisions());
+    }
     return ReviewDecisionIndex(
       await _db.getDecisionsForFiles(
         files.map(fileKey).toList(),

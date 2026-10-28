@@ -142,9 +142,10 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       });
     } catch (e, s) {
       _logger.severe("Failed to load month ${widget.monthKey}", e, s);
-      if (!mounted) return;
+      if (!mounted || generation != _loadGeneration) return;
       await showGenericErrorDialog(context: context, error: e);
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted || generation != _loadGeneration) return;
+      Navigator.of(context).pop();
     }
   }
 
@@ -180,11 +181,10 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     return _ReviewMonthView.done;
   }
 
-  List<EnteFile> get _queued => [
-    for (final file in _files)
-      if (_decisions[PhotoReviewService.fileKey(file)] == ReviewDecision.queued)
-        file,
-  ];
+  Iterable<EnteFile> get _queued => _files.where(
+    (file) =>
+        _decisions[PhotoReviewService.fileKey(file)] == ReviewDecision.queued,
+  );
 
   int get _decidedCount => _files.length - _undecided.length;
 
@@ -267,15 +267,30 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   }
 
   Future<void> _freeUpSpace() async {
-    final queued = _queued;
+    final queued = _queued.toList();
     if (queued.isEmpty || _deleting) return;
     final hasLocal = queued.any((file) => file.localID != null);
     final hasRemote =
         !isLocalGalleryMode && queued.any((file) => file.isUploaded);
     if (!hasLocal && !hasRemote) return;
-    final removed = <EnteFile>[];
-    final kept = <EnteFile>[];
+    var didDeleteFiles = false;
     var deletedLocal = false;
+    void recordDeletion({
+      required List<EnteFile> removed,
+      List<EnteFile> kept = const [],
+    }) {
+      if (removed.isEmpty && kept.isEmpty) return;
+      didDeleteFiles = true;
+      _write(
+        "record deletion",
+        () => _service.recordDeletion(
+          widget.monthKey,
+          removed: removed,
+          kept: kept,
+        ),
+      );
+    }
+
     _deleting = true;
     try {
       final didDelete = await showDeleteConfirmationSheet(
@@ -286,34 +301,26 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
         count: queued.length,
         onDeleteFromLocal: () async {
           final result = await deleteFilesOnDeviceOnly(context, queued);
-          kept.addAll(result.where((file) => file.isUploaded));
-          removed.addAll(result.where((file) => !file.isUploaded));
+          recordDeletion(
+            removed: result.where((file) => !file.isUploaded).toList(),
+            kept: result.where((file) => file.isUploaded).toList(),
+          );
           deletedLocal = result.isNotEmpty;
           return result.isNotEmpty;
         },
         onDeleteFromRemote: () async {
           final remote = queued.where((file) => file.isUploaded).toList();
           await deleteFilesFromRemoteOnly(context, List.of(remote));
-          removed.addAll(remote);
+          recordDeletion(removed: remote);
           return remote.isNotEmpty;
         },
         onDeleteFromBoth: () async {
           final result = await deleteFilesFromEverywhere(context, queued);
-          removed.addAll(result);
+          recordDeletion(removed: result);
           deletedLocal = result.any((file) => file.localID != null);
           return result.isNotEmpty;
         },
       );
-      if (removed.isNotEmpty || kept.isNotEmpty) {
-        _write(
-          "record deletion",
-          () => _service.recordDeletion(
-            widget.monthKey,
-            removed: removed,
-            kept: kept,
-          ),
-        );
-      }
       if (!mounted) return;
       if (didDelete == true && deletedLocal) {
         await showMediaManagementHintSheet(context);
@@ -323,12 +330,12 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     } finally {
       _deleting = false;
     }
-    if (mounted) await _load(resetView: removed.isNotEmpty || kept.isNotEmpty);
+    if (mounted) await _load(resetView: didDeleteFiles);
   }
 
   Future<void> _reviewNextMonth() async {
     final overview = await _service.loadOverview();
-    if (!mounted) return;
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
     final next = PhotoReviewService.nextMonthToReview(
       overview,
       widget.monthKey,
@@ -528,7 +535,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   Widget _buildQueueView(BuildContext context, String title) {
     final colors = context.componentColors;
     final l10n = context.strings;
-    final queued = _queued;
+    final queued = _queued.toList();
     return Column(
       children: [
         Expanded(

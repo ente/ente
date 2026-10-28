@@ -90,6 +90,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   );
   Animation<Offset>? _tween;
   Offset _drag = Offset.zero;
+  int? _draggedFileID;
   bool _dragging = false;
   bool _flying = false;
   bool _crossedThreshold = false;
@@ -162,10 +163,11 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   }
 
   void _onPanStart(DragStartDetails details) {
-    if (_flying) return;
+    if (_flying || widget.files.isEmpty) return;
     _animation.stop();
     _tween = null;
     _dragging = true;
+    _draggedFileID = widget.files.first.generatedID;
     _crossedThreshold = false;
   }
 
@@ -192,6 +194,11 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   void _onPanEnd(DragEndDetails details) {
     if (!_dragging) return;
     _dragging = false;
+    if (widget.files.isEmpty ||
+        widget.files.first.generatedID != _draggedFileID) {
+      unawaited(_animateTo(Offset.zero));
+      return;
+    }
     final velocity = details.velocity.pixelsPerSecond.dx;
     final passed = _drag.dx.abs() >= _threshold;
     final flung = velocity.abs() >= ReviewSwipeStack._flingVelocity;
