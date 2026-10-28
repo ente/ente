@@ -31,7 +31,6 @@ export default function PageStrip({ onSpreadClick }: PageStripProps) {
 
     const spreads = useSpreads(pages.length);
 
-    // Virtualization: only render visible spread thumbnails
     const [visibleSpreads, setVisibleSpreads] = useState<Set<number>>(
         () => new Set([0, 1, 2, 3, 4, 5, 6, 7]),
     );

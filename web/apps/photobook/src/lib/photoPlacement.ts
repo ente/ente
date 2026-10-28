@@ -98,7 +98,6 @@ export function placeImportedPhotos(
         return pages.map((page, index) => {
             if (page.id !== destination.pageId) return page;
             if (index === 0) {
-                // A cover import replaces its image, retaining the title and chosen layout.
                 const layoutVariant = getVariantsForCount(1, true).some(
                     (variant) => variant.key === page.layoutVariant,
                 )

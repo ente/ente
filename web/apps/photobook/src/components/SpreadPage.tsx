@@ -77,7 +77,6 @@ function SlotControls({
                 pointerEvents: "none",
             }}
         >
-            {/* Delete — top right */}
             <div
                 data-page-control
                 onClick={handleDelete}
@@ -107,7 +106,6 @@ function SlotControls({
                 />
             </div>
 
-            {/* Zoom controls — bottom right */}
             <div
                 data-page-control
                 style={{
@@ -190,7 +188,6 @@ interface SpreadPageProps {
     pageWidth: number;
     pageHeight: number;
     totalPages: number;
-    // Selection
     selectedSlotId: string | null;
     selectedPageId: string | null;
     selectedTextId: string | null;
@@ -208,7 +205,6 @@ interface SpreadPageProps {
     onClearSelection: () => void;
     onInsertPage: (pageIndex: number, position: PageInsertPosition) => void;
     onAddPhotos: (pageId: string) => void;
-    // Photo drag
     dragSourceInfo: DragInfo | null;
     dragOverInfo: DragInfo | null;
     dragOverPageId: string | null;
@@ -227,7 +223,6 @@ interface SpreadPageProps {
     onPhotoDragEnd: () => void;
     onPageDragOver: (e: React.DragEvent, pageId: string) => void;
     onPageDrop: (e: React.DragEvent, pageId: string) => void;
-    // Page drag
     pageDragSource: number | null;
     pageDragTarget: number | null;
     pageDragSourceRef: React.RefObject<number | null>;
@@ -287,7 +282,6 @@ export default function SpreadPage({
         processingPhotos,
     } = useBook();
 
-    // Trigger lazy-loading of 1080px previews for this page's photos
     const pagePhotoIds = useMemo(
         () => page.slots.filter((s) => s.photoId).map((s) => s.photoId!),
         [page.slots],
@@ -299,7 +293,6 @@ export default function SpreadPage({
             );
     }, [pagePhotoIds, loadPreviews]);
 
-    // Caption editing
     const [editingCaption, setEditingCaption] =
         useState<CaptionPosition | null>(null);
     const [captionValue, setCaptionValue] = useState("");
@@ -359,7 +352,6 @@ export default function SpreadPage({
         if (photoCount > 0) setEditingCenterText(false);
         else setEditingCaption(null);
     }, [photoCount]);
-    // The photo-free back cover has no photo layout choices.
     const hideLayoutPicker = isBackCover;
     const hasSelectedSlotOnPage =
         selectedPageId === page.id && selectedSlotId !== null;
@@ -434,7 +426,6 @@ export default function SpreadPage({
                         />
                     </Layer>
                 </Stage>
-                {/* Page-level drop zone / page drag handle */}
                 <div
                     draggable={isInterior}
                     onClick={onClearSelection}
@@ -476,7 +467,6 @@ export default function SpreadPage({
                                 : "auto",
                     }}
                 />
-                {/* Green overlay when page is a valid drop target for "add to page" */}
                 {dragOverPageId === page.id &&
                     dragSourceInfo &&
                     dragSourceInfo.pageId !== page.id && (
@@ -492,12 +482,6 @@ export default function SpreadPage({
                             }}
                         />
                     )}
-                {/* Drag-and-drop overlay divs for photo slots.
-            - Unselected + has photo: draggable=true for HTML5 rearrange.
-            - Selected + has photo:   onMouseDown drives crop panning via
-              document-level mousemove/mouseup listeners. Done in HTML (not
-              Konva) because canvas + stacked overlay divs caused unreliable
-              event delivery in Chromium/Linux. */}
                 {page.slots.map((slot) => {
                     const isSelected =
                         selectedPageId === page.id &&
@@ -562,8 +546,6 @@ export default function SpreadPage({
                                               drawW = sw * slot.cropZoom;
                                               drawH = drawW / imgAspect;
                                           }
-                                          // slack is <= 0 (image is larger than slot in the
-                                          // panned axis). If 0, no panning possible on that axis.
                                           const slackX = sw - drawW;
                                           const slackY = sh - drawH;
                                           const onMove = (ev: MouseEvent) => {
@@ -640,7 +622,6 @@ export default function SpreadPage({
                         />
                     );
                 })}
-                {/* Text block interaction overlays — higher z-index than slots so text gets click priority */}
                 {page.textBlocks.map((block) => {
                     const isTextEditing =
                         selectedPageId === page.id &&
@@ -727,7 +708,6 @@ export default function SpreadPage({
                         />
                     );
                 })}
-                {/* Photo slot controls (zoom/delete) on selected slots */}
                 {page.slots.map((slot) => {
                     const isSelected =
                         selectedPageId === page.id &&
@@ -744,7 +724,6 @@ export default function SpreadPage({
                         />
                     );
                 })}
-                {/* Inline text editing overlay */}
                 {selectedPageId === page.id &&
                     editingTextId &&
                     (() => {
@@ -828,7 +807,6 @@ export default function SpreadPage({
                             />
                         );
                     })()}
-                {/* Floating text toolbar */}
                 {selectedPageId === page.id &&
                     selectedTextId &&
                     !editingTextId &&
@@ -850,7 +828,6 @@ export default function SpreadPage({
                             />
                         );
                     })()}
-                {/* Empty pages offer a centered text area instead of photo captions. */}
                 {photoCount === 0 &&
                     (page.centerText ||
                         (!isBackCover && page.textBlocks.length === 0)) &&
@@ -1005,7 +982,6 @@ export default function SpreadPage({
                         Add photos
                     </Button>
                 )}
-                {/* Caption editing uses the same safe rectangles as the canvas and export. */}
                 {(["top", "bottom"] as const).map((position) => {
                     if (position === "bottom" && isBackCover) return null;
                     const key =

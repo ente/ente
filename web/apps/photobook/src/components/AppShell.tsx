@@ -34,8 +34,6 @@ function BookWorkspace({ view }: { view: AppView }) {
             easing={{ exit: "ease-in", enter: "ease-out" }}
             onExited={() => setDisplayedView(view)}
         >
-            {/* Keep the outgoing screen intact until it fades out. Only one workspace
-          is mounted, so canvases and keyboard handlers never overlap. */}
             <Box inert={!visible} data-workspace-view={displayedView}>
                 {displayedView === "results" ? <ResultsPage /> : <EditPage />}
             </Box>
@@ -99,7 +97,6 @@ export default function AppShell() {
                 onCancel={handleCancelPassword}
             />
 
-            {/* Import truncation notice */}
             <Snackbar
                 open={Boolean(importNotice)}
                 autoHideDuration={10000}
@@ -120,7 +117,6 @@ export default function AppShell() {
                 </Alert>
             </Snackbar>
 
-            {/* Mobile hint dialog */}
             <Dialog
                 open={showMobileHint}
                 onClose={() => {

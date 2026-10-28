@@ -17,7 +17,6 @@ function fixture() {
             style,
             simpleDraw: vi.fn((orientation: number) => {
                 assert.ok(orientation === 0 || orientation === 1);
-                // The library replaces cssText, clearing the previous frame's mask.
                 style.clipPath = "";
                 style.webkitClipPath = "";
             }),
@@ -49,8 +48,6 @@ function fixture() {
     return { book, pages, state };
 }
 
-// Evaluate the generated even-odd polygon at a point, so regressions that
-// expose the wrong side of a cover are caught without a browser screenshot.
 function visibleAt(clip: string, x: number, y: number) {
     const points = [...clip.matchAll(/(-?[\d.]+)px (-?[\d.]+)px/g)].map(
         (match) => [Number(match[1]!), Number(match[2]!)] as const,

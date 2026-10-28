@@ -44,10 +44,6 @@ import {
 } from "./editorLayout";
 
 const PAGE_GAP = 2;
-// Spreads within this many rows of the current row are always mounted, on
-// top of whatever the IntersectionObserver reports. This keeps the "about
-// to be scrolled into" region warm so fast scrolls never reveal an
-// unmounted dark row or a post-mount image decode flash.
 const NEIGHBORHOOD_RADIUS = 4;
 
 export default function EditPage() {
@@ -66,12 +62,10 @@ export default function EditPage() {
         processingProgress,
     } = useBook();
 
-    // Selection state
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
     const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
 
-    // Inline text editing state
     const [editingTextId, setEditingTextId] = useState<string | null>(null);
     const [insertedPageId, setInsertedPageId] = useState<string | null>(null);
     const [addPageDialogOpen, setAddPageDialogOpen] = useState(false);
@@ -89,7 +83,6 @@ export default function EditPage() {
             setShowPhotoImportProgress(false);
             return;
         }
-        // Most page imports finish quickly; avoid flashing a loading panel for them.
         const timeout = window.setTimeout(
             () => setShowPhotoImportProgress(true),
             300,
@@ -97,7 +90,6 @@ export default function EditPage() {
         return () => window.clearTimeout(timeout);
     }, [pagePhotoImportBusy]);
 
-    // Refs
     const containerRef = useRef<HTMLDivElement>(null);
     const photoInputRef = useRef<HTMLInputElement>(null);
     const photoDestinationRef = useRef<string | undefined>(undefined);
@@ -107,15 +99,12 @@ export default function EditPage() {
     const pages = book.pages;
     const totalPages = pages.length;
 
-    // Drag hooks
     const autoScroll = useAutoScroll(containerRef);
     const photoDrag = usePhotoDrag(containerRef, autoScroll);
     const pageDrag = usePageDrag();
 
     const spreads = useSpreads(pages.length);
 
-    // Map the current page-based spread index (stored in context) to the row
-    // index within `spreads`, so we can build a neighborhood window around it.
     const currentSpreadRow = useMemo(() => {
         const idx = spreads.findIndex(
             (s) =>
@@ -124,7 +113,6 @@ export default function EditPage() {
         return idx >= 0 ? idx : 0;
     }, [spreads, currentSpreadIndex]);
 
-    // Virtualization: only render visible spreads + buffer
     const [visibleSpreads, setVisibleSpreads] = useState<Set<number>>(
         () => new Set([0, 1, 2]),
     );
@@ -156,14 +144,10 @@ export default function EditPage() {
                     return next;
                 });
             },
-            // Generous margin so fast flings stay ahead of the viewport. Paired
-            // with the NEIGHBORHOOD_RADIUS window below, this means a spread is
-            // mounted well before it could possibly scroll into view.
             { root, rootMargin: "2000px 0px" },
         );
         observerRef.current = observer;
 
-        // Observe all currently tracked elements
         spreadElsRef.current.forEach((el) => observer.observe(el));
 
         return () => {
@@ -189,7 +173,6 @@ export default function EditPage() {
         [],
     );
 
-    // Keyboard shortcuts for photo deletion and undo/redo.
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const target = e.target;
@@ -246,7 +229,6 @@ export default function EditPage() {
         removeSlot,
     ]);
 
-    // Measure before the first paint so restored books never show fallback-sized pages.
     useLayoutEffect(() => {
         const el = containerRef.current;
         if (!el) return;
@@ -257,7 +239,6 @@ export default function EditPage() {
         return () => observer.disconnect();
     }, []);
 
-    // Calculate page dimensions based on container width (height is scrollable)
     const { pageWidth, pageHeight } = useMemo(() => {
         const availW =
             containerWidth -
@@ -269,7 +250,6 @@ export default function EditPage() {
         return { pageWidth: size, pageHeight: size };
     }, [containerWidth]);
 
-    // Track the current spread at most once per animation frame.
     const scrollRafRef = useRef<number | null>(null);
     const handleMainScroll = useCallback(() => {
         if (scrollRafRef.current !== null) return;
@@ -283,7 +263,6 @@ export default function EditPage() {
 
             const fraction = main.scrollTop / maxMainScroll;
 
-            // Update currentSpreadIndex based on visible spread
             const visibleIdx = Math.round(
                 fraction * Math.max(0, spreads.length - 1),
             );
@@ -299,7 +278,6 @@ export default function EditPage() {
         });
     }, [spreads, currentSpreadIndex, setCurrentSpreadIndex, pages.length]);
 
-    // Cancel any pending scroll-handler frame on unmount.
     useEffect(() => {
         return () => {
             if (scrollRafRef.current !== null) {
@@ -309,7 +287,6 @@ export default function EditPage() {
         };
     }, []);
 
-    // Scroll main area to a specific spread row (called from sidebar click)
     const handleSidebarSpreadClick = useCallback((spreadIdx: number) => {
         const main = containerRef.current;
         if (!main) return;
@@ -321,7 +298,6 @@ export default function EditPage() {
         }
     }, []);
 
-    // Selection handlers
     const handleSlotClick = useCallback((pageId: string, slotId: string) => {
         setSelectedSlotId(slotId);
         setSelectedPageId(pageId);
@@ -349,7 +325,6 @@ export default function EditPage() {
 
     const handleWorkspaceClick = useCallback(
         (e: React.MouseEvent<HTMLDivElement>) => {
-            // Pages handle their own photo, text, control and background clicks.
             if (!(e.target as Element).closest("[data-book-page]"))
                 clearSelection();
         },
@@ -398,7 +373,6 @@ export default function EditPage() {
         const spreadIndex = spreads.findIndex(
             (spread) => spread.left === pageIndex || spread.right === pageIndex,
         );
-        // Spread rows stay mounted even when their page canvases are virtualized.
         const row = containerRef.current?.querySelector(
             `[data-spread-index="${spreadIndex}"]`,
         );
@@ -469,7 +443,6 @@ export default function EditPage() {
                     <PageStrip onSpreadClick={handleSidebarSpreadClick} />
                 </Box>
 
-                {/* Clip the scroll container to the island's rounded corners. */}
                 <Box
                     component="main"
                     aria-label="Photobook editor"
@@ -527,12 +500,7 @@ export default function EditPage() {
                                         gap: 3,
                                     }}
                                 >
-                                    {/* Spreads (virtualized: only visible spreads render full content) */}
                                     {spreads.map((spread, spreadIdx) => {
-                                        // Union of the IntersectionObserver-reported visible set with a
-                                        // fixed ±NEIGHBORHOOD_RADIUS window around the current spread
-                                        // row, so rows immediately above and below the viewport stay
-                                        // mounted during fast scrolls.
                                         const isVisible =
                                             visibleSpreads.has(spreadIdx) ||
                                             Math.abs(
@@ -820,7 +788,6 @@ export default function EditPage() {
                 </Box>
             </Box>
 
-            {/* Keep mounted so the Reset dialog can finish closing after the book is emptied. */}
             <Box
                 component="nav"
                 aria-label="Photobook tools"
@@ -939,7 +906,6 @@ export default function EditPage() {
                 />
             )}
 
-            {/* Offscreen canvas for drag ghost */}
             <canvas
                 ref={photoDrag.dragGhostRef}
                 style={{ position: "fixed", left: -9999 }}

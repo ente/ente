@@ -40,7 +40,6 @@ const baseBlock: TextBlock = {
 function assertSafeText(block: TextBlock) {
     const layout = getTextBlockLayout(block, measure);
     const angle = (layout.rotation * Math.PI) / 180;
-    // Check every transformed corner, independently of the layout's bounds helper.
     for (const [x, y] of [
         [0, 0],
         [layout.width, 0],

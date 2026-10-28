@@ -26,7 +26,6 @@ export function clipSoftcoverInsidePages(book: PageFlip): () => void {
                 .filter((point) => point !== null);
             if (exposed.length < 3) return;
 
-            // The calculation measures x from the spine; a left page is mirrored.
             const hole = exposed.map(
                 ({ x, y }) => `${direction === 1 ? width - x : x}px ${y}px`,
             );

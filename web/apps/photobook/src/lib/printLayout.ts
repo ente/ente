@@ -9,7 +9,6 @@ import type { BookPage, TextBlock } from "./types";
 export const TEXT_LINE_HEIGHT = 1.4;
 export const CENTER_TEXT_FONT_WEIGHT = 600;
 export const CAPTION_FONT_WEIGHT = 300;
-// Match the title size that fits in the inset cover's caption band.
 const TITLE_FONT_SIZE = Math.min(
     5,
     ((BOOK_LAYOUT.coverInsetMarginMm.v / BOOK_SIZE_MM) * 100 -
@@ -53,8 +52,6 @@ function measureTextWithFont(
     fontFamily: string,
     fontWeight: number,
 ): number {
-    // Measure at a fixed reference scale so editor zoom and export resolution
-    // cannot change line fitting or the saved position.
     measureContext ??= document.createElement("canvas").getContext("2d");
     if (!measureContext) throw new Error("Unable to measure text.");
     measureContext.font = `${fontWeight} ${fontSize * 10}px ${fontFamily}, sans-serif`;
@@ -93,8 +90,6 @@ export function getCaptionLayout(
     if (!page.slots.some((slot) => slot.photoId)) return null;
     const zones = getCaptionZones(page);
     const zone = position === "top" ? zones.topPct : zones.bottomPct;
-    // Equal insets from the paper edge and the photo centre the caption in
-    // the entire white margin while keeping its text inside the safe area.
     const height = zone - 2 * PRINT_SAFE_MARGIN_PCT;
     if (height <= 0) return null;
     const text = position === "top" ? page.topCaption : page.bottomCaption;
@@ -155,7 +150,6 @@ function wrapCenterText(
                 line = token;
                 continue;
             }
-            // Long words and scripts without spaces still wrap within the column.
             const graphemes = new Intl.Segmenter(undefined, {
                 granularity: "grapheme",
             }).segment(token);
@@ -182,8 +176,6 @@ export function getCenterTextLayout(
         wrapCenterText(text, size, CENTER_TEXT_WIDTH - size * 0.2, measure);
     let fontSize = TITLE_FONT_SIZE;
     let lines = wrap(fontSize);
-    // Keep the large type size as lines are added. Only fit smaller if the
-    // entire paragraph would otherwise overflow the page's print safe area.
     if (lines.length * fontSize * CENTER_TEXT_LINE_HEIGHT > SAFE_AREA.height) {
         let low = 0;
         let high = fontSize;
@@ -243,7 +235,6 @@ export function getTextBlockLayout(
 ) {
     const lines = (block.text || "Type here").split(/\r?\n/);
     let fontSize = Math.max(0.1, block.fontSize ?? 2.5);
-    // Include space for glyph overhangs at both ends of each line.
     let padding = fontSize * 0.1;
     let width =
         Math.max(

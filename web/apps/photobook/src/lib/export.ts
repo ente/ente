@@ -84,11 +84,9 @@ export async function renderPageToCanvas(
     canvas.height = height;
     const ctx = canvas.getContext("2d")!;
 
-    // White background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
-    // Draw photo slots
     for (const slot of page.slots) {
         if (!slot.photoId) continue;
         const url = await resolvePhotoUrl(slot.photoId);
@@ -110,17 +108,14 @@ export async function renderPageToCanvas(
             ctx.rect(sx, sy, sw, sh);
             ctx.clip();
 
-            // Calculate crop/fit
             const imgAspect = img.naturalWidth / img.naturalHeight;
             const slotAspect = sw / sh;
 
             let drawW: number, drawH: number;
             if (imgAspect > slotAspect) {
-                // Image wider than slot - fit height, crop width
                 drawH = sh * slot.cropZoom;
                 drawW = drawH * imgAspect;
             } else {
-                // Image taller than slot - fit width, crop height
                 drawW = sw * slot.cropZoom;
                 drawH = drawW / imgAspect;
             }
@@ -137,7 +132,6 @@ export async function renderPageToCanvas(
         }
     }
 
-    // Fit page text and captions to the same rectangles used by the editor.
     const centerText = getCenterTextLayout(page);
     for (const position of ["center", "top", "bottom"] as const) {
         if (position === "bottom" && isBackCover) continue;
@@ -187,7 +181,6 @@ export async function renderPageToCanvas(
     }
 
     if (isBackCover) {
-        // Draw centered Ente logo on back cover
         try {
             const logo = await loadImage("/ente-branding.svg");
             const layout = getBrandingLayout(
@@ -210,7 +203,6 @@ export async function renderPageToCanvas(
         }
     }
 
-    // Draw text blocks
     for (const block of page.textBlocks) {
         if (!block.text) continue;
         const layout = getTextBlockLayout(block);
@@ -279,7 +271,6 @@ export async function exportPdfX4Pages(
 
             await writer.addPage(canvas);
             onProgress?.(Math.round(((i + 1) / pages.length) * 95));
-            // Give React and the browser a turn to paint progress between expensive pages.
             await new Promise<void>((resolve) => setTimeout(resolve, 0));
         }
 

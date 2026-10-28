@@ -90,11 +90,9 @@ export default function ResultsPage() {
         );
     }, [usedPhotoIds]);
 
-    // Keyboard navigation: left/right arrows flip pages
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.defaultPrevented) return;
-            // Ignore if the user is typing into an input/textarea or a menu is open
             const target = e.target as HTMLElement | null;
             if (
                 target &&
@@ -168,7 +166,6 @@ export default function ResultsPage() {
             }
 
             setDownloadPhase("exporting");
-            // Paint the persistent spinner before starting the canvas/WASM work.
             await new Promise<void>((resolve) =>
                 requestAnimationFrame(() => setTimeout(resolve, 0)),
             );

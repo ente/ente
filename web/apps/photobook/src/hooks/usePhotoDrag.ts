@@ -38,7 +38,6 @@ export function usePhotoDrag(
                 "text/plain",
                 JSON.stringify({ pageId, slotId }),
             );
-            // Create a small drag ghost from the thumbnail
             const thumbUrl = thumbnailUrls.get(photoId);
             if (thumbUrl && dragGhostRef.current) {
                 const canvas = dragGhostRef.current;
@@ -64,14 +63,6 @@ export function usePhotoDrag(
                 e.dataTransfer.setDragImage(canvas, size / 2, size / 2);
             }
 
-            // Fallback cleanup: the source SpreadPage can unmount mid-drag due to
-            // virtualization (NEIGHBORHOOD_RADIUS + IntersectionObserver trimming).
-            // When that happens, React's onDragEnd never fires on the detached slot
-            // div, so autoScroll.stop() is never called and dragOverPageId stays set —
-            // leaving the rAF loop pulling the viewport back to the last edge position
-            // and the green overlay stuck. Window-level listeners run regardless of
-            // which element (or no element) the drop/dragend targeted, and are
-            // idempotent when the normal React handlers already cleaned up.
             const onGlobalEnd = () => {
                 autoScroll.stop();
                 dragSourceRef.current = null;
@@ -92,22 +83,13 @@ export function usePhotoDrag(
     const handleSlotDragOver = useCallback(
         (e: React.DragEvent, pageId: string, slotId: string) => {
             e.preventDefault();
-            // Deliberately DO NOT stopPropagation here: the outer scroll container's
-            // onDragOver (handleContainerDragOver) is the only place auto-scroll
-            // speed gets computed, and slot overlay divs cover almost the whole page.
-            // Stopping propagation here meant dragging anywhere over slots near the
-            // top/bottom edge never triggered auto-scroll. The page-level drop zone
-            // is a sibling of the slot (not an ancestor), so letting the event bubble
-            // does not cause duplicate page-drop handling.
             e.dataTransfer.dropEffect = "move";
-            // Only update state when the target actually changes
             const cur = dragOverRef.current;
             if (cur?.pageId !== pageId || cur.slotId !== slotId) {
                 const info = { pageId, slotId };
                 dragOverRef.current = info;
                 setDragOverInfo(info);
             }
-            // Clear page-level highlight when on a slot
             if (dragOverPageRef.current !== null) {
                 dragOverPageRef.current = null;
                 setDragOverPageId(null);
@@ -148,13 +130,11 @@ export function usePhotoDrag(
                 toPage &&
                 availablePhotoSpaces(toPage, pages[0]?.id === pageId) > 0;
             e.dataTransfer.dropEffect = hasRoom ? "move" : "none";
-            // Clear slot-level highlight when hovering page background
             const cur = dragOverRef.current;
             if (cur !== null) {
                 dragOverRef.current = null;
                 setDragOverInfo(null);
             }
-            // Set page-level highlight (only for cross-page drops on pages with room)
             const source = dragSourceRef.current;
             if (source && source.pageId !== pageId && !isBackCover) {
                 if (hasRoom) {
@@ -186,7 +166,6 @@ export function usePhotoDrag(
             if (source) {
                 const { pageId: fromPageId, slotId: fromSlotId } = source;
                 if (fromPageId !== toPageId && toPageId !== pages.at(-1)?.id) {
-                    // Cross-page drop on empty area: move photo to target page
                     const toPage = pages.find((p) => p.id === toPageId);
                     if (
                         toPage &&
@@ -220,7 +199,6 @@ export function usePhotoDrag(
             e.preventDefault();
             e.dataTransfer.dropEffect = "move";
 
-            // Auto-scroll when dragging near top/bottom edges
             const el = containerRef.current;
             if (!el) return;
             const rect = el.getBoundingClientRect();

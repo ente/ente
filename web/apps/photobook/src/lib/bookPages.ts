@@ -33,8 +33,6 @@ export function normalizeBookPages(pages: BookPage[]): BookPage[] {
     const back = pages[pages.length - 1]!;
 
     if (pages.length === 1 || back.slots.some((slot) => slot.photoId)) {
-        // A former back-cover photo becomes an interior page, retaining its crop,
-        // captions and layout. Append a new back cover instead of deleting content.
         result = [...pages, makeBlankPage()];
     } else if (back.slots.length > 0 || back.layoutVariant) {
         result = [

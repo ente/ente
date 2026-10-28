@@ -63,23 +63,18 @@ function makeSlot(
     };
 }
 
-// ── Layout variant system ──────────────────────────────────────────
-
 export interface LayoutVariant {
     key: string;
     photoCount: number;
     generate: (photoIds: string[], metrics: LayoutMetrics) => PhotoSlot[];
 }
 
-// Slot position (no photo ID) for thumbnail preview rendering
 export interface SlotPosition {
     x: number;
     y: number;
     width: number;
     height: number;
 }
-
-// ── 1-photo variants ──────────────────────────────────────────────
 
 function gen1Padded(ids: string[]): PhotoSlot[] {
     const left = mmToPct(BOOK_LAYOUT.coverInsetMarginMm.h, BOOK_SIZE_MM);
@@ -94,8 +89,6 @@ function gen1Moderate(ids: string[], m: LayoutMetrics): PhotoSlot[] {
 function gen1Full(ids: string[]): PhotoSlot[] {
     return [makeSlot(ids[0]!, 0, 0, 100, 100)];
 }
-
-// ── 2-photo variants ──────────────────────────────────────────────
 
 function gen2Stacked(ids: string[], m: LayoutMetrics): PhotoSlot[] {
     const { left: LEFT, top: TOP, cw: CW, ch: CH, vGap: V_GAP } = m;
@@ -154,8 +147,6 @@ function gen2BigRight(ids: string[], m: LayoutMetrics): PhotoSlot[] {
         makeSlot(ids[1]!, LEFT + smallW + H_GAP, TOP, bigW, CH),
     ];
 }
-
-// ── 3-photo variants ──────────────────────────────────────────────
 
 function gen3Top1Bot2(ids: string[], m: LayoutMetrics): PhotoSlot[] {
     const {
@@ -353,8 +344,6 @@ function gen3DominantRight(ids: string[], m: LayoutMetrics): PhotoSlot[] {
     ];
 }
 
-// ── 4-photo variants ──────────────────────────────────────────────
-
 function gen4Grid(ids: string[], m: LayoutMetrics): PhotoSlot[] {
     const {
         left: LEFT,
@@ -389,8 +378,6 @@ function gen4Staggered(ids: string[], m: LayoutMetrics): PhotoSlot[] {
     const rightX = left + largeW + hGap;
     const lowerY = top + ch - largeH;
 
-    // The large photos anchor opposite corners; the smaller photos sit
-    // against the center gutter, leaving white space at the other corners.
     return [
         makeSlot(ids[0]!, left, top, largeW, largeH),
         makeSlot(ids[1]!, rightX, lowerY - vGap - smallH, smallW, smallH),
@@ -631,21 +618,16 @@ function gen4EqualCols(ids: string[], m: LayoutMetrics): PhotoSlot[] {
     ];
 }
 
-// ── Variant registry ──────────────────────────────────────────────
-
 const ALL_VARIANTS: LayoutVariant[] = [
-    // 1 photo
     { key: "1-padded", photoCount: 1, generate: gen1Padded },
     { key: "1-moderate", photoCount: 1, generate: gen1Moderate },
     { key: "1-full", photoCount: 1, generate: gen1Full },
-    // 2 photos
     { key: "2-stacked", photoCount: 2, generate: gen2Stacked },
     { key: "2-side", photoCount: 2, generate: gen2SideBySide },
     { key: "2-big-top", photoCount: 2, generate: gen2BigTop },
     { key: "2-big-left", photoCount: 2, generate: gen2BigLeft },
     { key: "2-big-bottom", photoCount: 2, generate: gen2BigBottom },
     { key: "2-big-right", photoCount: 2, generate: gen2BigRight },
-    // 3 photos
     { key: "3-top1-bot2", photoCount: 3, generate: gen3Top1Bot2 },
     { key: "3-left1-right2", photoCount: 3, generate: gen3Left1Right2 },
     { key: "3-bot1-top2", photoCount: 3, generate: gen3Bot1Top2 },
@@ -656,7 +638,6 @@ const ALL_VARIANTS: LayoutVariant[] = [
     { key: "3-dominant-right", photoCount: 3, generate: gen3DominantRight },
     { key: "3-equal-rows", photoCount: 3, generate: gen3EqualRows },
     { key: "3-equal-cols", photoCount: 3, generate: gen3EqualCols },
-    // 4 photos
     { key: "4-grid", photoCount: 4, generate: gen4Grid },
     { key: "4-staggered", photoCount: 4, generate: gen4Staggered },
     {
@@ -829,7 +810,6 @@ function groupInteriorPhotos(photos: Photo[]): Photo[][] {
             remaining,
         );
 
-        // Avoid a lone final photo in the initial grouping where possible.
         if (remaining - count === 1 && count < 4) {
             count = Math.min(count + 1, remaining, 4);
         }
@@ -838,8 +818,6 @@ function groupInteriorPhotos(photos: Photo[]): Photo[][] {
     }
 
     if (groups.length % 2 !== 0) {
-        // Split the last multi-photo group, keeping photo order and the rest of
-        // the book intact. With only one interior photo, a blank is unavoidable.
         let groupIndex = groups.length - 1;
         while (groupIndex >= 0 && groups[groupIndex]!.length < 2) groupIndex--;
         if (groupIndex >= 0) {
@@ -868,14 +846,12 @@ function groupInteriorPhotos(photos: Photo[]): Photo[][] {
 }
 
 export function generateAutoLayout(photos: Photo[]): BookPage[] {
-    // Sort by dateTaken
     const sorted = [...photos].sort((a, b) => a.dateTaken - b.dateTaken);
 
     const pages: BookPage[] = [];
 
     if (sorted.length === 0) return pages;
 
-    // First page (cover) — single photo, always full-bleed.
     pages.push({
         id: crypto.randomUUID(),
         slots: applyVariant("1-full", [sorted[0]!.id]),
@@ -885,7 +861,6 @@ export function generateAutoLayout(photos: Photo[]): BookPage[] {
         bottomCaption: "",
     });
 
-    // All remaining photos belong to the interior, including the last photo.
     for (const pagePhotos of groupInteriorPhotos(sorted.slice(1))) {
         const variantKey = chooseBestVariantKey(pagePhotos);
 
@@ -902,7 +877,6 @@ export function generateAutoLayout(photos: Photo[]): BookPage[] {
         });
     }
 
-    // Branding is rendered separately on the photo-free back cover.
     pages.push(makeBlankPage());
     return normalizeBookPages(pages);
 }

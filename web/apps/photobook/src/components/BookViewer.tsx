@@ -94,8 +94,6 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                 );
         }, [allPhotoIds, loadPreviews]);
 
-        // Measure the space remaining after the responsive navigation margins.
-        // Observe the container, since panel changes need not resize the window.
         useLayoutEffect(() => {
             const container = containerRef.current;
             if (!container) return;
@@ -149,8 +147,6 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
             const mount = mountRef.current;
             if (!mount || flipPages.length === 0) return;
 
-            // PageFlip moves pages and removes its root on destroy. Give it its own
-            // DOM subtree; portals keep React's canvas content attached to those pages.
             const root = document.createElement("div");
             root.className = "book-preview-root";
             const elements = flipPages.map(({ pageIndex }, index) => {
@@ -192,12 +188,8 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                         Math.min(startPageRef.current, pages.length - 1),
                         binding,
                     ) ?? 0,
-                // Page-local gutter shading follows the paper's clipping and stacking.
-                // Keep the library's changing turn shadows from doubling its strength.
                 drawShadow: false,
                 showPageCorners: false,
-                // Preserve paired spreads at every size. Portrait mode clones DOM
-                // pages, which cannot copy the bitmap contents of our Konva canvases.
                 usePortrait: false,
             });
             book.on("flip", (event: { data: number }) => {
@@ -215,7 +207,6 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                 setTurning(event.data !== "read");
             });
             book.loadFromHTML(elements);
-            // showCover forces rigid covers; restore the selected density on both sides.
             elements.forEach((element, index) =>
                 book
                     .getPage(index)
@@ -244,7 +235,6 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
             };
         }, [flipPages, spreads, binding, pages.length]);
 
-        // Stretch updates the existing instance and preserves the current spread.
         useLayoutEffect(() => {
             pageFlipRef.current?.update();
         }, [pageSize]);
@@ -270,8 +260,6 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                         width: "100%",
                         height: "100%",
                     },
-                    // PageFlip replaces style.cssText on every frame. Paper appearance
-                    // must stay in CSS, including blanks that have no canvas background.
                     "& .book-preview-page": {
                         backgroundColor: uiColors.paper,
                         overflow: "hidden",
@@ -325,8 +313,6 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                             position: "absolute",
                             left: "50%",
                             top: pageSize / 2,
-                            // Percentages stay constant during initial measurement and resizing,
-                            // so only opening or closing the book animates the arrow spacing.
                             width: showSpread ? "100%" : "50%",
                             height: 0,
                             transform: "translate(-50%, -50%)",

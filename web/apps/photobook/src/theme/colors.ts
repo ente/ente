@@ -1,5 +1,4 @@
 export const uiColors = {
-    // Charcoal layers separate the workspace from controls without tinting the paper.
     background: "#161616",
     surface: "#212121",
     canvas: "#161616",

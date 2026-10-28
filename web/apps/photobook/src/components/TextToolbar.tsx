@@ -43,7 +43,6 @@ export default function TextToolbar({
     const colorRef = useRef<HTMLDivElement>(null);
     const rotationRef = useRef<HTMLDivElement>(null);
 
-    // Close popups on outside click
     useEffect(() => {
         if (!showColors && !showRotation) return;
         const handler = (e: MouseEvent) => {
@@ -70,7 +69,6 @@ export default function TextToolbar({
     const by = (block.y / 100) * pageHeight;
     const bw = (block.width / 100) * pageWidth;
 
-    // Position toolbar above the text block, centered
     const toolbarLeft = bx + bw / 2;
     const toolbarTop = by - 44;
 
@@ -133,7 +131,6 @@ export default function TextToolbar({
             }}
             onMouseDown={(e) => e.stopPropagation()}
         >
-            {/* Edit text */}
             <button
                 style={btnStyle}
                 onClick={onEdit}
@@ -152,7 +149,6 @@ export default function TextToolbar({
                 style={{ width: 1, height: 18, background: uiColors.border }}
             />
 
-            {/* Font size cycle */}
             <button
                 style={{
                     ...btnStyle,
@@ -172,7 +168,6 @@ export default function TextToolbar({
                 {currentSize?.label ?? "M"}
             </button>
 
-            {/* Color */}
             <div ref={colorRef} style={{ position: "relative" }}>
                 <button
                     style={btnStyle}
@@ -242,7 +237,6 @@ export default function TextToolbar({
                 )}
             </div>
 
-            {/* Rotation */}
             <div ref={rotationRef} style={{ position: "relative" }}>
                 <button
                     style={rotation !== 0 ? activeBtnStyle : btnStyle}
@@ -338,7 +332,6 @@ export default function TextToolbar({
                 style={{ width: 1, height: 18, background: uiColors.border }}
             />
 
-            {/* Delete */}
             <button
                 style={{ ...btnStyle, color: uiColors.danger }}
                 onClick={onDelete}

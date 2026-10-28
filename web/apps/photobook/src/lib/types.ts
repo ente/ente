@@ -19,13 +19,13 @@ export interface Photo {
     fileName: string;
     width: number;
     height: number;
-    dateTaken: number; // timestamp
+    dateTaken: number;
     source?: PhotoSource;
     originalStatus?: PhotoOriginalStatus;
     originalError?: string;
     enteOriginal?: EntePhotoOriginalData;
-    thumbnailUrl?: string; // runtime only, object URL
-    fullUrl?: string; // runtime only, object URL
+    thumbnailUrl?: string;
+    fullUrl?: string;
 }
 
 type TextStyle = "title" | "body";
@@ -34,27 +34,27 @@ type TextAlignment = "left" | "center" | "right";
 export interface TextBlock {
     id: string;
     text: string;
-    x: number; // percentage 0-100
+    x: number;
     y: number;
     width: number;
     height: number;
     style: TextStyle;
     alignment: TextAlignment;
-    color?: string; // hex color, default "#555555"
-    rotation?: number; // degrees, default 0
-    fontSize?: number; // percentage of page height, default 2.5 (body) or 4 (title)
+    color?: string;
+    rotation?: number;
+    fontSize?: number;
 }
 
 export interface PhotoSlot {
     id: string;
     photoId: string | null;
-    x: number; // percentage 0-100
+    x: number;
     y: number;
     width: number;
     height: number;
-    cropX: number; // pan offset within frame (0-1)
+    cropX: number;
     cropY: number;
-    cropZoom: number; // 1 = fit, >1 = zoomed in
+    cropZoom: number;
 }
 
 export interface BookPage {
@@ -70,7 +70,7 @@ export interface BookPage {
 export interface BookState {
     title?: string;
     pages: BookPage[];
-    currentSpreadIndex: number; // first real book-page index in the visible spread
+    currentSpreadIndex: number;
     printSelection?: PrintSelection;
 }
 

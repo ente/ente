@@ -35,8 +35,6 @@ textarea {
     background-color: #08c225;
     color: white;
 }
-
-/* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 6px;
 }

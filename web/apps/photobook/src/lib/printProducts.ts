@@ -2,14 +2,6 @@ import { BOOK_SIZE_MM } from "./bookFormats";
 import { normalizeBookPages } from "./bookPages";
 import type { BookPage } from "./types";
 
-// Page ranges checked 2026-10-26. Counts include both covers; printer-added
-// binding sheets and inside covers are excluded. The app supports only
-// 210 × 210 mm square pages for both hardcover and softcover.
-// The app uses a shared 24-page minimum for both cover types.
-// https://www.prodigi.com/blog/photo-books-technical-guide/
-// https://www.prodigi.com/products/books-and-magazines/hardcover-photo-book/
-// https://www.prodigi.com/products/books-and-magazines/softcover-photo-book/
-
 export const PRINT_PRODUCTS = [
     {
         id: "hardcover-gloss-200",

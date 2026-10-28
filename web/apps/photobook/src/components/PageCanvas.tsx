@@ -61,8 +61,6 @@ function PhotoSlotRenderer({
     isDragSource: boolean;
     onClick: () => void;
 }) {
-    // Initialize from the shared cache so re-mounts (virtualization churn in
-    // EditPage) draw the photo on the first paint instead of flashing white.
     const photoId = slot.photoId;
     const [image, setImage] = useState<HTMLImageElement | null>(() =>
         photoId ? getCachedImage(photoId) : null,
@@ -78,13 +76,9 @@ function PhotoSlotRenderer({
             setImage(null);
             return;
         }
-        // Show whatever is in the cache immediately (may be a lower-res thumb
-        // while the preview loads — prevents blank flash on remount).
         const cached = getCachedImage(photoId);
         if (cached) setImage(cached);
 
-        // If the cached image was loaded from this exact URL, we're done.
-        // Otherwise load the new URL (handles thumb → preview upgrade).
         if (cached && getCachedUrl(photoId) === photoUrl) return;
 
         let cancelled = false;
@@ -93,7 +87,6 @@ function PhotoSlotRenderer({
                 if (!cancelled) setImage(img);
             })
             .catch(() => {
-                // Only blank the slot if we had nothing to show
                 if (!cancelled && !cached) setImage(null);
             });
         return () => {
@@ -105,7 +98,6 @@ function PhotoSlotRenderer({
         ctx.rect(sx, sy, sw, sh);
     };
 
-    // Calculate image draw position (cover-fit inside the slot, shifted by crop).
     const drawProps = useMemo(() => {
         if (!image) return null;
         const imgAspect = image.naturalWidth / image.naturalHeight;
@@ -128,7 +120,6 @@ function PhotoSlotRenderer({
 
     return (
         <Group clipFunc={clipFunc}>
-            {/* Slot background */}
             <Rect
                 x={sx}
                 y={sy}
@@ -138,10 +129,6 @@ function PhotoSlotRenderer({
                 onClick={onClick}
                 onTap={onClick}
             />
-            {/* Photo — non-interactive. Crop panning is handled by an HTML overlay
-          in SpreadPage.tsx (see the slot overlay's onMouseDown). Running drag
-          inside Konva was unreliable in Chromium on Linux due to event
-          layering between the stacked <div> overlays and the canvas. */}
             {image && drawProps && (
                 <KonvaImage
                     image={image}
@@ -152,7 +139,6 @@ function PhotoSlotRenderer({
                     listening={false}
                 />
             )}
-            {/* Drag source dimming */}
             {isDragSource && (
                 <Rect
                     x={sx}
@@ -163,7 +149,6 @@ function PhotoSlotRenderer({
                     listening={false}
                 />
             )}
-            {/* Drag over indicator */}
             {isDragOver && !isDragSource && (
                 <Rect
                     x={sx}
@@ -177,7 +162,6 @@ function PhotoSlotRenderer({
                     listening={false}
                 />
             )}
-            {/* Selection border */}
             {isSelected && !isDragSource && (
                 <Rect
                     x={sx}
@@ -189,7 +173,6 @@ function PhotoSlotRenderer({
                     listening={false}
                 />
             )}
-            {/* Empty slot indicator */}
             {!image && !slot.photoId && (
                 <Text
                     x={sx}
@@ -230,7 +213,6 @@ function TextBlockRenderer({
     const color = block.color ?? "#555555";
     const rotation = layout.rotation;
 
-    // Hide text while inline editing
     if (isEditing) return null;
 
     const displayText = block.text || (isSelected ? "" : "Type here");
@@ -278,8 +260,6 @@ function EnteBranding({
     useEffect(() => {
         const img = new window.Image();
         img.onload = () => {
-            // Pre-scale to target size in an offscreen canvas to avoid
-            // aliasing from extreme downscaling (1024px → ~60px).
             const targetH = Math.round(
                 pageHeight * 0.031 * (window.devicePixelRatio || 1),
             );
@@ -335,11 +315,8 @@ function CaptionText({
     fontFamily?: string;
     fontWeight?: number;
 }) {
-    // Hide rendered text while editing (HTML overlay replaces it)
     if (isEditing) return null;
     if (!text) return null;
-    // No room for the caption (e.g. a full-bleed photo touches the page edge).
-    // Stale captions from a previous layout would otherwise spill off the page.
     if (!layout) return null;
     const x = (layout.x / 100) * pageWidth;
     const y = (layout.y / 100) * pageHeight;
@@ -402,7 +379,6 @@ export default function PageCanvas({
 
     return (
         <>
-            {/* White page background */}
             <Rect
                 x={0}
                 y={0}
@@ -412,7 +388,6 @@ export default function PageCanvas({
                 listening={false}
             />
 
-            {/* Photo slots */}
             {page.slots.map((slot) => (
                 <PhotoSlotRenderer
                     key={slot.id}
@@ -427,7 +402,6 @@ export default function PageCanvas({
                 />
             ))}
 
-            {/* Captions — centered in the safe part of each photo margin. */}
             {!hideCenterText && page.centerText && (
                 <CaptionText
                     text={centerText?.lines.join("\n") ?? ""}
@@ -476,7 +450,6 @@ export default function PageCanvas({
                 )
             )}
 
-            {/* Text blocks */}
             <Group
                 clipX={(SAFE_AREA.x / 100) * pageWidth}
                 clipY={(SAFE_AREA.y / 100) * pageHeight}
@@ -495,7 +468,6 @@ export default function PageCanvas({
                 ))}
             </Group>
 
-            {/* Page number */}
             <Text
                 x={pageWidth - 30}
                 y={pageHeight - 18}

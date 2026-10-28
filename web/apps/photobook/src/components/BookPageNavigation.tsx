@@ -47,7 +47,6 @@ export default function BookPageNavigation({
         <Select
             value={Math.min(spreadIndex, spreads.length - 1)}
             disabled={disabled}
-            // Lock selection during a turn without flashing MUI's disabled colors.
             readOnly={turning}
             SelectDisplayProps={{ "aria-readonly": turning || undefined }}
             onChange={(event) => onGoToSpread(event.target.value)}

@@ -128,7 +128,6 @@ export function EditorPreviewButton() {
     } | null>(null);
     const [validationOpen, setValidationOpen] = useState(false);
     const id = useId();
-    // Keep the copy mounted while the dialog's exit transition runs.
     const closeValidation = () => setValidationOpen(false);
 
     const handlePreview = () => {

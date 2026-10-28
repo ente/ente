@@ -44,7 +44,6 @@ const fileReaderDescriptor = Object.getOwnPropertyDescriptor(
 let canvasCount = 0;
 
 beforeAll(() => {
-    // Exercise export sequencing without starting a browser or loading WASM.
     Object.defineProperty(globalThis, "document", {
         configurable: true,
         value: {

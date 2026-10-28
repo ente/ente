@@ -158,7 +158,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     const autosaveRef = useRef<Promise<unknown>>(Promise.resolve());
     const originalWritesRef = useRef<Set<Promise<unknown>>>(new Set());
 
-    // Revoke all object URLs on unmount to prevent memory leaks
     useEffect(() => {
         return () => {
             thumbnailUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -166,7 +165,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    // Undo/Redo history
     const undoStackRef = useRef<BookState[]>([]);
     const redoStackRef = useRef<BookState[]>([]);
     const [canUndo, setCanUndo] = useState(false);
@@ -213,9 +211,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             return normalizeCoverLayout(next);
         });
     }, []);
-    // Merged URL map: preview (1080px) if loaded, else thumbnail (256px).
-    // Consumers that need high-res (SpreadPage, BookViewer) use this + loadPreviews.
-    // Consumers that only need tiny images (PageStrip) use thumbnailUrls directly.
     const photoUrls = useMemo(() => {
         if (previewUrls.size === 0) return thumbnailUrls;
         const merged = new Map(thumbnailUrls);
@@ -225,9 +220,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         return merged;
     }, [thumbnailUrls, previewUrls]);
 
-    // Tracks which photo IDs are currently being loaded from IndexedDB to
-    // prevent redundant concurrent reads when multiple components request
-    // the same previews.
     const loadingPreviewsRef = useRef<Set<string>>(new Set());
 
     const loadPreviews = useCallback(async (photoIds: string[]) => {
@@ -291,7 +283,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     const enteOriginalWaitersRef = useRef<Map<string, (() => void)[]>>(
         new Map(),
     );
-    // Persist on changes (debounced)
     useEffect(() => {
         if (loading || processingPhotos || resettingRef.current) return;
         const saveTimeout = setTimeout(() => {
@@ -313,7 +304,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         return () => clearTimeout(saveTimeout);
     }, [book, photos, appView, currentSpreadIndex, loading, processingPhotos]);
 
-    // Restore session on mount
     useEffect(() => {
         void (async () => {
             try {
@@ -328,7 +318,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     setAppViewState("edit");
                 } else if (savedPhotos && savedPhotos.length > 0 && savedBook) {
                     await document.fonts.ready;
-                    // Restore thumbnail URLs from IndexedDB (full-res loaded on demand for export)
                     const thumbUrls = new Map<string, string>();
 
                     await Promise.all(
@@ -386,7 +375,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
             try {
                 if (replace) {
-                    // Clear previous session when starting fresh from start page
                     thumbnailUrls.forEach((url) => URL.revokeObjectURL(url));
                     previewUrls.forEach((url) => URL.revokeObjectURL(url));
                     clearImageCache();
@@ -401,7 +389,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     ? new Map<string, string>()
                     : new Map(previewUrls);
 
-                // Flush progress to state only on animation frames
                 const scheduleProgressUpdate = (value: number) => {
                     progressRef.current = value;
                     if (!rafRef.current) {
@@ -412,7 +399,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     }
                 };
 
-                // Process each photo: HEIC conversion, dimensions, thumbnail, IndexedDB save
                 interface PhotoResult {
                     photo: Photo;
                     thumbUrl: string;
@@ -472,7 +458,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     }
                 };
 
-                // Run with concurrency limit of 6
                 const CONCURRENCY = 6;
                 const taskQueue = files.map((f, i) => () => processPhoto(f, i));
                 const workers = Array.from(
@@ -486,7 +471,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 );
                 await Promise.all(workers);
 
-                // Collect results in original file order
                 for (const result of results) {
                     if (result) {
                         newThumbUrls.set(result.photo.id, result.thumbUrl);
@@ -495,7 +479,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     }
                 }
 
-                // Cancel any pending frame and flush final progress
                 if (rafRef.current) {
                     cancelAnimationFrame(rafRef.current);
                     rafRef.current = 0;
@@ -536,7 +519,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 setPreviewUrls(newPreviewUrls);
 
                 if (replace) {
-                    // Fresh session: generate auto layout from scratch (bypass undo tracking)
                     setBookRaw({ pages: nextPages, currentSpreadIndex: 0 });
                     undoStackRef.current = [];
                     redoStackRef.current = [];
@@ -625,7 +607,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     } => entry !== null,
                 );
 
-            // Ente's CDN tolerates a few parallel requests; match Ente web's default.
             const CONCURRENCY = 3;
             let cursor = 0;
             const workers = Array.from(
@@ -756,7 +737,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             let preparation;
             let fetchAndDecryptThumbnail: (typeof import("@/lib/ente/import"))["fetchAndDecryptThumbnail"];
             try {
-                // Keep loading visible while browser-only cryptography is fetched.
                 const enteImport = await import("@/lib/ente/import");
                 fetchAndDecryptThumbnail = enteImport.fetchAndDecryptThumbnail;
                 preparation = await enteImport.prepareEnteAlbum(
@@ -766,7 +746,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 if (preparation.files.length === 0)
                     throw new Error("This album has no photos we can import.");
 
-                // A bad link or a cancelled password prompt must leave the existing book intact.
                 thumbnailUrlsRef.current.forEach((url) =>
                     URL.revokeObjectURL(url),
                 );
@@ -791,8 +770,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     `This album has ${files.length} photos. We imported the first ${MAX_PHOTOS}.`,
                 );
             }
-
-            // Keep the same message throughout.
 
             interface ThumbResult {
                 photo: Photo;
@@ -823,9 +800,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                         descriptor,
                     );
 
-                    // Trust magic-metadata dimensions if present; otherwise fall back to
-                    // the thumbnail's own dimensions. The thumbnail preserves aspect
-                    // ratio, so that's enough for the photobook's auto-layout picker.
                     let width = descriptor.width;
                     let height = descriptor.height;
                     if (!width || !height) {
@@ -860,8 +834,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                         },
                     };
 
-                    // Save the decrypted thumbnail for immediate rendering. The original
-                    // blob is written later once the background download succeeds.
                     await Promise.all([
                         saveThumbnail(photoId, thumbBlob),
                         savePreview(photoId, thumbBlob),
@@ -961,7 +933,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 pending.map(
                     (id) =>
                         new Promise<void>((resolve) => {
-                            // If it already resolved between the snapshot and now, short-circuit.
                             if (!pendingEnteOriginalsRef.current.has(id)) {
                                 done++;
                                 onProgress?.(done, total);
@@ -1032,12 +1003,8 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     return prev;
                 if (isRequiredBlankPage(prev.pages, pageId)) return prev;
                 const filtered = prev.pages.filter((p) => p.id !== pageId);
-                // Prevent deleting below 2 pages
                 if (filtered.length < 2) return prev;
-                // Ensure even page count for spreads
                 if (filtered.length % 2 !== 0) {
-                    // Remove another blank interior page if possible; otherwise pad before
-                    // the existing back cover so its identity and position stay intact.
                     const blankIdx = filtered.findIndex(
                         (p, i) =>
                             i > 0 && i < filtered.length - 1 && isBlankPage(p),
@@ -1131,7 +1098,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 const isCoverPage = prev.pages[0]?.id === pageId;
-                // A front cover reduced to one photo defaults to full-bleed.
                 let variantKey: string | undefined;
                 if (remainingPhotos.length === 1 && isCoverPage) {
                     variantKey = "1-full";
@@ -1247,7 +1213,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
                 const movedPhotoId = fromSlot.photoId;
 
-                // Collect photoIds for each page after the move
                 const sourcePhotoIds = fromPage.slots
                     .map((s) => s.photoId)
                     .filter(
@@ -1263,7 +1228,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
                 if (targetPhotoIds.length > 4) return prev;
 
-                // Build fake Photo objects for chooseBestLayout (it needs width/height for orientation)
                 const makePhotoStub = (photoId: string): Photo => {
                     const photo = photos.find((p) => p.id === photoId);
                     return (
@@ -1439,7 +1403,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
         try {
-            // Finish writes already in flight before clearing the browser's book.
             await Promise.allSettled([
                 autosaveRef.current,
                 ...originalWritesRef.current,

@@ -81,7 +81,6 @@ export default function ResetBookButton() {
                 slotProps={{
                     paper: { sx: dialogPaperSx },
                     backdrop: { sx: { bgcolor: "rgba(0,0,0,0.5)" } },
-                    // Keep interactions locked until the unchanged dialog has faded out.
                     transition: { onExited: () => setResetting(false) },
                 }}
             >
@@ -153,7 +152,6 @@ export default function ResetBookButton() {
                                 width: "100%",
                             }}
                         >
-                            {/* Guard clicks without changing labels, styling, or focus during reset. */}
                             <Button
                                 variant="contained"
                                 fullWidth

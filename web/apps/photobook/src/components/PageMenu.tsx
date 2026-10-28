@@ -74,7 +74,6 @@ export default function PageMenu({
     const open = Boolean(anchorEl);
 
     const runAction = (action: () => void) => {
-        // Insertion scrolls to the new page; deletion can remove this button.
         setRestoreFocus(false);
         setAnchorEl(null);
         action();

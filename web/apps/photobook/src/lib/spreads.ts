@@ -1,7 +1,5 @@
 import type { PrintBinding } from "./printProducts";
 
-// null is the empty space beside a closed cover. A printer blank is a visible,
-// non-editable page supplied by the printer, never a page in the export.
 type SpreadPageRef = number | "printer-blank" | null;
 
 export interface Spread {

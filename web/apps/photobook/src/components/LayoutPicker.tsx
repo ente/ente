@@ -13,7 +13,7 @@ const THUMB_W = 44;
 interface LayoutPickerProps {
     photoCount: number;
     currentVariant?: string;
-    thumbnailUrls: string[]; // ordered thumbnail URLs for the photos on this page
+    thumbnailUrls: string[];
     onSelect: (variantKey: string) => void;
     isFrontCover?: boolean;
 }
@@ -61,7 +61,7 @@ function VariantThumbnail({
         >
             {slots.map((slot, i) => {
                 const url = thumbnailUrls[i];
-                const GAP = isFullBleed ? 0 : 1.5; // Keep the edge-to-edge preview flush.
+                const GAP = isFullBleed ? 0 : 1.5;
                 const left = (slot.x / 100) * THUMB_W + GAP;
                 const top = (slot.y / 100) * THUMB_W + GAP;
                 const width = (slot.width / 100) * THUMB_W - GAP * 2;
@@ -126,7 +126,6 @@ export default function LayoutPicker({
             }}
         >
             {variants.map((v) => {
-                // A hidden mirror's primary should show as active
                 const mirrorOfCurrent = currentVariant
                     ? getMirrorVariant(currentVariant)
                     : undefined;
@@ -140,7 +139,6 @@ export default function LayoutPicker({
                         thumbnailUrls={thumbnailUrls}
                         onClick={() => {
                             if (isActive) {
-                                // Toggle to mirror variant if one exists
                                 const mirror = getMirrorVariant(
                                     currentVariant!,
                                 );

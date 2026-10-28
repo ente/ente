@@ -24,7 +24,7 @@ function touch(photoId: string, entry: CacheEntry): void {
 }
 
 function insert(photoId: string, entry: CacheEntry): void {
-    cache.delete(photoId); // ensure we move, not duplicate
+    cache.delete(photoId);
     cache.set(photoId, entry);
     while (cache.size > MAX_ENTRIES) {
         const oldest = cache.keys().next();
@@ -57,7 +57,6 @@ export function loadImageCached(
         return Promise.resolve(existing.img);
     }
 
-    // Only coalesce if the in-flight request is for the same URL
     const inflight = pending.get(photoId);
     if (inflight?.url === url) return inflight.promise;
 

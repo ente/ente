@@ -46,7 +46,6 @@ function usePhotoImportSession() {
     const [enteUrl, setEnteUrl] = useState("");
     const [entePassword, setEntePassword] = useState("");
     const [enteError, setEnteError] = useState<string | null>(null);
-    // Resolver for the password Promise handed back to addEntePhotos.
     const passwordResolverRef = useRef<((pw: string | null) => void) | null>(
         null,
     );
@@ -79,8 +78,6 @@ function usePhotoImportSession() {
     }, []);
 
     const closeEnteDialog = useCallback(() => {
-        // If we're closing while waiting for a password, resolve with null so
-        // the import aborts cleanly.
         const resolve = passwordResolverRef.current;
         passwordResolverRef.current = null;
         if (resolve) resolve(null);
@@ -118,7 +115,6 @@ function usePhotoImportSession() {
             }
             const msg =
                 e instanceof Error ? e.message : "Something went wrong.";
-            // Re-open the URL dialog with the error surfaced.
             setEnteStage("url");
             setEnteError(msg);
         } finally {
@@ -245,7 +241,6 @@ const PhotoImportContext = createContext<ReturnType<
     typeof usePhotoImportSession
 > | null>(null);
 
-// The session outlives either route, including an outstanding album-password request.
 export function PhotoImportProvider({ children }: { children: ReactNode }) {
     const session = usePhotoImportSession();
     return createElement(

@@ -26,7 +26,6 @@ export function useAutoScroll(
         speed.current = 0;
     }, []);
 
-    // Clean up on unmount
     useEffect(
         () => () => {
             if (frameRef.current !== null)
