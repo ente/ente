@@ -10,7 +10,6 @@ import {
     MoreIcon,
 } from "./icons";
 import RequiredPageDialog from "./RequiredPageDialog";
-import styles from "./SpreadPage.module.css";
 
 export type PageInsertPosition = "before" | "after";
 
@@ -85,7 +84,7 @@ export default function PageMenu({
         <>
             <IconButton
                 id={buttonId}
-                className={styles.hoverControl}
+                data-page-control
                 data-open={open ? "true" : undefined}
                 aria-label={`${label} options`}
                 aria-haspopup="menu"

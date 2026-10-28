@@ -19,7 +19,6 @@ import LayoutPicker from "./LayoutPicker";
 import type { CaptionPosition } from "./PageCanvas";
 import PageCanvas from "./PageCanvas";
 import PageMenu, { type PageInsertPosition } from "./PageMenu";
-import styles from "./SpreadPage.module.css";
 import TextToolbar from "./TextToolbar";
 
 function SlotControls({
@@ -80,7 +79,7 @@ function SlotControls({
         >
             {/* Delete — top right */}
             <div
-                className={styles.hoverControl}
+                data-page-control
                 onClick={handleDelete}
                 style={{
                     position: "absolute",
@@ -110,7 +109,7 @@ function SlotControls({
 
             {/* Zoom controls — bottom right */}
             <div
-                className={styles.hoverControl}
+                data-page-control
                 style={{
                     position: "absolute",
                     bottom: padding,
@@ -1132,7 +1131,7 @@ export default function SpreadPage({
         >
             {showPicker && (
                 <Box
-                    className={styles.hoverControl}
+                    data-page-control
                     sx={{
                         minHeight: 0,
                         overflowY: "auto",
@@ -1169,8 +1168,27 @@ export default function SpreadPage({
 
     return (
         <Box
-            className={styles.page}
-            sx={{ display: "flex", flexDirection: "row", alignItems: "start" }}
+            sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "start",
+                "& [data-page-control]": {
+                    opacity: 0,
+                    pointerEvents: "none",
+                    transition: "opacity 120ms ease-out",
+                },
+                '&:hover [data-page-control], &:focus-within [data-page-control], &:has([data-page-control][data-open="true"]) [data-page-control], & [data-page-control][data-open="true"]':
+                    { opacity: 1, pointerEvents: "auto" },
+                "@media (hover: none)": {
+                    "& [data-page-control]": {
+                        opacity: 1,
+                        pointerEvents: "auto",
+                    },
+                },
+                "@media (prefers-reduced-motion: reduce)": {
+                    "& [data-page-control]": { transition: "none" },
+                },
+            }}
         >
             {pickerSide === "left" && pickerContainer}
             {pageBlock}

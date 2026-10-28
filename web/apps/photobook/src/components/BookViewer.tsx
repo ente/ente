@@ -24,7 +24,6 @@ import {
 import { createPortal } from "react-dom";
 import { Layer, Stage } from "react-konva";
 import BookPageNavigation from "./BookPageNavigation";
-import styles from "./BookViewer.module.css";
 import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 import PageCanvas from "./PageCanvas";
 
@@ -156,7 +155,7 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
             root.className = "book-preview-root";
             const elements = flipPages.map(({ pageIndex }, index) => {
                 const element = document.createElement("div");
-                element.className = `book-preview-page ${styles.page}`;
+                element.className = "book-preview-page";
                 if (index > 0 && index < flipPages.length - 1) {
                     element.dataset.spineEdge =
                         index % 2 === 0 ? "left" : "right";
@@ -276,6 +275,25 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                     "& .book-preview-page": {
                         backgroundColor: uiColors.paper,
                         overflow: "hidden",
+                        "&[data-spine-edge]::after": {
+                            content: '""',
+                            position: "absolute",
+                            top: 0,
+                            bottom: 0,
+                            width: 6,
+                            zIndex: 1,
+                            pointerEvents: "none",
+                        },
+                        '&[data-spine-edge="left"]::after': {
+                            left: 0,
+                            background:
+                                "linear-gradient(to right, rgba(0, 0, 0, 0.09), transparent)",
+                        },
+                        '&[data-spine-edge="right"]::after': {
+                            right: 0,
+                            background:
+                                "linear-gradient(to left, rgba(0, 0, 0, 0.09), transparent)",
+                        },
                     },
                 }}
             >
