@@ -2,10 +2,10 @@ import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
-import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
+import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 class ReviewMonthCard extends StatelessWidget {
@@ -50,9 +50,10 @@ class ReviewMonthCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final white = colors.specialWhite;
+    final isCompleted = state == ReviewMonthState.completed;
     final showShadow = state != ReviewMonthState.inProgress;
     final labelText = Transform.translate(
-      offset: const Offset(0, _labelBaselineShift),
+      offset: Offset(0, isCompleted ? 0 : _labelBaselineShift),
       child: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.centerLeft,
@@ -99,31 +100,29 @@ class ReviewMonthCard extends StatelessWidget {
               Positioned.fill(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(radius),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      ThumbnailWidget(
-                        cover,
-                        key: Key("review_month_card_${cover.tag}"),
-                        shouldShowSyncStatus: false,
-                        shouldShowFavoriteIcon: false,
-                        shouldShowVideoOverlayIcon: false,
-                        placeholderColor: colors.fillDark,
-                      ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: state == ReviewMonthState.completed
-                              ? _completedGradient
-                              : _defaultGradient,
+                  child: Container(
+                    foregroundDecoration: isCompleted
+                        ? const BoxDecoration(
+                            color: Color(0xFFBFBFBF),
+                            backgroundBlendMode: BlendMode.saturation,
+                          )
+                        : null,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ThumbnailWidget(
+                          cover,
+                          key: Key("review_month_card_${cover.tag}"),
+                          shouldShowSyncStatus: false,
+                          shouldShowFavoriteIcon: false,
+                          shouldShowVideoOverlayIcon: false,
+                          placeholderColor: colors.fillDark,
                         ),
-                      ),
-                      if (state == ReviewMonthState.completed)
                         const DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: _completedTintGradient,
-                          ),
+                          decoration: BoxDecoration(gradient: _defaultGradient),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -144,19 +143,35 @@ class ReviewMonthCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (state == ReviewMonthState.completed)
-                      SvgPicture.asset(
-                        sparkleAsset,
-                        width: 13,
-                        height: 13,
-                        colorFilter: ColorFilter.mode(white, BlendMode.srcIn),
-                      ),
                     const Spacer(),
                     if (state == ReviewMonthState.inProgress) ...[
                       _ProgressPill(progress: progress),
                       const SizedBox(height: Spacing.xs),
                     ],
-                    labelText,
+                    if (isCompleted)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(child: labelText),
+                          const SizedBox(width: Spacing.xs),
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Center(
+                              child: SelectAllStatusIcon(
+                                isSelected: true,
+                                size: 16,
+                                tickIconSize: 12,
+                                tickStrokeWidth: 3.2,
+                                selectedFillColor: colors.primary,
+                                selectedTickColor: white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      labelText,
                   ],
                 ),
               ),
@@ -175,20 +190,6 @@ class ReviewMonthCard extends StatelessWidget {
     begin: Alignment.bottomCenter,
     end: Alignment.topCenter,
     colors: [Color(0xA3000000), Color(0x00000000)],
-  );
-
-  static const _completedTintGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0x330F9223), Color(0x33000000)],
-    stops: [0, 0.84],
-  );
-
-  static const _completedGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0x69045E13), Color(0x4FFFFFFF), Color(0x694CE245)],
-    stops: [0, 0.28846, 0.84],
   );
 }
 
