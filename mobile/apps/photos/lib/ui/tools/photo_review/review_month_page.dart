@@ -134,6 +134,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
               ),
           ]);
         if (resetView ||
+            _view == _ReviewMonthView.done ||
             (_view == _ReviewMonthView.queue && _queued.isEmpty) ||
             (_view == _ReviewMonthView.swipe && !_canSwipe)) {
           _view = _resolveView();
