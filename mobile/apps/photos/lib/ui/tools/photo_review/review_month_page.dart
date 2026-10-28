@@ -158,8 +158,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     (loaded) =>
         (file.generatedID != null && loaded.generatedID == file.generatedID) ||
         (file.uploadedFileID != null &&
-            loaded.uploadedFileID == file.uploadedFileID) ||
-        (file.localID != null && loaded.localID == file.localID),
+            loaded.uploadedFileID == file.uploadedFileID),
   );
 
   void _rebuildUndecided() {

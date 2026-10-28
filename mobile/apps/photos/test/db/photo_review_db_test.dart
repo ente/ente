@@ -27,6 +27,65 @@ void main() {
 
   setUp(db.clearTable);
 
+  test("uploaded copies do not inherit each other's decisions", () {
+    final original = _decision("u:7", generatedID: 42);
+    final copy = EnteFile()
+      ..uploadedFileID = 8
+      ..generatedID = 43
+      ..localID = "a";
+    expect(ReviewDecisionIndex([original]).lookup(copy), isNull);
+
+    final pending = _decision("l:a", generatedID: 43);
+    final index = ReviewDecisionIndex([pending, original]);
+    expect(index.lookup(copy), same(pending));
+    copy.uploadedFileID = 7;
+    expect(index.lookup(copy), same(original));
+  });
+
+  test("undo removes only the selected upload and its pending alias", () async {
+    await db.saveDecisions(
+      [
+        _decision("l:a"),
+        _decision("u:7"),
+        _decision("u:8", decision: ReviewDecision.keep),
+      ],
+      month,
+      10,
+    );
+    await db.deleteDecision("u:7", "a", month, 20);
+    expect((await db.getAllDecisions()).single.fileKey, "u:8");
+
+    await db.saveDecisions([_decision("l:a")], month, 30);
+    await db.deleteDecision("l:a", "a", month, 40);
+    final remaining = (await db.getAllDecisions()).single;
+    expect(remaining.fileKey, "u:8");
+    expect(remaining.decision, ReviewDecision.keep);
+  });
+
+  test(
+    "undo with a pre-upload file removes its promoted decision only",
+    () async {
+      final local = EnteFile()
+        ..localID = "a"
+        ..generatedID = 42;
+      await db.saveDecisions(
+        [_decision("l:a", generatedID: 42), _decision("u:8", generatedID: 43)],
+        month,
+        10,
+      );
+      await db.rekeyDecisions({
+        "l:a": _decision("u:7", localID: null, generatedID: 42),
+      });
+
+      await PhotoReviewService.instance.removeDecision(
+        local,
+        const ReviewMonthKey(2026, 1),
+      );
+
+      expect((await db.getAllDecisions()).single.fileKey, "u:8");
+    },
+  );
+
   test(
     "stale upload reconciliation cannot resurrect an undone decision",
     () async {

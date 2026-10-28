@@ -162,16 +162,19 @@ class PhotoReviewDB with SqlDbBase {
     String fileKey,
     String? localID,
     String monthKey,
-    int updatedAt,
-  ) async {
+    int updatedAt, {
+    int? generatedID,
+  }) async {
     final db = await database;
     await db.writeTransaction((tx) async {
       await tx.execute(
         '''
         DELETE FROM $decisionsTable
-        WHERE $columnFileKey = ? OR $columnLocalID = ?
+        WHERE $columnFileKey = ?
+          OR ($columnLocalID = ? AND $columnUploadedFileID IS NULL)
+          OR $columnGeneratedID = ?
         ''',
-        [fileKey, localID],
+        [fileKey, localID, generatedID],
       );
       await _touchMonth(tx, monthKey, updatedAt);
     });
