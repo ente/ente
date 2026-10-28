@@ -19,7 +19,6 @@ import { parseEnteAlbumUrl } from "./url";
 export async function prepareEnteAlbum(
     albumUrl: string,
     requestPassword: () => Promise<string | null>,
-    signal?: AbortSignal,
 ) {
     const { collectionKey, ...parsedCredentials } = parseEnteAlbumUrl(albumUrl);
     const deviceTokenKey = `public-collection-link-device-token:${await apiOrigin()}:${parsedCredentials.accessToken}`;
@@ -29,7 +28,7 @@ export async function prepareEnteAlbum(
         downloadOrigin:
             (await customAPIOrigin()) ?? "https://public-albums.ente.com",
     };
-    const info = await getPublicCollectionInfo(credentials, signal);
+    const info = await getPublicCollectionInfo(credentials);
     if (info.linkDeviceToken) {
         credentials.linkDeviceToken = info.linkDeviceToken;
         await setKV(deviceTokenKey, info.linkDeviceToken);
@@ -51,7 +50,6 @@ export async function prepareEnteAlbum(
                 credentials,
                 publicURL,
                 password,
-                signal,
             );
         } catch (error) {
             if (isHTTP401Error(error))
@@ -67,7 +65,6 @@ export async function prepareEnteAlbum(
         const { diff, hasMore } = await getPublicCollectionDiff(
             credentials,
             sinceTime,
-            signal,
         );
         for (const file of diff) {
             sinceTime = Math.max(sinceTime, file.updationTime);
@@ -81,7 +78,6 @@ export async function prepareEnteAlbum(
     await Promise.all(
         Array.from({ length: Math.min(6, remote.size) }, async () => {
             for (const file of pending) {
-                signal?.throwIfAborted();
                 try {
                     const decrypted = await decryptRemoteFile(
                         file,
@@ -112,7 +108,6 @@ export async function prepareEnteAlbum(
             }
         }),
     );
-    signal?.throwIfAborted();
     files.sort((a, b) => a.dateTaken - b.dateTaken);
     return { credentials, files };
 }
@@ -120,13 +115,11 @@ export async function prepareEnteAlbum(
 export async function fetchAndDecryptThumbnail(
     credentials: EnteCredentials,
     file: EnteFileDescriptor,
-    signal?: AbortSignal,
 ): Promise<Blob> {
     const encryptedData = await downloadPublicCollectionFile(
         credentials,
         file.enteFileId,
         true,
-        signal,
         credentials.downloadOrigin,
     );
     const bytes = await decryptBlobBytes(
@@ -139,13 +132,11 @@ export async function fetchAndDecryptThumbnail(
 export async function fetchAndDecryptOriginal(
     credentials: EnteCredentials,
     file: EnteFileDescriptor,
-    signal?: AbortSignal,
 ): Promise<Blob> {
     const encryptedData = await downloadPublicCollectionFile(
         credentials,
         file.enteFileId,
         false,
-        signal,
         credentials.downloadOrigin,
     );
     const bytes = await decryptStreamBytes(

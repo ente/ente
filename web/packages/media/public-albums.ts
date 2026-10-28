@@ -20,11 +20,9 @@ const PublicCollectionInfo = z.object({
 
 export const getPublicCollectionInfo = async (
     credentials: PublicAlbumsCredentials,
-    signal?: AbortSignal,
 ) => {
     const res = await fetch(await apiURL("/public-collection/info"), {
         headers: authenticatedPublicAlbumsInfoRequestHeaders(credentials),
-        signal,
     });
     ensureOk(res);
     const info = PublicCollectionInfo.parse(await res.json());
@@ -35,7 +33,6 @@ export const verifyPublicCollectionPassword = async (
     credentials: PublicAlbumsCredentials,
     publicURL: PublicURL,
     password: string,
-    signal?: AbortSignal,
 ) => {
     const passHash = await deriveKey(
         password,
@@ -52,7 +49,6 @@ export const verifyPublicCollectionPassword = async (
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ passHash }),
-            signal,
         },
     );
     ensureOk(res);
@@ -62,14 +58,12 @@ export const verifyPublicCollectionPassword = async (
 export const getPublicCollectionDiff = async (
     credentials: PublicAlbumsCredentials,
     sinceTime: number,
-    signal?: AbortSignal,
 ) => {
     const res = await fetch(
         await apiURL("/public-collection/diff", { sinceTime }),
         {
             headers:
                 authenticatedPublicAlbumsDeviceLimitRequestHeaders(credentials),
-            signal,
         },
     );
     ensureOk(res);
@@ -80,7 +74,6 @@ export const downloadPublicCollectionFile = async (
     credentials: PublicAlbumsCredentials,
     fileID: number,
     thumbnail: boolean,
-    signal?: AbortSignal,
     downloadOrigin?: string,
 ) => {
     const customOrigin = await customAPIOrigin();
@@ -93,11 +86,9 @@ export const downloadPublicCollectionFile = async (
                   fileID,
                   thumbnail ? "thumbnail" : "file",
                   credentials,
-                  signal,
               )
             : await fetch(`${origin}/${path}/?fileID=${fileID}`, {
                   headers: authenticatedPublicAlbumsRequestHeaders(credentials),
-                  signal,
               });
     ensureOk(res);
     return new Uint8Array(await res.arrayBuffer());

@@ -20,13 +20,12 @@ let v3RetryAfter = 0;
 const tryFetchFileUsingV3 = async (
     path: string,
     headers: HeadersInit,
-    signal?: AbortSignal,
 ): Promise<Response | undefined> => {
     if (v3RetryAfter > Date.now()) {
         return undefined;
     }
 
-    const response = await fetch(await apiURL(path), { headers, signal });
+    const response = await fetch(await apiURL(path), { headers });
     if (response.status === 404) {
         v3RetryAfter = Date.now() + V3_RETRY_DELAY_MS;
         return undefined;
@@ -34,7 +33,7 @@ const tryFetchFileUsingV3 = async (
 
     ensureOk(response);
     const { url } = FileURLResponse.parse(await response.json());
-    return fetch(url, { signal });
+    return fetch(url);
 };
 
 type FileKind = "file" | "thumbnail";
@@ -66,12 +65,10 @@ export const fetchPublicCollectionFile = async (
     fileID: number,
     kind: FileKind,
     credentials: PublicAlbumsCredentials,
-    signal?: AbortSignal,
 ) => {
     const response = await tryFetchFileUsingV3(
         `/public-collection/files/${filePath(kind)}/v3/${fileID}`,
         authenticatedPublicAlbumsRequestHeaders(credentials),
-        signal,
     );
     if (response) {
         return response;
@@ -85,15 +82,13 @@ export const fetchPublicCollectionFile = async (
                 accessToken,
                 ...(accessTokenJWT && { accessTokenJWT }),
             }),
-            {
-                signal,
-                ...(kind == "thumbnail" && { headers: publicRequestHeaders() }),
-            },
+            kind == "thumbnail"
+                ? { headers: publicRequestHeaders() }
+                : undefined,
         );
     }
     return fetch(await apiURL(path), {
         headers: authenticatedPublicAlbumsRequestHeaders(credentials),
-        signal,
     });
 };
 
