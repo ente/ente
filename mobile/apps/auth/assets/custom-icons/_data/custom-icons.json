@@ -1342,6 +1342,14 @@
       "title": "Kagi"
     },
     {
+      "title": "Karlsruhe Institute of Technology",
+      "slug": "kit_karlsruhe",
+      "hex": "000000",
+      "altNames": [
+        "Karlsruher Institut für Technologie"
+      ]
+    },
+    {
       "title": "Kayak",
       "slug": "kayak"
     },
