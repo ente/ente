@@ -104,6 +104,18 @@ func TestWebPushSubscriptionsFollowTargetsAndActiveSessions(t *testing.T) {
 		},
 	}, postSubscriptions)
 
+	_, err = module.WebPush.DB.Exec(`
+		INSERT INTO space_web_push_subscriptions (target_id, endpoint, link_id, p256dh, auth)
+		SELECT 'wpt_fanout_' || value, 'https://push.example/fanout/' || value, $1, 'p256dh', 'auth'
+		FROM generate_series(1, 150) value
+	`, link.LinkID)
+	require.NoError(t, err)
+	postSubscriptions, err = module.WebPush.ListPostSubscriptions(ctx, space.SpaceID)
+	require.NoError(t, err)
+	require.Len(t, postSubscriptions, 100)
+	require.Equal(t, accountTargetID, postSubscriptions[0].TargetID)
+	require.False(t, postSubscriptions[0].Public)
+
 	require.NoError(t, module.Sessions.DeleteBrowserSession(ctx, activeSession))
 	var count int
 	require.NoError(t, module.WebPush.DB.QueryRow(`
@@ -250,6 +262,10 @@ func TestWebPushLinkSubscriptionLimit(t *testing.T) {
 		FROM generate_series(1, $2) value
 	`, link.LinkID, spaceWebPushLinkSubscriptionLimit)
 	require.NoError(t, err)
+
+	postSubscriptions, err := module.WebPush.ListPostSubscriptions(ctx, space.SpaceID)
+	require.NoError(t, err)
+	require.Len(t, postSubscriptions, 100)
 
 	_, err = module.WebPush.UpsertLinkSubscription(
 		ctx,

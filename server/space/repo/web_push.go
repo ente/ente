@@ -188,7 +188,7 @@ func (r *WebPushRepository) ListPostSubscriptions(
 	spaceID string,
 ) ([]SpaceWebPushSubscriptionRecord, error) {
 	rows, err := r.DB.QueryContext(ctx, `
-		SELECT push.target_id, push.endpoint, push.p256dh, push.auth, FALSE
+		SELECT push.target_id, push.endpoint, push.p256dh, push.auth, FALSE AS public
 		FROM space_web_push_subscriptions push
 		JOIN space_browser_sessions session
 		  ON session.token_hash = push.session_token_hash
@@ -218,6 +218,8 @@ func (r *WebPushRepository) ListPostSubscriptions(
 		  ON active_user.user_id = space.owner_id
 		 AND active_user.encrypted_email IS NOT NULL
 		WHERE link.space_id = $1
+		ORDER BY public, endpoint
+		LIMIT 100
 	`, spaceID, timeutil.Microseconds())
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
