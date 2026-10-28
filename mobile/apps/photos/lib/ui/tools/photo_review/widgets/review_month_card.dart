@@ -26,7 +26,6 @@ class ReviewMonthCard extends StatelessWidget {
   static const double height = 122;
   static const double borderWidth = 2.522;
   static const double radius = 10.088;
-  static const String sparkleAsset = "assets/photo_review/sparkle.svg";
   static const double _labelBaselineShift = 2;
   static const List<BoxShadow> shadow = [
     BoxShadow(

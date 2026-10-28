@@ -851,35 +851,10 @@ class _CleanedUpIllustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FittedBox(
-      child: SizedBox(
+      child: SvgPicture.asset(
+        "assets/photo_review/all_cleaned_up.svg",
         width: 335,
         height: 133.41,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            SvgPicture.asset(
-              "assets/photo_review/all_cleaned_up.svg",
-              width: 335,
-              height: 133.41,
-            ),
-            Positioned(
-              left: 93,
-              top: 33,
-              child: Transform.rotate(
-                angle: 62.92 * math.pi / 180,
-                child: SvgPicture.asset(
-                  "assets/photo_review/sparkle.svg",
-                  width: 13.6,
-                  height: 13.6,
-                  colorFilter: const ColorFilter.mode(
-                    Color(0xFFF4D93B),
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
