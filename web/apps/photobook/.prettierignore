@@ -1,0 +1,9 @@
+package-lock.json
+.next/
+.next-dev/
+out/
+coverage/
+test-results/
+playwright-report/
+next-env.d.ts
+src/vendor/ente-wasm/ente_wasm*

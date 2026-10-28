@@ -1,0 +1,4 @@
+{
+    "entry": ["tests/browser/export.ts"],
+    "ignore": ["src/vendor/ente-wasm/ente_wasm*"]
+}

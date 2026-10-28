@@ -1,0 +1,27 @@
+/* Reveal controls without rerendering the editor or its canvases. */
+.page .hoverControl {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease-out;
+}
+
+.page:hover .hoverControl,
+.page:focus-within .hoverControl,
+.page:has(.hoverControl[data-open="true"]) .hoverControl,
+.page .hoverControl[data-open="true"] {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (hover: none) {
+    .page .hoverControl {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page .hoverControl {
+        transition: none;
+    }
+}

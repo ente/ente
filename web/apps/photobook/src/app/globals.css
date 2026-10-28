@@ -1,0 +1,55 @@
+:root {
+    --font-inter: "Inter Variable";
+    --font-outfit: "Outfit Variable";
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+    overflow-x: hidden;
+    color-scheme: dark;
+}
+
+body {
+    background-color: #161616;
+    font-family: var(--font-inter), sans-serif;
+    color: #e9edef;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-inter), sans-serif;
+}
+
+::selection {
+    background-color: #08c225;
+    color: white;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b555a;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #657177;
+}
