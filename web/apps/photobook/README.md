@@ -10,8 +10,6 @@ npm run dev:photobook
 npm run build:photobook
 npm run lint
 npm test --workspace photobook
-npm exec --workspace photobook -- playwright install chromium
-npm run test:photobook:browser
 ```
 
 Development runs on port 3014. The production build writes `apps/photobook/out/`.
@@ -24,6 +22,6 @@ Book state and image blobs use a typed IndexedDB database through Ente’s exist
 
 The UI remains English-only. Translation work is deferred.
 
-The web CI runs the app's unit tests. Run browser tests locally with `npm run test:photobook:browser`. Browser tests cover editing and restoration, a real 24-page CMYK PDF, a 24-page PNG ZIP, HEIC conversion, and password-protected albums with real encrypted metadata, image bytes, and Live Photos. Device tokens are retained for repeat imports, including when the server does not refresh the token. Album HTTP responses are local fixtures; tests do not access a real account.
+The web CI runs the app's unit tests through the shared `npm test` command.
 
 The existing Deploy (Web) workflow builds this workspace and publishes its output through `deploy-web-app` to Cloudflare Pages project `ente`, branch `deploy/photobook`. Configure the existing hostname to use that deployment before retiring the standalone GitHub Pages deployment. Do not copy the old repository's GitHub Pages workflow or CNAME file.

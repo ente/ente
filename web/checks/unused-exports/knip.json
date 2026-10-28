@@ -1,7 +1,6 @@
 {
     "workspaces": {
         "apps/*": { "next": true },
-        "apps/payments": { "next": false },
-        "apps/photobook": { "next": true, "entry": ["tests/browser/export.ts"] }
+        "apps/payments": { "next": false }
     }
 }

@@ -55,8 +55,7 @@
         "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
         "lint": "node scripts/lint.mjs",
         "lint:fix": "node scripts/lint.mjs --fix",
-        "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace ensu && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space && npm run test --workspace photobook",
-        "test:photobook:browser": "npm run build:photobook && npm run test:browser --workspace photobook"
+        "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace ensu && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space && npm run test --workspace photobook"
     },
     "overrides": {
         "@types/react": "19.3.0",

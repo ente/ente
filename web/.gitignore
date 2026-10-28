@@ -11,6 +11,3 @@ out/
 next-env.d.ts
 
 packages/wasm/*/pkg/
-
-apps/photobook/test-results/
-apps/photobook/playwright-report/

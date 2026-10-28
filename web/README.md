@@ -31,8 +31,6 @@ That's it. The web app will automatically hot reload when you make changes.
 
 By default, `npm run dev` builds the Photos app. To run the public albums app, use `npm run dev:albums`. To run auth, use `npm run dev:auth`.
 
-Use `npm run dev:photobook` for the photobook editor. See [its README](apps/photobook/README.md) for export, test, and deployment details.
-
 To see the full list of apps you can run (and other scripts that you can use), use `npm run`.
 
 > [!NOTE]

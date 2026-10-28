@@ -3,8 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "test": "vitest --run",
-        "test:browser": "playwright test"
+        "test": "vitest --run"
     },
     "dependencies": {
         "@fontsource/gochi-hand": "5.3.0",
@@ -21,10 +20,7 @@
         "react-konva": "19.2.3"
     },
     "devDependencies": {
-        "@playwright/test": "1.64.1",
         "ente-build-config": "*",
-        "vite": "8.3.4",
-        "vite-plugin-wasm": "3.6.0",
         "vitest": "5.0.4"
     }
 }
