@@ -66,6 +66,13 @@ func (c *WebPushController) UpsertAccountSubscription(
 		auth,
 	)
 	if err != nil {
+		if errors.Is(err, repo.ErrSpaceWebPushEndpointConflict) {
+			return nil, &ente.ApiError{
+				Code:           ente.ErrorCode("SPACE_WEB_PUSH_ENDPOINT_CONFLICT"),
+				Message:        "web push endpoint belongs to another session",
+				HttpStatusCode: http.StatusConflict,
+			}
+		}
 		return nil, err
 	}
 	return &models.SpaceWebPushTargetResponse{TargetID: targetID}, nil

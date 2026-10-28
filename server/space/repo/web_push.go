@@ -12,7 +12,10 @@ import (
 
 const spaceWebPushLinkSubscriptionLimit = 10000
 
-var ErrSpaceWebPushLinkSubscriptionLimit = errors.New("space web push link subscription limit reached")
+var (
+	ErrSpaceWebPushLinkSubscriptionLimit = errors.New("space web push link subscription limit reached")
+	ErrSpaceWebPushEndpointConflict      = errors.New("space web push endpoint belongs to another session")
+)
 
 func (r *WebPushRepository) UpsertAccountSubscription(
 	ctx context.Context,
@@ -40,13 +43,6 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 	`, sessionTokenHash, endpoint); err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	if _, err := tx.ExecContext(ctx, `
-		UPDATE space_web_push_subscriptions
-		SET p256dh = $2, auth = $3
-		WHERE endpoint = $1
-	`, endpoint, p256dh, auth); err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
 
 	targetID := base.MustNewID("wpt")
 	if err := tx.QueryRowContext(ctx, `
@@ -56,11 +52,14 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (endpoint) WHERE session_token_hash IS NOT NULL
 		DO UPDATE SET
-			session_token_hash = EXCLUDED.session_token_hash,
 			p256dh = EXCLUDED.p256dh,
 			auth = EXCLUDED.auth
+		WHERE space_web_push_subscriptions.session_token_hash = EXCLUDED.session_token_hash
 		RETURNING target_id
 	`, targetID, endpoint, sessionTokenHash, p256dh, auth).Scan(&targetID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrSpaceWebPushEndpointConflict
+		}
 		return "", stacktrace.Propagate(err, "")
 	}
 	if err := tx.Commit(); err != nil {
@@ -100,13 +99,6 @@ func (r *WebPushRepository) UpsertLinkSubscription(
 	}
 	if !endpointExists && subscriptionCount >= spaceWebPushLinkSubscriptionLimit {
 		return "", ErrSpaceWebPushLinkSubscriptionLimit
-	}
-	if _, err := tx.ExecContext(ctx, `
-		UPDATE space_web_push_subscriptions
-		SET p256dh = $2, auth = $3
-		WHERE endpoint = $1
-	`, endpoint, p256dh, auth); err != nil {
-		return "", stacktrace.Propagate(err, "")
 	}
 
 	targetID := base.MustNewID("wpt")
