@@ -1,0 +1,1 @@
+- Fixed local gallery sync failures preventing later backup attempts until the app was restarted.

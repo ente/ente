@@ -87,7 +87,11 @@ Future<bool?> _handleFirstImportFlow(BuildContext context) async {
 
   // Start only the local import; SyncService also runs syncAll.
   _logger.info("Triggering local sync for first import from backup flow");
-  unawaited(LocalSyncService.instance.sync());
+  unawaited(
+    LocalSyncService.instance.sync().catchError((Object e, StackTrace s) {
+      _logger.severe("Initial local sync failed", e, s);
+    }),
+  );
 
   return routeToPage<bool>(
     context,

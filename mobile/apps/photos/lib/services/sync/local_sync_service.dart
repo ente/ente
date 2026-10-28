@@ -34,7 +34,7 @@ class LocalSyncService {
   final _logger = Logger("LocalSyncService");
   final _db = FilesDB.instance;
   late SharedPreferences _prefs;
-  Completer<void>? _existingSync;
+  Future<void>? _existingSync;
   late Debouncer _changeCallbackDebouncer;
   StreamSubscription<PermissionGrantedEvent>? _permissionGrantedSubscription;
   bool _isChangeCallbackRegistered = false;
@@ -94,9 +94,15 @@ class LocalSyncService {
     _registerChangeCallback();
     if (_existingSync != null) {
       _logger.warning("Sync already in progress, skipping.");
-      return _existingSync!.future;
+      return _existingSync!;
     }
-    _existingSync = Completer<void>();
+    _existingSync = _runSync().whenComplete(() {
+      _existingSync = null;
+    });
+    return _existingSync!;
+  }
+
+  Future<void> _runSync() async {
     final int ownerID = Configuration.instance.getUserIDV2();
 
     // Local sync must not race downloads; that can create incorrect FilesDB
@@ -160,9 +166,6 @@ class LocalSyncService {
       final duration = Duration(microseconds: endTime - startTime);
       _logger.info("Load took " + duration.inMilliseconds.toString() + "ms");
     });
-
-    _existingSync?.complete();
-    _existingSync = null;
   }
 
   Future<bool> _refreshDeviceFolderCountAndCover({
@@ -498,13 +501,18 @@ class LocalSyncService {
   }
 
   Future<void> checkAndSync() async {
-    if (_existingSync != null) {
-      await _existingSync!.future;
-    }
-    if (permissionService.hasGrantedLimitedPermissions()) {
-      unawaited(syncAll());
-    } else {
-      unawaited(sync().then((value) => _refreshDeviceFolderCountAndCover()));
+    try {
+      if (_existingSync != null) {
+        await _existingSync!;
+      }
+      if (permissionService.hasGrantedLimitedPermissions()) {
+        await syncAll();
+      } else {
+        await sync();
+        await _refreshDeviceFolderCountAndCover();
+      }
+    } catch (e, s) {
+      _logger.warning("Failed to sync local changes", e, s);
     }
   }
 }
