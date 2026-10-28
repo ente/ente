@@ -135,6 +135,7 @@ class PhotoReviewDB with SqlDbBase {
         SET $columnFileKey = ?, $columnUploadedFileID = ?,
             $columnLocalID = ?, $columnMonthKey = ?, $columnGeneratedID = ?
         WHERE $columnFileKey = ?
+          AND ($columnGeneratedID IS NULL OR $columnGeneratedID = ?)
         ''',
         [
           for (final entry in records.entries)
@@ -145,14 +146,19 @@ class PhotoReviewDB with SqlDbBase {
               entry.value.monthKey,
               entry.value.generatedID,
               entry.key,
+              entry.value.generatedID,
             ],
         ],
       );
       await tx.executeBatch(
-        "DELETE FROM $decisionsTable WHERE $columnFileKey = ?",
+        '''
+        DELETE FROM $decisionsTable WHERE $columnFileKey = ?
+          AND ($columnGeneratedID IS NULL OR $columnGeneratedID = ?)
+        ''',
         [
           for (final entry in records.entries)
-            if (entry.key != entry.value.fileKey) [entry.key],
+            if (entry.key != entry.value.fileKey)
+              [entry.key, entry.value.generatedID],
         ],
       );
     });
@@ -160,21 +166,27 @@ class PhotoReviewDB with SqlDbBase {
 
   Future<void> deleteDecision(
     String fileKey,
-    String? localID,
     String monthKey,
     int updatedAt, {
     int? generatedID,
+    int? uploadedFileID,
   }) async {
     final db = await database;
     await db.writeTransaction((tx) async {
+      final record = uploadedFileID == null
+          ? null
+          : await tx.getOptional(
+              "SELECT $columnGeneratedID FROM $decisionsTable WHERE $columnFileKey = ?",
+              [fileKey],
+            );
       await tx.execute(
         '''
         DELETE FROM $decisionsTable
         WHERE $columnFileKey = ?
-          OR ($columnLocalID = ? AND $columnUploadedFileID IS NULL)
-          OR $columnGeneratedID = ?
+          OR ($columnGeneratedID IN (?, ?)
+              AND ($columnUploadedFileID IS NULL OR ? IS NULL))
         ''',
-        [fileKey, localID, generatedID],
+        [fileKey, generatedID, record?[columnGeneratedID], uploadedFileID],
       );
       await _touchMonth(tx, monthKey, updatedAt);
     });
@@ -189,6 +201,26 @@ class PhotoReviewDB with SqlDbBase {
     if (records.isEmpty) return;
     final db = await database;
     await db.writeTransaction((tx) async {
+      await tx.executeBatch(
+        '''
+        DELETE FROM $decisionsTable
+        WHERE $columnFileKey != ?
+          AND ($columnGeneratedID = ? OR $columnGeneratedID = (
+            SELECT $columnGeneratedID FROM $decisionsTable
+            WHERE $columnFileKey = ?
+          ))
+          AND ($columnUploadedFileID IS NULL OR ? IS NULL)
+        ''',
+        [
+          for (final record in records)
+            [
+              record.fileKey,
+              record.generatedID,
+              record.fileKey,
+              record.uploadedFileID,
+            ],
+        ],
+      );
       await _upsertDecisions(tx, records);
       await tx.execute(
         '''

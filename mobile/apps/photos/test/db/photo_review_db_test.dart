@@ -42,24 +42,61 @@ void main() {
     expect(index.lookup(copy), same(original));
   });
 
+  test("pending decisions only follow their own uploaded file", () {
+    final pending = _decision("l:a", generatedID: 42);
+    final index = ReviewDecisionIndex([pending]);
+    final uploaded = EnteFile()
+      ..uploadedFileID = 7
+      ..generatedID = 42
+      ..localID = "a";
+    expect(index.lookup(uploaded), same(pending));
+    uploaded.generatedID = 43;
+    expect(index.lookup(uploaded), isNull);
+    uploaded.generatedID = null;
+    expect(index.lookup(uploaded), isNull);
+  });
+
   test("undo removes only the selected upload and its pending alias", () async {
     await db.saveDecisions(
       [
-        _decision("l:a"),
-        _decision("u:7"),
-        _decision("u:8", decision: ReviewDecision.keep),
+        _decision("l:a", generatedID: 42),
+        _decision("u:7", generatedID: 42),
+        _decision("u:8", generatedID: 43, decision: ReviewDecision.keep),
       ],
       month,
       10,
     );
-    await db.deleteDecision("u:7", "a", month, 20);
+    await PhotoReviewService.instance.removeDecision(
+      EnteFile()
+        ..uploadedFileID = 7
+        ..generatedID = 44
+        ..localID = "a",
+      const ReviewMonthKey(2026, 1),
+    );
     expect((await db.getAllDecisions()).single.fileKey, "u:8");
 
     await db.saveDecisions([_decision("l:a")], month, 30);
-    await db.deleteDecision("l:a", "a", month, 40);
+    await db.deleteDecision("l:a", month, 40);
     final remaining = (await db.getAllDecisions()).single;
     expect(remaining.fileKey, "u:8");
     expect(remaining.decision, ReviewDecision.keep);
+  });
+
+  test("undo of an uploaded copy preserves another pending decision", () async {
+    final copy = EnteFile()
+      ..uploadedFileID = 8
+      ..generatedID = 43
+      ..localID = "a";
+    await db.saveDecisions(
+      [_decision("l:a", generatedID: 42), _decision("u:8", generatedID: 43)],
+      month,
+      10,
+    );
+    await PhotoReviewService.instance.removeDecision(
+      copy,
+      const ReviewMonthKey(2026, 1),
+    );
+    expect((await db.getAllDecisions()).single.fileKey, "l:a");
   });
 
   test(
@@ -91,7 +128,7 @@ void main() {
     () async {
       await db.saveDecisions([_decision("l:a")], month, 10);
       final stale = _decision("u:7");
-      await db.deleteDecision("l:a", "a", month, 20);
+      await db.deleteDecision("l:a", month, 20);
 
       await db.rekeyDecisions({"l:a": stale});
 
@@ -117,6 +154,45 @@ void main() {
     expect(current.decision, ReviewDecision.keep);
     expect(current.updatedAt, 20);
   });
+
+  test("stale reconciliation preserves a different pending file", () async {
+    await db.saveDecisions([_decision("l:a", generatedID: 42)], month, 10);
+    final stale = _decision("u:7", generatedID: 42);
+    await db.saveDecisions([_decision("l:a", generatedID: 43)], month, 20);
+
+    await db.rekeyDecisions({"l:a": stale});
+
+    final current = (await db.getAllDecisions()).single;
+    expect(current.fileKey, "l:a");
+    expect(current.generatedID, 43);
+  });
+
+  test(
+    "deletion from a pre-upload snapshot clears its promoted queue",
+    () async {
+      await db.saveDecisions(
+        [_decision("u:7", generatedID: 42), _decision("u:8", generatedID: 43)],
+        month,
+        10,
+      );
+      await db.recordDeletion(
+        [_decision("l:a", generatedID: 42, decision: ReviewDecision.deleted)],
+        month,
+        100,
+        20,
+      );
+
+      final records = await db.getAllDecisions();
+      expect(
+        records.map((record) => record.fileKey),
+        unorderedEquals(["l:a", "u:8"]),
+      );
+      expect(
+        records.firstWhere((record) => record.fileKey == "u:8").decision,
+        ReviewDecision.queued,
+      );
+    },
+  );
 
   test("reconciliation preserves an existing uploaded decision", () async {
     await db.saveDecisions(
@@ -155,7 +231,7 @@ void main() {
         matched!.fileKey: _decision("u:7", localID: null, generatedID: 42),
       });
       expect((await db.getAllDecisions()).single.fileKey, "u:7");
-      await db.deleteDecision("u:7", null, month, 20);
+      await db.deleteDecision("u:7", month, 20, uploadedFileID: 7);
       expect(await db.getAllDecisions(), isEmpty);
     },
   );

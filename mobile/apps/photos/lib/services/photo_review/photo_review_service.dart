@@ -92,10 +92,10 @@ class PhotoReviewService {
   Future<void> removeDecision(EnteFile file, ReviewMonthKey month) async {
     await _db.deleteDecision(
       fileKey(file),
-      file.localID,
       month.key,
       _now(),
-      generatedID: file.isUploaded ? null : file.generatedID,
+      generatedID: file.generatedID,
+      uploadedFileID: file.uploadedFileID,
     );
     _notifyUpdated();
   }
@@ -271,15 +271,13 @@ class PhotoReviewService {
       if (record == null || creationTime == null) continue;
       final key = fileKey(file);
       final monthKey = ReviewMonthKey.fromCreationTime(creationTime).key;
-      if (record.fileKey == key &&
-          record.monthKey == monthKey &&
-          record.generatedID == file.generatedID) {
+      if (record.fileKey == key && record.monthKey == monthKey) {
         continue;
       }
       updated[record.fileKey] = ReviewDecisionRecord(
         fileKey: key,
         uploadedFileID: file.uploadedFileID,
-        generatedID: file.generatedID,
+        generatedID: record.generatedID ?? file.generatedID,
         localID: file.localID,
         monthKey: monthKey,
         decision: record.decision,
@@ -345,6 +343,7 @@ class ReviewDecisionIndex {
   ReviewDecisionRecord? lookup(EnteFile file) {
     final direct = _byFileKey[PhotoReviewService.fileKey(file)];
     if (direct != null) return direct;
+    if (file.isUploaded) return _byGeneratedID[file.generatedID];
     return _byLocalID[file.localID] ?? _byGeneratedID[file.generatedID];
   }
 }
