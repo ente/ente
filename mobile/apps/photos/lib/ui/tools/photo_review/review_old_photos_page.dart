@@ -309,10 +309,8 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
                 ],
               ],
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
+            Align(
+              alignment: Alignment.bottomCenter,
               child: AnimatedSlide(
                 offset: _selectionMode ? Offset.zero : const Offset(0, 1),
                 duration: Motion.slow,
