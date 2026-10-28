@@ -139,6 +139,54 @@ func TestWebPushSubscriptionsFollowTargetsAndActiveSessions(t *testing.T) {
 	require.Zero(t, count)
 }
 
+func TestWebPushAccountSubscriptionRequiresAuthToReassignSession(t *testing.T) {
+	module := newSpaceTestModule(t)
+	ctx := context.Background()
+	ownerID := insertSpaceUser(t, module, "space-web-push-auth-owner@example.com", "owner-public")
+	attackerID := insertSpaceUser(t, module, "space-web-push-auth-attacker@example.com", "attacker-public")
+	session := []byte("original-space-web-push-session")
+	newSession := []byte("new-space-web-push-session")
+	attackerSession := []byte("attacker-space-web-push-session")
+	require.NoError(t, module.Sessions.CreateBrowserSession(ctx, session, ownerID, "wrap", timeutil.NDaysFromNow(1)))
+	require.NoError(t, module.Sessions.CreateBrowserSession(ctx, newSession, ownerID, "wrap", timeutil.NDaysFromNow(1)))
+	require.NoError(t, module.Sessions.CreateBrowserSession(ctx, attackerSession, attackerID, "wrap", timeutil.NDaysFromNow(1)))
+	endpoint := "https://push.example/victim"
+	targetID, err := module.WebPush.UpsertAccountSubscription(ctx, session, endpoint, "victim-p256dh", "victim-auth")
+	require.NoError(t, err)
+	_, err = module.WebPush.UpsertAccountSubscription(ctx, attackerSession, "https://push.example/attacker", "attacker-p256dh", "attacker-auth")
+	require.NoError(t, err)
+	before, err := module.WebPush.ListActiveAccountSubscriptions(ctx, ownerID)
+	require.NoError(t, err)
+	attackerBefore, err := module.WebPush.ListActiveAccountSubscriptions(ctx, attackerID)
+	require.NoError(t, err)
+
+	for _, caller := range [][]byte{session, attackerSession} {
+		_, err = module.WebPush.UpsertAccountSubscription(ctx, caller, endpoint, "attacker-p256dh", "attacker-auth")
+		require.Error(t, err)
+	}
+	unchanged, err := module.WebPush.ListActiveAccountSubscriptions(ctx, ownerID)
+	require.NoError(t, err)
+	require.Equal(t, before, unchanged)
+	attackerUnchanged, err := module.WebPush.ListActiveAccountSubscriptions(ctx, attackerID)
+	require.NoError(t, err)
+	require.Equal(t, attackerBefore, attackerUnchanged)
+
+	repeatedTargetID, err := module.WebPush.UpsertAccountSubscription(ctx, session, endpoint, "victim-p256dh", "victim-auth")
+	require.NoError(t, err)
+	require.Equal(t, targetID, repeatedTargetID)
+	newTargetID, err := module.WebPush.UpsertAccountSubscription(ctx, newSession, endpoint, "victim-p256dh", "victim-auth")
+	require.NoError(t, err)
+	require.Equal(t, targetID, newTargetID)
+	var storedSession []byte
+	require.NoError(t, module.WebPush.DB.QueryRow(`
+		SELECT session_token_hash FROM space_web_push_subscriptions WHERE target_id = $1
+	`, targetID).Scan(&storedSession))
+	require.Equal(t, newSession, storedSession)
+	after, err := module.WebPush.ListActiveAccountSubscriptions(ctx, ownerID)
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+}
+
 func TestResetUserAccessDeletesLinkSubscriptions(t *testing.T) {
 	module := newSpaceTestModule(t)
 	ctx := context.Background()
@@ -188,10 +236,32 @@ func TestWebPushSharedEndpointKeepsIndependentTargets(t *testing.T) {
 	require.NoError(t, module.Sessions.CreateBrowserSession(ctx, session, ownerID, "wrap", timeutil.NDaysFromNow(1)))
 	endpoint := "https://push.example/shared"
 
-	_, err = module.WebPush.UpsertAccountSubscription(ctx, session, endpoint, "first-p256dh", "first-auth")
+	accountTargetID, err := module.WebPush.UpsertAccountSubscription(ctx, session, endpoint, "first-p256dh", "first-auth")
 	require.NoError(t, err)
-	_, err = module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "second-p256dh", "second-auth")
+	linkTargetID, err := module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "second-p256dh", "second-auth")
 	require.NoError(t, err)
+	_, err = module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "attacker-p256dh", "attacker-auth")
+	require.Error(t, err)
+	updatedLinkTargetID, err := module.WebPush.UpsertLinkSubscription(ctx, link.LinkID, endpoint, "updated-link-p256dh", "second-auth")
+	require.NoError(t, err)
+	require.Equal(t, linkTargetID, updatedLinkTargetID)
+	accountSubscriptions, err := module.WebPush.ListActiveAccountSubscriptions(ctx, ownerID)
+	require.NoError(t, err)
+	require.Equal(t, []SpaceWebPushSubscriptionRecord{{
+		TargetID: accountTargetID,
+		Endpoint: endpoint,
+		P256dh:   "first-p256dh",
+		Auth:     "first-auth",
+	}}, accountSubscriptions)
+	updatedAccountTargetID, err := module.WebPush.UpsertAccountSubscription(ctx, session, endpoint, "updated-account-p256dh", "first-auth")
+	require.NoError(t, err)
+	require.Equal(t, accountTargetID, updatedAccountTargetID)
+	var linkP256dh, linkAuth string
+	require.NoError(t, module.WebPush.DB.QueryRow(`
+		SELECT p256dh, auth FROM space_web_push_subscriptions WHERE target_id = $1
+	`, linkTargetID).Scan(&linkP256dh, &linkAuth))
+	require.Equal(t, "updated-link-p256dh", linkP256dh)
+	require.Equal(t, "second-auth", linkAuth)
 
 	var count int
 	require.NoError(t, module.WebPush.DB.QueryRow(`
@@ -265,7 +335,7 @@ func TestWebPushLinkSubscriptionLimit(t *testing.T) {
 		link.LinkID,
 		"https://push.example/limit/1",
 		"updated-p256dh",
-		"updated-auth",
+		"auth",
 	)
 	require.NoError(t, err)
 }

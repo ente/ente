@@ -65,6 +65,37 @@ func TestSpaceWebPushAccountSubscriptionAPI(t *testing.T) {
 	`, sessionHash[:]).Scan(&count))
 	require.Equal(t, 1, count)
 
+	sessionToken = "new-space-web-push-session"
+	sessionHash = sha256.Sum256([]byte(sessionToken))
+	require.NoError(t, repos.Sessions.CreateBrowserSession(context.Background(), sessionHash[:], userID, "wrap-key", timeutil.NDaysFromNow(1)))
+	for _, testCase := range []struct {
+		auth   []byte
+		status int
+	}{
+		{bytes.Repeat([]byte{1}, 16), http.StatusConflict},
+		{make([]byte, 16), http.StatusOK},
+	} {
+		retryPayload := bytes.ReplaceAll(payload,
+			[]byte(base64.RawURLEncoding.EncodeToString(make([]byte, 16))),
+			[]byte(base64.RawURLEncoding.EncodeToString(testCase.auth)),
+		)
+		retryRequest := httptest.NewRequest(http.MethodPut, "/account/space/push/subscription", bytes.NewReader(retryPayload))
+		retryRequest.Header.Set(controller.SpaceBrowserSessionTokenHeader, sessionToken)
+		retryRequest.Header.Set("Content-Type", "application/json")
+		retryRecorder := httptest.NewRecorder()
+		privateRouter.ServeHTTP(retryRecorder, retryRequest)
+		require.Equal(t, testCase.status, retryRecorder.Code)
+		if testCase.status == http.StatusOK {
+			require.JSONEq(t, subscriptionRecorder.Body.String(), retryRecorder.Body.String())
+		}
+	}
+	require.NoError(t, repos.WebPush.DB.QueryRow(`
+		SELECT COUNT(*)
+		FROM space_web_push_subscriptions
+		WHERE session_token_hash = $1
+	`, sessionHash[:]).Scan(&count))
+	require.Equal(t, 1, count)
+
 	unsubscriptionPayload, err := json.Marshal(map[string]string{
 		"endpoint": "https://fcm.googleapis.com/wp/subscription",
 	})
