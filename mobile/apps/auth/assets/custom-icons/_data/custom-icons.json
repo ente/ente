@@ -100,6 +100,10 @@
       "hex": "FF5A00"
     },
     {
+      "title": "Alternate",
+      "slug": "alternate"
+    },
+    {
       "title": "Amazon",
       "hex": "FF9900"
     },
