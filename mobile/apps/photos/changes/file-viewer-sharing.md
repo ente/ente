@@ -1,1 +1,0 @@
-- Share a photo or video, or send a link, from the Share button in the viewer.
