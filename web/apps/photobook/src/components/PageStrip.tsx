@@ -1,10 +1,7 @@
-"use client";
-
-import { thumbnailShadow, toolbarColors, uiColors } from "@/theme/colors";
-
 import { useBook } from "@/context/book";
 import { usePageDrag } from "@/hooks/usePageDrag";
 import { useSpreads } from "@/hooks/useSpreads";
+import { thumbnailShadow, toolbarColors, uiColors } from "@/theme/colors";
 import { Box, Typography, useMediaQuery } from "@mui/material";
 import {
     useCallback,

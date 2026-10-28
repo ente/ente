@@ -1,5 +1,3 @@
-"use client";
-
 import { useBook } from "@/context/book";
 import { editorButtonSx } from "@/theme/buttons";
 import { pageMenuColors, toolbarColors, uiColors } from "@/theme/colors";

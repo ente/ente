@@ -1,15 +1,24 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption } from "vite";
+import wasm from "vite-plugin-wasm";
 
 export default defineConfig({
-    resolve: {
-        alias: {
-            "@": fileURLToPath(new URL("../../src", import.meta.url)),
-            "@imagemagick/magick-wasm/magick.wasm":
-                fileURLToPath(
-                    import.meta.resolve("@imagemagick/magick-wasm/magick.wasm"),
-                ) + "?url",
-        },
+    define: {
+        "process.env": JSON.stringify({
+            NODE_ENV: "production",
+            appName: "photobook",
+            isDesktop: "",
+        }),
     },
-    server: { host: "127.0.0.1", port: 4318, strictPort: true },
+    resolve: {
+        alias: { "@": fileURLToPath(new URL("../../src", import.meta.url)) },
+    },
+    plugins: [wasm() as PluginOption],
+    worker: { plugins: () => [wasm() as PluginOption] },
+    server: {
+        host: "127.0.0.1",
+        port: 4318,
+        strictPort: true,
+        fs: { allow: ["../.."] },
+    },
 });

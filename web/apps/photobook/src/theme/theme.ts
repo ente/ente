@@ -1,5 +1,3 @@
-"use client";
-
 import {
     ChevronDownIcon,
     CloseIcon,
@@ -8,13 +6,16 @@ import {
     SuccessIcon,
     WarningIcon,
 } from "@/components/icons";
-import { createTheme } from "@mui/material/styles";
+import { createTheme, type ThemeOptions } from "@mui/material/styles";
+import { shareTheme } from "ente-base/components/utils/theme";
 import { createElement } from "react";
 
 import { accentGreen, accentGreenHover } from "./buttons";
 import { uiColors } from "./colors";
 
-const theme = createTheme({
+const darkPalette = shareTheme.colorSchemes.dark!.palette;
+
+const overrides: ThemeOptions = {
     palette: {
         mode: "dark",
         primary: {
@@ -23,10 +24,21 @@ const theme = createTheme({
             contrastText: "#ffffff",
         },
         secondary: { main: "#1E6D1D" },
-        background: { default: uiColors.background, paper: uiColors.surface },
-        text: { primary: uiColors.text, secondary: uiColors.muted },
+        background: {
+            ...darkPalette.background,
+            default: uiColors.background,
+            paper: uiColors.surface,
+        },
+        text: {
+            ...darkPalette.text,
+            primary: uiColors.text,
+            secondary: uiColors.muted,
+            base: uiColors.text,
+            muted: uiColors.muted,
+        },
         divider: uiColors.border,
         action: {
+            ...darkPalette.action,
             active: uiColors.text,
             hover: "rgba(233,237,239,0.06)",
             selected: "rgba(233,237,239,0.1)",
@@ -35,21 +47,6 @@ const theme = createTheme({
         },
         error: { main: uiColors.danger },
     },
-    typography: {
-        fontFamily: "var(--font-inter), sans-serif",
-        h1: { fontFamily: "var(--font-inter), sans-serif", fontWeight: 800 },
-        h2: { fontFamily: "var(--font-inter), sans-serif", fontWeight: 700 },
-        h3: { fontFamily: "var(--font-inter), sans-serif", fontWeight: 700 },
-        h4: { fontFamily: "var(--font-inter), sans-serif" },
-        body1: { fontFamily: "var(--font-inter), sans-serif" },
-        body2: { fontFamily: "var(--font-inter), sans-serif" },
-        button: {
-            fontFamily: "var(--font-inter), sans-serif",
-            fontWeight: 700,
-            textTransform: "none",
-        },
-    },
-    shape: { borderRadius: 8 },
     components: {
         MuiPaper: { styleOverrides: { root: { backgroundImage: "none" } } },
         MuiSelect: { defaultProps: { IconComponent: ChevronDownIcon } },
@@ -93,6 +90,22 @@ const theme = createTheme({
             ],
         },
     },
-});
+};
+
+const theme = createTheme(
+    {
+        cssVariables: { colorSchemeSelector: "class" },
+        defaultColorScheme: "dark",
+        colorSchemes: {
+            light: false,
+            dark: { palette: { ...darkPalette, ...overrides.palette } },
+        },
+        typography: shareTheme.typography,
+        shape: shareTheme.shape,
+        transitions: shareTheme.transitions,
+        components: shareTheme.components,
+    },
+    { components: overrides.components },
+);
 
 export default theme;

@@ -1,7 +1,3 @@
-"use client";
-
-import { BookContext } from "./book";
-
 import {
     isBlankPage,
     isRequiredBlankPage,
@@ -61,6 +57,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { BookContext } from "./book";
 
 const emptyBook: BookState = { pages: [], currentSpreadIndex: 0 };
 
@@ -119,11 +116,9 @@ function buildEnteOriginalDownloadJob(
 
     return {
         credentials: {
-            apiOrigin: data.apiOrigin,
-            albumsOrigin: data.albumsOrigin,
+            downloadOrigin: data.downloadOrigin,
             accessToken: data.accessToken,
             accessTokenJWT: data.accessTokenJWT,
-            collectionKey: "",
         },
         descriptor: {
             enteFileId: data.enteFileId,
@@ -348,23 +343,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                         }),
                     );
 
-                    // Ente photos left in "pending" state across sessions have stale
-                    // credentials (tokens likely expired). Mark them as failed and strip
-                    // the stored credentials so they don't linger in IndexedDB.
-                    const restoredPhotos = savedPhotos.map((photo) =>
-                        photo.source === "ente" &&
-                        photo.originalStatus === "pending"
-                            ? {
-                                  ...photo,
-                                  originalStatus: "failed" as const,
-                                  enteOriginal: undefined,
-                                  originalError:
-                                      "Session expired — re-import the album to retry.",
-                              }
-                            : photo,
-                    );
-
-                    setPhotos(restoredPhotos);
+                    setPhotos(savedPhotos);
                     setThumbnailUrls(thumbUrls);
                     setBookRaw(normalizeCoverLayout(savedBook));
                     setCurrentSpreadIndex(savedBook.currentSpreadIndex);
@@ -870,8 +849,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                         source: "ente",
                         originalStatus: "pending",
                         enteOriginal: {
-                            apiOrigin: credentials.apiOrigin,
-                            albumsOrigin: credentials.albumsOrigin,
+                            downloadOrigin: credentials.downloadOrigin,
                             accessToken: credentials.accessToken,
                             accessTokenJWT: credentials.accessTokenJWT,
                             enteFileId: descriptor.enteFileId,

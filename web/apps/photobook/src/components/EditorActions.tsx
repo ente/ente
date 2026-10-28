@@ -1,5 +1,3 @@
-"use client";
-
 import { useBook } from "@/context/book";
 import { normalizeBookPages } from "@/lib/bookPages";
 import {

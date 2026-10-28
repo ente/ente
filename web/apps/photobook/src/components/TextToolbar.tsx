@@ -1,8 +1,5 @@
-"use client";
-
-import { popupShadow, uiColors } from "@/theme/colors";
-
 import type { TextBlock } from "@/lib/types";
+import { popupShadow, uiColors } from "@/theme/colors";
 import React, { useEffect, useRef, useState } from "react";
 import { CloseIcon, DeleteIcon, EditIcon, RotateIcon } from "./icons";
 

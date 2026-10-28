@@ -1,5 +1,3 @@
-"use client";
-
 import type { AddPhotosOptions } from "@/lib/photoPlacement";
 import type {
     AppView,

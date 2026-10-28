@@ -85,16 +85,6 @@ export function getPrintProduct(id: unknown): PrintProduct | undefined {
     return PRINT_PRODUCTS.find((product) => product.id === id);
 }
 
-export function isPrintSelection(value: unknown): value is PrintSelection {
-    if (!value || typeof value !== "object") return false;
-    const selection = value as Partial<PrintSelection>;
-    const product = getPrintProduct(selection.productId);
-    return (
-        !!product &&
-        (product.sizesMm as readonly number[]).includes(selection.sizeMm!)
-    );
-}
-
 export function getPrintExportError(
     selection: PrintSelection,
     pageCount: number,

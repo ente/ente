@@ -1,11 +1,7 @@
-"use client";
-
-import { popupShadow, toolbarColors, uiColors } from "@/theme/colors";
-
 import { useBook } from "@/context/book";
 import { useSpreads } from "@/hooks/useSpreads";
 import { normalizeBookPages } from "@/lib/bookPages";
-import { downloadBlob, exportPdfX4Pages } from "@/lib/export";
+import { exportPdfX4Pages } from "@/lib/export";
 import {
     getBindingPrintSelection,
     getPrintBinding,
@@ -14,6 +10,7 @@ import {
 } from "@/lib/printProducts";
 import { getSpreadLabel } from "@/lib/spreads";
 import { headerButtonSx } from "@/theme/buttons";
+import { popupShadow, toolbarColors, uiColors } from "@/theme/colors";
 import {
     Alert,
     Box,
@@ -24,6 +21,7 @@ import {
     Snackbar,
     Typography,
 } from "@mui/material";
+import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BookBindingSelect from "./BookBindingSelect";
 import BookHeader from "./BookHeader";
@@ -188,7 +186,7 @@ export default function ResultsPage() {
             );
             const filename = `photobook-${printSelection.sizeMm}mm.pdf`;
 
-            downloadBlob(blob, filename);
+            saveAsFileAndRevokeObjectURL(URL.createObjectURL(blob), filename);
         } catch (e) {
             console.error("Export failed:", e);
             setExportError(

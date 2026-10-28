@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 
@@ -23,8 +23,8 @@ createServer(async (request, response) => {
             response.writeHead(403).end();
             return;
         }
-        if ((await stat(file)).isDirectory())
-            file = resolve(file, "index.html");
+        if (file === root) file = resolve(file, "index.html");
+        else if (!extname(file)) file += ".html";
         const bytes = await readFile(file);
         response.setHeader(
             "Content-Type",

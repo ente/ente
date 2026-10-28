@@ -65,3 +65,13 @@ jobs:
             - run: node scripts/lint.mjs
 
             - run: npm test
+
+            - run: npm exec --workspace photobook -- playwright install --with-deps chromium
+
+            - run: npm run test:photobook:browser
+
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+              if: failure()
+              with:
+                  name: photobook-browser-results
+                  path: web/apps/photobook/test-results

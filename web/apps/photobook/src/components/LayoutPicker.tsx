@@ -1,13 +1,10 @@
-"use client";
-
-import { thumbnailShadow, uiColors } from "@/theme/colors";
-
 import {
     getMirrorVariant,
     getVariantPreview,
     getVariantsForCount,
     type LayoutVariant,
 } from "@/lib/layouts";
+import { thumbnailShadow, uiColors } from "@/theme/colors";
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 

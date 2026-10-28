@@ -1,7 +1,4 @@
-"use client";
-
 import { bookPageShadow, thumbnailShadow, uiColors } from "@/theme/colors";
-
 import { Box, Typography } from "@mui/material";
 
 export default function PrinterBlankPage({

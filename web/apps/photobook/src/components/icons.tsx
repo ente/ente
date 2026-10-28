@@ -1,5 +1,3 @@
-"use client";
-
 import {
     Alert02Icon,
     AlertCircleIcon,
@@ -28,24 +26,24 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import SvgIcon, { type SvgIconProps } from "@mui/material/SvgIcon";
 import { forwardRef } from "react";
 
-// Keep MUI sizing, colors and accessibility while rendering Hugeicons paths.
-function createIcon(icon: IconSvgElement, name: string) {
-    const Icon = forwardRef<SVGSVGElement, SvgIconProps>((props, ref) => (
-        <SvgIcon
-            {...props}
-            ref={ref}
-            component={HugeiconsIcon}
-            icon={icon}
-            strokeWidth={Number(props.strokeWidth ?? 1.8)}
-            inheritViewBox
-            style={{ ...props.style, fill: "none" }}
-        />
-    ));
-    Icon.displayName = name;
-    return Icon;
-}
+const AppIcon = forwardRef<
+    SVGSVGElement,
+    SvgIconProps & { icon: IconSvgElement }
+>(({ icon, ...props }, ref) => (
+    <SvgIcon
+        {...props}
+        ref={ref}
+        component={HugeiconsIcon}
+        icon={icon}
+        strokeWidth={Number(props.strokeWidth ?? 1.8)}
+        inheritViewBox
+        style={{ ...props.style, fill: "none" }}
+    />
+));
 
-export const AddPhotosIcon = createIcon(ImageAdd02Icon, "AddPhotosIcon");
+export const AddPhotosIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={ImageAdd02Icon} />,
+);
 export const EditPhotoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => (
         <SvgIcon {...props} ref={ref}>
@@ -65,27 +63,70 @@ export const EditPhotoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     ),
 );
 EditPhotoIcon.displayName = "EditPhotoIcon";
-export const AddPageIcon = createIcon(FileAddIcon, "AddPageIcon");
-export const PreviewIcon = createIcon(PlayIcon, "PreviewIcon");
-export const CloseIcon = createIcon(Cancel01Icon, "CloseIcon");
-export const ChevronLeftIcon = createIcon(ArrowLeft01Icon, "ChevronLeftIcon");
-export const ChevronRightIcon = createIcon(
-    ArrowRight01Icon,
-    "ChevronRightIcon",
+export const AddPageIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={FileAddIcon} />,
 );
-export const ChevronDownIcon = createIcon(ArrowDown01Icon, "ChevronDownIcon");
-export const EditIcon = createIcon(Edit02Icon, "EditIcon");
-export const DownloadIcon = createIcon(Download04Icon, "DownloadIcon");
-export const LinkIcon = createIcon(Link01Icon, "LinkIcon");
-export const MenuIcon = createIcon(Menu01Icon, "MenuIcon");
-export const MoreIcon = createIcon(MoreHorizontalIcon, "MoreIcon");
-export const DeleteIcon = createIcon(Delete02Icon, "DeleteIcon");
-export const ZoomInIcon = createIcon(SearchAddIcon, "ZoomInIcon");
-export const ZoomOutIcon = createIcon(SearchMinusIcon, "ZoomOutIcon");
-export const RotateIcon = createIcon(RotateCcwIcon, "RotateIcon");
-export const UndoIcon = createIcon(Undo03Icon, "UndoIcon");
-export const RedoIcon = createIcon(Redo03Icon, "RedoIcon");
-export const SuccessIcon = createIcon(CheckmarkCircle02Icon, "SuccessIcon");
-export const InfoIcon = createIcon(InformationCircleIcon, "InfoIcon");
-export const WarningIcon = createIcon(Alert02Icon, "WarningIcon");
-export const ErrorIcon = createIcon(AlertCircleIcon, "ErrorIcon");
+export const PreviewIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={PlayIcon} />,
+);
+export const CloseIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Cancel01Icon} />,
+);
+export const ChevronLeftIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={ArrowLeft01Icon} />,
+);
+export const ChevronRightIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={ArrowRight01Icon} />,
+);
+export const ChevronDownIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={ArrowDown01Icon} />,
+);
+export const EditIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Edit02Icon} />,
+);
+export const DownloadIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Download04Icon} />,
+);
+export const LinkIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Link01Icon} />,
+);
+export const MenuIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Menu01Icon} />,
+);
+export const MoreIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={MoreHorizontalIcon} />,
+);
+export const DeleteIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Delete02Icon} />,
+);
+export const ZoomInIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={SearchAddIcon} />,
+);
+export const ZoomOutIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={SearchMinusIcon} />,
+);
+export const RotateIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={RotateCcwIcon} />,
+);
+export const UndoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Undo03Icon} />,
+);
+export const RedoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Redo03Icon} />,
+);
+export const SuccessIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => (
+        <AppIcon {...props} ref={ref} icon={CheckmarkCircle02Icon} />
+    ),
+);
+export const InfoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => (
+        <AppIcon {...props} ref={ref} icon={InformationCircleIcon} />
+    ),
+);
+export const WarningIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Alert02Icon} />,
+);
+export const ErrorIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={AlertCircleIcon} />,
+);

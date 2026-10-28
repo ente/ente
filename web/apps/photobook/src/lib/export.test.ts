@@ -140,26 +140,22 @@ beforeAll(() => {
             }
         },
     });
-    vi.spyOn(pdfx, "renderCanvasToFogra39Jpeg").mockImplementation(
-        (canvas: HTMLCanvasElement) =>
-            Promise.resolve(new TextEncoder().encode(JSON.stringify(canvas))),
-    );
-    vi.spyOn(pdfx, "createPdfX4").mockImplementation(
-        (images: Uint8Array[], size: pdfx.PdfXPageSize) =>
-            Promise.resolve(
-                new TextEncoder().encode(
-                    JSON.stringify({
-                        pages: images.map(
-                            (image) =>
-                                JSON.parse(
-                                    new TextDecoder().decode(image),
-                                ) as CanvasRecord,
-                        ),
-                        size,
+    vi.spyOn(pdfx, "createPdfWriter").mockImplementation((size) => {
+        const pages: CanvasRecord[] = [];
+        return Promise.resolve({
+            addPage: (canvas) => {
+                pages.push(canvas as unknown as CanvasRecord);
+                return Promise.resolve();
+            },
+            finish: () =>
+                Promise.resolve(
+                    new Blob([JSON.stringify({ pages, size })], {
+                        type: "application/pdf",
                     }),
                 ),
-            ),
-    );
+            dispose: vi.fn(),
+        });
+    });
 });
 
 afterAll(() => {

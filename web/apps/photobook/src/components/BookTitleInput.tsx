@@ -1,5 +1,3 @@
-"use client";
-
 import { useBook } from "@/context/book";
 import { headerButtonSx } from "@/theme/buttons";
 import { uiColors } from "@/theme/colors";

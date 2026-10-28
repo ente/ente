@@ -1,5 +1,3 @@
-"use client";
-
 import { usePhotoImport } from "@/hooks/usePhotoImport";
 import {
     accentGreen,

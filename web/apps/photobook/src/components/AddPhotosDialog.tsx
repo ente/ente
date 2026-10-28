@@ -1,5 +1,3 @@
-"use client";
-
 import {
     MAX_PAGE_PHOTOS,
     photoDestinationError,
@@ -160,7 +158,9 @@ export default function AddPhotosDialog({
                         MenuProps={dialogSelectMenuProps}
                     >
                         <MenuItem value="end">
-                            New {newPageCount === 1 ? "page" : "pages"} at end
+                            {newPageCount === 1
+                                ? "New page at end"
+                                : "New pages at end"}
                         </MenuItem>
                         {pages.slice(0, -1).map((page, index) => (
                             <MenuItem

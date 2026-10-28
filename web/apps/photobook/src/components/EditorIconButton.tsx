@@ -1,5 +1,3 @@
-"use client";
-
 import { editorToolbarButtonSx } from "@/theme/buttons";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import type { ReactNode } from "react";

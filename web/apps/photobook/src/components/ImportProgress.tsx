@@ -1,5 +1,3 @@
-"use client";
-
 import { usePhotoImport } from "@/hooks/usePhotoImport";
 import { editorButtonSx, secondaryButtonSx } from "@/theme/buttons";
 import { uiColors } from "@/theme/colors";

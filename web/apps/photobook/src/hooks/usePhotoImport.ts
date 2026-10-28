@@ -1,7 +1,5 @@
-"use client";
-
 import { useBook } from "@/context/book";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import {
     createContext,
     createElement,
@@ -62,7 +60,7 @@ function usePhotoImportSession() {
         setEnteError(null);
         setEnteStage("closed");
         setAppView("edit");
-        router.push("/app");
+        void router.push("/app");
         return true;
     }, [loading, router, setAppView]);
 

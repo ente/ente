@@ -1,5 +1,3 @@
-"use client";
-
 import EditPage from "@/components/EditPage";
 import ResultsPage from "@/components/ResultsPage";
 import { useBook } from "@/context/book";
@@ -170,7 +168,7 @@ export default function AppShell() {
                         <CloseIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                     <Typography
-                        variant="subtitle1"
+                        variant="body"
                         sx={{
                             fontFamily: "var(--font-inter)",
                             fontWeight: 700,
@@ -182,7 +180,7 @@ export default function AppShell() {
                         Best on desktop
                     </Typography>
                     <Typography
-                        variant="body2"
+                        variant="small"
                         sx={{
                             fontFamily: "var(--font-inter)",
                             color: uiColors.muted,

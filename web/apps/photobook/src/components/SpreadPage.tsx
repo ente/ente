@@ -1,7 +1,3 @@
-"use client";
-
-import { bookPageShadow, uiColors } from "@/theme/colors";
-
 import { useBook } from "@/context/book";
 import type { DragInfo } from "@/hooks/usePhotoDrag";
 import { isRequiredBlankPage } from "@/lib/bookPages";
@@ -14,6 +10,7 @@ import {
     TEXT_LINE_HEIGHT,
 } from "@/lib/printLayout";
 import type { BookPage, TextBlock } from "@/lib/types";
+import { bookPageShadow, uiColors } from "@/theme/colors";
 import { Box, Button, Typography } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";

@@ -1,8 +1,12 @@
-"use client";
-
-import { toolbarColors, uiColors } from "@/theme/colors";
-
 import { useBook } from "@/context/book";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { usePageDrag } from "@/hooks/usePageDrag";
+import { usePhotoDrag } from "@/hooks/usePhotoDrag";
+import { useSpreads } from "@/hooks/useSpreads";
+import type { PhotoDestination } from "@/lib/photoPlacement";
+import { getSpreadPageIndices } from "@/lib/spreads";
+import type { TextBlock } from "@/lib/types";
+import { toolbarColors, uiColors } from "@/theme/colors";
 import {
     Alert,
     Backdrop,
@@ -38,14 +42,6 @@ import {
     EDITOR_SCROLLBAR_SX,
     EDITOR_SIDEBAR_WIDTH,
 } from "./editorLayout";
-
-import { useAutoScroll } from "@/hooks/useAutoScroll";
-import { usePageDrag } from "@/hooks/usePageDrag";
-import { usePhotoDrag } from "@/hooks/usePhotoDrag";
-import { useSpreads } from "@/hooks/useSpreads";
-import type { PhotoDestination } from "@/lib/photoPlacement";
-import { getSpreadPageIndices } from "@/lib/spreads";
-import type { TextBlock } from "@/lib/types";
 
 const PAGE_GAP = 2;
 // Spreads within this many rows of the current row are always mounted, on
@@ -912,7 +908,8 @@ export default function EditPage() {
                     >
                         <CircularProgress size={24} sx={{ color: "#08C225" }} />
                         <Typography>
-                            Adding photos… {processingProgress}%
+                            {"Adding photos… "}
+                            {processingProgress}%
                         </Typography>
                     </Box>
                 )}

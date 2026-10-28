@@ -158,6 +158,7 @@
         "rust/crates/location/**",
         "rust/crates/locker/**",
         "rust/crates/paste/**",
+        "rust/crates/photobook/**",
         "rust/crates/space/**",
         "web/**"
     ]

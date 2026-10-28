@@ -1,8 +1,9 @@
 import "@fontsource-variable/inter";
 import "@fontsource-variable/outfit";
+import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
 import { makeBlankPage } from "../../src/lib/bookPages";
 import { savePhotoBlob } from "../../src/lib/db";
-import { downloadBlob, exportPngPagesZip } from "../../src/lib/export";
+import { exportPngPagesZip } from "../../src/lib/export";
 import { applyVariant } from "../../src/lib/layouts";
 import { DEFAULT_PRINT_SELECTION } from "../../src/lib/printProducts";
 
@@ -35,6 +36,6 @@ document.querySelector("#export")!.addEventListener("click", async () => {
     pages[1]!.slots = applyVariant("1-moderate", ["fixture"]);
     pages[1]!.topCaption = "Caption check";
     const zip = await exportPngPagesZip(pages, DEFAULT_PRINT_SELECTION);
-    downloadBlob(zip, "pages.zip");
+    saveAsFileAndRevokeObjectURL(URL.createObjectURL(zip), "pages.zip");
     status.textContent = "Done";
 });

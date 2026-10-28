@@ -1,127 +1,38 @@
-import { base58Decode } from "./base58";
-import { bytesToBase64 } from "./base64";
+import bs58 from "bs58";
 
-const DEFAULT_API_ORIGIN = "https://api.ente.io";
-const DEFAULT_ALBUMS_ORIGIN = "https://public-albums.ente.io";
-
-export interface ParsedEnteAlbumUrl {
-    accessToken: string;
-    collectionKey: string;
-    apiOrigins: string[];
-    albumsOrigin: string;
-}
-
-export function parseEnteAlbumUrl(input: string): ParsedEnteAlbumUrl {
-    const trimmed = input.trim();
+export function parseEnteAlbumUrl(input: string) {
     let url: URL;
     try {
-        url = new URL(trimmed);
+        url = new URL(input.trim());
     } catch {
         throw new Error("That doesn't look like a valid URL.");
     }
-
+    if (url.protocol !== "https:" && url.protocol !== "http:")
+        throw new Error("Album links must use HTTP or HTTPS.");
     const accessToken = url.searchParams.get("t");
-    if (!accessToken) {
+    if (!accessToken)
         throw new Error("Album link is missing the access token (?t=…).");
-    }
-
-    const hash = url.hash.replace(/^#/, "");
-    if (!hash) {
+    const hash = url.hash.slice(1);
+    if (!hash)
         throw new Error(
             "Album link is missing the decryption key (the #… at the end).",
         );
-    }
-
-    let keyBytes: Uint8Array;
+    let bytes: Uint8Array;
     try {
-        keyBytes = hash.length < 50 ? base58Decode(hash) : fromHex(hash);
-    } catch (e) {
+        if (hash.length < 50) bytes = bs58.decode(hash);
+        else {
+            if (!/^[0-9a-f]{64}$/i.test(hash))
+                throw new Error("Expected a 64-character hexadecimal key.");
+            bytes = Uint8Array.from(hash.match(/../g)!, (pair) =>
+                parseInt(pair, 16),
+            );
+        }
+    } catch (cause) {
+        throw new Error("Album decryption key is malformed.", { cause });
+    }
+    if (bytes.length !== 32)
         throw new Error(
-            `Album decryption key is malformed: ${e instanceof Error ? e.message : String(e)}`,
-            { cause: e },
+            `Album decryption key has wrong length: expected 32 bytes, got ${bytes.length}.`,
         );
-    }
-    if (keyBytes.length !== 32) {
-        throw new Error(
-            `Album decryption key has wrong length: expected 32 bytes, got ${keyBytes.length}.`,
-        );
-    }
-
-    const { apiOrigins, albumsOrigin } = resolveOrigins(url);
-
-    return {
-        accessToken,
-        collectionKey: bytesToBase64(keyBytes),
-        apiOrigins,
-        albumsOrigin,
-    };
-}
-
-function resolveOrigins(url: URL): {
-    apiOrigins: string[];
-    albumsOrigin: string;
-} {
-    const configuredApiOrigin = sanitizeOrigin(
-        process.env.NEXT_PUBLIC_ENTE_API_ENDPOINT,
-    );
-    const configuredAlbumsOrigin = sanitizeOrigin(
-        process.env.NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT,
-    );
-    const inputOrigin = sanitizeOrigin(url.origin)!;
-    const isHosted = isDefaultHostedAlbumsHost(url.hostname);
-    const siblingApiOrigin = isHosted ? undefined : inferSiblingApiOrigin(url);
-
-    const apiOrigins = uniqueOrigins([
-        configuredAlbumsOrigin && configuredAlbumsOrigin === inputOrigin
-            ? configuredApiOrigin
-            : undefined,
-        isHosted ? DEFAULT_API_ORIGIN : undefined,
-        siblingApiOrigin,
-        !isHosted ? inputOrigin : undefined,
-        configuredApiOrigin,
-        DEFAULT_API_ORIGIN,
-    ]);
-
-    return {
-        apiOrigins,
-        albumsOrigin: isHosted ? DEFAULT_ALBUMS_ORIGIN : inputOrigin,
-    };
-}
-
-function inferSiblingApiOrigin(url: URL): string | undefined {
-    const labels = url.hostname.split(".");
-    if (labels.length < 2) return undefined;
-
-    labels[0] = "api";
-
-    return `${url.protocol}//${labels.join(".")}${url.port ? `:${url.port}` : ""}`;
-}
-
-function sanitizeOrigin(origin: string | undefined): string | undefined {
-    return origin?.replace(/\/+$/, "");
-}
-
-function uniqueOrigins(origins: (string | undefined)[]): string[] {
-    return Array.from(
-        new Set(origins.filter((origin): origin is string => !!origin)),
-    );
-}
-
-function isDefaultHostedAlbumsHost(host: string): boolean {
-    return (
-        host === "albums.ente.com" ||
-        host === "albums.ente.io" ||
-        host === "public-albums.ente.io"
-    );
-}
-
-function fromHex(hex: string): Uint8Array {
-    if (hex.length % 2 !== 0) throw new Error("hex string has odd length");
-    const out = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < out.length; i++) {
-        const byte = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-        if (Number.isNaN(byte)) throw new Error("invalid hex character");
-        out[i] = byte;
-    }
-    return out;
+    return { accessToken, collectionKey: btoa(String.fromCharCode(...bytes)) };
 }

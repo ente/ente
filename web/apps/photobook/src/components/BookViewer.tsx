@@ -1,5 +1,3 @@
-"use client";
-
 import { useBook } from "@/context/book";
 import { getPrintBinding } from "@/lib/printProducts";
 import { clipSoftcoverInsidePages } from "@/lib/softcoverPreview";

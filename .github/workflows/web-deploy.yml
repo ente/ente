@@ -132,3 +132,10 @@ jobs:
                   app: ensu
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy photobook
+              uses: ./.github/actions/deploy-web-app
+              with:
+                  app: photobook
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

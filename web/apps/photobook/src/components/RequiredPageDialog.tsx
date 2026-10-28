@@ -1,5 +1,3 @@
-"use client";
-
 import { accentGreen, accentGreenHover } from "@/theme/buttons";
 import { uiColors } from "@/theme/colors";
 import {

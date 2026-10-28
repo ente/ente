@@ -1,8 +1,5 @@
-"use client";
-
-import { pageMenuColors, popupShadow, uiColors } from "@/theme/colors";
-
 import { MAX_PAGE_PHOTOS } from "@/lib/photoPlacement";
+import { pageMenuColors, popupShadow, uiColors } from "@/theme/colors";
 import { IconButton, Menu, MenuItem } from "@mui/material";
 import { useState } from "react";
 import {

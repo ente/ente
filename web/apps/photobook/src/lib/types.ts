@@ -5,8 +5,7 @@ export type PhotoOriginalStatus = "pending" | "ready" | "failed";
 type EnteOriginalMediaKind = "image" | "live-photo";
 
 interface EntePhotoOriginalData {
-    apiOrigin: string;
-    albumsOrigin: string;
+    downloadOrigin: string;
     accessToken: string;
     accessTokenJWT?: string;
     enteFileId: number;

@@ -1,5 +1,3 @@
-"use client";
-
 import type { BookPage } from "@/lib/types";
 import { accentGreen, accentGreenHover } from "@/theme/buttons";
 import {

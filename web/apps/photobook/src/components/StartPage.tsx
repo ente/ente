@@ -1,9 +1,7 @@
-"use client";
-
 import { useBook } from "@/context/book";
 import { usePhotoImport } from "@/hooks/usePhotoImport";
 import { Alert, Box, Button, TextField, Typography } from "@mui/material";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { useEffect } from "react";
 import NavBar from "./NavBar";
 
@@ -11,7 +9,7 @@ export default function StartPage() {
     const router = useRouter();
     const { loading } = useBook();
     useEffect(() => {
-        router.prefetch("/app");
+        void router.prefetch("/app");
     }, [router]);
     const {
         fileInputRef,

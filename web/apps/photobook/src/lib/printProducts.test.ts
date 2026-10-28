@@ -7,7 +7,6 @@ import {
     getBindingPrintSelection,
     getPrintBinding,
     getPrintExportError,
-    isPrintSelection,
     preparePrintExport,
     PRINT_PRODUCTS,
     PrintExportValidationError,
@@ -99,10 +98,8 @@ test("moving an old back-cover photo inside is included before checking the maxi
 test("every print product accepts only 210 mm square pages", () => {
     for (const product of PRINT_PRODUCTS) {
         assert.deepEqual(product.sizesMm, [210]);
-        assert.ok(isPrintSelection({ productId: product.id, sizeMm: 210 }));
         for (const sizeMm of [0, 209, 211, NaN, Infinity]) {
             const selection = { productId: product.id, sizeMm };
-            assert.equal(isPrintSelection(selection), false);
             assert.match(
                 getPrintExportError(selection, 24)!,
                 /Only 210 × 210 mm books are supported/,
@@ -112,16 +109,6 @@ test("every print product accepts only 210 mm square pages", () => {
                 PrintExportValidationError,
             );
         }
-    }
-    for (const value of [
-        undefined,
-        null,
-        {},
-        { productId: "unknown", sizeMm: 210 },
-        { productId: "softcover-gloss-150" },
-        { ...DEFAULT_PRINT_SELECTION, sizeMm: "210" },
-    ]) {
-        assert.equal(isPrintSelection(value), false);
     }
     assert.match(
         getPrintExportError(

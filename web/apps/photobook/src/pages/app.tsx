@@ -1,5 +1,3 @@
-"use client";
-
 import { Box, CircularProgress } from "@mui/material";
 import dynamic from "next/dynamic";
 

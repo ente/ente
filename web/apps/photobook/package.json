@@ -1,76 +1,30 @@
 {
-    "name": "ente-photobook",
-    "version": "0.1.0",
+    "name": "photobook",
+    "version": "0.0.0",
     "private": true,
     "scripts": {
-        "build": "next build --webpack",
-        "check:comments": "node scripts/check-comments.mts",
-        "check:unused": "knip --include files,exports,types,dependencies",
-        "dev": "next dev --webpack",
-        "format": "prettier --write .",
-        "format:check": "prettier --check .",
-        "lint": "npm run format:check && npm run lint:code && npm run check:unused && npm run check:comments",
-        "lint:code": "eslint --max-warnings 0",
         "test": "vitest --run",
-        "test:browser": "npm run build && playwright test",
-        "typecheck": "tsc --noEmit"
-    },
-    "browserslist": [
-        "last 2 Chrome versions",
-        "last 2 Firefox versions",
-        "last 2 Safari versions",
-        "last 2 Edge versions"
-    ],
-    "overrides": {
-        "eslint-plugin-react": {
-            "eslint": "$eslint"
-        }
+        "test:browser": "playwright test"
     },
     "dependencies": {
-        "@emotion/cache": "11.14.0",
-        "@emotion/react": "11.14.0",
-        "@emotion/styled": "11.14.1",
-        "@fontsource-variable/inter": "5.3.0",
-        "@fontsource-variable/outfit": "5.3.0",
         "@fontsource/gochi-hand": "5.3.0",
         "@hugeicons/core-free-icons": "4.3.5",
         "@hugeicons/react": "1.1.10",
-        "@imagemagick/magick-wasm": "0.0.40",
-        "@mui/material": "9.4.0",
-        "@mui/material-nextjs": "9.4.0",
-        "exifr": "7.1.3",
-        "heic2any": "0.0.4",
+        "bs58": "6.0.0",
+        "ente-base": "*",
+        "ente-gallery": "*",
+        "ente-media": "*",
+        "ente-photobook-wasm": "*",
         "jszip": "3.10.2",
         "konva": "9.3.22",
-        "localforage": "1.10.0",
-        "next": "16.4.2",
         "page-flip": "2.0.7",
-        "react": "19.3.0",
-        "react-dom": "19.3.0",
         "react-konva": "19.2.3"
     },
     "devDependencies": {
-        "@eslint/compat": "2.1.1",
-        "@eslint/js": "10.0.1",
         "@playwright/test": "1.64.1",
-        "@types/node": "24.19.2",
-        "@types/react": "19.3.0",
-        "@types/react-dom": "19.3.0",
-        "eslint": "10.12.0",
-        "eslint-plugin-react": "7.37.5",
-        "eslint-plugin-react-hooks": "7.1.1",
-        "eslint-plugin-react-refresh": "0.5.7",
-        "knip": "6.41.0",
-        "prettier": "3.9.9",
-        "prettier-plugin-organize-imports": "4.3.0",
-        "prettier-plugin-packagejson": "3.0.2",
-        "typescript": "6.0.3",
-        "typescript-eslint": "8.61.0",
+        "ente-build-config": "*",
         "vite": "8.3.4",
+        "vite-plugin-wasm": "3.6.0",
         "vitest": "5.0.4"
-    },
-    "packageManager": "npm@11.12.1",
-    "engines": {
-        "node": ">=24 <25"
     }
 }

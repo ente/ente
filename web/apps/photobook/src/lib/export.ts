@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import { BOOK_SIZE_MM } from "./bookFormats";
 import { getPhotoBlob } from "./db";
-import { createPdfX4, renderCanvasToFogra39Jpeg } from "./pdfx";
+import { createPdfWriter } from "./pdfx";
 import {
     CAPTION_FONT_WEIGHT,
     CENTER_TEXT_FONT_WEIGHT,
@@ -257,12 +257,6 @@ export async function renderPageToCanvas(
     return canvas;
 }
 
-function pdfBytesToBlob(pdfBytes: Uint8Array): Blob {
-    const pdfArrayBuffer = new ArrayBuffer(pdfBytes.byteLength);
-    new Uint8Array(pdfArrayBuffer).set(pdfBytes);
-    return new Blob([pdfArrayBuffer], { type: "application/pdf" });
-}
-
 export async function exportPdfX4Pages(
     inputPages: BookPage[],
     selection: PrintSelection,
@@ -271,9 +265,8 @@ export async function exportPdfX4Pages(
     const pages = preparePrintExport(inputPages, selection);
     const pageSize = getPageRenderSize();
     const resolver = createPhotoUrlResolver();
+    const writer = await createPdfWriter(pageSize);
     try {
-        const pageJpegs: Uint8Array[] = [];
-
         for (const [i, page] of pages.entries()) {
             const canvas = await renderPageToCanvas(
                 page,
@@ -284,21 +277,17 @@ export async function exportPdfX4Pages(
                 i === 0,
             );
 
-            pageJpegs.push(await renderCanvasToFogra39Jpeg(canvas));
+            await writer.addPage(canvas);
             onProgress?.(Math.round(((i + 1) / pages.length) * 95));
             // Give React and the browser a turn to paint progress between expensive pages.
             await new Promise<void>((resolve) => setTimeout(resolve, 0));
         }
 
-        const pdfBytes = await createPdfX4(pageJpegs, {
-            widthMm: pageSize.widthMm,
-            heightMm: pageSize.heightMm,
-            widthPx: pageSize.widthPx,
-            heightPx: pageSize.heightPx,
-        });
+        const pdf = await writer.finish();
         onProgress?.(100);
-        return pdfBytesToBlob(pdfBytes);
+        return pdf;
     } finally {
+        writer.dispose();
         resolver.revokeAll();
     }
 }
@@ -338,15 +327,4 @@ export async function exportPngPagesZip(
     } finally {
         resolver.revokeAll();
     }
-}
-
-export function downloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
 }

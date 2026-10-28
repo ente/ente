@@ -1,5 +1,3 @@
-"use client";
-
 import { useBook } from "@/context/book";
 import { getBindingPrintSelection, getPrintBinding } from "@/lib/printProducts";
 import { accentGreen } from "@/theme/buttons";
