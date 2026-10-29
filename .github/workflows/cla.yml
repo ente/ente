@@ -1,0 +1,139 @@
+name: CLA
+
+on:
+    pull_request_target:
+        branches: [main]
+        types: [opened, synchronize, reopened, edited]
+    status:
+
+permissions:
+    contents: read
+    pull-requests: read
+    statuses: write
+
+jobs:
+    cla:
+        name: Evaluate CLA
+        if: >-
+            github.repository == 'ente/ente' &&
+            (github.event_name == 'pull_request_target' || github.event.context == 'license/cla')
+        runs-on: ubuntu-latest
+        concurrency:
+            group: cla-${{ github.event.pull_request.head.sha || github.event.sha }}
+            cancel-in-progress: false
+        steps:
+            - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+              with:
+                  script: |
+                      const coveredUsers = new Map([
+                          [254676, "ua741"],
+                          [1161789, "vishnukvmd"],
+                          [2698932, "anandbaburajan"],
+                          [24503581, "mnvr"],
+                          [41898282, "github-actions[bot]"],
+                          [58779643, "crowdin-bot"],
+                          [64626875, "AswinAsok"],
+                          [77285023, "ashilkn"],
+                          [81471280, "laurenspriem"],
+                          [113718372, "setalp"],
+                          [118678415, "r4khul"],
+                          [118880285, "Jishnuraj9"],
+                          [146618155, "AmanRajSinghMourya"],
+                          [157287863, "vijayadithyanpj"],
+                          [231175576, "neeraj-pilot"],
+                          [236760864, "Shanthy17"],
+                          [239996999, "laurens-pilot"],
+                          [281837475, "aman-pilot"],
+                          [290690209, "ente-ci[bot]"],
+                          [293300083, "ashil-pilot"],
+                          [327484853, "ente-approver[bot]"],
+                          [341794418, "ente-agent[bot]"],
+                      ]);
+                      const repo = context.repo;
+                      const sha = context.payload.pull_request?.head.sha ?? context.payload.sha;
+                      const pulls = context.payload.pull_request
+                          ? [context.payload.pull_request]
+                          : await github.paginate(github.rest.pulls.list, {
+                              ...repo,
+                              state: "open",
+                              base: "main",
+                              per_page: 100,
+                          });
+
+                      pulls: for (const pr of pulls) {
+                          if (pr.state !== "open" || pr.base.ref !== "main" || pr.head.sha !== sha) continue;
+
+                          let covered = coveredUsers.has(pr.user.id);
+                          let cursor = null;
+                          let baseSha = null;
+                          let commitsSeen = 0;
+                          while (covered) {
+                              const { repository: { pullRequest: pull } } = await github.graphql(`
+                                  query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                                      repository(owner: $owner, name: $repo) {
+                                          pullRequest(number: $number) {
+                                              headRefOid
+                                              baseRefOid
+                                              baseRefName
+                                              state
+                                              commits(first: 100, after: $cursor) {
+                                                  totalCount
+                                                  pageInfo { hasNextPage endCursor }
+                                                  nodes {
+                                                      commit {
+                                                          authors(first: 100) {
+                                                              totalCount
+                                                              nodes { user { databaseId } }
+                                                          }
+                                                      }
+                                                  }
+                                              }
+                                          }
+                                      }
+                                  }
+                              `, { ...repo, number: pr.number, cursor });
+                              if (pull.headRefOid !== sha || pull.baseRefName !== "main" || pull.state !== "OPEN") continue pulls;
+                              baseSha ??= pull.baseRefOid;
+                              if (pull.baseRefOid !== baseSha) {
+                                  covered = false;
+                                  break;
+                              }
+
+                              const { commits } = pull;
+                              commitsSeen += commits.nodes.length;
+                              covered = commits.nodes.every(({ commit: { authors } }) =>
+                                  authors.totalCount > 0 &&
+                                  authors.nodes.length === authors.totalCount &&
+                                  authors.nodes.every(({ user }) => coveredUsers.has(user?.databaseId)));
+                              if (!commits.pageInfo.hasNextPage) {
+                                  covered &&= commitsSeen > 0 && commitsSeen === commits.totalCount;
+                                  break;
+                              }
+                              cursor = commits.pageInfo.endCursor;
+                          }
+
+                          let state = "success";
+                          let description = "All contributors are covered by the allowlist.";
+                          let targetUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+                          if (!covered) {
+                              const statuses = await github.paginate(
+                                  github.rest.repos.getCombinedStatusForRef,
+                                  { ...repo, ref: sha, per_page: 100 },
+                                  ({ data }) => data.statuses,
+                              );
+                              const cla = statuses.find((status) => status.context === "license/cla");
+                              state = cla?.state ?? "pending";
+                              description = cla?.description ?? "Waiting for CLA Assistant to report a result.";
+                              targetUrl = cla?.target_url ?? `https://cla-assistant.io/${repo.owner}/${repo.repo}?pullRequest=${pr.number}`;
+                          }
+
+                          core.info(`PR #${pr.number}: ${description}`);
+                          await github.rest.repos.createCommitStatus({
+                              ...repo,
+                              sha,
+                              context: "CLA required",
+                              state,
+                              description,
+                              target_url: targetUrl,
+                          });
+                      }

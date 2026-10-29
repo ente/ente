@@ -26,14 +26,16 @@ jobs:
                           state: "open",
                           per_page: 100,
                       })) {
-                          const { data: { statuses } } = await github.rest.repos.getCombinedStatusForRef({
-                              ...repo,
-                              ref: pr.head.sha,
-                          });
+                          const statuses = await github.paginate(
+                              github.rest.repos.getCombinedStatusForRef,
+                              { ...repo, ref: pr.head.sha, per_page: 100 },
+                              ({ data }) => data.statuses,
+                          );
                           const cla = statuses.find((status) => status.context === "license/cla");
+                          const required = statuses.find((status) => status.context === "CLA required");
                           const pending = pr.labels.some((label) => label.name === "pending-cla");
 
-                          if (cla?.state === "success") {
+                          if (required?.state === "success" || cla?.state === "success") {
                               if (pending) {
                                   await github.rest.issues.removeLabel({
                                       ...repo,
@@ -44,6 +46,7 @@ jobs:
                               continue;
                           }
                           if (cla?.state !== "pending") continue;
+                          if (pr.base.ref === "main" && required?.state !== "pending") continue;
 
                           if (!pending) {
                               await github.rest.issues.addLabels({
