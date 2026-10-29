@@ -2924,6 +2924,16 @@
       "title": "WYZE"
     },
     {
+      "title": "X Networks",
+      "slug": "xnetworks",
+      "hex": "00FF66",
+      "altNames": [
+        "xnetworks",
+        "xnet",
+        "sidekick"
+      ]
+    },
+    {
       "title": "xAI",
       "slug": "xai",
       "hex": "000000"
