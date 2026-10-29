@@ -105,7 +105,6 @@ interface UploadProps {
     uploadTypeSelectorIntent: UploadTypeSelectorIntent;
     activeCollection?: Collection;
     closeUploadTypeSelector: () => void;
-    setLoading: (loading: boolean) => void;
     setShouldDisableDropzone: (value: boolean) => void;
     showCollectionSelector?: () => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
@@ -192,7 +191,12 @@ export const Upload: React.FC<UploadProps> = ({
     ...props
 }) => {
     const { showMiniDialog, onGenericError } = useBaseContext();
-    const { showNotification, watchFolderView } = usePhotosAppContext();
+    const {
+        showNotification,
+        watchFolderView,
+        showLoadingBar,
+        hideLoadingBar,
+    } = usePhotosAppContext();
     const { isInternalUser } = useSettingsSnapshot();
 
     const [uploadProgressView, setUploadProgressView] = useState(false);
@@ -476,7 +480,7 @@ export const Upload: React.FC<UploadProps> = ({
 
         uploadRunning.current = true;
         props.closeUploadTypeSelector();
-        props.setLoading(true);
+        showLoadingBar();
 
         // Do not reuse a confirmation from an earlier selection.
         setUploadConfirmation(undefined);
@@ -496,7 +500,7 @@ export const Upload: React.FC<UploadProps> = ({
             const importSuggestion = await deriveImportSuggestion(
                 _selectedUploadType,
                 prunedItemAndPaths,
-            );
+            ).finally(hideLoadingBar);
 
             if (uploadItemsAndPaths.current !== prunedItemAndPaths) return;
 
@@ -504,8 +508,6 @@ export const Upload: React.FC<UploadProps> = ({
 
             log.debug(() => ["Upload request", uploadItemsAndPaths.current]);
             log.debug(() => ["Import suggestion", importSuggestion]);
-
-            props.setLoading(false);
 
             if (isPendingDesktopUpload.current) {
                 isPendingDesktopUpload.current = false;

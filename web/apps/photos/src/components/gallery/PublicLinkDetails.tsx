@@ -26,6 +26,7 @@ import {
     removePublicLink,
     updateCollectionDetails,
 } from "ente-new/photos/services/collection";
+import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { openURL } from "ente-new/photos/utils/web";
 import { t } from "i18next";
 import { useState } from "react";
@@ -37,7 +38,6 @@ interface PublicLinkDetailsProps {
     coverFile?: EnteFile;
     files: EnteFile[];
     user: LocalUser;
-    setBlockingLoad: (value: boolean) => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
 }
 
@@ -47,10 +47,10 @@ export const PublicLinkDetails = ({
     coverFile,
     files,
     user,
-    setBlockingLoad,
     onRemotePull,
 }: PublicLinkDetailsProps) => {
     const { onGenericError } = useBaseContext();
+    const { showLoadingBar, hideLoadingBar } = usePhotosAppContext();
     const { show: showPickCoverPhoto, props: pickCoverPhotoVisibilityProps } =
         useModalVisibility();
     const { customDomain } = useSettingsSnapshot();
@@ -91,7 +91,7 @@ export const PublicLinkDetails = ({
     };
 
     const handleRemovePublicLink = async () => {
-        setBlockingLoad(true);
+        showLoadingBar();
         setRemoveLinkError("");
         try {
             await removePublicLink(collection);
@@ -101,7 +101,7 @@ export const PublicLinkDetails = ({
             log.error("Failed to remove public link", e);
             setRemoveLinkError(t("generic_error"));
         } finally {
-            setBlockingLoad(false);
+            hideLoadingBar();
         }
     };
 
@@ -279,7 +279,6 @@ export const PublicLinkDetails = ({
                                     publicURL,
                                     setPublicURL,
                                     resolvedURL,
-                                    setBlockingLoad,
                                     onRemotePull,
                                 }}
                             />

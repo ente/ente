@@ -268,7 +268,6 @@ export type CollectionShareProps = ModalVisibilityProps & {
     collectionSummary: CollectionSummary;
     emailByUserID: Map<number, string>;
     shareSuggestionEmails: string[];
-    setBlockingLoad: (value: boolean) => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
     intent?: CollectionShareIntent;
 };
@@ -283,7 +282,6 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
     collectionSummary,
     emailByUserID,
     shareSuggestionEmails,
-    setBlockingLoad,
     onRemotePull,
     intent,
 }) => {
@@ -436,7 +434,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
                     {showPublicShare ? (
                         <PublicShare
                             onRootClose={onClose}
-                            {...{ collection, setBlockingLoad, onRemotePull }}
+                            {...{ collection, onRemotePull }}
                             canManage={isOwner}
                             openManageLink={intent == "manage-link"}
                         />
@@ -1663,15 +1661,11 @@ type PublicShareProps = {
     onRootClose: () => void;
     canManage: boolean;
     openManageLink: boolean;
-} & Pick<
-    CollectionShareProps,
-    "collection" | "setBlockingLoad" | "onRemotePull"
->;
+} & Pick<CollectionShareProps, "collection" | "onRemotePull">;
 
 const PublicShare: React.FC<PublicShareProps> = ({
     collection,
     onRootClose,
-    setBlockingLoad,
     onRemotePull,
     canManage,
     openManageLink,
@@ -1704,7 +1698,6 @@ const PublicShare: React.FC<PublicShareProps> = ({
                     publicURL,
                     setPublicURL,
                     resolvedURL,
-                    setBlockingLoad,
                     onRemotePull,
                 }}
             />
@@ -1807,10 +1800,9 @@ type ManagePublicShareProps = { onRootClose: () => void } & Pick<
     ManagePublicShareOptionsProps,
     "publicURL" | "setPublicURL" | "resolvedURL"
 > &
-    Pick<
-        CollectionShareProps,
-        "collection" | "setBlockingLoad" | "onRemotePull"
-    > & { openOnMount: boolean };
+    Pick<CollectionShareProps, "collection" | "onRemotePull"> & {
+        openOnMount: boolean;
+    };
 
 const ManagePublicShare: React.FC<ManagePublicShareProps> = ({
     onRootClose,
@@ -1818,7 +1810,6 @@ const ManagePublicShare: React.FC<ManagePublicShareProps> = ({
     publicURL,
     setPublicURL,
     resolvedURL,
-    setBlockingLoad,
     onRemotePull,
     openOnMount,
 }) => {
@@ -1895,7 +1886,6 @@ const ManagePublicShare: React.FC<ManagePublicShareProps> = ({
                     publicURL,
                     resolvedURL,
                     setPublicURL,
-                    setBlockingLoad,
                     onRemotePull,
                 }}
             />
@@ -1941,10 +1931,7 @@ type ManagePublicShareOptionsProps = {
     publicURL: PublicURL;
     setPublicURL: (publicURL: PublicURL | undefined) => void;
     resolvedURL: string;
-} & Pick<
-    CollectionShareProps,
-    "collection" | "setBlockingLoad" | "onRemotePull"
-> &
+} & Pick<CollectionShareProps, "collection" | "onRemotePull"> &
     (
         | ({
               variant?: "drawer";
@@ -1956,14 +1943,9 @@ type ManagePublicShareOptionsProps = {
 export const ManagePublicShareOptions: React.FC<
     ManagePublicShareOptionsProps
 > = (props) => {
-    const {
-        collection,
-        publicURL,
-        setPublicURL,
-        resolvedURL,
-        setBlockingLoad,
-        onRemotePull,
-    } = props;
+    const { collection, publicURL, setPublicURL, resolvedURL, onRemotePull } =
+        props;
+    const { showLoadingBar, hideLoadingBar } = usePhotosAppContext();
     const inPanel = !!useContext(SidebarPanelContext);
     const panelRef = useRef<HTMLDivElement>(null);
     const [errorMessage, setErrorMessage] = useState("");
@@ -1996,7 +1978,7 @@ export const ManagePublicShareOptions: React.FC<
     const handlePublicURLUpdate = async (
         updates: UpdatePublicURLAttributes,
     ) => {
-        setBlockingLoad(true);
+        showLoadingBar();
         setErrorMessage("");
         try {
             setPublicURL(await updatePublicURL(collection.id, updates));
@@ -2009,11 +1991,11 @@ export const ManagePublicShareOptions: React.FC<
                 setErrorMessage(t("generic_error"));
             }
         } finally {
-            setBlockingLoad(false);
+            hideLoadingBar();
         }
     };
     const handleRemovePublicLink = async () => {
-        setBlockingLoad(true);
+        showLoadingBar();
         setErrorMessage("");
         try {
             await removePublicLink(collection);
@@ -2032,7 +2014,7 @@ export const ManagePublicShareOptions: React.FC<
             log.error("Failed to remove public link", e);
             setErrorMessage(t("generic_error"));
         } finally {
-            setBlockingLoad(false);
+            hideLoadingBar();
         }
     };
 
@@ -2067,14 +2049,7 @@ export const ManagePublicShareOptions: React.FC<
                           }
                 }
             >
-                <ManageLayout
-                    {...{
-                        collection,
-                        onRootClose,
-                        onRemotePull,
-                        setBlockingLoad,
-                    }}
-                />
+                <ManageLayout {...{ collection, onRootClose, onRemotePull }} />
                 <ManagePublicCollect
                     {...{ publicURL }}
                     onUpdate={handlePublicURLUpdate}

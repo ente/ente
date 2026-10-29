@@ -57,7 +57,7 @@ type GalleryBarAndListHeaderProps = {
 > &
     Pick<
         CollectionShareProps,
-        "user" | "emailByUserID" | "shareSuggestionEmails" | "setBlockingLoad"
+        "user" | "emailByUserID" | "shareSuggestionEmails"
     >;
 
 export const GalleryBarAndListHeader: React.FC<
@@ -70,7 +70,6 @@ export const GalleryBarAndListHeader: React.FC<
     albums,
     activeCollection,
     setActiveCollectionID,
-    setBlockingLoad,
     people,
     onSelectPerson,
     isActiveCollectionDownloadInProgress,
@@ -233,7 +232,6 @@ export const GalleryBarAndListHeader: React.FC<
                             user,
                             emailByUserID,
                             shareSuggestionEmails,
-                            setBlockingLoad,
                             onRemotePull,
                         }}
                     />

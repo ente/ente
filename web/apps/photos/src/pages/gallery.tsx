@@ -81,7 +81,6 @@ import { isDesktop } from "ente-base/app";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { Notification } from "ente-base/components/Notification";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
-import { TranslucentLoadingOverlay } from "ente-base/components/loaders";
 import { errorDialogAttributes } from "ente-base/components/utils/dialog";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
@@ -220,7 +219,6 @@ const Page: React.FC = () => {
         filter: AlbumFilter;
         searchQuery: string;
     }>();
-    const [blockingLoad, setBlockingLoad] = useState(false);
     const [peopleSortBy, setPeopleSortBy] =
         useState<PeopleSortBy>("count-desc");
     const [shouldDisableDropzone, setShouldDisableDropzone] = useState(false);
@@ -2149,7 +2147,6 @@ const Page: React.FC = () => {
                 }
                 onDrop={setDragAndDropFiles}
             >
-                {blockingLoad && <TranslucentLoadingOverlay />}
                 <CollectionSelector
                     open={openCollectionSelector}
                     onClose={handleCloseCollectionSelector}
@@ -2305,7 +2302,6 @@ const Page: React.FC = () => {
                                     activePerson,
                                     collectionSummary,
                                     people,
-                                    setBlockingLoad,
                                     setFileListHeader,
                                     hasActiveFileSelection,
                                     isActiveCollectionDownloadInProgress,
@@ -2350,7 +2346,6 @@ const Page: React.FC = () => {
                                 }
                                 files={selectedLinkFiles}
                                 user={user}
-                                setBlockingLoad={setBlockingLoad}
                                 onRemotePull={remotePull}
                                 coverFile={selectedLinkSummary?.coverFile}
                             />
@@ -2494,7 +2489,6 @@ const Page: React.FC = () => {
                         null,
                         false,
                     )}
-                    setLoading={setBlockingLoad}
                     setShouldDisableDropzone={setShouldDisableDropzone}
                     onRemotePull={remotePull}
                     onRemoteFilesPull={remoteFilesPull}
