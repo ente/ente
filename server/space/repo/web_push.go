@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/base"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/stacktrace"
@@ -40,14 +41,6 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 	`, sessionTokenHash, endpoint); err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	if _, err := tx.ExecContext(ctx, `
-		UPDATE space_web_push_subscriptions
-		SET p256dh = $2, auth = $3
-		WHERE endpoint = $1
-	`, endpoint, p256dh, auth); err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-
 	targetID := base.MustNewID("wpt")
 	if err := tx.QueryRowContext(ctx, `
 		INSERT INTO space_web_push_subscriptions (
@@ -59,8 +52,12 @@ func (r *WebPushRepository) UpsertAccountSubscription(
 			session_token_hash = EXCLUDED.session_token_hash,
 			p256dh = EXCLUDED.p256dh,
 			auth = EXCLUDED.auth
+		WHERE rtrim(space_web_push_subscriptions.auth, '=') = rtrim(EXCLUDED.auth, '=')
 		RETURNING target_id
 	`, targetID, endpoint, sessionTokenHash, p256dh, auth).Scan(&targetID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ente.NewConflictError("web push subscription auth does not match")
+		}
 		return "", stacktrace.Propagate(err, "")
 	}
 	if err := tx.Commit(); err != nil {
@@ -101,14 +98,6 @@ func (r *WebPushRepository) UpsertLinkSubscription(
 	if !endpointExists && subscriptionCount >= spaceWebPushLinkSubscriptionLimit {
 		return "", ErrSpaceWebPushLinkSubscriptionLimit
 	}
-	if _, err := tx.ExecContext(ctx, `
-		UPDATE space_web_push_subscriptions
-		SET p256dh = $2, auth = $3
-		WHERE endpoint = $1
-	`, endpoint, p256dh, auth); err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-
 	targetID := base.MustNewID("wpt")
 	if err := tx.QueryRowContext(ctx, `
 		INSERT INTO space_web_push_subscriptions (
@@ -119,8 +108,12 @@ func (r *WebPushRepository) UpsertLinkSubscription(
 		DO UPDATE SET
 			p256dh = EXCLUDED.p256dh,
 			auth = EXCLUDED.auth
+		WHERE rtrim(space_web_push_subscriptions.auth, '=') = rtrim(EXCLUDED.auth, '=')
 		RETURNING target_id
 	`, targetID, endpoint, activeLinkID, p256dh, auth).Scan(&targetID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ente.NewConflictError("web push subscription auth does not match")
+		}
 		return "", stacktrace.Propagate(err, "")
 	}
 	if err := tx.Commit(); err != nil {
@@ -144,12 +137,12 @@ func (r *WebPushRepository) DeleteAccountSubscription(
 func (r *WebPushRepository) DeleteLinkSubscription(
 	ctx context.Context,
 	linkID int64,
-	endpoint string,
+	endpoint, auth string,
 ) error {
 	_, err := r.DB.ExecContext(ctx, `
 		DELETE FROM space_web_push_subscriptions
-		WHERE link_id = $1 AND endpoint = $2
-	`, linkID, endpoint)
+		WHERE link_id = $1 AND endpoint = $2 AND rtrim(auth, '=') = rtrim($3, '=')
+	`, linkID, endpoint, auth)
 	return stacktrace.Propagate(err, "")
 }
 
