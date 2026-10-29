@@ -165,9 +165,11 @@ Learn more in the [Uncategorized feature guide](/photos/features/albums-and-orga
 
 ### Why can't I share the Uncategorized album? {#share-uncategorized-album}
 
-Uncategorized is a special system album. You cannot share it on its own by email or public link.
+Uncategorized is a special system album. You cannot share it using the regular album **Share** controls or create a public link for it.
 
-To share photos from Uncategorized on mobile:
+If the recipient is on your family plan, you can share Uncategorized on mobile: open `Settings > Family`, select the family member, tap **Share albums**, select Uncategorized, and tap **Share**. It is always shared as Viewer. See [library sharing](/photos/features/sharing-and-collaboration/library-sharing#share-albums).
+
+To share photos with someone outside your family plan or by public link on mobile:
 
 1. If you need a new album, open **Albums > Ente** and tap **Create album**.
 2. Open Uncategorized, select the photos, tap **Add to album**, and choose the album.
