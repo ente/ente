@@ -74,6 +74,7 @@ Jump to a category:
 ### Uncategorized
 
 - [What is the Uncategorized album?](/photos/faq/albums-and-organization#what-is-uncategorized)
+- [Why can't I share the Uncategorized album?](/photos/faq/albums-and-organization#share-uncategorized-album)
 - [Why are photos appearing in Uncategorized?](/photos/faq/albums-and-organization#why-uncategorized)
 - [How do I clean up Uncategorized items?](/photos/faq/albums-and-organization#clean-uncategorized)
 - [Can I delete the Uncategorized album?](/photos/faq/albums-and-organization#delete-uncategorized)

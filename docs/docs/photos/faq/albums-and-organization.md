@@ -163,6 +163,20 @@ You cannot choose Uncategorized as the destination for mobile automatic backup. 
 
 Learn more in the [Uncategorized feature guide](/photos/features/albums-and-organization/uncategorized).
 
+### Why can't I share the Uncategorized album? {#share-uncategorized-album}
+
+Uncategorized is a special system album. You cannot share it on its own by email or public link.
+
+To share photos from Uncategorized on mobile:
+
+1. If you need a new album, open **Albums > Ente** and tap **Create album**.
+2. Open Uncategorized, select the photos, tap **Add to album**, and choose the album.
+3. Open that album and tap **Share**. Enter the email address of someone with an Ente account, or create a public link for someone without one.
+
+On web or desktop, select photos in Uncategorized and choose **Move** to put them in a regular album. Then open that album and use **Share**.
+
+The photos may still appear in Uncategorized. [Clean Uncategorized](#clean-uncategorized) removes them from that section once they are also in an album you own.
+
 ### Why are photos appearing in Uncategorized? {#why-uncategorized}
 
 Photos automatically move to Uncategorized in these situations:
