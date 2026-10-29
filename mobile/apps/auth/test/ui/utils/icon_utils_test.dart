@@ -45,8 +45,13 @@ void main() {
       final title = icon['title'].toString();
       final titleKey = title.replaceAll(' ', '').toLowerCase();
       final slug = icon['slug']?.toString();
-      final canonicalPath = 'assets/custom-icons/icons/${slug ?? titleKey}.svg';
-      _expectAssetExists(canonicalPath, missingAssets);
+      final darkSlug = icon['darkSlug']?.toString();
+      final canonicalLightPath = 'assets/custom-icons/icons/${slug ?? titleKey}.svg';
+      _expectAssetExists(canonicalLightPath, missingAssets);
+      if (darkSlug != null) {
+        final canonicalDarkPath = 'assets/custom-icons/icons/${darkSlug}.svg';
+        _expectAssetExists(canonicalDarkPath, missingAssets);
+      }
     }
 
     expect(missingAssets, isEmpty);

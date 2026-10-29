@@ -1908,6 +1908,11 @@
       "hex": "FFFFFF"
     },
     {
+      "title": "OpenSRS",
+      "slug": "opensrs",
+      "darkSlug": "opensrs-dark"
+    },
+    {
       "title": "Opera",
       "slug": "opera",
       "altNames": [
