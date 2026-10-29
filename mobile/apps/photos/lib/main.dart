@@ -26,6 +26,7 @@ import "package:media_kit/media_kit.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import 'package:path_provider/path_provider.dart';
 import 'package:photos/app.dart';
+import 'package:photos/app_mode.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/error-reporting/super_logging.dart';
@@ -321,6 +322,7 @@ Future<void> _runMinimally(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
+    await _ensureLocalGalleryAppMode(packageInfo);
     MLDataDB.initialize(
       preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
     );
@@ -437,6 +439,13 @@ Future<void> _runMinimally(
   }
 }
 
+Future<void> _ensureLocalGalleryAppMode(PackageInfo packageInfo) async {
+  if (!packageInfo.packageName.split('.').contains('localgallery')) {
+    return;
+  }
+  await localSettings.setAppMode(AppMode.localGallery);
+}
+
 Future<void> _init(
   bool isBackground, {
   String via = '',
@@ -491,6 +500,7 @@ Future<void> _init(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
+    await _ensureLocalGalleryAppMode(packageInfo);
 
     if (!isBackground) {
       await localSettings.migrateGalleryLayoutPreferences();

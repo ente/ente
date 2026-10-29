@@ -110,6 +110,10 @@ android {
             dimension "default"
             applicationIdSuffix ".fdroid"
         }
+        localGallery {
+            dimension "default"
+            applicationIdSuffix ".localgallery"
+        }
     }
 
     packagingOptions {
