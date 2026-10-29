@@ -1,28 +1,31 @@
 import i18n, { t } from "i18next";
 
-// These module-level formatters rely on locale changes doing a full reload.
-const _dateFormat = new Intl.DateTimeFormat(i18n.language, {
+// Created on first use, since this module can load before i18n is initialised.
+const lazyDateTimeFormat = (options: Intl.DateTimeFormatOptions) => {
+    let format: Intl.DateTimeFormat | undefined;
+    return () => (format ??= new Intl.DateTimeFormat(i18n.language, options));
+};
+
+const dateFormat = lazyDateTimeFormat({
     weekday: "short",
     day: "numeric",
     month: "short",
     year: "numeric",
 });
 
-const _dateWithoutWeekdayFormat = new Intl.DateTimeFormat(i18n.language, {
+const dateWithoutWeekdayFormat = lazyDateTimeFormat({
     day: "numeric",
     month: "short",
     year: "numeric",
 });
 
-const _dateWithoutYearFormat = new Intl.DateTimeFormat(i18n.language, {
+const dateWithoutYearFormat = lazyDateTimeFormat({
     weekday: "short",
     day: "numeric",
     month: "short",
 });
 
-const _timeFormat = new Intl.DateTimeFormat(i18n.language, {
-    timeStyle: "short",
-});
+const timeFormat = lazyDateTimeFormat({ timeStyle: "short" });
 
 interface FormattedDateOptions {
     omitWeekdayWhenYearIncluded?: boolean;
@@ -30,16 +33,16 @@ interface FormattedDateOptions {
 
 export const formattedDate = (date: Date, options?: FormattedDateOptions) =>
     (isSameYear(date)
-        ? _dateWithoutYearFormat
+        ? dateWithoutYearFormat()
         : options?.omitWeekdayWhenYearIncluded
-          ? _dateWithoutWeekdayFormat
-          : _dateFormat
+          ? dateWithoutWeekdayFormat()
+          : dateFormat()
     ).format(date);
 
 const isSameYear = (date: Date) =>
     new Date().getFullYear() === date.getFullYear();
 
-export const formattedTime = (date: Date) => _timeFormat.format(date);
+export const formattedTime = (date: Date) => timeFormat().format(date);
 
 export const formattedDateTime = (
     dateOrEpochMicroseconds: Date | number,
