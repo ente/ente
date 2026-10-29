@@ -1,5 +1,6 @@
 import { MAX_PAGE_PHOTOS } from "@/lib/photoPlacement";
-import { pageMenuColors, popupShadow, uiColors } from "@/theme/colors";
+import { pageMenuColors, uiColors } from "@/theme/colors";
+import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { IconButton, Menu, MenuItem } from "@mui/material";
 import { useState } from "react";
 import {
@@ -12,28 +13,6 @@ import {
 import RequiredPageDialog from "./RequiredPageDialog";
 
 export type PageInsertPosition = "before" | "after";
-
-const menuItemSx = {
-    alignItems: "center",
-    borderRadius: "10px",
-    color: pageMenuColors.text,
-    display: "flex",
-    gap: "8px",
-    minHeight: 36,
-    px: "9px",
-    py: "4px",
-    fontSize: 13,
-    fontWeight: 500,
-    lineHeight: "18px",
-    whiteSpace: "nowrap",
-    transition: "background-color 120ms ease, color 120ms ease",
-    "& .MuiSvgIcon-root": { color: pageMenuColors.icon },
-    "&:hover, &.Mui-focusVisible": {
-        bgcolor: pageMenuColors.hover,
-        "& .MuiSvgIcon-root": { color: pageMenuColors.text },
-    },
-    "&:active": { bgcolor: pageMenuColors.active },
-};
 
 interface PageMenuProps {
     pageId: string;
@@ -124,18 +103,7 @@ export default function PageMenu({
                 anchorOrigin={{ vertical: "bottom", horizontal: side }}
                 transformOrigin={{ vertical: "top", horizontal: side }}
                 slotProps={{
-                    paper: {
-                        sx: {
-                            bgcolor: pageMenuColors.background,
-                            backgroundImage: "none",
-                            borderRadius: "14px",
-                            boxShadow: popupShadow,
-                            mt: "6px",
-                            minWidth: 0,
-                            p: "4px",
-                            width: "max-content",
-                        },
-                    },
+                    paper: { sx: pageMenuPaperSx },
                     list: { "aria-labelledby": buttonId, sx: { p: 0 } },
                 }}
             >
@@ -144,7 +112,7 @@ export default function PageMenu({
                         dense
                         disableRipple
                         onClick={() => runAction(onAddPhotos)}
-                        sx={menuItemSx}
+                        sx={pageMenuItemSx}
                     >
                         <EditPhotoIcon sx={{ fontSize: 18, flexShrink: 0 }} />
                         Change cover image
@@ -155,7 +123,7 @@ export default function PageMenu({
                         dense
                         disableRipple
                         onClick={() => runAction(onAddPhotos)}
-                        sx={menuItemSx}
+                        sx={pageMenuItemSx}
                     >
                         <AddPhotosIcon sx={{ fontSize: 18, flexShrink: 0 }} />
                         Add photos
@@ -166,7 +134,7 @@ export default function PageMenu({
                         dense
                         disableRipple
                         onClick={() => runAction(() => onInsert("before"))}
-                        sx={menuItemSx}
+                        sx={pageMenuItemSx}
                     >
                         <AddPageIcon sx={{ fontSize: 18, flexShrink: 0 }} />
                         Insert page before
@@ -177,7 +145,7 @@ export default function PageMenu({
                         dense
                         disableRipple
                         onClick={() => runAction(() => onInsert("after"))}
-                        sx={menuItemSx}
+                        sx={pageMenuItemSx}
                     >
                         <AddPageIcon sx={{ fontSize: 18, flexShrink: 0 }} />
                         Insert page after
@@ -195,7 +163,7 @@ export default function PageMenu({
                             })
                         }
                         sx={{
-                            ...menuItemSx,
+                            ...pageMenuItemSx,
                             color: pageMenuColors.danger,
                             "& .MuiSvgIcon-root": {
                                 color: pageMenuColors.danger,

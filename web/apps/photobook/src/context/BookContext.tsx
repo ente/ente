@@ -59,6 +59,7 @@ import React, {
 } from "react";
 import { BookContext } from "./book";
 
+const MAX_PHOTOS = 650;
 const emptyBook: BookState = { pages: [], currentSpreadIndex: 0 };
 
 function isPendingEnteOriginal(photo: Photo): boolean {
@@ -277,8 +278,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         }
         return next;
     }, [photos]);
-    const pendingEnteOriginalsRef = useRef<Set<string>>(pendingEnteOriginals);
-    pendingEnteOriginalsRef.current = pendingEnteOriginals;
     const activeEnteOriginalDownloadsRef = useRef<Set<string>>(new Set());
     const enteOriginalWaitersRef = useRef<Map<string, (() => void)[]>>(
         new Map(),
@@ -359,6 +358,10 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     const addPhotos = useCallback(
         async (files: File[], options: AddPhotosOptions = {}) => {
             const replace = options.replace ?? false;
+            const skippedByLimit = replace
+                ? Math.max(0, files.length - MAX_PHOTOS)
+                : 0;
+            if (replace) files = files.slice(0, MAX_PHOTOS);
             const destination = options.destination ?? { kind: "end" as const };
             if (!replace) {
                 const error = photoDestinationError(
@@ -491,10 +494,16 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     );
                 }
                 const skipped = files.length - newPhotos.length;
+                const notices: string[] = [];
                 if (skipped > 0)
-                    setImportNotice(
+                    notices.push(
                         `${skipped} photo${skipped === 1 ? "" : "s"} couldn't be imported.`,
                     );
+                if (skippedByLimit > 0)
+                    notices.push(
+                        `${skippedByLimit} photo${skippedByLimit === 1 ? " was" : "s were"} skipped because of the ${MAX_PHOTOS}-photo limit.`,
+                    );
+                setImportNotice(notices.join(" ") || null);
 
                 const allPhotos = replace
                     ? newPhotos
@@ -549,23 +558,22 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             status: PhotoOriginalStatus,
             originalError?: string,
         ) => {
-            setPhotos((prev) =>
-                prev.map((photo) => {
-                    if (photo.id !== photoId || photo.source !== "ente") {
-                        return photo;
-                    }
+            photosRef.current = photosRef.current.map((photo) => {
+                if (photo.id !== photoId || photo.source !== "ente") {
+                    return photo;
+                }
 
-                    const next: Photo = {
-                        ...photo,
-                        originalStatus: status,
-                        originalError,
-                    };
-                    if (status === "ready" || status === "failed") {
-                        next.enteOriginal = undefined;
-                    }
-                    return next;
-                }),
-            );
+                const next: Photo = {
+                    ...photo,
+                    originalStatus: status,
+                    originalError,
+                };
+                if (status === "ready") {
+                    next.enteOriginal = undefined;
+                }
+                return next;
+            });
+            setPhotos(photosRef.current);
             const waiters = enteOriginalWaitersRef.current.get(photoId);
             if (waiters) {
                 enteOriginalWaitersRef.current.delete(photoId);
@@ -587,6 +595,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     }
                     const job = buildEnteOriginalDownloadJob(photo);
                     if (!job) {
+                        activeEnteOriginalDownloadsRef.current.delete(photoId);
                         markEnteOriginalDone(
                             photoId,
                             "failed",
@@ -763,7 +772,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             }
 
             const { credentials, files } = preparation;
-            const MAX_PHOTOS = 800;
             const limited = files.slice(0, MAX_PHOTOS);
             if (files.length > MAX_PHOTOS) {
                 setImportNotice(
@@ -917,28 +925,41 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
     const waitForEnteOriginals = useCallback(
         async (
-            photoIds?: string[],
+            photoIds: string[],
             onProgress?: (done: number, total: number) => void,
         ) => {
-            const requested =
-                photoIds ?? Array.from(pendingEnteOriginalsRef.current);
-            const pending = requested.filter((id) =>
-                pendingEnteOriginalsRef.current.has(id),
+            const requested = new Set(photoIds);
+            const pending = photosRef.current.filter(
+                (photo) =>
+                    requested.has(photo.id) &&
+                    photo.source === "ente" &&
+                    photo.originalStatus !== "ready",
             );
-            if (pending.length === 0) return;
+            if (pending.length === 0) return true;
+            const failedIds = new Set(
+                pending
+                    .filter((photo) => photo.originalStatus === "failed")
+                    .map((photo) => photo.id),
+            );
+            if (failedIds.size > 0) {
+                photosRef.current = photosRef.current.map((photo) =>
+                    failedIds.has(photo.id)
+                        ? {
+                              ...photo,
+                              originalStatus: "pending",
+                              originalError: undefined,
+                          }
+                        : photo,
+                );
+                setPhotos(photosRef.current);
+            }
             const total = pending.length;
             let done = 0;
             onProgress?.(done, total);
             await Promise.all(
                 pending.map(
-                    (id) =>
+                    ({ id }) =>
                         new Promise<void>((resolve) => {
-                            if (!pendingEnteOriginalsRef.current.has(id)) {
-                                done++;
-                                onProgress?.(done, total);
-                                resolve();
-                                return;
-                            }
                             const existing =
                                 enteOriginalWaitersRef.current.get(id) ?? [];
                             existing.push(() => {
@@ -949,6 +970,11 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                             enteOriginalWaitersRef.current.set(id, existing);
                         }),
                 ),
+            );
+            return pending.every(
+                ({ id }) =>
+                    photosRef.current.find((photo) => photo.id === id)
+                        ?.originalStatus === "ready",
             );
         },
         [],
@@ -1413,7 +1439,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             clearImageCache();
 
             photosRef.current = [];
-            pendingEnteOriginalsRef.current = new Set();
             setPhotos([]);
             setThumbnailUrls(new Map());
             setPreviewUrls(new Map());

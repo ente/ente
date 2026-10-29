@@ -8,25 +8,37 @@ describe("public album links", () => {
     test.each(["albums.ente.com", "albums.ente.io", "albums.example.org"])(
         "reads a link on %s without changing the configured API",
         (host) => {
-            expect(
-                parseEnteAlbumUrl(`https://${host}/?t=token#${base58}`),
-            ).toEqual({
-                accessToken: "token",
-                collectionKey: btoa("\0".repeat(32)),
-            });
+            for (const path of ["/?t=token", "/token", "/token/"]) {
+                expect(
+                    parseEnteAlbumUrl(`https://${host}${path}#${base58}`),
+                ).toEqual({
+                    accessToken: "token",
+                    collectionKey: btoa("\0".repeat(32)),
+                });
+            }
         },
     );
-    test("accepts legacy hexadecimal keys", () => {
+    test("prefers the query token when both formats are present", () => {
         expect(
-            parseEnteAlbumUrl(`https://albums.ente.com/?t=token#${hex}`),
-        ).toEqual(
-            parseEnteAlbumUrl(`https://albums.ente.com/?t=token#${base58}`),
-        );
+            parseEnteAlbumUrl(`https://albums.ente.com/path?t=query#${base58}`)
+                .accessToken,
+        ).toBe("query");
     });
+    test.each(["/?t=token", "/token"])(
+        "accepts legacy hexadecimal keys with %s",
+        (path) => {
+            expect(
+                parseEnteAlbumUrl(`https://albums.ente.com${path}#${hex}`),
+            ).toEqual(
+                parseEnteAlbumUrl(`https://albums.ente.com${path}#${base58}`),
+            );
+        },
+    );
     test.each([
         "bad URL",
-        "https://albums.ente.com/#key",
+        `https://albums.ente.com/#${base58}`,
         "https://albums.ente.com/?t=token",
+        "https://albums.ente.com/token",
         `javascript:alert(1)?t=token#${base58}`,
         "https://albums.ente.com/?t=token#111",
         `https://albums.ente.com/?t=token#${"0g".repeat(32)}`,

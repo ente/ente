@@ -24,6 +24,7 @@ export const editorButtonSx = {
 
 export const headerButtonSx = {
     ...editorButtonSx,
+    "@media (max-width: 959px)": { height: 44, minWidth: 44 },
     flexShrink: 0,
     minWidth: { xs: 38, sm: 0 },
     width: "auto",

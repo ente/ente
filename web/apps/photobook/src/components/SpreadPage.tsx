@@ -3,6 +3,7 @@ import type { DragInfo } from "@/hooks/usePhotoDrag";
 import { isRequiredBlankPage } from "@/lib/bookPages";
 import {
     CAPTION_FONT_WEIGHT,
+    CAPTION_TEXT_COLOR,
     CENTER_TEXT_FONT_WEIGHT,
     getCaptionLayout,
     getCenterTextLayout,
@@ -1010,7 +1011,10 @@ export default function SpreadPage({
                             ? CENTER_TEXT_FONT_WEIGHT
                             : CAPTION_FONT_WEIGHT,
                         lineHeight: TEXT_LINE_HEIGHT,
-                        color: "#2a2a2a",
+                        color:
+                            isFrontCover || isBackCover
+                                ? "#2a2a2a"
+                                : CAPTION_TEXT_COLOR,
                         textAlign: "center",
                         boxSizing: "border-box",
                     };
@@ -1055,7 +1059,11 @@ export default function SpreadPage({
                         >
                             <span
                                 style={{
-                                    color: page[key] ? "#2a2a2a" : "#aaa",
+                                    color:
+                                        page[key] ||
+                                        (!isFrontCover && !isBackCover)
+                                            ? "inherit"
+                                            : "#aaa",
                                     pointerEvents: "none",
                                 }}
                             >

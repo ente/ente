@@ -9,9 +9,10 @@ export function parseEnteAlbumUrl(input: string) {
     }
     if (url.protocol !== "https:" && url.protocol !== "http:")
         throw new Error("Album links must use HTTP or HTTPS.");
-    const accessToken = url.searchParams.get("t");
+    const accessToken =
+        url.searchParams.get("t") || url.pathname.split("/").find(Boolean);
     if (!accessToken)
-        throw new Error("Album link is missing the access token (?t=…).");
+        throw new Error("Album link is missing the access token.");
     const hash = url.hash.slice(1);
     if (!hash)
         throw new Error(

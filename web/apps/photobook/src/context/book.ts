@@ -38,9 +38,9 @@ interface BookContextValue {
     clearImportNotice: () => void;
     pendingEnteOriginals: Set<string>;
     waitForEnteOriginals: (
-        photoIds?: string[],
+        photoIds: string[],
         onProgress?: (done: number, total: number) => void,
-    ) => Promise<void>;
+    ) => Promise<boolean>;
 
     book: BookState;
     setBook: Dispatch<SetStateAction<BookState>>;

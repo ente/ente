@@ -219,6 +219,10 @@ class UIService {
         this.progressUpdater.setUploadPhase(phase);
     }
 
+    isPreparing() {
+        return this.uploadProgressView && this.uploadPhase == "preparing";
+    }
+
     setFiles(files: { localID: number; fileName: string }[]) {
         const filenames = new Map(files.map((f) => [f.localID, f.fileName]));
         this.filenames = filenames;
@@ -334,6 +338,14 @@ class UploadManager {
 
     public isUploadRunning() {
         return this.uploadInProgress;
+    }
+
+    public isPreparing() {
+        return this.uiService.isPreparing();
+    }
+
+    public setUploadPhase(phase: UploadPhase) {
+        this.uiService.setUploadPhase(phase);
     }
 
     public prepareForNewUpload(

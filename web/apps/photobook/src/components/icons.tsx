@@ -12,8 +12,6 @@ import {
     FileAddIcon,
     ImageAdd02Icon,
     InformationCircleIcon,
-    Link01Icon,
-    Menu01Icon,
     MoreHorizontalIcon,
     PlayIcon,
     Redo03Icon,
@@ -86,12 +84,6 @@ export const EditIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 );
 export const DownloadIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Download04Icon} />,
-);
-export const LinkIcon = forwardRef<SVGSVGElement, SvgIconProps>(
-    (props, ref) => <AppIcon {...props} ref={ref} icon={Link01Icon} />,
-);
-export const MenuIcon = forwardRef<SVGSVGElement, SvgIconProps>(
-    (props, ref) => <AppIcon {...props} ref={ref} icon={Menu01Icon} />,
 );
 export const MoreIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={MoreHorizontalIcon} />,

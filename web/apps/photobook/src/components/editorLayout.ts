@@ -1,5 +1,8 @@
 import { uiColors } from "@/theme/colors";
 
+export const MOBILE_QUERY = "(max-width: 959px)";
+export const SINGLE_PAGE_QUERY = "(max-width: 599px)";
+
 export const EDITOR_SIDEBAR_WIDTH = { xs: 156, sm: 366 };
 export const EDITOR_CANVAS_PADDING = 16;
 export const EDITOR_HEADER_HEIGHT = { xs: 60, sm: 76 };

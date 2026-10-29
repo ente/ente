@@ -19,8 +19,6 @@ const ACCEPTED_TYPES = [
     "image/heif",
 ];
 
-const MAX_PHOTOS = 800;
-
 type EnteDialogStage = "closed" | "url" | "password";
 
 function usePhotoImportSession() {
@@ -139,20 +137,18 @@ function usePhotoImportSession() {
 
     const handleFiles = useCallback(
         async (files: FileList | File[]) => {
-            const valid = Array.from(files)
-                .filter((f) => {
-                    const ext = f.name.toLowerCase().split(".").pop();
-                    return (
-                        ACCEPTED_TYPES.includes(f.type) ||
-                        ext === "heic" ||
-                        ext === "heif" ||
-                        ext === "jpg" ||
-                        ext === "jpeg" ||
-                        ext === "png" ||
-                        ext === "webp"
-                    );
-                })
-                .slice(0, MAX_PHOTOS);
+            const valid = Array.from(files).filter((f) => {
+                const ext = f.name.toLowerCase().split(".").pop();
+                return (
+                    ACCEPTED_TYPES.includes(f.type) ||
+                    ext === "heic" ||
+                    ext === "heif" ||
+                    ext === "jpg" ||
+                    ext === "jpeg" ||
+                    ext === "png" ||
+                    ext === "webp"
+                );
+            });
 
             if (valid.length > 0) {
                 if (!beginImport()) return;

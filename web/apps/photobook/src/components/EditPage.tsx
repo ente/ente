@@ -26,10 +26,8 @@ import React, {
 } from "react";
 import AddPageDialog from "./AddPageDialog";
 import AddPhotosDialog from "./AddPhotosDialog";
-import BookBindingSelect from "./BookBindingSelect";
 import BookHeader from "./BookHeader";
 import EditorActions, { EditorPreviewButton } from "./EditorActions";
-import EmptyBookState from "./EmptyBookState";
 import type { PageInsertPosition } from "./PageMenu";
 import PageStrip from "./PageStrip";
 import PrinterBlankPage from "./PrinterBlankPage";
@@ -413,7 +411,6 @@ export default function EditPage() {
             }}
         >
             <BookHeader showBookControls={pages.length > 0}>
-                <BookBindingSelect />
                 <EditorPreviewButton />
             </BookHeader>
 
@@ -482,307 +479,293 @@ export default function EditPage() {
                             ...EDITOR_SCROLLBAR_SX,
                         }}
                     >
-                        {pages.length === 0 ? (
-                            <EmptyBookState />
-                        ) : (
-                            containerWidth > 0 && (
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                        px: `${EDITOR_CANVAS_PADDING}px`,
-                                        pt: 4,
-                                        pb: {
-                                            xs: "calc(144px + env(safe-area-inset-bottom))",
-                                            sm: "calc(96px + env(safe-area-inset-bottom))",
-                                        },
-                                        gap: 3,
-                                    }}
-                                >
-                                    {spreads.map((spread, spreadIdx) => {
-                                        const isVisible =
-                                            visibleSpreads.has(spreadIdx) ||
-                                            Math.abs(
-                                                spreadIdx - currentSpreadRow,
-                                            ) <= NEIGHBORHOOD_RADIUS;
-                                        const leftIndex =
-                                            typeof spread.left === "number"
-                                                ? spread.left
-                                                : null;
-                                        const rightIndex =
-                                            typeof spread.right === "number"
-                                                ? spread.right
-                                                : null;
-                                        const lp =
-                                            leftIndex !== null
-                                                ? pages[leftIndex]
-                                                : null;
-                                        const rp =
-                                            rightIndex !== null
-                                                ? pages[rightIndex]
-                                                : null;
+                        {containerWidth > 0 && (
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    px: `${EDITOR_CANVAS_PADDING}px`,
+                                    pt: 4,
+                                    pb: {
+                                        xs: "calc(144px + env(safe-area-inset-bottom))",
+                                        sm: "calc(96px + env(safe-area-inset-bottom))",
+                                    },
+                                    gap: 3,
+                                }}
+                            >
+                                {spreads.map((spread, spreadIdx) => {
+                                    const isVisible =
+                                        visibleSpreads.has(spreadIdx) ||
+                                        Math.abs(
+                                            spreadIdx - currentSpreadRow,
+                                        ) <= NEIGHBORHOOD_RADIUS;
+                                    const leftIndex =
+                                        typeof spread.left === "number"
+                                            ? spread.left
+                                            : null;
+                                    const rightIndex =
+                                        typeof spread.right === "number"
+                                            ? spread.right
+                                            : null;
+                                    const lp =
+                                        leftIndex !== null
+                                            ? pages[leftIndex]
+                                            : null;
+                                    const rp =
+                                        rightIndex !== null
+                                            ? pages[rightIndex]
+                                            : null;
 
-                                        return (
-                                            <Box
-                                                key={spreadIdx}
-                                                ref={spreadRefCallback(
-                                                    spreadIdx,
+                                    return (
+                                        <Box
+                                            key={spreadIdx}
+                                            ref={spreadRefCallback(spreadIdx)}
+                                            data-spread-index={spreadIdx}
+                                            sx={{
+                                                display: "flex",
+                                                gap: `${PAGE_GAP}px`,
+                                                alignItems: "start",
+                                                width:
+                                                    PICKER_WIDTH +
+                                                    pageWidth * 2 +
+                                                    PAGE_GAP +
+                                                    PICKER_WIDTH,
+                                                justifyContent:
+                                                    spread.left !== null
+                                                        ? "flex-start"
+                                                        : "flex-end",
+                                                minHeight: pageHeight,
+                                            }}
+                                        >
+                                            {isVisible &&
+                                                spread.left ===
+                                                    "printer-blank" && (
+                                                    <Box
+                                                        sx={{
+                                                            pl: `${PICKER_WIDTH}px`,
+                                                        }}
+                                                    >
+                                                        <PrinterBlankPage
+                                                            width={pageWidth}
+                                                            height={pageHeight}
+                                                            showLabel
+                                                        />
+                                                    </Box>
                                                 )}
-                                                data-spread-index={spreadIdx}
-                                                sx={{
-                                                    display: "flex",
-                                                    gap: `${PAGE_GAP}px`,
-                                                    alignItems: "start",
-                                                    width:
-                                                        PICKER_WIDTH +
-                                                        pageWidth * 2 +
-                                                        PAGE_GAP +
-                                                        PICKER_WIDTH,
-                                                    justifyContent:
-                                                        spread.left !== null
-                                                            ? "flex-start"
-                                                            : "flex-end",
-                                                    minHeight: pageHeight,
-                                                }}
-                                            >
-                                                {isVisible &&
-                                                    spread.left ===
-                                                        "printer-blank" && (
-                                                        <Box
-                                                            sx={{
-                                                                pl: `${PICKER_WIDTH}px`,
-                                                            }}
-                                                        >
-                                                            <PrinterBlankPage
-                                                                width={
-                                                                    pageWidth
-                                                                }
-                                                                height={
-                                                                    pageHeight
-                                                                }
-                                                                showLabel
-                                                            />
-                                                        </Box>
-                                                    )}
-                                                {isVisible && lp && (
-                                                    <SpreadPage
-                                                        page={lp}
-                                                        pageIndex={leftIndex!}
-                                                        pickerSide="left"
-                                                        pageWidth={pageWidth}
-                                                        pageHeight={pageHeight}
-                                                        totalPages={totalPages}
-                                                        selectedSlotId={
-                                                            selectedSlotId
-                                                        }
-                                                        selectedPageId={
-                                                            selectedPageId
-                                                        }
-                                                        selectedTextId={
-                                                            selectedTextId
-                                                        }
-                                                        editingTextId={
-                                                            editingTextId
-                                                        }
-                                                        onSlotClick={
-                                                            handleSlotClick
-                                                        }
-                                                        onTextClick={
-                                                            handleTextClick
-                                                        }
-                                                        onTextDblClick={
-                                                            handleTextDblClick
-                                                        }
-                                                        onTextUpdate={
-                                                            handleTextUpdate
-                                                        }
-                                                        onTextDelete={
-                                                            handleTextDelete
-                                                        }
-                                                        onTextEditEnd={
-                                                            handleTextEditEnd
-                                                        }
-                                                        onClearSelection={
-                                                            clearSelection
-                                                        }
-                                                        onInsertPage={
-                                                            handleInsertPage
-                                                        }
-                                                        onAddPhotos={
-                                                            handleAddPhotos
-                                                        }
-                                                        dragSourceInfo={
-                                                            photoDrag.dragSourceInfo
-                                                        }
-                                                        dragOverInfo={
-                                                            photoDrag.dragOverInfo
-                                                        }
-                                                        dragOverPageId={
-                                                            photoDrag.dragOverPageId
-                                                        }
-                                                        onPhotoDragStart={
-                                                            photoDrag.handleDragStart
-                                                        }
-                                                        onSlotDragOver={
-                                                            photoDrag.handleSlotDragOver
-                                                        }
-                                                        onPhotoDrop={
-                                                            photoDrag.handleDrop
-                                                        }
-                                                        onPhotoDragEnd={
-                                                            photoDrag.handleDragEnd
-                                                        }
-                                                        onPageDragOver={
-                                                            photoDrag.handlePageDragOver
-                                                        }
-                                                        onPageDrop={
-                                                            photoDrag.handlePageDrop
-                                                        }
-                                                        pageDragSource={
-                                                            pageDrag.pageDragSource
-                                                        }
-                                                        pageDragTarget={
-                                                            pageDrag.pageDragTarget
-                                                        }
-                                                        pageDragSourceRef={
-                                                            pageDrag.pageDragSourceRef
-                                                        }
-                                                        onPageDragStart={
-                                                            pageDrag.handlePageDragStart
-                                                        }
-                                                        onPageDragOverPage={
-                                                            pageDrag.handlePageDragOverPage
-                                                        }
-                                                        onPageDropOnPage={
-                                                            pageDrag.handlePageDropOnPage
-                                                        }
-                                                        onPageDragEndCleanup={
-                                                            pageDrag.handlePageDragEndCleanup
-                                                        }
-                                                    />
+                                            {isVisible && lp && (
+                                                <SpreadPage
+                                                    page={lp}
+                                                    pageIndex={leftIndex!}
+                                                    pickerSide="left"
+                                                    pageWidth={pageWidth}
+                                                    pageHeight={pageHeight}
+                                                    totalPages={totalPages}
+                                                    selectedSlotId={
+                                                        selectedSlotId
+                                                    }
+                                                    selectedPageId={
+                                                        selectedPageId
+                                                    }
+                                                    selectedTextId={
+                                                        selectedTextId
+                                                    }
+                                                    editingTextId={
+                                                        editingTextId
+                                                    }
+                                                    onSlotClick={
+                                                        handleSlotClick
+                                                    }
+                                                    onTextClick={
+                                                        handleTextClick
+                                                    }
+                                                    onTextDblClick={
+                                                        handleTextDblClick
+                                                    }
+                                                    onTextUpdate={
+                                                        handleTextUpdate
+                                                    }
+                                                    onTextDelete={
+                                                        handleTextDelete
+                                                    }
+                                                    onTextEditEnd={
+                                                        handleTextEditEnd
+                                                    }
+                                                    onClearSelection={
+                                                        clearSelection
+                                                    }
+                                                    onInsertPage={
+                                                        handleInsertPage
+                                                    }
+                                                    onAddPhotos={
+                                                        handleAddPhotos
+                                                    }
+                                                    dragSourceInfo={
+                                                        photoDrag.dragSourceInfo
+                                                    }
+                                                    dragOverInfo={
+                                                        photoDrag.dragOverInfo
+                                                    }
+                                                    dragOverPageId={
+                                                        photoDrag.dragOverPageId
+                                                    }
+                                                    onPhotoDragStart={
+                                                        photoDrag.handleDragStart
+                                                    }
+                                                    onSlotDragOver={
+                                                        photoDrag.handleSlotDragOver
+                                                    }
+                                                    onPhotoDrop={
+                                                        photoDrag.handleDrop
+                                                    }
+                                                    onPhotoDragEnd={
+                                                        photoDrag.handleDragEnd
+                                                    }
+                                                    onPageDragOver={
+                                                        photoDrag.handlePageDragOver
+                                                    }
+                                                    onPageDrop={
+                                                        photoDrag.handlePageDrop
+                                                    }
+                                                    pageDragSource={
+                                                        pageDrag.pageDragSource
+                                                    }
+                                                    pageDragTarget={
+                                                        pageDrag.pageDragTarget
+                                                    }
+                                                    pageDragSourceRef={
+                                                        pageDrag.pageDragSourceRef
+                                                    }
+                                                    onPageDragStart={
+                                                        pageDrag.handlePageDragStart
+                                                    }
+                                                    onPageDragOverPage={
+                                                        pageDrag.handlePageDragOverPage
+                                                    }
+                                                    onPageDropOnPage={
+                                                        pageDrag.handlePageDropOnPage
+                                                    }
+                                                    onPageDragEndCleanup={
+                                                        pageDrag.handlePageDragEndCleanup
+                                                    }
+                                                />
+                                            )}
+                                            {isVisible && rp && (
+                                                <SpreadPage
+                                                    page={rp}
+                                                    pageIndex={rightIndex!}
+                                                    pickerSide="right"
+                                                    pageWidth={pageWidth}
+                                                    pageHeight={pageHeight}
+                                                    totalPages={totalPages}
+                                                    selectedSlotId={
+                                                        selectedSlotId
+                                                    }
+                                                    selectedPageId={
+                                                        selectedPageId
+                                                    }
+                                                    selectedTextId={
+                                                        selectedTextId
+                                                    }
+                                                    editingTextId={
+                                                        editingTextId
+                                                    }
+                                                    onSlotClick={
+                                                        handleSlotClick
+                                                    }
+                                                    onTextClick={
+                                                        handleTextClick
+                                                    }
+                                                    onTextDblClick={
+                                                        handleTextDblClick
+                                                    }
+                                                    onTextUpdate={
+                                                        handleTextUpdate
+                                                    }
+                                                    onTextDelete={
+                                                        handleTextDelete
+                                                    }
+                                                    onTextEditEnd={
+                                                        handleTextEditEnd
+                                                    }
+                                                    onClearSelection={
+                                                        clearSelection
+                                                    }
+                                                    onInsertPage={
+                                                        handleInsertPage
+                                                    }
+                                                    onAddPhotos={
+                                                        handleAddPhotos
+                                                    }
+                                                    dragSourceInfo={
+                                                        photoDrag.dragSourceInfo
+                                                    }
+                                                    dragOverInfo={
+                                                        photoDrag.dragOverInfo
+                                                    }
+                                                    dragOverPageId={
+                                                        photoDrag.dragOverPageId
+                                                    }
+                                                    onPhotoDragStart={
+                                                        photoDrag.handleDragStart
+                                                    }
+                                                    onSlotDragOver={
+                                                        photoDrag.handleSlotDragOver
+                                                    }
+                                                    onPhotoDrop={
+                                                        photoDrag.handleDrop
+                                                    }
+                                                    onPhotoDragEnd={
+                                                        photoDrag.handleDragEnd
+                                                    }
+                                                    onPageDragOver={
+                                                        photoDrag.handlePageDragOver
+                                                    }
+                                                    onPageDrop={
+                                                        photoDrag.handlePageDrop
+                                                    }
+                                                    pageDragSource={
+                                                        pageDrag.pageDragSource
+                                                    }
+                                                    pageDragTarget={
+                                                        pageDrag.pageDragTarget
+                                                    }
+                                                    pageDragSourceRef={
+                                                        pageDrag.pageDragSourceRef
+                                                    }
+                                                    onPageDragStart={
+                                                        pageDrag.handlePageDragStart
+                                                    }
+                                                    onPageDragOverPage={
+                                                        pageDrag.handlePageDragOverPage
+                                                    }
+                                                    onPageDropOnPage={
+                                                        pageDrag.handlePageDropOnPage
+                                                    }
+                                                    onPageDragEndCleanup={
+                                                        pageDrag.handlePageDragEndCleanup
+                                                    }
+                                                />
+                                            )}
+                                            {isVisible &&
+                                                spread.right ===
+                                                    "printer-blank" && (
+                                                    <Box
+                                                        sx={{
+                                                            pr: `${PICKER_WIDTH}px`,
+                                                        }}
+                                                    >
+                                                        <PrinterBlankPage
+                                                            width={pageWidth}
+                                                            height={pageHeight}
+                                                            showLabel
+                                                        />
+                                                    </Box>
                                                 )}
-                                                {isVisible && rp && (
-                                                    <SpreadPage
-                                                        page={rp}
-                                                        pageIndex={rightIndex!}
-                                                        pickerSide="right"
-                                                        pageWidth={pageWidth}
-                                                        pageHeight={pageHeight}
-                                                        totalPages={totalPages}
-                                                        selectedSlotId={
-                                                            selectedSlotId
-                                                        }
-                                                        selectedPageId={
-                                                            selectedPageId
-                                                        }
-                                                        selectedTextId={
-                                                            selectedTextId
-                                                        }
-                                                        editingTextId={
-                                                            editingTextId
-                                                        }
-                                                        onSlotClick={
-                                                            handleSlotClick
-                                                        }
-                                                        onTextClick={
-                                                            handleTextClick
-                                                        }
-                                                        onTextDblClick={
-                                                            handleTextDblClick
-                                                        }
-                                                        onTextUpdate={
-                                                            handleTextUpdate
-                                                        }
-                                                        onTextDelete={
-                                                            handleTextDelete
-                                                        }
-                                                        onTextEditEnd={
-                                                            handleTextEditEnd
-                                                        }
-                                                        onClearSelection={
-                                                            clearSelection
-                                                        }
-                                                        onInsertPage={
-                                                            handleInsertPage
-                                                        }
-                                                        onAddPhotos={
-                                                            handleAddPhotos
-                                                        }
-                                                        dragSourceInfo={
-                                                            photoDrag.dragSourceInfo
-                                                        }
-                                                        dragOverInfo={
-                                                            photoDrag.dragOverInfo
-                                                        }
-                                                        dragOverPageId={
-                                                            photoDrag.dragOverPageId
-                                                        }
-                                                        onPhotoDragStart={
-                                                            photoDrag.handleDragStart
-                                                        }
-                                                        onSlotDragOver={
-                                                            photoDrag.handleSlotDragOver
-                                                        }
-                                                        onPhotoDrop={
-                                                            photoDrag.handleDrop
-                                                        }
-                                                        onPhotoDragEnd={
-                                                            photoDrag.handleDragEnd
-                                                        }
-                                                        onPageDragOver={
-                                                            photoDrag.handlePageDragOver
-                                                        }
-                                                        onPageDrop={
-                                                            photoDrag.handlePageDrop
-                                                        }
-                                                        pageDragSource={
-                                                            pageDrag.pageDragSource
-                                                        }
-                                                        pageDragTarget={
-                                                            pageDrag.pageDragTarget
-                                                        }
-                                                        pageDragSourceRef={
-                                                            pageDrag.pageDragSourceRef
-                                                        }
-                                                        onPageDragStart={
-                                                            pageDrag.handlePageDragStart
-                                                        }
-                                                        onPageDragOverPage={
-                                                            pageDrag.handlePageDragOverPage
-                                                        }
-                                                        onPageDropOnPage={
-                                                            pageDrag.handlePageDropOnPage
-                                                        }
-                                                        onPageDragEndCleanup={
-                                                            pageDrag.handlePageDragEndCleanup
-                                                        }
-                                                    />
-                                                )}
-                                                {isVisible &&
-                                                    spread.right ===
-                                                        "printer-blank" && (
-                                                        <Box
-                                                            sx={{
-                                                                pr: `${PICKER_WIDTH}px`,
-                                                            }}
-                                                        >
-                                                            <PrinterBlankPage
-                                                                width={
-                                                                    pageWidth
-                                                                }
-                                                                height={
-                                                                    pageHeight
-                                                                }
-                                                                showLabel
-                                                            />
-                                                        </Box>
-                                                    )}
-                                            </Box>
-                                        );
-                                    })}
-                                </Box>
-                            )
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
                         )}
                     </Box>
                 </Box>

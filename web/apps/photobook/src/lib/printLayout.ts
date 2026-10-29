@@ -9,6 +9,7 @@ import type { BookPage, TextBlock } from "./types";
 export const TEXT_LINE_HEIGHT = 1.4;
 export const CENTER_TEXT_FONT_WEIGHT = 600;
 export const CAPTION_FONT_WEIGHT = 300;
+export const CAPTION_TEXT_COLOR = "#555555";
 const TITLE_FONT_SIZE = Math.min(
     5,
     ((BOOK_LAYOUT.coverInsetMarginMm.v / BOOK_SIZE_MM) * 100 -

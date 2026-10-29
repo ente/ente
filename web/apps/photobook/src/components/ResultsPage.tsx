@@ -20,20 +20,23 @@ import {
     LinearProgress,
     Snackbar,
     Typography,
+    useMediaQuery,
 } from "@mui/material";
 import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import BookBindingSelect from "./BookBindingSelect";
 import BookHeader from "./BookHeader";
 import BookViewer, { type BookViewerHandle } from "./BookViewer";
 import {
     EDITOR_PANEL_BOTTOM_INSET,
     EDITOR_PANEL_INSET,
     EDITOR_PANEL_SX,
+    MOBILE_QUERY,
 } from "./editorLayout";
 import { DownloadIcon, EditIcon } from "./icons";
+import ResetBookButton from "./ResetBookButton";
 
 export default function ResultsPage() {
+    const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
     const { book, photos, setAppView, waitForEnteOriginals } = useBook();
     const viewerRef = useRef<BookViewerHandle>(null);
     const [spreadIndex, setSpreadIndex] = useState(0);
@@ -128,10 +131,7 @@ export default function ResultsPage() {
             return;
         }
 
-        const initiallyBlocked = getBlockedEntePhotos();
-        const pendingIds = initiallyBlocked
-            .filter((photo) => photo.originalStatus === "pending")
-            .map((photo) => photo.id);
+        const pendingIds = getBlockedEntePhotos().map((photo) => photo.id);
 
         downloadInProgress.current = true;
         setExportError(null);
@@ -142,27 +142,23 @@ export default function ResultsPage() {
         try {
             if (pendingIds.length > 0) {
                 setOriginalsProgress({ done: 0, total: pendingIds.length });
-                await waitForEnteOriginals(pendingIds, (done, total) => {
-                    setOriginalsProgress({ done, total });
-                    setExportProgress(
-                        total
-                            ? Math.round((done / total) * preparationShare)
-                            : 0,
-                    );
-                });
-            }
-
-            const remainingBlocked = getBlockedEntePhotos();
-            if (remainingBlocked.length > 0) {
-                const failedCount = remainingBlocked.filter(
-                    (photo) => photo.originalStatus === "failed",
-                ).length;
-                setExportError(
-                    failedCount > 0
-                        ? "Some Ente photos failed to prepare. Re-import the album before exporting."
-                        : "Ente originals are still being prepared. Please wait a moment and try again.",
+                const ready = await waitForEnteOriginals(
+                    pendingIds,
+                    (done, total) => {
+                        setOriginalsProgress({ done, total });
+                        setExportProgress(
+                            total
+                                ? Math.round((done / total) * preparationShare)
+                                : 0,
+                        );
+                    },
                 );
-                return;
+                if (!ready) {
+                    setExportError(
+                        "Some photos couldn't download. Click Download to try again. Your edits are unchanged.",
+                    );
+                    return;
+                }
             }
 
             setDownloadPhase("exporting");
@@ -212,28 +208,36 @@ export default function ResultsPage() {
                 bgcolor: uiColors.background,
             }}
         >
-            <BookHeader>
-                <BookBindingSelect disabled={busy} />
-                <Button
-                    aria-label="Edit"
-                    startIcon={<EditIcon />}
-                    onClick={() => setAppView("edit")}
-                    disabled={busy}
-                    sx={{
-                        ...headerButtonSx,
-                        color: toolbarColors.text,
-                        bgcolor: toolbarColors.control,
-                        "&:hover": { bgcolor: toolbarColors.hover },
-                        "&:active": { bgcolor: toolbarColors.active },
-                    }}
-                >
-                    <Box
-                        component="span"
-                        sx={{ display: { xs: "none", sm: "inline" } }}
+            <BookHeader titleDisabled={busy}>
+                {mobile ? (
+                    <ResetBookButton disabled={busy} />
+                ) : (
+                    <Button
+                        aria-label="Edit"
+                        startIcon={<EditIcon />}
+                        onClick={() => setAppView("edit")}
+                        disabled={busy}
+                        sx={{
+                            ...headerButtonSx,
+                            color: toolbarColors.text,
+                            bgcolor: toolbarColors.control,
+                            "&:hover": { bgcolor: toolbarColors.hover },
+                            "&:active": { bgcolor: toolbarColors.active },
+                            "&.Mui-disabled": {
+                                color: toolbarColors.disabled,
+                                bgcolor: toolbarColors.control,
+                                opacity: 1,
+                            },
+                        }}
                     >
-                        Edit
-                    </Box>
-                </Button>
+                        <Box
+                            component="span"
+                            sx={{ display: { xs: "none", sm: "inline" } }}
+                        >
+                            Edit
+                        </Box>
+                    </Button>
+                )}
                 <Button
                     id="download-button"
                     variant="contained"
@@ -343,6 +347,11 @@ export default function ResultsPage() {
                             borderRadius: 3,
                             bgcolor: uiColors.surface,
                             minWidth: 360,
+                            "@media (max-width: 959px)": {
+                                minWidth: 0,
+                                width: 360,
+                                maxWidth: "calc(100% - 32px)",
+                            },
                             boxShadow: popupShadow,
                         },
                     },

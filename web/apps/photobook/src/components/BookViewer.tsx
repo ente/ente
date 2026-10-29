@@ -9,7 +9,7 @@ import {
 } from "@/lib/spreads";
 import type { BookPage } from "@/lib/types";
 import { uiColors } from "@/theme/colors";
-import { Box, IconButton } from "@mui/material";
+import { Box, IconButton, useMediaQuery } from "@mui/material";
 import { PageFlip } from "page-flip";
 import {
     forwardRef,
@@ -24,8 +24,10 @@ import {
 import { createPortal } from "react-dom";
 import { Layer, Stage } from "react-konva";
 import BookPageNavigation from "./BookPageNavigation";
+import { SINGLE_PAGE_QUERY } from "./editorLayout";
 import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 import PageCanvas from "./PageCanvas";
+import PrinterBlankPage from "./PrinterBlankPage";
 
 const PAGE_NAVIGATION_SPACE = 72;
 
@@ -54,6 +56,8 @@ interface BookViewerProps {
 
 const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
     function BookViewer({ pages, onSpreadChange }, ref) {
+        const singlePage = useMediaQuery(SINGLE_PAGE_QUERY);
+        const swipeStart = useRef<{ x: number; y: number } | null>(null);
         const { book: bookState, photoUrls, loadPreviews } = useBook();
         const binding = getPrintBinding(bookState.printSelection);
         const flipPages = useMemo(
@@ -104,10 +108,10 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                         1,
                         Math.floor(
                             Math.min(
-                                width / 2,
+                                width / (singlePage ? 1 : 2),
                                 Math.max(1, height - PAGE_NAVIGATION_SPACE),
                                 1200,
-                            ) * 0.768,
+                            ) * (singlePage ? 1 : 0.768),
                         ),
                     ),
                 );
@@ -116,16 +120,36 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
             const observer = new ResizeObserver(measure);
             observer.observe(container);
             return () => observer.disconnect();
-        }, []);
+        }, [singlePage]);
+
+        const showMobilePage = useCallback(
+            (index: number) => {
+                const next = Math.max(0, Math.min(index, flipPages.length - 1));
+                setCurrentPage(next);
+                const pageIndex = flipPages[next]?.pageIndex;
+                if (pageIndex !== null && pageIndex !== undefined)
+                    startPageRef.current = pageIndex;
+                onSpreadChangeRef.current(flipPages[next]?.spreadIndex ?? 0);
+            },
+            [flipPages],
+        );
 
         const flipNext = useCallback(() => {
+            if (singlePage) {
+                showMobilePage(currentPage + 1);
+                return;
+            }
             const book = pageFlipRef.current;
             if (book?.getState() === "read") book.flipNext("bottom");
-        }, []);
+        }, [singlePage, showMobilePage, currentPage]);
         const flipPrev = useCallback(() => {
+            if (singlePage) {
+                showMobilePage(currentPage - 1);
+                return;
+            }
             const book = pageFlipRef.current;
             if (book?.getState() === "read") book.flipPrev("bottom");
-        }, []);
+        }, [singlePage, showMobilePage, currentPage]);
         useImperativeHandle(ref, () => ({ flipNext, flipPrev }), [
             flipNext,
             flipPrev,
@@ -144,6 +168,16 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
         );
 
         useEffect(() => {
+            if (singlePage) {
+                showMobilePage(
+                    getFlipPageIndex(
+                        pages.length,
+                        Math.min(startPageRef.current, pages.length - 1),
+                        binding,
+                    ) ?? 0,
+                );
+                return;
+            }
             const mount = mountRef.current;
             if (!mount || flipPages.length === 0) return;
 
@@ -168,6 +202,7 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
             });
             mount.appendChild(root);
 
+            const requestedPage = startPageRef.current;
             const book = new PageFlip(root, {
                 width: 600,
                 height: 600,
@@ -193,11 +228,15 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                 usePortrait: false,
             });
             book.on("flip", (event: { data: number }) => {
-                startPageRef.current =
-                    getSpreadPageIndices(
-                        spreads[flipPages[event.data]?.spreadIndex ?? 0]!,
-                    )[0] ??
-                    (event.data < flipPages.length / 2 ? 0 : pages.length - 1);
+                const indices = getSpreadPageIndices(
+                    spreads[flipPages[event.data]?.spreadIndex ?? 0]!,
+                );
+                if (!indices.includes(startPageRef.current))
+                    startPageRef.current =
+                        indices[0] ??
+                        (event.data < flipPages.length / 2
+                            ? 0
+                            : pages.length - 1);
                 setCurrentPage(event.data);
                 onSpreadChangeRef.current(
                     flipPages[event.data]?.spreadIndex ?? 0,
@@ -217,6 +256,7 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                     ? clipSoftcoverInsidePages(book)
                     : undefined;
             book.update();
+            startPageRef.current = requestedPage;
             pageFlipRef.current = book;
             setPageElements(elements);
             setCurrentPage(book.getCurrentPageIndex());
@@ -224,26 +264,173 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
 
             return () => {
                 const index = book.getCurrentPageIndex();
-                startPageRef.current =
-                    getSpreadPageIndices(
-                        spreads[flipPages[index]?.spreadIndex ?? 0]!,
-                    )[0] ??
-                    (index < flipPages.length / 2 ? 0 : pages.length - 1);
+                const indices = getSpreadPageIndices(
+                    spreads[flipPages[index]?.spreadIndex ?? 0]!,
+                );
+                if (!indices.includes(startPageRef.current))
+                    startPageRef.current =
+                        indices[0] ??
+                        (index < flipPages.length / 2 ? 0 : pages.length - 1);
                 pageFlipRef.current = null;
                 restoreCoverDrawing?.();
                 book.destroy();
             };
-        }, [flipPages, spreads, binding, pages.length]);
+        }, [
+            flipPages,
+            spreads,
+            binding,
+            pages.length,
+            singlePage,
+            showMobilePage,
+        ]);
 
         useLayoutEffect(() => {
-            pageFlipRef.current?.update();
-        }, [pageSize]);
+            if (!singlePage) pageFlipRef.current?.update();
+        }, [pageSize, singlePage]);
 
         const frontCover = currentPage === 0 && flipPages.length > 1;
         const backCover = currentPage === flipPages.length - 1;
         const closed = frontCover || backCover;
         const showSpread = !closed || turning;
         const shift = turning ? 0 : frontCover ? "-25%" : backCover ? "25%" : 0;
+
+        if (singlePage) {
+            const entry = flipPages[currentPage];
+            const page =
+                entry?.pageIndex != null ? pages[entry.pageIndex] : null;
+            const navigationPages = flipPages.map(({ pageIndex }) => ({
+                left: pageIndex ?? ("printer-blank" as const),
+                right: null,
+            }));
+            return (
+                <Box
+                    ref={containerRef}
+                    data-binding={binding}
+                    sx={{
+                        flex: 1,
+                        minWidth: 0,
+                        minHeight: 0,
+                        my: 2,
+                        position: "relative",
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            width: pageSize,
+                            maxWidth: "100%",
+                        }}
+                    >
+                        <Box
+                            aria-label={
+                                page
+                                    ? entry?.pageIndex === 0
+                                        ? "Front cover"
+                                        : entry?.pageIndex === pages.length - 1
+                                          ? "Back cover"
+                                          : `Page ${entry?.pageIndex}`
+                                    : "Blank page (required)"
+                            }
+                            onPointerDown={(event) => {
+                                if (event.button !== 0) return;
+                                swipeStart.current = {
+                                    x: event.clientX,
+                                    y: event.clientY,
+                                };
+                                event.currentTarget.setPointerCapture(
+                                    event.pointerId,
+                                );
+                            }}
+                            onPointerUp={(event) => {
+                                const start = swipeStart.current;
+                                swipeStart.current = null;
+                                if (!start) return;
+                                const dx = event.clientX - start.x;
+                                if (
+                                    Math.abs(dx) > 45 &&
+                                    Math.abs(dx) >
+                                        Math.abs(event.clientY - start.y)
+                                ) {
+                                    if (dx < 0) flipNext();
+                                    else flipPrev();
+                                }
+                            }}
+                            onPointerCancel={() => {
+                                swipeStart.current = null;
+                            }}
+                            sx={{ touchAction: "pan-y pinch-zoom" }}
+                        >
+                            {page ? (
+                                <Stage
+                                    width={pageSize}
+                                    height={pageSize}
+                                    listening={false}
+                                >
+                                    <Layer>
+                                        <PageCanvas
+                                            page={page}
+                                            photoUrls={photoUrls}
+                                            pageWidth={pageSize}
+                                            pageHeight={pageSize}
+                                            isFrontCover={
+                                                entry?.pageIndex === 0
+                                            }
+                                            isBackCover={
+                                                entry?.pageIndex ===
+                                                pages.length - 1
+                                            }
+                                        />
+                                    </Layer>
+                                </Stage>
+                            ) : (
+                                <PrinterBlankPage
+                                    width={pageSize}
+                                    height={pageSize}
+                                    showLabel
+                                />
+                            )}
+                        </Box>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 1,
+                                mt: 3,
+                            }}
+                        >
+                            <IconButton
+                                aria-label="Previous page"
+                                disabled={currentPage === 0}
+                                onClick={flipPrev}
+                                sx={{ width: 44, height: 44 }}
+                            >
+                                <ChevronLeftIcon />
+                            </IconButton>
+                            <BookPageNavigation
+                                pageCount={pages.length}
+                                spreads={navigationPages}
+                                spreadIndex={currentPage}
+                                disabled={flipPages.length === 0}
+                                turning={false}
+                                onGoToSpread={showMobilePage}
+                            />
+                            <IconButton
+                                aria-label="Next page"
+                                disabled={currentPage >= flipPages.length - 1}
+                                onClick={flipNext}
+                                sx={{ width: 44, height: 44 }}
+                            >
+                                <ChevronRightIcon />
+                            </IconButton>
+                        </Box>
+                    </Box>
+                </Box>
+            );
+        }
 
         return (
             <Box

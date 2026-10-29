@@ -4,6 +4,7 @@ import { getPhotoBlob } from "./db";
 import { createPdfWriter } from "./pdfx";
 import {
     CAPTION_FONT_WEIGHT,
+    CAPTION_TEXT_COLOR,
     CENTER_TEXT_FONT_WEIGHT,
     getBrandingLayout,
     getCaptionLayout,
@@ -155,7 +156,10 @@ export async function renderPageToCanvas(
             (layout.height / 100) * height,
         );
         ctx.clip();
-        ctx.fillStyle = "#2a2a2a";
+        ctx.fillStyle =
+            position !== "center" && !isFrontCover && !isBackCover
+                ? CAPTION_TEXT_COLOR
+                : "#2a2a2a";
         const isTitle = position === "center" || isFrontCover;
         const fontFamily = isTitle ? getOutfitFont() : getInterFont();
         const fontWeight = isTitle

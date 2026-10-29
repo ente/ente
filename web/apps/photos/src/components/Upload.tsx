@@ -452,7 +452,7 @@ export const Upload: React.FC<UploadProps> = ({
                 !uploadRunning.current
             ) {
                 uploadManager.prepareForNewUpload();
-                setUploadPhase("done");
+                uploadManager.setUploadPhase("done");
                 uploadManager.showUploadProgressDialog();
             }
             return;
@@ -585,7 +585,7 @@ export const Upload: React.FC<UploadProps> = ({
     const preCollectionCreationAction = () => {
         onCloseCollectionSelector?.();
         props.setShouldDisableDropzone(uploadManager.isUploadInProgress());
-        setUploadPhase("preparing");
+        uploadManager.setUploadPhase("preparing");
         uploadManager.showUploadProgressDialog();
     };
 

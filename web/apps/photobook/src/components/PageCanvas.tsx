@@ -6,6 +6,7 @@ import {
 } from "@/lib/imageCache";
 import {
     CAPTION_FONT_WEIGHT,
+    CAPTION_TEXT_COLOR,
     CENTER_TEXT_FONT_WEIGHT,
     getBrandingLayout,
     getCaptionLayout,
@@ -305,6 +306,7 @@ function CaptionText({
     lineHeight = TEXT_LINE_HEIGHT,
     fontFamily = getInterFont(),
     fontWeight = CAPTION_FONT_WEIGHT,
+    color = "#2a2a2a",
 }: {
     text: string;
     layout: CaptionLayout | null;
@@ -314,6 +316,7 @@ function CaptionText({
     lineHeight?: number;
     fontFamily?: string;
     fontWeight?: number;
+    color?: string;
 }) {
     if (isEditing) return null;
     if (!text) return null;
@@ -335,7 +338,7 @@ function CaptionText({
                 wrap="none"
                 fontFamily={fontFamily}
                 fontStyle={String(fontWeight)}
-                fill="#2a2a2a"
+                fill={color}
                 align="center"
                 verticalAlign="middle"
             />
@@ -376,6 +379,8 @@ export default function PageCanvas({
     const topCaption = getCaptionLayout(page, "top", isFrontCover);
     const bottomCaption = getCaptionLayout(page, "bottom", isFrontCover);
     const centerText = getCenterTextLayout(page);
+    const captionColor =
+        isFrontCover || isBackCover ? "#2a2a2a" : CAPTION_TEXT_COLOR;
 
     return (
         <>
@@ -420,6 +425,7 @@ export default function PageCanvas({
                     pageWidth={pageWidth}
                     pageHeight={pageHeight}
                     isEditing={editingCaption === "top"}
+                    color={captionColor}
                     fontFamily={isFrontCover ? getOutfitFont() : getInterFont()}
                     fontWeight={
                         isFrontCover
@@ -438,6 +444,7 @@ export default function PageCanvas({
                         pageWidth={pageWidth}
                         pageHeight={pageHeight}
                         isEditing={editingCaption === "bottom"}
+                        color={captionColor}
                         fontFamily={
                             isFrontCover ? getOutfitFont() : getInterFont()
                         }

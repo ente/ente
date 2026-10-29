@@ -14,7 +14,11 @@ import { Box, Button, Dialog, IconButton, Typography } from "@mui/material";
 import { useState } from "react";
 import { CloseIcon, DeleteIcon } from "./icons";
 
-export default function ResetBookButton() {
+export default function ResetBookButton({
+    disabled = false,
+}: {
+    disabled?: boolean;
+}) {
     const { startOver, processingPhotos, book } = useBook();
     const [open, setOpen] = useState(false);
     const [resetting, setResetting] = useState(false);
@@ -45,7 +49,10 @@ export default function ResetBookButton() {
                     setOpen(true);
                 }}
                 disabled={
-                    processingPhotos || resetting || book.pages.length === 0
+                    disabled ||
+                    processingPhotos ||
+                    resetting ||
+                    book.pages.length === 0
                 }
                 sx={{
                     ...editorButtonSx,

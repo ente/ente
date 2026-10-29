@@ -1,9 +1,16 @@
 import { useBook } from "@/context/book";
 import { usePhotoImport } from "@/hooks/usePhotoImport";
-import { Alert, Box, Button, TextField, Typography } from "@mui/material";
+import {
+    Alert,
+    Box,
+    Button,
+    InputAdornment,
+    TextField,
+    Typography,
+} from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-import NavBar from "./NavBar";
+import { AddPhotosIcon } from "./icons";
 
 export default function StartPage() {
     const router = useRouter();
@@ -30,18 +37,17 @@ export default function StartPage() {
     return (
         <Box
             sx={{
-                minHeight: "100vh",
+                minHeight: "100svh",
                 bgcolor: "#fff",
-                color: "#1A1C1D",
+                color: "#003D12",
                 display: "flex",
                 flexDirection: "column",
-                position: "relative",
-                overflow: "hidden",
+                p: { xs: 1, sm: 1.5 },
             }}
         >
-            <NavBar />
             <Box
                 component="main"
+                className="green-bg"
                 onDrop={busy ? undefined : handleDrop}
                 onDragOver={busy ? undefined : handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -50,10 +56,16 @@ export default function StartPage() {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
+                    justifyContent: "center",
                     position: "relative",
-                    px: 3,
-                    pt: { xs: "128px", sm: "170px" },
-                    pb: 8,
+                    overflow: "hidden",
+                    borderRadius: { xs: "20px", sm: "28px" },
+                    px: { xs: 2.5, sm: 4 },
+                    pt: { xs: 3, sm: "clamp(24px, 4vh, 48px)" },
+                    pb: {
+                        xs: "max(20px, env(safe-area-inset-bottom))",
+                        sm: "clamp(24px, 4vh, 48px)",
+                    },
                 }}
             >
                 {dragOver && (
@@ -62,9 +74,9 @@ export default function StartPage() {
                             position: "absolute",
                             inset: 0,
                             zIndex: 30,
-                            bgcolor: "rgba(8,194,37,0.08)",
-                            border: "3px dashed #08C225",
-                            borderRadius: 2,
+                            bgcolor: "rgba(0,61,18,0.9)",
+                            border: "3px dashed #FFF",
+                            borderRadius: "inherit",
                             display: "grid",
                             placeItems: "center",
                             pointerEvents: "none",
@@ -74,7 +86,7 @@ export default function StartPage() {
                             sx={{
                                 fontSize: "1.5rem",
                                 fontWeight: 700,
-                                color: "#08C225",
+                                color: "#FFF",
                             }}
                         >
                             Drop your photos here
@@ -86,127 +98,117 @@ export default function StartPage() {
                         position: "relative",
                         zIndex: 10,
                         display: "flex",
+                        flex: { xs: 1, sm: "initial" },
                         flexDirection: "column",
                         alignItems: "center",
                         textAlign: "center",
-                        maxWidth: 1100,
+                        maxWidth: 660,
                         width: "100%",
                     }}
                 >
-                    <Typography
-                        component="h1"
-                        sx={{
-                            fontFamily: "var(--font-inter), sans-serif",
-                            fontSize: { xs: "2.5rem", md: "4rem" },
-                            fontWeight: 800,
-                            letterSpacing: "-0.02em",
-                            mb: 2,
-                            lineHeight: 1.1,
-                            color: "#1A1C1D",
-                        }}
-                    >
-                        Your memories deserve a book
-                    </Typography>
-                    <Typography
-                        sx={{
-                            fontFamily: "var(--font-inter), sans-serif",
-                            fontSize: "1.15rem",
-                            color: "#666",
-                            maxWidth: 560,
-                            lineHeight: 1.7,
-                            mb: 6,
-                        }}
-                    >
-                        Drop in your photos and get a print-ready photobook.
-                        <br />
-                        Beautifully arranged, completely private, and free.
-                    </Typography>
                     <Box
                         sx={{
-                            mb: 8,
-                            position: "relative",
-                            "& .card": { transition: "transform 0.5s ease" },
-                            "&:hover .card": {
-                                transform: "rotate(0deg) !important",
-                            },
+                            display: "flex",
+                            flex: { xs: 1, sm: "initial" },
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "100%",
+                            pb: { xs: 4, sm: 5 },
+                            "@media (max-width: 599px) and (max-height: 640px)":
+                                { pb: 3, "& > img": { width: 140, mb: 2 } },
                         }}
                     >
                         <Box
-                            className="card"
                             component="img"
-                            src="/hero-photo.jpg"
-                            alt="A photobook page with photos from Delhi"
+                            src="/photobook-duck.png"
+                            alt="A happy duck reading a photobook"
+                            width={430}
+                            height={468}
                             draggable={false}
                             sx={{
-                                width: { xs: 260, md: 380 },
+                                display: "block",
+                                mb: { xs: 3, sm: 4 },
+                                width: {
+                                    xs: "clamp(160px, 28vh, 220px)",
+                                    sm: "clamp(180px, 27vh, 300px)",
+                                },
                                 maxWidth: "100%",
                                 height: "auto",
-                                borderRadius: 2,
-                                boxShadow:
-                                    "0px 16px 40px rgba(0,0,0,0.15), 0px 4px 12px rgba(0,0,0,0.08)",
-                                transform: "rotate(-3deg)",
-                                position: "relative",
-                                zIndex: 20,
                                 userSelect: "none",
                                 pointerEvents: "none",
                             }}
                         />
-                    </Box>
-                    <Button
-                        variant="contained"
-                        size="large"
-                        disabled={busy}
-                        onClick={() => fileInputRef.current?.click()}
-                        sx={{
-                            bgcolor: "#08C225",
-                            fontFamily: "var(--font-inter), sans-serif",
-                            fontSize: "1.15rem",
-                            fontWeight: 700,
-                            px: 6,
-                            py: 2,
-                            boxShadow: "none",
-                            "&:hover": {
-                                transform: "scale(1.02)",
-                                bgcolor: "#07AE22",
-                            },
-                            "&:active": { transform: "scale(0.95)" },
-                            transition:
-                                "transform 0.3s ease, background-color 0.3s ease",
-                        }}
-                    >
-                        Add photos
-                    </Button>
-                    {importError && (
-                        <Alert severity="error" sx={{ mt: 2, maxWidth: 480 }}>
-                            {importError}
-                        </Alert>
-                    )}
-                    <Box
-                        component="form"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            if (!busy && enteUrl.trim())
-                                void handleImportEnte();
-                        }}
-                        sx={{ mt: 3, mb: 3, width: "100%", maxWidth: 480 }}
-                    >
                         <Typography
-                            component="label"
-                            htmlFor="landing-album-url"
+                            component="h1"
                             sx={{
-                                display: "block",
-                                mb: 1.5,
-                                color: "#777",
-                                fontSize: 14,
+                                fontFamily: "var(--font-outfit), sans-serif",
+                                fontSize: {
+                                    xs: "clamp(2rem, 10vw, 2.5rem)",
+                                    sm: "clamp(2.5rem, 6vh, 3.5rem)",
+                                },
+                                fontWeight: 800,
+                                letterSpacing: "-0.02em",
+                                mb: { xs: 1.5, sm: 2 },
+                                lineHeight: 1.1,
+                                color: "#FFF",
                             }}
                         >
-                            or import an Ente album
+                            Your memories{" "}
+                            <Box
+                                component="span"
+                                sx={{
+                                    display: "block",
+                                    fontFamily: '"Gochi Hand", cursive',
+                                    fontSize: "1.15em",
+                                    fontWeight: 400,
+                                    letterSpacing: "-0.025em",
+                                }}
+                            >
+                                deserve a book
+                            </Box>
                         </Typography>
-                        <Box sx={{ display: "flex", gap: 1 }}>
+                        <Typography
+                            sx={{
+                                fontFamily: "var(--font-outfit), sans-serif",
+                                fontSize: { xs: "0.95rem", sm: "1.125rem" },
+                                fontWeight: 500,
+                                color: "rgba(0,61,18,0.65)",
+                                maxWidth: { xs: 560, md: 480 },
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            Turn the photos you love into a beautifully arranged
+                            photobook, ready to print and keep for years to
+                            come.
+                        </Typography>
+                    </Box>
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gridTemplateColumns: "minmax(0, 1fr)",
+                            alignItems: "start",
+                            gap: 2,
+                            width: "100%",
+                            maxWidth: { xs: "100%", sm: 370 },
+                            mt: { xs: "auto", sm: 0 },
+                        }}
+                    >
+                        <Box
+                            component="form"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                if (!busy && enteUrl.trim())
+                                    void handleImportEnte();
+                            }}
+                            sx={{ minWidth: 0 }}
+                        >
                             <TextField
                                 id="landing-album-url"
+                                variant="outlined"
+                                margin="none"
                                 fullWidth
-                                placeholder="Paste an album link"
+                                placeholder="Paste an Ente album link"
                                 value={enteUrl}
                                 onChange={(event) =>
                                     setEnteUrl(event.target.value)
@@ -215,7 +217,47 @@ export default function StartPage() {
                                 autoComplete="off"
                                 disabled={busy}
                                 slotProps={{
+                                    input: {
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <Button
+                                                    type="submit"
+                                                    disabled={
+                                                        busy || !enteUrl.trim()
+                                                    }
+                                                    sx={{
+                                                        minWidth: 84,
+                                                        height: 42,
+                                                        px: 2,
+                                                        borderRadius: "999px",
+                                                        color: "#08652D",
+                                                        bgcolor: "#FFF",
+                                                        fontFamily:
+                                                            "var(--font-outfit), sans-serif",
+                                                        fontSize: 14,
+                                                        fontWeight: 600,
+                                                        "&:hover": {
+                                                            bgcolor: "#ECF8EF",
+                                                        },
+                                                        "&.Mui-disabled": {
+                                                            color: "#497755",
+                                                            bgcolor: "#DAEEDF",
+                                                            opacity: 1,
+                                                        },
+                                                        "&.Mui-focusVisible": {
+                                                            outline:
+                                                                "2px solid #FFF",
+                                                            outlineOffset: 2,
+                                                        },
+                                                    }}
+                                                >
+                                                    Import
+                                                </Button>
+                                            </InputAdornment>
+                                        ),
+                                    },
                                     htmlInput: {
+                                        "aria-label": "Ente album link",
                                         inputMode: "url",
                                         spellCheck: false,
                                         "aria-describedby": enteError
@@ -224,65 +266,99 @@ export default function StartPage() {
                                     },
                                 }}
                                 sx={{
+                                    "& .MuiInputAdornment-root": { mr: 0 },
                                     "& .MuiOutlinedInput-root": {
-                                        height: 48,
-                                        borderRadius: "14px",
-                                        color: "#333",
-                                        bgcolor: "#FFF",
-                                        fontSize: 14,
-                                        "& fieldset": { borderColor: "#DDD" },
+                                        height: 56,
+                                        pl: 1,
+                                        pr: "7px",
+                                        borderRadius: "999px",
+                                        color: "#FFF",
+                                        bgcolor: "rgba(0,80,20,0.38)",
+                                        transition:
+                                            "background-color 150ms ease",
+                                        fontFamily:
+                                            "var(--font-outfit), sans-serif",
+                                        fontSize: 16,
+                                        "& fieldset": {
+                                            borderColor: "transparent",
+                                        },
+                                        "&:hover": {
+                                            bgcolor: "rgba(0,80,20,0.46)",
+                                        },
                                         "&:hover fieldset": {
-                                            borderColor: "#BBB",
+                                            borderColor: "transparent",
+                                        },
+                                        "&.Mui-focused": {
+                                            bgcolor: "rgba(0,80,20,0.52)",
                                         },
                                         "&.Mui-focused fieldset": {
-                                            borderColor: "#08C225",
+                                            borderColor: "transparent",
+                                        },
+                                        "& input::placeholder": {
+                                            color: "#D7E8DB",
+                                            opacity: 1,
                                         },
                                     },
                                 }}
                             />
-                            <Button
-                                type="submit"
-                                disabled={busy || !enteUrl.trim()}
-                                sx={{
-                                    height: 48,
-                                    px: 2.5,
-                                    borderRadius: "14px",
-                                    color: "#006E0F",
-                                    bgcolor: "#EEF8EF",
-                                    "&:hover": { bgcolor: "#E1F2E3" },
-                                    "&.Mui-disabled": {
-                                        color: "#999",
-                                        bgcolor: "#F2F2F2",
-                                    },
-                                }}
-                            >
-                                Import
-                            </Button>
+                            {enteError && (
+                                <Alert
+                                    id="landing-import-error"
+                                    severity="error"
+                                    sx={{
+                                        mt: 2,
+                                        borderRadius: 2,
+                                        textAlign: "left",
+                                    }}
+                                >
+                                    {enteError}
+                                </Alert>
+                            )}
                         </Box>
-                        {enteError && (
+                        <Button
+                            variant="outlined"
+                            size="large"
+                            disabled={busy}
+                            onClick={() => fileInputRef.current?.click()}
+                            startIcon={
+                                <AddPhotosIcon sx={{ width: 20, height: 20 }} />
+                            }
+                            sx={{
+                                height: 53,
+                                color: "#FFF2CD",
+                                borderColor: "rgba(255,242,205,0.3)",
+                                fontFamily: "var(--font-outfit), sans-serif",
+                                fontSize: 14,
+                                fontWeight: 500,
+                                whiteSpace: "nowrap",
+                                px: 3,
+                                py: 0,
+                                borderRadius: "999px",
+                                "&:hover": {
+                                    bgcolor: "rgba(255,242,205,0.12)",
+                                    borderColor: "rgba(255,242,205,0.55)",
+                                },
+                                "&.Mui-disabled": {
+                                    color: "rgba(255,242,205,0.45)",
+                                    borderColor: "rgba(255,242,205,0.2)",
+                                },
+                                "&.Mui-focusVisible": {
+                                    outline: "3px solid #FFF2CD",
+                                    outlineOffset: 3,
+                                },
+                            }}
+                        >
+                            Add photos instead
+                        </Button>
+                        {importError && (
                             <Alert
-                                id="landing-import-error"
                                 severity="error"
-                                sx={{
-                                    mt: 2,
-                                    borderRadius: 2,
-                                    textAlign: "left",
-                                }}
+                                sx={{ gridColumn: "1 / -1", textAlign: "left" }}
                             >
-                                {enteError}
+                                {importError}
                             </Alert>
                         )}
                     </Box>
-                    <Typography
-                        sx={{
-                            fontFamily: "var(--font-inter), sans-serif",
-                            fontSize: "0.85rem",
-                            color: "#999",
-                            letterSpacing: "0.04em",
-                        }}
-                    >
-                        Print-ready. Auto-arranged. 100% in your browser.
-                    </Typography>
                 </Box>
             </Box>
             <input
