@@ -59,13 +59,19 @@ Voice input is not available on desktop or the web version.
 
 Ensu can answer questions using Markdown notes stored in a folder on your device. Open **Settings → Your Notes**, choose **Add notes folder**, and select the folder you want Ensu to index.
 
+Ensu also offers to set up Your Notes after the initial chat model download. You can choose **Not now** and add a folder later from Settings.
+
+Use the toggle beside a folder in **Settings → Your Notes** to enable or disable it for future messages in all chats. Existing answers stay unchanged.
+
 Ensu finds relevant passages locally and includes source links with grounded answers. It reads and indexes the Markdown files without modifying the originals. Removing a folder from Ensu also leaves the source files untouched.
 
 Your Notes is not available on the web version yet.
 
 ### Ensu Packs (iOS, Android, desktop)
 
-Ensu Packs are optional, downloadable knowledge packs that help ground answers in sources such as Wikipedia and Wikibooks. Open **Settings → Ensu Packs** to download a pack and enable or disable it. Grounded answers include source attribution.
+Ensu Packs are optional, downloadable knowledge packs that help ground answers in sources such as Wikipedia and Wikibooks. Set them up when prompted after the initial chat model download, or choose **Not now** and open **Settings → Ensu Packs** later to download a pack.
+
+Enable or disable packs in Settings to choose the sources used for future messages in all chats. Existing answers stay unchanged. Grounded answers include source attribution.
 
 Ensu Packs are not available on the web version yet.
 

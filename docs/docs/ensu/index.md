@@ -48,11 +48,11 @@ The desktop apps auto-update on macOS, Linux, and Windows, so once installed you
 
 ![Populated Ensu web chat after sending a first message, with user bubble, streamed assistant reply, and composer](https://docs-assets.ente.com/screenshots/ensu-web-first-message.png){width=720px}
 
-1. Open Ensu.
-2. Type into the chat composer at the bottom of the screen.
-3. Send. The model loads (a few seconds the first time, faster on later messages) and starts streaming a response.
+1. Open Ensu and download the chat model if prompted.
+2. On iOS, Android, and desktop, Ensu then offers to set up **Ensu Packs** and **Your Notes**. Choose **Set up** to add a knowledge pack or a local Markdown notes folder, or **Not now** to go straight to chat. You can set up either later from **Settings**.
+3. Type into the chat composer at the bottom of the screen and send. The model loads (a few seconds the first time, faster on later messages) and starts streaming a response.
 
-That is the entire flow. There is no sign-in, no model picker to choose from, no "system" to configure. Each app keeps a sidebar of your previous chat sessions on the left, grouped by recency. Start a new chat at any time from the sidebar.
+No sign-in is required, and setting up packs or notes is optional. Each app keeps a sidebar of your previous chat sessions on the left, grouped by recency. Start a new chat at any time from the sidebar.
 
 You can attach images and, on iOS and Android, dictate your message instead of typing. Learn more in [Features](/ensu/features/).
 
