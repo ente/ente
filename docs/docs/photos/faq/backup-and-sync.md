@@ -602,6 +602,17 @@ If you delete a file from a watched folder on your computer, the corresponding f
 
 If you want to remove it completely from Ente, you'll need to manually delete it from the Uncategorized album.
 
+### Can I delete photos from my computer after a watch folder uploads them? {#delete-after-watch-folder-upload}
+
+Yes, but stop watching the folder first. Watch folders keep Ente in sync with your computer, so if you delete a file while its folder is being watched, Ente removes it from the album and moves it to [Uncategorized](/photos/faq/albums-and-organization#uncategorized).
+
+1. Wait for all uploads to finish.
+2. Click **Watch folders** in the sidebar, then click **Stop watching** next to the folder and confirm with **Yes, stop**. Your uploaded photos stay in Ente.
+3. Delete or reorganise the files on your computer.
+4. To keep syncing new photos, add an empty folder (or the same folder once it's cleared).
+
+For a one-time upload, use **Upload** or drag and drop instead. Files uploaded that way aren't linked to a folder, so deleting them on your computer doesn't affect Ente.
+
 ### Why don't metadata changes to a file in my watched folder show up in Ente? {#watch-folder-edited-files}
 
 Watch folders upload new files and react to deleted files, but they don't pick up changes to a file that has already been uploaded. So a new description or location saved to the file in another app won't reach Ente.

@@ -40,6 +40,7 @@ Note that a two way sync is not currently supported. Attempting to export data t
 - [How do I set up watch folders?](/photos/faq/backup-and-sync#set-up-watch-folders)
 - [Can I watch multiple folders at once?](/photos/faq/backup-and-sync#watch-multiple-folders)
 - [What happens if I delete a file from my watched folder?](/photos/faq/backup-and-sync#delete-from-watched-folder)
+- [Can I delete photos from my computer after a watch folder uploads them?](/photos/faq/backup-and-sync#delete-after-watch-folder-upload)
 - [Why are my watch folders not syncing?](/photos/faq/backup-and-sync#watch-folders-not-syncing)
 - [Can I watch folders on a network drive (NAS)?](/photos/faq/backup-and-sync#watch-nas)
 - [Can watch folders preserve my nested folder structure?](/photos/faq/backup-and-sync#watch-nested-structure)
