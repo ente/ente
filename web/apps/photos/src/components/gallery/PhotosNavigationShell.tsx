@@ -635,7 +635,8 @@ const HomeButton: React.FC<ButtonishProps & { selected: boolean }> = ({
 );
 
 const UploadButton: React.FC<ButtonishProps> = ({ onClick }) => {
-    const disabled = uploadManager.isUploadInProgress();
+    const disabled =
+        uploadManager.isUploadInProgress() || uploadManager.isPreparing();
     const isSmallWidth = useIsSmallWidth();
 
     const icon = (

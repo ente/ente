@@ -1520,7 +1520,8 @@ const Page: React.FC = () => {
     };
 
     const openUploader = (intent?: UploadTypeSelectorIntent) => {
-        if (uploadManager.isUploadInProgress()) return;
+        if (uploadManager.isUploadInProgress() || uploadManager.isPreparing())
+            return;
         setUploadTypeSelectorView(true);
         setUploadTypeSelectorIntent(intent ?? "upload");
     };
@@ -2143,7 +2144,10 @@ const Page: React.FC = () => {
                         : undefined
                 }
                 disabled={
-                    shouldDisableDropzone || !!slideshow || isCleanupViewOpen
+                    uploadManager.isPreparing() ||
+                    shouldDisableDropzone ||
+                    !!slideshow ||
+                    isCleanupViewOpen
                 }
                 onDrop={setDragAndDropFiles}
             >
@@ -2366,7 +2370,10 @@ const Page: React.FC = () => {
                       !state.collectionFiles.length &&
                       activeCollectionID === PseudoCollectionID.all ? (
                         <GalleryEmptyState
-                            isUploadInProgress={uploadManager.isUploadInProgress()}
+                            isUploadInProgress={
+                                uploadManager.isUploadInProgress() ||
+                                uploadManager.isPreparing()
+                            }
                             onUpload={openUploader}
                         />
                     ) : !isInSearchMode && !isFirstLoad && isAlbumOverview ? (
