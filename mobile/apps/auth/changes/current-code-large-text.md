@@ -1,0 +1,1 @@
+- Fixed the current code being cut off at large text sizes (@yzhou216).
