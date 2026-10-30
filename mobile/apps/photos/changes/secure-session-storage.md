@@ -1,0 +1,1 @@
+- Moved the session token to secure storage.

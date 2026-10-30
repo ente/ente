@@ -53,10 +53,9 @@ class NotificationKeyService {
   static Future<Uint8List?> getNotificationPrivateKey({
     String? sessionToken,
   }) async {
+    if (Platform.isIOS) await _ensureCurrentSession(sessionToken);
     final encoded = Platform.isIOS
-        ? await _channel.invokeMethod<String>('getPrivateKey', {
-            'sessionToken': sessionToken ?? Configuration.instance.getToken(),
-          })
+        ? await _channel.invokeMethod<String>('getPrivateKey')
         : await _storage.read(key: _storageKey);
     return encoded == null ? null : base64Decode(encoded);
   }
@@ -69,8 +68,8 @@ class NotificationKeyService {
       if (privateKey == null) {
         await _channel.invokeMethod<void>('clear');
       } else {
+        await _ensureCurrentSession(sessionToken);
         await _channel.invokeMethod<void>('setPrivateKey', {
-          'sessionToken': sessionToken ?? Configuration.instance.getToken(),
           'privateKey': base64Encode(privateKey),
         });
       }
@@ -80,6 +79,15 @@ class NotificationKeyService {
       await _storage.delete(key: _storageKey);
     } else {
       await _storage.write(key: _storageKey, value: base64Encode(privateKey));
+    }
+  }
+
+  static Future<void> _ensureCurrentSession(String? sessionToken) async {
+    final storedToken = await _storage.read(key: Configuration.tokenKey);
+    final currentToken = Configuration.instance.getToken();
+    final token = sessionToken ?? currentToken;
+    if (token == null || token != currentToken || token != storedToken) {
+      throw StateError('Notification key requested for a stale session');
     }
   }
 }
