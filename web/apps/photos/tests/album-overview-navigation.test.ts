@@ -1,4 +1,6 @@
 import type { LocalUser } from "ente-accounts/services/user";
+import type { Collection } from "ente-media/collection";
+import { ItemVisibility } from "ente-media/file-metadata";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { describe, expect, test } from "vitest";
@@ -7,12 +9,12 @@ import {
     initialGalleryState,
 } from "../src/components/gallery/reducer";
 
-const mounted = () =>
+const mounted = (collections: Collection[] = []) =>
     galleryReducer(initialGalleryState, {
         type: "mount",
         user: { id: 1 } as LocalUser,
         familyData: undefined,
-        collections: [],
+        collections,
         collectionFiles: [],
         trashItems: [],
     });
@@ -114,5 +116,45 @@ describe("album overview navigation", () => {
             albumFilter: "shared",
         });
         expect(state.filteredFiles).toEqual([]);
+    });
+
+    const album = (archived: boolean) =>
+        ({
+            id: 20,
+            type: "album",
+            owner: { id: 1 },
+            sharees: [],
+            publicURLs: [],
+            magicMetadata: archived
+                ? {
+                      version: 1,
+                      count: 1,
+                      data: { visibility: ItemVisibility.archived },
+                  }
+                : undefined,
+        }) as unknown as Collection;
+
+    test("keeps an archived album opened outside Archive through collection refreshes", () => {
+        let state = galleryReducer(mounted([album(true)]), {
+            type: "showCollectionSummary",
+            collectionSummaryID: 20,
+        });
+        state = galleryReducer(state, {
+            type: "setCollections",
+            collections: [album(true)],
+        });
+        expect(state.selectedCollectionSummaryID).toBe(20);
+    });
+
+    test("leaves an album that is archived while being viewed", () => {
+        let state = galleryReducer(mounted([album(false)]), {
+            type: "showCollectionSummary",
+            collectionSummaryID: 20,
+        });
+        state = galleryReducer(state, {
+            type: "setCollections",
+            collections: [album(true)],
+        });
+        expect(state.selectedCollectionSummaryID).toBe(PseudoCollectionID.all);
     });
 });

@@ -1,0 +1,1 @@
+- Fixed archived albums opened from search closing after a sync. - @y9ndra

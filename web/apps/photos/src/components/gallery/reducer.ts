@@ -381,12 +381,20 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
             let view = state.view;
             let selectedCollectionSummaryID = state.selectedCollectionSummaryID;
             if (state.view?.type == "albums") {
+                // Keep an archived album opened from outside Archive, but
+                // leave one that was archived while being viewed.
+                const wasArchived =
+                    selectedCollectionSummaryID !== undefined &&
+                    !!state.normalCollectionSummaries
+                        .get(selectedCollectionSummaryID)
+                        ?.attributes.has("archived");
                 ({ view, selectedCollectionSummaryID } =
                     deriveAlbumsViewAndSelectedID(
                         collections,
                         hiddenCollectionIDs,
                         normalCollectionSummaries,
                         selectedCollectionSummaryID,
+                        wasArchived,
                     ));
             } else if (state.view?.type == "hidden-albums") {
                 ({ view, selectedCollectionSummaryID } =
@@ -760,6 +768,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     state.hiddenCollectionIDs,
                     state.normalCollectionSummaries,
                     state.selectedCollectionSummaryID,
+                    false,
                 );
 
             return stateByUpdatingFilteredFiles({
@@ -1460,6 +1469,7 @@ const deriveAlbumsViewAndSelectedID = (
     hiddenCollectionIDs: GalleryState["hiddenCollectionIDs"],
     collectionSummaries: GalleryState["normalCollectionSummaries"],
     selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
+    allowArchived: boolean,
 ) => {
     const candidateCollectionSummary = selectedCollectionSummaryID
         ? collectionSummaries.get(selectedCollectionSummaryID)
@@ -1467,7 +1477,8 @@ const deriveAlbumsViewAndSelectedID = (
     const selectedCollectionSummary =
         candidateCollectionSummary &&
         !candidateCollectionSummary.attributes.has("archiveItems") &&
-        !candidateCollectionSummary.attributes.has("archived")
+        (allowArchived ||
+            !candidateCollectionSummary.attributes.has("archived"))
             ? candidateCollectionSummary
             : undefined;
 
