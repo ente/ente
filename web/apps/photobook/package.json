@@ -15,12 +15,12 @@
         "ente-media": "*",
         "ente-photobook-wasm": "*",
         "jszip": "3.10.2",
-        "konva": "9.3.22",
+        "konva": "10.9.0",
         "page-flip": "2.0.7",
-        "react-konva": "19.2.3"
+        "react-konva": "19.3.2"
     },
     "devDependencies": {
         "ente-build-config": "*",
-        "vitest": "5.0.4"
+        "vitest": "5.0.5"
     }
 }
