@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+
+	"log"
+
 	"github.com/ente/cli/internal"
 	"github.com/ente/cli/internal/api"
 	"github.com/ente/cli/pkg/model"
 	"github.com/ente/cli/utils/encoding"
-	"log"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -144,11 +147,48 @@ func (c *ClICtrl) ListAccounts(cxt context.Context) error {
 	return nil
 }
 
+func clearLocalSyncState(tx *bolt.Tx, accountKey string) error {
+	accountBucket := tx.Bucket([]byte(accountKey))
+	if accountBucket == nil {
+		return nil
+	}
+
+	entries := accountBucket.Bucket([]byte(model.RemoteAlbumEntries))
+	if entries == nil {
+		return nil
+	}
+
+	updates := make(map[string][]byte)
+	err := entries.ForEach(func(k, v []byte) error {
+		var entry model.AlbumFileEntry
+		if err := json.Unmarshal(v, &entry); err != nil {
+			return err
+		}
+		if !entry.SyncedLocally {
+			return nil
+		}
+		entry.SyncedLocally = false
+		updates[string(k)] = encoding.MustMarshalJSON(entry)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	for k, v := range updates {
+		if err := entries.Put([]byte(k), v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *ClICtrl) UpdateAccount(ctx context.Context, params model.AccountCommandParams) error {
 	accounts, err := c.GetAccounts(ctx)
 	if err != nil {
 		return err
 	}
+	exportDirChanged := false
 	var acc *model.Account
 	for _, a := range accounts {
 		if a.Email == params.Email && a.App == params.App {
@@ -164,6 +204,7 @@ func (c *ClICtrl) UpdateAccount(ctx context.Context, params model.AccountCommand
 		if err != nil {
 			return err
 		}
+		exportDirChanged = filepath.Clean(acc.ExportDir) != filepath.Clean(*params.ExportDir)
 		acc.ExportDir = *params.ExportDir
 	}
 	err = c.DB.Update(func(tx *bolt.Tx) error {
@@ -176,7 +217,13 @@ func (c *ClICtrl) UpdateAccount(ctx context.Context, params model.AccountCommand
 			return err
 		}
 		accountKey := acc.AccountKey()
-		return b.Put([]byte(accountKey), accInfoBytes)
+		if err := b.Put([]byte(accountKey), accInfoBytes); err != nil {
+			return err
+		}
+		if exportDirChanged {
+			return clearLocalSyncState(tx, accountKey)
+		}
+		return nil
 	})
 	return err
 }
