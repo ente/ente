@@ -172,6 +172,32 @@ func TestErrorPreservesNotFoundAPIErrorResponse(t *testing.T) {
 	require.Equal(t, ente.NotFoundError, body.Code)
 }
 
+func TestErrorPreservesFileUploadConflictStatus(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	for _, tt := range []struct {
+		name string
+		err  error
+		code string
+	}{
+		{name: "legacy bad request", err: ente.ErrBadRequest},
+		{name: "upload conflict", err: ente.ErrFileUploadConflict, code: "FILE_UPLOAD_CONFLICT"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			recorder, ctx := testContext()
+			err := stacktrace.Propagate(stacktrace.Propagate(tt.err, "create"), "handler")
+			Error(ctx, err)
+
+			require.Equal(t, http.StatusBadRequest, recorder.Code)
+			var body struct {
+				Code string `json:"code"`
+			}
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+			require.Equal(t, tt.code, body.Code)
+		})
+	}
+}
+
 func testContext() (*httptest.ResponseRecorder, *gin.Context) {
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
