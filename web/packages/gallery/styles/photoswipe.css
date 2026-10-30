@@ -345,6 +345,12 @@ media-time-range {
     --media-control-padding: 0px;
 }
 
+@media (width < 450px) {
+    media-volume-range {
+        display: none;
+    }
+}
+
 media-time-range:hover {
     --media-range-track-height: 5px;
     --media-range-thumb-transform: scale(1.1);
