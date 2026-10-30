@@ -5217,5 +5217,64 @@
     }
   },
   "notEnoughStorageTitle": "Not enough storage",
-  "notEnoughStorageBody": "You do not have enough free space on Ente to add new photos. Free up space or upgrade to keep adding."
+  "notEnoughStorageBody": "You do not have enough free space on Ente to add new photos. Free up space or upgrade to keep adding.",
+  "noEligibleDeviceAlbums": "No albums available for these items",
+  "movingItemsTo": "{count, plural, one{Moving {count} item to {albumName}} other{Moving {count} items to {albumName}}}",
+  "@movingItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "movedItemsTo": "{count, plural, one{Moved {count} item to {albumName}} other{Moved {count} items to {albumName}}}",
+  "@movedItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceTransferSummary": "{completedCount} completed · {failedCount} failed",
+  "@deviceTransferSummary": {
+    "placeholders": {
+      "completedCount": {
+        "type": "int"
+      },
+      "failedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "deviceTransferRefreshFailed": "The album could not refresh. Reopen the app to see the latest changes.",
+  "deviceTransferUnconfirmed": "Could not confirm the transfer. Check the destination album before trying again.",
+  "addingItemsTo": "{count, plural, one{Adding {count} item to {albumName}} other{Adding {count} items to {albumName}}}",
+  "@addingItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedItemsTo": "{count, plural, one{Added {count} item to {albumName}} other{Added {count} items to {albumName}}}",
+  "@addedItemsTo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceAlbumTransferFailedHint": "Some items could not be added or moved. Check photo access and try again."
 }

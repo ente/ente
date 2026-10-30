@@ -181,7 +181,18 @@ class LocalSyncService {
     return hasUpdated;
   }
 
-  Future<bool> syncAll() async {
+  Future<bool> syncAll() => Platform.isIOS && isLocalGalleryMode
+      ? _lock.synchronized(_syncAll)
+      : _syncAll();
+
+  Future<void> refreshAfterDeviceFolderTransfer() => _lock.synchronized(
+    () async {
+      await _syncAll();
+      Bus.instance.fire(LocalPhotosUpdatedEvent([], source: "deviceTransfer"));
+    },
+  );
+
+  Future<bool> _syncAll() async {
     if (!Configuration.instance.isLoggedIn()) {
       if (!isLocalGalleryMode) {
         _logger.warning("syncAll called when user is not logged in");
@@ -193,6 +204,10 @@ class LocalSyncService {
     final localAssets = await getAllLocalAssets(
       needsTitle: isLocalGalleryMode ? true : null,
     );
+    Map<String, Set<String>>? pathToLocalIDs;
+    if (Platform.isIOS && isLocalGalleryMode) {
+      pathToLocalIDs = await _db.getDevicePathIDToLocalIDMap();
+    }
     _logger.info(
       "Loading allLocalAssets ${localAssets.length} took ${stopwatch.elapsedMilliseconds}ms ",
     );
@@ -202,9 +217,7 @@ class LocalSyncService {
     );
     final int ownerID = Configuration.instance.getUserIDV2();
     final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
-    final Map<String, Set<String>> pathToLocalIDs = await _db
-        .getDevicePathIDToLocalIDMap();
-
+    pathToLocalIDs ??= await _db.getDevicePathIDToLocalIDMap();
     final localDiffResult = await getDiffFromExistingImport(
       localAssets,
       existingLocalFileIDs,
