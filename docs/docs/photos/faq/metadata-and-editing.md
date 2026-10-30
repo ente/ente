@@ -99,6 +99,19 @@ For photos already in Ente, you can select the affected items in the desktop app
 
 If an import is still running, [stop the upload](/photos/migration/from-local-hard-disk#stop-and-resume-an-upload) before cleanup. Files still present in the selected source can be uploaded again during that import or a later retry.
 
+## Editing photos
+
+### How do I add text or straighten a photo on mobile? {#mobile-photo-editor}
+
+In Ente Photos mobile v1.3.66 and later, open a photo and choose **Edit** to use the image editor.
+
+- **Text**: Add text to the image, then choose its font, color, background, and alignment. This becomes part of the edited image, unlike a [description or caption](#add-descriptions), which is stored as metadata.
+- **Crop and rotate**: Choose **Straighten** and adjust the angle to level a tilted photo.
+- **Adjust**: Use the photo adjustment controls, including **Tint** and **Fade**. Sharpness and Luminance are no longer available in this mobile editor.
+- **Text, stickers, and drawings**: Select an added element to duplicate or delete it.
+
+Save when you are finished. Ente creates a separate edited copy and leaves the original untouched. See [how saving edits affects the copy](#saving-photo-edits).
+
 ## Editing Metadata
 
 ### What metadata is preserved when I edit a photo? {#metadata-preserved-after-edit}

@@ -27,6 +27,10 @@ Because the timeline depends on face recognition, hidden or ignored faces may af
 
 **On mobile:**
 
+In v1.3.66 and later, Memory Lane can also appear in the memories strip at the top of the home screen. Tap its card when it is available to open the timeline.
+
+To open a specific person's Memory Lane:
+
 1. Open the Search tab.
 2. Open the People section.
 3. Select a person.

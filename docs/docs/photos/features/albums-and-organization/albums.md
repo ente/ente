@@ -20,6 +20,12 @@ Albums in Ente are collections that help you organize your photos and videos. Si
 - **Multiple membership**: A single photo can exist in many albums without using extra storage
 - **Device-independent**: Albums you create in Ente are separate from folders on your device
 
+## Change the mobile gallery layout {#mobile-gallery-layout}
+
+In Ente Photos mobile v1.3.66 and later, pinch in or out on the gallery to switch layouts and change how many photos fit on the screen. You can also do this while selecting photos.
+
+The **mosaic** layout shows thumbnails in their original proportions, rather than cropping every thumbnail into a square. Changing the gallery layout only changes how photos are displayed; it does not crop or edit your original files.
+
 ## Create a new album
 
 Create albums to organize your photos and videos into collections.
