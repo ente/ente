@@ -79,5 +79,7 @@ void main() {
 
     await config.init(preferences);
     expect(preferences.containsKey(Configuration.tokenKey), false);
+    expect(config.getToken(), 'token');
+    expect(secureValues[Configuration.tokenKey], 'token');
   });
 }
