@@ -17,11 +17,27 @@ pub struct BoundedDecodedImage {
 }
 
 pub fn decode_bounded(input: ImageInput<'_>, max_side: u32) -> ImageResult<BoundedDecodedImage> {
+    decode_bounded_with_cancellation(input, max_side, || false)
+}
+
+pub fn decode_bounded_with_cancellation(
+    input: ImageInput<'_>,
+    max_side: u32,
+    is_cancelled: impl Fn() -> bool,
+) -> ImageResult<BoundedDecodedImage> {
     if max_side == 0 {
         return Err(ImageError::Postprocess(
             "maximum side must be greater than zero".into(),
         ));
     }
+    let check_cancelled = || {
+        if is_cancelled() {
+            Err(ImageError::Cancelled)
+        } else {
+            Ok(())
+        }
+    };
+    check_cancelled()?;
     match input {
         ImageInput::Path(path) => {
             let file = File::open(path).map_err(|error| {
@@ -32,12 +48,12 @@ pub fn decode_bounded(input: ImageInput<'_>, max_side: u32) -> ImageResult<Bound
                 .fill_buf()
                 .map_err(|error| ImageError::Decode(error.to_string()))?;
             if header.starts_with(crate::png::SIGNATURE) {
-                return crate::png::decode(reader, max_side);
+                return crate::png::decode(reader, max_side, check_cancelled);
             }
         }
         ImageInput::Bytes(bytes) => {
             if bytes.starts_with(crate::png::SIGNATURE) {
-                return crate::png::decode(Cursor::new(bytes), max_side);
+                return crate::png::decode(Cursor::new(bytes), max_side, check_cancelled);
             }
         }
     }

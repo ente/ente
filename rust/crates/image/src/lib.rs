@@ -6,6 +6,8 @@ pub mod image_compression;
 mod png;
 pub mod types;
 
-pub use bounded::{BoundedDecodedImage, ImageInput, decode_bounded};
+pub use bounded::{
+    BoundedDecodedImage, ImageInput, decode_bounded, decode_bounded_with_cancellation,
+};
 pub use error::{ImageError, ImageResult};
 pub use types::{DecodedImage, Dimensions};
