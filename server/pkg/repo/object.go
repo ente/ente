@@ -102,12 +102,17 @@ func (repo *ObjectRepository) GetAccessibleObjectWithDCs(ctx context.Context, fi
 				ELSE EXISTS (
 					SELECT 1
 					FROM collection_files cf
-					JOIN collection_shares cs ON cs.collection_id = cf.collection_id
+					JOIN collections c ON c.collection_id = cf.collection_id
+					LEFT JOIN collection_shares cs
+						ON cs.collection_id = cf.collection_id
+						AND cs.to_user_id = $2
+						AND cs.is_deleted = FALSE
+						AND cs.acceptance_status = 'accepted'
 					WHERE cf.file_id = f.file_id
 						AND cf.is_deleted = FALSE
 						AND cf.action IS DISTINCT FROM $4
-						AND cs.is_deleted = FALSE
-						AND (cs.to_user_id = $2 OR cs.from_user_id = $2)
+						AND c.is_deleted = FALSE
+						AND (c.owner_id = $2 OR cs.to_user_id IS NOT NULL)
 				)
 			END AS can_access,
 			ok.object_key,

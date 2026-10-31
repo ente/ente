@@ -373,6 +373,10 @@ internal:
     # thus cannot create new accounts.
     disable-registration: false
 
+photos:
+    share-acceptance:
+        enabled: false
+
 # Replication config
 #
 # If enabled, replicate each file to 2 other data centers after it gets

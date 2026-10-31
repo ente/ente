@@ -762,6 +762,8 @@ func main() {
 	storageAPI.POST("/collections/share", collectionHandler.Share)
 	storageAPI.POST("/collections/share/batch", collectionHandler.BatchShare)
 	storageAPI.POST("/collections/share/bulk", collectionHandler.BulkShare)
+	storageAPI.POST("/collections/accept", collectionHandler.AcceptInvitations)
+	storageAPI.POST("/collections/reject", collectionHandler.RejectInvitation)
 	storageAPI.POST("/collections/join-link", collectionHandler.JoinLink)
 	storageAPI.POST("/collections/share-url", collectionHandler.ShareURL)
 	storageAPI.PUT("/collections/share-url", collectionHandler.UpdateShareURL)

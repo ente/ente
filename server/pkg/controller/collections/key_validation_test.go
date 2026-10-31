@@ -135,7 +135,7 @@ func TestCollectionControllerRejectsInvalidCollectionKeysBeforeRepoAccess(t *tes
 		t.Fatal("Share() error = nil, want invalid key error")
 	}
 
-	if err := controller.JoinViaLink(ctx, ente.JoinCollectionViaLinkRequest{
+	if _, err := controller.JoinViaLink(ctx, ente.JoinCollectionViaLinkRequest{
 		CollectionID: 1,
 		EncryptedKey: b64OfLen(sealedCollectionKeyLen + 1),
 	}); err == nil {

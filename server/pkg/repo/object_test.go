@@ -137,6 +137,52 @@ func TestGetAccessibleObjectRejectsUnsharedForeignFile(t *testing.T) {
 	}
 }
 
+func TestGetAccessibleObjectRequiresAcceptedMembership(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+	for _, fixture := range []testutil.UserFixture{
+		{UserID: 1, Email: "album-owner@ente.com", CreationTime: 1},
+		{UserID: 2, Email: "contributor@ente.com", CreationTime: 1},
+		{UserID: 3, Email: "recipient@ente.com", CreationTime: 1},
+	} {
+		testutil.InsertUser(t, db, fixture)
+	}
+	collectionID := insertObjectTestCollection(t, db, 1)
+	insertObjectTestCollectionShare(t, db, collectionID, 1, 3)
+	fileID := insertObjectTestFile(t, db, 2)
+	linkObjectTestFileToCollection(t, db, collectionID, fileID, 1)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "invited-file", 100, []string{"b2-eu-cen"})
+	insertObjectTestKey(t, db, fileID, ente.THUMBNAIL, "invited-thumbnail", 10, []string{"b2-eu-cen"})
+
+	for _, status := range []string{"pending", "rejected"} {
+		if _, err := db.Exec(`UPDATE collection_shares SET acceptance_status = $1 WHERE collection_id = $2`, status, collectionID); err != nil {
+			t.Fatal(err)
+		}
+		for _, objectType := range []ente.ObjectType{ente.FILE, ente.THUMBNAIL} {
+			if _, err := repository.GetAccessibleObject(t.Context(), fileID, 3, objectType); !errors.Is(err, ente.ErrPermissionDenied) {
+				t.Fatalf("%s recipient accessing %s: got %v, want permission denied", status, objectType, err)
+			}
+			for _, ownerID := range []int64{1, 2} {
+				if _, err := repository.GetAccessibleObject(t.Context(), fileID, ownerID, objectType); err != nil {
+					t.Fatalf("%s membership blocked owner %d accessing %s: %v", status, ownerID, objectType, err)
+				}
+			}
+		}
+	}
+
+	otherCollectionID := insertObjectTestCollection(t, db, 1)
+	insertObjectTestCollectionShare(t, db, otherCollectionID, 1, 3)
+	linkObjectTestFileToCollection(t, db, otherCollectionID, fileID, 1)
+	if _, err := repository.GetAccessibleObject(t.Context(), fileID, 3, ente.FILE); err != nil {
+		t.Fatalf("independent accepted grant should allow access: %v", err)
+	}
+	if _, err := db.Exec(`UPDATE collections SET is_deleted = TRUE WHERE collection_id = $1`, otherCollectionID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.GetAccessibleObject(t.Context(), fileID, 3, ente.FILE); !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("deleted album should not grant access: %v", err)
+	}
+}
+
 func TestGetAccessibleObjectReturnsNoRowsForAllowedFileWithMissingObject(t *testing.T) {
 	repository, db := setupAccessibleObjectTest(t)
 

@@ -119,8 +119,8 @@ func (repo *CollectionRepository) WithSharingDetailsForUser(c ente.Collection, a
 	if actorUserID != c.Owner.ID {
 		var encryptedKey sql.NullString
 		var sharedAt sql.NullInt64
-		err := repo.DB.QueryRow(`SELECT encrypted_key, magic_metadata, shared_at FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3`,
-			c.ID, actorUserID, false).Scan(&encryptedKey, &c.SharedMagicMetadata, &sharedAt)
+		err := repo.DB.QueryRow(`SELECT encrypted_key, magic_metadata, shared_at, acceptance_status, invited_by_user_id FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3 AND acceptance_status = 'accepted'`,
+			c.ID, actorUserID, false).Scan(&encryptedKey, &c.SharedMagicMetadata, &sharedAt, &c.AcceptanceStatus, &c.InvitedByUserID)
 		if err != nil {
 			return ente.Collection{}, stacktrace.Propagate(err, "failed to fetch sharee encrypted key")
 		}
@@ -156,7 +156,7 @@ func (repo *CollectionRepository) GetCollectionsOwnedByUserV2(userID int64, upda
 	query := `
 		SELECT 
 c.collection_id, c.owner_id, c.encrypted_key,c.key_decryption_nonce, c.name, c.encrypted_name, c.name_decryption_nonce, c.type, c.app, c.attributes, c.updation_time, c.is_deleted, c.magic_metadata, c.pub_magic_metadata,
-users.user_id, users.encrypted_email, users.email_decryption_nonce, cs.role_type,
+users.user_id, users.encrypted_email, users.email_decryption_nonce, cs.role_type, cs.acceptance_status, cs.invited_by_user_id,
 pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_at, pct.pw_hash, pct.pw_nonce, pct.mem_limit, pct.ops_limit, pct.enable_download, pct.enable_collect, pct.enable_comment, pct.enable_join, pct.min_role 
     FROM collections c
     LEFT JOIN collection_shares cs
@@ -169,7 +169,7 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 	args := []interface{}{userID, updationTime, string(app)}
 
 	if limit != nil {
-		query += " ORDER BY c.updation_time ASC LIMIT $4"
+		query += " ORDER BY c.updation_time ASC FETCH FIRST $4 ROWS WITH TIES"
 		args = append(args, *limit)
 	}
 	rows, err := repo.DB.Query(query, args...)
@@ -187,10 +187,11 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 		var pctEnableDownload, pctEnableCollect, pctEnableComment, pctEnableJoin sql.NullBool
 		var shareUserID, pctValidTill, pctCreatedAt, pctUpdatedAt, pctMemLimit, pctOpsLimit sql.NullInt64
 		var encryptedEmail, nonce []byte
-		var shareeRoleType, pctToken, pctPwHash, pctPwNonce, pctMinRole sql.NullString
+		var shareeRoleType, acceptanceStatus, pctToken, pctPwHash, pctPwNonce, pctMinRole sql.NullString
+		var invitedByUserID *int64
 
 		if err := rows.Scan(&c.ID, &c.Owner.ID, &c.EncryptedKey, &c.KeyDecryptionNonce, &name, &encryptedName, &nameDecryptionNonce, &c.Type, &c.App, &c.Attributes, &c.UpdationTime, &c.IsDeleted, &c.MagicMetadata, &c.PublicMagicMetadata,
-			&shareUserID, &encryptedEmail, &nonce, &shareeRoleType,
+			&shareUserID, &encryptedEmail, &nonce, &shareeRoleType, &acceptanceStatus, &invitedByUserID,
 			&pctToken, &pctValidTill, &pctDeviceLimit, &pctCreatedAt, &pctUpdatedAt, &pctPwHash, &pctPwNonce, &pctMemLimit, &pctOpsLimit, &pctEnableDownload, &pctEnableCollect, &pctEnableComment, &pctEnableJoin, &pctMinRole); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
@@ -210,8 +211,10 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 		currentCollection := collectionIDToValMap[c.ID]
 		if shareUserID.Valid {
 			sharedUser := ente.CollectionUser{
-				ID:   shareUserID.Int64,
-				Role: ente.ConvertStringToCollectionParticipantRole(shareeRoleType.String),
+				ID:               shareUserID.Int64,
+				Role:             ente.ConvertStringToCollectionParticipantRole(shareeRoleType.String),
+				AcceptanceStatus: ente.CollectionAcceptanceStatus(acceptanceStatus.String),
+				InvitedByUserID:  invitedByUserID,
 			}
 			email, err := crypto.Decrypt(encryptedEmail, repo.SecretEncryptionKey, nonce)
 			if err != nil {
@@ -257,35 +260,36 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, updationTime int64, app ente.App, limit *int64) ([]ente.Collection, error) {
 	query := `
 		SELECT collections.collection_id, collections.owner_id,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE users.encrypted_email END,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE users.email_decryption_nonce END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE users.encrypted_email END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE users.email_decryption_nonce END,
 			collection_shares.encrypted_key,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.name END,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.encrypted_name END,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.name_decryption_nonce END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collections.name END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collections.encrypted_name END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collections.name_decryption_nonce END,
 			collections.type,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.app::text END,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collections.pub_magic_metadata END,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.magic_metadata END,
-			CASE WHEN collection_shares.is_deleted THEN collection_shares.updation_time ELSE GREATEST(collection_shares.updation_time, collections.updation_time) END AS effective_updation_time,
-			collection_shares.is_deleted OR collections.is_deleted,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.role_type END,
-			CASE WHEN collection_shares.is_deleted THEN NULL ELSE collection_shares.shared_at END
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collections.app::text END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collections.pub_magic_metadata END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collection_shares.magic_metadata END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN collection_shares.updation_time ELSE GREATEST(collection_shares.updation_time, collections.updation_time) END AS effective_updation_time,
+			(collection_shares.is_deleted OR collections.is_deleted OR collection_shares.acceptance_status <> 'accepted'),
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collection_shares.role_type END,
+			CASE WHEN (collection_shares.is_deleted OR collection_shares.acceptance_status <> 'accepted') THEN NULL ELSE collection_shares.shared_at END,
+				collection_shares.acceptance_status, collection_shares.invited_by_user_id
 		FROM collections
 		INNER JOIN users
 			ON collections.owner_id = users.user_id
 		INNER JOIN collection_shares
 			ON collections.collection_id = collection_shares.collection_id
 		WHERE collection_shares.to_user_id = $1
-			AND (collection_shares.is_deleted = TRUE OR collections.is_deleted = TRUE OR users.encrypted_email IS NOT NULL)
+			AND (collection_shares.is_deleted = TRUE OR collections.is_deleted = TRUE OR collection_shares.acceptance_status <> 'accepted' OR users.encrypted_email IS NOT NULL)
 			AND collections.app = $3
 			AND (
-				(collection_shares.is_deleted = FALSE AND (collection_shares.updation_time > $2 OR collections.updation_time > $2))
-				OR (collection_shares.is_deleted = TRUE AND collection_shares.updation_time > $2)
+				(collection_shares.is_deleted = FALSE AND collection_shares.acceptance_status = 'accepted' AND (collection_shares.updation_time > $2 OR collections.updation_time > $2))
+				OR ((collection_shares.is_deleted = TRUE OR collection_shares.acceptance_status <> 'accepted') AND collection_shares.updation_time > $2)
 			)`
 	args := []interface{}{userID, updationTime, string(app)}
 	if limit != nil {
-		query += " ORDER BY effective_updation_time ASC LIMIT $4"
+		query += " ORDER BY effective_updation_time ASC FETCH FIRST $4 ROWS WITH TIES"
 		args = append(args, *limit)
 	}
 
@@ -303,7 +307,7 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 		var encryptedEmail, emailDecryptionNonce []byte
 		var collectionApp, roleType sql.NullString
 		var sharedAt sql.NullInt64
-		if err := rows.Scan(&c.ID, &c.Owner.ID, &encryptedEmail, &emailDecryptionNonce, &c.EncryptedKey, &collectionName, &encryptedName, &nameDecryptionNonce, &c.Type, &collectionApp, &c.PublicMagicMetadata, &c.SharedMagicMetadata, &c.UpdationTime, &c.IsDeleted, &roleType, &sharedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Owner.ID, &encryptedEmail, &emailDecryptionNonce, &c.EncryptedKey, &collectionName, &encryptedName, &nameDecryptionNonce, &c.Type, &collectionApp, &c.PublicMagicMetadata, &c.SharedMagicMetadata, &c.UpdationTime, &c.IsDeleted, &roleType, &sharedAt, &c.AcceptanceStatus, &c.InvitedByUserID); err != nil {
 			return collections, stacktrace.Propagate(err, "")
 		}
 		c.App = collectionApp.String
@@ -377,10 +381,13 @@ func (repo *CollectionRepository) GetCollectionsSharedWithUser(userID int64, upd
 
 func (repo *CollectionRepository) GetCollectionIDsSharedWithUser(userID int64) ([]int64, error) {
 	rows, err := repo.DB.Query(`
-		SELECT collection_id
+		SELECT collection_shares.collection_id
 		FROM collection_shares
+		JOIN collections ON collections.collection_id = collection_shares.collection_id
 		WHERE collection_shares.to_user_id = $1
-		AND collection_shares.is_deleted = $2`, userID, false)
+		AND collection_shares.is_deleted = $2
+		AND collection_shares.acceptance_status = 'accepted'
+		AND collections.is_deleted = FALSE`, userID, false)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -429,10 +436,11 @@ func (repo *CollectionRepository) FilterNonDeletedCollectionIDs(collectionIDs []
 
 func (repo *CollectionRepository) GetCollectionsSharedWithOrByUser(userID int64) ([]int64, error) {
 	rows, err := repo.DB.Query(`
-		SELECT collection_id
+		SELECT collection_shares.collection_id
 		FROM collection_shares
-		WHERE (to_user_id = $1 OR from_user_id = $1)
-		AND is_deleted = $2`, userID, false)
+		JOIN collections ON collections.collection_id = collection_shares.collection_id
+		WHERE ((to_user_id = $1 AND acceptance_status = 'accepted') OR from_user_id = $1)
+		AND collection_shares.is_deleted = $2 AND collections.is_deleted = FALSE`, userID, false)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -498,7 +506,7 @@ func (repo *CollectionRepository) GetAllSharedCollections(ctx context.Context, u
 
 func (repo *CollectionRepository) GetCollectionShareeRole(cID int64, userID int64) (*ente.CollectionParticipantRole, error) {
 	var role *ente.CollectionParticipantRole
-	err := repo.DB.QueryRow(`(SELECT role_type FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3)`,
+	err := repo.DB.QueryRow(`(SELECT role_type FROM collection_shares WHERE collection_id = $1 AND to_user_id = $2 AND is_deleted = $3 AND acceptance_status = 'accepted')`,
 		cID, userID, false).Scan(&role)
 	return role, stacktrace.Propagate(err, "")
 }
@@ -516,44 +524,12 @@ func (repo *CollectionRepository) Share(
 	toUserID int64,
 	encryptedKey string,
 	role ente.CollectionParticipantRole,
-	updationTime int64) error {
-	context := context.Background()
-	tx, err := repo.DB.BeginTx(context, nil)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	defer tx.Rollback()
-	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
-		err = fmt.Errorf("invalid role %s", string(role))
-		return stacktrace.Propagate(err, "")
-	}
-	_, err = tx.ExecContext(context, `INSERT INTO collection_shares(collection_id, from_user_id, to_user_id, encrypted_key, updation_time, role_type, shared_at) VALUES($1, $2, $3, $4, $5, $6, $7)
-			ON CONFLICT (collection_id, from_user_id, to_user_id)
-			DO UPDATE SET
-				is_deleted = FALSE,
-				updation_time = $5,
-				role_type = $6,
-				shared_at = CASE
-					WHEN collection_shares.is_deleted = TRUE THEN $7
-					ELSE collection_shares.shared_at
-				END`,
-		collectionID, fromUserID, toUserID, encryptedKey, updationTime, role, updationTime)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	result, err := tx.ExecContext(context, `UPDATE collections SET updation_time = $1
-		WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	updated, err := result.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	if updated == 0 {
-		return stacktrace.Propagate(ente.ErrCollectionDeleted, "")
-	}
-	return stacktrace.Propagate(tx.Commit(), "")
+	updationTime int64,
+	options ...ShareAcceptanceOptions,
+) error {
+	_, err := repo.writeDirectShares(context.Background(), collectionID, fromUserID,
+		[]CollectionShareItem{{ToUserID: toUserID, EncryptedKey: encryptedKey, Role: role}}, updationTime, false, options)
+	return err
 }
 
 func (repo *CollectionRepository) BatchShare(
@@ -562,64 +538,12 @@ func (repo *CollectionRepository) BatchShare(
 	fromUserID int64,
 	shares []CollectionShareItem,
 	updationTime int64,
+	options ...ShareAcceptanceOptions,
 ) error {
-	toUserIDs := make([]int64, len(shares))
-	encryptedKeys := make([]string, len(shares))
-	roles := make([]string, len(shares))
-	for index, share := range shares {
-		toUserIDs[index] = share.ToUserID
-		encryptedKeys[index] = share.EncryptedKey
-		roles[index] = string(share.Role)
-	}
-
-	tx, err := repo.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	defer tx.Rollback()
-
-	_, err = tx.ExecContext(ctx, `INSERT INTO collection_shares
-			(collection_id, from_user_id, to_user_id, encrypted_key, updation_time, role_type, shared_at)
-		SELECT $1, $2, input.to_user_id, input.encrypted_key, $3, input.role, $3
-		FROM unnest($4::bigint[], $5::text[], $6::role_enum[])
-			AS input(to_user_id, encrypted_key, role)
-		ORDER BY input.to_user_id
-		ON CONFLICT (collection_id, from_user_id, to_user_id)
-		DO UPDATE SET
-			is_deleted = FALSE,
-			updation_time = EXCLUDED.updation_time,
-			role_type = EXCLUDED.role_type,
-			shared_at = CASE
-				WHEN collection_shares.is_deleted = TRUE THEN EXCLUDED.shared_at
-				ELSE collection_shares.shared_at
-			END`,
-		collectionID,
-		fromUserID,
-		updationTime,
-		pq.Array(toUserIDs),
-		pq.Array(encryptedKeys),
-		pq.Array(roles),
-	)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-
-	result, err := tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
-		WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	updated, err := result.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	if updated == 0 {
-		return stacktrace.Propagate(ente.ErrCollectionDeleted, "")
-	}
-	return stacktrace.Propagate(tx.Commit(), "")
+	_, err := repo.writeDirectShares(ctx, collectionID, fromUserID, shares, updationTime, false, options)
+	return err
 }
 
-// ShareAutomatically creates a share without modifying a prior share.
 func (repo *CollectionRepository) ShareAutomatically(
 	ctx context.Context,
 	collectionID int64,
@@ -628,61 +552,14 @@ func (repo *CollectionRepository) ShareAutomatically(
 	encryptedKey string,
 	role ente.CollectionParticipantRole,
 	updationTime int64,
+	options ...ShareAcceptanceOptions,
 ) (ente.CollectionShareStatus, error) {
-	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
-		return "", stacktrace.Propagate(fmt.Errorf("invalid role %s", role), "")
-	}
-	tx, err := repo.DB.BeginTx(ctx, nil)
+	statuses, err := repo.writeDirectShares(ctx, collectionID, fromUserID,
+		[]CollectionShareItem{{ToUserID: toUserID, EncryptedKey: encryptedKey, Role: role}}, updationTime, true, options)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "")
+		return "", err
 	}
-	defer tx.Rollback()
-
-	result, err := tx.ExecContext(ctx, `INSERT INTO collection_shares(
-			collection_id, from_user_id, to_user_id, encrypted_key, updation_time,
-			role_type, shared_at
-		) VALUES($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (collection_id, from_user_id, to_user_id)
-		DO NOTHING
-	`, collectionID, fromUserID, toUserID, encryptedKey, updationTime, role, updationTime)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	if affected == 0 {
-		var isDeleted bool
-		err := tx.QueryRowContext(ctx, `SELECT is_deleted
-			FROM collection_shares
-			WHERE collection_id = $1 AND from_user_id = $2 AND to_user_id = $3`,
-			collectionID, fromUserID, toUserID).
-			Scan(&isDeleted)
-		if err != nil {
-			return "", stacktrace.Propagate(err, "")
-		}
-		if isDeleted {
-			return ente.CollectionBlockedPriorRemoval, nil
-		}
-		return ente.CollectionAlreadyShared, nil
-	}
-
-	result, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2 AND is_deleted = FALSE`, updationTime, collectionID)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	updated, err := result.RowsAffected()
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	if updated == 0 {
-		return "", stacktrace.Propagate(ente.ErrCollectionDeleted, "")
-	}
-	if err := tx.Commit(); err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	return ente.CollectionShared, nil
+	return statuses[0], nil
 }
 
 func (repo *CollectionRepository) UpdateShareeMetadata(
@@ -697,7 +574,14 @@ func (repo *CollectionRepository) UpdateShareeMetadata(
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
-	sqlResult, err := tx.ExecContext(context, `UPDATE collection_shares SET magic_metadata = $1, updation_time = $2  WHERE collection_id = $3 AND from_user_id = $4 AND to_user_id = $5 AND is_deleted = $6`,
+	parents, err := lockInvitationCollections(context, tx, []int64{collectionID})
+	if err != nil {
+		return err
+	}
+	updationTime = max(updationTime, parents[collectionID].UpdationTime+1)
+	sqlResult, err := tx.ExecContext(context, `UPDATE collection_shares SET magic_metadata = $1, updation_time = $2
+		WHERE collection_id = $3 AND from_user_id = $4 AND to_user_id = $5 AND is_deleted = $6
+			AND acceptance_status = 'accepted'`,
 		metadata, updationTime, collectionID, ownerUserID, shareeUserID, false)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -740,7 +624,23 @@ func (repo *CollectionRepository) RepairDeletedCollectionShare(ctx context.Conte
 	return updated, stacktrace.Propagate(err, "")
 }
 
+var errUnshareFilesChanged = errors.New("collection contributions changed while unsharing")
+
 func (repo *CollectionRepository) UnShareContext(
+	ctx context.Context,
+	collectionID int64,
+	toUserID int64,
+) (ente.CollectionShareStatus, error) {
+	for range 5 {
+		status, err := repo.unshareContext(ctx, collectionID, toUserID)
+		if !errors.Is(err, errUnshareFilesChanged) {
+			return status, err
+		}
+	}
+	return "", stacktrace.Propagate(errUnshareFilesChanged, "unshare retry limit exceeded")
+}
+
+func (repo *CollectionRepository) unshareContext(
 	ctx context.Context,
 	collectionID int64,
 	toUserID int64,
@@ -751,6 +651,33 @@ func (repo *CollectionRepository) UnShareContext(
 		return "", stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
+	// File mutations lock memberships before collections.
+	rows, err := tx.QueryContext(ctx, `SELECT file_id, updation_time FROM collection_files
+		WHERE collection_id = $1 AND f_owner_id = $2 AND is_deleted = FALSE
+		ORDER BY file_id FOR UPDATE`, collectionID, toUserID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	fileIDs := make([]int64, 0)
+	for rows.Next() {
+		var fileID, fileUpdationTime int64
+		if err := rows.Scan(&fileID, &fileUpdationTime); err != nil {
+			rows.Close()
+			return "", stacktrace.Propagate(err, "")
+		}
+		fileIDs = append(fileIDs, fileID)
+		updationTime = max(updationTime, fileUpdationTime+1)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	parents, err := lockInvitationCollections(ctx, tx, []int64{collectionID})
+	if err != nil {
+		return "", err
+	}
+	updationTime = max(updationTime, parents[collectionID].UpdationTime+1)
 
 	status := ente.CollectionAlreadyUnshared
 	var isDeleted bool
@@ -763,6 +690,16 @@ func (repo *CollectionRepository) UnShareContext(
 	}
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
+	}
+	var newContributions bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM collection_files
+		WHERE collection_id = $1 AND f_owner_id = $2 AND is_deleted = FALSE
+			AND NOT (file_id = ANY($3)))`, collectionID, toUserID, pq.Array(fileIDs)).Scan(&newContributions); err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if newContributions {
+		// Release the parent lock before acquiring newly committed file memberships.
+		return "", errUnshareFilesChanged
 	}
 	if !isDeleted {
 		status = ente.CollectionUnshared
@@ -777,8 +714,7 @@ func (repo *CollectionRepository) UnShareContext(
 
 	_, err = tx.ExecContext(ctx, `UPDATE collection_files
 		SET is_deleted = TRUE, updation_time = $1
-		WHERE collection_id = $2 AND f_owner_id = $3 AND is_deleted = FALSE`,
-		updationTime, collectionID, toUserID)
+		WHERE collection_id = $2 AND file_id = ANY($3)`, updationTime, collectionID, pq.Array(fileIDs))
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -1139,7 +1075,7 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
 
 func (repo *CollectionRepository) GetSharees(cID int64) ([]ente.CollectionUser, error) {
 	rows, err := repo.DB.Query(`
-		SELECT users.user_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.role_type
+		SELECT users.user_id, users.encrypted_email, users.email_decryption_nonce, collection_shares.role_type, collection_shares.acceptance_status, collection_shares.invited_by_user_id
 		FROM users
 		INNER JOIN collection_shares
 		ON (collection_shares.collection_id = $1 AND collection_shares.to_user_id = users.user_id AND collection_shares.is_deleted = $2 AND users.encrypted_email IS NOT NULL)`,
@@ -1153,7 +1089,7 @@ func (repo *CollectionRepository) GetSharees(cID int64) ([]ente.CollectionUser, 
 	for rows.Next() {
 		var user ente.CollectionUser
 		var encryptedEmail, nonce []byte
-		if err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Role); err != nil {
+		if err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Role, &user.AcceptanceStatus, &user.InvitedByUserID); err != nil {
 			return users, stacktrace.Propagate(err, "")
 		}
 		email, err := crypto.Decrypt(encryptedEmail, repo.SecretEncryptionKey, nonce)
@@ -1270,6 +1206,11 @@ func (repo *CollectionRepository) ScheduleDelete(collectionID int64) error {
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
+	parents, err := lockInvitationCollections(ctx, tx, []int64{collectionID})
+	if err != nil {
+		return err
+	}
+	updationTime = max(updationTime, parents[collectionID].UpdationTime+1)
 	_, err = tx.ExecContext(ctx, `UPDATE collection_shares 
 		SET is_deleted = $1, updation_time = $2 
 		WHERE collection_id = $3`, true, updationTime, collectionID)

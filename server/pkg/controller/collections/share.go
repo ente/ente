@@ -17,7 +17,15 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
+
+func shareAcceptanceOptions(inviterUserID int64) repo.ShareAcceptanceOptions {
+	return repo.ShareAcceptanceOptions{
+		Enabled:       viper.GetBool("photos.share-acceptance.enabled"),
+		InviterUserID: inviterUserID,
+	}
+}
 
 func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareRequest) ([]ente.CollectionUser, error) {
 	fromUserID := auth.GetUserID(ctx.Request.Header)
@@ -51,6 +59,7 @@ func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareReques
 		req.EncryptedKey,
 		role,
 		time.Microseconds(),
+		shareAcceptanceOptions(fromUserID),
 	)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -113,6 +122,7 @@ func (c *CollectionController) BatchShare(ctx *gin.Context, shares []ente.AlterS
 		collection.Owner.ID,
 		resolvedShares,
 		time.Microseconds(),
+		shareAcceptanceOptions(fromUserID),
 	)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -265,6 +275,7 @@ func (c *CollectionController) shareCollectionWithUserID(
 			item.EncryptedKey,
 			item.Role,
 			updationTime,
+			shareAcceptanceOptions(fromUserID),
 		)
 		return ente.CollectionShared, collection.App == string(ente.Photos), err
 	}
@@ -276,6 +287,7 @@ func (c *CollectionController) shareCollectionWithUserID(
 		item.EncryptedKey,
 		item.Role,
 		updationTime,
+		shareAcceptanceOptions(fromUserID),
 	)
 	return status, false, err
 }
@@ -334,55 +346,71 @@ func validateCollectionShareBatch(
 	return nil
 }
 
-func (c *CollectionController) JoinViaLink(ctx *gin.Context, req ente.JoinCollectionViaLinkRequest) error {
+func (c *CollectionController) JoinViaLink(ctx *gin.Context, req ente.JoinCollectionViaLinkRequest) (ente.JoinCollectionResponse, error) {
+	var response ente.JoinCollectionResponse
 	if err := validateSealedCollectionKey(req.EncryptedKey); err != nil {
-		return err
+		return response, err
 	}
 	userID := auth.GetUserID(ctx.Request.Header)
 	collection, err := c.CollectionRepo.Get(req.CollectionID)
 	if err != nil {
-		return stacktrace.Propagate(err, "")
+		return response, stacktrace.Propagate(err, "")
+	}
+	if app, ok := auth.GetAuthenticatedApp(ctx); ok && collection.App != string(app) {
+		return response, stacktrace.Propagate(ente.ErrPermissionDenied, "collection app mismatch")
+	}
+	if collection.IsDeleted {
+		return response, ente.ErrCollectionDeleted
 	}
 	if collection.Owner.ID == userID {
-		return stacktrace.Propagate(ente.ErrBadRequest, "owner can not join via link")
+		return response, stacktrace.Propagate(ente.ErrBadRequest, "owner can not join via link")
 	}
 	if !collection.AllowSharing() {
-		return stacktrace.Propagate(ente.ErrBadRequest, "joining %s is not allowed", collection.Type)
+		return response, stacktrace.Propagate(ente.ErrBadRequest, "joining %s is not allowed", collection.Type)
 	}
 	collectionLinkToken, err := c.CollectionLinkCtrl.GetActiveCollectionLinkToken(ctx, req.CollectionID)
 	if err != nil {
-		return stacktrace.Propagate(err, "")
+		return response, stacktrace.Propagate(err, "")
 	}
 
 	if canJoin := collectionLinkToken.CanJoin(); canJoin != nil {
-		return stacktrace.Propagate(ente.ErrBadRequest, "can not join collection: %s", canJoin.Error())
+		return response, stacktrace.Propagate(ente.ErrBadRequest, "can not join collection: %s", canJoin.Error())
 	}
 	accessToken := auth.GetAccessToken(ctx)
 	if collectionLinkToken.Token != accessToken {
-		return stacktrace.Propagate(ente.ErrPermissionDenied, "token doesn't match collection")
+		return response, stacktrace.Propagate(ente.ErrPermissionDenied, "token doesn't match collection")
 	}
 	if collectionLinkToken.PassHash != nil && *collectionLinkToken.PassHash != "" {
 		accessTokenJWT := auth.GetAccessTokenJWT(ctx)
 		if passCheckErr := c.CollectionLinkCtrl.ValidateJWTToken(ctx, accessTokenJWT, *collectionLinkToken.PassHash); passCheckErr != nil {
-			return stacktrace.Propagate(passCheckErr, "")
+			return response, stacktrace.Propagate(passCheckErr, "")
 		}
 	}
 	err = c.BillingCtrl.HasActiveSelfOrFamilySubscription(collection.Owner.ID, true)
 	if err != nil {
 		if !errors.Is(err, ente.ErrSharingDisabledForFreeAccounts) {
-			return stacktrace.Propagate(err, "")
+			return response, stacktrace.Propagate(err, "")
 		}
 	}
 	role := ente.VIEWER
 	if collectionLinkToken.EnableCollect {
 		role = ente.COLLABORATOR
 	}
-	joinErr := c.CollectionRepo.Share(req.CollectionID, collection.Owner.ID, userID, req.EncryptedKey, role, time.Microseconds())
-	if joinErr != nil {
-		return stacktrace.Propagate(joinErr, "")
+	if collection.App == string(ente.Photos) {
+		response.AcceptedCollectionIDs, err = c.CollectionRepo.JoinPublicCollection(ctx.Request.Context(), req.CollectionID, collection.Owner.ID, userID, req.EncryptedKey, role, time.Microseconds())
+	} else {
+		err = c.CollectionRepo.Share(req.CollectionID, collection.Owner.ID, userID, req.EncryptedKey, role, time.Microseconds())
+		response.AcceptedCollectionIDs = []int64{req.CollectionID}
+	}
+	if err != nil {
+		return response, stacktrace.Propagate(err, "")
+	}
+	response.Collection, err = c.GetCollection(ctx, userID, req.CollectionID)
+	if err != nil {
+		return ente.JoinCollectionResponse{}, err
 	}
 	go c.EmailCtrl.OnLinkJoined(collection.Owner.ID, userID, role)
-	return nil
+	return response, nil
 }
 
 func (c *CollectionController) UnShare(ctx *gin.Context, cID int64, fromUserID int64, toUserEmail string) ([]ente.CollectionUser, error) {

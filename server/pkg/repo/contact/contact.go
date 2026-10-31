@@ -120,15 +120,17 @@ func (r *Repository) hasCommonSharedCollection(ctx context.Context, actorUserID 
 	err := r.DB.QueryRowContext(
 		ctx,
 		`WITH shared_access AS (
-			SELECT collection_id
-			FROM collection_shares
-			WHERE collection_shares.is_deleted = FALSE
-			  AND (collection_shares.to_user_id = $1 OR collection_shares.from_user_id = $1)
+			SELECT cs.collection_id
+			FROM collection_shares cs
+			JOIN collections c ON c.collection_id = cs.collection_id
+			WHERE cs.is_deleted = FALSE AND c.is_deleted = FALSE
+			  AND (c.owner_id = $1 OR (cs.to_user_id = $1 AND cs.acceptance_status = 'accepted'))
 		), contact_shared_access AS (
-			SELECT collection_id
-			FROM collection_shares
-			WHERE collection_shares.is_deleted = FALSE
-			  AND (collection_shares.to_user_id = $2 OR collection_shares.from_user_id = $2)
+			SELECT cs.collection_id
+			FROM collection_shares cs
+			JOIN collections c ON c.collection_id = cs.collection_id
+			WHERE cs.is_deleted = FALSE AND c.is_deleted = FALSE
+			  AND (c.owner_id = $2 OR (cs.to_user_id = $2 AND cs.acceptance_status = 'accepted'))
 		)
 		SELECT EXISTS(
 			SELECT 1
