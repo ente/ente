@@ -60,7 +60,7 @@ func (c *ClICtrl) Export(filter model.Filter) error {
 					time.Sleep(timeInSecond)
 					continue
 				}
-				return fmt.Errorf("error syncing account %s: %w", account.Email, err)
+				return fmt.Errorf("Error syncing account %s: %w", account.Email, err)
 			} else {
 				log.Println("sync done")
 				break

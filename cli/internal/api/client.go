@@ -3,8 +3,10 @@ package api
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"io/fs"
 	"log"
 	"net/url"
 	"strings"
@@ -77,9 +79,19 @@ func NewClient(p Params) *Client {
 			SetRetryWaitTime(10 * time.Second).
 			SetRetryMaxWaitTime(20 * time.Second).
 			AddRetryCondition(func(r *resty.Response, err error) bool {
-				// Retry transport errors too, such as a GOAWAY while the body is read. A custom
-				// condition replaces resty's default retry on error (resty v2.7.0 retry.go:115-118).
+				// Retry transport errors too, such as an HTTP/2 GOAWAY (net/http/internal/http2/transport.go:1959). A custom
+				// condition replaces resty's default retry on error (resty v2.7.0 retry.go:114-118).
 				if err != nil {
+					// Local file errors (os.Create, write) would fail again: do not retry them.
+					var pathErr *fs.PathError
+					if errors.As(err, &pathErr) {
+						return false
+					}
+					// A url.Error carries the request URL (net/url/url.go:33-37), which has a signed query string: log its cause only.
+					var urlErr *url.Error
+					if errors.As(err, &urlErr) {
+						err = urlErr.Err
+					}
 					log.Printf("Retry scheduled after error: %v", err)
 					return true
 				}
