@@ -28,17 +28,19 @@ abstract class BaseConfiguration {
   static const keyKey = "key";
   static const secretKeyKey = "secret_key";
   static const tokenKey = "token";
+  static const hasSecureTokenKey = "has_secure_token";
   static const encryptedTokenKey = "encrypted_token";
   static const userIDKey = "user_id";
   static const endPointKey = "endpoint";
   static const lastTempFolderClearTimeKey = "last_temp_folder_clear_time";
-  static const accountSecureStorageKeys = [keyKey, secretKeyKey];
+  static const accountSecureStorageKeys = [keyKey, secretKeyKey, tokenKey];
 
   final kTempFolderDeletionTimeBuffer = const Duration(days: 1).inMicroseconds;
 
   static final _logger = Logger("Configuration");
 
   String? _cachedToken;
+  bool _isTokenUnavailable = false;
   late SharedPreferences _preferences;
   String? _key;
   String? _secretKey;
@@ -76,6 +78,8 @@ abstract class BaseConfiguration {
 
   Future<void> logout({bool autoLogout = false}) async {
     await _clearTempFolderOnLogout();
+    _cachedToken = null;
+    _isTokenUnavailable = false;
     await _preferences.clear();
     await resetSecureStorage();
     for (final key in lockScreenSecureStorageKeys) {
@@ -85,7 +89,6 @@ abstract class BaseConfiguration {
       await db.clearTable();
     }
     _key = null;
-    _cachedToken = null;
     _secretKey = null;
     Bus.instance.fire(SignedOutEvent());
   }
@@ -131,18 +134,27 @@ abstract class BaseConfiguration {
   }
 
   String? getToken() {
-    _cachedToken ??= _preferences.getString(tokenKey);
     return _cachedToken;
   }
 
   bool isLoggedIn() {
-    return getToken() != null;
+    return getToken() != null || _isTokenUnavailable;
   }
 
   Future<void> setToken(String token) async {
+    await _storeTokenSecurely(token);
+    await _preferences.remove(tokenKey);
     _cachedToken = token;
-    await _preferences.setString(tokenKey, token);
+    _isTokenUnavailable = false;
     Bus.instance.fire(SignedInEvent());
+  }
+
+  Future<void> _storeTokenSecurely(String token) async {
+    await _secureStorage.write(key: tokenKey, value: token);
+    if (await _secureStorage.read(key: tokenKey) != token) {
+      throw StateError("Token was not saved to secure storage");
+    }
+    await _preferences.setBool(hasSecureTokenKey, true);
   }
 
   Future<void> setEncryptedToken(String encryptedToken) async {
@@ -235,8 +247,42 @@ abstract class BaseConfiguration {
   }
 
   Future<void> _setupKeys() async {
+    _isTokenUnavailable = false;
     try {
-      if (!_preferences.containsKey(tokenKey)) {
+      _cachedToken = _preferences.getString(tokenKey);
+      if (_cachedToken != null) {
+        try {
+          final storedToken = _preferences.containsKey(hasSecureTokenKey)
+              ? await _secureStorage.read(key: tokenKey)
+              : null;
+          if (storedToken == _cachedToken) {
+            await _preferences.remove(tokenKey);
+          } else {
+            await _storeTokenSecurely(_cachedToken!);
+          }
+        } catch (e, s) {
+          _logger.warning("Failed to move token to secure storage", e, s);
+        }
+      } else if (_preferences.containsKey(hasSecureTokenKey)) {
+        try {
+          _cachedToken = await _secureStorage.read(key: tokenKey);
+        } on PlatformException catch (e, s) {
+          _logger.warning("Failed to read token from secure storage", e, s);
+          _isTokenUnavailable = true;
+          await _secureStorage.read(key: keyKey);
+          _isTokenUnavailable = false;
+          try {
+            _cachedToken = await _secureStorage.read(key: tokenKey);
+          } on PlatformException catch (e, s) {
+            _logger.warning("Token is unreadable in secure storage", e, s);
+          }
+        }
+        if (_cachedToken == null) {
+          _logger.warning("No token found in secure storage");
+          await logout(autoLogout: true);
+          return;
+        }
+      } else {
         await resetSecureStorage();
         return;
       }
