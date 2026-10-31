@@ -58,6 +58,8 @@ Day-to-day backups run automatically on iOS. However, iOS gives Ente limited tim
 
 Backup mode helps large backups finish by keeping Ente open and the screen awake. The screen dims to save battery.
 
+Ente offers Backup mode on iOS when an upload session has **50 or more pending files**. You can also open it from Backup settings.
+
 To use Backup mode:
 
 1. Connect your iPhone to power and stable WiFi.
@@ -97,6 +99,8 @@ In addition to our mobile apps, the background sync also works on our desktop ap
 - Original quality files (no compression)
 - Photo metadata (EXIF, location, date/time)
 - Live Photos (both photo and video components)
+
+Photos shared to Ente from other apps may not include location information. Ente shows a reminder when you add these photos; it cannot preserve location metadata that the other app did not provide. To preserve the original metadata, back up the original photos from your device library instead.
 
 ### What happens when files are deleted
 
