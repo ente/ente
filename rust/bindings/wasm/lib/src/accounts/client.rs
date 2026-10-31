@@ -265,7 +265,6 @@ pub fn recover_account(
 pub async fn change_password(
     client: &AccountsClient,
     token: String,
-    email: String,
     password: String,
     master_key: &str,
     #[wasm_bindgen(unchecked_param_type = "unknown")] key_attributes: JsValue,
@@ -273,7 +272,6 @@ pub async fn change_password(
     let result = lifecycle::change_password(
         &client.0.with_auth_token(token),
         lifecycle::ChangePasswordParams {
-            email,
             password: password.into(),
             master_key: SecretVec::new(decode(master_key)?),
             key_attributes: swb::from_value(key_attributes)?,

@@ -691,7 +691,6 @@ class UserService {
     final attributes = await _withAccountsClient(
       (client) => client.changePassword(
         token: _config.getToken()!,
-        email: _config.getEmail()!,
         password: password,
         masterKey: _config.getKey()!,
         keyAttributes: accountsKeyAttributes(
