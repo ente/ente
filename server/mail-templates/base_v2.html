@@ -1,0 +1,171 @@
+{{define "base_v2"}}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1"
+    />
+    <style>
+      body {
+        background-color: #ffffff;
+        font-family: "Helvetica Neue", "Segoe UI", Helvetica, sans-serif;
+        font-size: 16px;
+        line-height: 27px;
+        margin: 0;
+        color: #161616;
+      }
+
+      pre {
+        background: #f4f4f4f4;
+        padding: 2px;
+      }
+
+      table {
+        width: 100%;
+        border: 1px solid #ddd;
+      }
+
+      table td {
+        border-color: #ddd;
+        padding: 5px;
+      }
+
+      .wrap {
+        background-color: #fcfcfc;
+        border: 1px solid #f0f0f0;
+        padding: 2px 30px 30px;
+        max-width: 525px;
+        margin: 0 auto;
+        border-radius: 36px;
+      }
+
+      .button {
+        background: #0055d4;
+        border-radius: 10px;
+        text-decoration: none !important;
+        color: #fff !important;
+        font-weight: bold;
+        padding: 10px 30px;
+        display: inline-block;
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: #888;
+      }
+
+      .footer a {
+        color: #888;
+        margin-right: 5px;
+      }
+
+      .gutter {
+        padding: 30px;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      a {
+        color: #087d2c;
+      }
+
+      @media screen and (max-width: 600px) {
+        .wrap {
+          max-width: auto;
+        }
+
+        .gutter {
+          padding: 10px;
+        }
+      }
+
+      .footer-icons {
+        padding: 4px !important;
+        width: 24px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="gutter" style="padding: 4px">&nbsp;</div>
+    <div
+      class="wrap"
+      style="
+        background-color: #fcfcfc;
+        border: 1px solid #f0f0f0;
+        padding: 2px 30px 30px;
+        max-width: 525px;
+        margin: 0 auto;
+        border-radius: 36px;
+        font-size: 16px;
+      "
+    >
+      <main>{{template "content" .}}</main>
+    </div>
+    <br />
+    <div class="footer" style="text-align: center; font-size: 12px; color: #888">
+      <div>
+        <a href="https://ente.com" target="_blank"
+          ><img
+            src="https://email-assets.ente.com/ente-2026-green.png"
+            style="width: 100px; padding: 24px"
+            title="Ente"
+            alt="Ente"
+          /></a>
+      </div>
+      <div>
+        <a href="https://fosstodon.org/@ente" target="_blank"
+          ><img
+            src="https://email-assets.ente.com/mastodon-icon.png"
+            class="footer-icons"
+            style="width: 24px; padding: 4px"
+            title="Mastodon"
+            alt="Mastodon"
+          /></a>
+        <a href="https://twitter.com/enteio" target="_blank"
+          ><img
+            src="https://email-assets.ente.com/twitter-icon.png"
+            class="footer-icons"
+            style="width: 24px; padding: 4px"
+            title="Twitter"
+            alt="Twitter"
+          /></a>
+        <a href="https://ente.com/discord" target="_blank"
+          ><img
+            src="https://email-assets.ente.com/discord-icon.png"
+            class="footer-icons"
+            style="width: 24px; padding: 4px"
+            title="Discord"
+            alt="Discord"
+          /></a>
+        <a href="https://github.com/ente" target="_blank"
+          ><img
+            src="https://email-assets.ente.com/github-icon.png"
+            class="footer-icons"
+            style="width: 24px; padding: 4px"
+            title="GitHub"
+            alt="GitHub"
+          /></a>
+        <a href="https://www.youtube.com/@entestudio" target="_blank"
+          ><img
+            src="https://email-assets.ente.com/youtube-icon.png"
+            class="footer-icons"
+            style="width: 24px; padding: 4px"
+            title="YouTube"
+            alt="YouTube"
+          /></a>
+      </div>
+      <p>
+        Ente Technologies, Inc.
+        <br />1111B S Governors Ave 6032 Dover, DE 19904
+      </p>
+      <br />
+    </div>
+  </body>
+</html>
+{{end}}

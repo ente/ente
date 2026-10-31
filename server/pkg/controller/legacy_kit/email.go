@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	legacyKitBaseTemplate              = "legacy/legacy_base.html"
+	legacyKitBaseTemplate              = "base_v2.html"
 	legacyKitCreatedTemplate           = "legacy/kit_created.html"
 	legacyKitRecoveryStartedTemplate   = "legacy/kit_recovery_started.html"
 	legacyKitRecoveryCompletedTemplate = "legacy/kit_recovery_completed.html"

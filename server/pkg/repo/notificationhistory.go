@@ -23,6 +23,38 @@ const (
 	StorageWarningLoginGraceDurationMicroseconds           = StorageWarningLoginGraceDays * 24 * time.MicroSecondsInOneHour
 )
 
+func (repo *NotificationHistoryRepository) GetLockerIntroCandidates(rolloutTime, now int64, templateID string) ([]int64, error) {
+	rows, err := repo.DB.Query(`
+		SELECT u.user_id
+		FROM users u
+		JOIN usage ON usage.user_id = u.user_id
+		WHERE u.creation_time >= $1
+			AND u.creation_time <= $2
+			AND u.encrypted_email IS NOT NULL
+			AND usage.photos_file_count > 0
+			AND usage.locker_file_count = 0
+			AND NOT EXISTS (
+				SELECT 1 FROM notification_history nh
+				WHERE nh.user_id = u.user_id AND nh.template_id = $3
+			)
+		ORDER BY u.creation_time, u.user_id
+		LIMIT 500`, rolloutTime, now-72*time.MicroSecondsInOneHour, templateID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to fetch Locker intro candidates")
+	}
+	defer rows.Close()
+
+	userIDs := make([]int64, 0)
+	for rows.Next() {
+		var userID int64
+		if err := rows.Scan(&userID); err != nil {
+			return nil, stacktrace.Propagate(err, "failed to scan Locker intro candidate")
+		}
+		userIDs = append(userIDs, userID)
+	}
+	return userIDs, stacktrace.Propagate(rows.Err(), "failed to iterate Locker intro candidates")
+}
+
 func (repo *NotificationHistoryRepository) GetLastNotificationTime(userID int64, templateID string) (int64, error) {
 	var lastNotificationTime sql.NullInt64
 	row := repo.DB.QueryRow(`SELECT MAX(sent_time) FROM notification_history WHERE user_id = $1 and template_id = $2`, userID, templateID)
