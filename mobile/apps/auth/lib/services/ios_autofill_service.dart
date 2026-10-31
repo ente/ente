@@ -36,6 +36,7 @@ class IOSAutoFillService extends ChangeNotifier with WidgetsBindingObserver {
   int _mutationsInFlight = 0;
   bool _cleanupPending = false;
   bool _initialized = false;
+  bool _stateRestored = false;
   int _unavailableEntries = 0;
   bool isSupported = false;
   bool isEnabled = false;
@@ -67,6 +68,7 @@ class IOSAutoFillService extends ChangeNotifier with WidgetsBindingObserver {
           isSupported &&
           !_cleanupPending &&
           (_preferences!.getBool(enabledKey) ?? false);
+      _stateRestored = true;
       if (isEnabled) {
         await refresh();
       } else {
@@ -112,7 +114,9 @@ class IOSAutoFillService extends ChangeNotifier with WidgetsBindingObserver {
     // A pending read must never republish after disabling or logging out.
     if (!_isCurrent(revision, dataRevision)) return;
     if (scope != _scope()) {
-      await channel.invokeMethod<String>('invalidate');
+      // Refresh invalidates immediately and queues a read for the new scope.
+      // Do not await it from inside the publication queue itself.
+      unawaited(refresh());
       return;
     }
     final entries = <Map<String, Object>>[];
@@ -257,7 +261,9 @@ class IOSAutoFillService extends ChangeNotifier with WidgetsBindingObserver {
     ++_mutationsInFlight;
     ++_dataRevision;
     try {
-      if (_isIOS && isEnabled) {
+      // Startup sync can mutate the vault before init restores the opt-in.
+      // Until then, assume a native snapshot from the previous run exists.
+      if (_isIOS && (isEnabled || !_stateRestored)) {
         await channel.invokeMethod<String>('invalidate');
       } else if (_isIOS && _cleanupPending) {
         // Disabled UI state alone is not proof that old native data is gone.

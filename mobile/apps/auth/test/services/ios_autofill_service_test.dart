@@ -25,6 +25,7 @@ void main() {
   late List<dynamic> nativeEntries;
   late bool nativeRevoked;
   Completer<bool>? authenticationResult;
+  Completer<bool>? supportResult;
   void Function()? didPublish;
 
   Code code(
@@ -64,6 +65,7 @@ void main() {
     nativeEntries = [];
     nativeRevoked = true;
     authenticationResult = null;
+    supportResult = null;
     didPublish = null;
     messenger.setMockMethodCallHandler(IOSAutoFillService.channel, (
       call,
@@ -71,7 +73,7 @@ void main() {
       calls.add(call);
       switch (call.method) {
         case 'isSupported':
-          return supported;
+          return supportResult?.future ?? supported;
         case 'authenticate':
           return authenticationResult?.future ?? authenticated;
         case 'invalidate':
@@ -224,7 +226,7 @@ void main() {
   );
 
   test(
-    'a vault change during a read drops the previous vault snapshot',
+    'a vault change during a read automatically publishes the new scope',
     () async {
       await initialize();
       await service.enable();
@@ -238,14 +240,25 @@ void main() {
       final refresh = service.refresh();
       await started.future;
       scope = 'online:42';
+      readCodes = () async => [code(2)];
+      final republished = Completer<void>();
+      didPublish = republished.complete;
       pending.complete([code(1)]);
       await refresh;
-      expect(calls.where((call) => call.method == 'publish'), isEmpty);
-      readCodes = () async => [code(2)];
-      await service.refresh();
+      await republished.future;
+      await Future<void>.delayed(Duration.zero);
+      expect(calls.where((call) => call.method == 'publish'), hasLength(1));
       final snapshot =
           jsonDecode(calls.last.arguments as String) as Map<String, dynamic>;
       expect(snapshot['entries'][0]['id'], 'online:42:2');
+      expect(nativeRevoked, false);
+      expect(service.isEnabled, true);
+      expect(
+        (await SharedPreferences.getInstance()).getBool(
+          IOSAutoFillService.enabledKey,
+        ),
+        true,
+      );
     },
   );
 
@@ -272,6 +285,57 @@ void main() {
       'invalidate',
       'publish',
     ]);
+  });
+
+  test('startup mutations revoke before AutoFill initialization', () async {
+    SharedPreferences.setMockInitialValues({
+      IOSAutoFillService.enabledKey: true,
+    });
+    nativeRevoked = false;
+    await service.withInvalidatedSnapshot(() async {
+      expect(nativeRevoked, true);
+      expect(calls.single.method, 'invalidate');
+      readCodes = () async => [];
+    });
+    await initialize();
+    expect(service.isEnabled, true);
+    expect(nativeEntries, isEmpty);
+    expect(nativeRevoked, false);
+  });
+
+  test('startup mutations revoke while AutoFill state is restoring', () async {
+    SharedPreferences.setMockInitialValues({
+      IOSAutoFillService.enabledKey: true,
+    });
+    nativeRevoked = false;
+    supportResult = Completer<bool>();
+    final initialization = initialize();
+    await Future<void>.delayed(Duration.zero);
+    expect(calls.single.method, 'isSupported');
+    await service.withInvalidatedSnapshot(() async {
+      expect(nativeRevoked, true);
+      expect(calls.last.method, 'invalidate');
+      readCodes = () async => [];
+    });
+    supportResult!.complete(true);
+    await initialization;
+    expect(service.isEnabled, true);
+    expect(nativeEntries, isEmpty);
+    expect(nativeRevoked, false);
+  });
+
+  test('startup mutation is blocked when native revocation fails', () async {
+    nativeRevoked = false;
+    failInvalidate = true;
+    var mutated = false;
+    await expectLater(
+      service.withInvalidatedSnapshot(() async {
+        mutated = true;
+      }),
+      throwsA(isA<PlatformException>()),
+    );
+    expect(mutated, false);
+    expect(calls.single.method, 'invalidate');
   });
 
   test(

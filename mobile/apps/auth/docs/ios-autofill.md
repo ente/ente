@@ -62,12 +62,15 @@ digit count and period, and the main app's clock offset. It re-reads the snapsho
 before returning a code instead of filling from an already-open picker's cache.
 Backgrounding cancels the picker and clears its in-memory data.
 
-Before a destructive database mutation, the service awaits a durable native
+Before a destructive database mutation, including startup sync before the saved
+AutoFill state has been restored, the service awaits a durable native
 invalidation. A protected, backup-excluded `autofill.state` file records a disabled
 generation. Each refresh obtains a new generation token before reading the vault;
 the encrypted snapshot must match this token to be published or read. A stale
 read cannot reactivate a revoked generation, and publication pauses while database
 mutations are in progress. Missing or unreadable state fails closed.
+If the account scope changes during a vault read, that read is discarded and a
+fresh publication for the new scope is queued automatically.
 
 Disabling AutoFill or signing out first persists native revocation, then attempts
 both Keychain and snapshot deletion independently. A deletion failure cannot undo
