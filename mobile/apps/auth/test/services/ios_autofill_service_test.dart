@@ -21,6 +21,7 @@ void main() {
   late bool failSupportCheck;
   late bool failPublish;
   late bool failClear;
+  late bool failClearBeforeRevocation;
   late bool failInvalidate;
   late int generation;
   late List<dynamic> nativeEntries;
@@ -62,6 +63,7 @@ void main() {
     failSupportCheck = false;
     failPublish = false;
     failClear = false;
+    failClearBeforeRevocation = false;
     failInvalidate = false;
     generation = 0;
     nativeEntries = [];
@@ -95,6 +97,9 @@ void main() {
           didPublish?.call();
           return 0;
         case 'clear':
+          if (failClearBeforeRevocation) {
+            throw PlatformException(code: 'revocation_failed');
+          }
           // Like native clear, persist revocation before attempting cleanup.
           nativeRevoked = true;
           generation++;
@@ -344,15 +349,26 @@ void main() {
   test(
     'successful fallback cleanup releases the startup mutation guard',
     () async {
+      SharedPreferences.setMockInitialValues({
+        IOSAutoFillService.enabledKey: true,
+      });
+      nativeEntries = [
+        {'id': 'offline:1'},
+      ];
+      nativeRevoked = false;
       failSupportCheck = true;
       await initialize();
+      expect(calls.map((call) => call.method), ['isSupported', 'clear']);
       expect(service.isEnabled, false);
       expect(service.hasPendingCleanup, false);
       expect(nativeRevoked, true);
+      expect(nativeEntries, isEmpty);
       calls.clear();
       failInvalidate = true;
       var mutated = false;
       await service.withInvalidatedSnapshot(() async {
+        expect(nativeRevoked, true);
+        expect(nativeEntries, isEmpty);
         mutated = true;
       });
       expect(mutated, true);
@@ -383,17 +399,32 @@ void main() {
   test(
     'a successful fallback cleanup retry releases the startup guard',
     () async {
+      SharedPreferences.setMockInitialValues({
+        IOSAutoFillService.enabledKey: true,
+      });
+      nativeEntries = [
+        {'id': 'offline:1'},
+      ];
+      nativeRevoked = false;
       failSupportCheck = true;
-      failClear = true;
+      failClearBeforeRevocation = true;
       await initialize();
       expect(service.hasPendingCleanup, true);
-      failClear = false;
+      expect(nativeRevoked, false);
+      expect(nativeEntries, isNotEmpty);
+      calls.clear();
+      failClearBeforeRevocation = false;
       await service.retryCleanup();
+      expect(calls.single.method, 'clear');
       expect(service.hasPendingCleanup, false);
+      expect(nativeRevoked, true);
+      expect(nativeEntries, isEmpty);
       calls.clear();
       failInvalidate = true;
       var mutated = false;
       await service.withInvalidatedSnapshot(() async {
+        expect(nativeRevoked, true);
+        expect(nativeEntries, isEmpty);
         mutated = true;
       });
       expect(mutated, true);
