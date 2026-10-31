@@ -31,6 +31,23 @@
         "rust/crates/image/**",
         "rust/tools/codegen/**"
     ],
+    "auth-ios": [
+        ".github/actions/setup-flutter/**",
+        ".github/workflows/auth-ios.yml",
+        "mobile/apps/auth/**",
+        "mobile/packages/**",
+        "mobile/pubspec.yaml",
+        "mobile/pubspec.lock",
+        "rust/.cargo/config.toml",
+        "rust/Cargo.lock",
+        "rust/Cargo.toml",
+        "rust/bindings/frb/**",
+        "rust/crates/accounts/**",
+        "rust/crates/auth/**",
+        "rust/crates/core/**",
+        "rust/crates/legacy/**",
+        "rust/tools/codegen/**"
+    ],
     "dependency-review": [
         "**/Cargo.lock",
         "**/Cargo.toml",

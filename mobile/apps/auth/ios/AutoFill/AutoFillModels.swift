@@ -12,6 +12,7 @@ struct AutoFillEntry: Codable {
 
 struct AutoFillSnapshot: Codable {
     let version: Int
+    let generation: String
     let timeOffsetMilliseconds: Int
     let entries: [AutoFillEntry]
 }

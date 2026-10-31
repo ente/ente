@@ -1,16 +1,16 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-// Lightweight, Flutter-independent tests for the generator used by the extension.
+// Flutter-independent tests for the extension's production storage and generator.
 let package = Package(
     name: "AuthAutoFillCore",
     platforms: [.macOS(.v13)],
     targets: [
         .target(
             name: "AuthAutoFillCore", path: "AutoFill",
-            exclude: ["AutoFillStore.swift", "CredentialProviderViewController.swift",
+            exclude: ["CredentialProviderViewController.swift",
                       "Info.plist", "AutoFill.entitlements", "AutoFill.xcconfig"],
-            sources: ["AutoFillModels.swift", "TOTP.swift"]
+            sources: ["AutoFillModels.swift", "AutoFillStore.swift", "TOTP.swift"]
         ),
         .testTarget(name: "AuthAutoFillCoreTests", dependencies: ["AuthAutoFillCore"], path: "AutoFillTests"),
     ]

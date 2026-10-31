@@ -6,6 +6,17 @@ final class AutoFillBridge {
     static func register(with messenger: FlutterBinaryMessenger) {
         let channel = FlutterMethodChannel(name: "io.ente.auth/autofill", binaryMessenger: messenger)
         channel.setMethodCallHandler { call, result in
+            // Revocation must also work during startup and on older OS versions.
+            // These operations do not use the iOS 18 credential APIs.
+            if call.method == "clear" || call.method == "invalidate" {
+                do {
+                    if call.method == "clear" { try AutoFillStore.clear(); result(nil) }
+                    else { result(try AutoFillStore.invalidate()) }
+                } catch {
+                    result(FlutterError(code: "autofill_failed", message: "Could not revoke AutoFill data", details: nil))
+                }
+                return
+            }
             guard #available(iOS 18.0, *) else {
                 if call.method == "isSupported" { result(false) }
                 else { result(FlutterMethodNotImplemented) }
@@ -20,11 +31,7 @@ final class AutoFillBridge {
                         return
                     }
                     let snapshot = try JSONDecoder().decode(AutoFillSnapshot.self, from: data)
-                    try AutoFillStore.write(snapshot)
-                    result(nil)
-                case "clear":
-                    try AutoFillStore.clear()
-                    result(nil)
+                    result(try AutoFillStore.write(snapshot))
                 case "authenticate":
                     let context = LAContext()
                     context.evaluatePolicy(.deviceOwnerAuthentication,

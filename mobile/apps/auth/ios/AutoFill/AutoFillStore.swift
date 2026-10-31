@@ -8,14 +8,14 @@ enum AutoFillStore {
     private static let service = "io.ente.auth.autofill"
 
     enum StoreError: Error {
-        case unavailable, invalidSnapshot, keychain(OSStatus)
+        case unavailable, invalidSnapshot, revoked, keychain(OSStatus)
     }
 
-    private static func fileURL() throws -> URL {
+    private static func containerURL() throws -> URL {
         guard let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: group
         ) else { throw StoreError.unavailable }
-        return container.appendingPathComponent("autofill.enc")
+        return container
     }
 
     private static func keyQuery() throws -> [String: Any] {
@@ -51,38 +51,114 @@ enum AutoFillStore {
         return key
     }
 
-    static func write(_ snapshot: AutoFillSnapshot) throws {
-        guard snapshot.version == 1 else { throw StoreError.invalidSnapshot }
-        // Validate all entries before replacing a previously valid snapshot.
-        for entry in snapshot.entries { _ = try TOTP.generate(entry, time: 0) }
-        let data = try JSONEncoder().encode(snapshot)
-        let sealed = try AES.GCM.seal(data, using: key(create: true))
-        guard let combined = sealed.combined else { throw StoreError.invalidSnapshot }
-        let url = try fileURL()
-        try combined.write(to: url, options: [.atomic, .completeFileProtection])
+    private static let storage = AutoFillStorage(
+        container: containerURL,
+        loadKey: key,
+        deleteKey: {
+            let status = SecItemDelete(try keyQuery() as CFDictionary)
+            guard status == errSecSuccess || status == errSecItemNotFound else {
+                throw StoreError.keychain(status)
+            }
+        }
+    )
+
+    static func invalidate() throws -> String { try storage.invalidate() }
+    static func write(_ snapshot: AutoFillSnapshot) throws -> Int { try storage.write(snapshot) }
+    static func read() throws -> AutoFillSnapshot { try storage.read() }
+    static func clear() throws { try storage.clear() }
+}
+
+// File/encryption logic is shared with the macOS test target. Production is the
+// only caller supplying an App Group container and the real shared Keychain.
+final class AutoFillStorage {
+    private struct State: Codable, Equatable {
+        let generation: String
+        let enabled: Bool
+    }
+
+    private let container: () throws -> URL
+    private let loadKey: (Bool) throws -> SymmetricKey
+    private let deleteKey: () throws -> Void
+    private let removeFile: (URL) throws -> Void
+
+    init(container: @escaping () throws -> URL,
+         loadKey: @escaping (Bool) throws -> SymmetricKey,
+         deleteKey: @escaping () throws -> Void,
+         removeFile: @escaping (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) }) {
+        self.container = container
+        self.loadKey = loadKey
+        self.deleteKey = deleteKey
+        self.removeFile = removeFile
+    }
+
+    private func url(_ name: String) throws -> URL { try container().appendingPathComponent(name) }
+
+    private func writeProtected(_ data: Data, to url: URL) throws {
+        #if os(iOS)
+        try data.write(to: url, options: [.atomic, .completeFileProtection])
+        #else
+        try data.write(to: url, options: .atomic)
+        #endif
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         var mutableURL = url
         try mutableURL.setResourceValues(values)
     }
 
-    static func read() throws -> AutoFillSnapshot {
-        let encrypted = try Data(contentsOf: fileURL())
-        let data = try AES.GCM.open(AES.GCM.SealedBox(combined: encrypted), using: key(create: false))
+    private func state() throws -> State {
+        try JSONDecoder().decode(State.self, from: Data(contentsOf: url("autofill.state")))
+    }
+
+    private func setState(_ state: State) throws {
+        try writeProtected(JSONEncoder().encode(state), to: url("autofill.state"))
+    }
+
+    // Persisted before a destructive mutation, independently of snapshot/key
+    // deletion. A delayed publication cannot reactivate a revoked generation.
+    func invalidate() throws -> String {
+        let generation = UUID().uuidString
+        try setState(State(generation: generation, enabled: false))
+        return generation
+    }
+
+    func write(_ snapshot: AutoFillSnapshot) throws -> Int {
+        guard snapshot.version == 1 else { throw AutoFillStore.StoreError.invalidSnapshot }
+        let expected = try state()
+        guard expected.generation == snapshot.generation else { throw AutoFillStore.StoreError.revoked }
+        let entries = snapshot.entries.filter { (try? TOTP.generate($0, time: 0)) != nil }
+        let validated = AutoFillSnapshot(version: snapshot.version, generation: snapshot.generation,
+                                        timeOffsetMilliseconds: snapshot.timeOffsetMilliseconds, entries: entries)
+        let sealed = try AES.GCM.seal(JSONEncoder().encode(validated), using: loadKey(true))
+        guard let combined = sealed.combined else { throw AutoFillStore.StoreError.invalidSnapshot }
+        try writeProtected(combined, to: url("autofill.enc"))
+        guard try state() == expected else { throw AutoFillStore.StoreError.revoked }
+        try setState(State(generation: snapshot.generation, enabled: true))
+        return snapshot.entries.count - entries.count
+    }
+
+    func read() throws -> AutoFillSnapshot {
+        let expected = try state()
+        guard expected.enabled else { throw AutoFillStore.StoreError.revoked }
+        let encrypted = try Data(contentsOf: url("autofill.enc"))
+        let data = try AES.GCM.open(AES.GCM.SealedBox(combined: encrypted), using: loadKey(false))
         let snapshot = try JSONDecoder().decode(AutoFillSnapshot.self, from: data)
-        guard snapshot.version == 1 else { throw StoreError.invalidSnapshot }
+        guard snapshot.version == 1, snapshot.generation == expected.generation,
+              try state() == expected else { throw AutoFillStore.StoreError.revoked }
         return snapshot
     }
 
-    static func clear() throws {
-        // Delete the key even if removing the file fails; leftover ciphertext is unusable.
-        let status = SecItemDelete(try keyQuery() as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw StoreError.keychain(status)
+    func clear() throws {
+        var failure: Error?
+        do { _ = try invalidate() } catch { failure = error }
+        // Try every revocation mechanism even when an earlier operation fails.
+        // In particular, Keychain errors must not prevent deleting ciphertext.
+        do { try deleteKey() } catch { failure = failure ?? error }
+        do {
+            let file = try url("autofill.enc")
+            if FileManager.default.fileExists(atPath: file.path) { try removeFile(file) }
+        } catch {
+            failure = failure ?? error
         }
-        let url = try fileURL()
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
+        if let failure { throw failure }
     }
 }

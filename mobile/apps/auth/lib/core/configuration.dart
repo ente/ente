@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_auth/services/authenticated_session.dart';
@@ -13,13 +12,21 @@ import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:ente_lock_screen/lock_screen_settings.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class Configuration extends BaseConfiguration
     implements LockScreenHost, AccountDeletionHost {
-  Configuration._privateConstructor();
+  Configuration._privateConstructor() : _autoFill = IOSAutoFillService.instance;
+
+  @visibleForTesting
+  Configuration.forTesting({required IOSAutoFillService autoFill})
+    : _autoFill = autoFill;
+
+  final IOSAutoFillService _autoFill;
 
   static final Configuration instance = Configuration._privateConstructor();
   @override
@@ -115,10 +122,18 @@ class Configuration extends BaseConfiguration
 
   @override
   Future<void> logout({bool autoLogout = false}) async {
-    await IOSAutoFillService.instance.disable();
+    try {
+      await _autoFill.disable();
+    } catch (_) {
+      // Native revocation/cleanup has independent mechanisms and is retried on
+      // foreground/startup. Optional AutoFill must never prevent account logout.
+      Logger(
+        'Configuration',
+      ).warning('AutoFill cleanup is pending after logout');
+    }
     clearAuthenticatedSession();
     _authSecretKey = null;
-    await super.logout();
+    await super.logout(autoLogout: autoLogout);
   }
 
   Future<void> setAuthSecretKey(String? authSecretKey) async {

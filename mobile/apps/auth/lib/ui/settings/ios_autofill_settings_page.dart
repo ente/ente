@@ -42,6 +42,39 @@ class IOSAutoFillSettingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Spacing.lg),
+          if (service.hasPendingCleanup) ...[
+            Text(
+              pendingTranslation(
+                'AutoFill cleanup could not be confirmed. Retry to remove shared data.',
+              ),
+            ),
+            SettingsItem(
+              title: pendingTranslation('Retry AutoFill cleanup'),
+              onTap: () async {
+                try {
+                  await service.retryCleanup();
+                } catch (_) {
+                  if (context.mounted) {
+                    showToast(
+                      context,
+                      pendingTranslation(
+                        'AutoFill cleanup is still pending. Please try again.',
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: Spacing.lg),
+          ],
+          if (service.unavailableEntries > 0) ...[
+            Text(
+              pendingTranslation(
+                '${service.unavailableEntries} entries could not be made available to AutoFill. Check their secrets and OTP settings.',
+              ),
+            ),
+            const SizedBox(height: Spacing.lg),
+          ],
           Text(
             pendingTranslation(
               'Fill TOTP verification codes in Safari and compatible apps without opening Ente Auth. '

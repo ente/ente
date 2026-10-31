@@ -36,6 +36,13 @@ final class TOTPTests: XCTestCase {
         XCTAssertEqual(try TOTP.generate(entry("  gezdgnbv gy3tqojq gezdgnbv gy3tqojq  "), time: 59), "94287082")
     }
 
+    func testCanonicalizedLegacySecretWithSixPaddingCharacters() throws {
+        XCTAssertEqual(
+            try TOTP.generate(entry("JBSWY3DPEHPK3PXPJBSWY3DPEE======", digits: 6), time: 59),
+            "744635"
+        )
+    }
+
     func testInvalidParametersAndSecrets() {
         for secret in ["", "!", "A", "M=Y", "MY=BAD"] {
             XCTAssertThrowsError(try TOTP.generate(entry(secret), time: 59))
