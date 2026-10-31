@@ -18,9 +18,38 @@ enum AutoFillStore {
         return container
     }
 
+    // Keychain Services supplies the default access group from the signed
+    // entitlements. AppIdentifierPrefix is not reliably expanded in Info.plist,
+    // and a legacy App ID prefix need not equal DEVELOPMENT_TEAM. Probe with an
+    // empty, uniquely named item so neither target's account keys are touched.
+    static func resolveKeychainAccessGroup(
+        addItem: (CFDictionary, UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus = SecItemAdd,
+        deleteItem: (CFDictionary) -> OSStatus = SecItemDelete
+    ) throws -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service + ".access-group-probe",
+            kSecAttrAccount as String: UUID().uuidString,
+        ]
+        var attributes = query
+        attributes[kSecValueData as String] = Data()
+        // This item contains no secret. Allow resolution during locked-device
+        // cleanup; the actual snapshot key remains WhenUnlockedThisDeviceOnly.
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        attributes[kSecReturnAttributes as String] = true
+        var result: CFTypeRef?
+        let status = addItem(attributes as CFDictionary, &result)
+        guard status == errSecSuccess else { throw StoreError.keychain(status) }
+        defer { _ = deleteItem(query as CFDictionary) }
+        guard let attributes = result as? [String: Any],
+              let defaultGroup = attributes[kSecAttrAccessGroup as String] as? String,
+              let separator = defaultGroup.firstIndex(of: "."),
+              separator != defaultGroup.startIndex else { throw StoreError.unavailable }
+        return String(defaultGroup[..<separator]) + "." + service
+    }
+
     private static func keyQuery() throws -> [String: Any] {
-        guard let group = Bundle.main.object(forInfoDictionaryKey: "AutoFillKeychainGroup") as? String,
-              !group.contains("$(") else { throw StoreError.unavailable }
+        let group = try resolveKeychainAccessGroup()
         return [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

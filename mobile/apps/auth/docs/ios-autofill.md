@@ -24,8 +24,11 @@ In the Apple developer account used for signing:
    `APP_STORE_PROFILE_SPECIFIER` and `AUTH_AUTOFILL_PROFILE_SPECIFIER`; both bundle
    identifiers are mapped in `scripts/ExportOptions-AppStore-CI.plist`.
 6. If using another development team or bundle identifier, update the profiles,
-   export mapping, both entitlements, the shared group constant, the
-   `AutoFillKeychainGroup` plist values, and `AutoFill/AutoFill.xcconfig` together.
+   export mapping, both entitlements, the shared group and Keychain service
+   constants, and `AutoFill/AutoFill.xcconfig` together. The Keychain access-group
+   prefix is resolved at runtime from the default group returned by Keychain
+   Services for an empty temporary item, using the signed entitlements rather
+   than an Info.plist placeholder or the development team ID.
 
 In Ente Auth, open **Settings → General → Verification code AutoFill**, enable it,
 then use **Open AutoFill settings** to enable Ente Auth in the system provider list.

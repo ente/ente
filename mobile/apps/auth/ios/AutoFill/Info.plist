@@ -18,8 +18,6 @@
     <string>$(FLUTTER_BUILD_NAME)</string>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
-    <key>AutoFillKeychainGroup</key>
-    <string>$(AppIdentifierPrefix)io.ente.auth.autofill</string>
     <key>NSFaceIDUsageDescription</key>
     <string>Unlock your verification codes for AutoFill.</string>
     <key>NSExtension</key>

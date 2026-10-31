@@ -1,8 +1,65 @@
 import CryptoKit
+import Security
 import XCTest
 @testable import AuthAutoFillCore
 
 final class AutoFillStorageTests: XCTestCase {
+    func testAccessGroupResolutionUsesSigningPrefixForBothTargetsAndCleansUpProbe() throws {
+        for defaultGroup in ["LEGACY1234.io.ente.auth", "LEGACY1234.io.ente.auth.autofill"] {
+            var probe: [String: Any]?
+            var deleted = false
+            let group = try AutoFillStore.resolveKeychainAccessGroup(
+                addItem: { query, result in
+                    let attributes = query as NSDictionary as! [String: Any]
+                    probe = attributes
+                    XCTAssertNil(attributes[kSecAttrAccessGroup as String])
+                    XCTAssertEqual(attributes[kSecValueData as String] as? Data, Data())
+                    XCTAssertEqual(attributes[kSecReturnAttributes as String] as? Bool, true)
+                    XCTAssertEqual(attributes[kSecAttrAccessible as String] as? String,
+                                   kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly as String)
+                    result?.pointee = [kSecAttrAccessGroup as String: defaultGroup] as CFDictionary
+                    return errSecSuccess
+                },
+                deleteItem: { query in
+                    let attributes = query as NSDictionary as! [String: Any]
+                    XCTAssertEqual(attributes[kSecAttrService as String] as? String,
+                                   probe?[kSecAttrService as String] as? String)
+                    XCTAssertEqual(attributes[kSecAttrAccount as String] as? String,
+                                   probe?[kSecAttrAccount as String] as? String)
+                    XCTAssertNotNil(UUID(uuidString: attributes[kSecAttrAccount as String] as! String))
+                    deleted = true
+                    return errSecSuccess
+                }
+            )
+            XCTAssertEqual(group, "LEGACY1234.io.ente.auth.autofill")
+            XCTAssertTrue(deleted)
+        }
+    }
+
+    func testMissingAccessGroupFailsClosedAndStillCleansUpProbe() {
+        var deleted = false
+        XCTAssertThrowsError(try AutoFillStore.resolveKeychainAccessGroup(
+            addItem: { _, result in
+                result?.pointee = [:] as CFDictionary
+                return errSecSuccess
+            },
+            deleteItem: { _ in deleted = true; return errSecSuccess }
+        ))
+        XCTAssertTrue(deleted)
+    }
+
+    func testAccessGroupResolutionPropagatesKeychainFailure() {
+        XCTAssertThrowsError(try AutoFillStore.resolveKeychainAccessGroup(
+            addItem: { _, _ in errSecInteractionNotAllowed },
+            deleteItem: { _ in XCTFail("No item was created"); return errSecSuccess }
+        )) { error in
+            guard case AutoFillStore.StoreError.keychain(let status) = error else {
+                return XCTFail("Expected the Keychain status")
+            }
+            XCTAssertEqual(status, errSecInteractionNotAllowed)
+        }
+    }
+
     private var directory: URL!
     private var key: SymmetricKey?
     private var failKeyDeletion = false
