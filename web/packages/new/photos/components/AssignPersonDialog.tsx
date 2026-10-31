@@ -45,7 +45,7 @@ export const AssignPersonDialog: React.FC<AssignPersonDialogProps> = ({
             fullWidth
             fullScreen={isFullScreen}
             slotProps={{
-                paper: { sx: { maxWidth: "505px", minHeight: "80svh" } },
+                paper: { sx: { maxWidth: "505px", minHeight: "80%" } },
                 transition: { onExited: () => setSearchTerm("") },
             }}
         >

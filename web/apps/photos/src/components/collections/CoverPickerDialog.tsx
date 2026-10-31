@@ -194,7 +194,7 @@ const paperSx = {
     width: "min(688px, calc(100svw - 32px))",
     maxWidth: "688px",
     height: "560px",
-    maxHeight: "calc(100dvh - 32px)",
+    maxHeight: "calc(100% - 32px)",
     boxSizing: "border-box",
     m: 2,
     borderRadius: "20px",
