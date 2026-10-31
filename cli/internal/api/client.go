@@ -77,6 +77,12 @@ func NewClient(p Params) *Client {
 			SetRetryWaitTime(10 * time.Second).
 			SetRetryMaxWaitTime(20 * time.Second).
 			AddRetryCondition(func(r *resty.Response, err error) bool {
+				// Retry transport errors too, such as a GOAWAY while the body is read. A custom
+				// condition replaces resty's default retry on error (resty v2.7.0 retry.go:115-118).
+				if err != nil {
+					log.Printf("Retry scheduled after error: %v", err)
+					return true
+				}
 				shouldRetry := r.StatusCode() == 429 || r.StatusCode() >= 500
 				if shouldRetry {
 					amxRequestID := r.Header().Get("X-Amz-Request-Id")
