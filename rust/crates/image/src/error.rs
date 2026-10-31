@@ -4,6 +4,8 @@ pub type ImageResult<T> = Result<T, ImageError>;
 
 #[derive(Debug, Error)]
 pub enum ImageError {
+    #[error("image decoding cancelled")]
+    Cancelled,
     #[error("decode error: {0}")]
     Decode(String),
     #[error("image too large")]

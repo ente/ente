@@ -38,6 +38,7 @@ impl From<image::ImageError> for MlError {
 impl From<ente_image::ImageError> for MlError {
     fn from(value: ente_image::ImageError) -> Self {
         match value {
+            error @ ente_image::ImageError::Cancelled => MlError::Runtime(error.to_string()),
             ente_image::ImageError::Decode(message) => MlError::Decode(message),
             ente_image::ImageError::TooLarge(error) => MlError::Decode(error.to_string()),
             ente_image::ImageError::Postprocess(message) => MlError::Image(message),

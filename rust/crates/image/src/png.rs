@@ -26,7 +26,9 @@ const ADAM7: [(u32, u32, u32, u32); 7] = [
 pub(crate) fn decode<R: BufRead + Seek>(
     input: R,
     max_side: u32,
+    check_cancelled: impl Fn() -> ImageResult<()>,
 ) -> ImageResult<BoundedDecodedImage> {
+    check_cancelled()?;
     let mut decoder = ::png::Decoder::new_with_limits(
         input,
         ::png::Limits {
@@ -36,6 +38,7 @@ pub(crate) fn decode<R: BufRead + Seek>(
     decoder.set_ignore_text_chunk(true);
     decoder.set_transformations(::png::Transformations::EXPAND);
     let header = decoder.read_header_info().map_err(png_error)?;
+    check_cancelled()?;
     let source = Dimensions {
         width: header.width,
         height: header.height,
@@ -50,9 +53,12 @@ pub(crate) fn decode<R: BufRead + Seek>(
     }
     let target = target_dimensions(&source, max_side);
     let mut output = Downsampler::new(source.clone(), target.clone(), interlaced, row_bytes)?;
+    check_cancelled()?;
     let mut reader = decoder.read_info().map_err(png_error)?;
+    check_cancelled()?;
     let profile = reader.info().icc_profile.clone();
     let mut converter = IccConverter::new(profile.as_deref());
+    check_cancelled()?;
     let orientation = reader
         .info()
         .exif_metadata
@@ -68,26 +74,35 @@ pub(crate) fn decode<R: BufRead + Seek>(
         }
         let width = (source.width - left).div_ceil(step_x);
         for y in (top..source.height).step_by(step_y as usize) {
+            check_cancelled()?;
             let row = reader
                 .next_interlaced_row()
                 .map_err(png_error)?
                 .ok_or_else(|| {
                     ImageError::Decode("PNG ended before all rows were decoded".into())
                 })?;
+            check_cancelled()?;
             let rgb = row_rgb(row.data(), width, color, depth, &mut converter)?;
+            check_cancelled()?;
             output.push_row(&rgb, left, y, step_x);
         }
+        check_cancelled()?;
         output.finish_pass();
     }
+    check_cancelled()?;
     if reader.next_interlaced_row().map_err(png_error)?.is_some() {
         return Err(ImageError::Decode("PNG contains unexpected rows".into()));
     }
+    check_cancelled()?;
     reader.finish().map_err(png_error)?;
-    let rgb = output.finish();
+    check_cancelled()?;
+    let rgb = output.finish(&check_cancelled)?;
     let buffer = image::RgbImage::from_raw(target.width, target.height, rgb)
         .ok_or_else(|| ImageError::Postprocess("invalid bounded PNG buffer".into()))?;
     let mut image = DynamicImage::ImageRgb8(buffer);
+    check_cancelled()?;
     image.apply_orientation(orientation);
+    check_cancelled()?;
     let image = image.into_rgb8();
     let original_dimensions = match orientation {
         Orientation::Rotate90
@@ -301,19 +316,23 @@ impl Downsampler {
         }
     }
 
-    fn finish(mut self) -> Vec<u8> {
-        for (pixel, sum) in self
+    fn finish(mut self, check_cancelled: impl Fn() -> ImageResult<()>) -> ImageResult<Vec<u8>> {
+        for (pixels, sums) in self
             .rgb
-            .as_chunks_mut::<3>()
-            .0
-            .iter_mut()
-            .zip(self.interlaced_sums)
+            .chunks_exact_mut(self.target.width as usize * 3)
+            .zip(
+                self.interlaced_sums
+                    .chunks_exact(self.target.width as usize),
+            )
         {
-            for (channel, value) in sum.into_iter().enumerate() {
-                pixel[channel] = value.round().clamp(0.0, 255.0) as u8;
+            check_cancelled()?;
+            for (pixel, sum) in pixels.as_chunks_mut::<3>().0.iter_mut().zip(sums) {
+                for (channel, value) in sum.iter().enumerate() {
+                    pixel[channel] = value.round().clamp(0.0, 255.0) as u8;
+                }
             }
         }
-        self.rgb
+        Ok(self.rgb)
     }
 }
 
@@ -356,13 +375,17 @@ fn png_error(error: ::png::DecodingError) -> ImageError {
 mod tests {
     use std::{
         borrow::Cow,
+        cell::Cell,
         fs::File,
         io::Write,
         time::{Duration, Instant},
     };
 
     use super::*;
-    use crate::{ImageInput, decode::decode_image_from_bytes, decode_bounded};
+    use crate::{
+        ImageInput, decode::decode_image_from_bytes, decode_bounded,
+        decode_bounded_with_cancellation,
+    };
 
     fn fixture(info: ::png::Info<'_>, pixels: &[u8]) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -513,7 +536,7 @@ mod tests {
                 }
                 output.finish_pass();
             }
-            assert_eq!(output.finish(), [128, 127, 254]);
+            assert_eq!(output.finish(|| Ok(())).unwrap(), [128, 127, 254]);
         }
     }
 
@@ -674,6 +697,71 @@ mod tests {
         let from_bytes = decode_bounded(ImageInput::Bytes(&bytes), 6).unwrap();
         assert_eq!(from_path.image.rgb, from_bytes.image.rgb);
         assert_eq!(from_path.image.dimensions, from_bytes.image.dimensions);
+    }
+
+    #[test]
+    fn cancellation_precedes_opening_or_parsing_input() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("missing.png");
+        for input in [
+            ImageInput::Path(path.to_str().unwrap()),
+            ImageInput::Bytes(b"not an image"),
+        ] {
+            assert!(matches!(
+                decode_bounded_with_cancellation(input, 6000, || true),
+                Err(ImageError::Cancelled)
+            ));
+        }
+    }
+
+    #[test]
+    fn cancellation_covers_plain_and_interlaced_decode_lifecycle() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("cancelled.png");
+        let pixels = [80; 8 * 16 * 3];
+        for interlaced in [false, true] {
+            let bytes = fixture(rgb_info(8, 16, interlaced), &pixels);
+            std::fs::write(&path, &bytes).unwrap();
+            for max_side in [4, 16] {
+                for use_path in [false, true] {
+                    let input = || {
+                        if use_path {
+                            ImageInput::Path(path.to_str().unwrap())
+                        } else {
+                            ImageInput::Bytes(&bytes)
+                        }
+                    };
+                    let checkpoints = Cell::new(0);
+                    decode_bounded_with_cancellation(input(), max_side, || {
+                        checkpoints.set(checkpoints.get() + 1);
+                        false
+                    })
+                    .unwrap();
+                    assert!(checkpoints.get() >= if interlaced { 30 } else { 16 });
+                    for cancel_after in 0..checkpoints.get() {
+                        let checks = Cell::new(0);
+                        let result = decode_bounded_with_cancellation(input(), max_side, || {
+                            checks.set(checks.get() + 1);
+                            checks.get() > cancel_after
+                        });
+                        assert!(
+                            matches!(result, Err(ImageError::Cancelled)),
+                            "interlaced {interlaced}, max_side {max_side}, use_path {use_path}, cancel_after {cancel_after}: {result:?}"
+                        );
+                    }
+                    let decoded =
+                        decode_bounded_with_cancellation(input(), max_side, || false).unwrap();
+                    assert_eq!(
+                        decoded.image.dimensions,
+                        Dimensions {
+                            width: max_side / 2,
+                            height: max_side,
+                        }
+                    );
+                    assert!(decoded.image.rgb.iter().all(|&value| value == 80));
+                }
+            }
+        }
     }
 
     #[test]
