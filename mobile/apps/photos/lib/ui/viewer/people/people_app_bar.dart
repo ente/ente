@@ -217,14 +217,12 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             Configuration.instance.hasConfiguredAccount() &&
             !person.data.isIgnored &&
             person.data.name.trim().isNotEmpty
-        ? GalleryFilesState.maybeOf(context)?.galleryFilesOrNull
-              ?.where(
-                (file) =>
-                    file.uploadedFileID != null &&
-                    file.ownerID == currentUserID,
-              )
-              .toList()
+        ? GalleryFilesState.maybeOf(context)?.galleryFilesOrNull?.where(
+            (file) =>
+                file.uploadedFileID != null && file.ownerID == currentUserID,
+          )
         : null;
+    final hasShareableFiles = shareableFiles?.isNotEmpty ?? false;
     return GalleryAppBarWidget.sliverConfig(
       widget.type,
       _appBarTitle,
@@ -246,7 +244,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             context,
             onCover: onCover,
             foregroundColor: foregroundColor,
-            shareableFiles: shareableFiles,
+            shareableFiles: hasShareableFiles ? shareableFiles : null,
           ),
     ).buildSliver(context);
   }
@@ -271,7 +269,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     BuildContext context, {
     required bool onCover,
     Color? foregroundColor,
-    required List<EnteFile>? shareableFiles,
+    required Iterable<EnteFile>? shareableFiles,
   }) {
     final bool isIgnored = person.data.isIgnored;
     final bool isPinned = person.data.isPinned;
@@ -285,8 +283,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
 
     if (!isIgnored &&
         person.data.name.trim().isNotEmpty &&
-        shareableFiles != null &&
-        shareableFiles.isNotEmpty) {
+        shareableFiles != null) {
       actions.add(
         IconButtonComponent(
           key: shareButtonKey,
@@ -304,7 +301,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           onTap: () => showSharePersonSheet(
             context,
             person: person,
-            files: shareableFiles,
+            files: shareableFiles.toList(),
             shareButtonKey: shareButtonKey,
           ),
         ),
