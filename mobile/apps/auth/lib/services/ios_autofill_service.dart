@@ -252,6 +252,9 @@ class IOSAutoFillService extends ChangeNotifier with WidgetsBindingObserver {
     ]);
     await _preferences!.setBool(cleanupPendingKey, false);
     _cleanupPending = false;
+    // Successful cleanup establishes a known disabled state even if startup
+    // failed before the saved opt-in could be restored.
+    _stateRestored = true;
     notifyListeners();
   }
 

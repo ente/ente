@@ -18,6 +18,7 @@ void main() {
   late String scope;
   late bool authenticated;
   late bool supported;
+  late bool failSupportCheck;
   late bool failPublish;
   late bool failClear;
   late bool failInvalidate;
@@ -58,6 +59,7 @@ void main() {
     scope = 'offline';
     authenticated = true;
     supported = true;
+    failSupportCheck = false;
     failPublish = false;
     failClear = false;
     failInvalidate = false;
@@ -73,6 +75,7 @@ void main() {
       calls.add(call);
       switch (call.method) {
         case 'isSupported':
+          if (failSupportCheck) throw PlatformException(code: 'failed');
           return supportResult?.future ?? supported;
         case 'authenticate':
           return authenticationResult?.future ?? authenticated;
@@ -337,6 +340,66 @@ void main() {
     expect(mutated, false);
     expect(calls.single.method, 'invalidate');
   });
+
+  test(
+    'successful fallback cleanup releases the startup mutation guard',
+    () async {
+      failSupportCheck = true;
+      await initialize();
+      expect(service.isEnabled, false);
+      expect(service.hasPendingCleanup, false);
+      expect(nativeRevoked, true);
+      calls.clear();
+      failInvalidate = true;
+      var mutated = false;
+      await service.withInvalidatedSnapshot(() async {
+        mutated = true;
+      });
+      expect(mutated, true);
+      expect(calls, isEmpty);
+    },
+  );
+
+  test('failed fallback cleanup keeps startup mutations guarded', () async {
+    failSupportCheck = true;
+    failClear = true;
+    await initialize();
+    expect(service.hasPendingCleanup, true);
+    calls.clear();
+    failInvalidate = true;
+    var mutated = false;
+    await expectLater(
+      service.withInvalidatedSnapshot(() async {
+        mutated = true;
+      }),
+      throwsA(isA<PlatformException>()),
+    );
+    expect(mutated, false);
+    // Drain the automatic cleanup retry after the failed mutation.
+    await service.refresh();
+    expect(service.hasPendingCleanup, true);
+  });
+
+  test(
+    'a successful fallback cleanup retry releases the startup guard',
+    () async {
+      failSupportCheck = true;
+      failClear = true;
+      await initialize();
+      expect(service.hasPendingCleanup, true);
+      failClear = false;
+      await service.retryCleanup();
+      expect(service.hasPendingCleanup, false);
+      calls.clear();
+      failInvalidate = true;
+      var mutated = false;
+      await service.withInvalidatedSnapshot(() async {
+        mutated = true;
+      });
+      expect(mutated, true);
+      expect(calls, isEmpty);
+    },
+  );
 
   test(
     'failed cleanup remains pending and is retried while disabled',
