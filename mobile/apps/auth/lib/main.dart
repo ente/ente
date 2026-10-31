@@ -8,9 +8,11 @@ import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/core/constants.dart';
 import 'package:ente_auth/ente_theme_data.dart';
 import 'package:ente_auth/locale.dart';
+import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/services/auth_theme_preferences.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/services/billing_service.dart';
+import 'package:ente_auth/services/ios_autofill_service.dart';
 import 'package:ente_auth/services/local_backup_service.dart';
 import 'package:ente_auth/services/notification_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
@@ -218,6 +220,22 @@ Future<void> _init() async {
     createAccountsClient: accounts.createAccountsClient,
   );
   await AuthenticatorService.instance.init();
+  await IOSAutoFillService.instance.init(
+    readCodes: () async {
+      final config = Configuration.instance;
+      if (!config.hasConfiguredAccount() && !config.hasOptedForOfflineMode()) {
+        return <Code>[];
+      }
+      return CodeStore.instance.getAllCodes();
+    },
+    scope: () {
+      final config = Configuration.instance;
+      return config.hasConfiguredAccount()
+          ? 'online:${config.getHttpEndpoint()}:${config.getUserID()}'
+          : 'offline';
+    },
+    timeOffset: PreferenceService.instance.timeOffsetInMilliSeconds,
+  );
   await BillingService.instance.init();
   await NotificationService.instance.init();
   await UpdateService.instance.init();

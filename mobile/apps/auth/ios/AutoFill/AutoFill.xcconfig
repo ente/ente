@@ -1,0 +1,15 @@
+#include "../Flutter/Generated.xcconfig"
+
+APPLICATION_EXTENSION_API_ONLY = YES
+CLANG_ENABLE_MODULES = YES
+CODE_SIGN_ENTITLEMENTS = AutoFill/AutoFill.entitlements
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = 6Z68YJY9Q2
+INFOPLIST_FILE = AutoFill/Info.plist
+IPHONEOS_DEPLOYMENT_TARGET = 18.0
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks @executable_path/../../Frameworks
+PRODUCT_BUNDLE_IDENTIFIER = io.ente.auth.autofill
+PRODUCT_NAME = $(TARGET_NAME)
+SKIP_INSTALL = YES
+SWIFT_VERSION = 5.0
+TARGETED_DEVICE_FAMILY = 1,2

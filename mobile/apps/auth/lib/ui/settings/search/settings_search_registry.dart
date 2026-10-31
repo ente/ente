@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/services/flagservice.dart';
+import 'package:ente_auth/services/ios_autofill_service.dart';
 import 'package:ente_auth/services/review_service.dart';
 import 'package:ente_auth/services/update_service.dart';
 import 'package:ente_auth/ui/settings/about_settings_page.dart';
@@ -9,6 +10,7 @@ import 'package:ente_auth/ui/settings/account_settings_page.dart';
 import 'package:ente_auth/ui/settings/data/data_settings_page.dart';
 import 'package:ente_auth/ui/settings/data/local_backup_settings_page.dart';
 import 'package:ente_auth/ui/settings/general_settings_page.dart';
+import 'package:ente_auth/ui/settings/ios_autofill_settings_page.dart';
 import 'package:ente_auth/ui/settings/security_settings_page.dart';
 import 'package:ente_auth/ui/settings/support_settings_page.dart';
 import 'package:ente_auth/ui/settings/theme_settings_page.dart';
@@ -29,6 +31,14 @@ class SettingsSearchRegistry {
     final l10n = context.strings;
     final hasLoggedIn = Configuration.instance.hasConfiguredAccount();
     return [
+      if (IOSAutoFillService.instance.isSupported)
+        SettingsSearchItem(
+          title: pendingTranslation('Verification code AutoFill'),
+          sectionPath: l10n.general,
+          icon: HugeIcons.strokeRoundedSquareLock02,
+          routeBuilder: (_) => const IOSAutoFillSettingsPage(),
+          keywords: const ['autofill', 'OTP', 'TOTP', 'verification code'],
+        ),
       if (hasLoggedIn)
         for (final title in [
           l10n.account,
