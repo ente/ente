@@ -399,6 +399,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   int _suggestionReloadToken = 0;
+  bool _suggestionReloadPending = false;
   final Debouncer _peopleReloadDebouncer = Debouncer(
     const Duration(milliseconds: 400),
   );
@@ -477,25 +478,19 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
             setState(() {
               _suggestionReloadToken++;
             });
-          } else if (event is PeopleChangedEvent &&
-              event.type == PeopleEventType.syncDone) {
-            _peopleReloadDebouncer.run(() async {
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _isInitialLoad = false;
-                _isLoaded = false;
-                sectionData = getResults();
-              });
-            });
           } else {
+            // A later sync must preserve an earlier request to reload the card.
+            _suggestionReloadPending =
+                _suggestionReloadPending ||
+                event is! PeopleChangedEvent ||
+                event.type != PeopleEventType.syncDone;
             _peopleReloadDebouncer.run(() async {
-              if (!mounted) {
-                return;
-              }
+              if (!mounted) return;
               setState(() {
-                _suggestionReloadToken++;
+                if (_suggestionReloadPending) {
+                  _suggestionReloadToken++;
+                  _suggestionReloadPending = false;
+                }
                 _isInitialLoad = false;
                 _isLoaded = false;
                 sectionData = getResults();
