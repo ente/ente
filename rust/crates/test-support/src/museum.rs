@@ -6,14 +6,7 @@ use std::{
 
 use uuid::Uuid;
 
-use crate::{
-    TestResult,
-    net::{LOCAL_HOST, free_port},
-    object_store::ObjectStore,
-    postgres,
-    process::ChildProcess,
-    server,
-};
+use crate::{TestResult, object_store::ObjectStore, postgres, process::ChildProcess, server};
 
 pub struct Museum {
     _server: ChildProcess,
@@ -57,8 +50,6 @@ impl Museum {
     fn start(env: &[(&str, &str)]) -> TestResult<Self> {
         let server_dir = server_dir()?;
         let mut temp_dir = TempDir::new("ente-test")?;
-        let museum_port = free_port()?;
-        let endpoint = format!("http://{LOCAL_HOST}:{museum_port}");
         let museum_config_file = temp_dir.path().join("museum.yaml");
         let museum_bin = temp_dir.path().join("museum");
 
@@ -66,19 +57,18 @@ impl Museum {
             let object_store = ObjectStore::start()?;
             server::write_config(&museum_config_file)?;
             let postgres = postgres::start()?;
-            let server = server::start(
+            let (server, endpoint) = server::start(
                 &server_dir,
                 env,
                 &museum_config_file,
-                museum_port,
                 &museum_bin,
                 &postgres,
                 &object_store.endpoint(),
             )?;
-            Ok((postgres, object_store, server))
+            Ok((postgres, object_store, server, endpoint))
         })();
 
-        let (postgres, object_store, server) = match result {
+        let (postgres, object_store, server, endpoint) = match result {
             Ok(processes) => processes,
             Err(error) => {
                 temp_dir.retain();

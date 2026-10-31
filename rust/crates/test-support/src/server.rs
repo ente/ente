@@ -7,8 +7,12 @@ use std::{
     time::{Duration, Instant},
 };
 
+use uuid::Uuid;
+
 use crate::{
-    HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, TestResult, net::LOCAL_HOST, postgres::Postgres,
+    HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, TestResult,
+    net::{LOCAL_HOST, free_port, retry_taken_port},
+    postgres::Postgres,
     process::ChildProcess,
 };
 
@@ -16,14 +20,14 @@ pub fn start(
     server_dir: &Path,
     env: &[(&str, &str)],
     config_file: &Path,
-    museum_port: u16,
     museum_bin: &Path,
     db: &Postgres,
     object_store_endpoint: &str,
-) -> TestResult<ChildProcess> {
+) -> TestResult<(ChildProcess, String)> {
     require_go()?;
     build_museum(server_dir, museum_bin)?;
 
+    let instance_id = Uuid::new_v4().to_string();
     let mut command = Command::new(museum_bin);
     command
         .current_dir(server_dir)
@@ -41,7 +45,6 @@ pub fn start(
         .env("ENTE_DB_USER", db.username())
         .env("ENTE_DB_PASSWORD", db.password())
         .env("ENTE_DB_SSLMODE", "disable")
-        .env("ENTE_HTTP_PORT", museum_port.to_string())
         .env(
             "ENTE_INTERNAL_HARDCODED_OTT_LOCAL_DOMAIN_SUFFIX",
             HARDCODED_OTT_EMAIL_SUFFIX,
@@ -51,12 +54,17 @@ pub fn start(
             HARDCODED_OTT,
         )
         .env("ENTE_JOBS_CRON_SKIP", "true")
+        .env("GIT_COMMIT", &instance_id)
         .envs(env.iter().copied());
 
-    let mut museum =
-        ChildProcess::spawn("museum", &mut command, &config_file.with_file_name("logs"))?;
-    wait_for_museum(&mut museum, museum_port)?;
-    Ok(museum)
+    retry_taken_port(|| {
+        let port = free_port()?;
+        command.env("ENTE_HTTP_PORT", port.to_string());
+        let mut museum =
+            ChildProcess::spawn("museum", &mut command, &config_file.with_file_name("logs"))?;
+        let bound = wait_for_museum(&mut museum, port, &instance_id)?;
+        Ok(bound.then(|| (museum, format!("http://{LOCAL_HOST}:{port}"))))
+    })
 }
 
 pub fn write_config(path: &Path) -> TestResult {
@@ -87,12 +95,16 @@ fn build_museum(server_dir: &Path, out: &Path) -> TestResult {
     Ok(())
 }
 
-fn wait_for_museum(process: &mut ChildProcess, port: u16) -> TestResult {
+fn wait_for_museum(process: &mut ChildProcess, port: u16, instance_id: &str) -> TestResult<bool> {
+    let bind_failure = format!("listen tcp :{port}: bind: address already in use");
     let deadline = Instant::now() + Duration::from_secs(90);
     loop {
+        if process.log_contains(&bind_failure) {
+            return Ok(false);
+        }
         process.ensure_running()?;
-        if ping(port)? {
-            return Ok(());
+        if ping(port, instance_id).unwrap_or(false) {
+            return Ok(true);
         }
         if Instant::now() >= deadline {
             return Err(format!(
@@ -105,7 +117,7 @@ fn wait_for_museum(process: &mut ChildProcess, port: u16) -> TestResult {
     }
 }
 
-fn ping(port: u16) -> TestResult<bool> {
+fn ping(port: u16, instance_id: &str) -> TestResult<bool> {
     let Ok(mut stream) = TcpStream::connect((LOCAL_HOST, port)) else {
         return Ok(false);
     };
@@ -114,5 +126,8 @@ fn ping(port: u16) -> TestResult<bool> {
 
     let mut response = String::new();
     stream.read_to_string(&mut response)?;
-    Ok(response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200"))
+    Ok(
+        (response.starts_with("HTTP/1.1 200") || response.starts_with("HTTP/1.0 200"))
+            && response.contains(instance_id),
+    )
 }

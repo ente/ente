@@ -1,11 +1,11 @@
-use std::{path::PathBuf, process::Command};
+use std::{collections::HashMap, fs, path::PathBuf, process::Command};
 
 use postgresql_embedded::Settings;
 use postgresql_embedded::blocking::PostgreSQL;
 
 use crate::{
     TestResult,
-    net::{LOCAL_HOST, free_port},
+    net::{LOCAL_HOST, retry_taken_port},
 };
 
 const DATABASE: &str = "ente_test";
@@ -67,18 +67,33 @@ impl Postgres {
 }
 
 pub fn start() -> TestResult<Postgres> {
-    let settings = Settings {
-        temporary: true,
-        host: LOCAL_HOST.to_string(),
-        port: free_port()?,
-        installation_dir: install_dir()?,
-        ..Settings::default()
-    };
-    let mut inner = PostgreSQL::new(settings);
-    inner.setup()?;
-    inner.start()?;
+    let inner = retry_taken_port(|| {
+        let mut inner = PostgreSQL::new(settings()?);
+        inner.setup()?;
+        match inner.start() {
+            Ok(()) => Ok(Some(inner)),
+            Err(_) if port_taken(&inner) => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    })?;
     inner.create_database(DATABASE)?;
     Ok(Postgres { inner })
+}
+
+fn settings() -> TestResult<Settings> {
+    Ok(Settings {
+        temporary: true,
+        host: LOCAL_HOST.to_string(),
+        port: 0,
+        installation_dir: install_dir()?,
+        configuration: HashMap::from([("listen_addresses".to_string(), LOCAL_HOST.to_string())]),
+        ..Settings::default()
+    })
+}
+
+fn port_taken(inner: &PostgreSQL) -> bool {
+    fs::read_to_string(inner.settings().data_dir.join("start.log"))
+        .is_ok_and(|log| log.contains("Address already in use"))
 }
 
 // postgresql_embedded defaults its binary to a `~/.theseus` dir in $HOME; keep

@@ -10,6 +10,7 @@ pub struct ChildProcess {
     name: &'static str,
     child: Child,
     log_path: PathBuf,
+    log_start: usize,
 }
 
 impl ChildProcess {
@@ -20,6 +21,7 @@ impl ChildProcess {
             .create(true)
             .append(true)
             .open(&log_path)?;
+        let log_start = usize::try_from(log.metadata()?.len())?;
         let child = command
             .stdout(Stdio::from(log.try_clone()?))
             .stderr(Stdio::from(log))
@@ -28,6 +30,7 @@ impl ChildProcess {
             name,
             child,
             log_path,
+            log_start,
         })
     }
 
@@ -41,6 +44,13 @@ impl ChildProcess {
             .into());
         }
         Ok(())
+    }
+
+    pub fn log_contains(&self, text: &str) -> bool {
+        fs::read(&self.log_path).is_ok_and(|log| {
+            log.get(self.log_start..)
+                .is_some_and(|output| String::from_utf8_lossy(output).contains(text))
+        })
     }
 
     pub fn log_summary(&self) -> String {
