@@ -1,9 +1,9 @@
 import type {
     EncryptedBox,
+    ExecuteDuplicateRemovalInput,
     FindDuplicatesInput,
     LocationIndex,
     OpenSessionInput,
-    PlanDuplicateRemovalInput,
     Session,
     WrappedRootContactKey,
 } from "./pkg/ente_photos_wasm";
@@ -20,8 +20,11 @@ const wasm = () => import("./pkg/ente_photos_wasm");
 export const findDuplicates = async (input: FindDuplicatesInput) =>
     (await wasm()).photosFindDuplicates(input);
 
-export const planDuplicateRemoval = async (input: PlanDuplicateRemovalInput) =>
-    (await wasm()).photosPlanDuplicateRemoval(input);
+export const executeDuplicateRemoval = async (
+    session: Session,
+    input: ExecuteDuplicateRemovalInput,
+    onProgress: (completed: number, total: number) => void,
+) => (await wasm()).photosExecuteDuplicateRemoval(session, input, onProgress);
 
 export const createLocationIndex = async (
     cities: Uint8Array,

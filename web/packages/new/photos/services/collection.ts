@@ -563,7 +563,7 @@ const splitPendingFavoriteFiles = (files: EnteFile[], userID: number) => {
     return { pendingFiles, remainingFiles };
 };
 
-const forgetPendingFavoriteFileIDs = (fileIDs: number[]) => {
+export const forgetPendingFavoriteFileIDs = (fileIDs: number[]) => {
     if (!fileIDs.length) return;
 
     const deletedFileIDs = new Set(fileIDs);

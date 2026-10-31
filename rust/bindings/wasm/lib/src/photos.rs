@@ -4,10 +4,22 @@ use serde_wasm_bindgen as swb;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
+use crate::session::Session;
+use ente_core::{
+    b64,
+    crypto::{self, Key},
+};
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     Serde(#[from] swb::Error),
+    #[error(transparent)]
+    Removal(#[from] dedup::RemovalError),
+    #[error(transparent)]
+    Decode(#[from] b64::DecodeError),
+    #[error(transparent)]
+    Crypto(#[from] crypto::Error),
 }
 
 impl From<Error> for JsValue {
@@ -114,30 +126,40 @@ struct Duplicate {
 }
 
 #[derive(Deserialize, Tsify)]
-pub struct PlanDuplicateRemovalInput {
-    groups: Vec<Vec<Duplicate>>,
+struct RemovalCollection {
+    id: i64,
+    key: String,
 }
 
-#[derive(Serialize, Tsify)]
+#[derive(Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-struct DuplicateAddition {
+struct RemovalFile {
+    id: i64,
     collection_id: i64,
-    file_ids: Vec<i64>,
+    key: String,
+}
+
+#[derive(Deserialize, Tsify)]
+pub struct ExecuteDuplicateRemovalInput {
+    groups: Vec<Vec<Duplicate>>,
+    collections: Vec<RemovalCollection>,
+    files: Vec<RemovalFile>,
 }
 
 #[derive(Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct DuplicateRemovalPlan {
-    additions: Vec<DuplicateAddition>,
+pub struct DuplicateRemovalResult {
     trash_ids: Vec<i64>,
 }
 
-#[wasm_bindgen(js_name = photosPlanDuplicateRemoval)]
-pub fn plan_duplicate_removal(
-    input: <PlanDuplicateRemovalInput as Tsify>::JsType,
-) -> Result<<DuplicateRemovalPlan as Tsify>::JsType, Error> {
-    let input = PlanDuplicateRemovalInput::from_js(input)?;
-    let groups: Vec<_> = input
+#[wasm_bindgen(js_name = photosExecuteDuplicateRemoval)]
+pub async fn execute_duplicate_removal(
+    session: &Session,
+    input: <ExecuteDuplicateRemovalInput as Tsify>::JsType,
+    on_progress: js_sys::Function,
+) -> Result<<DuplicateRemovalResult as Tsify>::JsType, Error> {
+    let input = ExecuteDuplicateRemovalInput::from_js(input)?;
+    let groups = input
         .groups
         .into_iter()
         .map(|group| {
@@ -152,19 +174,37 @@ pub fn plan_duplicate_removal(
                 })
                 .collect()
         })
-        .collect();
-    let plan = dedup::plan_removal(&groups);
-    DuplicateRemovalPlan {
-        additions: plan
-            .additions
-            .into_iter()
-            .map(|addition| DuplicateAddition {
-                collection_id: addition.collection_id,
-                file_ids: addition.file_ids,
+        .collect::<Vec<_>>();
+    let collections = input
+        .collections
+        .into_iter()
+        .map(|c| {
+            Ok(dedup::RemovalCollection {
+                id: c.id,
+                key: Key::try_from_slice(&b64::decode(&c.key)?)?,
             })
-            .collect(),
-        trash_ids: plan.trash_ids,
-    }
-    .into_js()
-    .map_err(Into::into)
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    let files = input
+        .files
+        .into_iter()
+        .map(|f| {
+            Ok(dedup::RemovalFile {
+                id: f.id,
+                collection_id: f.collection_id,
+                key: Key::try_from_slice(&b64::decode(&f.key)?)?,
+            })
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    let trash_ids = dedup::remove_duplicates(session.inner(), &groups, &collections, &files, |p| {
+        let _ = on_progress.call2(
+            &JsValue::UNDEFINED,
+            &JsValue::from_f64(p.completed as f64),
+            &JsValue::from_f64(p.total as f64),
+        );
+    })
+    .await?;
+    DuplicateRemovalResult { trash_ids }
+        .into_js()
+        .map_err(Into::into)
 }

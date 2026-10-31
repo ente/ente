@@ -104,6 +104,7 @@ pub(crate) fn new_cluster_id() -> String {
     format!("{CLUSTER_ID_PREFIX}{suffix}")
 }
 
+#[cfg(any(test, not(target_arch = "wasm32")))]
 pub(crate) fn normalized_mean(embeddings: &[Vec<f32>]) -> Option<Vec<f32>> {
     let (first, rest) = embeddings.split_first()?;
     let mut sum = first.clone();

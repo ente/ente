@@ -2834,15 +2834,19 @@ dependencies = [
  "ente-core",
  "ente-exif",
  "ente-location",
+ "ente-test-support",
  "ente-vecdb",
  "futures-util",
  "log",
+ "md-5 0.11.0",
+ "mockito",
  "quick-xml 0.42.0",
  "rusqlite",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
+ "tokio",
 ]
 
 [[package]]

@@ -80,6 +80,115 @@ test("Photos deletion keeps summary fallback and decrypts the challenge in Rust"
     }
 });
 
+test("Photos plans and executes duplicate removal in one WASM call", async () => {
+    const masterKey = await generateKey();
+    const input = await sessionKeyAttributes(masterKey);
+    const albumKey = await generateKey();
+    const fileKey = await generateKey();
+    const requests: string[] = [];
+    const progress: number[][] = [];
+    mockFetch(async (request) => {
+        expect(request.headers.get("X-Auth-Token")).toBe("test-token");
+        const path = new URL(request.url).pathname;
+        requests.push(path);
+        const body = (await request.json()) as {
+            collectionID: number;
+            files: {
+                id: number;
+                encryptedKey: string;
+                keyDecryptionNonce: string;
+            }[];
+        };
+        if (path === "/collections/add-files") {
+            expect(body.collectionID).toBe(11);
+            expect(body.files).toHaveLength(1);
+            expect(body.files[0]!.id).toBe(2);
+            expect(
+                await photos.decryptBox(
+                    {
+                        encryptedData: body.files[0]!.encryptedKey,
+                        nonce: body.files[0]!.keyDecryptionNonce,
+                    },
+                    albumKey,
+                ),
+            ).toBe(fileKey);
+        } else {
+            expect(path).toBe("/files/trash");
+            expect(requests).toEqual([
+                "/collections/add-files",
+                "/files/trash",
+            ]);
+            expect(body).toEqual({ items: [{ fileID: 1, collectionID: 11 }] });
+        }
+        return Response.json({});
+    });
+    const session = await photos.openSession({
+        baseUrl: "http://localhost",
+        authToken: "test-token",
+        masterKeyB64: masterKey,
+        ...input,
+    });
+    const removal = {
+        groups: [
+            [
+                {
+                    fileId: 1,
+                    collectionIds: [11],
+                    caption: undefined,
+                    editedName: undefined,
+                    editedTime: undefined,
+                },
+                {
+                    fileId: 2,
+                    collectionIds: [12],
+                    caption: "keep",
+                    editedName: undefined,
+                    editedTime: undefined,
+                },
+            ],
+        ],
+        collections: [
+            { id: 11, key: albumKey },
+            { id: 99, key: await generateKey() },
+        ],
+        files: [
+            { id: 1, collectionId: 11, key: await generateKey() },
+            { id: 2, collectionId: 12, key: fileKey },
+        ],
+    };
+    try {
+        expect(
+            await photos.executeDuplicateRemoval(
+                session,
+                removal,
+                (completed, total) => progress.push([completed, total]),
+            ),
+        ).toEqual({ trashIds: [1] });
+        expect(requests).toEqual(["/collections/add-files", "/files/trash"]);
+        expect(progress).toEqual([
+            [1, 2],
+            [2, 2],
+        ]);
+        requests.length = 0;
+        const invalid = structuredClone(removal);
+        invalid.groups[0]![0]!.fileId = Number.MAX_SAFE_INTEGER + 1;
+        await expect(
+            photos.executeDuplicateRemoval(session, invalid, vi.fn()),
+        ).rejects.toBeInstanceOf(Error);
+        expect(requests).toEqual([]);
+        expect(
+            await photos.executeDuplicateRemoval(
+                session,
+                { groups: [], collections: [], files: [] },
+                vi.fn(),
+            ),
+        ).toEqual({ trashIds: [] });
+        expect(requests).toEqual([]);
+    } finally {
+        session.free();
+    }
+});
+
 test.each(["classical", "post-quantum"])(
     "Photos %s Cast payloads round-trip and enforce safe collection IDs",
     async (encryption) => {
