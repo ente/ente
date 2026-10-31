@@ -1,4 +1,5 @@
 {
+  "allCleanedUp": "All cleaned up!",
   "bringMemoriesTogether": "Bring your memories together",
   "@bringMemoriesTogether": {
     "description": "Title on the Local Gallery photo permission screen"
@@ -2147,6 +2148,7 @@
     }
   },
   "itemsLabel": "Items",
+  "itemsQueuedForDeletion": "Items queued for deletion",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Items show the number of days remaining before permanent deletion",
   "itemsStored": "Items stored",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{This item will be deleted from all collections. You can recover it from Trash.} other{These items will be deleted from all collections. You can recover them from Trash.}}",
@@ -2172,6 +2174,10 @@
   "joinAlbumConfirmationDialogBody": "Joining an album will make your email visible to its participants.",
   "joinAlbumSubtext": "to view and add your photos",
   "joinAlbumSubtextViewer": "to add this to shared albums",
+  "keep": "Keep",
+  "@keep": {
+    "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
+  },
   "keepOffline": "Keep offline",
   "keepPhotos": "Keep photos",
   "kiloMeterUnit": "km",
@@ -2553,6 +2559,7 @@
   },
   "maps": "Maps",
   "mapsPrivacyNotice": "Approximate coordinates will be sent to privacy conscious third parties like OpenStreetMap to show the map and location.",
+  "markAsReviewed": "Mark as reviewed",
   "markingAsImportant": "Marking as important...",
   "me": "Me",
   "mediaManagementHintMessage": "Turn on media management for Ente in settings, and the prompts stop.",
@@ -2887,6 +2894,8 @@
       }
     }
   },
+  "nothingToReviewYet": "Nothing to review yet",
+  "nothingToReviewYetDesc": "Your photos will show up here, month by month.",
   "nothingToSeeHere": "Nothing to see here",
   "nothingToCleanUp": "Nothing to clean up",
   "nothingToTidyUpHere": "Nothing to tidy up here",
@@ -2924,6 +2933,8 @@
   "offlineNameFaceBannerTitle": "Give this face a name",
   "offlineSettingsBannerDesc": "Zero-knowledge encryption means your memories stay yours.",
   "offlineSettingsBannerTitle": "We can't see your photos. Ever.",
+  "oldPhotos": "Old photos",
+  "oldPhotosDesc": "Look back, keep what matters",
   "onboardingDesc": "Save your photos and videos. Every memory, in one place.",
   "onboardingTitle": "For everything you don't want to forget",
   "onDevice": "Device",
@@ -3632,7 +3643,72 @@
   "retake": "Retake",
   "retry": "Retry",
   "review": "Review",
+  "reviewAgain": "Review again",
+  "reviewFreedUpSummary": "{count, plural, one{You freed up {size} from {count} item.} other{You freed up {size} from {count} items.}}",
+  "@reviewFreedUpSummary": {
+    "placeholders": {
+      "size": {
+        "example": "128 MB",
+        "type": "String"
+      },
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
+  "reviewKeptEverything": "You kept everything in this month.",
+  "reviewLetsGetStartedWith": "Let’s get started with",
+  "@reviewLetsGetStartedWith": {
+    "description": "Caption above the month name on the Review old photos banner before any month has been started."
+  },
+  "reviewNextMonth": "Review next month",
+  "reviewOldPhotos": "Review old photos",
+  "reviewPercentReviewed": "{percent}% reviewed",
+  "@reviewPercentReviewed": {
+    "placeholders": {
+      "percent": {
+        "example": "40",
+        "type": "int"
+      }
+    }
+  },
+  "reviewPickUpAgain": "Pick up again",
+  "@reviewPickUpAgain": {
+    "description": "Caption above the month name on the Review old photos banner when a month is partly reviewed."
+  },
+  "reviewProgressCount": "{reviewed}/{total} reviewed",
+  "@reviewProgressCount": {
+    "placeholders": {
+      "reviewed": {
+        "example": "40",
+        "type": "int"
+      },
+      "total": {
+        "example": "60",
+        "type": "int"
+      }
+    }
+  },
+  "reviewRemovedItemsSummary": "{count, plural, one{You removed {count} item.} other{You removed {count} items.}}",
+  "@reviewRemovedItemsSummary": {
+    "placeholders": {
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
   "reviewSuggestions": "Review suggestions",
+  "reviewYouReviewedYear": "You reviewed {year}!",
+  "@reviewYouReviewedYear": {
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "revoke": "Revoke",
   "revokeInvite": "Revoke invite",
   "@revokeInvite": {
@@ -3914,7 +3990,9 @@
   "secretCanNotBeEmpty": "Secret can not be empty",
   "security": "Security",
   "securityDesc": "Encryption, recovery keys, app lock, and account protection",
+  "seeAll": "See all",
   "seeAllCollections": "All collections",
+  "seeLess": "See less",
   "seePublicAlbumLinksInApp": "See public album links in app",
   "selectAlbumsToBackUpToEnte": "Select albums to back up to Ente",
   "selectAlbumToLikePhoto": "Select the album to like this photo",
@@ -4022,6 +4100,16 @@
   },
   "selectStartOfRange": "Select start of range",
   "selectTime": "Select time",
+  "selectYear": "Select {year}",
+  "@selectYear": {
+    "description": "Accessibility label of the control that selects every month of a year.",
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "selectYourFace": "Select your face",
   "selfiesWithThem": "Selfies with {name}",
   "@selfiesWithThem": {

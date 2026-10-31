@@ -19,6 +19,7 @@ import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/tools/debug/app_storage_viewer.dart";
 import "package:photos/ui/tools/deduplicate_page.dart";
 import "package:photos/ui/tools/free_space_page.dart";
+import "package:photos/ui/tools/photo_review/review_old_photos_page.dart";
 import "package:photos/ui/tools/similar_images_page.dart";
 import "package:photos/ui/viewer/gallery/delete_suggestions_page.dart";
 import "package:photos/ui/viewer/gallery/large_files_page.dart";
@@ -85,6 +86,15 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
 
   Widget _buildReviewOptions(BuildContext context, StringsLocalizations l10n) {
     final options = <Widget>[
+      if (flagService.internalUser)
+        _buildFreeSpaceOption(
+          title: l10n.oldPhotos,
+          subtitle: l10n.oldPhotosDesc,
+          icon: HugeIcons.strokeRoundedClock02,
+          onTap: () async {
+            await routeToPage(context, const ReviewOldPhotosPage());
+          },
+        ),
       if (flagService.enableVectorDb)
         _buildFreeSpaceOption(
           title: l10n.similarImages,
