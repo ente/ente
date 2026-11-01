@@ -76,6 +76,7 @@ import "package:photos/ui/rituals/ritual_page.dart";
 import "package:photos/ui/rituals/ritual_privacy.dart";
 import "package:photos/ui/settings/app_update_sheet.dart";
 import "package:photos/ui/settings_page.dart";
+import "package:photos/ui/sharing/manage_links_widget.dart";
 import "package:photos/ui/social/feed_screen.dart";
 import "package:photos/ui/tabs/albums_tab.dart";
 import "package:photos/ui/viewer/actions/file_viewer.dart";
@@ -1308,6 +1309,22 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (payload != null) {
       debugPrint('notification payload: $payload');
       final uri = Uri.tryParse(payload);
+      if (uri?.host == 'link-settings') {
+        final id = int.tryParse(uri!.queryParameters['collectionID'] ?? '');
+        final collection = id == null
+            ? null
+            : CollectionsService.instance.getCollectionByID(id);
+        if (collection != null &&
+            !collection.isDeleted &&
+            !collection.isHidden() &&
+            collection.owner.id == Configuration.instance.getUserID() &&
+            collection.hasLink) {
+          await AppNavigationService.instance.pushPage(
+            ManageSharedLinkWidget(collection: collection),
+          );
+        }
+        return;
+      }
       if (uri != null &&
           (uri.host.toLowerCase() == "ritual" ||
               uri.host.toLowerCase() == "camera")) {

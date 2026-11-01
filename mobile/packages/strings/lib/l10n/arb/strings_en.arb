@@ -2892,6 +2892,13 @@
   "nothingToTidyUpHere": "Nothing to tidy up here",
   "notifications": "Notifications",
   "notificationNewActivity": "New activity",
+  "notificationSharedLinkExpiresSoon": "Your shared link is about to expire",
+  "notificationAlbumLinkExpiresSoon": "Your shared link for {albumName} expires soon",
+  "@notificationAlbumLinkExpiresSoon": {
+    "placeholders": {
+      "albumName": { "type": "String" }
+    }
+  },
   "notifyMe": "Notify me",
   "notPersonLabel": "Not {name}?",
   "@notPersonLabel": {

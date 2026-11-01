@@ -77,6 +77,23 @@ class _NotificationSettingsScreenState
               showStateIcon: false,
             ),
           ),
+          if (flagService.internalUser) ...[
+            const SizedBox(height: 8),
+            SettingsItem(
+              title: "(i) ${l10n.linkExpiry}",
+              showChevron: false,
+              trailing: ToggleSwitchComponent.async(
+                value: () =>
+                    _hasPermission &&
+                    service.shouldShowLinkExpiryNotifications(),
+                onChanged: () => _toggleWithPermission(
+                  service.shouldShowLinkExpiryNotifications,
+                  service.setShouldShowLinkExpiryNotifications,
+                ).ignore(),
+                showStateIcon: false,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           SettingsItem(
             title: l10n.socialNotifications,
