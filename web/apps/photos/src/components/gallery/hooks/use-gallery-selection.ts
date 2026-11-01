@@ -1,8 +1,10 @@
 import type { SelectedState } from "@/utils/file";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { useCallback, useState } from "react";
+import type { GalleryMediaSource } from "../section-types";
 
 export const useGallerySelection = () => {
+    const [mediaSource, setMediaSource] = useState<GalleryMediaSource>();
     const [selected, setSelected] = useState<SelectedState>({
         ownCount: 0,
         count: 0,
@@ -16,5 +18,11 @@ export const useGallerySelection = () => {
                 : previous,
         );
     }, []);
-    return { selected, setSelected, clearSelection };
+    return {
+        selected,
+        setSelected,
+        clearSelection,
+        mediaSource,
+        setMediaSource,
+    };
 };

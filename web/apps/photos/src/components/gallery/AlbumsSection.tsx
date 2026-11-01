@@ -22,6 +22,7 @@ import {
     updateCollectionDetails,
 } from "ente-new/photos/services/collection";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
+import { useOperationSource } from "./hooks/use-operation-source";
 
 import { uploadManager } from "@/services/upload-manager";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -98,6 +99,21 @@ export const AlbumsSection = ({
         view?.type == "archive-albums"
             ? view.activeCollectionSummary
             : undefined;
+    useOperationSource(
+        isMapView
+            ? {
+                  mode: barMode,
+                  modePlus: barMode,
+                  files: filteredFiles,
+                  activeCollectionID,
+                  activeCollection,
+                  activeCollectionSummary,
+                  activePersonID: undefined,
+                  disableGrouping: false,
+              }
+            : undefined,
+        operations.setMediaSource,
+    );
     const collectionSummary = activeCollectionSummary;
     const [fileListHeader, setFileListHeader] =
         useState<FileListHeaderOrFooter>();
@@ -351,6 +367,7 @@ export const AlbumsSection = ({
                         files: filteredFiles,
                         activeCollectionID: activeCollectionID!,
                         activeCollectionSummary,
+                        activeCollection,
                         activePersonID: undefined,
                         disableGrouping:
                             activeCollection?.pubMagicMetadata?.data.sortBy ==
