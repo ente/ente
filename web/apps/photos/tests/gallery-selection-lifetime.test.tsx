@@ -2,8 +2,8 @@ import type { EnteFile } from "ente-media/file";
 import { useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import { emptySelection } from "../src/components/gallery/file-selection";
-import { useGallerySelection } from "../src/components/gallery/hooks/use-gallery-selection";
+import { emptySelection } from "../src/components/gallery/media/file-selection";
+import { useGallerySelection } from "../src/components/gallery/media/use-gallery-selection";
 
 const files = [
     { id: 1, ownerID: 1 },

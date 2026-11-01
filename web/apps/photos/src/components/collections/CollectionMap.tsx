@@ -1,5 +1,5 @@
 import type { RemotePullOpts } from "@/components/gallery";
-import type { PlaceSelection } from "@/components/gallery/PlacesList";
+import type { PlaceSelection } from "@/components/gallery/sections/places/PlacesList";
 import type { SelectedState } from "@/utils/file";
 import AddIcon from "@mui/icons-material/Add";
 import LocationOnIcon from "@mui/icons-material/LocationOn";

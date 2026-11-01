@@ -1,5 +1,5 @@
+import { useCollectionsSortBy } from "@/components/gallery/hooks/use-collections-sort-by";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
-import { useCollectionsSortBy } from "@/components/gallery/use-collections-sort-by";
 import type { AlbumFilter } from "@/utils/album-filters";
 import type { PeopleSortBy } from "@/utils/people-sort";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";

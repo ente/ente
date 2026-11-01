@@ -1,7 +1,7 @@
 import type { EnteFile } from "ente-media/file";
 import type { SearchSuggestion } from "ente-new/photos/services/search/types";
 import { expect, test, vi } from "vitest";
-import { createSearchResultsQueue } from "../src/components/gallery/search-results-queue";
+import { createSearchResultsQueue } from "../src/components/gallery/sections/search/search-results-queue";
 
 const suggestion = (label: string): SearchSuggestion => ({
     type: "fileName",

@@ -1,5 +1,5 @@
 import type { RemotePullOpts } from "@/components/gallery";
-import { usePhotosNavigation } from "@/components/gallery/PhotosNavigationContext";
+import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
 import { downloadAndSaveCollectionFiles } from "@/services/save";
 import {
     CleanIcon,

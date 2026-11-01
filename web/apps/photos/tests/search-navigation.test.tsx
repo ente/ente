@@ -3,15 +3,15 @@ import type { SearchOption } from "ente-new/photos/services/search/types";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
 import { showCollectionSummaryWithAuthentication } from "../src/components/gallery/helpers";
-import { useSearchNavigation } from "../src/components/gallery/hooks/use-search-navigation";
 import {
     activeSectionID,
     initialNavigationState,
     navigationReducer,
     type NavigationAction,
-} from "../src/components/gallery/navigation-state";
-import type { PhotosNavigationActions } from "../src/components/gallery/PhotosNavigationContext";
+} from "../src/components/gallery/navigation/navigation-state";
+import type { PhotosNavigationActions } from "../src/components/gallery/navigation/PhotosNavigationContext";
 import { initialGalleryState } from "../src/components/gallery/reducer";
+import { useSearchNavigation } from "../src/components/gallery/sections/search/use-search-navigation";
 
 const hidden: SearchOption = {
     suggestion: {

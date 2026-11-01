@@ -5,15 +5,15 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import {
-    AlbumsNavigation,
-    type AlbumsNavigationProps,
-} from "../src/components/gallery/AlbumsNavigation";
-import { LinksNavigation } from "../src/components/gallery/LinksNavigation";
-import {
     PhotosNavigationContext,
     type PhotosNavigationActions,
-} from "../src/components/gallery/PhotosNavigationContext";
-import { useAlbumNavigationData } from "../src/components/gallery/use-album-navigation-data";
+} from "../src/components/gallery/navigation/PhotosNavigationContext";
+import {
+    AlbumsNavigation,
+    type AlbumsNavigationProps,
+} from "../src/components/gallery/sections/albums/AlbumsNavigation";
+import { useAlbumNavigationData } from "../src/components/gallery/sections/albums/use-album-navigation-data";
+import { LinksNavigation } from "../src/components/gallery/sections/links/LinksNavigation";
 
 const viewport = vi.hoisted(() => ({ scrollToEnd: false }));
 

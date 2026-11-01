@@ -8,7 +8,7 @@ import type { FileListHeaderOrFooter } from "@/components/FileList";
 import {
     AlbumsHeader,
     albumsHeaderHeight,
-} from "@/components/gallery/AlbumsHeader";
+} from "@/components/gallery/sections/albums/AlbumsHeader";
 import { Box } from "@mui/material";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import type { Collection } from "ente-media/collection";

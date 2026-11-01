@@ -2,15 +2,18 @@ import type { LocalUser } from "ente-accounts/services/user";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { describe, expect, test } from "vitest";
-import { albumFiles, albumView } from "../src/components/gallery/album-files";
 import {
     initialNavigationState,
     navigationReducer,
-} from "../src/components/gallery/navigation-state";
+} from "../src/components/gallery/navigation/navigation-state";
 import {
     galleryReducer,
     initialGalleryState,
 } from "../src/components/gallery/reducer";
+import {
+    albumFiles,
+    albumView,
+} from "../src/components/gallery/sections/albums/album-files";
 
 const mounted = () =>
     galleryReducer(initialGalleryState, {

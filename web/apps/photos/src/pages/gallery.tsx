@@ -1,12 +1,12 @@
 import { AuthenticateUser } from "@/components/AuthenticateUser";
 import { DesktopWhatsNew } from "@/components/DesktopWhatsNew";
-import { PhotosNavigationContext } from "@/components/gallery/PhotosNavigationContext";
-import { PhotosNavigationShell } from "@/components/gallery/PhotosNavigationShell";
 import { useGalleryAuthentication } from "@/components/gallery/hooks/use-gallery-authentication";
 import { useGalleryLibrary } from "@/components/gallery/hooks/use-gallery-library";
-import { useGalleryNavigation } from "@/components/gallery/hooks/use-gallery-navigation";
 import { useGalleryOperations } from "@/components/gallery/hooks/use-gallery-operations";
-import { sectionDefinition } from "@/components/gallery/sections";
+import { PhotosNavigationContext } from "@/components/gallery/navigation/PhotosNavigationContext";
+import { PhotosNavigationShell } from "@/components/gallery/navigation/PhotosNavigationShell";
+import { useGalleryNavigation } from "@/components/gallery/navigation/use-gallery-navigation";
+import { sectionDefinition } from "@/components/gallery/sections/registry";
 import { FullScreenDropZone } from "ente-gallery/components/FullScreenDropZone";
 import { useMemo } from "react";
 

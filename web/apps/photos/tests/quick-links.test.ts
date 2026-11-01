@@ -2,18 +2,18 @@ import type { LocalUser } from "ente-accounts/services/user";
 import { CollectionSubType, type Collection } from "ente-media/collection";
 import { ItemVisibility } from "ente-media/file-metadata";
 import { describe, expect, test } from "vitest";
-import { resolveLinksDestination } from "../src/components/gallery/link-selection";
 import {
     initialNavigationState,
     navigationReducer,
     type GalleryNavigationState,
     type NavigationAction,
-} from "../src/components/gallery/navigation-state";
+} from "../src/components/gallery/navigation/navigation-state";
 import type { GalleryState } from "../src/components/gallery/reducer";
 import {
     galleryReducer,
     initialGalleryState,
 } from "../src/components/gallery/reducer";
+import { resolveLinksDestination } from "../src/components/gallery/sections/links/link-selection";
 import { visibleQuickLinks } from "../src/utils/quick-links";
 
 const link = (id: number, overrides: Partial<Collection> = {}): Collection => ({

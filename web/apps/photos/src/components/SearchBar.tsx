@@ -1,4 +1,4 @@
-import { usePhotosNavigation } from "@/components/gallery/PhotosNavigationContext";
+import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
 import { sidebarTheme } from "@/components/sidebar/theme";
 import {
     groupSearchOptions,

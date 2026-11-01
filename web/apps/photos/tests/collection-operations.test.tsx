@@ -10,7 +10,7 @@ import {
 } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { useCollectionOperations } from "../src/components/gallery/hooks/use-collection-operations";
+import { useCollectionOperations } from "../src/components/gallery/media/use-collection-operations";
 import { initialGalleryState } from "../src/components/gallery/reducer";
 
 const services = vi.hoisted(() => ({

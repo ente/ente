@@ -7,22 +7,22 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import type { PeopleState, Person } from "ente-new/photos/services/ml/people";
 import { expect, test } from "vitest";
-import {
-    albumFiles,
-    albumView,
-    resolveAlbumDestination,
-} from "../src/components/gallery/album-files";
-import { homeDestination } from "../src/components/gallery/navigation-state";
-import {
-    derivePeopleFilteredFiles,
-    derivePeopleView,
-    resolvePeopleDestination,
-} from "../src/components/gallery/people-files";
+import { homeDestination } from "../src/components/gallery/navigation/navigation-state";
 import {
     galleryReducer,
     initialGalleryState,
     type GalleryState,
 } from "../src/components/gallery/reducer";
+import {
+    albumFiles,
+    albumView,
+    resolveAlbumDestination,
+} from "../src/components/gallery/sections/albums/album-files";
+import {
+    derivePeopleFilteredFiles,
+    derivePeopleView,
+    resolvePeopleDestination,
+} from "../src/components/gallery/sections/people/people-files";
 
 const file = (id: number, collectionID = 10): EnteFile =>
     ({
