@@ -455,14 +455,19 @@ const Page: React.FC = () => {
     );
 
     const sectionLibrary = { ...state, isFirstLoad, searchIndexRevision };
+    const retainPerson = useCallback(
+        (
+            personID: string | undefined,
+            extraVisiblePersonID: string | undefined,
+        ) => {
+            dispatch({ type: "retainPerson", personID, extraVisiblePersonID });
+        },
+        [dispatch],
+    );
     const sectionNavigation = {
-        view: state.view,
-        searchSuggestion: state.searchSuggestion,
-        isInSearchMode,
-        isMapView,
-        selectedPlace,
-        placeSelectionRevision,
+        ...navigationState,
         pendingFileNavigation: undefined,
+        retainPerson,
     };
     if (!user) {
         // Children rely on user after the mount dispatch.

@@ -8,10 +8,7 @@ export const LinksSection = ({
     preferences,
     presentation,
 }: GallerySectionProps) => {
-    const selectedLinkID =
-        navigation.view?.type === "links"
-            ? navigation.view.selectedLinkID
-            : undefined;
+    const selectedLinkID = navigation.destination.collectionID;
     return (
         <LinksView
             {...{ presentation, selectedLinkID }}
