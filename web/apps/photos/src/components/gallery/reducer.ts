@@ -1,4 +1,3 @@
-import type { AlbumFilter } from "@/utils/album-filters";
 import type { LocalUser } from "ente-accounts/services/user";
 import {
     groupFilesByCollectionID,
@@ -11,7 +10,7 @@ import {
     findUserUncategorizedCollection,
     type Collection,
 } from "ente-media/collection";
-import { sortCollectionFiles, sortFiles } from "ente-media/collection-sort";
+import { sortFiles } from "ente-media/collection-sort";
 import type { EnteFile } from "ente-media/file";
 import {
     isArchivedFile,
@@ -33,8 +32,7 @@ import {
     type CollectionSummaryAttribute,
     type CollectionSummaryType,
 } from "ente-new/photos/services/collection-summary";
-import type { PeopleState, Person } from "ente-new/photos/services/ml/people";
-import type { SearchSuggestion } from "ente-new/photos/services/search/types";
+import type { PeopleState } from "ente-new/photos/services/ml/people";
 import { sortTrashItems, type TrashItem } from "ente-new/photos/services/trash";
 import type {
     FamilyData,
@@ -44,29 +42,9 @@ import { splitByPredicate } from "ente-utils/array";
 import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
 import React, { useReducer } from "react";
-import { visibleQuickLinks } from "../../utils/quick-links";
-import { suppressSharedFilesSavedByUser } from "./media-files";
 
-// TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
-// all cases where the bar mode was in use.
 export type GalleryBarMode =
     "albums" | "hidden-albums" | "archive-albums" | "people" | "links";
-
-type GalleryView =
-    | { type: "links"; selectedLinkID: number | undefined }
-    | { type: "album-overview"; albumFilter: AlbumFilter }
-    | {
-          type: "albums" | "hidden-albums" | "archive-albums";
-          activeCollectionSummaryID: number;
-          activeCollection: Collection | undefined;
-          activeCollectionSummary: CollectionSummary;
-      }
-    | {
-          type: "people";
-          visiblePeople: Person[];
-          people: Person[];
-          activePerson: Person | undefined;
-      };
 
 export interface GalleryState {
     user: LocalUser | undefined;
@@ -109,15 +87,6 @@ export interface GalleryState {
         number,
         MagicMetadata<FilePrivateMagicMetadataData>
     >;
-
-    selectedCollectionSummaryID: number | undefined;
-    selectedPersonID: string | undefined;
-    extraVisiblePerson: Person | undefined;
-    searchSuggestion: SearchSuggestion | undefined;
-
-    view: GalleryView | undefined;
-    isInSearchMode: boolean;
-    filteredFiles: EnteFile[];
 }
 
 export type GalleryAction =
@@ -149,18 +118,7 @@ export type GalleryAction =
           fileID: number;
           privateMagicMetadata: MagicMetadata<FilePrivateMagicMetadataData>;
       }
-    | { type: "clearUnsyncedState" }
-    | { type: "showAll" }
-    | { type: "showHidden" }
-    | { type: "showAlbumOverview"; albumFilter: AlbumFilter }
-    | { type: "showLinks"; collectionID?: number }
-    | { type: "selectLink"; collectionID: number }
-    | { type: "showAlbums" }
-    | { type: "showCollectionSummary"; collectionSummaryID: number | undefined }
-    | { type: "showPeople" }
-    | { type: "showPerson"; personID: string }
-    | { type: "enterSearchMode"; searchSuggestion?: SearchSuggestion }
-    | { type: "exitSearch"; shouldExitSearchMode?: boolean };
+    | { type: "clearUnsyncedState" };
 
 export const initialGalleryState: GalleryState = {
     user: undefined,
@@ -191,13 +149,6 @@ export const initialGalleryState: GalleryState = {
     unsyncedFavoriteUpdates: new Map(),
     pendingVisibilityUpdates: new Set(),
     unsyncedPrivateMagicMetadataUpdates: new Map(),
-    selectedCollectionSummaryID: undefined,
-    selectedPersonID: undefined,
-    extraVisiblePerson: undefined,
-    searchSuggestion: undefined,
-    view: undefined,
-    filteredFiles: [],
-    isInSearchMode: false,
 };
 
 export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
@@ -251,16 +202,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     hiddenFileIDs,
                 );
 
-            const view = {
-                type: "albums" as const,
-                activeCollectionSummaryID: PseudoCollectionID.all,
-                activeCollection: undefined,
-                activeCollectionSummary: normalCollectionSummaries.get(
-                    PseudoCollectionID.all,
-                )!,
-            };
-
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...state,
                 user,
                 familyData,
@@ -301,8 +243,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                         normalCollections,
                         user.id,
                     ),
-                view,
-            });
+            };
         }
 
         case "setUserDetails": {
@@ -367,34 +308,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     hiddenFileIDs,
                 );
 
-            let view = state.view;
-            let selectedCollectionSummaryID = state.selectedCollectionSummaryID;
-            if (state.view?.type == "albums") {
-                ({ view, selectedCollectionSummaryID } =
-                    deriveAlbumsViewAndSelectedID(
-                        collections,
-                        hiddenCollectionIDs,
-                        normalCollectionSummaries,
-                        selectedCollectionSummaryID,
-                    ));
-            } else if (state.view?.type == "hidden-albums") {
-                ({ view, selectedCollectionSummaryID } =
-                    deriveHiddenAlbumsViewAndSelectedID(
-                        collections,
-                        hiddenCollectionIDs,
-                        hiddenCollectionSummaries,
-                        selectedCollectionSummaryID,
-                    ));
-            } else if (state.view?.type == "archive-albums") {
-                ({ view, selectedCollectionSummaryID } =
-                    deriveArchiveAlbumsViewAndSelectedID(
-                        collections,
-                        archivedCollectionSummaries,
-                        selectedCollectionSummaryID,
-                    ));
-            }
-
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...state,
                 collections,
                 hiddenCollectionIDs,
@@ -431,20 +345,18 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                         normalCollections,
                         state.user!.id,
                     ),
-                selectedCollectionSummaryID,
-                view,
-            });
+            };
         }
 
         case "setCollectionFiles": {
             const lastSyncedCollectionFiles = sortFiles(action.collectionFiles);
             const collectionFiles = lastSyncedCollectionFiles;
 
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...stateForUpdatedCollectionFiles(state, collectionFiles),
                 lastSyncedCollectionFiles,
                 unsyncedPrivateMagicMetadataUpdates: new Map(),
-            });
+            };
         }
 
         case "uploadFile": {
@@ -459,16 +371,16 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 state.unsyncedPrivateMagicMetadataUpdates,
             );
 
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...stateForUpdatedCollectionFiles(state, collectionFiles),
                 lastSyncedCollectionFiles,
-            });
+            };
         }
 
         case "setTrashItems": {
             const trashItems = sortTrashItems(action.trashItems);
 
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...state,
                 trashItems,
                 normalCollectionSummaries: deriveNormalCollectionSummaries(
@@ -481,61 +393,37 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     state.hiddenFileIDs,
                     state.archivedFileIDs,
                 ),
-            });
+            };
         }
 
-        case "setPeopleState": {
-            const peopleState = action.peopleState;
-
-            if (state.view?.type != "people") return { ...state, peopleState };
-
-            const { view, extraVisiblePerson } = derivePeopleView(
-                peopleState,
-                state.tempDeletedFileIDs,
-                state.tempHiddenFileIDs,
-                state.selectedPersonID,
-                state.extraVisiblePerson,
-            );
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                peopleState,
-                selectedPersonID: view.activePerson?.id,
-                extraVisiblePerson,
-                view,
-            });
-        }
+        case "setPeopleState":
+            return { ...state, peopleState: action.peopleState };
 
         case "markTempDeleted":
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...state,
                 tempDeletedFileIDs: new Set(
                     [...state.tempDeletedFileIDs].concat(
                         action.files.map((f) => f.id),
                     ),
                 ),
-            });
+            };
 
         case "clearTempDeleted":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                tempDeletedFileIDs: new Set(),
-            });
+            return { ...state, tempDeletedFileIDs: new Set() };
 
         case "markTempHidden":
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...state,
                 tempHiddenFileIDs: new Set(
                     [...state.tempHiddenFileIDs].concat(
                         action.files.map((f) => f.id),
                     ),
                 ),
-            });
+            };
 
         case "clearTempHidden":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                tempHiddenFileIDs: new Set(),
-            });
+            return { ...state, tempHiddenFileIDs: new Set() };
 
         case "addPendingFavoriteUpdate": {
             const pendingFavoriteUpdates = new Set(
@@ -613,10 +501,10 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 unsyncedPrivateMagicMetadataUpdates,
             );
 
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...stateForUpdatedCollectionFiles(state, collectionFiles),
                 unsyncedPrivateMagicMetadataUpdates,
-            });
+            };
         }
 
         case "clearUnsyncedState": {
@@ -646,7 +534,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
             const unsyncedPrivateMagicMetadataUpdates: GalleryState["unsyncedPrivateMagicMetadataUpdates"] =
                 new Map();
 
-            return stateByUpdatingFilteredFiles({
+            return {
                 ...stateForUpdatedCollectionFiles(
                     {
                         ...state,
@@ -661,204 +549,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     collectionFiles,
                 ),
                 unsyncedPrivateMagicMetadataUpdates,
-            });
-        }
-
-        case "showAll":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedCollectionSummaryID: undefined,
-                extraVisiblePerson: undefined,
-                searchSuggestion: undefined,
-                view: {
-                    type: "albums",
-                    activeCollectionSummaryID: PseudoCollectionID.all,
-                    activeCollection: undefined,
-                    activeCollectionSummary:
-                        state.normalCollectionSummaries.get(
-                            PseudoCollectionID.all,
-                        )!,
-                },
-                isInSearchMode: false,
-            });
-
-        case "showHidden":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedCollectionSummaryID: undefined,
-                extraVisiblePerson: undefined,
-                searchSuggestion: undefined,
-                view: {
-                    type: "hidden-albums",
-                    activeCollectionSummaryID: PseudoCollectionID.hiddenItems,
-                    activeCollection: undefined,
-                    activeCollectionSummary:
-                        state.hiddenCollectionSummaries.get(
-                            PseudoCollectionID.hiddenItems,
-                        )!,
-                },
-                isInSearchMode: false,
-            });
-
-        case "showLinks":
-        case "selectLink":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedCollectionSummaryID: undefined,
-                extraVisiblePerson: undefined,
-                searchSuggestion: undefined,
-                isInSearchMode: false,
-                view: { type: "links", selectedLinkID: action.collectionID },
-            });
-
-        case "showAlbumOverview":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedCollectionSummaryID: undefined,
-                extraVisiblePerson: undefined,
-                searchSuggestion: undefined,
-                view: {
-                    type: "album-overview",
-                    albumFilter: action.albumFilter,
-                },
-                isInSearchMode: false,
-            });
-
-        case "showAlbums": {
-            const { view, selectedCollectionSummaryID } =
-                deriveAlbumsViewAndSelectedID(
-                    state.collections,
-                    state.hiddenCollectionIDs,
-                    state.normalCollectionSummaries,
-                    state.selectedCollectionSummaryID,
-                );
-
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedCollectionSummaryID,
-                extraVisiblePerson: undefined,
-                searchSuggestion: undefined,
-                view,
-                isInSearchMode: false,
-            });
-        }
-
-        case "showCollectionSummary": {
-            const selectedCollectionSummaryID = action.collectionSummaryID;
-            const activeCollection = state.collections.find(
-                ({ id }) => id == selectedCollectionSummaryID,
-            );
-
-            let view: GalleryState["view"];
-            if (
-                selectedCollectionSummaryID !== undefined &&
-                state.hiddenCollectionSummaries.has(selectedCollectionSummaryID)
-            ) {
-                const activeCollectionSummaryID = selectedCollectionSummaryID;
-                view = {
-                    type: "hidden-albums",
-                    activeCollectionSummaryID,
-                    activeCollection,
-                    activeCollectionSummary:
-                        state.hiddenCollectionSummaries.get(
-                            activeCollectionSummaryID,
-                        )!,
-                };
-            } else if (
-                selectedCollectionSummaryID !== undefined &&
-                state.archivedCollectionSummaries.has(
-                    selectedCollectionSummaryID,
-                ) &&
-                (state.view?.type == "archive-albums" ||
-                    selectedCollectionSummaryID ==
-                        PseudoCollectionID.archiveItems)
-            ) {
-                const activeCollectionSummaryID = selectedCollectionSummaryID;
-                view = {
-                    type: "archive-albums",
-                    activeCollectionSummaryID,
-                    activeCollection,
-                    activeCollectionSummary:
-                        state.archivedCollectionSummaries.get(
-                            activeCollectionSummaryID,
-                        )!,
-                };
-            } else {
-                const activeCollectionSummaryID =
-                    selectedCollectionSummaryID ?? PseudoCollectionID.all;
-                view = {
-                    type: "albums",
-                    activeCollectionSummaryID,
-                    activeCollection,
-                    activeCollectionSummary:
-                        state.normalCollectionSummaries.get(
-                            activeCollectionSummaryID,
-                        )!,
-                };
-            }
-
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedCollectionSummaryID,
-                extraVisiblePerson: undefined,
-                searchSuggestion: undefined,
-                view,
-                isInSearchMode: false,
-            });
-        }
-
-        case "showPeople": {
-            const { view, extraVisiblePerson } = derivePeopleView(
-                state.peopleState,
-                state.tempDeletedFileIDs,
-                state.tempHiddenFileIDs,
-                undefined,
-                undefined,
-            );
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedPersonID: view.activePerson?.id,
-                extraVisiblePerson,
-                searchSuggestion: undefined,
-                view,
-                isInSearchMode: false,
-            });
-        }
-
-        case "showPerson": {
-            const { view, extraVisiblePerson } = derivePeopleView(
-                state.peopleState,
-                state.tempDeletedFileIDs,
-                state.tempHiddenFileIDs,
-                action.personID,
-                state.extraVisiblePerson,
-            );
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                selectedPersonID: view.activePerson?.id,
-                extraVisiblePerson,
-                searchSuggestion: undefined,
-                view,
-                isInSearchMode: false,
-            });
-        }
-
-        case "enterSearchMode":
-            return {
-                ...state,
-                isInSearchMode: true,
-                searchSuggestion: action.searchSuggestion,
             };
-
-        case "exitSearch": {
-            const shouldExitSearchMode = action.shouldExitSearchMode ?? true;
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                searchSuggestion: undefined,
-                isInSearchMode: shouldExitSearchMode
-                    ? false
-                    : state.isInSearchMode,
-            });
         }
     }
 };
@@ -1383,160 +1074,6 @@ const findCoverFiles = (
     return coverFiles;
 };
 
-const deriveAlbumsViewAndSelectedID = (
-    collections: GalleryState["collections"],
-    hiddenCollectionIDs: GalleryState["hiddenCollectionIDs"],
-    collectionSummaries: GalleryState["normalCollectionSummaries"],
-    selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
-) => {
-    const candidateCollectionSummary = selectedCollectionSummaryID
-        ? collectionSummaries.get(selectedCollectionSummaryID)
-        : undefined;
-    const selectedCollectionSummary =
-        candidateCollectionSummary &&
-        !candidateCollectionSummary.attributes.has("archiveItems") &&
-        !candidateCollectionSummary.attributes.has("archived")
-            ? candidateCollectionSummary
-            : undefined;
-
-    const activeCollectionSummaryID =
-        selectedCollectionSummary?.id ?? PseudoCollectionID.all;
-    const activeCollectionSummary = collectionSummaries.get(
-        activeCollectionSummaryID,
-    )!;
-    const activeCollection =
-        selectedCollectionSummary &&
-        !hiddenCollectionIDs.has(activeCollectionSummaryID)
-            ? collections.find(({ id }) => id == activeCollectionSummaryID)
-            : undefined;
-    return {
-        selectedCollectionSummaryID: activeCollectionSummaryID,
-        view: {
-            type: "albums" as const,
-            activeCollectionSummaryID,
-            activeCollection,
-            activeCollectionSummary,
-        },
-    };
-};
-
-const deriveHiddenAlbumsViewAndSelectedID = (
-    collections: GalleryState["collections"],
-    hiddenCollectionIDs: GalleryState["hiddenCollectionIDs"],
-    hiddenCollectionSummaries: GalleryState["hiddenCollectionSummaries"],
-    selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
-) => {
-    const selectedCollectionSummary = selectedCollectionSummaryID
-        ? hiddenCollectionSummaries.get(selectedCollectionSummaryID)
-        : undefined;
-
-    const activeCollectionSummaryID =
-        selectedCollectionSummary?.id ?? PseudoCollectionID.hiddenItems;
-    const activeCollectionSummary = hiddenCollectionSummaries.get(
-        activeCollectionSummaryID,
-    )!;
-    const activeCollection =
-        selectedCollectionSummary &&
-        hiddenCollectionIDs.has(activeCollectionSummaryID)
-            ? collections.find(({ id }) => id == activeCollectionSummaryID)
-            : undefined;
-    return {
-        selectedCollectionSummaryID: activeCollectionSummaryID,
-        view: {
-            type: "hidden-albums" as const,
-            activeCollectionSummaryID,
-            activeCollection,
-            activeCollectionSummary,
-        },
-    };
-};
-
-const deriveArchiveAlbumsViewAndSelectedID = (
-    collections: GalleryState["collections"],
-    archivedCollectionSummaries: GalleryState["archivedCollectionSummaries"],
-    selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
-) => {
-    const selectedCollectionSummary = selectedCollectionSummaryID
-        ? archivedCollectionSummaries.get(selectedCollectionSummaryID)
-        : undefined;
-
-    const activeCollectionSummaryID =
-        selectedCollectionSummary?.id ?? PseudoCollectionID.archiveItems;
-    const activeCollectionSummary = archivedCollectionSummaries.get(
-        activeCollectionSummaryID,
-    )!;
-    const activeCollection =
-        selectedCollectionSummary &&
-        activeCollectionSummaryID != PseudoCollectionID.archiveItems
-            ? collections.find(({ id }) => id == activeCollectionSummaryID)
-            : undefined;
-    return {
-        selectedCollectionSummaryID: activeCollectionSummaryID,
-        view: {
-            type: "archive-albums" as const,
-            activeCollectionSummaryID,
-            activeCollection,
-            activeCollectionSummary,
-        },
-    };
-};
-
-const derivePeopleView = (
-    peopleState: GalleryState["peopleState"],
-    tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
-    tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    selectedPersonID: GalleryState["selectedPersonID"],
-    extraVisiblePerson: GalleryState["extraVisiblePerson"],
-): {
-    view: Extract<GalleryView, { type: "people" }>;
-    extraVisiblePerson: GalleryState["extraVisiblePerson"];
-} => {
-    let people = peopleState?.people ?? [];
-    let visiblePeople = peopleState?.visiblePeople ?? [];
-    if (tempDeletedFileIDs.size + tempHiddenFileIDs.size > 0) {
-        const filterTemp = (ps: Person[]) =>
-            ps
-                .map((p) => ({
-                    ...p,
-                    fileIDs: p.fileIDs.filter(
-                        (id) =>
-                            !tempDeletedFileIDs.has(id) &&
-                            !tempHiddenFileIDs.has(id),
-                    ),
-                }))
-                .filter((p) => p.fileIDs.length > 0);
-        people = filterTemp(people);
-        visiblePeople = filterTemp(visiblePeople);
-    }
-
-    // Keep a selected small cluster visible until the user leaves this view.
-    if (extraVisiblePerson) {
-        if (!people.find((p) => p.id == extraVisiblePerson?.id))
-            extraVisiblePerson = undefined;
-    }
-
-    const findByIDIn = (ps: Person[]) =>
-        ps.find((p) => p.id == selectedPersonID);
-    let activePerson = findByIDIn(visiblePeople);
-    if (!activePerson) {
-        activePerson = findByIDIn(people);
-        if (activePerson) {
-            extraVisiblePerson = activePerson;
-        }
-    }
-
-    const view = {
-        type: "people" as const,
-        people,
-        visiblePeople: extraVisiblePerson
-            ? visiblePeople.concat([extraVisiblePerson])
-            : visiblePeople,
-        activePerson,
-    };
-
-    return { view, extraVisiblePerson };
-};
-
 const stateForUpdatedCollectionFiles = (
     state: GalleryState,
     collectionFiles: GalleryState["collectionFiles"],
@@ -1591,163 +1128,6 @@ const stateForUpdatedCollectionFiles = (
             hiddenFileIDs,
         ),
     };
-};
-
-const stateByUpdatingFilteredFiles = (state: GalleryState) => {
-    if (state.view?.type == "links") {
-        const links = visibleQuickLinks(
-            state.collections,
-            state.user!.id,
-            state.hiddenCollectionIDs,
-        );
-        const previousLinkID = state.view.selectedLinkID;
-        const selectedLinkID = links.some(({ id }) => id == previousLinkID)
-            ? state.view.selectedLinkID
-            : undefined;
-        state = { ...state, view: { type: "links", selectedLinkID } };
-    }
-    if (state.isInSearchMode) {
-        return state;
-    } else if (
-        state.view?.type == "albums" ||
-        state.view?.type == "hidden-albums" ||
-        state.view?.type == "archive-albums"
-    ) {
-        const filteredFiles = deriveAlbumsOrHiddenAlbumsFilteredFiles(
-            state.trashItems,
-            state.collectionFiles,
-            state.defaultHiddenCollectionIDs,
-            state.hiddenFileIDs,
-            state.archivedCollectionIDs,
-            state.archivedFileIDs,
-            state.tempDeletedFileIDs,
-            state.tempHiddenFileIDs,
-            state.view,
-            state.user?.id,
-        );
-        return { ...state, filteredFiles };
-    } else if (
-        state.view?.type == "album-overview" ||
-        state.view?.type == "links"
-    ) {
-        return { ...state, filteredFiles: [] };
-    } else if (state.view?.type == "people") {
-        const filteredFiles = derivePeopleFilteredFiles(
-            state.collectionFiles,
-            state.hiddenFileIDs,
-            state.view,
-            state.user?.id,
-        );
-        return { ...state, filteredFiles };
-    } else {
-        return state;
-    }
-};
-
-const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
-    trashItems: GalleryState["trashItems"],
-    collectionFiles: GalleryState["collectionFiles"],
-    defaultHiddenCollectionIDs: GalleryState["defaultHiddenCollectionIDs"],
-    hiddenFileIDs: GalleryState["hiddenFileIDs"],
-    archivedCollectionIDs: GalleryState["archivedCollectionIDs"],
-    archivedFileIDs: GalleryState["archivedFileIDs"],
-    tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
-    tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    view: Extract<
-        GalleryView,
-        { type: "albums" | "hidden-albums" | "archive-albums" }
-    >,
-    currentUserID: number | undefined,
-) => {
-    const activeCollectionSummaryID = view.activeCollectionSummaryID;
-
-    if (activeCollectionSummaryID == PseudoCollectionID.trash) {
-        return uniqueFilesByID([
-            ...trashItems.map(({ file, deleteBy }) => ({ ...file, deleteBy })),
-            ...collectionFiles.filter((file) =>
-                tempDeletedFileIDs.has(file.id),
-            ),
-        ]);
-    }
-
-    const filteredFiles = collectionFiles.filter((file) => {
-        if (tempDeletedFileIDs.has(file.id)) return false;
-
-        if (
-            activeCollectionSummaryID == PseudoCollectionID.hiddenItems &&
-            defaultHiddenCollectionIDs.has(file.collectionID)
-        ) {
-            return true;
-        }
-
-        // A file can be individually archived and belong to an archived album.
-        if (isArchivedFile(file)) {
-            return (
-                (activeCollectionSummaryID == PseudoCollectionID.archiveItems &&
-                    !hiddenFileIDs.has(file.id) &&
-                    !tempHiddenFileIDs.has(file.id)) ||
-                activeCollectionSummaryID == file.collectionID
-            );
-        }
-
-        if (archivedCollectionIDs.has(file.collectionID)) {
-            return activeCollectionSummaryID === file.collectionID;
-        }
-
-        if (activeCollectionSummaryID === PseudoCollectionID.all) {
-            if (hiddenFileIDs.has(file.id)) return false;
-            if (tempHiddenFileIDs.has(file.id)) return false;
-
-            if (archivedFileIDs.has(file.id)) {
-                return false;
-            }
-
-            return true;
-        }
-
-        return activeCollectionSummaryID == file.collectionID;
-    });
-
-    return sortAndUniqueFilteredFiles(
-        filteredFiles,
-        view.activeCollection,
-        currentUserID,
-    );
-};
-
-const sortAndUniqueFilteredFiles = (
-    files: EnteFile[],
-    activeCollection: Collection | undefined,
-    currentUserID: number | undefined,
-) => {
-    const uniqueFiles = uniqueFilesByID(
-        suppressSharedFilesSavedByUser(files, currentUserID, activeCollection),
-    );
-    const metadata = activeCollection?.pubMagicMetadata?.data;
-    // The synced library is already in newest-first order.
-    return metadata?.asc || metadata?.sortBy === "fileName"
-        ? sortCollectionFiles(uniqueFiles, metadata)
-        : uniqueFiles;
-};
-
-const derivePeopleFilteredFiles = (
-    collectionFiles: GalleryState["collectionFiles"],
-    hiddenFileIDs: GalleryState["hiddenFileIDs"],
-    view: Extract<GalleryView, { type: "people" }>,
-    currentUserID: number | undefined,
-) => {
-    const pfSet = new Set(view.activePerson?.fileIDs ?? []);
-    return uniqueFilesByID(
-        suppressSharedFilesSavedByUser(
-            collectionFiles.filter((f) => {
-                if (!pfSet.has(f.id)) return false;
-                if (hiddenFileIDs.has(f.id)) return false;
-                return true;
-            }),
-            currentUserID,
-            undefined,
-        ),
-    );
 };
 
 const constructUserIDToEmailMap = (

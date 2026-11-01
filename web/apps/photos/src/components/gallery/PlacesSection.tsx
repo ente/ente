@@ -2,7 +2,9 @@ import { CollectionMap } from "@/components/collections/CollectionMap";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { t } from "i18next";
 import { useMemo, useState } from "react";
+import { albumFiles, albumView } from "./album-files";
 import { GallerySectionLayout } from "./GallerySectionLayout";
+import { homeDestination } from "./navigation-state";
 import { NavigationFrame } from "./NavigationPrimitives";
 import { usePhotosNavigation } from "./PhotosNavigationContext";
 import { PlacesList } from "./PlacesList";
@@ -14,6 +16,10 @@ export const PlacesSection = ({
     navigation,
     presentation,
 }: GallerySectionProps) => {
+    const files = useMemo(
+        () => albumFiles(library, albumView(library, homeDestination)),
+        [library],
+    );
     const [query, setQuery] = useState("");
     const { selectPlace } = usePhotosNavigation();
     const mapFileSource = useMemo(
@@ -51,7 +57,7 @@ export const PlacesSection = ({
                     mobileDrawerProps={presentation.mobileDrawerProps}
                 >
                     <PlacesList
-                        files={library.filteredFiles}
+                        files={files}
                         searchQuery={query}
                         selectedPlace={navigation.selectedPlace}
                         onSelectPlace={(place) => {
@@ -65,7 +71,7 @@ export const PlacesSection = ({
             {summary && (
                 <CollectionMap
                     collectionSummary={summary}
-                    files={library.filteredFiles}
+                    files={files}
                     selectedPlace={navigation.selectedPlace}
                     placeSelectionRevision={navigation.placeSelectionRevision}
                     mapFileSource={mapFileSource}

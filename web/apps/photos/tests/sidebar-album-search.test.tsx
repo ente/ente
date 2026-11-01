@@ -122,6 +122,7 @@ const renderSearch = (
         onChangeCollectionsSortBy: vi.fn(),
     };
     const navigation: PhotosNavigationActions = {
+        openSection: vi.fn(() => true),
         goHome: vi.fn(),
         changeMode: vi.fn(() => true),
         showLibraryMap: vi.fn(),

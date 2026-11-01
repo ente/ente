@@ -25,6 +25,7 @@ import { PseudoCollectionID } from "ente-new/photos/services/collection-summary"
 
 import { uploadManager } from "@/services/upload-manager";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { albumFiles, albumView } from "./album-files";
 
 import { CreateAlbumDialog } from "@/components/collections/CreateAlbumDialog";
 import { AlbumsNavigation } from "./AlbumsNavigation";
@@ -42,7 +43,6 @@ export const AlbumsSection = ({
     const state = library;
     const {
         user,
-        filteredFiles,
         hiddenFileIDs,
         tempDeletedFileIDs,
         tempHiddenFileIDs,
@@ -59,8 +59,9 @@ export const AlbumsSection = ({
         onAddFileToCollection: handleAddSingleFileToCollection,
         onVisualFeedback: handleVisualFeedback,
     } = operations;
-    const { isMapView, selectedPlace, placeSelectionRevision, isInSearchMode } =
-        navigation;
+    const { selectedPlace, placeSelectionRevision } = navigation;
+    const isMapView = !!navigation.destination.collectionMap;
+    const isInSearchMode = navigation.overlay?.section === "search";
     const {
         albumFilter,
         setAlbumFilter,
@@ -71,31 +72,38 @@ export const AlbumsSection = ({
         albumOpenedFromOverview,
         setAlbumSearchQuery,
     } = preferences;
-    const view = navigation.view;
+    const view = useMemo(
+        () => albumView(library, navigation.destination),
+        [library, navigation.destination],
+    );
+    const filteredFiles = useMemo(
+        () => albumFiles(library, view),
+        [library, view],
+    );
     const barMode =
-        view?.type == "hidden-albums"
+        view.type == "hidden-albums"
             ? "hidden-albums"
-            : view?.type == "archive-albums"
+            : view.type == "archive-albums"
               ? "archive-albums"
               : "albums";
-    const isAlbumOverview = view?.type == "album-overview";
+    const isAlbumOverview = view.type == "album-overview";
     const overviewFilter = isAlbumOverview ? view.albumFilter : undefined;
     const activeCollectionID =
-        view?.type == "albums" ||
-        view?.type == "hidden-albums" ||
-        view?.type == "archive-albums"
+        view.type == "albums" ||
+        view.type == "hidden-albums" ||
+        view.type == "archive-albums"
             ? view.activeCollectionSummaryID
             : undefined;
     const activeCollection =
-        view?.type == "albums" ||
-        view?.type == "hidden-albums" ||
-        view?.type == "archive-albums"
+        view.type == "albums" ||
+        view.type == "hidden-albums" ||
+        view.type == "archive-albums"
             ? view.activeCollection
             : undefined;
     const activeCollectionSummary =
-        view?.type == "albums" ||
-        view?.type == "hidden-albums" ||
-        view?.type == "archive-albums"
+        view.type == "albums" ||
+        view.type == "hidden-albums" ||
+        view.type == "archive-albums"
             ? view.activeCollectionSummary
             : undefined;
     const [fileListHeader, setFileListHeader] =

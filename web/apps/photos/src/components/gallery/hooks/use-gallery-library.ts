@@ -47,6 +47,7 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const useGalleryLibrary = () => {
+    const [joinedCollectionID, setJoinedCollectionID] = useState<number>();
     const { logout, showMiniDialog, onGenericError } = useBaseContext();
     const { showLoadingBar, hideLoadingBar } = usePhotosAppContext();
     const router = useRouter();
@@ -165,8 +166,6 @@ export const useGalleryLibrary = () => {
 
             initSettings();
 
-            dispatch({ type: "showAll" });
-
             setIsFirstLoad(getAndClearIsFirstLogin());
 
             const user = ensureLocalUser();
@@ -214,10 +213,7 @@ export const useGalleryLibrary = () => {
             await remotePull({ source: "gallery-mount" });
 
             if (joinedAlbumId) {
-                dispatch({
-                    type: "showCollectionSummary",
-                    collectionSummaryID: joinedAlbumId,
-                });
+                setJoinedCollectionID(joinedAlbumId);
             }
 
             setIsFirstLoad(false);
@@ -268,6 +264,7 @@ export const useGalleryLibrary = () => {
 
     useSubscriptionCompletionRedirect();
     return {
+        joinedCollectionID,
         state,
         dispatch,
         isFirstLoad,

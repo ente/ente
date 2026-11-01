@@ -99,7 +99,7 @@ const openAlbum = (
         updationTime: 1,
         magicMetadata: { version: 1, count: 1, data: { visibility } },
     };
-    let state = galleryReducer(initialGalleryState, {
+    const state = galleryReducer(initialGalleryState, {
         type: "mount",
         user: { id: 1, email: "review@example.test", token: "test-token" },
         familyData: undefined,
@@ -107,19 +107,10 @@ const openAlbum = (
         collectionFiles: [...collectionFiles],
         trashItems: [],
     });
-    if (visibility === ItemVisibility.archived) {
-        state = galleryReducer(state, {
-            type: "showCollectionSummary",
-            collectionSummaryID: PseudoCollectionID.archiveItems,
-        });
-    }
-    return galleryReducer(state, {
-        type: "showCollectionSummary",
-        collectionSummaryID: album.id,
-    });
+    return state;
 };
 
-const headerSummary = (state: GalleryState) => {
+const headerSummary = (state: GalleryState, collectionID = 10) => {
     const props: GallerySectionProps = {
         library: { ...state, isFirstLoad: false, searchIndexRevision: 0 },
         operations: {
@@ -148,10 +139,16 @@ const headerSummary = (state: GalleryState) => {
             setSectionActivity: vi.fn(),
         },
         navigation: {
-            view: state.view,
-            searchSuggestion: undefined,
-            isInSearchMode: false,
-            isMapView: false,
+            destination: {
+                section: "albums",
+                collectionID,
+                albumMode: state.hiddenCollectionIDs.has(collectionID)
+                    ? "hidden-albums"
+                    : state.archivedCollectionIDs.has(collectionID)
+                      ? "archive-albums"
+                      : "albums",
+            },
+            retainPerson: vi.fn(),
             selectedPlace: undefined,
             placeSelectionRevision: 0,
             pendingFileNavigation: undefined,
@@ -194,7 +191,6 @@ test.each([
         type: "setCollectionFiles",
         collectionFiles: [...files],
     });
-    expect(after.view).toBe(before.view);
     const summary = headerSummary(after);
     expect(summary?.fileCount).toBe(2);
     expect(summary?.coverFile?.id).toBe(2);
@@ -221,13 +217,9 @@ test("clears the header count and cover when the last files are removed", () => 
 });
 
 test("updates the Trash header when trash items arrive after collections", () => {
-    const opened = galleryReducer(openAlbum(), {
-        type: "showCollectionSummary",
-        collectionSummaryID: PseudoCollectionID.trash,
-    });
-    const after = galleryReducer(opened, {
+    const after = galleryReducer(openAlbum(), {
         type: "setTrashItems",
         trashItems: [{ file: files[0]!, updatedAt: 1, deleteBy: 2 }],
     });
-    expect(headerSummary(after)?.fileCount).toBe(1);
+    expect(headerSummary(after, PseudoCollectionID.trash)?.fileCount).toBe(1);
 });
