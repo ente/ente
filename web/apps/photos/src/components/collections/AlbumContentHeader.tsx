@@ -28,7 +28,7 @@ import {
     type CollectionHeaderProps,
 } from "./CollectionHeader";
 
-type GalleryBarAndListHeaderProps = {
+type AlbumContentHeaderProps = {
     collectionSummary: CollectionSummary | undefined;
     albums: CollectionSummary[];
     activeCollection: Collection | undefined;
@@ -48,9 +48,7 @@ type GalleryBarAndListHeaderProps = {
         "user" | "emailByUserID" | "shareSuggestionEmails" | "setBlockingLoad"
     >;
 
-export const GalleryBarAndListHeader: React.FC<
-    GalleryBarAndListHeaderProps
-> = ({
+export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
     user,
     collectionSummary,
     albums,
