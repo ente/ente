@@ -145,6 +145,11 @@ export type GalleryAction =
     | { type: "showCollectionSummary"; collectionSummaryID: number | undefined }
     | { type: "showPeople" }
     | { type: "showPerson"; personID: string }
+    | {
+          type: "retainPerson";
+          personID: string | undefined;
+          extraVisiblePersonID: string | undefined;
+      }
     | { type: "enterSearchMode"; searchSuggestion?: SearchSuggestion }
     | { type: "exitSearch"; shouldExitSearchMode?: boolean };
 
@@ -811,6 +816,19 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
             });
         }
 
+        case "retainPerson":
+            return state.view?.type !== "people" ||
+                (state.selectedPersonID === action.personID &&
+                    state.extraVisiblePerson?.id ===
+                        action.extraVisiblePersonID)
+                ? state
+                : {
+                      ...state,
+                      selectedPersonID: action.personID,
+                      extraVisiblePerson: state.peopleState?.people.find(
+                          (person) => person.id === action.extraVisiblePersonID,
+                      ),
+                  };
         case "showPerson": {
             const { view, extraVisiblePerson } = derivePeopleView(
                 state.peopleState,

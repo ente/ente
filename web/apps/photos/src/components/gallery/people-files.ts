@@ -1,6 +1,7 @@
 import { uniqueFilesByID } from "ente-gallery/utils/file";
 import type { Person } from "ente-new/photos/services/ml/people";
 import { suppressSharedFilesSavedByUser } from "./media-files";
+import type { GalleryDestination } from "./navigation-state";
 import type { GalleryState } from "./reducer";
 import type { GalleryView } from "./view-types";
 export const derivePeopleView = (
@@ -76,4 +77,31 @@ export const derivePeopleFilteredFiles = (
             undefined,
         ),
     );
+};
+
+export const resolvePeopleDestination = (
+    library: GalleryState,
+    destination: GalleryDestination,
+): GalleryDestination => {
+    const exists = (id: string | undefined) =>
+        id !== undefined &&
+        library.peopleState?.people.some(
+            (person) =>
+                person.id === id &&
+                person.fileIDs.some(
+                    (fileID) =>
+                        !library.tempDeletedFileIDs.has(fileID) &&
+                        !library.tempHiddenFileIDs.has(fileID),
+                ),
+        );
+    const personID = exists(destination.personID)
+        ? destination.personID
+        : undefined;
+    const extraVisiblePersonID = exists(destination.extraVisiblePersonID)
+        ? destination.extraVisiblePersonID
+        : undefined;
+    return personID === destination.personID &&
+        extraVisiblePersonID === destination.extraVisiblePersonID
+        ? destination
+        : { ...destination, personID, extraVisiblePersonID };
 };

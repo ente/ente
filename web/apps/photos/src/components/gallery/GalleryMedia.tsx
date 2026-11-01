@@ -4,6 +4,7 @@ import { SelectedFileOptions } from "@/components/SelectedFileOptions";
 import { externalLink } from "@/utils/link";
 import { Box, Typography } from "@mui/material";
 import { ItemVisibility } from "ente-media/file-metadata";
+import { t } from "i18next";
 import { useCollectionOperations } from "./hooks/use-collection-operations";
 import { useFileContextActions } from "./hooks/use-file-context-actions";
 import { useGallerySelection } from "./hooks/use-gallery-selection";
@@ -11,7 +12,14 @@ import { useSelectedFileOperations } from "./hooks/use-selected-file-operations"
 import { useSelectionShortcuts } from "./hooks/use-selection-shortcuts";
 import type { GalleryMediaSource } from "./section-types";
 
-import { useMemo, useState, type ReactNode } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ReactNode,
+} from "react";
 import { Trans } from "react-i18next";
 
 import type { GallerySectionProps } from "./section-types";
@@ -31,8 +39,9 @@ export const GalleryMedia = (props: GalleryMediaProps) => {
         source.modePlus,
         source.activeCollectionID,
         source.activePersonID,
-        navigation.searchSuggestion?.type,
-        navigation.searchSuggestion?.label,
+        navigation.overlay?.suggestion?.type,
+        navigation.overlay?.suggestion?.label,
+        navigation.overlay?.searchRevision,
     ]);
     return <GalleryMediaContent key={scope} {...props} />;
 };
@@ -51,6 +60,18 @@ const GalleryMediaContent = ({
     );
     const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
     const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+    const viewerOpen = useRef(false);
+    const onSetOpenFileViewer = useCallback((open: boolean) => {
+        viewerOpen.current = open;
+        setIsFileViewerOpen(open);
+    }, []);
+    useEffect(
+        () => () => {
+            if (viewerOpen.current && document.fullscreenElement)
+                void document.exitFullscreen();
+        },
+        [],
+    );
     const collectionActions = useCollectionOperations({
         state: library,
         selected,
@@ -112,7 +133,8 @@ const GalleryMediaContent = ({
     );
 
     const showAppDownloadFooter =
-        library.collectionFiles.length < 30 && !navigation.isInSearchMode;
+        library.collectionFiles.length < 30 &&
+        navigation.overlay?.section !== "search";
     const footer = useMemo(
         () => (showAppDownloadFooter ? createAppDownloadFooter() : undefined),
         [showAppDownloadFooter],
@@ -122,7 +144,9 @@ const GalleryMediaContent = ({
             {showSelectionBar && (
                 <Box
                     role="toolbar"
-                    aria-label="Selected file actions"
+                    aria-label={t("selected_count", {
+                        selected: selected.count,
+                    })}
                     sx={{
                         flexShrink: 0,
                         display: "flex",
@@ -188,7 +212,7 @@ const GalleryMediaContent = ({
                 onContextMenuOpenChange={setIsContextMenuOpen}
                 suppressSelectionUI={fileActions.suppressContextSelectionBar}
                 showAddPersonAction={fileActions.showAddPersonAction}
-                onSetOpenFileViewer={setIsFileViewerOpen}
+                onSetOpenFileViewer={onSetOpenFileViewer}
                 onAddFileToCollection={
                     collectionActions.handleAddSingleFileToCollection
                 }
