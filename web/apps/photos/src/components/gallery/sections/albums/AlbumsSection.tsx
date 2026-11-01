@@ -1,11 +1,11 @@
 import type { FileListHeaderOrFooter } from "@/components/FileList";
-import { AlbumContentHeader } from "@/components/collections/AlbumContentHeader";
 import { AlbumSlideshow } from "@/components/collections/AlbumSlideshow";
 import { CollectionMap } from "@/components/collections/CollectionMap";
 import {
     EditAlbumDetailsDialog,
     type AlbumDetails,
 } from "@/components/collections/EditAlbumDetailsDialog";
+import { GalleryBarAndListHeader } from "@/components/collections/GalleryBarAndListHeader";
 import { GalleryEmptyState } from "@/components/gallery";
 import { AlbumsOverview } from "@/components/gallery/sections/albums/AlbumsOverview";
 import { useAlbumNavigationData } from "@/components/gallery/sections/albums/use-album-navigation-data";
@@ -342,7 +342,7 @@ export const AlbumsSection = ({
                     }}
                 >
                     {(hasActiveFileSelection) => (
-                        <AlbumContentHeader
+                        <GalleryBarAndListHeader
                             albums={sidebarCollectionSummaries}
                             user={user!}
                             activeCollection={activeCollection}

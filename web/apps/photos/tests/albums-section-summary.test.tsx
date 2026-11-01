@@ -1,4 +1,4 @@
-import { AlbumContentHeader } from "@/components/collections/AlbumContentHeader";
+import { GalleryBarAndListHeader } from "@/components/collections/GalleryBarAndListHeader";
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { ItemVisibility } from "ente-media/file-metadata";
@@ -14,8 +14,8 @@ import {
 import { AlbumsSection } from "../src/components/gallery/sections/albums/AlbumsSection";
 import type { GallerySectionProps } from "../src/components/gallery/sections/types";
 
-vi.mock("@/components/collections/AlbumContentHeader", () => ({
-    AlbumContentHeader: vi.fn(() => null),
+vi.mock("@/components/collections/GalleryBarAndListHeader", () => ({
+    GalleryBarAndListHeader: vi.fn(() => null),
 }));
 vi.mock("@/components/collections/AlbumSlideshow", () => ({
     AlbumSlideshow: () => null,
@@ -178,7 +178,8 @@ const headerSummary = (state: GalleryState, collectionID = 10) => {
         },
     };
     renderToStaticMarkup(<AlbumsSection {...props} />);
-    return vi.mocked(AlbumContentHeader).mock.lastCall![0].collectionSummary;
+    return vi.mocked(GalleryBarAndListHeader).mock.lastCall![0]
+        .collectionSummary;
 };
 
 test.each([
