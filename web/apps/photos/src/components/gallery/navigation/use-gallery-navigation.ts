@@ -195,7 +195,6 @@ export const useGalleryNavigation = (
         navigationRef,
         peopleConsentDialogProps,
         showSettings,
-        barMode,
         retainPerson,
     };
 };

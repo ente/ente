@@ -120,7 +120,7 @@ interface FileViewerAnnotatedFile {
     itemData: ItemData;
 }
 
-export type FileViewerInitialSidebar = "likes" | "comments";
+type FileViewerInitialSidebar = "likes" | "comments";
 
 export type FileViewerProps = ModalVisibilityProps & {
     user?: LocalUser;

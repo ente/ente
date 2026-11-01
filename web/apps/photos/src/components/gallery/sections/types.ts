@@ -30,7 +30,6 @@ export type GallerySectionOperations = Pick<
     | "onRemotePull"
     | "onVisualFeedback"
     | "onAddFileToCollection"
-    | "onPendingNavigationConsumed"
 > & {
     onRemoteFilesPull: () => Promise<void>;
     dispatch: Dispatch<GalleryAction>;
@@ -55,13 +54,6 @@ export interface GallerySectionProps {
     };
     operations: GallerySectionOperations;
     navigation: GalleryNavigationState & {
-        pendingFileNavigation:
-            | {
-                  fileIndex: number;
-                  sidebar?: FileListWithViewerProps["pendingFileSidebar"];
-                  commentID?: string;
-              }
-            | undefined;
         retainPerson: (
             personID: string | undefined,
             extraVisiblePersonID: string | undefined,

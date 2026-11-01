@@ -8,7 +8,7 @@ import { suppressSharedFilesSavedByUser } from "../../media/media-files";
 import type { GalleryDestination } from "../../navigation/navigation-state";
 import type { GalleryState } from "../../reducer";
 import type { GalleryView } from "../view-types";
-export const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
+const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
     trashItems: GalleryState["trashItems"],
     collectionFiles: GalleryState["collectionFiles"],
     defaultHiddenCollectionIDs: GalleryState["defaultHiddenCollectionIDs"],
@@ -78,7 +78,7 @@ export const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
         currentUserID,
     );
 };
-export const sortAndUniqueFilteredFiles = (
+const sortAndUniqueFilteredFiles = (
     files: EnteFile[],
     activeCollection: Collection | undefined,
     currentUserID: number | undefined,

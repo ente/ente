@@ -152,7 +152,6 @@ const headerSummary = (state: GalleryState, collectionID = 10) => {
             retainPerson: vi.fn(),
             selectedPlace: undefined,
             placeSelectionRevision: 0,
-            pendingFileNavigation: undefined,
         },
         preferences: {
             searchSortAsc: undefined,

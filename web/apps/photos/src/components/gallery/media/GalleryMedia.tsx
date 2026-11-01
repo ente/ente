@@ -240,11 +240,6 @@ const GalleryMediaContent = ({
                 pendingVisibilityUpdates={library.pendingVisibilityUpdates}
                 collectionSummaries={library.normalCollectionSummaries}
                 emailByUserID={library.emailByUserID}
-                pendingFileIndex={navigation.pendingFileNavigation?.fileIndex}
-                pendingFileSidebar={navigation.pendingFileNavigation?.sidebar}
-                pendingHighlightCommentID={
-                    navigation.pendingFileNavigation?.commentID
-                }
             />
             <CollectionSelector
                 {...collectionActions.collectionSelectorProps}

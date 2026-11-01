@@ -113,7 +113,6 @@ export const useGalleryOperations = (
         onRemoteFilesPull: remoteFilesPull,
         onVisualFeedback: handleVisualFeedback,
         onAddFileToCollection: handleAddSingleFileToCollection,
-        onPendingNavigationConsumed: () => undefined,
         setBlockingLoad,
         onUpload: openUploader,
         onCreateAlbum: () => showCreateAlbum(),

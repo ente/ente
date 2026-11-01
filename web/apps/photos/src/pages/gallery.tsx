@@ -61,7 +61,6 @@ const Page: React.FC = () => {
                             operations={operations}
                             navigation={{
                                 ...navigation.state,
-                                pendingFileNavigation: undefined,
                                 retainPerson: navigation.retainPerson,
                             }}
                             preferences={navigation.preferences}
