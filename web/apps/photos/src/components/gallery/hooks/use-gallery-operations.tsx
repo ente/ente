@@ -31,9 +31,14 @@ export const useGalleryOperations = (
     const { user, normalCollectionSummaries } = state;
     const barMode: GalleryBarMode =
         navigation.destination.albumMode ?? "albums";
-    const activeCollection = state.collections.find(
-        (collection) => collection.id === navigation.destination.collectionID,
-    );
+    const activeCollection =
+        navigation.destination.section === "albums" ||
+        navigation.destination.section === "places"
+            ? state.collections.find(
+                  (collection) =>
+                      collection.id === navigation.destination.collectionID,
+              )
+            : undefined;
     const isCleanupViewOpen =
         navigation.overlay?.section === "duplicates" ||
         navigation.overlay?.section === "large-files";

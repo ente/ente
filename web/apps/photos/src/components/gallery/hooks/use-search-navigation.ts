@@ -38,7 +38,6 @@ export const useSearchNavigation = ({
                 });
                 return;
             }
-            send({ type: "dismissCleanup" });
             const suggestion = option.suggestion;
             if (suggestion.type === "sidebarAction") {
                 const id = albumShortcutCollectionID(
@@ -52,6 +51,7 @@ export const useSearchNavigation = ({
                     );
                     return;
                 }
+                send({ type: "dismissCleanup" });
                 showSettings(suggestion.actionID);
                 send({
                     type: "exitSearch",
