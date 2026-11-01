@@ -1,8 +1,7 @@
 import { sortPeople } from "@/utils/people-sort";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { GalleryMedia } from "./GalleryMedia";
 import { GallerySectionLayout } from "./GallerySectionLayout";
-import { derivePeopleFilteredFiles, derivePeopleView } from "./people-files";
 import { PeopleHeader } from "./PeopleHeader";
 import { PeopleNavigation } from "./PeopleNavigation";
 import { PeopleOverview } from "./PeopleOverview";
@@ -15,58 +14,25 @@ export const PeopleSection = ({
     preferences,
     presentation,
 }: GallerySectionProps) => {
-    const { personID, extraVisiblePersonID } = navigation.destination;
-    const { view, extraVisiblePerson } = useMemo(
-        () =>
-            derivePeopleView(
-                library.peopleState,
-                library.tempDeletedFileIDs,
-                library.tempHiddenFileIDs,
-                personID,
-                library.peopleState?.people.find(
-                    (p) => p.id === extraVisiblePersonID,
-                ),
-            ),
-        [
-            library.peopleState,
-            library.tempDeletedFileIDs,
-            library.tempHiddenFileIDs,
-            personID,
-            extraVisiblePersonID,
-        ],
-    );
-    const files = useMemo(
-        () =>
-            derivePeopleFilteredFiles(
-                library.collectionFiles,
-                library.hiddenFileIDs,
-                view,
-                library.user?.id,
-            ),
-        [
-            library.collectionFiles,
-            library.hiddenFileIDs,
-            view,
-            library.user?.id,
-        ],
-    );
-    const { retainPerson } = navigation;
-    useEffect(() => {
-        retainPerson(view.activePerson?.id, extraVisiblePerson?.id);
-    }, [view.activePerson?.id, extraVisiblePerson?.id, retainPerson]);
+    const view =
+        navigation.view?.type == "people" ? navigation.view : undefined;
     const people = useMemo(
-        () => sortPeople(view.visiblePeople, preferences.peopleSortBy),
-        [view.visiblePeople, preferences.peopleSortBy],
+        () => sortPeople(view?.visiblePeople ?? [], preferences.peopleSortBy),
+        [view?.visiblePeople, preferences.peopleSortBy],
     );
-    const activePerson = view.activePerson;
-    const visiblePeople = view.visiblePeople;
+    const activePerson = view?.activePerson;
+    const visiblePeople = view?.visiblePeople;
     const header = useMemo(
         () => ({
-            component: activePerson ? (
-                <PeopleHeader person={activePerson} people={visiblePeople} />
-            ) : (
-                <></>
-            ),
+            component:
+                activePerson && visiblePeople ? (
+                    <PeopleHeader
+                        person={activePerson}
+                        people={visiblePeople}
+                    />
+                ) : (
+                    <></>
+                ),
             height: 72,
         }),
         [activePerson, visiblePeople],
@@ -86,8 +52,8 @@ export const PeopleSection = ({
         >
             {!library.isFirstLoad && !activePerson ? (
                 <PeopleOverview
-                    people={view.visiblePeople}
-                    allPeople={view.people}
+                    people={view?.visiblePeople ?? []}
+                    allPeople={view?.people ?? []}
                     peopleSortBy={preferences.peopleSortBy}
                 />
             ) : (
@@ -97,7 +63,7 @@ export const PeopleSection = ({
                     source={{
                         mode: "people",
                         modePlus: "people",
-                        files,
+                        files: library.filteredFiles,
                         activeCollectionID: undefined,
                         activePersonID: activePerson?.id,
                         activeCollectionSummary: undefined,

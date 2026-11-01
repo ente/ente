@@ -6,9 +6,9 @@ import type { EnteFile } from "ente-media/file";
 import type { PeopleState } from "ente-new/photos/services/ml/people";
 import type { Dispatch, SetStateAction } from "react";
 import type { GallerySectionPresentation } from "./GallerySectionLayout";
+import type { PlaceSelection } from "./PlacesList";
 import type { useGalleryPreferences } from "./hooks/use-gallery-preferences";
 import type { useSelectedFileOperations } from "./hooks/use-selected-file-operations";
-import type { GalleryNavigationState } from "./navigation-state";
 import type { GalleryAction, GalleryState } from "./reducer";
 
 export type GalleryMediaSource = Pick<
@@ -28,11 +28,11 @@ export type GallerySectionOperations = Pick<
     | "onFileVisibilityUpdate"
     | "onMarkTempDeleted"
     | "onRemotePull"
+    | "onRemoteFilesPull"
     | "onVisualFeedback"
     | "onAddFileToCollection"
     | "onPendingNavigationConsumed"
 > & {
-    onRemoteFilesPull: () => Promise<void>;
     dispatch: Dispatch<GalleryAction>;
     peopleState: PeopleState | undefined;
     mutations: Parameters<typeof useSelectedFileOperations>[0]["mutations"];
@@ -54,7 +54,13 @@ export interface GallerySectionProps {
         searchIndexRevision: number;
     };
     operations: GallerySectionOperations;
-    navigation: GalleryNavigationState & {
+    navigation: {
+        view: GalleryState["view"];
+        isInSearchMode: boolean;
+        isMapView: boolean;
+        searchSuggestion: GalleryState["searchSuggestion"];
+        selectedPlace: PlaceSelection | undefined;
+        placeSelectionRevision: number;
         pendingFileNavigation:
             | {
                   fileIndex: number;
@@ -62,10 +68,6 @@ export interface GallerySectionProps {
                   commentID?: string;
               }
             | undefined;
-        retainPerson: (
-            personID: string | undefined,
-            extraVisiblePersonID: string | undefined,
-        ) => void;
     };
     preferences: ReturnType<typeof useGalleryPreferences>;
     presentation: GallerySectionPresentation;

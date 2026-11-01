@@ -11,14 +11,7 @@ import { useSelectedFileOperations } from "./hooks/use-selected-file-operations"
 import { useSelectionShortcuts } from "./hooks/use-selection-shortcuts";
 import type { GalleryMediaSource } from "./section-types";
 
-import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    type ReactNode,
-} from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Trans } from "react-i18next";
 
 import type { GallerySectionProps } from "./section-types";
@@ -38,8 +31,8 @@ export const GalleryMedia = (props: GalleryMediaProps) => {
         source.modePlus,
         source.activeCollectionID,
         source.activePersonID,
-        navigation.overlay?.suggestion?.type,
-        navigation.overlay?.suggestion?.label,
+        navigation.searchSuggestion?.type,
+        navigation.searchSuggestion?.label,
     ]);
     return <GalleryMediaContent key={scope} {...props} />;
 };
@@ -58,18 +51,6 @@ const GalleryMediaContent = ({
     );
     const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
     const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
-    const viewerOpen = useRef(false);
-    const onSetOpenFileViewer = useCallback((open: boolean) => {
-        viewerOpen.current = open;
-        setIsFileViewerOpen(open);
-    }, []);
-    useEffect(
-        () => () => {
-            if (viewerOpen.current && document.fullscreenElement)
-                void document.exitFullscreen();
-        },
-        [],
-    );
     const collectionActions = useCollectionOperations({
         state: library,
         selected,
@@ -131,8 +112,7 @@ const GalleryMediaContent = ({
     );
 
     const showAppDownloadFooter =
-        library.collectionFiles.length < 30 &&
-        navigation.overlay?.section !== "search";
+        library.collectionFiles.length < 30 && !navigation.isInSearchMode;
     const footer = useMemo(
         () => (showAppDownloadFooter ? createAppDownloadFooter() : undefined),
         [showAppDownloadFooter],
@@ -208,7 +188,7 @@ const GalleryMediaContent = ({
                 onContextMenuOpenChange={setIsContextMenuOpen}
                 suppressSelectionUI={fileActions.suppressContextSelectionBar}
                 showAddPersonAction={fileActions.showAddPersonAction}
-                onSetOpenFileViewer={onSetOpenFileViewer}
+                onSetOpenFileViewer={setIsFileViewerOpen}
                 onAddFileToCollection={
                     collectionActions.handleAddSingleFileToCollection
                 }

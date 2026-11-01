@@ -2,12 +2,10 @@ import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { sortFiles } from "ente-media/collection-sort";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SearchResultsHeader } from ".";
-import { albumFiles, albumView } from "./album-files";
 import { GalleryMedia } from "./GalleryMedia";
 import { GallerySectionLayout } from "./GallerySectionLayout";
 import { useSearchResults } from "./hooks/use-search-results";
 import { suppressSharedFilesSavedByUser } from "./media-files";
-import { derivePeopleFilteredFiles, derivePeopleView } from "./people-files";
 import type { GallerySectionProps } from "./section-types";
 
 export const SearchSection = ({
@@ -17,44 +15,21 @@ export const SearchSection = ({
     preferences,
     presentation,
 }: GallerySectionProps) => {
-    const destination = navigation.destination;
+    const view = navigation.view;
     const mode =
-        destination.section === "people" || destination.section === "links"
-            ? destination.section
-            : (destination.albumMode ?? "albums");
+        view?.type == "album-overview" ? "albums" : (view?.type ?? "albums");
     const collectionView =
-        destination.section === "albums" || destination.section === "places"
-            ? albumView(library, destination)
+        view?.type == "albums" ||
+        view?.type == "hidden-albums" ||
+        view?.type == "archive-albums"
+            ? view
             : undefined;
-    const activeCollection =
-        collectionView && collectionView.type !== "album-overview"
-            ? collectionView.activeCollection
-            : undefined;
-    const activePersonID = destination.personID;
-    const suggestion = navigation.overlay?.suggestion;
+    const activeCollection = collectionView?.activeCollection;
+    const activePersonID =
+        view?.type == "people" ? view.activePerson?.id : undefined;
+    const suggestion = navigation.searchSuggestion;
     const results = useSearchResults(suggestion, library.searchIndexRevision);
-    const [initialFiles] = useState(() => {
-        if (collectionView) return albumFiles(library, collectionView);
-        if (destination.section === "people") {
-            const { view } = derivePeopleView(
-                library.peopleState,
-                library.tempDeletedFileIDs,
-                library.tempHiddenFileIDs,
-                destination.personID,
-                library.peopleState?.people.find(
-                    (person) => person.id === destination.extraVisiblePersonID,
-                ),
-            );
-            return derivePeopleFilteredFiles(
-                library.collectionFiles,
-                library.hiddenFileIDs,
-                view,
-                library.user?.id,
-            );
-        }
-        return [];
-    });
-    const previousFiles = useRef(initialFiles);
+    const previousFiles = useRef(library.filteredFiles);
     const { searchSortAsc, setSearchSortAsc } = preferences;
     const files = useMemo(() => {
         const visible = suppressSharedFilesSavedByUser(
@@ -94,16 +69,10 @@ export const SearchSection = ({
                     modePlus: "search",
                     files,
                     activeCollectionID:
-                        collectionView &&
-                        collectionView.type !== "album-overview"
-                            ? collectionView.activeCollectionSummaryID
-                            : undefined,
+                        collectionView?.activeCollectionSummaryID,
                     activeCollection,
                     activeCollectionSummary:
-                        collectionView &&
-                        collectionView.type !== "album-overview"
-                            ? collectionView.activeCollectionSummary
-                            : undefined,
+                        collectionView?.activeCollectionSummary,
                     activePersonID,
                     disableGrouping: suggestion?.type == "clip",
                 }}
