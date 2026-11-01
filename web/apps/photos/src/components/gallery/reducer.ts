@@ -11,7 +11,7 @@ import {
     findUserUncategorizedCollection,
     type Collection,
 } from "ente-media/collection";
-import { sortCollectionFiles, sortFiles } from "ente-media/collection-sort";
+import { sortFiles } from "ente-media/collection-sort";
 import type { EnteFile } from "ente-media/file";
 import {
     isArchivedFile,
@@ -45,28 +45,14 @@ import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
 import React, { useReducer } from "react";
 import { visibleQuickLinks } from "../../utils/quick-links";
-import { suppressSharedFilesSavedByUser } from "./media-files";
+import { deriveAlbumsOrHiddenAlbumsFilteredFiles } from "./album-files";
+import { derivePeopleFilteredFiles, derivePeopleView } from "./people-files";
+import type { GalleryView } from "./view-types";
 
 // TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
 // all cases where the bar mode was in use.
 export type GalleryBarMode =
     "albums" | "hidden-albums" | "archive-albums" | "people" | "links";
-
-type GalleryView =
-    | { type: "links"; selectedLinkID: number | undefined }
-    | { type: "album-overview"; albumFilter: AlbumFilter }
-    | {
-          type: "albums" | "hidden-albums" | "archive-albums";
-          activeCollectionSummaryID: number;
-          activeCollection: Collection | undefined;
-          activeCollectionSummary: CollectionSummary;
-      }
-    | {
-          type: "people";
-          visiblePeople: Person[];
-          people: Person[];
-          activePerson: Person | undefined;
-      };
 
 export interface GalleryState {
     user: LocalUser | undefined;
@@ -1481,62 +1467,6 @@ const deriveArchiveAlbumsViewAndSelectedID = (
     };
 };
 
-const derivePeopleView = (
-    peopleState: GalleryState["peopleState"],
-    tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
-    tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    selectedPersonID: GalleryState["selectedPersonID"],
-    extraVisiblePerson: GalleryState["extraVisiblePerson"],
-): {
-    view: Extract<GalleryView, { type: "people" }>;
-    extraVisiblePerson: GalleryState["extraVisiblePerson"];
-} => {
-    let people = peopleState?.people ?? [];
-    let visiblePeople = peopleState?.visiblePeople ?? [];
-    if (tempDeletedFileIDs.size + tempHiddenFileIDs.size > 0) {
-        const filterTemp = (ps: Person[]) =>
-            ps
-                .map((p) => ({
-                    ...p,
-                    fileIDs: p.fileIDs.filter(
-                        (id) =>
-                            !tempDeletedFileIDs.has(id) &&
-                            !tempHiddenFileIDs.has(id),
-                    ),
-                }))
-                .filter((p) => p.fileIDs.length > 0);
-        people = filterTemp(people);
-        visiblePeople = filterTemp(visiblePeople);
-    }
-
-    // Keep a selected small cluster visible until the user leaves this view.
-    if (extraVisiblePerson) {
-        if (!people.find((p) => p.id == extraVisiblePerson?.id))
-            extraVisiblePerson = undefined;
-    }
-
-    const findByIDIn = (ps: Person[]) =>
-        ps.find((p) => p.id == selectedPersonID);
-    let activePerson = findByIDIn(visiblePeople);
-    if (!activePerson) {
-        activePerson = findByIDIn(people);
-        if (activePerson) {
-            extraVisiblePerson = activePerson;
-        }
-    }
-
-    const view = {
-        type: "people" as const,
-        people,
-        visiblePeople: extraVisiblePerson
-            ? visiblePeople.concat([extraVisiblePerson])
-            : visiblePeople,
-        activePerson,
-    };
-
-    return { view, extraVisiblePerson };
-};
-
 const stateForUpdatedCollectionFiles = (
     state: GalleryState,
     collectionFiles: GalleryState["collectionFiles"],
@@ -1642,112 +1572,6 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
     } else {
         return state;
     }
-};
-
-const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
-    trashItems: GalleryState["trashItems"],
-    collectionFiles: GalleryState["collectionFiles"],
-    defaultHiddenCollectionIDs: GalleryState["defaultHiddenCollectionIDs"],
-    hiddenFileIDs: GalleryState["hiddenFileIDs"],
-    archivedCollectionIDs: GalleryState["archivedCollectionIDs"],
-    archivedFileIDs: GalleryState["archivedFileIDs"],
-    tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
-    tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    view: Extract<
-        GalleryView,
-        { type: "albums" | "hidden-albums" | "archive-albums" }
-    >,
-    currentUserID: number | undefined,
-) => {
-    const activeCollectionSummaryID = view.activeCollectionSummaryID;
-
-    if (activeCollectionSummaryID == PseudoCollectionID.trash) {
-        return uniqueFilesByID([
-            ...trashItems.map(({ file, deleteBy }) => ({ ...file, deleteBy })),
-            ...collectionFiles.filter((file) =>
-                tempDeletedFileIDs.has(file.id),
-            ),
-        ]);
-    }
-
-    const filteredFiles = collectionFiles.filter((file) => {
-        if (tempDeletedFileIDs.has(file.id)) return false;
-
-        if (
-            activeCollectionSummaryID == PseudoCollectionID.hiddenItems &&
-            defaultHiddenCollectionIDs.has(file.collectionID)
-        ) {
-            return true;
-        }
-
-        // A file can be individually archived and belong to an archived album.
-        if (isArchivedFile(file)) {
-            return (
-                (activeCollectionSummaryID == PseudoCollectionID.archiveItems &&
-                    !hiddenFileIDs.has(file.id) &&
-                    !tempHiddenFileIDs.has(file.id)) ||
-                activeCollectionSummaryID == file.collectionID
-            );
-        }
-
-        if (archivedCollectionIDs.has(file.collectionID)) {
-            return activeCollectionSummaryID === file.collectionID;
-        }
-
-        if (activeCollectionSummaryID === PseudoCollectionID.all) {
-            if (hiddenFileIDs.has(file.id)) return false;
-            if (tempHiddenFileIDs.has(file.id)) return false;
-
-            if (archivedFileIDs.has(file.id)) {
-                return false;
-            }
-
-            return true;
-        }
-
-        return activeCollectionSummaryID == file.collectionID;
-    });
-
-    return sortAndUniqueFilteredFiles(
-        filteredFiles,
-        view.activeCollection,
-        currentUserID,
-    );
-};
-
-const sortAndUniqueFilteredFiles = (
-    files: EnteFile[],
-    activeCollection: Collection | undefined,
-    currentUserID: number | undefined,
-) => {
-    const uniqueFiles = uniqueFilesByID(
-        suppressSharedFilesSavedByUser(files, currentUserID, activeCollection),
-    );
-    const metadata = activeCollection?.pubMagicMetadata?.data;
-    // The synced library is already in newest-first order.
-    return metadata?.asc || metadata?.sortBy === "fileName"
-        ? sortCollectionFiles(uniqueFiles, metadata)
-        : uniqueFiles;
-};
-
-const derivePeopleFilteredFiles = (
-    collectionFiles: GalleryState["collectionFiles"],
-    hiddenFileIDs: GalleryState["hiddenFileIDs"],
-    view: Extract<GalleryView, { type: "people" }>,
-    currentUserID: number | undefined,
-) => {
-    const pfSet = new Set(view.activePerson?.fileIDs ?? []);
-    return uniqueFilesByID(
-        suppressSharedFilesSavedByUser(
-            collectionFiles.filter((f) => {
-                if (!pfSet.has(f.id)) return false;
-                if (hiddenFileIDs.has(f.id)) return false;
-                return true;
-            }),
-            currentUserID,
-            undefined,
-        ),
-    );
 };
 
 const constructUserIDToEmailMap = (
