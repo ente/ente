@@ -2,6 +2,7 @@ import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
+import { useCollectionDialogs } from "../src/components/gallery/media/use-collection-dialogs";
 import { useCollectionOperations } from "../src/components/gallery/media/use-collection-operations";
 import { initialGalleryState } from "../src/components/gallery/reducer";
 
@@ -9,6 +10,8 @@ const services = vi.hoisted(() => ({
     createAlbum: vi.fn(),
     performCollectionOp: vi.fn(),
     onGenericError: vi.fn(),
+    hideLoadingBar: vi.fn(),
+    showNotification: vi.fn(),
 }));
 
 vi.mock("@/components/CollectionSelector", () => ({
@@ -38,8 +41,8 @@ vi.mock("ente-base/context", () => ({
 vi.mock("ente-new/photos/types/context", () => ({
     usePhotosAppContext: () => ({
         showLoadingBar: vi.fn(),
-        hideLoadingBar: vi.fn(),
-        showNotification: vi.fn(),
+        hideLoadingBar: services.hideLoadingBar,
+        showNotification: services.showNotification,
     }),
 }));
 vi.mock("ente-new/photos/services/collection", () => ({
@@ -78,7 +81,7 @@ const files: EnteFile[] = [1, 2, 3].map((id) => ({
 beforeEach(() => {
     vi.clearAllMocks();
     services.createAlbum.mockReset().mockResolvedValue(album);
-    services.performCollectionOp.mockResolvedValue(undefined);
+    services.performCollectionOp.mockReset().mockResolvedValue(undefined);
 });
 
 const openAddDialog = () => {
@@ -167,4 +170,73 @@ test("retrying a failed creation retains its selected photos", async () => {
         files.slice(0, 2),
         10,
     );
+});
+
+const openSingleFileAddDialog = () => {
+    let dialogs: ReturnType<typeof useCollectionDialogs>;
+    let step = 0;
+    const remotePull = vi.fn().mockResolvedValue(undefined);
+    const Harness = () => {
+        dialogs = useCollectionDialogs({
+            state: initialGalleryState,
+            remotePull,
+        });
+        if (step === 0) {
+            step++;
+            dialogs.handleAddSingleFileToCollection(files[0]!, 10);
+        } else if (step === 1) {
+            step++;
+            dialogs.collectionSelectorProps.attributes!.onCreateCollection();
+        }
+        return null;
+    };
+    renderToStaticMarkup(<Harness />);
+    return {
+        remotePull,
+        submit: () =>
+            dialogs!.albumNameInputProps.onSubmit("New album", vi.fn()),
+        select: () =>
+            dialogs!.collectionSelectorProps.attributes!.onSelectCollection(
+                album,
+            ),
+    };
+};
+
+test("creating an album from the viewer adds the file and refreshes the gallery", async () => {
+    const dialog = openSingleFileAddDialog();
+    await dialog.submit();
+    expect(services.performCollectionOp).toHaveBeenCalledExactlyOnceWith(
+        "add",
+        album,
+        [files[0]],
+        10,
+    );
+    expect(dialog.remotePull).toHaveBeenCalledExactlyOnceWith({
+        silent: true,
+        source: "single-file-add-to-album",
+    });
+    expect(services.showNotification).toHaveBeenCalledOnce();
+    expect(services.hideLoadingBar).toHaveBeenCalledOnce();
+});
+
+test("a single-file add failure reaches the album-name form", async () => {
+    services.performCollectionOp.mockRejectedValueOnce(new Error("HTTP 500"));
+    const dialog = openSingleFileAddDialog();
+    await expect(dialog.submit()).rejects.toThrow("HTTP 500");
+    expect(services.onGenericError).not.toHaveBeenCalled();
+    expect(services.showNotification).not.toHaveBeenCalled();
+    expect(dialog.remotePull).not.toHaveBeenCalled();
+    expect(services.hideLoadingBar).toHaveBeenCalledOnce();
+});
+
+test("an existing-album add failure still reports a generic error", async () => {
+    const error = new Error("HTTP 500");
+    services.performCollectionOp.mockRejectedValueOnce(error);
+    const dialog = openSingleFileAddDialog();
+    dialog.select();
+    await vi.waitFor(() =>
+        expect(services.onGenericError).toHaveBeenCalledExactlyOnceWith(error),
+    );
+    expect(services.showNotification).not.toHaveBeenCalled();
+    expect(services.hideLoadingBar).toHaveBeenCalledOnce();
 });

@@ -94,8 +94,6 @@ export const useCollectionDialogs = ({
                         title: t("added_to_album"),
                         caption: collection.name,
                     });
-                } catch (error) {
-                    onGenericError(error);
                 } finally {
                     hideLoadingBar();
                 }
@@ -103,12 +101,18 @@ export const useCollectionDialogs = ({
             handleOpenCollectionSelector({
                 action: "add",
                 sourceCollectionSummaryID,
-                onSelectCollection: (collection) => void add(collection),
-                onCreateCollection: () => showCreateAlbum(false, add),
+                onSelectCollection: (collection) =>
+                    void add(collection).catch(onGenericError),
+                onCreateCollection: () =>
+                    showCreateAlbum(false, async (collection) => {
+                        await add(collection);
+                        handleCloseCollectionSelector();
+                    }),
             });
         },
         [
             handleOpenCollectionSelector,
+            handleCloseCollectionSelector,
             showCreateAlbum,
             showLoadingBar,
             hideLoadingBar,

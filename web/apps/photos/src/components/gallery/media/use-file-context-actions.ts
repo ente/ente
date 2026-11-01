@@ -92,8 +92,10 @@ export const useFileContextActions = ({
                         action: "restore",
                         onCreateCollection:
                             createOnCreateForCollectionOp("restore"),
-                        onSelectCollection:
-                            createOnSelectForCollectionOp("restore"),
+                        onSelectCollection: (collection) =>
+                            void createOnSelectForCollectionOp("restore")(
+                                collection,
+                            ),
                     });
                     break;
                 case "addToAlbum":
@@ -103,8 +105,10 @@ export const useFileContextActions = ({
                         showHiddenCollections: barMode == "hidden-albums",
                         onCreateCollection:
                             createOnCreateForCollectionOp("add"),
-                        onSelectCollection:
-                            createOnSelectForCollectionOp("add"),
+                        onSelectCollection: (collection) =>
+                            void createOnSelectForCollectionOp("add")(
+                                collection,
+                            ),
                     });
                     break;
                 case "moveToAlbum":
@@ -114,8 +118,10 @@ export const useFileContextActions = ({
                         showHiddenCollections: barMode == "hidden-albums",
                         onCreateCollection:
                             createOnCreateForCollectionOp("move"),
-                        onSelectCollection:
-                            createOnSelectForCollectionOp("move"),
+                        onSelectCollection: (collection) =>
+                            void createOnSelectForCollectionOp("move")(
+                                collection,
+                            ),
                     });
                     break;
                 case "removeFromAlbum": {
@@ -182,8 +188,10 @@ export const useFileContextActions = ({
                         action: "unhide",
                         onCreateCollection:
                             createOnCreateForCollectionOp("unhide"),
-                        onSelectCollection:
-                            createOnSelectForCollectionOp("unhide"),
+                        onSelectCollection: (collection) =>
+                            void createOnSelectForCollectionOp("unhide")(
+                                collection,
+                            ),
                     });
                     break;
                 case "addPerson":
