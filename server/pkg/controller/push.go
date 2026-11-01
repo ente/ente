@@ -142,6 +142,18 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 			"token":   token.FCMToken,
 			"data":    map[string]string{"notificationCiphertext": base64.StdEncoding.EncodeToString(ciphertext)},
 			"android": map[string]string{"priority": "high", "ttl": "86400s"},
+			"apns": map[string]any{
+				"headers": map[string]string{
+					"apns-push-type":  "alert",
+					"apns-priority":   "10",
+					"apns-topic":      "io.ente.frame",
+					"apns-expiration": strconv.FormatInt(gotime.Now().Add(24*gotime.Hour).Unix(), 10),
+				},
+				"payload": map[string]any{"aps": map[string]any{
+					"mutable-content": 1,
+					"alert":           map[string]string{"title": "Ente", "body": "New activity"},
+				}},
+			},
 		})
 		if err != nil {
 			log.WithError(err).Warn("album share push failed; album remains shared")

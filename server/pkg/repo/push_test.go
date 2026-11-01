@@ -234,7 +234,7 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	for _, token := range tokens {
 		selected = append(selected, token.FCMToken)
 	}
-	require.ElementsMatch(t, []string{"eligible", "rollout missing flag", "rollout false flag"}, selected)
+	require.ElementsMatch(t, []string{"eligible", "ios", "rollout missing flag", "rollout false flag"}, selected)
 	for _, apnsToken := range []any{"", nil} {
 		_, err := db.Exec(`UPDATE push_tokens SET apns_token=$1 WHERE fcm_token='eligible'`, apnsToken)
 		require.NoError(t, err)
@@ -252,4 +252,23 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	tokens, err = r.GetTokensForAlbumShare(context.Background(), []int64{2})
 	require.NoError(t, err)
 	require.Empty(t, tokens)
+
+	// The same sessions on iOS must remain internal-only, even for users in
+	// the Android cohort. Session ownership, revocation and app checks still apply.
+	_, err = db.Exec(`UPDATE push_tokens SET platform='ios';
+		UPDATE remote_store SET key_value='true' WHERE user_id=2`)
+	require.NoError(t, err)
+	tokens, err = r.GetTokensForAlbumShare(context.Background(), userIDs)
+	require.NoError(t, err)
+	selected = nil
+	for _, token := range tokens {
+		selected = append(selected, token.FCMToken)
+	}
+	require.ElementsMatch(t, []string{"eligible", "ios"}, selected)
+	_, err = db.Exec(`UPDATE remote_store SET key_value='false' WHERE user_id=2;
+		DELETE FROM remote_store WHERE user_id=4`)
+	require.NoError(t, err)
+	tokens, err = r.GetTokensForAlbumShare(context.Background(), userIDs)
+	require.NoError(t, err)
+	require.Empty(t, tokens, "removing internal status must stop iOS album-share pushes")
 }
