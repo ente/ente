@@ -33,6 +33,8 @@ use crate::{
 
 static IMAGE_DECODER_HOOKS_INIT: Once = Once::new();
 
+const BOUNDED_READER_OVERFLOW_MESSAGE: &str = "JPEG XL input exceeds configured max_input_bytes";
+
 const MAX_DECODE_PIXELS: u64 = 210_000_000;
 const MAX_DECODE_ALLOC_BYTES: u64 = 512 * 1024 * 1024;
 
@@ -375,10 +377,16 @@ where
         reader.rewind().map_err(image::ImageError::IoError)?;
     }
 
-    let decoder = JxlDecoder::new(BoundedReader::new(
+    let decoder = match JxlDecoder::new(BoundedReader::new(
         reader,
         guardrails.max_input_bytes.unwrap_or(u64::MAX),
-    ))?;
+    )) {
+        Ok(decoder) => decoder,
+        Err(image::ImageError::Decoding(err)) if bounded_reader_overflow(&err) => {
+            return Err(too_large_limit_error());
+        }
+        Err(err) => return Err(err),
+    };
 
     if let Some(max_pixels) = guardrails.max_pixels {
         let (width, height) = decoder.dimensions();
@@ -388,6 +396,20 @@ where
     }
 
     Ok(Box::new(decoder))
+}
+
+fn bounded_reader_overflow(err: &image::error::DecodingError) -> bool {
+    use std::error::Error as _;
+
+    let mut source = err.source();
+    while let Some(current) = source {
+        if let Some(io_err) = current.downcast_ref::<std::io::Error>() {
+            return io_err.kind() == std::io::ErrorKind::InvalidData
+                && io_err.to_string().contains(BOUNDED_READER_OVERFLOW_MESSAGE);
+        }
+        source = current.source();
+    }
+    false
 }
 
 fn too_large_limit_error() -> image::ImageError {
@@ -416,7 +438,7 @@ impl<R: Read> Read for BoundedReader<R> {
         if count as u64 > self.bytes_left {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "JPEG XL input exceeds configured max_input_bytes",
+                BOUNDED_READER_OVERFLOW_MESSAGE,
             ));
         }
         self.bytes_left -= count as u64;
@@ -632,7 +654,7 @@ fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
 mod tests {
     use std::{
         ffi::OsStr,
-        io::{Cursor, Read},
+        io::{Cursor, Read, Seek, SeekFrom},
     };
 
     use image::hooks::decoding_hook_registered;
@@ -1063,6 +1085,46 @@ mod tests {
 
         let decoder =
             super::jxl_decoder_from_reader_with_guardrails(Cursor::new([0u8; 16]), &guardrails);
+        assert!(matches!(decoder.err(), Some(image::ImageError::Limits(_))));
+    }
+
+    struct UnderreportingReader {
+        remaining: usize,
+    }
+
+    impl Read for UnderreportingReader {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let count = buf.len().min(self.remaining);
+            buf[..count].fill(0);
+            self.remaining -= count;
+            Ok(count)
+        }
+    }
+
+    impl Seek for UnderreportingReader {
+        fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+            match pos {
+                SeekFrom::End(0) => Ok(4),
+                SeekFrom::Start(0) => {
+                    self.remaining = 16;
+                    Ok(0)
+                }
+                _ => Err(std::io::Error::new(
+                    std::io::ErrorKind::Unsupported,
+                    "unsupported seek",
+                )),
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_jxl_inputs_exceeding_the_input_cap_when_the_source_underreports_its_length() {
+        let guardrails = jxl_hook_guardrails(Some(4), None);
+
+        let decoder = super::jxl_decoder_from_reader_with_guardrails(
+            UnderreportingReader { remaining: 16 },
+            &guardrails,
+        );
         assert!(matches!(decoder.err(), Some(image::ImageError::Limits(_))));
     }
 
