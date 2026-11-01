@@ -1,20 +1,14 @@
-import { AlbumsSection } from "@/components/gallery/AlbumsSection";
-import { GallerySectionLayout } from "@/components/gallery/GallerySectionLayout";
-import { PeopleSection } from "@/components/gallery/PeopleSection";
-import { PlacesSection } from "@/components/gallery/PlacesSection";
-import { SearchSection } from "@/components/gallery/SearchSection";
 import { useGalleryOperations } from "@/components/gallery/hooks/use-gallery-operations";
 import { useMapEntry } from "@/components/gallery/hooks/use-map-entry";
 import { usePeopleEntry } from "@/components/gallery/hooks/use-people-entry";
 import type { GalleryNavigationState } from "@/components/gallery/navigation-state";
+import { activeSectionID } from "@/components/gallery/navigation-state";
+import { sectionDefinition } from "@/components/gallery/sections";
 // TODO: Audit this file (the code here is mostly fine, but needs revisiting
 // the file it depends on have been audited and their interfaces fixed).
 /* eslint-disable react-hooks/exhaustive-deps */
 import { AuthenticateUser } from "@/components/AuthenticateUser";
 import { DesktopWhatsNew } from "@/components/DesktopWhatsNew";
-import { DuplicatesView } from "@/components/gallery/DuplicatesView";
-import { LargeFilesView } from "@/components/gallery/LargeFilesView";
-import { LinksSection } from "@/components/gallery/LinksSection";
 import {
     PhotosNavigationContext,
     type PhotosNavigationActions,
@@ -469,6 +463,7 @@ const Page: React.FC = () => {
         pendingFileNavigation: undefined,
         retainPerson,
     };
+    const { View } = sectionDefinition(activeSectionID(navigationState));
     if (!user) {
         // Children rely on user after the mount dispatch.
         return <div></div>;
@@ -493,72 +488,15 @@ const Page: React.FC = () => {
                     navigationAvailable={!isCleanupViewOpen}
                     activeCollectionID={galleryBarActiveCollectionID}
                 >
-                    {(presentation) =>
-                        !isInSearchMode &&
-                        !isCleanupViewOpen &&
-                        barMode != "people" &&
-                        barMode != "links" &&
-                        (!isMapView ||
-                            activeCollectionID !== PseudoCollectionID.all) ? (
-                            <AlbumsSection
-                                library={sectionLibrary}
-                                operations={sectionOperations}
-                                navigation={sectionNavigation}
-                                preferences={preferences}
-                                presentation={presentation}
-                            />
-                        ) : !isInSearchMode &&
-                          !isCleanupViewOpen &&
-                          !isMapView &&
-                          barMode == "links" ? (
-                            <LinksSection
-                                library={sectionLibrary}
-                                operations={sectionOperations}
-                                navigation={sectionNavigation}
-                                preferences={preferences}
-                                presentation={presentation}
-                            />
-                        ) : !isInSearchMode &&
-                          !isCleanupViewOpen &&
-                          !isMapView &&
-                          barMode == "people" ? (
-                            <PeopleSection
-                                library={sectionLibrary}
-                                operations={sectionOperations}
-                                navigation={sectionNavigation}
-                                preferences={preferences}
-                                presentation={presentation}
-                            />
-                        ) : isMapView ? (
-                            <PlacesSection
-                                library={sectionLibrary}
-                                operations={sectionOperations}
-                                navigation={sectionNavigation}
-                                preferences={preferences}
-                                presentation={presentation}
-                            />
-                        ) : cleanupView === "duplicates" ? (
-                            <GallerySectionLayout presentation={presentation}>
-                                <DuplicatesView
-                                    onRemoteFilesPull={remoteFilesPull}
-                                />
-                            </GallerySectionLayout>
-                        ) : cleanupView === "large-files" ? (
-                            <GallerySectionLayout presentation={presentation}>
-                                <LargeFilesView
-                                    onRemoteFilesPull={remoteFilesPull}
-                                />
-                            </GallerySectionLayout>
-                        ) : (
-                            <SearchSection
-                                library={sectionLibrary}
-                                operations={sectionOperations}
-                                navigation={sectionNavigation}
-                                preferences={preferences}
-                                presentation={presentation}
-                            />
-                        )
-                    }
+                    {(presentation) => (
+                        <View
+                            library={sectionLibrary}
+                            operations={sectionOperations}
+                            navigation={sectionNavigation}
+                            preferences={preferences}
+                            presentation={presentation}
+                        />
+                    )}
                 </PhotosNavigationShell>
                 {ui}
                 <DesktopWhatsNew />
