@@ -7,7 +7,6 @@ const consent = vi.hoisted(() => ({
     show: vi.fn(),
     close: vi.fn(),
 }));
-vi.mock("@/components/gallery", () => ({ PeopleConsentDialog: () => null }));
 vi.mock("ente-base/components/utils/modal", () => ({
     useModalVisibility: () => ({
         show: consent.show,
@@ -49,7 +48,7 @@ test("defers navigation and search reset until consent succeeds", () => {
     expect(reset).not.toHaveBeenCalled();
     expect(controller.navigate).not.toHaveBeenCalled();
     consent.enabled = true;
-    controller.dialog.props.onEnabled();
+    controller.dialogProps.onEnabled();
     expect(reset).toHaveBeenCalledOnce();
     expect(controller.navigate).toHaveBeenCalledOnce();
 });
@@ -58,7 +57,7 @@ test("cancelling consent discards the pending search reset", () => {
     const controller = entry();
     const reset = vi.fn();
     controller.showPeople(reset);
-    controller.dialog.props.onClose();
+    controller.dialogProps.onClose();
     expect(consent.close).toHaveBeenCalledOnce();
     expect(controller.navigate).not.toHaveBeenCalled();
     consent.enabled = true;

@@ -1,4 +1,4 @@
-import { FixCreationTime } from "@/components/FixCreationTime";
+import type { FixCreationTime } from "@/components/FixCreationTime";
 import type { FileOp } from "@/components/SelectedFileOptions";
 import { useFileMutations } from "@/components/gallery/media/use-file-mutations";
 import {
@@ -23,8 +23,8 @@ import {
 } from "ente-gallery/utils/quick-link";
 import type { EnteFile } from "ente-media/file";
 import { ItemVisibility } from "ente-media/file-metadata";
-import { AssignPersonDialog } from "ente-new/photos/components/AssignPersonDialog";
-import { EditLocationDialog } from "ente-new/photos/components/EditLocationDialog";
+import type { AssignPersonDialog } from "ente-new/photos/components/AssignPersonDialog";
+import type { EditLocationDialog } from "ente-new/photos/components/EditLocationDialog";
 import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import {
     addToCollection,
@@ -39,7 +39,7 @@ import {
 import type { PeopleState } from "ente-new/photos/services/ml/people";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
-import type { Dispatch } from "react";
+import type { ComponentProps, Dispatch } from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { RemotePullOpts } from "..";
 import type { GalleryAction, GalleryState } from "../reducer";
@@ -345,27 +345,22 @@ export const useSelectedFileOperations = ({
         () => countSelectedFavorites(selected, favoriteFileIDs),
         [favoriteFileIDs, selected],
     );
-    const selectedFileOperationDialogs = (
-        <>
-            {" "}
-            <FixCreationTime
-                {...fixCreationTimeVisibilityProps}
-                files={fixCreationTimeFiles}
-                onRemotePull={remotePull}
-            />{" "}
-            <AssignPersonDialog
-                {...contextMenuAssignPersonProps}
-                people={namedPeople}
-                title={t("add_a_person")}
-                onSelectPerson={handleContextMenuSelectPerson}
-            />{" "}
-            <EditLocationDialog
-                {...editLocationVisibilityProps}
-                files={editLocationFiles}
-                onConfirm={handleEditLocationConfirm}
-            />
-        </>
-    );
+    const fixCreationTimeProps: ComponentProps<typeof FixCreationTime> = {
+        ...fixCreationTimeVisibilityProps,
+        files: fixCreationTimeFiles,
+        onRemotePull: remotePull,
+    };
+    const assignPersonDialogProps: ComponentProps<typeof AssignPersonDialog> = {
+        ...contextMenuAssignPersonProps,
+        people: namedPeople,
+        title: t("add_a_person"),
+        onSelectPerson: handleContextMenuSelectPerson,
+    };
+    const editLocationDialogProps: ComponentProps<typeof EditLocationDialog> = {
+        ...editLocationVisibilityProps,
+        files: editLocationFiles,
+        onConfirm: handleEditLocationConfirm,
+    };
     return {
         suppressContextSelectionBar,
         showAddPersonAction,
@@ -377,6 +372,8 @@ export const useSelectedFileOperations = ({
         selectedFavoriteCount,
         selectedCount,
         selectedOwnCount,
-        selectedFileOperationDialogs,
+        fixCreationTimeProps,
+        assignPersonDialogProps,
+        editLocationDialogProps,
     };
 };

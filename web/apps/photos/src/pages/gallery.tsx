@@ -3,6 +3,7 @@ import { CollectionSelector } from "@/components/CollectionSelector";
 import { DesktopWhatsNew } from "@/components/DesktopWhatsNew";
 import { QuickLinkCreatedNotification } from "@/components/QuickLinkCreatedNotification";
 import { Upload } from "@/components/Upload";
+import { PeopleConsentDialog } from "@/components/gallery";
 import { useGalleryAuthentication } from "@/components/gallery/hooks/use-gallery-authentication";
 import { useGalleryLibrary } from "@/components/gallery/hooks/use-gallery-library";
 import { useGalleryOperations } from "@/components/gallery/hooks/use-gallery-operations";
@@ -75,7 +76,7 @@ const Page: React.FC = () => {
                 {uploadProps && <Upload {...uploadProps} />}
                 <QuickLinkCreatedNotification {...quickLinkNotificationProps} />
                 <DesktopWhatsNew />
-                {navigation.peopleConsentDialog}
+                <PeopleConsentDialog {...navigation.peopleConsentDialogProps} />
                 <AuthenticateUser {...authenticateUserDialogProps} />
             </FullScreenDropZone>
         </PhotosNavigationContext.Provider>

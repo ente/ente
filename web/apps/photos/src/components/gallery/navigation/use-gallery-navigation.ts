@@ -66,11 +66,12 @@ export const useGalleryNavigation = (
         showSettings,
     });
     const onPeople = useCallback(() => send({ type: "showPeople" }), []);
-    const { showPeople, dialog: peopleConsentDialog } = usePeopleEntry({
-        isCurrentDestination: destination.section === "people",
-        onUnavailable: goHome,
-        onNavigate: onPeople,
-    });
+    const { showPeople, dialogProps: peopleConsentDialogProps } =
+        usePeopleEntry({
+            isCurrentDestination: destination.section === "people",
+            onUnavailable: goHome,
+            onNavigate: onPeople,
+        });
     const openMap = useCallback(() => send({ type: "showMap" }), []);
     const showCollectionMap = useMapEntry(openMap);
     const showLibraryMap = useCallback(() => {
@@ -192,7 +193,7 @@ export const useGalleryNavigation = (
         preferences,
         actions,
         navigationRef,
-        peopleConsentDialog,
+        peopleConsentDialogProps,
         showSettings,
         barMode,
         retainPerson,

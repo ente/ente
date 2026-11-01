@@ -1,11 +1,14 @@
 import { CollectionSelector } from "@/components/CollectionSelector";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { FileListWithViewer } from "@/components/FileListWithViewer";
+import { FixCreationTime } from "@/components/FixCreationTime";
 import { SelectedFileOptions } from "@/components/SelectedFileOptions";
 import { externalLink } from "@/utils/link";
 import { Box, Typography } from "@mui/material";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { ItemVisibility } from "ente-media/file-metadata";
+import { AssignPersonDialog } from "ente-new/photos/components/AssignPersonDialog";
+import { EditLocationDialog } from "ente-new/photos/components/EditLocationDialog";
 import { t } from "i18next";
 import type { GalleryMediaSource } from "../sections/types";
 import { useCollectionOperations } from "./use-collection-operations";
@@ -247,7 +250,9 @@ const GalleryMediaContent = ({
                 {...collectionActions.collectionSelectorProps}
             />
             <SingleInputDialog {...collectionActions.albumNameInputProps} />
-            {fileActions.selectedFileOperationDialogs}
+            <FixCreationTime {...fileActions.fixCreationTimeProps} />
+            <AssignPersonDialog {...fileActions.assignPersonDialogProps} />
+            <EditLocationDialog {...fileActions.editLocationDialogProps} />
         </>
     );
 };

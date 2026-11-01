@@ -1,14 +1,8 @@
-import { PeopleConsentDialog } from "@/components/gallery";
+import type { PeopleConsentDialog } from "@/components/gallery";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useMLStatusSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { isMLEnabled } from "ente-new/photos/services/ml";
-import {
-    useCallback,
-    useEffect,
-    useRef,
-    type ComponentProps,
-    type ReactElement,
-} from "react";
+import { useCallback, useEffect, useRef, type ComponentProps } from "react";
 
 export const usePeopleEntry = ({
     isCurrentDestination,
@@ -39,17 +33,15 @@ export const usePeopleEntry = ({
         },
         [showConsent, onNavigate],
     );
-    const dialog: ReactElement<ComponentProps<typeof PeopleConsentDialog>> = (
-        <PeopleConsentDialog
-            {...consentProps}
-            onClose={() => {
-                pendingSearchReset.current = undefined;
-                consentProps.onClose();
-            }}
-            onEnabled={() => {
-                showPeople(pendingSearchReset.current);
-            }}
-        />
-    );
-    return { showPeople, dialog };
+    const dialogProps: ComponentProps<typeof PeopleConsentDialog> = {
+        ...consentProps,
+        onClose: () => {
+            pendingSearchReset.current = undefined;
+            consentProps.onClose();
+        },
+        onEnabled: () => {
+            showPeople(pendingSearchReset.current);
+        },
+    };
+    return { showPeople, dialogProps };
 };
