@@ -2,6 +2,14 @@ import type { LocalUser } from "ente-accounts/services/user";
 import { CollectionSubType, type Collection } from "ente-media/collection";
 import { ItemVisibility } from "ente-media/file-metadata";
 import { describe, expect, test } from "vitest";
+import { resolveLinksDestination } from "../src/components/gallery/link-selection";
+import {
+    initialNavigationState,
+    navigationReducer,
+    type GalleryNavigationState,
+    type NavigationAction,
+} from "../src/components/gallery/navigation-state";
+import type { GalleryState } from "../src/components/gallery/reducer";
 import {
     galleryReducer,
     initialGalleryState,
@@ -35,7 +43,7 @@ const link = (id: number, overrides: Partial<Collection> = {}): Collection => ({
     ],
     ...overrides,
 });
-const mounted = (collections = [link(1), link(2)]) =>
+const library = (collections = [link(1), link(2)]) =>
     galleryReducer(initialGalleryState, {
         type: "mount",
         user: { id: 1 } as LocalUser,
@@ -44,6 +52,36 @@ const mounted = (collections = [link(1), link(2)]) =>
         collectionFiles: [],
         trashItems: [],
     });
+
+const mounted = (collections = [link(1), link(2)]) => ({
+    library: library(collections),
+    navigation: initialNavigationState,
+});
+const update = (
+    state: ReturnType<typeof mounted>,
+    action:
+        | Exclude<NavigationAction, { type: "showCollectionSummary" }>
+        | { type: "setCollections"; collections: Collection[] },
+) =>
+    action.type === "setCollections"
+        ? { ...state, library: galleryReducer(state.library, action) }
+        : { ...state, navigation: navigationReducer(state.navigation, action) };
+const view = ({
+    library,
+    navigation,
+}: {
+    library: GalleryState;
+    navigation: GalleryNavigationState;
+}) =>
+    navigation.destination.section === "links"
+        ? {
+              type: "links",
+              selectedLinkID: resolveLinksDestination(
+                  library,
+                  navigation.destination,
+              ).collectionID,
+          }
+        : { type: navigation.destination.section };
 
 describe("quick link membership", () => {
     test("lists owned public quick links, including expired and empty links", () => {
@@ -67,52 +105,53 @@ describe("quick link membership", () => {
 
 describe("Links navigation", () => {
     test("opens the overview and clears stale photo search state", () => {
-        const state = galleryReducer(
-            { ...mounted(), isInSearchMode: true },
+        const state = update(
+            {
+                ...mounted(),
+                navigation: {
+                    ...initialNavigationState,
+                    overlay: { section: "search" },
+                },
+            },
             { type: "showLinks" },
         );
-        expect(state.view).toEqual({
+        expect(view(state)).toEqual({
             type: "links",
             selectedLinkID: undefined,
         });
-        expect(state.selectedCollectionSummaryID).toBeUndefined();
-        expect(state.filteredFiles).toEqual([]);
-        expect(state.isInSearchMode).toBe(false);
+        expect(state.navigation.destination.collectionID).toBeUndefined();
+        expect(state.navigation.overlay).toBeUndefined();
     });
 
     test("returns to the overview when the Links group is selected again", () => {
-        let state = galleryReducer(mounted(), {
-            type: "selectLink",
-            collectionID: 1,
-        });
-        state = galleryReducer(state, { type: "showLinks" });
-        state = galleryReducer(state, {
+        let state = update(mounted(), { type: "selectLink", collectionID: 1 });
+        state = update(state, { type: "showLinks" });
+        state = update(state, {
             type: "setCollections",
             collections: [link(1), link(2), link(3)],
         });
-        expect(state.view).toEqual({
+        expect(view(state)).toEqual({
             type: "links",
             selectedLinkID: undefined,
         });
     });
 
     test("preserves selection when the list refreshes", () => {
-        let state = galleryReducer(mounted(), {
-            type: "selectLink",
-            collectionID: 1,
-        });
-        state = galleryReducer(state, {
+        let state = update(mounted(), { type: "selectLink", collectionID: 1 });
+        state = update(state, {
             type: "setCollections",
             collections: [link(1, { name: "Updated" }), link(2), link(3)],
         });
-        expect(state.view).toEqual({ type: "links", selectedLinkID: 1 });
-        expect(state.normalCollectionSummaries.get(1)?.name).toBe("Updated");
+        expect(view(state)).toEqual({ type: "links", selectedLinkID: 1 });
+        expect(state.library.normalCollectionSummaries.get(1)?.name).toBe(
+            "Updated",
+        );
     });
 
     test.each(["removed", "hidden", "unlinked", "shared"])(
         "reconciles a selected link that becomes %s",
         (change) => {
-            let state = galleryReducer(mounted(), {
+            let state = update(mounted(), {
                 type: "selectLink",
                 collectionID: 2,
             });
@@ -121,12 +160,12 @@ describe("Links navigation", () => {
                 updated.magicMetadata!.data.visibility = ItemVisibility.hidden;
             if (change == "unlinked") updated.publicURLs = [];
             if (change == "shared") updated.sharees = [{ id: 2 }];
-            state = galleryReducer(state, {
+            state = update(state, {
                 type: "setCollections",
                 collections:
                     change == "removed" ? [link(1)] : [link(1), updated],
             });
-            expect(state.view).toEqual({
+            expect(view(state)).toEqual({
                 type: "links",
                 selectedLinkID: undefined,
             });
@@ -134,20 +173,17 @@ describe("Links navigation", () => {
     );
 
     test("keeps an empty Links view after removing the final link", () => {
-        let state = galleryReducer(mounted([link(1)]), { type: "showLinks" });
-        state = galleryReducer(state, {
-            type: "setCollections",
-            collections: [],
-        });
-        expect(state.view).toEqual({
+        let state = update(mounted([link(1)]), { type: "showLinks" });
+        state = update(state, { type: "setCollections", collections: [] });
+        expect(view(state)).toEqual({
             type: "links",
             selectedLinkID: undefined,
         });
-        state = galleryReducer(state, {
+        state = update(state, {
             type: "setCollections",
             collections: [link(3)],
         });
-        expect(state.view).toEqual({
+        expect(view(state)).toEqual({
             type: "links",
             selectedLinkID: undefined,
         });
@@ -156,22 +192,22 @@ describe("Links navigation", () => {
     test("does not open a hidden link by an explicit ID", () => {
         const hidden = link(3);
         hidden.magicMetadata!.data.visibility = ItemVisibility.hidden;
-        const state = galleryReducer(mounted([link(1), hidden]), {
+        const state = update(mounted([link(1), hidden]), {
             type: "selectLink",
             collectionID: 3,
         });
-        expect(state.view).toEqual({
+        expect(view(state)).toEqual({
             type: "links",
             selectedLinkID: undefined,
         });
     });
 
     test("supports returning to Home and People", () => {
-        let state = galleryReducer(mounted(), { type: "showLinks" });
-        state = galleryReducer(state, { type: "showAll" });
-        expect(state.view?.type).toBe("albums");
-        state = galleryReducer(state, { type: "showLinks" });
-        state = galleryReducer(state, { type: "showPeople" });
-        expect(state.view?.type).toBe("people");
+        let state = update(mounted(), { type: "showLinks" });
+        state = update(state, { type: "showAll" });
+        expect(view(state).type).toBe("albums");
+        state = update(state, { type: "showLinks" });
+        state = update(state, { type: "showPeople" });
+        expect(view(state).type).toBe("people");
     });
 });
