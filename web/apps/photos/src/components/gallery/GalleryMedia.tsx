@@ -2,22 +2,13 @@ import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { FileListWithViewer } from "@/components/FileListWithViewer";
 import { externalLink } from "@/utils/link";
 import { Typography } from "@mui/material";
+import { useOperationSource } from "./hooks/use-operation-source";
+import type { GalleryMediaSource } from "./section-types";
 
 import { useMemo } from "react";
 import { Trans } from "react-i18next";
 
-import type { FileListWithViewerProps } from "@/components/FileListWithViewer";
 import type { GallerySectionProps } from "./section-types";
-type MediaSource = Pick<
-    FileListWithViewerProps,
-    | "mode"
-    | "modePlus"
-    | "files"
-    | "activeCollectionID"
-    | "activeCollectionSummary"
-    | "activePersonID"
-    | "disableGrouping"
->;
 export const GalleryMedia = ({
     library,
     operations,
@@ -25,9 +16,10 @@ export const GalleryMedia = ({
     source,
     header,
 }: Pick<GallerySectionProps, "library" | "operations" | "navigation"> & {
-    source: MediaSource;
+    source: GalleryMediaSource;
     header?: FileListHeaderOrFooter;
 }) => {
+    useOperationSource(source, operations.setMediaSource);
     const fileCollectionIDs = useMemo(
         () =>
             library.collectionFiles.reduce((result, file) => {

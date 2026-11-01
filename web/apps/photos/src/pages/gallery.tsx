@@ -1,9 +1,9 @@
 import { AlbumsSection } from "@/components/gallery/AlbumsSection";
 import { GalleryDownloadNotifications } from "@/components/gallery/GalleryDownloadNotifications";
-import { GalleryMedia } from "@/components/gallery/GalleryMedia";
 import { GallerySectionLayout } from "@/components/gallery/GallerySectionLayout";
 import { PeopleSection } from "@/components/gallery/PeopleSection";
 import { PlacesSection } from "@/components/gallery/PlacesSection";
+import { SearchSection } from "@/components/gallery/SearchSection";
 import { useCollectionOperations } from "@/components/gallery/hooks/use-collection-operations";
 import { useFileContextActions } from "@/components/gallery/hooks/use-file-context-actions";
 import { useFileMutations } from "@/components/gallery/hooks/use-file-mutations";
@@ -13,15 +13,14 @@ import { useMapEntry } from "@/components/gallery/hooks/use-map-entry";
 import { usePeopleEntry } from "@/components/gallery/hooks/use-people-entry";
 import { useSelectedFileOperations } from "@/components/gallery/hooks/use-selected-file-operations";
 import type { GallerySectionOperations } from "@/components/gallery/section-types";
+import type { EnteFile } from "ente-media/file";
 // TODO: Audit this file (the code here is mostly fine, but needs revisiting
 // the file it depends on have been audited and their interfaces fixed).
 /* eslint-disable react-hooks/exhaustive-deps */
 import { AuthenticateUser } from "@/components/AuthenticateUser";
 import { DesktopWhatsNew } from "@/components/DesktopWhatsNew";
-import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { QuickLinkCreatedNotification } from "@/components/QuickLinkCreatedNotification";
 import { SelectedFileOptions } from "@/components/SelectedFileOptions";
-import { SearchResultsHeader } from "@/components/gallery";
 import { DuplicatesView } from "@/components/gallery/DuplicatesView";
 import { LargeFilesView } from "@/components/gallery/LargeFilesView";
 import { LinksView } from "@/components/gallery/LinksView";
@@ -54,12 +53,12 @@ import {
 } from "ente-new/photos/services/collection-summary";
 
 import { getSelectedFiles, type SelectedState } from "@/utils/file";
-import { filterSearchableFiles } from "ente-new/photos/services/search";
 import type { SearchOption } from "ente-new/photos/services/search/types";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+const emptyFiles: EnteFile[] = [];
 const Page: React.FC = () => {
     const { showLoadingBar, hideLoadingBar } = usePhotosAppContext();
 
@@ -67,6 +66,7 @@ const Page: React.FC = () => {
         state,
         dispatch,
         isFirstLoad,
+        searchIndexRevision,
         peopleState,
         remotePull,
         remoteFilesPull,
@@ -78,7 +78,13 @@ const Page: React.FC = () => {
     >();
     const isCleanupViewOpen = cleanupView !== undefined;
     const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
-    const { selected, setSelected, clearSelection } = useGallerySelection();
+    const {
+        selected,
+        setSelected,
+        clearSelection,
+        mediaSource,
+        setMediaSource,
+    } = useGallerySelection();
     const [sectionActivity, setSectionActivity] = useState({
         selection: false,
         drop: false,
@@ -90,10 +96,6 @@ const Page: React.FC = () => {
         sidebar?: FileViewerInitialSidebar;
         commentID?: string;
     }>();
-    const [fileListHeader, setFileListHeader] = useState<
-        FileListHeaderOrFooter | undefined
-    >(undefined);
-
     const { saveGroups, onAddSaveGroup, onRemoveSaveGroup } = useSaveGroups();
     const navigationRef = useRef<PhotosNavigationShellHandle>(null);
 
@@ -117,8 +119,8 @@ const Page: React.FC = () => {
         tempDeletedFileIDs,
         tempHiddenFileIDs,
         isInSearchMode,
-        filteredFiles,
     } = state;
+    const filteredFiles = mediaSource?.files ?? emptyFiles;
 
     const isAlbumOverview = state.view?.type == "album-overview";
     const barMode =
@@ -224,44 +226,6 @@ const Page: React.FC = () => {
     useEffect(() => {
         if (!activeCollectionSummary) closeCollectionMap();
     }, [activeCollectionSummary, closeCollectionMap]);
-
-    useEffect(() => {
-        if (isInSearchMode && state.searchSuggestion) {
-            setFileListHeader({
-                component: (
-                    <SearchResultsHeader
-                        searchSuggestion={state.searchSuggestion}
-                        fileCount={state.searchResults?.length ?? 0}
-                        sortAsc={state.searchSortAsc}
-                        onSortOrderChange={(asc) =>
-                            dispatch({ type: "setSearchSortOrder", asc })
-                        }
-                    />
-                ),
-                height: 104,
-            });
-        }
-    }, [
-        isInSearchMode,
-        state.searchSuggestion,
-        state.searchResults,
-        state.searchSortAsc,
-    ]);
-
-    useEffect(() => {
-        const pendingSearchSuggestion = state.pendingSearchSuggestions.at(-1);
-        if (!state.isRecomputingSearchResults && pendingSearchSuggestion) {
-            dispatch({ type: "updatingSearchResults" });
-            // TODO: A rejection leaves isRecomputingSearchResults stuck true,
-            // and search stops until it is exited. Recovery needs a reducer
-            // change.
-            void filterSearchableFiles(pendingSearchSuggestion).then(
-                (searchResults) => {
-                    dispatch({ type: "setSearchResults", searchResults });
-                },
-            );
-        }
-    }, [state.isRecomputingSearchResults, state.pendingSearchSuggestions]);
 
     const selectAll = (e: KeyboardEvent) => {
         if (
@@ -775,9 +739,10 @@ const Page: React.FC = () => {
         ],
     );
 
-    const sectionLibrary = { ...state, isFirstLoad };
+    const sectionLibrary = { ...state, isFirstLoad, searchIndexRevision };
     const sectionNavigation = {
         view: state.view,
+        searchSuggestion: state.searchSuggestion,
         isInSearchMode,
         isMapView,
         selectedPlace,
@@ -785,6 +750,8 @@ const Page: React.FC = () => {
         pendingFileNavigation,
     };
     const sectionOperations: GallerySectionOperations = {
+        mediaSource,
+        setMediaSource,
         selected,
         setSelected,
         onContextMenuAction: handleContextMenuAction,
@@ -950,43 +917,26 @@ const Page: React.FC = () => {
                                 preferences={preferences}
                                 presentation={presentation}
                             />
-                        ) : (
+                        ) : cleanupView === "duplicates" ? (
                             <GallerySectionLayout presentation={presentation}>
-                                {cleanupView === "duplicates" ? (
-                                    <DuplicatesView
-                                        onRemoteFilesPull={remoteFilesPull}
-                                    />
-                                ) : cleanupView === "large-files" ? (
-                                    <LargeFilesView
-                                        onRemoteFilesPull={remoteFilesPull}
-                                    />
-                                ) : (
-                                    <GalleryMedia
-                                        library={sectionLibrary}
-                                        operations={sectionOperations}
-                                        navigation={sectionNavigation}
-                                        header={fileListHeader}
-                                        source={{
-                                            mode: barMode,
-                                            modePlus: isInSearchMode
-                                                ? "search"
-                                                : barMode,
-                                            files: filteredFiles,
-                                            activeCollectionID:
-                                                activeCollectionID!,
-                                            activeCollectionSummary,
-                                            activePersonID: activePerson?.id,
-                                            disableGrouping:
-                                                state.searchSuggestion?.type ==
-                                                    "clip" ||
-                                                (!isInSearchMode &&
-                                                    activeCollection
-                                                        ?.pubMagicMetadata?.data
-                                                        .sortBy == "fileName"),
-                                        }}
-                                    />
-                                )}
+                                <DuplicatesView
+                                    onRemoteFilesPull={remoteFilesPull}
+                                />
                             </GallerySectionLayout>
+                        ) : cleanupView === "large-files" ? (
+                            <GallerySectionLayout presentation={presentation}>
+                                <LargeFilesView
+                                    onRemoteFilesPull={remoteFilesPull}
+                                />
+                            </GallerySectionLayout>
+                        ) : (
+                            <SearchSection
+                                library={sectionLibrary}
+                                operations={sectionOperations}
+                                navigation={sectionNavigation}
+                                preferences={preferences}
+                                presentation={presentation}
+                            />
                         )
                     }
                 </PhotosNavigationShell>
