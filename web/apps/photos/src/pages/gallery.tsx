@@ -407,46 +407,49 @@ const Page: React.FC = () => {
         () => handleChangeBarMode("links"),
         [handleChangeBarMode],
     );
-    const navigationActions = useMemo<PhotosNavigationActions>(
-        () => ({
-            goHome: handleGoHome,
-            changeMode: handleChangeMode,
-            showLibraryMap: handleShowLibraryMap,
-            showCollectionMap: handleShowCollectionMap,
-            selectPlace: handleSelectPlace,
-            showCollectionSummary,
-            selectCollection: selectGalleryCollection,
-            selectCollectionFromViewer: handleSelectCollection,
-            openOverviewAlbum: handleOpenOverviewAlbum,
-            showAlbumOverview: handleShowAlbumOverview,
-            backToAlbums: handleBackToAlbums,
-            showLinksOverview: handleShowLinksOverview,
-            showPeople: handleShowPeople,
-            selectPerson: handleSelectPerson,
-            backToPeople: handleBackToPeople,
-            selectSearchOption: handleSelectSearchOption,
-            showCleanupView: handleShowCleanupView,
-        }),
-        [
-            handleGoHome,
-            handleChangeMode,
-            handleShowLibraryMap,
-            handleShowCollectionMap,
-            handleSelectPlace,
-            showCollectionSummary,
-            selectGalleryCollection,
-            handleSelectCollection,
-            handleOpenOverviewAlbum,
-            handleShowAlbumOverview,
-            handleBackToAlbums,
-            handleShowLinksOverview,
-            handleShowPeople,
-            handleSelectPerson,
-            handleBackToPeople,
-            handleSelectSearchOption,
-            handleShowCleanupView,
-        ],
-    );
+    const navigationActions: PhotosNavigationActions =
+        useMemo<PhotosNavigationActions>(
+            () => ({
+                openSection: (id) =>
+                    sectionDefinition(id).enter?.(navigationActions) ?? false,
+                goHome: handleGoHome,
+                changeMode: handleChangeMode,
+                showLibraryMap: handleShowLibraryMap,
+                showCollectionMap: handleShowCollectionMap,
+                selectPlace: handleSelectPlace,
+                showCollectionSummary,
+                selectCollection: selectGalleryCollection,
+                selectCollectionFromViewer: handleSelectCollection,
+                openOverviewAlbum: handleOpenOverviewAlbum,
+                showAlbumOverview: handleShowAlbumOverview,
+                backToAlbums: handleBackToAlbums,
+                showLinksOverview: handleShowLinksOverview,
+                showPeople: handleShowPeople,
+                selectPerson: handleSelectPerson,
+                backToPeople: handleBackToPeople,
+                selectSearchOption: handleSelectSearchOption,
+                showCleanupView: handleShowCleanupView,
+            }),
+            [
+                handleGoHome,
+                handleChangeMode,
+                handleShowLibraryMap,
+                handleShowCollectionMap,
+                handleSelectPlace,
+                showCollectionSummary,
+                selectGalleryCollection,
+                handleSelectCollection,
+                handleOpenOverviewAlbum,
+                handleShowAlbumOverview,
+                handleBackToAlbums,
+                handleShowLinksOverview,
+                handleShowPeople,
+                handleSelectPerson,
+                handleBackToPeople,
+                handleSelectSearchOption,
+                handleShowCleanupView,
+            ],
+        );
 
     const sectionLibrary = { ...state, isFirstLoad, searchIndexRevision };
     const retainPerson = useCallback(
@@ -475,18 +478,10 @@ const Page: React.FC = () => {
                 <PhotosNavigationShell
                     ref={navigationRef}
                     isFirstLoad={isFirstLoad}
-                    isInSearchMode={isInSearchMode}
+                    navigation={navigationState}
                     collectionNameByID={collectionNameByID}
                     onAuthenticateUser={authenticateUser}
-                    mode={barMode}
-                    isMapView={isMapView}
-                    isMapSelected={
-                        isMapView &&
-                        activeCollectionID === PseudoCollectionID.all
-                    }
                     onUpload={sectionOperations.onUpload}
-                    navigationAvailable={!isCleanupViewOpen}
-                    activeCollectionID={galleryBarActiveCollectionID}
                 >
                     {(presentation) => (
                         <View

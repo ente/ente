@@ -1,15 +1,11 @@
-import { SearchBar, type SearchBarProps } from "@/components/SearchBar";
+import { SearchBar } from "@/components/SearchBar";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { useIsOffline } from "@/components/utils/use-is-offline";
 import { uploadManager } from "@/services/upload-manager";
 import {
-    DashboardSquare01Icon,
     Home01Icon,
-    Link04Icon,
-    Location01Icon,
     Settings01Icon,
     Upload01Icon,
-    User02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -29,7 +25,6 @@ import { useIsSmallWidth } from "ente-base/components/utils/hooks";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { ut } from "ente-base/i18n";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
-import { isMLSupported } from "ente-new/photos/services/ml";
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
 import { t } from "i18next";
 import {
@@ -39,30 +34,34 @@ import {
     useState,
     type ReactNode,
 } from "react";
+import {
+    activeSectionID,
+    type GalleryNavigationState,
+} from "./navigation-state";
+import {
+    gallerySections,
+    sectionDefinition,
+    selectRailSection,
+    type GallerySectionID,
+} from "./sections";
 
 import type { GallerySectionPresentation } from "./GallerySectionLayout";
 import { NavigationSlide } from "./NavigationSlide";
 import { usePhotosNavigation } from "./PhotosNavigationContext";
-import type { GalleryBarMode } from "./reducer";
 
-type PhotosNavigationShellProps = SearchBarProps & {
-    onSidebar: () => void;
+interface PhotosNavigationShellProps {
     onUpload: () => void;
-    isMapView: boolean;
-    isMapSelected: boolean;
-    mode: GalleryBarMode;
-};
+    navigation: GalleryNavigationState;
+}
 
 export interface PhotosNavigationShellHandle {
     showSettings: (action?: SidebarActionID) => void;
 }
 
 export const PhotosNavigationShell: React.FC<
-    Omit<PhotosNavigationShellProps, "isSettingsOpen" | "onSidebar"> & {
+    PhotosNavigationShellProps & {
         ref?: React.Ref<PhotosNavigationShellHandle>;
         isFirstLoad: boolean;
-        navigationAvailable: boolean;
-        activeCollectionID: number | undefined;
         children: (presentation: GallerySectionPresentation) => ReactNode;
         collectionNameByID: Map<number, string>;
         onAuthenticateUser: () => Promise<boolean>;
@@ -70,15 +69,21 @@ export const PhotosNavigationShell: React.FC<
 > = ({
     ref,
     isFirstLoad,
-    navigationAvailable: hasNavigation,
-    activeCollectionID,
+    navigation,
     collectionNameByID,
     onAuthenticateUser,
     children,
     ...props
 }) => {
-    const { changeMode, showLibraryMap, showCleanupView } =
-        usePhotosNavigation();
+    const actions = usePhotosNavigation();
+    const { showCleanupView } = actions;
+    const sectionID = activeSectionID(navigation);
+    const hasNavigation = sectionDefinition(sectionID).hasNavigation;
+    const isHome =
+        navigation.overlay?.section !== "search" &&
+        navigation.destination.section === "albums" &&
+        navigation.destination.collectionID === PseudoCollectionID.all;
+
     const { show: showSidebar, props: sidebarVisibilityProps } =
         useModalVisibility();
     const [pendingSidebarAction, setPendingSidebarAction] =
@@ -100,7 +105,7 @@ export const PhotosNavigationShell: React.FC<
     const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
     const [navigationCollapsed, setNavigationCollapsed] = useState(false);
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
-    const navigationAvailable = hasNavigation && !props.isInSearchMode;
+    const navigationAvailable = hasNavigation;
     const panelOpen = navigationAvailable && !navigationCollapsed;
     const { show: showMobileNavigation, props: mobileDrawerProps } =
         useModalVisibility();
@@ -115,43 +120,15 @@ export const PhotosNavigationShell: React.FC<
             setNavigationCollapsed((collapsed) => !collapsed);
         }
     };
+    const panelMode =
+        navigation.destination.albumMode ?? navigation.destination.section;
+    const isInSearchMode = navigation.overlay?.section === "search";
     useEffect(() => {
         setNavigationCollapsed(false);
-    }, [props.mode, props.isInSearchMode, props.isMapSelected]);
+    }, [panelMode, isInSearchMode, navigation.destination.section]);
     useEffect(() => {
         if (!mobile) closeMobileNavigation();
     }, [mobile, closeMobileNavigation]);
-    const handleChangeMode = (mode: GalleryBarMode) => {
-        if (mode == "people" && !mobile) {
-            closeMobileNavigation();
-            changeMode(mode);
-            return;
-        }
-        const reopeningSection =
-            mobile &&
-            mode == "albums" &&
-            hasNavigation &&
-            !props.isInSearchMode &&
-            (props.mode == "hidden-albums" || props.mode == "archive-albums");
-        if (
-            hasNavigation &&
-            !props.isInSearchMode &&
-            ((props.mode == mode &&
-                activeCollectionID != PseudoCollectionID.all) ||
-                reopeningSection)
-        ) {
-            if (mobile) {
-                if (mobileDrawerProps.open) closeMobileNavigation();
-                else showMobileNavigation();
-            } else {
-                setNavigationCollapsed((collapsed) => !collapsed);
-            }
-            return;
-        }
-        if (!changeMode(mode)) return;
-        setNavigationCollapsed(false);
-        if (mobile) showMobileNavigation();
-    };
     return (
         <Stack
             sx={(theme) => ({
@@ -219,28 +196,24 @@ export const PhotosNavigationShell: React.FC<
                         })}
                     >
                         <NormalNavigationRail
-                            {...props}
+                            navigation={navigation}
+                            isHome={isHome}
                             isSettingsOpen={sidebarVisibilityProps.open}
                             onSidebar={() => showSettings()}
-                            onShowMap={() => {
-                                showLibraryMap();
-                                setNavigationCollapsed(false);
-                                if (mobile) showMobileNavigation();
-                            }}
-                            isHome={
-                                !props.isMapSelected &&
-                                props.mode == "albums" &&
-                                !props.isInSearchMode &&
-                                activeCollectionID == PseudoCollectionID.all
-                            }
-                            onChangeMode={handleChangeMode}
-                            opensDialog={mobile}
-                            navigationOpen={
-                                !props.isMapSelected &&
-                                hasNavigation &&
-                                (mobile
-                                    ? mobileDrawerProps.open
-                                    : !navigationCollapsed)
+                            mobile={mobile}
+                            navigationOpen={navigationOpen}
+                            onSelect={(id) =>
+                                selectRailSection(sectionDefinition(id), id, {
+                                    navigation,
+                                    mobile,
+                                    open: () => actions.openSection(id),
+                                    togglePanel: toggleNavigation,
+                                    closeDrawer: closeMobileNavigation,
+                                    openPanel: () => {
+                                        setNavigationCollapsed(false);
+                                        if (mobile) showMobileNavigation();
+                                    },
+                                })
                             }
                         />
                     </Box>
@@ -347,28 +320,29 @@ const NormalHeaderContents: React.FC<
     );
 };
 
-const NormalNavigationRail: React.FC<
-    Omit<PhotosNavigationShellProps, "onUpload" | "isMapView"> & {
-        onChangeMode: (mode: GalleryBarMode) => void;
-        onShowMap: () => void;
-        isHome: boolean;
-        opensDialog: boolean;
-        navigationOpen: boolean;
-    }
-> = ({
-    onSidebar,
-    onShowMap,
-    isMapSelected,
-    mode,
-    onChangeMode,
+const NormalNavigationRail = ({
+    navigation,
     isHome,
-    opensDialog,
+    isSettingsOpen,
+    onSidebar,
+    mobile,
     navigationOpen,
-    ...props
+    onSelect,
+}: {
+    navigation: GalleryNavigationState;
+    isHome: boolean;
+    isSettingsOpen: boolean;
+    onSidebar: () => void;
+    mobile: boolean;
+    navigationOpen: boolean;
+    onSelect: (id: GallerySectionID) => void;
 }) => (
     <>
         <HomeButton selected={isHome} />
-        <SearchBar {...props} />
+        <SearchBar
+            isInSearchMode={navigation.overlay?.section === "search"}
+            isSettingsOpen={isSettingsOpen}
+        />
         <Box
             aria-hidden
             sx={(theme) => ({
@@ -380,23 +354,24 @@ const NormalNavigationRail: React.FC<
                 ...theme.applyStyles("dark", { bgcolor: "#3E3E3E" }),
             })}
         />
-        {(["albums", "people", "links"] as const).map((item) =>
-            item == "people" && !isMLSupported ? null : (
-                <Tooltip key={item} title={t(item)}>
+        {(Object.keys(gallerySections) as GallerySectionID[]).map((id) => {
+            const definition = sectionDefinition(id);
+            const rail = definition.rail;
+            if (!rail || (rail.available && !rail.available())) return null;
+            const selected = rail.selected
+                ? rail.selected(navigation, navigationOpen)
+                : navigationOpen &&
+                  !isHome &&
+                  navigation.overlay?.section !== "search" &&
+                  navigation.destination.section === id;
+            return (
+                <Tooltip key={id} title={rail.label()}>
                     <FocusVisibleButton
                         color="secondary"
-                        aria-label={t(item)}
-                        aria-pressed={
-                            navigationOpen &&
-                            !isHome &&
-                            !props.isInSearchMode &&
-                            (mode == item ||
-                                (item == "albums" &&
-                                    (mode == "hidden-albums" ||
-                                        mode == "archive-albums")))
-                        }
-                        aria-haspopup={opensDialog ? "dialog" : undefined}
-                        onClick={() => onChangeMode(item)}
+                        aria-label={rail.label()}
+                        aria-pressed={selected}
+                        aria-haspopup={mobile ? "dialog" : undefined}
+                        onClick={() => onSelect(id)}
                         sx={{
                             minWidth: 0,
                             width: 38,
@@ -413,48 +388,14 @@ const NormalNavigationRail: React.FC<
                         }}
                     >
                         <HugeiconsIcon
-                            icon={
-                                item == "albums"
-                                    ? DashboardSquare01Icon
-                                    : item == "links"
-                                      ? Link04Icon
-                                      : User02Icon
-                            }
+                            icon={rail.icon}
                             size={20}
                             strokeWidth={1.8}
                         />
                     </FocusVisibleButton>
                 </Tooltip>
-            ),
-        )}
-        <Tooltip title={t("map")}>
-            <FocusVisibleButton
-                color="secondary"
-                aria-label={t("map")}
-                aria-pressed={isMapSelected}
-                onClick={onShowMap}
-                sx={{
-                    minWidth: 0,
-                    width: 38,
-                    height: 38,
-                    flexShrink: 0,
-                    p: 0,
-                    borderRadius: "12px",
-                    color: "text.base",
-                    '&[aria-pressed="true"]': {
-                        color: "#FFFFFF",
-                        bgcolor: "accent.main",
-                        "&:hover": { bgcolor: "accent.main" },
-                    },
-                }}
-            >
-                <HugeiconsIcon
-                    icon={Location01Icon}
-                    size={20}
-                    strokeWidth={1.8}
-                />
-            </FocusVisibleButton>
-        </Tooltip>
+            );
+        })}
         <Box sx={{ flex: 1 }} />
         <Tooltip title={t("settings")}>
             <FocusVisibleButton

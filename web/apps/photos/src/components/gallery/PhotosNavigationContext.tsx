@@ -3,8 +3,10 @@ import type { SearchOption } from "ente-new/photos/services/search/types";
 import { createContext, useContext } from "react";
 import type { PlaceSelection } from "./PlacesList";
 import type { GalleryBarMode } from "./reducer";
+import type { GallerySectionID } from "./sections";
 
 export interface PhotosNavigationActions {
+    openSection: (id: GallerySectionID) => boolean;
     goHome: () => void;
     changeMode: (mode: GalleryBarMode) => boolean;
     showLibraryMap: () => void;
