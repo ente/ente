@@ -45,6 +45,7 @@ import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
 import React, { useReducer } from "react";
 import { visibleQuickLinks } from "../../utils/quick-links";
+import { suppressSharedFilesSavedByUser } from "./media-files";
 
 // TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
 // all cases where the bar mode was in use.
@@ -113,14 +114,9 @@ export interface GalleryState {
     selectedPersonID: string | undefined;
     extraVisiblePerson: Person | undefined;
     searchSuggestion: SearchSuggestion | undefined;
-    searchResults: EnteFile[] | undefined;
-    isRecomputingSearchResults: boolean;
-    pendingSearchSuggestions: SearchSuggestion[];
 
     view: GalleryView | undefined;
     isInSearchMode: boolean;
-    // Undefined preserves relevance order; booleans request time sorting.
-    searchSortAsc: boolean | undefined;
     filteredFiles: EnteFile[];
 }
 
@@ -164,10 +160,7 @@ export type GalleryAction =
     | { type: "showPeople" }
     | { type: "showPerson"; personID: string }
     | { type: "enterSearchMode"; searchSuggestion?: SearchSuggestion }
-    | { type: "updatingSearchResults" }
-    | { type: "setSearchResults"; searchResults: EnteFile[] }
-    | { type: "exitSearch"; shouldExitSearchMode?: boolean }
-    | { type: "setSearchSortOrder"; asc: boolean | undefined };
+    | { type: "exitSearch"; shouldExitSearchMode?: boolean };
 
 export const initialGalleryState: GalleryState = {
     user: undefined,
@@ -202,13 +195,9 @@ export const initialGalleryState: GalleryState = {
     selectedPersonID: undefined,
     extraVisiblePerson: undefined,
     searchSuggestion: undefined,
-    searchResults: undefined,
-    isRecomputingSearchResults: false,
-    pendingSearchSuggestions: [],
     view: undefined,
     filteredFiles: [],
     isInSearchMode: false,
-    searchSortAsc: undefined,
 };
 
 export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
@@ -443,12 +432,6 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                         state.user!.id,
                     ),
                 selectedCollectionSummaryID,
-                pendingSearchSuggestions:
-                    enqueuePendingSearchSuggestionsIfNeeded(
-                        state.searchSuggestion,
-                        state.pendingSearchSuggestions,
-                        state.isInSearchMode,
-                    ),
                 view,
             });
         }
@@ -687,9 +670,6 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 selectedCollectionSummaryID: undefined,
                 extraVisiblePerson: undefined,
                 searchSuggestion: undefined,
-                searchResults: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view: {
                     type: "albums",
                     activeCollectionSummaryID: PseudoCollectionID.all,
@@ -708,9 +688,6 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 selectedCollectionSummaryID: undefined,
                 extraVisiblePerson: undefined,
                 searchSuggestion: undefined,
-                searchResults: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view: {
                     type: "hidden-albums",
                     activeCollectionSummaryID: PseudoCollectionID.hiddenItems,
@@ -730,9 +707,6 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 selectedCollectionSummaryID: undefined,
                 extraVisiblePerson: undefined,
                 searchSuggestion: undefined,
-                searchResults: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 isInSearchMode: false,
                 view: { type: "links", selectedLinkID: action.collectionID },
             });
@@ -743,9 +717,6 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 selectedCollectionSummaryID: undefined,
                 extraVisiblePerson: undefined,
                 searchSuggestion: undefined,
-                searchResults: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view: {
                     type: "album-overview",
                     albumFilter: action.albumFilter,
@@ -767,9 +738,6 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 selectedCollectionSummaryID,
                 extraVisiblePerson: undefined,
                 searchSuggestion: undefined,
-                searchResults: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view,
                 isInSearchMode: false,
             });
@@ -833,10 +801,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ...state,
                 selectedCollectionSummaryID,
                 extraVisiblePerson: undefined,
-                searchResults: undefined,
                 searchSuggestion: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view,
                 isInSearchMode: false,
             });
@@ -854,10 +819,7 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ...state,
                 selectedPersonID: view.activePerson?.id,
                 extraVisiblePerson,
-                searchResults: undefined,
                 searchSuggestion: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view,
                 isInSearchMode: false,
             });
@@ -875,63 +837,29 @@ export const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ...state,
                 selectedPersonID: view.activePerson?.id,
                 extraVisiblePerson,
-                searchResults: undefined,
                 searchSuggestion: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 view,
                 isInSearchMode: false,
             });
         }
 
-        case "enterSearchMode": {
-            const pendingSearchSuggestions = action.searchSuggestion
-                ? [...state.pendingSearchSuggestions, action.searchSuggestion]
-                : state.pendingSearchSuggestions;
-
-            return stateByUpdatingFilteredFiles({
+        case "enterSearchMode":
+            return {
                 ...state,
                 isInSearchMode: true,
                 searchSuggestion: action.searchSuggestion,
-                pendingSearchSuggestions,
-            });
-        }
-
-        case "updatingSearchResults":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                isRecomputingSearchResults: true,
-                pendingSearchSuggestions: [],
-            });
-
-        case "setSearchResults":
-            if (!state.isRecomputingSearchResults) return state;
-
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                searchResults: action.searchResults,
-                isRecomputingSearchResults: false,
-            });
+            };
 
         case "exitSearch": {
             const shouldExitSearchMode = action.shouldExitSearchMode ?? true;
             return stateByUpdatingFilteredFiles({
                 ...state,
-                searchResults: undefined,
                 searchSuggestion: undefined,
-                isRecomputingSearchResults: false,
-                pendingSearchSuggestions: [],
                 isInSearchMode: shouldExitSearchMode
                     ? false
                     : state.isInSearchMode,
             });
         }
-
-        case "setSearchSortOrder":
-            return stateByUpdatingFilteredFiles({
-                ...state,
-                searchSortAsc: action.asc,
-            });
     }
 };
 
@@ -1662,11 +1590,6 @@ const stateForUpdatedCollectionFiles = (
             collectionFiles,
             hiddenFileIDs,
         ),
-        pendingSearchSuggestions: enqueuePendingSearchSuggestionsIfNeeded(
-            state.searchSuggestion,
-            state.pendingSearchSuggestions,
-            state.isInSearchMode,
-        ),
     };
 };
 
@@ -1684,21 +1607,7 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
         state = { ...state, view: { type: "links", selectedLinkID } };
     }
     if (state.isInSearchMode) {
-        const searchFiles = state.searchResults ?? state.filteredFiles;
-        const visibleSearchFiles = suppressSharedFilesSavedByUser(
-            searchFiles,
-            state.user?.id,
-            state.view?.type == "albums" ||
-                state.view?.type == "hidden-albums" ||
-                state.view?.type == "archive-albums"
-                ? state.view.activeCollection
-                : undefined,
-        );
-        const filteredFiles =
-            state.searchSortAsc !== undefined
-                ? sortFiles([...visibleSearchFiles], state.searchSortAsc)
-                : visibleSearchFiles;
-        return { ...state, filteredFiles };
+        return state;
     } else if (
         state.view?.type == "albums" ||
         state.view?.type == "hidden-albums" ||
@@ -1821,33 +1730,6 @@ const sortAndUniqueFilteredFiles = (
         : uniqueFiles;
 };
 
-const suppressSharedFilesSavedByUser = (
-    files: EnteFile[],
-    currentUserID: number | undefined,
-    activeCollection: Collection | undefined,
-) => {
-    if (!currentUserID || activeCollection) return files;
-
-    const ownedFileKeys = new Set<string>();
-    for (const file of files) {
-        if (file.ownerID != currentUserID) continue;
-        const hash = metadataHash(file.metadata);
-        if (!hash) continue;
-        ownedFileKeys.add(`${hash}:${file.metadata.fileType}`);
-    }
-
-    if (!ownedFileKeys.size) return files;
-
-    return files.filter((file) => {
-        if (file.ownerID == currentUserID) return true;
-
-        const hash = metadataHash(file.metadata);
-        if (!hash) return true;
-
-        return !ownedFileKeys.has(`${hash}:${file.metadata.fileType}`);
-    });
-};
-
 const derivePeopleFilteredFiles = (
     collectionFiles: GalleryState["collectionFiles"],
     hiddenFileIDs: GalleryState["hiddenFileIDs"],
@@ -1867,15 +1749,6 @@ const derivePeopleFilteredFiles = (
         ),
     );
 };
-
-const enqueuePendingSearchSuggestionsIfNeeded = (
-    searchSuggestion: GalleryState["searchSuggestion"],
-    pendingSearchSuggestions: GalleryState["pendingSearchSuggestions"],
-    isInSearchMode: GalleryState["isInSearchMode"],
-) =>
-    searchSuggestion && isInSearchMode
-        ? [...pendingSearchSuggestions, searchSuggestion]
-        : pendingSearchSuggestions;
 
 const constructUserIDToEmailMap = (
     user: LocalUser,

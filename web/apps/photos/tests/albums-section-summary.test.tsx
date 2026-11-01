@@ -50,7 +50,11 @@ vi.mock("../src/components/gallery/AlbumsNavigation", () => ({
     AlbumsNavigation: () => null,
 }));
 vi.mock("../src/components/gallery/GalleryMedia", () => ({
-    GalleryMedia: () => null,
+    GalleryMedia: ({
+        children,
+    }: {
+        children?: (hasSelection: boolean) => ReactNode;
+    }) => children?.(false),
 }));
 vi.mock("../src/components/gallery/GallerySectionLayout", () => ({
     GallerySectionLayout: ({ children }: { children: ReactNode }) => children,
@@ -117,15 +121,17 @@ const openAlbum = (
 
 const headerSummary = (state: GalleryState) => {
     const props: GallerySectionProps = {
-        library: { ...state, isFirstLoad: false },
+        library: { ...state, isFirstLoad: false, searchIndexRevision: 0 },
         operations: {
-            selected: {
-                count: 0,
-                ownCount: 0,
-                collectionID: undefined,
-                context: undefined,
+            dispatch: vi.fn(),
+            peopleState: undefined,
+            selectionDisabled: false,
+            mutations: {
+                setPublicLinkToast: vi.fn(),
+                handleFavoriteFileOp: vi.fn(),
+                onSendLinkError: vi.fn(),
+                handleMarkTempDeleted: vi.fn(),
             },
-            setSelected: vi.fn(),
             onAddSaveGroup: vi.fn(),
             onToggleFavorite: vi.fn(),
             onSendLink: vi.fn(),
@@ -143,6 +149,7 @@ const headerSummary = (state: GalleryState) => {
         },
         navigation: {
             view: state.view,
+            searchSuggestion: undefined,
             isInSearchMode: false,
             isMapView: false,
             selectedPlace: undefined,
@@ -150,6 +157,8 @@ const headerSummary = (state: GalleryState) => {
             pendingFileNavigation: undefined,
         },
         preferences: {
+            searchSortAsc: undefined,
+            setSearchSortAsc: vi.fn(),
             albumFilter: "ente",
             setAlbumFilter: vi.fn(),
             albumSearchQuery: "",

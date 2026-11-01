@@ -17,6 +17,7 @@ export const useGalleryPreferences = ({
 }) => {
     const [albumFilter, setAlbumFilter] = useState<AlbumFilter>("ente");
     const [albumSearchQuery, setAlbumSearchQuery] = useState("");
+    const [searchSortAsc, setSearchSortAsc] = useState<boolean>();
     const [albumOpenedFromOverview, setAlbumOpenedFromOverview] = useState<{
         collectionID: number;
         filter: AlbumFilter;
@@ -46,6 +47,8 @@ export const useGalleryPreferences = ({
     }, [barMode, activeCollectionID]);
 
     return {
+        searchSortAsc,
+        setSearchSortAsc,
         albumFilter,
         setAlbumFilter,
         albumSearchQuery,
