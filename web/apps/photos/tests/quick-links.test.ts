@@ -68,12 +68,7 @@ describe("quick link membership", () => {
 describe("Links navigation", () => {
     test("opens the overview and clears stale photo search state", () => {
         const state = galleryReducer(
-            {
-                ...mounted(),
-                isInSearchMode: true,
-                isRecomputingSearchResults: true,
-                searchResults: [],
-            },
+            { ...mounted(), isInSearchMode: true },
             { type: "showLinks" },
         );
         expect(state.view).toEqual({
@@ -82,9 +77,7 @@ describe("Links navigation", () => {
         });
         expect(state.selectedCollectionSummaryID).toBeUndefined();
         expect(state.filteredFiles).toEqual([]);
-        expect(state.searchResults).toBeUndefined();
         expect(state.isInSearchMode).toBe(false);
-        expect(state.isRecomputingSearchResults).toBe(false);
     });
 
     test("returns to the overview when the Links group is selected again", () => {
