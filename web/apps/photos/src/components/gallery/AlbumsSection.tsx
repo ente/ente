@@ -150,9 +150,6 @@ export const AlbumsSection = ({
         );
         return !!group && !isSaveComplete(group) && !isSaveCancelled(group);
     }, [operations.saveGroups, activeCollectionID]);
-    const hasActiveFileSelection =
-        operations.selected.count > 0 &&
-        operations.selected.collectionID === activeCollectionID;
     const activeCollectionFiles = useMemo(() => {
         if (!activeCollection) return [];
         if (barMode == "hidden-albums" || barMode == "archive-albums") {
@@ -296,31 +293,6 @@ export const AlbumsSection = ({
                 />
             }
         >
-            {!isMapView && (
-                <AlbumContentHeader
-                    albums={sidebarCollectionSummaries}
-                    user={user!}
-                    activeCollection={activeCollection}
-                    collectionSummary={collectionSummary}
-                    setBlockingLoad={setBlockingLoad}
-                    setFileListHeader={setFileListHeader}
-                    hasActiveFileSelection={hasActiveFileSelection}
-                    isActiveCollectionDownloadInProgress={
-                        isActiveCollectionDownloadInProgress
-                    }
-                    onAddSaveGroup={onAddSaveGroup}
-                    showBackToAlbums={
-                        albumOpenedFromOverview !== undefined &&
-                        albumOpenedFromOverview.collectionID ===
-                            collectionSummary?.id
-                    }
-                    onEditAlbumDetails={showEditAlbumDetails}
-                    onCollectionSlideshow={startSlideshow}
-                    emailByUserID={library.emailByUserID}
-                    shareSuggestionEmails={library.shareSuggestionEmails}
-                    onRemotePull={remotePull}
-                />
-            )}
             {isMapView ? (
                 collectionMap
             ) : !library.isFirstLoad &&
@@ -354,12 +326,41 @@ export const AlbumsSection = ({
                         files: filteredFiles,
                         activeCollectionID: activeCollectionID!,
                         activeCollectionSummary,
+                        activeCollection,
                         activePersonID: undefined,
                         disableGrouping:
                             activeCollection?.pubMagicMetadata?.data.sortBy ==
                             "fileName",
                     }}
-                />
+                >
+                    {(hasActiveFileSelection) => (
+                        <AlbumContentHeader
+                            albums={sidebarCollectionSummaries}
+                            user={user!}
+                            activeCollection={activeCollection}
+                            collectionSummary={collectionSummary}
+                            setBlockingLoad={setBlockingLoad}
+                            setFileListHeader={setFileListHeader}
+                            hasActiveFileSelection={hasActiveFileSelection}
+                            isActiveCollectionDownloadInProgress={
+                                isActiveCollectionDownloadInProgress
+                            }
+                            onAddSaveGroup={onAddSaveGroup}
+                            showBackToAlbums={
+                                albumOpenedFromOverview !== undefined &&
+                                albumOpenedFromOverview.collectionID ===
+                                    collectionSummary?.id
+                            }
+                            onEditAlbumDetails={showEditAlbumDetails}
+                            onCollectionSlideshow={startSlideshow}
+                            emailByUserID={library.emailByUserID}
+                            shareSuggestionEmails={
+                                library.shareSuggestionEmails
+                            }
+                            onRemotePull={remotePull}
+                        />
+                    )}
+                </GalleryMedia>
             )}
             <CreateAlbumDialog
                 {...createAlbum.props}
