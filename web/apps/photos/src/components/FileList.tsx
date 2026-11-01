@@ -3,8 +3,8 @@ import {
     FileContextMenu,
     type ContextMenuPosition,
 } from "@/components/FileContextMenu";
-import { AlbumEmptyState } from "@/components/gallery/AlbumEmptyState";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
+import { AlbumEmptyState } from "@/components/gallery/sections/albums/AlbumEmptyState";
 import {
     selectedFavoriteCount as countSelectedFavorites,
     type SelectedState,

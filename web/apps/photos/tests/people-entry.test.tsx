@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { usePeopleEntry } from "../src/components/gallery/hooks/use-people-entry";
+import { usePeopleEntry } from "../src/components/gallery/sections/people/use-people-entry";
 
 const consent = vi.hoisted(() => ({
     enabled: false,

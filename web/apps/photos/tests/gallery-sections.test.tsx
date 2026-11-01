@@ -5,35 +5,35 @@ import {
     activeSectionID,
     initialNavigationState,
     navigationReducer,
-} from "../src/components/gallery/navigation-state";
-import type { GallerySectionProps } from "../src/components/gallery/section-types";
+} from "../src/components/gallery/navigation/navigation-state";
 import {
     gallerySections,
     sectionDefinition,
     selectRailSection,
     type GallerySectionDefinition,
     type GallerySectionID,
-} from "../src/components/gallery/sections";
+} from "../src/components/gallery/sections/registry";
+import type { GallerySectionProps } from "../src/components/gallery/sections/types";
 
-vi.mock("../src/components/gallery/AlbumsSection", () => ({
+vi.mock("../src/components/gallery/sections/albums/AlbumsSection", () => ({
     AlbumsSection: () => <div>Albums</div>,
 }));
-vi.mock("../src/components/gallery/PeopleSection", () => ({
+vi.mock("../src/components/gallery/sections/people/PeopleSection", () => ({
     PeopleSection: () => <div>People</div>,
 }));
-vi.mock("../src/components/gallery/PlacesSection", () => ({
+vi.mock("../src/components/gallery/sections/places/PlacesSection", () => ({
     PlacesSection: () => <div>Places</div>,
 }));
-vi.mock("../src/components/gallery/LinksSection", () => ({
+vi.mock("../src/components/gallery/sections/links/LinksSection", () => ({
     LinksSection: () => <div>Links</div>,
 }));
-vi.mock("../src/components/gallery/SearchSection", () => ({
+vi.mock("../src/components/gallery/sections/search/SearchSection", () => ({
     SearchSection: () => <div>Search</div>,
 }));
-vi.mock("../src/components/gallery/DuplicatesView", () => ({
+vi.mock("../src/components/gallery/sections/cleanup/DuplicatesView", () => ({
     DuplicatesView: () => null,
 }));
-vi.mock("../src/components/gallery/LargeFilesView", () => ({
+vi.mock("../src/components/gallery/sections/cleanup/LargeFilesView", () => ({
     LargeFilesView: () => null,
 }));
 vi.mock("ente-new/photos/services/ml", () => ({ isMLSupported: false }));

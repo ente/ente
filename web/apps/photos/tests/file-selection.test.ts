@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import {
     emptySelection,
     retainVisibleSelection,
-} from "../src/components/gallery/file-selection";
+} from "../src/components/gallery/media/file-selection";
 
 const files = [
     { id: 1, ownerID: 1 },

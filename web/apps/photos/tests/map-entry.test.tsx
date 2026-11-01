@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { useMapEntry } from "../src/components/gallery/hooks/use-map-entry";
+import { useMapEntry } from "../src/components/gallery/sections/places/use-map-entry";
 
 const settings = vi.hoisted(() => ({
     enabled: false,

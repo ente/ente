@@ -6,13 +6,13 @@ import { PseudoCollectionID } from "ente-new/photos/services/collection-summary"
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { AlbumsSection } from "../src/components/gallery/AlbumsSection";
 import {
     galleryReducer,
     initialGalleryState,
     type GalleryState,
 } from "../src/components/gallery/reducer";
-import type { GallerySectionProps } from "../src/components/gallery/section-types";
+import { AlbumsSection } from "../src/components/gallery/sections/albums/AlbumsSection";
+import type { GallerySectionProps } from "../src/components/gallery/sections/types";
 
 vi.mock("@/components/collections/AlbumContentHeader", () => ({
     AlbumContentHeader: vi.fn(() => null),
@@ -30,10 +30,10 @@ vi.mock("@/components/collections/CreateAlbumDialog", () => ({
     CreateAlbumDialog: () => null,
 }));
 vi.mock("@/components/gallery", () => ({ GalleryEmptyState: () => null }));
-vi.mock("@/components/gallery/AlbumsOverview", () => ({
+vi.mock("@/components/gallery/sections/albums/AlbumsOverview", () => ({
     AlbumsOverview: () => null,
 }));
-vi.mock("@/components/gallery/hooks/use-gallery-slideshow", () => ({
+vi.mock("@/components/gallery/sections/albums/use-gallery-slideshow", () => ({
     useGallerySlideshow: () => ({
         slideshow: undefined,
         startSlideshow: vi.fn(),
@@ -41,25 +41,26 @@ vi.mock("@/components/gallery/hooks/use-gallery-slideshow", () => ({
     }),
 }));
 vi.mock(
-    "@/components/gallery/use-album-navigation-data",
-    () => import("../src/components/gallery/use-album-navigation-data"),
+    "@/components/gallery/sections/albums/use-album-navigation-data",
+    () =>
+        import("../src/components/gallery/sections/albums/use-album-navigation-data"),
 );
 vi.mock("@/utils/album-filters", () => import("../src/utils/album-filters"));
 vi.mock("@/services/upload-manager", () => ({ uploadManager: {} }));
-vi.mock("../src/components/gallery/AlbumsNavigation", () => ({
+vi.mock("../src/components/gallery/sections/albums/AlbumsNavigation", () => ({
     AlbumsNavigation: () => null,
 }));
-vi.mock("../src/components/gallery/GalleryMedia", () => ({
+vi.mock("../src/components/gallery/media/GalleryMedia", () => ({
     GalleryMedia: ({
         children,
     }: {
         children?: (hasSelection: boolean) => ReactNode;
     }) => children?.(false),
 }));
-vi.mock("../src/components/gallery/GallerySectionLayout", () => ({
+vi.mock("../src/components/gallery/navigation/GallerySectionLayout", () => ({
     GallerySectionLayout: ({ children }: { children: ReactNode }) => children,
 }));
-vi.mock("../src/components/gallery/PhotosNavigationContext", () => ({
+vi.mock("../src/components/gallery/navigation/PhotosNavigationContext", () => ({
     usePhotosNavigation: () => ({
         selectCollection: vi.fn(),
         showAlbumOverview: vi.fn(),

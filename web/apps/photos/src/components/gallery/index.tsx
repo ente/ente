@@ -35,7 +35,7 @@ import type { SearchSuggestion } from "ente-new/photos/services/search/types";
 import { t } from "i18next";
 import React, { useRef, useState } from "react";
 
-export { GalleryEmptyState } from "./GalleryEmptyState";
+export { GalleryEmptyState } from "./sections/albums/GalleryEmptyState";
 
 export interface RemotePullOpts {
     silent?: boolean;

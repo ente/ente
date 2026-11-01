@@ -6,7 +6,7 @@ import type { useGalleryUploads } from "../src/components/gallery/hooks/use-gall
 import {
     initialNavigationState,
     type GalleryDestination,
-} from "../src/components/gallery/navigation-state";
+} from "../src/components/gallery/navigation/navigation-state";
 import { initialGalleryState } from "../src/components/gallery/reducer";
 
 const uploads = vi.hoisted(() =>
@@ -20,13 +20,13 @@ const uploads = vi.hoisted(() =>
 vi.mock("@/components/QuickLinkCreatedNotification", () => ({
     QuickLinkCreatedNotification: () => null,
 }));
-vi.mock("@/components/gallery/GalleryDownloadNotifications", () => ({
+vi.mock("@/components/gallery/media/GalleryDownloadNotifications", () => ({
     GalleryDownloadNotifications: () => null,
 }));
-vi.mock("@/components/gallery/hooks/use-file-mutations", () => ({
+vi.mock("@/components/gallery/media/use-file-mutations", () => ({
     useFileMutations: () => ({ publicLinkToast: { open: false } }),
 }));
-vi.mock("../src/components/gallery/hooks/use-collection-dialogs", () => ({
+vi.mock("../src/components/gallery/media/use-collection-dialogs", () => ({
     useCollectionDialogs: () => ({ albumNameInputVisibilityProps: {} }),
 }));
 vi.mock("@/components/gallery/hooks/use-gallery-uploads", () => ({

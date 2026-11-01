@@ -4,7 +4,7 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { useAlbumNavigationData } from "../src/components/gallery/use-album-navigation-data";
+import { useAlbumNavigationData } from "../src/components/gallery/sections/albums/use-album-navigation-data";
 
 vi.mock("@/utils/album-filters", () => import("../src/utils/album-filters"));
 

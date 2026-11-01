@@ -1,10 +1,10 @@
 import { QuickLinkCreatedNotification } from "@/components/QuickLinkCreatedNotification";
-import { GalleryDownloadNotifications } from "@/components/gallery/GalleryDownloadNotifications";
-import { useFileMutations } from "@/components/gallery/hooks/use-file-mutations";
 import type { useGalleryLibrary } from "@/components/gallery/hooks/use-gallery-library";
 import { useGalleryUploads } from "@/components/gallery/hooks/use-gallery-uploads";
+import { GalleryDownloadNotifications } from "@/components/gallery/media/GalleryDownloadNotifications";
+import { useFileMutations } from "@/components/gallery/media/use-file-mutations";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
-import type { GallerySectionOperations } from "@/components/gallery/section-types";
+import type { GallerySectionOperations } from "@/components/gallery/sections/types";
 import { TranslucentLoadingOverlay } from "ente-base/components/loaders";
 import { useSaveGroups } from "ente-gallery/components/utils/save-groups";
 import { ItemVisibility } from "ente-media/file-metadata";
@@ -12,8 +12,8 @@ import { haveOnlySystemCollections } from "ente-new/photos/services/collection-s
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { useCallback, useState } from "react";
-import type { GalleryNavigationState } from "../navigation-state";
-import { useCollectionDialogs } from "./use-collection-dialogs";
+import { useCollectionDialogs } from "../media/use-collection-dialogs";
+import type { GalleryNavigationState } from "../navigation/navigation-state";
 export const useGalleryOperations = (
     libraryOwner: ReturnType<typeof useGalleryLibrary>,
     navigation: GalleryNavigationState,
