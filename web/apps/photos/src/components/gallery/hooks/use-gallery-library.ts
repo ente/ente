@@ -52,7 +52,6 @@ export const useGalleryLibrary = () => {
     const router = useRouter();
     const [state, dispatch] = useGalleryReducer();
 
-    const [searchIndexRevision, setSearchIndexRevision] = useState(0);
     const [isFirstLoad, setIsFirstLoad] = useState(false);
     // Pull pipelines mutate the same local DB and reducer state.
     const remoteFilesPullQueue = useRef(new PromiseQueue<void>());
@@ -254,7 +253,6 @@ export const useGalleryLibrary = () => {
             state.hiddenCollectionIDs,
             state.hiddenFileIDs,
         );
-        setSearchIndexRevision((revision) => revision + 1);
     }, [
         state.collections,
         state.collectionFiles,
@@ -271,7 +269,6 @@ export const useGalleryLibrary = () => {
         state,
         dispatch,
         isFirstLoad,
-        searchIndexRevision,
         peopleState,
         remotePull,
         remoteFilesPull,

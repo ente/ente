@@ -20,7 +20,11 @@ const mounted = () =>
 describe("album overview navigation", () => {
     test("opens a group without an active collection or stale photo search results", () => {
         const state = galleryReducer(
-            { ...mounted(), isInSearchMode: true },
+            {
+                ...mounted(),
+                isInSearchMode: true,
+                isRecomputingSearchResults: true,
+            },
             { type: "showAlbumOverview", albumFilter: "shared" },
         );
         expect(state.view).toEqual({
@@ -30,6 +34,8 @@ describe("album overview navigation", () => {
         expect(state.selectedCollectionSummaryID).toBeUndefined();
         expect(state.filteredFiles).toEqual([]);
         expect(state.isInSearchMode).toBe(false);
+        expect(state.isRecomputingSearchResults).toBe(false);
+        expect(state.searchResults).toBeUndefined();
     });
 
     test("supports repeated group navigation, opening an album and returning Home", () => {
