@@ -1,4 +1,4 @@
-import { Upload } from "@/components/Upload";
+import type { Upload } from "@/components/Upload";
 import { uploadManager } from "@/services/upload-manager";
 import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
@@ -47,36 +47,34 @@ export const useGalleryUploads = ({
         setUploadTypeSelectorView(true);
         setUploadTypeSelectorIntent(intent ?? "upload");
     };
-    const uploadUI = user ? (
-        <Upload
-            {...{
-                user,
-                dragAndDropFiles,
-                uploadTypeSelectorIntent,
-                uploadTypeSelectorView,
-            }}
-            isFirstUpload={isFirstUpload}
-            activeCollection={activeCollection}
-            closeUploadTypeSelector={setUploadTypeSelectorView.bind(
-                null,
-                false,
-            )}
-            setLoading={setBlockingLoad}
-            setShouldDisableDropzone={setShouldDisableDropzone}
-            onRemotePull={remotePull}
-            onRemoteFilesPull={remoteFilesPull}
-            onOpenCollectionSelector={handleOpenCollectionSelector}
-            onCloseCollectionSelector={handleCloseCollectionSelector}
-            onUploadFile={onUploadFile}
-            onShowSubscription={onShowSubscription}
-            onShowSessionExpiredDialog={showSessionExpiredDialog}
-            isInHiddenSection={isInHiddenSection}
-        />
-    ) : null;
+    const uploadProps: ComponentProps<typeof Upload> | undefined = user
+        ? {
+              user,
+              dragAndDropFiles,
+              uploadTypeSelectorIntent,
+              uploadTypeSelectorView,
+              isFirstUpload,
+              activeCollection,
+              closeUploadTypeSelector: setUploadTypeSelectorView.bind(
+                  null,
+                  false,
+              ),
+              setLoading: setBlockingLoad,
+              setShouldDisableDropzone,
+              onRemotePull: remotePull,
+              onRemoteFilesPull: remoteFilesPull,
+              onOpenCollectionSelector: handleOpenCollectionSelector,
+              onCloseCollectionSelector: handleCloseCollectionSelector,
+              onUploadFile,
+              onShowSubscription,
+              onShowSessionExpiredDialog: showSessionExpiredDialog,
+              isInHiddenSection,
+          }
+        : undefined;
     const dropzoneProps = {
         message: watchFolderView ? t("watch_folder_dropzone_hint") : undefined,
         disabled: shouldDisableDropzone,
         onDrop: setDragAndDropFiles,
     };
-    return { openUploader, uploadTypeSelectorView, uploadUI, dropzoneProps };
+    return { openUploader, uploadTypeSelectorView, uploadProps, dropzoneProps };
 };
