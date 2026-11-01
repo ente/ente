@@ -3,14 +3,7 @@ import { PseudoCollectionID } from "ente-new/photos/services/collection-summary"
 import type { SearchSuggestion } from "ente-new/photos/services/search/types";
 import type { PlaceSelection } from "./PlacesList";
 import type { GalleryState } from "./reducer";
-type GallerySectionID =
-    | "albums"
-    | "people"
-    | "links"
-    | "places"
-    | "search"
-    | "duplicates"
-    | "large-files";
+import type { GallerySectionID } from "./sections";
 
 export interface GalleryDestination {
     section: GallerySectionID;
