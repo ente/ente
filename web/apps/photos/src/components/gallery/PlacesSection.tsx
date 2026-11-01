@@ -3,7 +3,6 @@ import { PseudoCollectionID } from "ente-new/photos/services/collection-summary"
 import { t } from "i18next";
 import { useMemo, useState } from "react";
 import { GallerySectionLayout } from "./GallerySectionLayout";
-import { useOperationSource } from "./hooks/use-operation-source";
 import { NavigationFrame } from "./NavigationPrimitives";
 import { usePhotosNavigation } from "./PhotosNavigationContext";
 import { PlacesList } from "./PlacesList";
@@ -37,18 +36,6 @@ export const PlacesSection = ({
     );
     const summary = library.normalCollectionSummaries.get(
         PseudoCollectionID.all,
-    );
-    useOperationSource(
-        {
-            mode: "albums",
-            modePlus: "albums",
-            files: library.filteredFiles,
-            activeCollectionID: PseudoCollectionID.all,
-            activeCollectionSummary: summary,
-            activePersonID: undefined,
-            disableGrouping: false,
-        },
-        operations.setMediaSource,
     );
     return (
         <GallerySectionLayout

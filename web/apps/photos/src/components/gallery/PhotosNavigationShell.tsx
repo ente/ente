@@ -61,7 +61,6 @@ export const PhotosNavigationShell: React.FC<
     Omit<PhotosNavigationShellProps, "isSettingsOpen" | "onSidebar"> & {
         ref?: React.Ref<PhotosNavigationShellHandle>;
         isFirstLoad: boolean;
-        alternateHeader: ReactNode;
         navigationAvailable: boolean;
         activeCollectionID: number | undefined;
         children: (presentation: GallerySectionPresentation) => ReactNode;
@@ -71,7 +70,6 @@ export const PhotosNavigationShell: React.FC<
 > = ({
     ref,
     isFirstLoad,
-    alternateHeader,
     navigationAvailable: hasNavigation,
     activeCollectionID,
     collectionNameByID,
@@ -177,16 +175,14 @@ export const PhotosNavigationShell: React.FC<
                     borderBottom: "none",
                 }}
             >
-                {alternateHeader ?? (
-                    <NormalHeaderContents
-                        onUpload={props.onUpload}
-                        {...{
-                            navigationAvailable,
-                            navigationOpen,
-                            toggleNavigation,
-                        }}
-                    />
-                )}
+                <NormalHeaderContents
+                    onUpload={props.onUpload}
+                    {...{
+                        navigationAvailable,
+                        navigationOpen,
+                        toggleNavigation,
+                    }}
+                />
             </NavbarBase>
             <Stack
                 direction="row"
@@ -222,33 +218,31 @@ export const PhotosNavigationShell: React.FC<
                             }),
                         })}
                     >
-                        {alternateHeader == null && (
-                            <NormalNavigationRail
-                                {...props}
-                                isSettingsOpen={sidebarVisibilityProps.open}
-                                onSidebar={() => showSettings()}
-                                onShowMap={() => {
-                                    showLibraryMap();
-                                    setNavigationCollapsed(false);
-                                    if (mobile) showMobileNavigation();
-                                }}
-                                isHome={
-                                    !props.isMapSelected &&
-                                    props.mode == "albums" &&
-                                    !props.isInSearchMode &&
-                                    activeCollectionID == PseudoCollectionID.all
-                                }
-                                onChangeMode={handleChangeMode}
-                                opensDialog={mobile}
-                                navigationOpen={
-                                    !props.isMapSelected &&
-                                    hasNavigation &&
-                                    (mobile
-                                        ? mobileDrawerProps.open
-                                        : !navigationCollapsed)
-                                }
-                            />
-                        )}
+                        <NormalNavigationRail
+                            {...props}
+                            isSettingsOpen={sidebarVisibilityProps.open}
+                            onSidebar={() => showSettings()}
+                            onShowMap={() => {
+                                showLibraryMap();
+                                setNavigationCollapsed(false);
+                                if (mobile) showMobileNavigation();
+                            }}
+                            isHome={
+                                !props.isMapSelected &&
+                                props.mode == "albums" &&
+                                !props.isInSearchMode &&
+                                activeCollectionID == PseudoCollectionID.all
+                            }
+                            onChangeMode={handleChangeMode}
+                            opensDialog={mobile}
+                            navigationOpen={
+                                !props.isMapSelected &&
+                                hasNavigation &&
+                                (mobile
+                                    ? mobileDrawerProps.open
+                                    : !navigationCollapsed)
+                            }
+                        />
                     </Box>
                 </NavigationSlide>
                 {children({

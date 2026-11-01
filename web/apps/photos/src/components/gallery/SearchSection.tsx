@@ -29,11 +29,7 @@ export const SearchSection = ({
         view?.type == "people" ? view.activePerson?.id : undefined;
     const suggestion = navigation.searchSuggestion;
     const results = useSearchResults(suggestion, library.searchIndexRevision);
-    const previousFiles = useRef(
-        operations.mediaSource?.mode === mode
-            ? operations.mediaSource.files
-            : library.filteredFiles,
-    );
+    const previousFiles = useRef(library.filteredFiles);
     const { searchSortAsc, setSearchSortAsc } = preferences;
     const files = useMemo(() => {
         const visible = suppressSharedFilesSavedByUser(

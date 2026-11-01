@@ -92,10 +92,8 @@ export const useSelectedFileOperations = ({
     const [fixCreationTimeFiles, setFixCreationTimeFiles] = useState<
         EnteFile[]
     >([]);
-    const {
-        show: showContextMenuAssignPerson,
-        props: contextMenuAssignPersonProps,
-    } = useModalVisibility();
+    const { show: openAssignPerson, props: contextMenuAssignPersonProps } =
+        useModalVisibility();
     const namedPeople = useMemo(
         () =>
             (peopleState?.visiblePeople ?? []).filter(
@@ -109,8 +107,24 @@ export const useSelectedFileOperations = ({
     );
     const { show: showFixCreationTime, props: fixCreationTimeVisibilityProps } =
         useModalVisibility();
-    const { show: showEditLocation, props: editLocationVisibilityProps } =
+    const { show: openEditLocation, props: editLocationVisibilityProps } =
         useModalVisibility();
+    const [personSelection, setPersonSelection] = useState<{
+        files: EnteFile[];
+        clear: () => void;
+    }>();
+    const [editLocationFiles, setEditLocationFiles] = useState<EnteFile[]>([]);
+    const showContextMenuAssignPerson = useCallback(() => {
+        setPersonSelection({
+            files: selectedFilesInView,
+            clear: clearSelection,
+        });
+        openAssignPerson();
+    }, [selectedFilesInView, clearSelection, openAssignPerson]);
+    const showEditLocation = useCallback(() => {
+        setEditLocationFiles(selectedFilesInView);
+        openEditLocation();
+    }, [selectedFilesInView, openEditLocation]);
     const createFileOpHandler = useCallback(
         (op: FileOp, options?: { suppressSelectionBar?: boolean }) => () => {
             return (async () => {
@@ -260,12 +274,12 @@ export const useSelectedFileOperations = ({
         async (personID: string) => {
             showLoadingBar();
             try {
-                const selectedFiles = getSelectedFiles(selected, filteredFiles);
+                const selectedFiles = personSelection?.files ?? [];
                 await addManualFileAssignmentsToPerson(
                     personID,
                     selectedFiles.map((f) => f.id),
                 );
-                clearSelection();
+                personSelection?.clear();
                 const personName = namedPeople.find(
                     (p) => p.id === personID,
                 )?.name;
@@ -282,9 +296,7 @@ export const useSelectedFileOperations = ({
             }
         },
         [
-            selected,
-            filteredFiles,
-            clearSelection,
+            personSelection,
             showNotification,
             namedPeople,
             showLoadingBar,
@@ -301,7 +313,7 @@ export const useSelectedFileOperations = ({
     );
     const handleEditLocationConfirm = useCallback(
         async (location: Location) => {
-            const userFiles = selectedFilesInView.filter(
+            const userFiles = editLocationFiles.filter(
                 (f) => f.ownerID == user!.id,
             );
             if (userFiles.length > 0) {
@@ -313,7 +325,7 @@ export const useSelectedFileOperations = ({
             }
             void remotePull({ silent: true, source: "edit-location" });
         },
-        [selectedFilesInView, user, remotePull],
+        [editLocationFiles, user, remotePull],
     );
     const selectedCount = selected.count;
     const selectedOwnCount = selected.ownCount;
@@ -349,7 +361,7 @@ export const useSelectedFileOperations = ({
             />{" "}
             <EditLocationDialog
                 {...editLocationVisibilityProps}
-                files={selectedFilesInView}
+                files={editLocationFiles}
                 onConfirm={handleEditLocationConfirm}
             />
         </>
