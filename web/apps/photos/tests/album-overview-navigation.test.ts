@@ -1,4 +1,6 @@
 import type { LocalUser } from "ente-accounts/services/user";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { describe, expect, test } from "vitest";
@@ -15,13 +17,16 @@ import {
     albumView,
 } from "../src/components/gallery/sections/albums/album-files";
 
-const mounted = () =>
+const mounted = (
+    collections: Collection[] = [],
+    collectionFiles: EnteFile[] = [],
+) =>
     galleryReducer(initialGalleryState, {
         type: "mount",
         user: { id: 1 } as LocalUser,
         familyData: undefined,
-        collections: [],
-        collectionFiles: [],
+        collections,
+        collectionFiles,
         trashItems: [],
     });
 
@@ -72,28 +77,76 @@ describe("album overview navigation", () => {
             PseudoCollectionID.all,
         );
     });
-    test("keeps the group overview through collection refreshes", () => {
-        let library = mounted();
+    test("refreshes populated album summaries while keeping the group overview", () => {
+        const album: Collection = {
+            id: 10,
+            name: "Original album",
+            type: "album",
+            owner: { id: 1 },
+            key: "album-key",
+            sharees: [],
+            publicURLs: [],
+            updationTime: 1,
+        };
+        const files: EnteFile[] = [1, 2, 3].map((id) => ({
+            id,
+            collectionID: album.id,
+            ownerID: 1,
+            key: "file-key",
+            file: { decryptionHeader: "" },
+            thumbnail: { decryptionHeader: "" },
+            updationTime: id,
+            metadata: {
+                fileType: 0,
+                title: `${id}.jpg`,
+                creationTime: id,
+                modificationTime: id,
+            },
+        }));
+        let library = mounted([album], files.slice(0, 1));
         const navigation = navigationReducer(initialNavigationState, {
             type: "showAlbumOverview",
             albumFilter: "ente",
         });
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Original album",
+            fileCount: 1,
+            coverFile: { id: 1 },
+        });
         library = galleryReducer(library, {
             type: "setCollections",
-            collections: [],
+            collections: [{ ...album, name: "Renamed album", updationTime: 2 }],
+        });
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Renamed album",
+            fileCount: 1,
+            coverFile: { id: 1 },
         });
         library = galleryReducer(library, {
             type: "setCollectionFiles",
-            collectionFiles: [],
+            collectionFiles: files.slice(1),
+        });
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Renamed album",
+            fileCount: 2,
+            coverFile: { id: 3 },
         });
         library = galleryReducer(library, {
             type: "setTrashItems",
-            trashItems: [],
+            trashItems: [{ file: files[0]!, updatedAt: 4, deleteBy: 5 }],
         });
+        expect(
+            library.normalCollectionSummaries.get(PseudoCollectionID.trash)
+                ?.fileCount,
+        ).toBe(1);
         library = galleryReducer(library, { type: "clearUnsyncedState" });
         const view = albumView(library, navigation.destination);
         expect(view).toEqual({ type: "album-overview", albumFilter: "ente" });
-        expect(albumFiles(library, view)).toEqual([]);
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Renamed album",
+            fileCount: 2,
+            coverFile: { id: 3 },
+        });
     });
     test("switches between the People overview and album groups", () => {
         let navigation = navigationReducer(initialNavigationState, {
