@@ -1,24 +1,20 @@
 import { AlbumsSection } from "@/components/gallery/AlbumsSection";
-import { GalleryDownloadNotifications } from "@/components/gallery/GalleryDownloadNotifications";
 import { GallerySectionLayout } from "@/components/gallery/GallerySectionLayout";
 import { PeopleSection } from "@/components/gallery/PeopleSection";
 import { PlacesSection } from "@/components/gallery/PlacesSection";
 import { SearchSection } from "@/components/gallery/SearchSection";
-import { useCollectionDialogs } from "@/components/gallery/hooks/use-collection-dialogs";
-import { useFileMutations } from "@/components/gallery/hooks/use-file-mutations";
-import { useGalleryUploads } from "@/components/gallery/hooks/use-gallery-uploads";
+import { useGalleryOperations } from "@/components/gallery/hooks/use-gallery-operations";
 import { useMapEntry } from "@/components/gallery/hooks/use-map-entry";
 import { usePeopleEntry } from "@/components/gallery/hooks/use-people-entry";
-import type { GallerySectionOperations } from "@/components/gallery/section-types";
+import type { GalleryNavigationState } from "@/components/gallery/navigation-state";
 // TODO: Audit this file (the code here is mostly fine, but needs revisiting
 // the file it depends on have been audited and their interfaces fixed).
 /* eslint-disable react-hooks/exhaustive-deps */
 import { AuthenticateUser } from "@/components/AuthenticateUser";
 import { DesktopWhatsNew } from "@/components/DesktopWhatsNew";
-import { QuickLinkCreatedNotification } from "@/components/QuickLinkCreatedNotification";
 import { DuplicatesView } from "@/components/gallery/DuplicatesView";
 import { LargeFilesView } from "@/components/gallery/LargeFilesView";
-import { LinksView } from "@/components/gallery/LinksView";
+import { LinksSection } from "@/components/gallery/LinksSection";
 import {
     PhotosNavigationContext,
     type PhotosNavigationActions,
@@ -37,50 +33,27 @@ import { useGalleryLibrary } from "@/components/gallery/hooks/use-gallery-librar
 import { useGalleryPreferences } from "@/components/gallery/hooks/use-gallery-preferences";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
 import type { AlbumFilter } from "@/utils/album-filters";
-import { TranslucentLoadingOverlay } from "ente-base/components/loaders";
 import { FullScreenDropZone } from "ente-gallery/components/FullScreenDropZone";
-import { useSaveGroups } from "ente-gallery/components/utils/save-groups";
-import type { FileViewerInitialSidebar } from "ente-gallery/components/viewer/FileViewer";
-import { ItemVisibility } from "ente-media/file-metadata";
-import {
-    haveOnlySystemCollections,
-    PseudoCollectionID,
-} from "ente-new/photos/services/collection-summary";
+import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 
 import type { SearchOption } from "ente-new/photos/services/search/types";
-import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const Page: React.FC = () => {
-    const { showLoadingBar, hideLoadingBar } = usePhotosAppContext();
-
+    const libraryOwner = useGalleryLibrary();
     const {
         state,
         dispatch,
         isFirstLoad,
         searchIndexRevision,
-        peopleState,
-        remotePull,
         remoteFilesPull,
-        showSessionExpiredDialog,
-    } = useGalleryLibrary();
+    } = libraryOwner;
 
     const [cleanupView, setCleanupView] = useState<
         "large-files" | "duplicates"
     >();
     const isCleanupViewOpen = cleanupView !== undefined;
-    const [sectionActivity, setSectionActivity] = useState({
-        selection: false,
-        drop: false,
-    });
-    const [blockingLoad, setBlockingLoad] = useState(false);
-    const [pendingFileNavigation, setPendingFileNavigation] = useState<{
-        fileIndex: number;
-        sidebar?: FileViewerInitialSidebar;
-        commentID?: string;
-    }>();
-    const { saveGroups, onAddSaveGroup, onRemoveSaveGroup } = useSaveGroups();
     const navigationRef = useRef<PhotosNavigationShellHandle>(null);
 
     const lastAuthenticationForHiddenTimestamp = useRef<number>(0);
@@ -94,16 +67,7 @@ const Page: React.FC = () => {
 
     const openMap = useCallback(() => setIsMapView(true), []);
     const handleShowCollectionMap = useMapEntry(openMap);
-    const {
-        user,
-        collectionNameByID,
-        hiddenCollectionIDs,
-        normalCollectionSummaries,
-        hiddenFileIDs,
-        tempDeletedFileIDs,
-        tempHiddenFileIDs,
-        isInSearchMode,
-    } = state;
+    const { user, collectionNameByID, isInSearchMode } = state;
 
     const isAlbumOverview = state.view?.type == "album-overview";
     const barMode =
@@ -114,33 +78,12 @@ const Page: React.FC = () => {
         state.view?.type == "album-overview"
             ? state.view.albumFilter
             : undefined;
-    const quickLinkVisibility =
-        barMode == "hidden-albums"
-            ? ItemVisibility.hidden
-            : ItemVisibility.visible;
-    const {
-        publicLinkToast,
-        setPublicLinkToast,
-        handleFavoriteFileOp,
-        onSendLinkError,
-        handleFileViewerToggleFavorite,
-        handleFileViewerFileVisibilityUpdate,
-        handleFileViewerSendLink,
-        handleMarkTempDeleted,
-    } = useFileMutations({ state, dispatch, remotePull, quickLinkVisibility });
-
     const activeCollectionID =
         state.view?.type == "people" ||
         state.view?.type == "album-overview" ||
         state.view?.type == "links"
             ? undefined
             : state.view?.activeCollectionSummaryID;
-    const activeCollection =
-        state.view?.type == "people" ||
-        state.view?.type == "album-overview" ||
-        state.view?.type == "links"
-            ? undefined
-            : state.view?.activeCollection;
     const activeCollectionSummary =
         state.view?.type == "people" ||
         state.view?.type == "album-overview" ||
@@ -162,8 +105,6 @@ const Page: React.FC = () => {
         setAlbumSearchQuery,
         albumOpenedFromOverview,
         setAlbumOpenedFromOverview,
-        collectionsSortBy,
-        onChangeCollectionsSortBy,
     } = preferences;
 
     const barCollectionSummaries =
@@ -175,6 +116,46 @@ const Page: React.FC = () => {
 
     const collectionSummary = barCollectionSummaries.get(
         galleryBarActiveCollectionID!,
+    );
+
+    const navigationState: GalleryNavigationState = {
+        destination: {
+            section:
+                isMapView && activeCollectionID === PseudoCollectionID.all
+                    ? "places"
+                    : barMode === "people" || barMode === "links"
+                      ? barMode
+                      : "albums",
+            albumMode:
+                barMode === "people" || barMode === "links"
+                    ? undefined
+                    : barMode,
+            collectionID: galleryBarActiveCollectionID,
+            albumFilter: overviewFilter,
+            personID:
+                state.view?.type === "people"
+                    ? state.view.activePerson?.id
+                    : undefined,
+            extraVisiblePersonID: state.extraVisiblePerson?.id,
+            collectionMap: isMapView,
+        },
+        overlay: isInSearchMode
+            ? { section: "search", suggestion: state.searchSuggestion }
+            : cleanupView
+              ? { section: cleanupView }
+              : undefined,
+        selectedPlace,
+        placeSelectionRevision,
+    };
+    const {
+        operations: sectionOperations,
+        dropzoneProps,
+        ui,
+    } = useGalleryOperations(
+        libraryOwner,
+        navigationState,
+        authenticateUserDialogProps.open,
+        (action) => navigationRef.current?.showSettings(action),
     );
 
     const router = useRouter();
@@ -198,42 +179,6 @@ const Page: React.FC = () => {
     useEffect(() => {
         if (!activeCollectionSummary) closeCollectionMap();
     }, [activeCollectionSummary, closeCollectionMap]);
-
-    const handleVisualFeedback = useCallback(() => {
-        showLoadingBar();
-        setTimeout(hideLoadingBar, 0);
-    }, [showLoadingBar, hideLoadingBar]);
-
-    const handlePendingNavigationConsumed = useCallback(() => {
-        setPendingFileNavigation(undefined);
-    }, []);
-
-    const {
-        openCollectionSelector,
-        albumNameInputVisibilityProps,
-        showCreateAlbum,
-        handleOpenCollectionSelector,
-        handleCloseCollectionSelector,
-        handleAddSingleFileToCollection,
-        collectionOperationDialogs,
-    } = useCollectionDialogs({ state, remotePull });
-
-    const { openUploader, uploadTypeSelectorView, uploadUI, dropzoneProps } =
-        useGalleryUploads({
-            user,
-            activeCollection,
-            isFirstUpload: haveOnlySystemCollections(normalCollectionSummaries),
-            isInHiddenSection: barMode == "hidden-albums",
-            onUploadFile: (file) => dispatch({ type: "uploadFile", file }),
-            onShowSubscription: () =>
-                navigationRef.current?.showSettings("subscription"),
-            onRemotePull: remotePull,
-            onRemoteFilesPull: remoteFilesPull,
-            onOpenCollectionSelector: handleOpenCollectionSelector,
-            onCloseCollectionSelector: handleCloseCollectionSelector,
-            onShowSessionExpiredDialog: showSessionExpiredDialog,
-            setLoading: setBlockingLoad,
-        });
 
     const handleShowCollectionSummaryWithID = useCallback(
         (collectionSummaryID: number | undefined) => {
@@ -517,38 +462,7 @@ const Page: React.FC = () => {
         isMapView,
         selectedPlace,
         placeSelectionRevision,
-        pendingFileNavigation,
-    };
-    const sectionOperations: GallerySectionOperations = {
-        dispatch,
-        peopleState,
-        mutations: {
-            setPublicLinkToast,
-            handleFavoriteFileOp,
-            onSendLinkError,
-            handleMarkTempDeleted,
-        },
-        selectionDisabled:
-            uploadTypeSelectorView ||
-            openCollectionSelector ||
-            albumNameInputVisibilityProps.open ||
-            authenticateUserDialogProps.open ||
-            sectionActivity.selection,
-        onAddSaveGroup,
-        onToggleFavorite: handleFileViewerToggleFavorite,
-        onFileVisibilityUpdate: handleFileViewerFileVisibilityUpdate,
-        onSendLink: handleFileViewerSendLink,
-        onMarkTempDeleted: handleMarkTempDeleted,
-        onRemotePull: remotePull,
-        onRemoteFilesPull: remoteFilesPull,
-        onVisualFeedback: handleVisualFeedback,
-        onAddFileToCollection: handleAddSingleFileToCollection,
-        onPendingNavigationConsumed: handlePendingNavigationConsumed,
-        setBlockingLoad,
-        onUpload: openUploader,
-        onCreateAlbum: () => showCreateAlbum(),
-        saveGroups,
-        setSectionActivity,
+        pendingFileNavigation: undefined,
     };
     if (!user) {
         // Children rely on user after the mount dispatch.
@@ -557,20 +471,7 @@ const Page: React.FC = () => {
 
     return (
         <PhotosNavigationContext.Provider value={navigationActions}>
-            <FullScreenDropZone
-                {...dropzoneProps}
-                disabled={
-                    dropzoneProps.disabled ||
-                    sectionActivity.drop ||
-                    isCleanupViewOpen
-                }
-            >
-                {blockingLoad && <TranslucentLoadingOverlay />}
-                {collectionOperationDialogs}
-                <GalleryDownloadNotifications
-                    {...{ saveGroups, onRemoveSaveGroup }}
-                />
-
+            <FullScreenDropZone {...dropzoneProps}>
                 <PhotosNavigationShell
                     ref={navigationRef}
                     isFirstLoad={isFirstLoad}
@@ -583,7 +484,7 @@ const Page: React.FC = () => {
                         isMapView &&
                         activeCollectionID === PseudoCollectionID.all
                     }
-                    onUpload={openUploader}
+                    onUpload={sectionOperations.onUpload}
                     navigationAvailable={!isCleanupViewOpen}
                     activeCollectionID={galleryBarActiveCollectionID}
                 >
@@ -605,27 +506,12 @@ const Page: React.FC = () => {
                           !isCleanupViewOpen &&
                           !isMapView &&
                           barMode == "links" ? (
-                            <LinksView
+                            <LinksSection
+                                library={sectionLibrary}
+                                operations={sectionOperations}
+                                navigation={sectionNavigation}
+                                preferences={preferences}
                                 presentation={presentation}
-                                onSearchQueryChange={setAlbumSearchQuery}
-                                onChangeSortBy={onChangeCollectionsSortBy}
-                                user={user}
-                                collections={state.collections}
-                                collectionFiles={state.collectionFiles}
-                                collectionSummaries={normalCollectionSummaries}
-                                hiddenCollectionIDs={hiddenCollectionIDs}
-                                hiddenFileIDs={hiddenFileIDs}
-                                tempDeletedFileIDs={tempDeletedFileIDs}
-                                tempHiddenFileIDs={tempHiddenFileIDs}
-                                uncategorizedCollectionSummaryID={
-                                    state.uncategorizedCollectionSummaryID
-                                }
-                                selectedLinkID={selectedLinkID}
-                                searchQuery={albumSearchQuery}
-                                sortBy={collectionsSortBy}
-                                onCreateAlbum={() => showCreateAlbum()}
-                                setBlockingLoad={setBlockingLoad}
-                                onRemotePull={remotePull}
                             />
                         ) : !isInSearchMode &&
                           !isCleanupViewOpen &&
@@ -669,24 +555,12 @@ const Page: React.FC = () => {
                         )
                     }
                 </PhotosNavigationShell>
-                {uploadUI}
+                {ui}
                 <DesktopWhatsNew />
                 {peopleConsentDialog}
 
                 <AuthenticateUser {...authenticateUserDialogProps} />
             </FullScreenDropZone>
-
-            <QuickLinkCreatedNotification
-                open={publicLinkToast.open}
-                onCopy={() => {
-                    if (publicLinkToast.url) {
-                        void navigator.clipboard.writeText(publicLinkToast.url);
-                    }
-                }}
-                onClose={() =>
-                    setPublicLinkToast((prev) => ({ ...prev, open: false }))
-                }
-            />
         </PhotosNavigationContext.Provider>
     );
 };

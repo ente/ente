@@ -28,11 +28,11 @@ export type GallerySectionOperations = Pick<
     | "onFileVisibilityUpdate"
     | "onMarkTempDeleted"
     | "onRemotePull"
-    | "onRemoteFilesPull"
     | "onVisualFeedback"
     | "onAddFileToCollection"
     | "onPendingNavigationConsumed"
 > & {
+    onRemoteFilesPull: () => Promise<void>;
     dispatch: Dispatch<GalleryAction>;
     peopleState: PeopleState | undefined;
     mutations: Parameters<typeof useSelectedFileOperations>[0]["mutations"];
