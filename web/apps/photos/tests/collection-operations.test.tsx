@@ -1,13 +1,5 @@
-import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
-import {
-    Children,
-    isValidElement,
-    type ComponentProps,
-    type ReactElement,
-    type ReactNode,
-} from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
 import { useCollectionOperations } from "../src/components/gallery/media/use-collection-operations";
@@ -122,21 +114,11 @@ const openAddDialog = () => {
         return null;
     };
     renderToStaticMarkup(<Harness />);
-    const dialogs = operations!.collectionOperationDialogs as ReactElement<{
-        children: ReactNode;
-    }>;
-    const dialog = Children.toArray(dialogs.props.children).find(
-        (child) =>
-            isValidElement<ComponentProps<typeof SingleInputDialog>>(child) &&
-            child.type === SingleInputDialog,
-    );
-    if (!isValidElement<ComponentProps<typeof SingleInputDialog>>(dialog)) {
-        throw new Error("Album name dialog not found");
-    }
+    const dialogProps = operations!.albumNameInputProps;
     return {
         operations: operations!,
-        close: dialog.props.onClose,
-        submit: () => dialog.props.onSubmit("New album", vi.fn()),
+        close: dialogProps.onClose,
+        submit: () => dialogProps.onSubmit("New album", vi.fn()),
     };
 };
 

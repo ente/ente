@@ -1,12 +1,12 @@
-import {
+import type {
     CollectionSelector,
-    type CollectionSelectorAttributes,
+    CollectionSelectorAttributes,
 } from "@/components/CollectionSelector";
 import {
     findCollectionCreatingIfNeeded,
     performCollectionOp,
 } from "@/components/gallery/helpers";
-import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
+import type { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import type { Collection } from "ente-media/collection";
@@ -17,7 +17,7 @@ import {
 } from "ente-new/photos/services/collection";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ComponentProps } from "react";
 import type { RemotePullOpts } from "..";
 import type { GalleryState } from "../reducer";
 
@@ -117,35 +117,28 @@ export const useCollectionDialogs = ({
             onGenericError,
         ],
     );
-    const collectionOperationDialogs = (
-        <>
-            <CollectionSelector
-                open={openCollectionSelector}
-                onClose={handleCloseCollectionSelector}
-                onExited={() => setAttributes(undefined)}
-                attributes={attributes}
-                collectionSummaries={
-                    attributes?.showHiddenCollections
-                        ? state.hiddenCollectionSummaries
-                        : state.normalCollectionSummaries
-                }
-                collectionForCollectionSummaryID={(id) =>
-                    findCollectionCreatingIfNeeded(state.collections, id)
-                }
-            />
-            <SingleInputDialog
-                {...albumNameInputVisibilityProps}
-                title={t("new_album")}
-                label={t("album_name")}
-                submitButtonTitle={t("create")}
-                onClose={() => {
-                    setCreation(undefined);
-                    albumNameInputVisibilityProps.onClose();
-                }}
-                onSubmit={handleAlbumNameSubmit}
-            />
-        </>
-    );
+    const collectionSelectorProps: ComponentProps<typeof CollectionSelector> = {
+        open: openCollectionSelector,
+        onClose: handleCloseCollectionSelector,
+        onExited: () => setAttributes(undefined),
+        attributes,
+        collectionSummaries: attributes?.showHiddenCollections
+            ? state.hiddenCollectionSummaries
+            : state.normalCollectionSummaries,
+        collectionForCollectionSummaryID: (id) =>
+            findCollectionCreatingIfNeeded(state.collections, id),
+    };
+    const albumNameInputProps: ComponentProps<typeof SingleInputDialog> = {
+        ...albumNameInputVisibilityProps,
+        title: t("new_album"),
+        label: t("album_name"),
+        submitButtonTitle: t("create"),
+        onClose: () => {
+            setCreation(undefined);
+            albumNameInputVisibilityProps.onClose();
+        },
+        onSubmit: handleAlbumNameSubmit,
+    };
     return {
         openCollectionSelector,
         albumNameInputVisibilityProps,
@@ -153,6 +146,7 @@ export const useCollectionDialogs = ({
         handleOpenCollectionSelector,
         handleCloseCollectionSelector,
         handleAddSingleFileToCollection,
-        collectionOperationDialogs,
+        collectionSelectorProps,
+        albumNameInputProps,
     };
 };

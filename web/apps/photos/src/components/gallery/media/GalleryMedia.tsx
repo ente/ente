@@ -1,8 +1,10 @@
+import { CollectionSelector } from "@/components/CollectionSelector";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { FileListWithViewer } from "@/components/FileListWithViewer";
 import { SelectedFileOptions } from "@/components/SelectedFileOptions";
 import { externalLink } from "@/utils/link";
 import { Box, Typography } from "@mui/material";
+import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import { ItemVisibility } from "ente-media/file-metadata";
 import { t } from "i18next";
 import type { GalleryMediaSource } from "../sections/types";
@@ -241,7 +243,10 @@ const GalleryMediaContent = ({
                     navigation.pendingFileNavigation?.commentID
                 }
             />
-            {collectionActions.collectionOperationDialogs}
+            <CollectionSelector
+                {...collectionActions.collectionSelectorProps}
+            />
+            <SingleInputDialog {...collectionActions.albumNameInputProps} />
             {fileActions.selectedFileOperationDialogs}
         </>
     );
