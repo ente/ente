@@ -389,6 +389,14 @@ family is null outside a family; otherwise it contains usedBytes, storageBytes a
 Each member has email, status, admin, usedBytes and storageLimitBytes (null without a cap)."
     )]
     Usage,
+    #[command(
+        about = "Find and remove exact duplicate photos and videos",
+        visible_alias = "duplicates"
+    )]
+    Duplicate {
+        #[command(subcommand)]
+        command: DuplicateCommand,
+    },
     #[command(about = "Manage albums")]
     Album {
         #[command(subcommand)]
@@ -604,6 +612,49 @@ pub enum FileCommand {
         file: String,
         #[arg(long, value_name = "PATH", help = "Write to this new file")]
         output: PathBuf,
+    },
+}
+
+const DUPLICATES_HELP: &str = "Uses the same duplicate detection and removal rules as Ente Photos.
+Scans files you own in non-hidden albums, including Favorites and archived albums.
+Matches stored hashes; a file in several albums is counted once. Files without a hash or known group size are omitted.
+Group IDs are the smallest file ID in each group, not row numbers.
+Keeps a copy with a caption first, then one with an edited name or date, then the first copy in album-name order.
+The retained copy is added to the other copies' albums before extra copies move to trash.
+List refreshes metadata first; --offline reads a previous sync. Groups are ordered by reclaimable size.
+Remove always refreshes online. Pass group IDs or --all, or omit both to select with space and enter.
+Without --dry-run, removal asks for confirmation; --yes approves it and --no-input only disables prompts.
+List JSON: an array of groups with id, sizeBytes, reclaimableBytes, retainedId and files.
+Each file has id, name and albums (id and name). All IDs are strings; byte counts are integers.
+sizeBytes is the stored encrypted size of one copy; reclaimableBytes is the total for the extra copies in the group.
+Remove JSON: dryRun, groupIds, retainedIds, trashIds and reclaimableBytes.
+Removal reclaimableBytes is the total for all selected groups.
+With --dry-run, trashIds are planned; otherwise they were moved to trash. Preview and progress go to stderr.
+
+Examples:
+  ente photos duplicate list
+  ente photos duplicate remove
+  ente photos duplicate remove 1580559962386999 --dry-run
+  ente photos duplicate remove 1580559962386999 --yes --no-input --json";
+
+#[derive(Subcommand)]
+pub enum DuplicateCommand {
+    #[command(about = "List duplicate groups and the copies to keep or trash", after_long_help = DUPLICATES_HELP)]
+    List(ListArgs),
+    #[command(about = "Select duplicate groups and move extra copies to trash", after_long_help = DUPLICATES_HELP)]
+    Remove {
+        #[arg(
+            value_name = "GROUP",
+            conflicts_with = "all",
+            help = "Group IDs from duplicates list; omit to select interactively"
+        )]
+        groups: Vec<i64>,
+        #[arg(long, help = "Select every current duplicate group")]
+        all: bool,
+        #[arg(long, help = "Show the selected removal plan without changing files")]
+        dry_run: bool,
+        #[arg(long, help = "Approve removal without a confirmation prompt")]
+        yes: bool,
     },
 }
 

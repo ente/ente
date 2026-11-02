@@ -1480,3 +1480,6 @@ async fn set_album_metadata(
 
 #[path = "export.rs"]
 mod export;
+
+#[path = "duplicates_museum.rs"]
+mod duplicates;

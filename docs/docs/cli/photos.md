@@ -107,6 +107,29 @@ ente photos file list --type video --min-size 500MB
 
 A file must match every filter you pass. `--sort created` lists the newest files first and `--sort size` the largest first; add `--reverse` for the opposite order. Files with an unknown size sort as the smallest, and ties keep ID order. Without `--sort`, files are listed by ID.
 
+## Find and remove duplicates
+
+```sh
+ente photos duplicate list
+ente photos duplicate remove
+```
+
+`list` shows exact duplicate groups, their files and albums, which copy will be kept, and reclaimable space, largest first. Lists show 100 groups; use `--all` or `--limit N` to see more. `remove` lets you select groups with space and continue with enter, then shows the plan and asks for confirmation. `duplicates` is an alias for `duplicate`.
+
+Select group IDs from the list, preview cleanup, or select all groups:
+
+```sh
+ente photos duplicate remove 1580559962386999 --dry-run
+ente photos duplicate remove 1580559962386999 --yes --no-input
+ente photos duplicate remove --all --dry-run --json
+```
+
+Group IDs are the smallest file ID in each group. Removal refreshes metadata first; a group ID that no longer exists stops the command. `--dry-run` previews without changes. `--yes` approves removal; `--no-input` disables prompts and requires IDs or `--all`, plus `--yes` unless previewing.
+
+Duplicates are matched by stored hashes in non-hidden albums you own. The CLI keeps a copy with a caption first, then one with an edited name or date. It preserves album memberships before moving extra copies to Ente's trash. Files are not permanently deleted. If interrupted, list duplicates again before retrying.
+
+With `--json`, `list` returns an array and `remove` returns one object; see [Read as JSON](#read-as-json) for fields. Previews and progress go to stderr.
+
 ## Find files by place
 
 ```sh
@@ -151,6 +174,8 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 | `album list`, `album view` | `id`, `name`, `type` (`album`, `folder`, `favorites`, `uncategorized`, `defaultHidden`, `quicklink`), `visibility` (`visible`, `archived`, `hidden`), `ownerId`, `updatedAt`                                                                                                     |
 | `file list`, `file view`   | `id`, `name`, `type` (`image`, `video`, `livephoto`), `ownerId`, `albumIds`, `createdAt`, `updatedAt`; nullable `modifiedAt`, `location` (`latitude`, `longitude`), `caption`, `hash`, `dateTime`, `offsetTime`, `visibility`, `durationSeconds`, `width`, `height`, `sizeBytes` |
 | `file download`            | `id`, `output`, `bytes`                                                                                                                                                                                                                                                          |
+| `duplicate list`           | `id`, `sizeBytes`, `reclaimableBytes`, `retainedId`, `files` (`id`, `name`, `albums`: `id`, `name`). `sizeBytes` is the stored encrypted size of one copy; `reclaimableBytes` is the total for the extra copies in that group.                                                   |
+| `duplicate remove`         | `dryRun`, `groupIds`, `retainedIds`, `trashIds`, `reclaimableBytes` (total across selected groups). IDs are strings and byte counts are integers; `trashIds` contains planned removals in a dry run and completed removals otherwise.                                            |
 | `place list`               | `name`, `country`, `countryCode`, `latitude` and `longitude` (the city's position), `fileCount`                                                                                                                                                                                  |
 | `place list --countries`   | `name`, `code`, `fileCount`                                                                                                                                                                                                                                                      |
 | `usage`                    | `email`, `planExpiresAt`, `planActive`, `totalBytes`, `usedBytes`, `freeBytes`, `planBytes`, `bonusBytes`; nullable `files`, `family` (`usedBytes`, `storageBytes`, `members`: `email`, `status`, `admin`, `usedBytes`, `storageLimitBytes`)                                     |
@@ -158,7 +183,7 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 
 ## Read offline
 
-`album list`, `album view`, `file list`, `file view` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download and usage need the network.
+`album list`, `album view`, `file list`, `file view`, `duplicate list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums eligible for duplicate detection. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
 
 ## Limits
 
