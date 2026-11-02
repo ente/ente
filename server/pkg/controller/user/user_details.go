@@ -49,7 +49,9 @@ func (c *UserController) GetDetailsV2(ctx *gin.Context, userID int64, fetchMemor
 			}
 			familyData = &familyDataResp
 			for _, familyMember := range familyData.Members {
-				subscriptionUserIDs = append(subscriptionUserIDs, familyMember.MemberUserID)
+				if familyMember.Status == ente.ACCEPTED || familyMember.Status == ente.SELF {
+					subscriptionUserIDs = append(subscriptionUserIDs, familyMember.MemberUserID)
+				}
 			}
 		} else {
 			subscriptionUserIDs = []int64{userID}
@@ -154,16 +156,6 @@ func (c *UserController) GetDetailsV2(ctx *gin.Context, userID int64, fetchMemor
 			if userLockerUsage.UserID == userID {
 				result.Usage -= userLockerUsage.Usage
 			}
-		}
-		if familyData != nil {
-			for _, member := range familyData.Members {
-				for _, userLockerUsage := range lockerUsage.Users {
-					if userLockerUsage.UserID == member.MemberUserID {
-						result.Usage -= userLockerUsage.Usage
-					}
-				}
-			}
-			result.FamilyData = familyData
 		}
 		if app == ente.Locker {
 			result.LockerFamilyUsage = &details.LockerFamilyUsage{
