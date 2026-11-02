@@ -87,19 +87,31 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
         result.enable(&client, "invalid").await,
         Err(Error::IncorrectTotp)
     ));
-    result
-        .enable(
-            &client,
-            &ente_test_support::account_fixture::current_totp(&result.secret_code).unwrap(),
-        )
-        .await
-        .unwrap();
+    let code = ente_test_support::account_fixture::current_totp(&result.secret_code).unwrap();
+    result.enable(&client, &code).await.unwrap();
 
     assert_eq!(result.secret_code, secret_code);
     assert_eq!(result.recovery_key, recovery_key);
 
     setup.assert_async().await;
     enable.assert_async().await;
+    enable.remove_async().await;
+
+    let rejected = server
+        .mock("POST", "/users/two-factor/enable")
+        .with_status(401)
+        .expect(2)
+        .create_async()
+        .await;
+    assert!(matches!(
+        result.enable(&client, &code).await,
+        Err(Error::Http(error)) if error.status_code() == Some(401)
+    ));
+    assert!(matches!(
+        enable_two_factor(&client, secret_code, &recovery_key, &code).await,
+        Err(Error::IncorrectTotp)
+    ));
+    rejected.assert_async().await;
 }
 
 #[test]

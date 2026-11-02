@@ -420,19 +420,14 @@ impl AccountsClient {
     }
 
     pub async fn enable_two_factor(&self, request: &EnableTwoFactorRequest) -> Result<()> {
-        match self
-            .api
+        self.api
             .post("/users/two-factor/enable")
             .json(request)
             .send()
             .await?
             .error_for_code()
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(error) if error.status_code() == Some(401) => Err(Error::IncorrectTotp),
-            Err(error) => Err(error.into()),
-        }
+            .await?;
+        Ok(())
     }
 
     pub async fn disable_two_factor(&self) -> Result<()> {
