@@ -114,25 +114,21 @@ ente photos duplicate list
 ente photos duplicate remove
 ```
 
-`duplicates` is also accepted as an alias for `duplicate`.
+`list` shows exact duplicate groups, their files and albums, which copy will be kept, and reclaimable space, largest first. Lists show 100 groups; use `--all` or `--limit N` to see more. `remove` lets you select groups with space and continue with enter, then shows the plan and asks for confirmation. `duplicates` is an alias for `duplicate`.
 
-`list` shows exact duplicate groups, their files and albums, which copy will be kept, and the space the extra copies occupy. Groups are ordered by reclaimable size. Lists show 100 groups by default; use `--all` or `--limit N` to see more. `remove` lets you select groups with space and continue with enter, then shows the copies to keep or trash and asks for confirmation.
-
-You can also select group IDs from the list, preview removal, or select all current groups:
+Select group IDs from the list, preview cleanup, or select all groups:
 
 ```sh
-ente photos duplicate remove 1580559962386999 1580559962387000 --dry-run
+ente photos duplicate remove 1580559962386999 --dry-run
 ente photos duplicate remove 1580559962386999 --yes --no-input
 ente photos duplicate remove --all --dry-run --json
 ```
 
-Group IDs are the smallest file ID in each group, rather than row numbers. Removal refreshes metadata before selecting groups, so a group can change between runs. A group ID that no longer exists stops the command before it changes anything. `--dry-run` shows the plan without changing files. `--yes` approves removal; `--no-input` disables prompts and requires explicit group IDs or `--all`, plus `--yes` unless previewing.
+Group IDs are the smallest file ID in each group. Removal refreshes metadata first; a group ID that no longer exists stops the command. `--dry-run` previews without changes. `--yes` approves removal; `--no-input` disables prompts and requires IDs or `--all`, plus `--yes` unless previewing.
 
-The CLI uses the same Rust duplicate detection and removal rules as Photos. It matches stored file hashes in non-hidden albums you own, including Favorites and archived albums. Files owned by someone else are excluded. A single file in several albums is counted once, and files without a hash or groups without a known size are omitted. Originals are not downloaded for comparison.
+Duplicates are matched by stored hashes in non-hidden albums you own. The CLI keeps a copy with a caption first, then one with an edited name or date. It preserves album memberships before moving extra copies to Ente's trash. Files are not permanently deleted. If interrupted, list duplicates again before retrying.
 
-For each selected group, the CLI keeps a copy with a caption first, then one with an edited name or date, then the first copy in album-name order (with file IDs breaking ties within an album). It adds that copy to the other copies' albums before moving extra copies to Ente's trash. You select whole groups, as in the web client. The command does not permanently delete files. If removal is interrupted or fails, some changes may have completed; list duplicates again before retrying.
-
-With `--json`, `list` returns an array of groups. `sizeBytes` is the stored encrypted size of one copy; `reclaimableBytes` is the total for the extra copies in that group. `remove` returns one object, with `reclaimableBytes` totaled across the selected groups and `trashIds` listing planned removals in a dry run or completed removals otherwise. See [Read as JSON](#read-as-json) for the fields. Previews and progress go to stderr.
+With `--json`, `list` returns an array and `remove` returns one object; see [Read as JSON](#read-as-json) for fields. Previews and progress go to stderr.
 
 ## Find files by place
 
