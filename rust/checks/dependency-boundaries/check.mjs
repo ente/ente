@@ -42,7 +42,6 @@ const cryptoExceptions = sorted("cryptoExceptions", [
 ]);
 const cryptoName =
     /^(?:aes|argon2|bcrypt|chacha|crypto[-_]|curve25519|ecdsa|ed25519|hkdf|hmac|hpke|kyber|libcrux|ml-kem|p256|pbkdf|poly1305|salsa|scrypt|secp256|sodium|x25519|ring$|srp$)/;
-const crates = resolve(root, "rust/crates");
 
 for (const pkg of metadata.packages) {
     const manifest = pathFromRoot(pkg.manifest_path);
