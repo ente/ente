@@ -5,8 +5,8 @@ import { t } from "i18next";
 import { useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
+import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 import { AlbumTile } from "./AlbumTile";
-import { usePhotosNavigation } from "./PhotosNavigationContext";
 
 interface AlbumsHeaderProps {
     title: string;

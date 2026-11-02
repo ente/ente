@@ -29,7 +29,7 @@ import {
 import { openURL } from "ente-new/photos/utils/web";
 import { t } from "i18next";
 import { useState } from "react";
-import type { RemotePullOpts } from ".";
+import type { RemotePullOpts } from "../..";
 
 interface PublicLinkDetailsProps {
     collection: Collection;

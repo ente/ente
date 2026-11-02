@@ -5,14 +5,15 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import {
-    GalleryBarImpl,
-    type GalleryBarImplProps,
-} from "../src/components/gallery/BarImpl";
-import {
     PhotosNavigationContext,
     type PhotosNavigationActions,
-} from "../src/components/gallery/PhotosNavigationContext";
-import { useAlbumNavigationData } from "../src/components/gallery/use-album-navigation-data";
+} from "../src/components/gallery/navigation/PhotosNavigationContext";
+import {
+    AlbumsNavigation,
+    type AlbumsNavigationProps,
+} from "../src/components/gallery/sections/albums/AlbumsNavigation";
+import { useAlbumNavigationData } from "../src/components/gallery/sections/albums/use-album-navigation-data";
+import { LinksNavigation } from "../src/components/gallery/sections/links/LinksNavigation";
 
 const viewport = vi.hoisted(() => ({ scrollToEnd: false }));
 
@@ -100,13 +101,13 @@ const albums = [owned, shared, link];
 
 const renderSearch = (
     query: string,
-    albumFilter: GalleryBarImplProps["albumFilter"] = "ente",
-    mode: GalleryBarImplProps["mode"] = "albums",
+    albumFilter: AlbumsNavigationProps["albumFilter"] = "ente",
+    mode: AlbumsNavigationProps["mode"] | "links" = "albums",
     summaries = mode == "links" ? [link] : albums,
     scrollToEnd = false,
 ) => {
-    const props: GalleryBarImplProps = {
-        mode,
+    const props: Omit<AlbumsNavigationProps, "mode"> = {
+        albumExpansion: { value: albumFilter, onChange: vi.fn() },
         albumFilter,
         albumSearchQuery: query,
         collectionSummaries: [],
@@ -114,17 +115,14 @@ const renderSearch = (
         uncategorizedCollectionSummaryID: 99,
         activeCollectionID: undefined,
         collectionsSortBy: "updation-time-desc",
-        peopleSortBy: "name-asc",
-        people: [],
-        activePerson: undefined,
         collapsed: false,
         mobileDrawerProps: { open: false, onClose: vi.fn() },
         onAlbumSearchQueryChange: vi.fn(),
         onCreateAlbum: vi.fn(),
         onChangeCollectionsSortBy: vi.fn(),
-        onChangePeopleSortBy: vi.fn(),
     };
     const navigation: PhotosNavigationActions = {
+        openSection: vi.fn(() => true),
         goHome: vi.fn(),
         changeMode: vi.fn(() => true),
         showLibraryMap: vi.fn(),
@@ -146,16 +144,34 @@ const renderSearch = (
     const Sidebar = () => {
         const data = useAlbumNavigationData({
             ...props,
+            mode: mode == "links" ? undefined : mode,
             collectionSummaries: new Map(summaries.map((cs) => [cs.id, cs])),
         });
         return (
             <ThemeProvider theme={photosTheme}>
                 <PhotosNavigationContext.Provider value={navigation}>
-                    <GalleryBarImpl
-                        {...props}
-                        {...data}
-                        collectionSummaries={data.sidebarCollectionSummaries}
-                    />
+                    {mode == "links" ? (
+                        <LinksNavigation
+                            {...props}
+                            collectionSummaries={summaries.filter((cs) =>
+                                cs.name
+                                    .toLowerCase()
+                                    .includes(query.trim().toLowerCase()),
+                            )}
+                            selectedLinkID={undefined}
+                            searchQuery={query}
+                            onSearchQueryChange={vi.fn()}
+                        />
+                    ) : (
+                        <AlbumsNavigation
+                            mode={mode}
+                            {...props}
+                            {...data}
+                            collectionSummaries={
+                                data.sidebarCollectionSummaries
+                            }
+                        />
+                    )}
                 </PhotosNavigationContext.Provider>
             </ThemeProvider>
         );

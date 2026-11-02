@@ -1,10 +1,12 @@
 import type { AlbumFilter } from "@/utils/album-filters";
 import type { SearchOption } from "ente-new/photos/services/search/types";
 import { createContext, useContext } from "react";
-import type { PlaceSelection } from "./PlacesList";
-import type { GalleryBarMode } from "./reducer";
+import type { GalleryBarMode } from "../reducer";
+import type { PlaceSelection } from "../sections/places/PlacesList";
+import type { GallerySectionID } from "../sections/registry";
 
 export interface PhotosNavigationActions {
+    openSection: (id: GallerySectionID) => boolean;
     goHome: () => void;
     changeMode: (mode: GalleryBarMode) => boolean;
     showLibraryMap: () => void;

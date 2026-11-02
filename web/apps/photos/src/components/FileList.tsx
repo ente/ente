@@ -3,8 +3,8 @@ import {
     FileContextMenu,
     type ContextMenuPosition,
 } from "@/components/FileContextMenu";
-import { AlbumEmptyState } from "@/components/gallery/AlbumEmptyState";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
+import { AlbumEmptyState } from "@/components/gallery/sections/albums/AlbumEmptyState";
 import {
     selectedFavoriteCount as countSelectedFavorites,
     type SelectedState,
@@ -115,7 +115,7 @@ export interface FileListProps {
         selected: SelectedState | ((selected: SelectedState) => SelectedState),
     ) => void;
     selected: SelectedState;
-    activeCollectionID: number;
+    activeCollectionID: number | undefined;
     activePersonID?: string | undefined;
     favoriteFileIDs?: Set<number>;
     emailByUserID?: Map<number, string>;
@@ -992,7 +992,7 @@ type FileThumbnailProps = {
     isRangeSelectActive: boolean;
     selectOnClick: boolean;
     isInSelectRange: boolean;
-    activeCollectionID: number;
+    activeCollectionID: number | undefined;
     showPlaceholder: boolean;
     isFav: boolean;
     onClick: () => void;

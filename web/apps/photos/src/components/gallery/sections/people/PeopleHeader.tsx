@@ -97,7 +97,7 @@ import type {
 } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
 import React, { useEffect, useReducer, useState } from "react";
-import { usePhotosNavigation } from "./PhotosNavigationContext";
+import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 
 interface PeopleHeaderProps {
     people: Person[];

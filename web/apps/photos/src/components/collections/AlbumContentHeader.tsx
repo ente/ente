@@ -8,9 +8,7 @@ import type { FileListHeaderOrFooter } from "@/components/FileList";
 import {
     AlbumsHeader,
     albumsHeaderHeight,
-} from "@/components/gallery/AlbumsHeader";
-import { PeopleHeader } from "@/components/gallery/PeopleHeader";
-import type { GalleryBarMode } from "@/components/gallery/reducer";
+} from "@/components/gallery/sections/albums/AlbumsHeader";
 import { Box } from "@mui/material";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import type { Collection } from "ente-media/collection";
@@ -22,7 +20,6 @@ import {
     PseudoCollectionID,
     type CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
-import type { Person } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
 import { AlbumCastDialog } from "./AlbumCastDialog";
@@ -31,14 +28,10 @@ import {
     type CollectionHeaderProps,
 } from "./CollectionHeader";
 
-type GalleryBarAndListHeaderProps = {
-    mode: GalleryBarMode;
-    shouldHide: boolean;
+type AlbumContentHeaderProps = {
     collectionSummary: CollectionSummary | undefined;
     albums: CollectionSummary[];
     activeCollection: Collection | undefined;
-    activePerson: Person | undefined;
-    people: Person[];
     setFileListHeader: (header: FileListHeaderOrFooter) => void;
     hasActiveFileSelection: boolean;
 } & Pick<
@@ -55,20 +48,14 @@ type GalleryBarAndListHeaderProps = {
         "user" | "emailByUserID" | "shareSuggestionEmails" | "setBlockingLoad"
     >;
 
-export const GalleryBarAndListHeader: React.FC<
-    GalleryBarAndListHeaderProps
-> = ({
-    shouldHide,
-    mode,
+export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
     user,
     collectionSummary,
     albums,
     activeCollection,
     setBlockingLoad,
-    people,
     isActiveCollectionDownloadInProgress,
     hasActiveFileSelection,
-    activePerson,
     emailByUserID,
     shareSuggestionEmails,
     onRemotePull,
@@ -105,11 +92,8 @@ export const GalleryBarAndListHeader: React.FC<
     const [descriptionHeight, setDescriptionHeight] = useState(0);
 
     useEffect(() => {
-        if (shouldHide || mode == "links") return;
-
         // Pseudo-collections need header actions despite having no Collection.
         const shouldRenderCollectionHeader =
-            mode != "people" &&
             collectionSummary &&
             (activeCollection ||
                 collectionSummary.id <= PseudoCollectionID.all);
@@ -149,15 +133,13 @@ export const GalleryBarAndListHeader: React.FC<
                         onDescriptionHeightChange={setDescriptionHeight}
                     />
                 </Box>
-            ) : mode != "people" && collectionSummary ? (
+            ) : collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
                     <GalleryItemsSummary
                         name={collectionSummary.name}
                         fileCount={collectionSummary.fileCount}
                     />
                 </GalleryItemsHeaderAdapter>
-            ) : activePerson ? (
-                <PeopleHeader person={activePerson} people={people} />
             ) : (
                 <></>
             ),
@@ -168,13 +150,10 @@ export const GalleryBarAndListHeader: React.FC<
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
-        shouldHide,
-        mode,
         collectionSummary,
         albums,
         activeCollection,
         isActiveCollectionDownloadInProgress,
-        activePerson,
         showCollectionShare,
         openCollectionShare,
         openCollectionManageLink,
@@ -187,14 +166,7 @@ export const GalleryBarAndListHeader: React.FC<
         onEditAlbumDetails,
         albumDescription,
         descriptionHeight,
-        // TODO: Cluster
-        // This causes a loop since it is an array dep
-        // people,
     ]);
-
-    if (shouldHide) {
-        return <></>;
-    }
 
     return (
         <>

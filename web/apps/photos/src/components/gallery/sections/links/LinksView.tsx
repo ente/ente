@@ -10,11 +10,19 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import { t } from "i18next";
 import { useMemo } from "react";
-import type { RemotePullOpts } from ".";
-import { AlbumsOverview } from "./AlbumsOverview";
+import type { RemotePullOpts } from "../..";
+import {
+    GallerySectionLayout,
+    type GallerySectionPresentation,
+} from "../../navigation/GallerySectionLayout";
+import { AlbumsOverview } from "../albums/AlbumsOverview";
+import { LinksNavigation } from "./LinksNavigation";
 import { PublicLinkDetails } from "./PublicLinkDetails";
 
 interface LinksViewProps {
+    presentation: GallerySectionPresentation;
+    onSearchQueryChange: (query: string) => void;
+    onChangeSortBy: (sortBy: CollectionsSortBy) => void;
     user: LocalUser;
     collections: Collection[];
     collectionFiles: EnteFile[];
@@ -33,6 +41,9 @@ interface LinksViewProps {
 }
 
 export const LinksView = ({
+    presentation,
+    onSearchQueryChange,
+    onChangeSortBy,
     user,
     collections,
     collectionFiles,
@@ -100,7 +111,7 @@ export const LinksView = ({
         uncategorizedCollectionSummaryID,
     ]);
 
-    return selectedLink ? (
+    const content = selectedLink ? (
         <PublicLinkDetails
             key={selectedLink.id}
             collection={selectedLink}
@@ -123,5 +134,23 @@ export const LinksView = ({
             onCreateAlbum={onCreateAlbum}
             onRemotePull={onRemotePull}
         />
+    );
+    return (
+        <GallerySectionLayout
+            presentation={presentation}
+            navigation={
+                <LinksNavigation
+                    {...presentation}
+                    collectionSummaries={overviewLinks}
+                    selectedLinkID={selectedLink?.id}
+                    searchQuery={searchQuery}
+                    onSearchQueryChange={onSearchQueryChange}
+                    collectionsSortBy={sortBy}
+                    onChangeCollectionsSortBy={onChangeSortBy}
+                />
+            }
+        >
+            {content}
+        </GallerySectionLayout>
     );
 };

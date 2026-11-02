@@ -18,8 +18,8 @@ import { t } from "i18next";
 import { useMemo, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { VariableSizeList, type ListChildComponentProps } from "react-window";
-import { PeopleEmptyState } from ".";
-import { usePhotosNavigation } from "./PhotosNavigationContext";
+import { PeopleEmptyState } from "../..";
+import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 
 export const PeopleOverview = ({
     people,

@@ -20,12 +20,12 @@ import { t } from "i18next";
 import { useEffect, useRef, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
+import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 import {
     AlbumTileButton as AlbumButton,
     AlbumTile,
     AlbumTileCover as Cover,
 } from "./AlbumTile";
-import { usePhotosNavigation } from "./PhotosNavigationContext";
 
 interface AlbumsOverviewProps {
     albums: CollectionSummary[];

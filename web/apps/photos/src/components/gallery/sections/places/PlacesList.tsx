@@ -13,7 +13,7 @@ import type { EnteFile } from "ente-media/file";
 import { ItemCard, PreviewItemTile } from "ente-new/photos/components/Tiles";
 import { t } from "i18next";
 import { useEffect, useRef, useState } from "react";
-import { listPlaces } from "../../services/places";
+import { listPlaces } from "../../../../services/places";
 
 export interface PlaceSelection {
     latitude: number;

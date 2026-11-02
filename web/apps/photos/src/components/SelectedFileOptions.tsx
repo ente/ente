@@ -298,9 +298,9 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     };
 
     return (
-        <>
-            <SpacedRow sx={{ flex: 1, gap: 1, flexWrap: "wrap" }}>
-                <IconButton onClick={onClearSelection}>
+        <SpacedRow sx={{ flex: 1, minWidth: 0, gap: 1, flexWrap: "wrap" }}>
+            <SpacedRow sx={{ gap: 1, flexShrink: 0 }}>
+                <IconButton onClick={onClearSelection} aria-label={t("close")}>
                     <CloseIcon />
                 </IconButton>
                 <Typography>
@@ -315,12 +315,27 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
                     isAllSelected={isAllSelected}
                     onClick={isAllSelected ? onClearSelection : onSelectAll}
                 />
-
-                <Box sx={{ mr: "auto" }} />
-
-                {toolbarActions.map(renderActionButton)}
             </SpacedRow>
-        </>
+            <Box
+                sx={{
+                    display: "flex",
+                    flex: "1 1 320px",
+                    minWidth: 0,
+                    overflowX: "auto",
+                }}
+            >
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexShrink: 0,
+                        ml: "auto",
+                        "& .MuiIconButton-root": { p: 1 },
+                    }}
+                >
+                    {toolbarActions.map(renderActionButton)}
+                </Box>
+            </Box>
+        </SpacedRow>
     );
 };
 

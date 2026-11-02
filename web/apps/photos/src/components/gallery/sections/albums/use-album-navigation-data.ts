@@ -6,20 +6,19 @@ import {
 import {
     PseudoCollectionID,
     sortCollectionSummaries,
-    collectionsSortBy as supportedCollectionsSortBy,
     type CollectionSummaries,
     type CollectionsSortBy,
 } from "ente-new/photos/services/collection-summary";
-import { includes } from "ente-utils/type-guards";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { GalleryBarMode } from "./reducer";
+import { useMemo } from "react";
+import type { GalleryBarMode } from "../../reducer";
 
 interface AlbumNavigationDataOptions {
-    mode: GalleryBarMode;
+    mode: Exclude<GalleryBarMode, "links"> | undefined;
     collectionSummaries: CollectionSummaries;
     uncategorizedCollectionSummaryID: number;
     albumFilter: AlbumFilter;
     albumSearchQuery: string;
+    collectionsSortBy: CollectionsSortBy;
 }
 
 // Prepare the shared album ordering and the sidebar and overview lists.
@@ -29,31 +28,17 @@ export const useAlbumNavigationData = ({
     uncategorizedCollectionSummaryID,
     albumFilter,
     albumSearchQuery,
+    collectionsSortBy,
 }: AlbumNavigationDataOptions) => {
-    const [collectionsSortBy, setCollectionsSortBy] =
-        useState<CollectionsSortBy>("updation-time-desc");
-
-    useEffect(() => {
-        const value = localStorage.getItem("collectionsSortBy");
-        if (value && includes(supportedCollectionsSortBy, value))
-            setCollectionsSortBy(value);
-    }, []);
-
-    const onChangeCollectionsSortBy = useCallback(
-        (value: CollectionsSortBy) => {
-            localStorage.setItem("collectionsSortBy", value);
-            setCollectionsSortBy(value);
-        },
-        [],
-    );
-
     const sortedCollectionSummaries = useMemo(
         () =>
-            sortCollectionSummaries(
-                [...collectionSummaries.values()],
-                collectionsSortBy,
-            ).sort((a, b) => b.sortPriority - a.sortPriority),
-        [collectionsSortBy, collectionSummaries],
+            mode === undefined
+                ? []
+                : sortCollectionSummaries(
+                      [...collectionSummaries.values()],
+                      collectionsSortBy,
+                  ).sort((a, b) => b.sortPriority - a.sortPriority),
+        [mode, collectionsSortBy, collectionSummaries],
     );
     const eligibleCollectionSummaries = useMemo(
         () =>
@@ -98,11 +83,5 @@ export const useAlbumNavigationData = ({
         [eligibleCollectionSummaries, albumFilter, albumSearchQuery],
     );
 
-    return {
-        sidebarCollectionSummaries,
-        overviewAlbums,
-        visibleAlbumFilters,
-        collectionsSortBy,
-        onChangeCollectionsSortBy,
-    };
+    return { sidebarCollectionSummaries, overviewAlbums, visibleAlbumFilters };
 };

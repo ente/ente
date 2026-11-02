@@ -2,25 +2,42 @@ import type { LocalUser } from "ente-accounts/services/user";
 import { CollectionSubType, type Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { ItemVisibility } from "ente-media/file-metadata";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { AlbumsOverview } from "../src/components/gallery/AlbumsOverview";
-import { LinksView } from "../src/components/gallery/LinksView";
-import { PublicLinkDetails } from "../src/components/gallery/PublicLinkDetails";
 import {
     galleryReducer,
     initialGalleryState,
 } from "../src/components/gallery/reducer";
+import { AlbumsOverview } from "../src/components/gallery/sections/albums/AlbumsOverview";
+import { LinksView } from "../src/components/gallery/sections/links/LinksView";
+import { PublicLinkDetails } from "../src/components/gallery/sections/links/PublicLinkDetails";
 
 vi.mock("@/utils/quick-links", () => import("../src/utils/quick-links"));
-vi.mock("../src/components/gallery/AlbumsOverview", () => ({
+vi.mock("../src/components/gallery/sections/albums/AlbumsOverview", () => ({
     AlbumsOverview: vi.fn(() => null),
 }));
-vi.mock("../src/components/gallery/PublicLinkDetails", () => ({
+vi.mock("../src/components/gallery/sections/links/PublicLinkDetails", () => ({
     PublicLinkDetails: vi.fn(() => null),
 }));
 
+vi.mock("../src/components/gallery/sections/links/LinksNavigation", () => ({
+    LinksNavigation: vi.fn(() => null),
+}));
+vi.mock("../src/components/gallery/navigation/GallerySectionLayout", () => ({
+    GallerySectionLayout: ({
+        navigation,
+        children,
+    }: {
+        navigation: ReactNode;
+        children: ReactNode;
+    }) => (
+        <>
+            {navigation}
+            {children}
+        </>
+    ),
+}));
 beforeEach(() => vi.clearAllMocks());
 
 const link = (id: number, overrides: Partial<Collection> = {}): Collection => ({
@@ -81,6 +98,16 @@ const props = (
         trashItems: [],
     });
     return {
+        presentation: {
+            collapsed: false,
+            mobile: false,
+            mobileDrawerProps: { open: false, onClose: vi.fn() },
+            reduceMotion: true,
+            isFirstLoad: false,
+            isOffline: false,
+        },
+        onSearchQueryChange: vi.fn(),
+        onChangeSortBy: vi.fn(),
         user,
         collections,
         collectionFiles: state.collectionFiles,
