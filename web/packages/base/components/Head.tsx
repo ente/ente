@@ -23,6 +23,7 @@ const AlbumsFontPreloads: React.FC = () => (
 const albumsPreviewTitle = "Photos, shared with you";
 const albumsPreviewDescription = "Tap to view on Ente";
 const albumsPreviewImage = "https://albums.ente.com/images/preview.png";
+const albumsPreviewVideo = "https://albums.ente.com/videos/preview.mp4";
 const photosPreviewDescription =
     "Store and share your photos with absolute privacy.";
 const photosPreviewImage = "https://photos.ente.com/images/preview.png";
@@ -66,7 +67,7 @@ export const CustomHeadPhotos: React.FC<CustomHeadProps> = ({ title }) =>
         <CustomHeadPhotosStatic {...{ title }} />
     );
 
-// Link preview crawlers only see static HTML, and og:image must be absolute.
+// Link preview crawlers only see static HTML, and media URLs must be absolute.
 const CustomHeadAlbumsStatic: React.FC = () => (
     <Head>
         <AlbumsFontPreloads />
@@ -81,6 +82,10 @@ const CustomHeadAlbumsStatic: React.FC = () => (
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="Take a look!" />
+        <meta property="og:video" content={albumsPreviewVideo} />
+        <meta property="og:video:type" content="video/mp4" />
+        <meta property="og:video:width" content="1200" />
+        <meta property="og:video:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={albumsPreviewTitle} />
         <meta name="twitter:description" content={albumsPreviewDescription} />
