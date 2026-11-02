@@ -196,7 +196,6 @@ func TestAlbumShareSendsToEnrolledInternalDevices(t *testing.T) {
 		require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
 			FCMToken: platform + "-keyless", Platform: &platform,
 		}))
-		// Invalid keys can exist in stored registrations even though AddToken rejects them.
 		_, err = db.Exec(`INSERT INTO push_tokens(user_id,fcm_token,platform,session_token_hash,notification_public_key)
 			VALUES(1,$1,$2,$3,$4)`, platform+"-invalid", platform, hash[:], bytes.Repeat([]byte{0xff}, 1216))
 		require.NoError(t, err)

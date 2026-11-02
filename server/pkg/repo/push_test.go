@@ -253,8 +253,6 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, tokens)
 
-	// The same sessions on iOS must remain internal-only, even for users in
-	// the Android cohort. Session ownership, revocation and app checks still apply.
 	_, err = db.Exec(`UPDATE push_tokens SET platform='ios';
 		UPDATE remote_store SET key_value='true' WHERE user_id=2`)
 	require.NoError(t, err)
