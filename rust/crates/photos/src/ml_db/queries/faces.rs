@@ -308,6 +308,10 @@ impl MlDb {
         ))
     }
 
+    pub fn get_file_id_to_face_ids(&self) -> Result<HashMap<i64, Vec<String>>> {
+        self.read_grouped("SELECT file_id, face_id FROM faces", ())
+    }
+
     pub fn get_face_info_for_clustering(
         &self,
         max_faces: i64,

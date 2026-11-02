@@ -34,6 +34,8 @@ pub enum Error {
     Index(#[from] VecDbError),
     #[error("{0}")]
     InvalidArgument(String),
+    #[error("{0:?} index is not filled")]
+    NotFilled(Index),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
