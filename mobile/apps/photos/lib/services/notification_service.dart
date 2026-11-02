@@ -61,7 +61,10 @@ class NotificationService {
     }
     if (event == null) {
       await _preferences.reload();
-      if (_preferences.getString(Configuration.tokenKey) == null) return;
+      if (!_preferences.containsKey(Configuration.hasSecureTokenKey) &&
+          !_preferences.containsKey(Configuration.tokenKey)) {
+        return;
+      }
       if (shouldShowNotificationsForSharedPhotosAndAlbums()) {
         final strings = await LanguageService.locals;
         await showNotification(

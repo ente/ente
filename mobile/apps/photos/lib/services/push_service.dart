@@ -88,7 +88,7 @@ class PushService {
             : null;
         _logger.info("Updating token on server");
         await _setPushTokenOnServer(fcmToken, apnsToken);
-        if (_prefs.getString(Configuration.tokenKey) != sessionToken) return;
+        if (Configuration.instance.getToken() != sessionToken) return;
         await _prefs.setString(kFCMPushToken, fcmToken);
         await _prefs.setInt(
           kLastFCMTokenUpdationTime,

@@ -20,13 +20,6 @@ final class NotificationKeyPlugin: NSObject, FlutterPlugin {
     Self.queue.async {
       do {
         let arguments = call.arguments as? [String: Any] ?? [:]
-        if call.method == "getPrivateKey" || call.method == "setPrivateKey" {
-          guard let token = arguments["sessionToken"] as? String,
-            UserDefaults.standard.string(forKey: "flutter.token") == token
-          else {
-            throw NotificationKeyStore.StoreError.invalidRecord
-          }
-        }
         let response: Any?
         switch call.method {
         case "getPrivateKey":

@@ -67,6 +67,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   static const lastTempFolderClearTimeKey = "last_temp_folder_clear_time";
   static const secretKeyKey = "secret_key";
   static const tokenKey = "token";
+  static const hasSecureTokenKey = "has_secure_token";
   static const encryptedTokenKey = "encrypted_token";
   static const userIDKey = "user_id";
   static const hasMigratedSecureStorageKey = "has_migrated_secure_storage";
@@ -114,7 +115,28 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       _sharedDocumentsMediaDirectory =
           _documentsDirectory + "/ente-shared-media";
       Directory(_sharedDocumentsMediaDirectory).createSync(recursive: true);
-      if (!_preferences.containsKey(tokenKey)) {
+      _cachedToken = _preferences.getString(tokenKey);
+      if (_cachedToken != null) {
+        try {
+          final storedToken = _preferences.containsKey(hasSecureTokenKey)
+              ? await _secureStorage.read(key: tokenKey)
+              : null;
+          if (storedToken == _cachedToken) {
+            await _preferences.remove(tokenKey);
+          } else {
+            await _storeTokenSecurely(_cachedToken!);
+          }
+        } catch (e, s) {
+          _logger.warning("Failed to move token to secure storage", e, s);
+        }
+      } else if (_preferences.containsKey(hasSecureTokenKey)) {
+        _cachedToken = await _secureStorage.read(key: tokenKey);
+        if (_cachedToken == null) {
+          _logger.warning("No token found in secure storage");
+          await logout(autoLogout: true);
+        }
+      }
+      if (_cachedToken == null) {
         _logger.info(
           "(for debugging) Token not found, deleting all secure storage data",
         );
@@ -221,10 +243,10 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     }
     await _clearTempFolderOnLogout();
 
+    _cachedToken = null;
     await _preferences.clear();
     await _secureStorage.deleteAll();
     _key = null;
-    _cachedToken = null;
     _secretKey = null;
     _volatilePassword = null;
     clearAuthenticatedSession();
@@ -363,7 +385,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   }
 
   String? getToken() {
-    _cachedToken ??= _preferences.getString(tokenKey);
     return _cachedToken;
   }
 
@@ -373,11 +394,20 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   }
 
   Future<void> setToken(String token) async {
+    await _storeTokenSecurely(token);
+    await _preferences.remove(tokenKey);
     _cachedToken = token;
-    await _preferences.setString(tokenKey, token);
     await localSettings.setAppMode(AppMode.enteGallery);
     Bus.instance.fire(AppModeChangedEvent());
     Bus.instance.fire(SignedInEvent());
+  }
+
+  Future<void> _storeTokenSecurely(String token) async {
+    await _secureStorage.write(key: tokenKey, value: token);
+    if (await _secureStorage.read(key: tokenKey) != token) {
+      throw StateError("Token was not saved to secure storage");
+    }
+    await _preferences.setBool(hasSecureTokenKey, true);
   }
 
   Future<void> setEncryptedToken(String encryptedToken) async {

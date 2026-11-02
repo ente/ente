@@ -97,6 +97,7 @@ FlagService get flagService {
   _flagService ??= FlagService(
     ServiceLocator.instance.prefs,
     ServiceLocator.instance.enteDio,
+    Configuration.instance.getToken,
   );
   return _flagService!;
 }
