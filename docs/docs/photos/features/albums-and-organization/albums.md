@@ -124,10 +124,20 @@ Select any photo you want to use as the cover for your album.
 
 Explore your album's memories based on their location.
 
+**On mobile:**
+
 - Open the album
-- Tap the overflow menu (three dots) in the top right corner
+- Tap the map button on the album cover at the top of the album. If you have scrolled down, tap the overflow menu (three dots) in the top-right corner and select **Map** instead.
+- All photos from the album with location data will appear in map view
+
+**On web and desktop:**
+
+- Open the album
+- Click the overflow menu (three dots) on the right of the album header
 - Select **Map**
-- All photos from the album will appear in map view
+- All photos from the album with location data will appear in map view
+
+For **Favorites**, click the globe button in the album header instead.
 
 ![Map view with location pins for photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-map-view.png){width=720px}
 
