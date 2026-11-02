@@ -83,7 +83,6 @@ export const FeedSection = ({
     const closeViewer = () => {
         setViewer(undefined);
         setIsFileViewerOpen?.(false);
-        // Reconcile comments and likes made while the viewer was open.
         refresh();
     };
 

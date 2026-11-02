@@ -92,7 +92,6 @@ export const buildFeedItems = ({
         ) => {
             if (actor.userID === userID) return;
             const file = fileByKey.get(`${album.id}:${fileID}`);
-            // Conversations without an accessible file cannot be opened.
             if (!file) return;
             const id = `${type}:${album.id}:${group}`;
             const existing = items.get(id);
@@ -119,7 +118,6 @@ export const buildFeedItems = ({
                 });
             }
         };
-        // Newest record supplies the primary actor and highlighted comment.
         for (const comment of [...comments.values()].sort(
             (a, b) => b.createdAt - a.createdAt,
         )) {

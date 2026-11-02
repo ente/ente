@@ -18,7 +18,6 @@ export const fetchFeedData = async (
     const albumsByID = new Map(albums.map((album) => [album.id, album]));
     const socialByCollection: Record<number, FeedSocialData> = {};
     let failed = false;
-    // Limit concurrent decryption and requests for accounts with many albums.
     const pending = updates.filter((update) =>
         albumsByID.has(update.collectionID),
     );
@@ -43,7 +42,6 @@ export const fetchFeedData = async (
                             album.key,
                             { commentsSinceTime, reactionsSinceTime, signal },
                         );
-                        // Deleted comments still identify the owner of a reply's parent.
                         data.comments.push(...diff.comments);
                         data.reactions.push(...diff.reactions);
                         if (!diff.hasMoreComments && !diff.hasMoreReactions)
@@ -73,7 +71,6 @@ export const fetchFeedData = async (
                 socialByCollection[album.id] = data;
             } catch (error) {
                 signal.throwIfAborted();
-                // Discard incomplete albums so partial pages never reach the Feed.
                 failed = true;
                 log.warn("Could not refresh album activity", error);
             }
