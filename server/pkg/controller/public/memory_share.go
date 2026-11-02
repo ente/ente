@@ -2,15 +2,12 @@ package public
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/controller"
 	"github.com/ente/museum/pkg/repo"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 type MemoryShareController struct {
@@ -49,52 +46,10 @@ func (c *MemoryShareController) GetPublicMemoryShare(ctx context.Context, access
 }
 
 func (c *MemoryShareController) GetPublicFiles(ctx context.Context, shareID int64) (*ente.PublicMemoryShareFilesResponse, error) {
-	shareFiles, err := c.Repo.GetFiles(ctx, shareID)
+	publicFiles, err := c.Repo.GetPublicFiles(ctx, shareID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get memory share files")
 	}
-
-	if len(shareFiles) == 0 {
-		return &ente.PublicMemoryShareFilesResponse{Files: []ente.PublicMemoryShareFile{}}, nil
-	}
-
-	publicFiles := make([]ente.PublicMemoryShareFile, 0, len(shareFiles))
-
-	for _, sf := range shareFiles {
-		collectionCount, err := c.CollectionRepo.GetCollectionCount(sf.FileID)
-		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to verify file activity")
-		}
-		if collectionCount == 0 {
-			logrus.WithField("fileID", sf.FileID).Info("skipping inactive file")
-			continue
-		}
-
-		file, err := c.FileRepo.GetFileAttributes(sf.FileID)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				logrus.WithField("fileID", sf.FileID).Info("skipping deleted file")
-				continue
-			}
-			return nil, stacktrace.Propagate(err, "failed to get file attributes")
-		}
-
-		if file.Metadata.EncryptedData == "-" {
-			logrus.WithField("fileID", sf.FileID).Info("skipping placeholder file")
-			continue
-		}
-
-		file.MagicMetadata = nil
-
-		publicFile := ente.PublicMemoryShareFile{
-			File:               *file,
-			Position:           sf.Position,
-			EncryptedKey:       sf.EncryptedKey,
-			KeyDecryptionNonce: sf.KeyDecryptionNonce,
-		}
-		publicFiles = append(publicFiles, publicFile)
-	}
-
 	return &ente.PublicMemoryShareFilesResponse{Files: publicFiles}, nil
 }
 
