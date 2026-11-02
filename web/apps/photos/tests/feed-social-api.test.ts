@@ -1,6 +1,5 @@
 import { decryptBoxBytes } from "ente-base/crypto";
 import {
-    getCollectionSocialDiff,
     getSocialUpdates,
     getUnifiedSocialDiff,
 } from "ente-new/photos/services/social";
@@ -53,12 +52,11 @@ test("Feed keeps reaction tombstones while the file viewer still excludes them",
         new TextEncoder().encode("<3\0\0"),
     );
     const signal = new AbortController().signal;
-    const result = await getCollectionSocialDiff(
-        10,
-        "key",
-        { commentsSinceTime: 10, reactionsSinceTime: 20 },
+    const result = await getUnifiedSocialDiff(10, "key", {
+        commentsSinceTime: 10,
+        reactionsSinceTime: 20,
         signal,
-    );
+    });
     expect(
         result.reactions.map(({ id, isDeleted, reactionType }) => ({
             id,
@@ -75,8 +73,12 @@ test("Feed keeps reaction tombstones while the file viewer still excludes them",
         "https://api.ente.io/social/diff?collectionID=10&commentsSinceTime=10&reactionsSinceTime=20&limit=1000",
         { headers: {}, signal },
     );
-    const viewer = await getUnifiedSocialDiff(10, 1, "key");
+    const viewer = await getUnifiedSocialDiff(10, "key", { fileID: 1 });
     expect(viewer.reactions.map(({ id }) => id)).toEqual(["active"]);
+    expect(fetchMock).toHaveBeenLastCalledWith(
+        "https://api.ente.io/social/diff?collectionID=10&fileID=1&commentsSinceTime=0&reactionsSinceTime=0&limit=1000",
+        { headers: {}, signal: undefined },
+    );
     expect(decryptBoxBytes).toHaveBeenCalledTimes(2);
 });
 
@@ -92,7 +94,7 @@ test("a corrupt record does not stall the raw sync cursor", async () => {
     vi.mocked(decryptBoxBytes).mockRejectedValue(
         new Error("Invalid ciphertext"),
     );
-    const result = await getCollectionSocialDiff(10, "key", {
+    const result = await getUnifiedSocialDiff(10, "key", {
         commentsSinceTime: 0,
         reactionsSinceTime: 50,
     });

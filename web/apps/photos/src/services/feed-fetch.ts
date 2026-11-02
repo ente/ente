@@ -2,8 +2,8 @@ import log from "ente-base/log";
 import type { Collection } from "ente-media/collection";
 import {
     getAnonProfiles,
-    getCollectionSocialDiff,
     getSocialUpdates,
+    getUnifiedSocialDiff,
 } from "ente-new/photos/services/social";
 import { emptyFeedSocialData, type FeedSocialData } from "./feed";
 
@@ -53,11 +53,10 @@ export const fetchFeedSnapshot = async (
                     let reactionsSinceTime = 0;
                     for (;;) {
                         signal.throwIfAborted();
-                        const diff = await getCollectionSocialDiff(
+                        const diff = await getUnifiedSocialDiff(
                             album.id,
                             album.key,
-                            { commentsSinceTime, reactionsSinceTime },
-                            signal,
+                            { commentsSinceTime, reactionsSinceTime, signal },
                         );
                         data = {
                             ...data,

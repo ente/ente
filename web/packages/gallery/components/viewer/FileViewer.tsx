@@ -1496,8 +1496,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                         const { comments, reactions } =
                             await getUnifiedSocialDiff(
                                 collectionId,
-                                activeFileID,
                                 collection.key,
+                                { fileID: activeFileID },
                             );
 
                         commentsMap.set(collectionId, comments);
@@ -1610,8 +1610,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 try {
                     const { comments, reactions } = await getUnifiedSocialDiff(
                         collectionId,
-                        activeFileID,
                         cached.key,
+                        { fileID: activeFileID },
                     );
 
                     commentsMap.set(collectionId, comments);

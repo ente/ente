@@ -29,22 +29,46 @@ export interface UnifiedSocialDiff {
     hasMoreReactions: boolean;
 }
 
+/** Fetch one page for a file, or the whole album when fileID is omitted.
+ * Album requests retain deletion markers; cursors include unreadable records. */
 export const getUnifiedSocialDiff = async (
     collectionID: number,
-    fileID: number,
     collectionKey: string,
-): Promise<UnifiedSocialDiff> => {
+    {
+        fileID,
+        commentsSinceTime = 0,
+        reactionsSinceTime = 0,
+        signal,
+    }: {
+        fileID?: number;
+        commentsSinceTime?: number;
+        reactionsSinceTime?: number;
+        signal?: AbortSignal;
+    } = {},
+) => {
     const res = await fetch(
         await apiURL("/social/diff", {
             collectionID,
-            fileID,
-            sinceTime: 0,
+            ...(fileID === undefined ? {} : { fileID }),
+            commentsSinceTime,
+            reactionsSinceTime,
             limit: 1000,
         }),
-        { headers: await authenticatedRequestHeaders() },
+        { headers: await authenticatedRequestHeaders(), signal },
     );
     ensureOk(res);
-    return decryptSocialDiff(collectionKey, await res.json());
+    const data = UnifiedDiffResponse.parse(await res.json());
+    return {
+        ...(await decryptSocialDiff(collectionKey, data, fileID === undefined)),
+        commentsUpdatedAt: Math.max(
+            commentsSinceTime,
+            ...data.comments.map((c) => c.updatedAt),
+        ),
+        reactionsUpdatedAt: Math.max(
+            reactionsSinceTime,
+            ...data.reactions.map((r) => r.updatedAt),
+        ),
+    };
 };
 
 const decryptSocialDiff = async (
@@ -251,31 +275,4 @@ export const getSocialUpdates = async (signal?: AbortSignal) => {
     );
     ensureOk(response);
     return SocialUpdatesResponse.parse(await response.json()).updates;
-};
-
-/** Collection-wide incremental sync. Keep tombstones and raw cursors even when
- * an individual record cannot be decrypted. The file viewer uses a full fetch. */
-export const getCollectionSocialDiff = async (
-    collectionID: number,
-    collectionKey: string,
-    cursors: { commentsSinceTime: number; reactionsSinceTime: number },
-    signal?: AbortSignal,
-) => {
-    const response = await fetch(
-        await apiURL("/social/diff", { collectionID, ...cursors, limit: 1000 }),
-        { headers: await authenticatedRequestHeaders(), signal },
-    );
-    ensureOk(response);
-    const data = UnifiedDiffResponse.parse(await response.json());
-    return {
-        ...(await decryptSocialDiff(collectionKey, data, true)),
-        commentsUpdatedAt: Math.max(
-            cursors.commentsSinceTime,
-            ...data.comments.map((c) => c.updatedAt),
-        ),
-        reactionsUpdatedAt: Math.max(
-            cursors.reactionsSinceTime,
-            ...data.reactions.map((r) => r.updatedAt),
-        ),
-    };
 };
