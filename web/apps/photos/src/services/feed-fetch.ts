@@ -36,7 +36,7 @@ export const fetchFeedData = async (
                 ) {
                     let commentsSinceTime = 0;
                     let reactionsSinceTime = 0;
-                    for (;;) {
+                    while (true) {
                         signal.throwIfAborted();
                         const diff = await getUnifiedSocialDiff(
                             album.id,
