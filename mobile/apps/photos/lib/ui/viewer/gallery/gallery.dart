@@ -174,7 +174,6 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   ModalRoute<dynamic>? _layoutPreviewRoute;
   bool _needsLayoutRefresh = false;
   int _activeFileLoads = 0;
-  int _fileLoadGeneration = 0;
   List<EnteFile> _allGalleryFiles = [];
   final _scrollController = ScrollController();
   final _headerKey = GlobalKey();
@@ -260,10 +259,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
           _logger.info(
             "${isPriorityEvent ? 'Priority' : 'Soft'} refresh on ${event.reason}",
           );
-          final generation = ++_fileLoadGeneration;
           final result = await _loadFiles();
-          if (!mounted || generation != _fileLoadGeneration) return;
-          _allFilesLoaded = true;
           final bool hasTriggeredSetState = _onFilesLoaded(result.files);
           if (hasTriggeredSetState && kDebugMode) {
             _logger.info("Reloaded gallery on ${event.reason}");
@@ -297,10 +293,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
                   ? widget.sortAsyncFn!()
                   : false;
               _setGroupType();
-              final generation = ++_fileLoadGeneration;
               final result = await _loadFiles();
-              if (!mounted || generation != _fileLoadGeneration) return;
-              _allFilesLoaded = true;
               _setFilesAndReload(result.files);
             });
           }),
@@ -311,13 +304,10 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
       _onFilesLoaded(widget.initialFiles!);
     }
 
-    final initialLoadGeneration = ++_fileLoadGeneration;
     _loadFiles(limit: kInitialLoadLimit).then((result) async {
-      if (!mounted || initialLoadGeneration != _fileLoadGeneration) return;
       _setFilesAndReload(result.files);
       if (result.hasMore) {
         final result = await _loadFiles();
-        if (!mounted || initialLoadGeneration != _fileLoadGeneration) return;
         _setFilesAndReload(result.files);
         _allFilesLoaded = true;
       } else {

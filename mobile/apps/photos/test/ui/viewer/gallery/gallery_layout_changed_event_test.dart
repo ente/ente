@@ -11,7 +11,6 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/events/event.dart";
 import "package:photos/events/files_updated_event.dart";
-import "package:photos/events/force_reload_home_gallery_event.dart";
 import "package:photos/events/gallery_layout_changed_event.dart";
 import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
@@ -61,46 +60,6 @@ void main() {
 
   setUp(() async {
     await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
-  });
-
-  testWidgets("a filtered reload discards an older in-flight load", (
-    tester,
-  ) async {
-    final oldLoad = Completer<FileLoadResult>();
-    final mine = _justifiedTestFile(1)..ownerID = 1;
-    final shared = _justifiedTestFile(2)..ownerID = 2;
-    var hideShared = false;
-    var fullLoadStarted = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: lightThemeData,
-        home: _galleryHost(
-          Gallery(
-            tagPrefix: "shared_filter_reload",
-            groupType: GroupType.none,
-            forceReloadEvents: [Bus.instance.on<ForceReloadHomeGalleryEvent>()],
-            asyncLoader: (start, end, {limit, asc}) async {
-              if (hideShared) return FileLoadResult([mine], false);
-              if (limit != null) return FileLoadResult([mine, shared], true);
-              fullLoadStarted = true;
-              return oldLoad.future;
-            },
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(fullLoadStarted, isTrue);
-    hideShared = true;
-    Bus.instance.fire(ForceReloadHomeGalleryEvent("hideSharedItemsChanged"));
-    await tester.pumpAndSettle();
-    final gallery = tester.state<GalleryState>(find.byType(Gallery));
-    expect(gallery.galleryGroups!.allFiles, [mine]);
-    oldLoad.complete(FileLoadResult([mine, shared], false));
-    await tester.pumpAndSettle();
-    expect(gallery.galleryGroups!.allFiles, [mine]);
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pumpAndSettle();
   });
 
   testWidgets("the gallery sheet toggle is reachable in landscape", (
