@@ -4,10 +4,7 @@ import "dart:math" show Random, max, min;
 
 import "package:computer/computer.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart" show kDebugMode, visibleForTesting;
-import "package:flutter/material.dart";
-import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import "package:ml_linalg/vector.dart";
 import "package:photos/core/configuration.dart";
@@ -17,7 +14,6 @@ import "package:photos/db/memories_db.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
-import "package:photos/locale.dart";
 import "package:photos/models/base_location.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
@@ -37,34 +33,20 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/services/language_service.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/memories/memories_computation_context.dart";
+import "package:photos/services/memories/memories_computer.dart";
 import "package:photos/services/memories/photo_selector.dart";
 import "package:photos/services/search_service.dart";
 
-part "smart_memories_clip_calculator.dart";
-part "memories/memory_file_index.dart";
-part "smart_memories_people_calculator.dart";
-part "smart_memories_time_calculator.dart";
-part "smart_memories_trip_calculator_v2.dart";
-
-class MemoriesResult {
-  final List<SmartMemory> memories;
-  final List<BaseLocation> baseLocations;
-  final bool failed;
-
-  MemoriesResult(this.memories, this.baseLocations, {this.failed = false});
-
-  MemoriesResult.failed()
-    : memories = const <SmartMemory>[],
-      baseLocations = const <BaseLocation>[],
-      failed = true;
-
-  bool get isEmpty => memories.isEmpty;
-}
+part "../smart_memories_clip_calculator.dart";
+part "memory_file_index.dart";
+part "../smart_memories_people_calculator.dart";
+part "../smart_memories_time_calculator.dart";
+part "../smart_memories_trip_calculator_v2.dart";
 
 typedef _PreparedMemoriesData = ({
   List<PersonEntity> persons,
@@ -74,8 +56,8 @@ typedef _PreparedMemoriesData = ({
   TripMemoriesAnalysis tripAnalysis,
 });
 
-class SmartMemoriesService {
-  final _logger = Logger("SmartMemoriesService");
+class DartMemoriesComputer implements MemoriesComputer {
+  final _logger = Logger("DartMemoriesComputer");
   MemoriesDB get _memoriesDB => isLocalGalleryMode
       ? MemoriesDB.localGalleryInstance
       : MemoriesDB.instance;
@@ -98,7 +80,33 @@ class SmartMemoriesService {
   static const _unnamedClusterPersonIDPrefix = "cluster:";
   static const _debugForceUnnamedClustersOnly = false;
 
-  SmartMemoriesService();
+  bool get _mlEnabled =>
+      hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
+
+  @override
+  Future<bool> isMlReady() async {
+    if (!_mlEnabled) return false;
+    try {
+      final mlDataDB = isLocalGalleryMode
+          ? MLDataDB.localGalleryInstance
+          : MLDataDB.instance;
+      final clipIndexed = await mlDataDB.getClipIndexedFileCount();
+      if (clipIndexed < minimumMemoryLength) {
+        return false;
+      }
+      if (!await MLModelDownloadService.instance.canLoadClipTextModel()) {
+        _logger.info(
+          "ML not ready for smart memories because CLIP text model is not "
+          "cached and high bandwidth connectivity is unavailable",
+        );
+        return false;
+      }
+      return true;
+    } catch (e, s) {
+      _logger.warning("Failed to determine ML readiness", e, s);
+      return false;
+    }
+  }
 
   Future<
     ({
@@ -144,156 +152,68 @@ class SmartMemoriesService {
     );
   }
 
-  Future<MemoriesResult> calcSmartMemories(
+  @override
+  Future<MemoriesResult> computeAll(
     DateTime now,
     MemoriesCache oldCache, {
-    bool debugSurfaceAll = false,
     required bool mlEnabled,
   }) async {
-    try {
-      final TimeLogger t = TimeLogger(context: "calcMemories");
-      _logger.info(
-        'calcMemories called with time: $now at ${DateTime.now()} '
-        '(mlEnabled: $mlEnabled) $t',
-      );
-      final computationContext = await _loadComputationContext(
-        now,
-        oldCache,
-        debugSurfaceAll: debugSurfaceAll,
-        mlEnabled: mlEnabled,
-        timeLogger: t,
-      );
-
-      final local = await getLocale();
-      final languageCode = local?.languageCode ?? "en";
-      final s = await LanguageService.locals;
-
-      _logger.info('get locale and S $t');
-      final memoriesResult =
-          await Computer.shared().compute(
-                _allMemoriesCalculations,
-                param: computationContext.toIsolateArgs(),
-              )
-              as MemoriesResult;
-      _logger.info(
-        '${memoriesResult.memories.length} memories computed in computer $t',
-      );
-      return await _finalizeMemoriesResult(memoriesResult, s, languageCode, t);
-    } catch (e, s) {
-      _logger.severe("Error calculating smart memories", e, s);
-      return _fallbackAfterCalculationError();
-    }
+    final TimeLogger t = TimeLogger(context: "calcMemories");
+    _logger.info(
+      'calcMemories called with time: $now at ${DateTime.now()} '
+      '(mlEnabled: $mlEnabled) $t',
+    );
+    final computationContext = await _loadComputationContext(
+      now,
+      oldCache,
+      debugSurfaceAll: true,
+      mlEnabled: mlEnabled,
+      timeLogger: t,
+    );
+    final memoriesResult =
+        await Computer.shared().compute(
+              _allMemoriesCalculations,
+              param: computationContext.toIsolateArgs(),
+            )
+            as MemoriesResult;
+    _logger.info(
+      '${memoriesResult.memories.length} memories computed in computer $t',
+    );
+    return memoriesResult;
   }
 
-  Future<({MemoriesResult current, MemoriesResult next})>
-  calcCurrentAndNextSmartMemories(
+  @override
+  Future<({MemoriesResult current, MemoriesResult next})> computeCurrentAndNext(
     DateTime current,
     DateTime next,
     MemoriesCache oldCache, {
     required bool mlEnabled,
   }) async {
-    try {
-      final TimeLogger t = TimeLogger(context: "calcCurrentAndNextMemories");
-      _logger.info(
-        'calcCurrentAndNextMemories called with times: $current and $next at '
-        '${DateTime.now()} (mlEnabled: $mlEnabled) $t',
-      );
-      final computationContext = await _loadComputationContext(
-        current,
-        oldCache,
-        debugSurfaceAll: false,
-        mlEnabled: mlEnabled,
-        timeLogger: t,
-      );
-
-      final local = await getLocale();
-      final languageCode = local?.languageCode ?? "en";
-      final s = await LanguageService.locals;
-      _logger.info('get locale and S $t');
-
-      final args = computationContext.toIsolateArgs()..["next"] = next;
-      final results =
-          (await Computer.shared().compute(
-                    _allMemoriesCalculationsForPeriods,
-                    param: args,
-                  )
-                  as List)
-              .cast<MemoriesResult>();
-      final currentResult = await _finalizeMemoriesResult(
-        results[0],
-        s,
-        languageCode,
-        t,
-      );
-      final nextResult = await _finalizeMemoriesResult(
-        results[1],
-        s,
-        languageCode,
-        t,
-      );
-      _logger.info(
-        '${currentResult.memories.length} current and '
-        '${nextResult.memories.length} next memories computed in computer $t',
-      );
-      return (current: currentResult, next: nextResult);
-    } catch (e, s) {
-      _logger.severe("Error calculating current and next smart memories", e, s);
-      final currentResult = await _fallbackAfterCalculationError();
-      if (currentResult.failed) {
-        return (current: currentResult, next: MemoriesResult.failed());
-      }
-      return (
-        current: currentResult,
-        next: await _fallbackAfterCalculationError(),
-      );
-    }
-  }
-
-  Future<MemoriesResult> _finalizeMemoriesResult(
-    MemoriesResult memoriesResult,
-    StringsLocalizations s,
-    String languageCode,
-    TimeLogger t,
-  ) async {
-    try {
-      if (isLocalGalleryMode && memoriesResult.isEmpty) {
-        _logger.severe(
-          "Smart memories returned empty in local gallery mode, falling back to simple memories",
-        );
-        final fallbackMemories = await calcSimpleMemories();
-        return MemoriesResult(fallbackMemories, <BaseLocation>[]);
-      }
-      if (memoriesResult.failed) {
-        return memoriesResult;
-      }
-      for (final memory in memoriesResult.memories) {
-        memory.title = memory.createTitle(s, languageCode);
-      }
-      _logger.info('titles created for all memories $t');
-      return memoriesResult;
-    } catch (e, s) {
-      _logger.severe("Error finalizing smart memories", e, s);
-      return _fallbackAfterCalculationError();
-    }
-  }
-
-  Future<MemoriesResult> _fallbackAfterCalculationError() async {
-    if (isLocalGalleryMode) {
-      try {
-        _logger.warning(
-          "Falling back to simple memories after smart memories failure in local gallery mode",
-        );
-        final fallbackMemories = await calcSimpleMemories();
-        return MemoriesResult(fallbackMemories, <BaseLocation>[]);
-      } catch (fallbackError, fallbackStackTrace) {
-        _logger.severe(
-          "Offline fallback to simple memories failed",
-          fallbackError,
-          fallbackStackTrace,
-        );
-      }
-    }
-    return MemoriesResult.failed();
+    final TimeLogger t = TimeLogger(context: "calcCurrentAndNextMemories");
+    _logger.info(
+      'calcCurrentAndNextMemories called with times: $current and $next at '
+      '${DateTime.now()} (mlEnabled: $mlEnabled) $t',
+    );
+    final computationContext = await _loadComputationContext(
+      current,
+      oldCache,
+      debugSurfaceAll: false,
+      mlEnabled: mlEnabled,
+      timeLogger: t,
+    );
+    final args = computationContext.toIsolateArgs()..["next"] = next;
+    final results =
+        (await Computer.shared().compute(
+                  _allMemoriesCalculationsForPeriods,
+                  param: args,
+                )
+                as List)
+            .cast<MemoriesResult>();
+    _logger.info(
+      '${results[0].memories.length} current and '
+      '${results[1].memories.length} next memories computed in computer $t',
+    );
+    return (current: results[0], next: results[1]);
   }
 
   Future<MemoriesComputationContext> _loadComputationContext(
@@ -1119,7 +1039,8 @@ class SmartMemoriesService {
     }
   }
 
-  Future<List<SmartMemory>> calcSimpleMemories() async {
+  @override
+  Future<List<SmartMemory>> computeSimple() async {
     final now = DateTime.now();
     final allFileIdsToFile = await _getFilesAndMapForMemories(
       useLocalIntIds: isLocalGalleryMode,
@@ -1167,15 +1088,6 @@ class SmartMemoriesService {
       localIdToIntId: localIdToIntId,
     );
     memories.addAll(fillerMemories);
-
-    final local = await getLocale();
-    final languageCode = local?.languageCode ?? "en";
-    final s = await LanguageService.locals;
-
-    _logger.info('get locale and S');
-    for (final memory in memories) {
-      memory.title = memory.createTitle(s, languageCode);
-    }
     return memories;
   }
 
@@ -1417,29 +1329,6 @@ class SmartMemoriesService {
       collectionIDsToExclude: collectionIDsToExclude,
       localIdToIntId: localIdToIntId,
     );
-  }
-
-  static Future<String> getDateFormattedLocale({
-    required int creationTime,
-  }) async {
-    final locale = await getLocale();
-
-    return getDateFormatted(
-      creationTime: creationTime,
-      languageCode: locale!.languageCode,
-    );
-  }
-
-  static String getDateFormatted({
-    required int creationTime,
-    BuildContext? context,
-    String? languageCode,
-  }) {
-    return DateFormat.yMMMd(
-      context != null
-          ? Localizations.localeOf(context).languageCode
-          : languageCode ?? "en",
-    ).format(DateTime.fromMicrosecondsSinceEpoch(creationTime));
   }
 
   static int? _seenTimeKeyForFile(

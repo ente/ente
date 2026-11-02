@@ -35,11 +35,13 @@ import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/ml_decryption_record_store.dart";
 import "package:photos/services/magic_cache_service.dart";
+import "package:photos/services/memories/dart_memories_computer.dart";
+import "package:photos/services/memories/memories_computer.dart";
+import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
 import "package:photos/services/rituals/rituals_service.dart";
 import "package:photos/services/smart_albums_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/services/storage_bonus_service.dart";
 import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
@@ -230,6 +232,12 @@ SmartMemoriesService? _smartMemoriesService;
 SmartMemoriesService get smartMemoriesService {
   _smartMemoriesService ??= SmartMemoriesService();
   return _smartMemoriesService!;
+}
+
+MemoriesComputer? _memoriesComputer;
+MemoriesComputer get memoriesComputer {
+  _memoriesComputer ??= DartMemoriesComputer();
+  return _memoriesComputer!;
 }
 
 TextEmbeddingsCacheService? _textEmbeddingsCacheService;

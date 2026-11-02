@@ -1,4 +1,4 @@
-part of "smart_memories_service.dart";
+part of "memories/dart_memories_computer.dart";
 
 class ClipMemoriesCalculator {
   static Future<List<ClipMemory>> compute(
@@ -28,7 +28,7 @@ class ClipMemoriesCalculator {
       }
       final scoredFiles = <({EnteFile file, int fileID, double similarity})>[];
       for (final file in allFiles) {
-        final fileID = SmartMemoriesService._memoryFileId(
+        final fileID = DartMemoriesComputer._memoryFileId(
           file,
           isLocalGalleryMode: isLocalGalleryMode,
         );
@@ -36,7 +36,7 @@ class ClipMemoriesCalculator {
         final embedding = fileIDToImageEmbedding[fileID];
         if (embedding == null) continue;
         final similarity = embedding.vector.dot(activityVector);
-        if (similarity > SmartMemoriesService._clipMemoryTypeQueryThreshold) {
+        if (similarity > DartMemoriesComputer._clipMemoryTypeQueryThreshold) {
           scoredFiles.add((file: file, fileID: fileID, similarity: similarity));
         }
       }
@@ -53,14 +53,14 @@ class ClipMemoriesCalculator {
       for (final candidate in topCandidates) {
         if (selected.length >= 10) break;
         final creationTime = candidate.file.creationTime;
-        if (SmartMemoriesService._isTooCloseInTime(
+        if (DartMemoriesComputer._isTooCloseInTime(
           creationTime,
           selectedCreationTimes,
         )) {
           skipped++;
           continue;
         }
-        if (SmartMemoriesService._isNearDuplicate(
+        if (DartMemoriesComputer._isNearDuplicate(
               candidate.fileID,
               selectedFileIDs,
               fileIDToImageEmbedding,
