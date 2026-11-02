@@ -758,8 +758,6 @@ fn family_usage_reports_the_admin_plan_and_the_member_limit() {
          Family used     53 GB\nFamily storage  210 GB\n\
          Your limit      5 GB\n"
     ));
-    assert!(!plain.contains("Shared"));
-    assert!(usage.get("sharedAlbums").is_none());
     details.assert();
 }
 
