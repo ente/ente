@@ -1,10 +1,13 @@
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:photos/ui/components/empty_state_illustration.dart";
 
 class EmptyStateComponent extends StatelessWidget {
   const EmptyStateComponent({
     required this.assetPath,
     required this.title,
+    this.animated = false,
+    this.illustrationSize = const Size(204, 170),
     this.textWidth = 285,
     this.spacing = 20,
     this.padding = const EdgeInsets.all(24),
@@ -14,6 +17,8 @@ class EmptyStateComponent extends StatelessWidget {
 
   final String assetPath;
   final String title;
+  final bool animated;
+  final Size illustrationSize;
   final double textWidth;
   final double spacing;
   final EdgeInsetsGeometry padding;
@@ -30,7 +35,14 @@ class EmptyStateComponent extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(assetPath),
+            if (animated)
+              EmptyStateIllustration(
+                key: ValueKey(assetPath),
+                assetPath: assetPath,
+                size: illustrationSize,
+              )
+            else
+              Image.asset(assetPath),
             SizedBox(height: spacing),
             SizedBox(
               width: textWidth,
