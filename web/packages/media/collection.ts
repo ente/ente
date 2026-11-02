@@ -20,7 +20,6 @@ export interface Collection {
     sharees: CollectionUser[];
     publicURLs: PublicURL[];
     updationTime: number;
-    /** When the album was shared with the current user, in microseconds. */
     sharedAt?: number;
     // Private to the owner; never visible to sharees.
     magicMetadata?: MagicMetadata<CollectionPrivateMagicMetadataData>;

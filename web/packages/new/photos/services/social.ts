@@ -29,8 +29,6 @@ export interface UnifiedSocialDiff {
     hasMoreReactions: boolean;
 }
 
-/** Fetch one page for a file, or the whole album when fileID is omitted.
- * Pagination cursors include deleted and unreadable records. */
 export const getUnifiedSocialDiff = async (
     collectionID: number,
     collectionKey: string,

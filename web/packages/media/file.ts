@@ -27,7 +27,6 @@ export interface EnteFile {
     thumbnail: FileObjectAttributes;
     info?: FileInfo;
     updationTime: number;
-    /** When this file was added to this collection, in epoch microseconds. */
     collectionAddedAt?: number;
     metadata: FileMetadata;
     // Private to the owner; never visible to sharees.

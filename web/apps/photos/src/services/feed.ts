@@ -49,8 +49,6 @@ export const feedActorKey = (actor: FeedActor) =>
 
 const additionSessionGap = 10 * 60 * 1_000_000;
 
-/** Mirrors mobile FeedDataProvider. Group before limiting so a busy thread
- * cannot hide older activity. File membership always includes collection ID. */
 export const buildFeedItems = ({
     userID,
     collections,

@@ -7,7 +7,6 @@ import {
 } from "ente-new/photos/services/social";
 import { emptyFeedSocialData, type FeedSocialData } from "./feed";
 
-/** Fetch activity from the beginning on every refresh; keep it in memory only. */
 export const fetchFeedData = async (
     albums: readonly Collection[],
     signal: AbortSignal,
