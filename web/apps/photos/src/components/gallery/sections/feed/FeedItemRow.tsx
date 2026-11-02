@@ -303,15 +303,16 @@ const SharedPhotosGrid = ({
 const feedActionKey = (item: FeedItem) => {
     const own = item.isOwnedByCurrentUser ? "your" : "a";
     const media = item.isVideo ? "video" : "photo";
+    const prefix = item.isOwnedByCurrentUser ? "feed_" : "";
     switch (item.type) {
         case "photoLike":
-            return `feed_liked_${own}_${media}`;
+            return `${prefix}liked_${own}_${media}`;
         case "comment":
-            return `feed_commented_on_${own}_${media}`;
+            return `${prefix}commented_on_${own}_${media}`;
         case "reply":
-            return `feed_replied_to_${own}_comment`;
+            return `${prefix}replied_to_${own}_comment`;
         case "commentLike":
-            return `feed_liked_${own}_comment`;
+            return `${prefix}liked_${own}_comment`;
         case "replyLike":
             return `feed_liked_${own}_reply`;
         case "sharedPhoto":

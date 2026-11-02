@@ -247,7 +247,7 @@ export const FeedSection = ({
                                         actions.showAlbumOverview("ente")
                                     }
                                 >
-                                    {t("feed_share_album")}
+                                    {t("share_album")}
                                 </FocusVisibleButton>
                             </Stack>
                         )
