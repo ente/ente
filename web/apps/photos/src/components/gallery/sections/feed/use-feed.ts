@@ -1,7 +1,13 @@
 import { buildFeedItems, type FeedSocialData } from "@/services/feed";
 import { fetchFeedData } from "@/services/feed-fetch";
 import log from "ente-base/log";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useEffectEvent,
+    useMemo,
+    useState,
+} from "react";
 import type { GallerySectionProps } from "../types";
 
 export const useFeed = (
@@ -29,6 +35,14 @@ export const useFeed = (
         [library.collections, library.hiddenCollectionIDs],
     );
 
+    const collectionIDs = collections
+        .map((collection) => collection.id)
+        .sort((a, b) => a - b)
+        .join(",");
+    const fetchSocialData = useEffectEvent((signal: AbortSignal) =>
+        fetchFeedData(collections, signal),
+    );
+
     useEffect(() => {
         if (syncingLibrary) return;
         const controller = new AbortController();
@@ -37,7 +51,7 @@ export const useFeed = (
             setRefreshing(true);
             setFailed(false);
             try {
-                const result = await fetchFeedData(collections, signal);
+                const result = await fetchSocialData(signal);
                 signal.throwIfAborted();
                 setSocialByCollection(result.socialByCollection);
                 setFailed(result.failed);
@@ -50,7 +64,7 @@ export const useFeed = (
             }
         })();
         return () => controller.abort();
-    }, [userID, collections, revision, syncingLibrary]);
+    }, [userID, collectionIDs, revision, syncingLibrary]);
 
     const items = useMemo(
         () =>
@@ -95,6 +109,10 @@ export const useFeed = (
             setSyncingLibrary(false);
         }
     }, [onRemotePull]);
+    const refreshSocial = useCallback(
+        () => setRevision((value) => value + 1),
+        [],
+    );
     const loadMore = useCallback(
         () => setLimit((value) => Math.min(500, value + 50)),
         [],
@@ -107,5 +125,6 @@ export const useFeed = (
         refreshing: refreshing || syncingLibrary,
         failed: failed || libraryFailed,
         refresh,
+        refreshSocial,
     };
 };

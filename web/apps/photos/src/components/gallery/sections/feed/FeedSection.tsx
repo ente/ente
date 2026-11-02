@@ -83,7 +83,7 @@ export const FeedSection = ({
     const closeViewer = () => {
         setViewer(undefined);
         setIsFileViewerOpen?.(false);
-        void refresh();
+        feed.refreshSocial();
     };
 
     return (
