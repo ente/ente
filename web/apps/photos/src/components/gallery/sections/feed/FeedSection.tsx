@@ -12,6 +12,8 @@ import {
     Tooltip,
     Typography,
 } from "@mui/material";
+import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import { v2SubmitButtonSx } from "ente-base/components/SingleInput.styles";
 import { FileViewer } from "ente-gallery/components/viewer/FileViewer";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
@@ -92,12 +94,22 @@ export const FeedSection = ({
                 sx={{
                     flex: 1,
                     minHeight: 0,
+                    display: "flex",
+                    flexDirection: "column",
                     overflowY: "auto",
                     px: { xs: 2, sm: 4.5 },
                     py: { xs: 2, md: 4.5 },
                 }}
             >
-                <Stack sx={{ maxWidth: 600, mx: "auto", gap: "24px" }}>
+                <Stack
+                    sx={{
+                        flex: "1 0 auto",
+                        width: "100%",
+                        maxWidth: 600,
+                        mx: "auto",
+                        gap: 3,
+                    }}
+                >
                     <Stack
                         direction="row"
                         sx={{
@@ -172,39 +184,71 @@ export const FeedSection = ({
                         ) : (
                             <Stack
                                 sx={{
+                                    flex: 1,
                                     alignItems: "center",
+                                    justifyContent: "center",
                                     textAlign: "center",
-                                    py: 8,
-                                    gap: 2,
+                                    px: 2,
+                                    py: { xs: 6, sm: 8 },
+                                    gap: 3,
                                 }}
                             >
                                 <Box
                                     component="img"
                                     src="/images/feed/empty.png"
                                     alt=""
+                                    draggable={false}
                                     sx={{
-                                        height: 122,
-                                        width: "auto",
+                                        width: 240,
+                                        height: "auto",
                                         maxWidth: "100%",
                                     }}
                                 />
-                                <Typography variant="h3">
-                                    {t("feed_empty_title")}
-                                </Typography>
-                                <Typography
-                                    color="text.muted"
-                                    sx={{ maxWidth: 340 }}
+                                <Stack
+                                    sx={{
+                                        alignItems: "center",
+                                        gap: 1.5,
+                                        maxWidth: 340,
+                                    }}
                                 >
-                                    {t("feed_empty_description")}
-                                </Typography>
-                                <Button
-                                    variant="contained"
+                                    <Typography
+                                        component="h2"
+                                        variant="h3"
+                                        sx={{
+                                            fontFamily:
+                                                '"Outfit Variable", sans-serif',
+                                            fontSize: { xs: 28, sm: 32 },
+                                            lineHeight: 1.25,
+                                            color: "text.base",
+                                        }}
+                                    >
+                                        {t("feed_empty_title")}
+                                    </Typography>
+                                    <Typography
+                                        sx={{
+                                            color: "text.muted",
+                                            lineHeight: 1.5,
+                                        }}
+                                    >
+                                        {t("feed_empty_description")}
+                                    </Typography>
+                                </Stack>
+                                <FocusVisibleButton
+                                    color="accent"
+                                    sx={[
+                                        v2SubmitButtonSx,
+                                        {
+                                            flex: "none",
+                                            width: 240,
+                                            maxWidth: "100%",
+                                        },
+                                    ]}
                                     onClick={() =>
                                         actions.showAlbumOverview("ente")
                                     }
                                 >
                                     {t("feed_share_album")}
-                                </Button>
+                                </FocusVisibleButton>
                             </Stack>
                         )
                     ) : (
