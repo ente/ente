@@ -24,6 +24,8 @@ import (
 	"github.com/ente/museum/pkg/repo"
 	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -199,6 +201,74 @@ func TestPreviewUploadRequiresOwnedActiveFile(t *testing.T) {
 	var count int
 	require.NoError(t, db.QueryRow("SELECT count(*) FROM temp_objects").Scan(&count))
 	require.Zero(t, count)
+}
+
+func TestPreviewUploadSizeWarningsDoNotRejectURLs(t *testing.T) {
+	router, db, userID, fileID := setupPreviewUploadTest(t)
+	_, err := db.Exec(`UPDATE files SET info = '{"fileSize":40000000}' WHERE file_id = $1`, fileID)
+	require.NoError(t, err)
+	oldHooks := log.StandardLogger().ReplaceHooks(make(log.LevelHooks))
+	t.Cleanup(func() { log.StandardLogger().ReplaceHooks(oldHooks) })
+	hook := logtest.NewGlobal()
+	for _, tc := range []struct {
+		name       string
+		objectType ente.ObjectType
+		multipart  bool
+		legacy     bool
+		size       int64
+		warning    bool
+	}{
+		{"single oversized video", ente.PreviewVideo, false, false, 160_000_000, true},
+		{"multipart oversized video", ente.PreviewVideo, true, false, 160_000_000, true},
+		{"single video within limit", ente.PreviewVideo, false, false, 120_000_000, false},
+		{"multipart video within limit", ente.PreviewVideo, true, false, 120_000_000, false},
+		{"single image", ente.PreviewImage, false, false, 160_000_000, false},
+		{"multipart image", ente.PreviewImage, true, false, 160_000_000, false},
+		{"legacy single", ente.PreviewVideo, false, true, 0, false},
+		{"legacy multipart", ente.PreviewVideo, true, true, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			hook.Reset()
+			path, body := previewUploadBody(fileID, tc.objectType, tc.multipart)
+			method := http.MethodPost
+			if tc.legacy {
+				method = http.MethodGet
+				path = fmt.Sprintf("%s?fileID=%d&type=%s", previewUploadPath, fileID, tc.objectType)
+				if tc.multipart {
+					path += "&isMultiPart=true&count=2"
+				}
+				body = nil
+			} else {
+				body["contentLength"] = tc.size
+				if tc.multipart {
+					body["partLength"] = tc.size / 2
+				}
+			}
+			rec := performPreviewUpload(t, router, method, path, userID, body)
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			var warnings []*log.Entry
+			for _, entry := range hook.AllEntries() {
+				if entry.Level == log.WarnLevel {
+					warnings = append(warnings, entry)
+				}
+			}
+			if !tc.warning {
+				require.Empty(t, warnings)
+				return
+			}
+			require.Len(t, warnings, 1)
+			entry := warnings[0]
+			require.Equal(t, "video preview exceeds size limit", entry.Message)
+			require.Equal(t, "upload_url", entry.Data["size_check_stage"])
+			require.Equal(t, "declared", entry.Data["preview_size_source"])
+			require.Equal(t, userID, entry.Data["user_id"])
+			require.Equal(t, fileID, entry.Data["file_id"])
+			require.Equal(t, int64(40_000_000), entry.Data["original_size_bytes"])
+			require.Equal(t, tc.size, entry.Data["preview_size_bytes"])
+			require.Equal(t, float64(4), entry.Data["preview_original_ratio"])
+			require.Equal(t, false, entry.Data["size_limit_enforced"])
+		})
+	}
 }
 
 func previewUploadBody(fileID int64, objectType ente.ObjectType, multipart bool) (string, map[string]any) {

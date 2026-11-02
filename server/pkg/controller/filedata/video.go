@@ -7,6 +7,7 @@ import (
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/museum/pkg/utils/network"
 	"github.com/ente/stacktrace"
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -30,6 +31,11 @@ func (c *Controller) InsertVideoPreview(ctx *gin.Context, req *filedata.VidPrevi
 	if sizeErr := c.verifySize(bucketID, fileObjectKey, req.ObjectSize); sizeErr != nil {
 		return stacktrace.Propagate(sizeErr, "failed to validate size")
 	}
+	c.observeVideoPreviewSize(ctx, req, userID, log.WithFields(log.Fields{
+		"req_id":              requestid.Get(ctx),
+		"size_check_stage":    "registration",
+		"preview_size_source": "verified",
+	}))
 
 	obj := filedata.S3FileMetadata{
 		Version:          *req.Version,
@@ -72,6 +78,52 @@ func (c *Controller) InsertVideoPreview(ctx *gin.Context, req *filedata.VidPrevi
 		return stacktrace.Propagate(dbInsertErr, "failed to insert or update preview data")
 	}
 	return nil
+}
+
+func (c *Controller) observeVideoPreviewSize(ctx context.Context, req *filedata.VidPreviewRequest, userID int64, logger *log.Entry) {
+	logger = logger.WithFields(log.Fields{
+		"file_id":             req.FileID,
+		"user_id":             userID,
+		"preview_size_bytes":  req.ObjectSize,
+		"size_limit_enforced": false,
+	})
+	fileIDs := []int64{req.FileID}
+	infos, err := c.FileRepo.GetFilesInfo(ctx, fileIDs, userID)
+	if err != nil {
+		logger.WithError(err).Warn("could not check video preview size limit")
+		return
+	}
+	info := infos[req.FileID]
+	if info == nil || info.FileSize <= 0 {
+		infos, err = c.FileRepo.GetFileInfoFromObjectKeys(ctx, fileIDs)
+		if err != nil {
+			logger.WithError(err).Warn("could not check video preview size limit")
+			return
+		}
+		info = infos[req.FileID]
+	}
+	if info == nil {
+		warnVideoPreviewSize(logger, req, 0)
+		return
+	}
+	warnVideoPreviewSize(logger, req, info.FileSize)
+}
+
+func warnVideoPreviewSize(logger *log.Entry, req *filedata.VidPreviewRequest, originalSize int64) {
+	logger = logger.WithFields(log.Fields{
+		"file_id":             req.FileID,
+		"original_size_bytes": originalSize,
+		"preview_size_bytes":  req.ObjectSize,
+		"size_limit_enforced": false,
+	})
+	if originalSize <= 0 {
+		logger.Warn("video preview size check missing original size")
+		return
+	}
+	if req.ValidateSize(originalSize) != nil {
+		logger.WithField("preview_original_ratio", float64(req.ObjectSize)/float64(originalSize)).
+			Warn("video preview exceeds size limit")
+	}
 }
 
 func (c *Controller) _checkIfDuplicateRequest(ctx *gin.Context, row filedata.Row, fileObjectKey string) (bool, error) {
