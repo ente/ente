@@ -34,6 +34,15 @@ describe("reconstructHLSPlaylist", () => {
     });
 
     test.each([
+        ["line feed", "\n"],
+        ["carriage return", "\r"],
+    ])("rejects a segment URL containing %s", (_, lineBreak) => {
+        const segmentURL = `https://museum.example/video${lineBreak}#EXT-X-KEY:METHOD=NONE`;
+
+        expect(reconstructHLSPlaylist(playlist, segmentURL)).toBeUndefined();
+    });
+
+    test.each([
         [
             "remote key",
             playlist.replace(
