@@ -3,7 +3,7 @@ name = "ente-image"
 edition.workspace = true
 
 [dependencies]
-ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "2a20a208fbf498ccda32c173dff8201d8eaad121", features = [
+ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "c5d83bdce7d28a755fbe75dd981bfcce521d9c35", features = [
     "image-integration",
 ] }
 fast_image_resize.workspace = true
