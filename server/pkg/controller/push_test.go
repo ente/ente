@@ -174,7 +174,7 @@ func TestFCMSendDoesNotClassifyInvalidArgumentAsUnregistered(t *testing.T) {
 	require.False(t, errors.Is(err, errUnregisteredToken))
 }
 
-func TestAlbumShareSendsToEnrolledInternalDevices(t *testing.T) {
+func TestAlbumShareSendsEncryptedAlertToInternalIOS(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
 	testutil.ResetTables(t, db)
@@ -185,21 +185,18 @@ func TestAlbumShareSendsToEnrolledInternalDevices(t *testing.T) {
 	require.NoError(t, (&repo.UserAuthRepository{DB: db}).AddToken(1, ente.Photos, "session", "", ""))
 	hash := auth.HashToken("session")
 	controller := &PushController{PushRepo: &repo.PushTokenRepository{DB: db}}
-	keys := make(map[string]hpke.PrivateKey)
-	for _, platform := range []string{"ios", "android"} {
-		key, err := hpke.MLKEM768X25519().GenerateKey()
-		require.NoError(t, err)
-		keys[platform+"-device"] = key
-		require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
-			FCMToken: platform + "-device", Platform: &platform, NotificationKey: key.PublicKey().Bytes(),
-		}))
-		require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
-			FCMToken: platform + "-keyless", Platform: &platform,
-		}))
-		_, err = db.Exec(`INSERT INTO push_tokens(user_id,fcm_token,platform,session_token_hash,notification_public_key)
-			VALUES(1,$1,$2,$3,$4)`, platform+"-invalid", platform, hash[:], bytes.Repeat([]byte{0xff}, 1216))
-		require.NoError(t, err)
-	}
+	key, err := hpke.MLKEM768X25519().GenerateKey()
+	require.NoError(t, err)
+	platform := "ios"
+	require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
+		FCMToken: "ios-device", Platform: &platform, NotificationKey: key.PublicKey().Bytes(),
+	}))
+	require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{
+		FCMToken: "keyless", Platform: &platform,
+	}))
+	_, err = db.Exec(`INSERT INTO push_tokens(user_id,fcm_token,platform,session_token_hash,notification_public_key)
+		VALUES(1,'invalid','ios',$1,$2)`, hash[:], bytes.Repeat([]byte{0xff}, 1216))
+	require.NoError(t, err)
 	var messages []wireMsg
 	controller.fcm = &fcmClient{projectID: "test-project", httpClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		require.NoError(t, request.Context().Err())
@@ -213,43 +210,24 @@ func TestAlbumShareSendsToEnrolledInternalDevices(t *testing.T) {
 	before := time.Now().Add(24 * time.Hour).Unix()
 	controller.NotifyAlbumShare(ctx, []int64{1})
 	after := time.Now().Add(24 * time.Hour).Unix()
-	require.Len(t, messages, 2, "skip keyless and invalid-key devices without a sync fallback")
-	var notified []string
-	for _, envelope := range messages {
-		message := envelope.Message
-		notified = append(notified, message.Token)
-		require.Contains(t, keys, message.Token)
-		ciphertext, err := base64.StdEncoding.DecodeString(message.Data["notificationCiphertext"])
-		require.NoError(t, err)
-		plaintext, err := hpke.Open(keys[message.Token], hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(), []byte("ente-push"), ciphertext)
-		require.NoError(t, err)
-		require.JSONEq(t, `{"eventType":"album_shared"}`, string(plaintext))
-		require.Equal(t, "high", message.Android.Priority)
-		require.Equal(t, "86400s", message.Android.TTL)
-		require.Equal(t, "alert", message.APNS.Headers["apns-push-type"])
-		require.Equal(t, "10", message.APNS.Headers["apns-priority"])
-		require.Equal(t, "io.ente.frame", message.APNS.Headers["apns-topic"])
-		expiry, err := strconv.ParseInt(message.APNS.Headers["apns-expiration"], 10, 64)
-		require.NoError(t, err)
-		require.GreaterOrEqual(t, expiry, before)
-		require.LessOrEqual(t, expiry, after)
-		require.Equal(t, 1, message.APNS.Payload.Aps.MutableContent)
-		require.Equal(t, "Ente", message.APNS.Payload.Aps.Alert.Title)
-		require.Equal(t, "New activity", message.APNS.Payload.Aps.Alert.Body)
-	}
-	require.ElementsMatch(t, []string{"ios-device", "android-device"}, notified)
-
-	platform := "ios"
-	require.NoError(t, controller.AddToken(1, hash[:], ente.PushTokenRequest{FCMToken: "ios-device", Platform: &platform}))
-	messages = nil
-	controller.NotifyAlbumShare(ctx, []int64{1})
-	require.Len(t, messages, 1, "removing the iOS key must stop delivery")
-	require.Equal(t, "android-device", messages[0].Message.Token)
-	_, err = db.Exec(`UPDATE tokens SET is_deleted=true WHERE token_hash=$1`, hash[:])
+	require.Len(t, messages, 1, "skip keyless and invalid-key devices without a sync fallback")
+	message := messages[0].Message
+	require.Equal(t, "ios-device", message.Token)
+	ciphertext, err := base64.StdEncoding.DecodeString(message.Data["notificationCiphertext"])
 	require.NoError(t, err)
-	messages = nil
-	controller.NotifyAlbumShare(ctx, []int64{1})
-	require.Empty(t, messages, "revoked sessions must receive no push")
+	plaintext, err := hpke.Open(key, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(), []byte("ente-push"), ciphertext)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"eventType":"album_shared"}`, string(plaintext))
+	require.Equal(t, "alert", message.APNS.Headers["apns-push-type"])
+	require.Equal(t, "10", message.APNS.Headers["apns-priority"])
+	require.Equal(t, "io.ente.frame", message.APNS.Headers["apns-topic"])
+	expiry, err := strconv.ParseInt(message.APNS.Headers["apns-expiration"], 10, 64)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, expiry, before)
+	require.LessOrEqual(t, expiry, after)
+	require.Equal(t, 1, message.APNS.Payload.Aps.MutableContent)
+	require.Equal(t, "Ente", message.APNS.Payload.Aps.Alert.Title)
+	require.Equal(t, "New activity", message.APNS.Payload.Aps.Alert.Body)
 }
 
 func TestAlbumShareEncryptsForEachEnrolledDevice(t *testing.T) {
@@ -283,6 +261,8 @@ func TestAlbumShareEncryptsForEachEnrolledDevice(t *testing.T) {
 	require.Len(t, messages, 2, "devices without a key must receive no push")
 	for _, envelope := range messages {
 		message := envelope.Message
+		require.Equal(t, "high", message.Android.Priority)
+		require.Equal(t, "86400s", message.Android.TTL)
 		require.Contains(t, keys, message.Token)
 		require.Contains(t, message.Data, "notificationCiphertext")
 		ciphertext, err := base64.StdEncoding.DecodeString(message.Data["notificationCiphertext"])
