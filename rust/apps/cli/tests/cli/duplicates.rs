@@ -50,14 +50,23 @@ fn duplicates_list_and_preview_use_owned_visible_memberships_and_shared_retentio
             unknown,
             unknown_copy,
             live,
-            live_copy
+            live_copy,
+            fixture(60, &key, "mixed", json!({})),
+            fixture(61, &key, "mixed", json!({}))
         ]),
         false,
     )
     .create();
     page(&mut server, 2, 0, json!([caption]), false).create();
     page(&mut server, 4, 0, json!([first]), false).create();
-    let hidden_request = page(&mut server, 3, 0, json!([]), false).expect(0).create();
+    let hidden_request = page(
+        &mut server,
+        3,
+        0,
+        json!([fixture(60, &key, "mixed", json!({}))]),
+        false,
+    )
+    .create();
     let add = server
         .mock("POST", "/collections/add-files")
         .expect(0)

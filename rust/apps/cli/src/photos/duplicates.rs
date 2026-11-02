@@ -183,8 +183,7 @@ async fn load(session: &Session, replica: &mut Replica<'_>, offline: bool) -> Re
             let album = entry.value.with_context(|| {
                 format!("cannot scan duplicates: album {} is unavailable", entry.id)
             })?;
-            if album.owner_id == session.user_id && !matches!(album.visibility, Visibility::Hidden)
-            {
+            if album.owner_id == session.user_id || matches!(album.visibility, Visibility::Hidden) {
                 albums.push(album);
             }
         }
@@ -225,6 +224,7 @@ async fn load(session: &Session, replica: &mut Replica<'_>, offline: bool) -> Re
         .map(|a| dedup::Collection {
             id: a.id,
             owner_id: a.owner_id,
+            is_hidden: matches!(a.visibility, Visibility::Hidden),
         })
         .collect();
     let mut groups = Vec::new();

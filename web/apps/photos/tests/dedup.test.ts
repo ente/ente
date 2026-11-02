@@ -8,6 +8,7 @@ import {
 const {
     executeDuplicateRemoval,
     savedNormalCollections,
+    savedAllCollections,
     savedCollectionFiles,
     forgetPendingFavoriteFileIDs,
     session,
@@ -15,6 +16,7 @@ const {
     executeDuplicateRemoval:
         vi.fn<typeof import("ente-photos-wasm").executeDuplicateRemoval>(),
     savedNormalCollections: vi.fn(),
+    savedAllCollections: vi.fn(),
     savedCollectionFiles: vi.fn(),
     forgetPendingFavoriteFileIDs: vi.fn(),
     session: {},
@@ -28,6 +30,8 @@ vi.mock("../src/services/authenticated-session", () => ({
 }));
 vi.mock("ente-new/photos/services/collection", () => ({
     savedNormalCollections,
+    savedAllCollections,
+    isHiddenCollection: (c: { hidden?: boolean }) => !!c.hidden,
     forgetPendingFavoriteFileIDs,
     createCollectionNameByID: (collections: { id: number; name: string }[]) =>
         new Map(collections.map(({ id, name }) => [id, name])),
@@ -56,10 +60,15 @@ describe("deduceDuplicates through Rust WASM", () => {
     beforeEach(() => {
         vi.resetAllMocks();
         executeDuplicateRemoval.mockResolvedValue({ trashIds: [1] });
-        savedNormalCollections.mockResolvedValue([
+        const collections = [
             { id: 11, owner: { id: 1 }, name: "B" },
             { id: 12, owner: { id: 1 }, name: "A" },
             { id: 13, owner: { id: 2 }, name: "Shared" },
+        ];
+        savedNormalCollections.mockResolvedValue(collections);
+        savedAllCollections.mockResolvedValue([
+            ...collections,
+            { id: 14, owner: { id: 1 }, name: "Hidden", hidden: true },
         ]);
     });
 
@@ -105,6 +114,27 @@ describe("deduceDuplicates through Rust WASM", () => {
                 expect.objectContaining({ fileId: 1, collectionIds: [11, 12] }),
             ],
         ]);
+    });
+
+    test("excludes mixed hidden and visible memberships from cleanup", async () => {
+        savedCollectionFiles.mockResolvedValue([
+            file(1, 11, "hash"),
+            file(2, 11, "hash"),
+            file(3, 12, "hash"),
+            file(1, 14, "hash"),
+            file(4, 14, "hash"),
+        ]);
+        const groups = await deduceDuplicates();
+        expect(groups).toHaveLength(1);
+        expect(groups[0]!.items.map(({ file }) => file.id).sort()).toEqual([
+            2, 3,
+        ]);
+        await removeSelectedDuplicateGroups(groups, vi.fn(), vi.fn());
+        expect(
+            executeDuplicateRemoval.mock.calls[0]![1].groups[0]!.map(
+                (f) => f.fileId,
+            ).sort(),
+        ).toEqual([2, 3]);
     });
 
     test("matches legacy Live Photo hashes despite different ZIP sizes and skips groups without sizes", async () => {

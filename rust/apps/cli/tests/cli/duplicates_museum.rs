@@ -119,3 +119,93 @@ fn duplicates_select_remove_and_refresh_against_museum() -> TestResult {
         Ok(())
     })
 }
+
+#[test]
+fn duplicates_protect_hidden_memberships_when_listing_and_removing() -> TestResult {
+    Museum::run_async(|origin| async move {
+        let email = format!("hidden-duplicates-{}@example.org", Uuid::new_v4());
+        let owner = create_account(&origin, &email).await;
+        let (visible, visible_key) = create_album(&origin, &owner, "Visible", "album").await;
+        let (hidden, hidden_key) = create_album(&origin, &owner, "Hidden", "album").await;
+        set_album_metadata(
+            &origin,
+            &owner,
+            hidden,
+            &hidden_key,
+            "magic-metadata",
+            json!({"visibility": 2}),
+        )
+        .await;
+        let mut files = Vec::new();
+        for _ in 0..3 {
+            files.push(
+                upload_fixture(
+                    &origin,
+                    &owner,
+                    visible,
+                    &visible_key,
+                    b"duplicate",
+                    json!({
+                        "title":"photo.jpg", "fileType":0, "creationTime":1, "hash":"same"
+                    }),
+                )
+                .await,
+            );
+        }
+        let protected = files[0].0.to_string();
+        let home = TestHome::new();
+        login(&home, "photos", &email, &["--host", &origin, "--no-input"]);
+        assert_eq!(
+            home.json(&["photos", "duplicate", "list", "--all"])[0]["files"]
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
+        export::place(
+            &origin,
+            &owner,
+            hidden,
+            &hidden_key,
+            files[0].0,
+            &files[0].1,
+            "add-files",
+        )
+        .await;
+        let groups = home.json(&["photos", "duplicate", "list", "--all"]);
+        assert_eq!(groups.as_array().unwrap().len(), 1);
+        let candidates = groups[0]["files"].as_array().unwrap();
+        assert_eq!(candidates.len(), 2);
+        assert!(candidates.iter().all(|file| file["id"] != protected));
+        assert_eq!(
+            home.json(&["photos", "duplicate", "list", "--all", "--offline"]),
+            groups
+        );
+        let preview = home.json(&["photos", "duplicate", "remove", "--all", "--dry-run"]);
+        assert_eq!(preview["trashIds"].as_array().unwrap().len(), 1);
+        assert!(
+            !preview["trashIds"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(protected))
+        );
+        let removed = home.json(&["photos", "duplicate", "remove", "--all", "--yes"]);
+        assert_eq!(removed["trashIds"], preview["trashIds"]);
+        for album in [visible, hidden] {
+            let file = home.json(&[
+                "photos",
+                "file",
+                "view",
+                &protected,
+                "--album",
+                &album.to_string(),
+            ]);
+            assert_eq!(file["id"], protected);
+        }
+        assert_eq!(
+            home.json(&["photos", "duplicate", "list", "--all"]),
+            json!([])
+        );
+        Ok(())
+    })
+}

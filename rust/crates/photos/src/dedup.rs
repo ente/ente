@@ -10,6 +10,7 @@ pub use removal::{
 pub struct Collection {
     pub id: i64,
     pub owner_id: i64,
+    pub is_hidden: bool,
 }
 
 pub struct File {
@@ -35,14 +36,27 @@ pub struct Group {
 pub fn find_duplicates(user_id: i64, collections: &[Collection], files: &[File]) -> Vec<Group> {
     let allowed: HashSet<_> = collections
         .iter()
-        .filter(|collection| collection.owner_id == user_id)
+        .filter(|collection| collection.owner_id == user_id && !collection.is_hidden)
         .map(|collection| collection.id)
+        .collect();
+    let hidden_collections: HashSet<_> = collections
+        .iter()
+        .filter(|collection| collection.is_hidden)
+        .map(|collection| collection.id)
+        .collect();
+    let hidden_file_ids: HashSet<_> = files
+        .iter()
+        .filter(|file| hidden_collections.contains(&file.collection_id))
+        .map(|file| file.id)
         .collect();
     let mut by_id = HashMap::<i64, (usize, usize)>::new();
     let mut by_hash = HashMap::<&str, usize>::new();
     let mut groups = Vec::<Group>::new();
     for (file_index, file) in files.iter().enumerate() {
-        if file.owner_id != user_id || !allowed.contains(&file.collection_id) {
+        if file.owner_id != user_id
+            || !allowed.contains(&file.collection_id)
+            || hidden_file_ids.contains(&file.id)
+        {
             continue;
         }
         let Some(hash) = file.hash.as_deref().filter(|hash| !hash.is_empty()) else {
@@ -165,14 +179,17 @@ mod tests {
             Collection {
                 id: 11,
                 owner_id: 1,
+                is_hidden: false,
             },
             Collection {
                 id: 12,
                 owner_id: 1,
+                is_hidden: false,
             },
             Collection {
                 id: 13,
                 owner_id: 2,
+                is_hidden: false,
             },
         ]
     }
@@ -247,6 +264,39 @@ mod tests {
             vec![150, 90]
         );
         assert_eq!(groups[0].items.len(), 3);
+    }
+
+    #[test]
+    fn excludes_entire_upload_with_hidden_membership_in_any_input_order() {
+        let mut collections = collections();
+        collections.push(Collection {
+            id: 14,
+            owner_id: 1,
+            is_hidden: true,
+        });
+        let mut hidden = file(1, 14, "", None);
+        hidden.hash = None;
+        let mut files = vec![
+            file(1, 11, "hash", Some(100)),
+            file(2, 11, "hash", Some(100)),
+            file(3, 12, "hash", Some(100)),
+            hidden,
+            file(4, 14, "hash", Some(100)),
+        ];
+        for _ in 0..files.len() {
+            let groups = find_duplicates(1, &collections, &files);
+            assert_eq!(groups.len(), 1);
+            let mut ids: Vec<_> = groups[0]
+                .items
+                .iter()
+                .map(|item| files[item.file_index].id)
+                .collect();
+            ids.sort();
+            assert_eq!(ids, vec![2, 3]);
+            files.rotate_left(1);
+        }
+        files.retain(|file| file.id != 3);
+        assert!(find_duplicates(1, &collections, &files).is_empty());
     }
 
     fn duplicate(id: i64, collection_ids: &[i64]) -> Duplicate {
@@ -329,7 +379,13 @@ mod tests {
 
     #[test]
     fn detection_and_removal_preserve_every_album_membership_combination() {
-        let collections: Vec<_> = (11..=13).map(|id| Collection { id, owner_id: 1 }).collect();
+        let collections: Vec<_> = (11..=13)
+            .map(|id| Collection {
+                id,
+                owner_id: 1,
+                is_hidden: false,
+            })
+            .collect();
         for first in 1..8 {
             for second in 1..8 {
                 for third in 1..8 {
