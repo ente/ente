@@ -203,7 +203,7 @@ func TestPreviewUploadRequiresOwnedActiveFile(t *testing.T) {
 	require.Zero(t, count)
 }
 
-func TestPreviewUploadSizeWarningsDoNotRejectURLs(t *testing.T) {
+func TestPreviewUploadRejectsOversizedVideo(t *testing.T) {
 	router, db, userID, fileID := setupPreviewUploadTest(t)
 	_, err := db.Exec(`UPDATE files SET info = '{"fileSize":40000000}' WHERE file_id = $1`, fileID)
 	require.NoError(t, err)
@@ -216,7 +216,7 @@ func TestPreviewUploadSizeWarningsDoNotRejectURLs(t *testing.T) {
 		multipart  bool
 		legacy     bool
 		size       int64
-		warning    bool
+		oversized  bool
 	}{
 		{"single oversized video", ente.PreviewVideo, false, false, 160_000_000, true},
 		{"multipart oversized video", ente.PreviewVideo, true, false, 160_000_000, true},
@@ -245,14 +245,19 @@ func TestPreviewUploadSizeWarningsDoNotRejectURLs(t *testing.T) {
 				}
 			}
 			rec := performPreviewUpload(t, router, method, path, userID, body)
-			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			if tc.oversized {
+				require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+				require.Contains(t, rec.Body.String(), "video preview exceeds")
+			} else {
+				require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			}
 			var warnings []*log.Entry
 			for _, entry := range hook.AllEntries() {
-				if entry.Level == log.WarnLevel {
+				if entry.Level == log.WarnLevel && entry.Message == "video preview exceeds size limit" {
 					warnings = append(warnings, entry)
 				}
 			}
-			if !tc.warning {
+			if !tc.oversized {
 				require.Empty(t, warnings)
 				return
 			}
@@ -266,7 +271,7 @@ func TestPreviewUploadSizeWarningsDoNotRejectURLs(t *testing.T) {
 			require.Equal(t, int64(40_000_000), entry.Data["original_size_bytes"])
 			require.Equal(t, tc.size, entry.Data["preview_size_bytes"])
 			require.Equal(t, float64(4), entry.Data["preview_original_ratio"])
-			require.Equal(t, false, entry.Data["size_limit_enforced"])
+			require.Equal(t, true, entry.Data["size_limit_enforced"])
 		})
 	}
 }

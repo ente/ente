@@ -102,13 +102,15 @@ func (c *Controller) previewUploadObject(ctx *gin.Context, fileID int64, objectT
 		return "", ente.TempObject{}, err
 	}
 	if objectType == ente.PreviewVideo && contentLength != nil {
-		c.observeVideoPreviewSize(ctx, &filedata.VidPreviewRequest{
+		if err := c.checkVideoPreviewSize(ctx, &filedata.VidPreviewRequest{
 			FileID: fileID, ObjectSize: *contentLength,
 		}, actorUser, log.WithFields(log.Fields{
 			"req_id":              requestid.Get(ctx),
 			"size_check_stage":    "upload_url",
 			"preview_size_source": "declared",
-		}))
+		})); err != nil {
+			return "", ente.TempObject{}, err
+		}
 	}
 	id := filedata.NewUploadID(objectType)
 	return id, ente.TempObject{

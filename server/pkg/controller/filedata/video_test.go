@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestObserveVideoPreviewSizeUsesStoredOriginal(t *testing.T) {
+func TestCheckVideoPreviewSizeUsesStoredOriginal(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
 	testutil.ResetTables(t, db)
@@ -58,9 +58,14 @@ func TestObserveVideoPreviewSizeUsesStoredOriginal(t *testing.T) {
 				require.NoError(t, err)
 			}
 			logger, hook := logtest.NewNullLogger()
-			c.observeVideoPreviewSize(t.Context(), &enteFileData.VidPreviewRequest{
+			err := c.checkVideoPreviewSize(t.Context(), &enteFileData.VidPreviewRequest{
 				FileID: fileID, ObjectSize: tc.previewSize,
 			}, ownerID, log.NewEntry(logger))
+			if tc.warning == "video preview exceeds size limit" {
+				require.ErrorContains(t, err, "video preview exceeds the allowed size")
+			} else {
+				require.NoError(t, err)
+			}
 			if tc.warning == "" {
 				require.Empty(t, hook.AllEntries())
 			} else {
@@ -71,13 +76,13 @@ func TestObserveVideoPreviewSizeUsesStoredOriginal(t *testing.T) {
 				require.Equal(t, fileID, entry.Data["file_id"])
 				require.Equal(t, ownerID, entry.Data["user_id"])
 				require.Equal(t, tc.previewSize, entry.Data["preview_size_bytes"])
-				require.Equal(t, false, entry.Data["size_limit_enforced"])
+				require.Equal(t, tc.warning == "video preview exceeds size limit", entry.Data["size_limit_enforced"])
 			}
 		})
 	}
 }
 
-func TestWarnVideoPreviewSize(t *testing.T) {
+func TestCheckVideoPreviewSizeAgainstOriginal(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		original int64
@@ -93,10 +98,15 @@ func TestWarnVideoPreviewSize(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			logger, hook := logtest.NewNullLogger()
-			warnVideoPreviewSize(log.NewEntry(logger).WithFields(log.Fields{
+			err := checkVideoPreviewSizeAgainstOriginal(log.NewEntry(logger).WithFields(log.Fields{
 				"req_id": "preview-size-request", "user_id": int64(42),
 				"size_check_stage": "registration", "preview_size_source": "verified",
 			}), &enteFileData.VidPreviewRequest{FileID: 7, ObjectSize: tc.preview}, tc.original)
+			if tc.warning == "video preview exceeds size limit" {
+				require.ErrorContains(t, err, "video preview exceeds the allowed size")
+			} else {
+				require.NoError(t, err)
+			}
 			if tc.warning == "" {
 				require.Empty(t, hook.AllEntries())
 				return
@@ -112,7 +122,7 @@ func TestWarnVideoPreviewSize(t *testing.T) {
 			require.Equal(t, int64(7), entry.Data["file_id"])
 			require.Equal(t, tc.original, entry.Data["original_size_bytes"])
 			require.Equal(t, tc.preview, entry.Data["preview_size_bytes"])
-			require.Equal(t, false, entry.Data["size_limit_enforced"])
+			require.Equal(t, tc.warning == "video preview exceeds size limit", entry.Data["size_limit_enforced"])
 			if tc.original > 0 {
 				require.Equal(t, float64(tc.preview)/float64(tc.original), entry.Data["preview_original_ratio"])
 			} else {
@@ -122,17 +132,17 @@ func TestWarnVideoPreviewSize(t *testing.T) {
 	}
 }
 
-func TestObserveVideoPreviewSizeLookupFailureOnlyWarns(t *testing.T) {
+func TestCheckVideoPreviewSizeLookupFailureOnlyWarns(t *testing.T) {
 	db, err := sql.Open("postgres", "")
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
 	logger, hook := logtest.NewNullLogger()
 	c := &Controller{FileRepo: &repo.FileRepository{DB: db}}
-	c.observeVideoPreviewSize(t.Context(), &enteFileData.VidPreviewRequest{
+	require.NoError(t, c.checkVideoPreviewSize(t.Context(), &enteFileData.VidPreviewRequest{
 		FileID: 7, ObjectSize: 200_000_000,
 	}, 42, log.NewEntry(logger).WithFields(log.Fields{
 		"req_id": "preview-size-request", "size_check_stage": "upload_url", "preview_size_source": "declared",
-	}))
+	})))
 	require.Len(t, hook.AllEntries(), 1)
 	entry := hook.LastEntry()
 	require.Equal(t, log.WarnLevel, entry.Level)

@@ -87,9 +87,10 @@ func TestVideoPreviewSize(t *testing.T) {
 
 func TestVideoPreviewRequestRejectsNonpositiveSize(t *testing.T) {
 	for _, size := range []int64{0, -1} {
-		err := (VidPreviewRequest{ObjectSize: size, Playlist: "playlist", PlayListHeader: "header"}).Validate()
-		if err == nil {
-			t.Fatalf("Validate() accepted objectSize %d", size)
-		}
+		err := (VidPreviewRequest{
+			ObjectID: NewUploadID(ente.PreviewVideo), ObjectSize: size,
+			Playlist: "playlist", PlayListHeader: "header",
+		}).Validate()
+		require.ErrorContains(t, err, "objectSize must be positive")
 	}
 }
