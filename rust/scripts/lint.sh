@@ -12,6 +12,8 @@ node checks/dependency-boundaries/check.mjs ..
 node checks/dependency-boundaries/test.mjs
 node checks/lint-exceptions/check.mjs ..
 node checks/lint-exceptions/test.mjs
+node checks/cli-env-vars/check.mjs ..
+node checks/cli-env-vars/test.mjs
 cargo fmt --check
 cargo clippy --locked --all-targets --features museum,ente-ml/ml-assets
 cargo audit

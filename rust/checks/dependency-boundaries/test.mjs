@@ -86,6 +86,25 @@ for (const domainName of ["core", "assets"]) {
     assert.equal(result.status, 0, result.stderr);
 }
 
+for (const framework of ["argon2", "aes-gcm", "ring"]) {
+    result = run({ framework });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(
+        result.stderr,
+        new RegExp(`${framework} is a cryptographic dependency`),
+    );
+}
+
+for (const [framework, domainName] of [
+    ["argon2", "core"],
+    ["srp", "accounts"],
+    ["keyring", "domain"],
+]) {
+    result = run({ framework, domainName });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+}
+
 result = run({
     projections: {
         "rust/bindings/wasm/lib/src/projection.rs":

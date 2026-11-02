@@ -26,25 +26,42 @@ const domain = metadata.packages.filter((pkg) =>
     pathFromRoot(pkg.manifest_path).startsWith("rust/crates/"),
 );
 
-const httpOwners = new Set([
+const httpOwners = sorted("httpOwners", [
     "rust/apps/cli/Cargo.toml",
     "rust/crates/assets/Cargo.toml",
     "rust/crates/core/Cargo.toml",
     "rust/tools/location-dataset/Cargo.toml",
 ]);
-if ([...httpOwners].some((path, i, paths) => i > 0 && paths[i - 1] > path)) {
-    throw new Error("httpOwners must be sorted");
-}
+const cryptoOwner = "rust/crates/core/Cargo.toml";
+const cryptoExceptions = sorted("cryptoExceptions", [
+    "hkdf rust/crates/ensu-crypto/Cargo.toml",
+    "hmac rust/crates/legacy/Cargo.toml",
+    "srp rust/crates/accounts/Cargo.toml",
+]);
+const cryptoName =
+    /^(?:aes|argon2|bcrypt|chacha|crypto[-_]|curve25519|ecdsa|ed25519|hkdf|hmac|hpke|kyber|libcrux|ml-kem|p256|pbkdf|poly1305|salsa|scrypt|secp256|sodium|x25519|ring$|srp$)/;
+const crates = resolve(root, "rust/crates");
 
 for (const pkg of metadata.packages) {
     const manifest = pathFromRoot(pkg.manifest_path);
-    if (httpOwners.has(manifest)) continue;
-    for (const dependency of pkg.dependencies) {
-        if (dependency.name !== "reqwest") continue;
-        console.error(
-            `${manifest}: use ente-core::http instead of a direct reqwest dependency`,
-        );
-        process.exitCode = 1;
+    for (const { name, path } of pkg.dependencies) {
+        if (name === "reqwest" && !httpOwners.has(manifest)) {
+            console.error(
+                `${manifest}: use ente-core::http instead of a direct reqwest dependency`,
+            );
+            process.exitCode = 1;
+        }
+        if (
+            cryptoName.test(name) &&
+            !inside(crates, path) &&
+            manifest !== cryptoOwner &&
+            !cryptoExceptions.has(`${name} ${manifest}`)
+        ) {
+            console.error(
+                `${manifest}: ${name} is a cryptographic dependency; use ente-core::crypto`,
+            );
+            process.exitCode = 1;
+        }
     }
 }
 
@@ -119,6 +136,13 @@ for (const path of git(
 
 function git(...args) {
     return execFileSync("git", args, { cwd: root, encoding: "utf8" });
+}
+
+function sorted(name, values) {
+    if (values.some((value, i) => i > 0 && values[i - 1] > value)) {
+        throw new Error(`${name} must be sorted`);
+    }
+    return new Set(values);
 }
 
 function inside(directory, path) {
