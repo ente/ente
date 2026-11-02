@@ -51,6 +51,7 @@ export interface GallerySectionProps {
     library: Readonly<GalleryState> & {
         isFirstLoad: boolean;
         searchIndexRevision: number;
+        remotePullRevision: number;
     };
     operations: GallerySectionOperations;
     navigation: GalleryNavigationState & {

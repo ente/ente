@@ -113,7 +113,12 @@ const openAlbum = (
 
 const headerSummary = (state: GalleryState, collectionID = 10) => {
     const props: GallerySectionProps = {
-        library: { ...state, isFirstLoad: false, searchIndexRevision: 0 },
+        library: {
+            ...state,
+            isFirstLoad: false,
+            searchIndexRevision: 0,
+            remotePullRevision: 0,
+        },
         operations: {
             dispatch: vi.fn(),
             peopleState: undefined,

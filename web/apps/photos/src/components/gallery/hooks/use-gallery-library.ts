@@ -54,6 +54,7 @@ export const useGalleryLibrary = () => {
     const [state, dispatch] = useGalleryReducer();
 
     const [searchIndexRevision, setSearchIndexRevision] = useState(0);
+    const [remotePullRevision, setRemotePullRevision] = useState(0);
     const [isFirstLoad, setIsFirstLoad] = useState(false);
     // Pull pipelines mutate the same local DB and reducer state.
     const remoteFilesPullQueue = useRef(new PromiseQueue<void>());
@@ -117,6 +118,7 @@ export const useGalleryLibrary = () => {
                     await prePullFiles();
                     await remoteFilesPull();
                     await postPullFiles(source);
+                    setRemotePullRevision((revision) => revision + 1);
                 } catch (e) {
                     // A later pull retries transient failures after remote mutations.
                     log.error("Remote pull failed", e);
@@ -269,6 +271,7 @@ export const useGalleryLibrary = () => {
         dispatch,
         isFirstLoad,
         searchIndexRevision,
+        remotePullRevision,
         peopleState,
         remotePull,
         remoteFilesPull,

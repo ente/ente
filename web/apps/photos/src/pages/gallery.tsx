@@ -19,7 +19,8 @@ import { useMemo } from "react";
 
 const Page: React.FC = () => {
     const libraryOwner = useGalleryLibrary();
-    const { state, isFirstLoad, searchIndexRevision } = libraryOwner;
+    const { state, isFirstLoad, searchIndexRevision, remotePullRevision } =
+        libraryOwner;
     const { authenticateUser, authenticateUserDialogProps } =
         useGalleryAuthentication();
     const navigation = useGalleryNavigation(libraryOwner, authenticateUser);
@@ -39,8 +40,13 @@ const Page: React.FC = () => {
         navigation.showSettings,
     );
     const library = useMemo(
-        () => ({ ...state, isFirstLoad, searchIndexRevision }),
-        [state, isFirstLoad, searchIndexRevision],
+        () => ({
+            ...state,
+            isFirstLoad,
+            searchIndexRevision,
+            remotePullRevision,
+        }),
+        [state, isFirstLoad, searchIndexRevision, remotePullRevision],
     );
     const { View } = sectionDefinition(navigation.sectionID);
     if (!state.user) return <div />;

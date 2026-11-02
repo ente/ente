@@ -1,5 +1,6 @@
 import {
     DashboardSquare01Icon,
+    FavouriteIcon,
     Link04Icon,
     Location01Icon,
     User02Icon,
@@ -20,6 +21,7 @@ import { resolveAlbumDestination } from "./albums/album-files";
 import { AlbumsSection } from "./albums/AlbumsSection";
 import { DuplicatesView } from "./cleanup/DuplicatesView";
 import { LargeFilesView } from "./cleanup/LargeFilesView";
+import { FeedSection } from "./feed/FeedSection";
 import { resolveLinksDestination } from "./links/link-selection";
 import { LinksSection } from "./links/LinksSection";
 import { resolvePeopleDestination } from "./people/people-files";
@@ -129,6 +131,16 @@ const largeFilesView: GallerySectionDefinition["View"] = ({
         <LargeFilesView onRemoteFilesPull={operations.onRemoteFilesPull} />
     </GallerySectionLayout>
 );
+const feedSelected: NonNullable<
+    NonNullable<GallerySectionDefinition["rail"]>["selected"]
+> = (navigation) =>
+    !navigation.overlay && navigation.destination.section === "feed";
+const feedSelection: NonNullable<
+    NonNullable<GallerySectionDefinition["rail"]>["select"]
+> = ({ open, closeDrawer }) => {
+    closeDrawer();
+    open();
+};
 export const gallerySections = {
     albums: {
         View: AlbumsSection,
@@ -139,6 +151,16 @@ export const gallerySections = {
             label: () => t("albums"),
             icon: DashboardSquare01Icon,
             select: albumsSelection,
+        },
+    },
+    feed: {
+        View: FeedSection,
+        hasNavigation: false,
+        rail: {
+            label: () => t("feed"),
+            icon: FavouriteIcon,
+            selected: feedSelected,
+            select: feedSelection,
         },
     },
     people: {

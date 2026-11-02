@@ -20,6 +20,7 @@ export interface Collection {
     sharees: CollectionUser[];
     publicURLs: PublicURL[];
     updationTime: number;
+    sharedAt?: number;
     // Private to the owner; never visible to sharees.
     magicMetadata?: MagicMetadata<CollectionPrivateMagicMetadataData>;
     // Visible to everyone with whom the collection is shared.
@@ -120,6 +121,7 @@ export const RemoteCollection = z.looseObject({
     sharees: z.array(RemoteCollectionUser).nullish().transform(nullishToEmpty),
     publicURLs: z.array(RemotePublicURL).nullish().transform(nullishToEmpty),
     updationTime: z.number(),
+    sharedAt: z.number().nullish().transform(nullToUndefined),
     isDeleted: z.boolean().nullish().transform(nullToUndefined),
     magicMetadata: RemoteMagicMetadata.nullish().transform(nullToUndefined),
     pubMagicMetadata: RemoteMagicMetadata.nullish().transform(nullToUndefined),

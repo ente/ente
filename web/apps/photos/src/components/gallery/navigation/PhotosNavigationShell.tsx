@@ -370,7 +370,11 @@ const NormalNavigationRail = ({
                         color="secondary"
                         aria-label={rail.label()}
                         aria-pressed={selected}
-                        aria-haspopup={mobile ? "dialog" : undefined}
+                        aria-haspopup={
+                            mobile && definition.hasNavigation
+                                ? "dialog"
+                                : undefined
+                        }
                         onClick={() => onSelect(id)}
                         sx={{
                             minWidth: 0,

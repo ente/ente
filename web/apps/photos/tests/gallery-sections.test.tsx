@@ -27,6 +27,9 @@ vi.mock("../src/components/gallery/sections/places/PlacesSection", () => ({
 vi.mock("../src/components/gallery/sections/links/LinksSection", () => ({
     LinksSection: () => <div>Links</div>,
 }));
+vi.mock("../src/components/gallery/sections/feed/FeedSection", () => ({
+    FeedSection: () => <div>Feed</div>,
+}));
 vi.mock("../src/components/gallery/sections/search/SearchSection", () => ({
     SearchSection: () => <div>Search</div>,
 }));
@@ -77,6 +80,26 @@ const entry = () => ({
     togglePanel: vi.fn(),
 });
 describe("rail entry behavior", () => {
+    test("Feed opens directly without a navigation panel on desktop and mobile", () => {
+        for (const mobile of [false, true]) {
+            const controls = { ...entry(), mobile };
+            const definition = sectionDefinition("feed");
+            selectRailSection(definition, "feed", controls);
+            expect(controls.open).toHaveBeenCalledOnce();
+            expect(controls.openPanel).not.toHaveBeenCalled();
+            expect(controls.togglePanel).not.toHaveBeenCalled();
+            expect(definition.hasNavigation).toBe(false);
+            controls.navigation = navigationReducer(initialNavigationState, {
+                type: "openSection",
+                section: "feed",
+            });
+            expect(
+                definition.rail?.selected?.(controls.navigation, false),
+            ).toBe(true);
+            selectRailSection(definition, "feed", controls);
+            expect(controls.togglePanel).not.toHaveBeenCalled();
+        }
+    });
     test("ordinary sections open and repeated selection toggles their panel", () => {
         const controls = entry();
         selectRailSection(sectionDefinition("links"), "links", controls);
