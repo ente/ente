@@ -22,6 +22,7 @@ import "package:photos/models/ignored_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/ignored_files_service.dart";
+import "package:photos/services/sync/album_refresh_coordinator.dart";
 import "package:photos/services/sync/import/diff.dart";
 import "package:photos/services/sync/import/local_assets.dart";
 import "package:photos/services/sync/import/model.dart";
@@ -39,6 +40,7 @@ class LocalSyncService {
   StreamSubscription<PermissionGrantedEvent>? _permissionGrantedSubscription;
   bool _isChangeCallbackRegistered = false;
   final Lock _lock = Lock();
+  late final _albumRefresh = AlbumRefreshCoordinator(_refreshDeviceFolders);
 
   static const kDbUpdationTimeKey = "db_updation_time";
   static const kHasCompletedFirstImportKey = "has_completed_firstImport";
@@ -165,11 +167,17 @@ class LocalSyncService {
     _existingSync = null;
   }
 
-  Future<bool> _refreshDeviceFolderCountAndCover({
-    bool isFirstSync = false,
-  }) async {
+  Future<bool> _refreshDeviceFolderCountAndCover({bool isFirstSync = false}) =>
+      _albumRefresh.request(isFirstSync: isFirstSync);
+
+  Future<bool> _refreshDeviceFolders(
+    bool isFirstSync,
+    void Function(String) setStage,
+  ) async {
+    setStage("reading albums and covers");
     final List<Tuple2<AssetPathEntity, String>> result =
         await getDeviceFolderWithCountAndCoverID();
+    setStage("reading counts and updating database");
     final bool hasUpdated = await _db.updateDeviceCoverWithCount(
       result,
       shouldBackup: backupPreferenceService.hasSelectedAllFoldersForBackup,
@@ -504,7 +512,9 @@ class LocalSyncService {
     if (permissionService.hasGrantedLimitedPermissions()) {
       unawaited(syncAll());
     } else {
-      unawaited(sync().then((value) => _refreshDeviceFolderCountAndCover()));
+      unawaited(
+        sync().then((value) => _refreshDeviceFolderCountAndCover().ignore()),
+      );
     }
   }
 }
