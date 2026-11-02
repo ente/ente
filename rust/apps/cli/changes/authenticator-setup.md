@@ -1,1 +1,0 @@
-- Fixed authenticator setup repeatedly asking for a code after the setup expires.
