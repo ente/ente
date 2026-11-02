@@ -1,1 +1,0 @@
-- Fixed album cover transitions when opening albums from list view.

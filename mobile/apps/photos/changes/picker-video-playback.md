@@ -1,1 +1,0 @@
-- Fixed video playback in the device picker preview.

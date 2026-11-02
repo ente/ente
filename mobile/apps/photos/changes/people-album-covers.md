@@ -1,1 +1,0 @@
-- Added album covers and smooth transitions to people and face groups.

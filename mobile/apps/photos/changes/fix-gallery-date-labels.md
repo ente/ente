@@ -1,1 +1,0 @@
-- Fixed missing gallery date labels after background activity.

@@ -1,1 +1,0 @@
-- Fixed an issue that could cause the app to close immediately on older iOS versions.

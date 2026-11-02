@@ -1,1 +1,0 @@
-- Local gallery setup now remembers when you continue without an account, and you can retry photo access after a denial.

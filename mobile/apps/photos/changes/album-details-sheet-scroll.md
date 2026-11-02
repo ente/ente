@@ -1,1 +1,0 @@
-- Fixed scrolling in album details so Save Changes stays reachable with the keyboard open.
