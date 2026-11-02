@@ -14,6 +14,7 @@ import type { EnteFile } from "ente-media/file";
 import {
     createAlbum,
     createHiddenAlbum,
+    renameCollection,
 } from "ente-new/photos/services/collection";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
@@ -35,7 +36,7 @@ export const useCollectionDialogs = ({
     const [attributes, setAttributes] =
         useState<CollectionSelectorAttributes>();
     const [creation, setCreation] = useState<{
-        hidden: boolean;
+        getOrCreate: (name: string) => Promise<Collection>;
         onCreate?: (collection: Collection) => void | Promise<void>;
     }>();
     const { show, props: albumNameInputVisibilityProps } = useModalVisibility();
@@ -44,7 +45,21 @@ export const useCollectionDialogs = ({
             hidden = false,
             onCreate?: (collection: Collection) => void | Promise<void>,
         ) => {
-            setCreation({ hidden, onCreate });
+            let collection: Collection | undefined;
+            setCreation({
+                getOrCreate: async (name) => {
+                    if (!collection) {
+                        collection = hidden
+                            ? await createHiddenAlbum(name)
+                            : await createAlbum(name);
+                    } else if (collection.name !== name) {
+                        await renameCollection(collection, name);
+                        collection = { ...collection, name };
+                    }
+                    return collection;
+                },
+                onCreate,
+            });
             show();
         },
         [show],
@@ -62,10 +77,9 @@ export const useCollectionDialogs = ({
     );
     const handleAlbumNameSubmit = async (name: string) => {
         const request = creation;
-        const collection = request?.hidden
-            ? await createHiddenAlbum(name)
-            : await createAlbum(name);
-        if (request?.onCreate) await request.onCreate(collection);
+        if (!request) return;
+        const collection = await request.getOrCreate(name);
+        if (request.onCreate) await request.onCreate(collection);
         else {
             await remotePull();
             showNotification({ color: "primary", title: t("album_created") });
@@ -76,15 +90,19 @@ export const useCollectionDialogs = ({
     };
     const handleAddSingleFileToCollection = useCallback(
         (file: EnteFile, sourceCollectionSummaryID?: number) => {
+            let addedCollectionID: number | undefined;
             const add = async (collection: Collection) => {
                 showLoadingBar();
                 try {
-                    await performCollectionOp(
-                        "add",
-                        collection,
-                        [file],
-                        sourceCollectionSummaryID,
-                    );
+                    if (addedCollectionID !== collection.id) {
+                        await performCollectionOp(
+                            "add",
+                            collection,
+                            [file],
+                            sourceCollectionSummaryID,
+                        );
+                        addedCollectionID = collection.id;
+                    }
                     await remotePull({
                         silent: true,
                         source: "single-file-add-to-album",

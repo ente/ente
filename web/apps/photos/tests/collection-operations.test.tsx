@@ -8,6 +8,7 @@ import { initialGalleryState } from "../src/components/gallery/reducer";
 
 const services = vi.hoisted(() => ({
     createAlbum: vi.fn(),
+    renameCollection: vi.fn(),
     performCollectionOp: vi.fn(),
     onGenericError: vi.fn(),
     hideLoadingBar: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock("ente-new/photos/types/context", () => ({
 }));
 vi.mock("ente-new/photos/services/collection", () => ({
     createAlbum: services.createAlbum,
+    renameCollection: services.renameCollection,
     createHiddenAlbum: vi.fn(),
     canAddFilesToCollection: vi.fn(),
     removeFromCollection: vi.fn(),
@@ -81,6 +83,7 @@ const files: EnteFile[] = [1, 2, 3].map((id) => ({
 beforeEach(() => {
     vi.clearAllMocks();
     services.createAlbum.mockReset().mockResolvedValue(album);
+    services.renameCollection.mockReset().mockResolvedValue(undefined);
     services.performCollectionOp.mockReset().mockResolvedValue(undefined);
 });
 
@@ -193,8 +196,8 @@ const openSingleFileAddDialog = () => {
     renderToStaticMarkup(<Harness />);
     return {
         remotePull,
-        submit: () =>
-            dialogs!.albumNameInputProps.onSubmit("New album", vi.fn()),
+        submit: (name = "New album") =>
+            dialogs!.albumNameInputProps.onSubmit(name, vi.fn()),
         select: () =>
             dialogs!.collectionSelectorProps.attributes!.onSelectCollection(
                 album,
@@ -227,6 +230,70 @@ test("a single-file add failure reaches the album-name form", async () => {
     expect(services.showNotification).not.toHaveBeenCalled();
     expect(dialog.remotePull).not.toHaveBeenCalled();
     expect(services.hideLoadingBar).toHaveBeenCalledOnce();
+});
+
+test("retrying a failed single-file add reuses the created album", async () => {
+    services.performCollectionOp.mockRejectedValueOnce(new Error("HTTP 500"));
+    const dialog = openSingleFileAddDialog();
+    await expect(dialog.submit()).rejects.toThrow("HTTP 500");
+    await dialog.submit();
+    expect(services.createAlbum).toHaveBeenCalledExactlyOnceWith("New album");
+    expect(services.performCollectionOp).toHaveBeenCalledTimes(2);
+    expect(services.performCollectionOp).toHaveBeenLastCalledWith(
+        "add",
+        album,
+        [files[0]],
+        10,
+    );
+    expect(dialog.remotePull).toHaveBeenCalledOnce();
+    expect(services.showNotification).toHaveBeenCalledOnce();
+});
+
+test("retrying a failed refresh does not recreate the album or add the file again", async () => {
+    const dialog = openSingleFileAddDialog();
+    dialog.remotePull.mockRejectedValueOnce(new Error("HTTP 500"));
+    await expect(dialog.submit()).rejects.toThrow("HTTP 500");
+    expect(services.showNotification).not.toHaveBeenCalled();
+    await dialog.submit();
+    expect(services.createAlbum).toHaveBeenCalledOnce();
+    expect(services.performCollectionOp).toHaveBeenCalledOnce();
+    expect(dialog.remotePull).toHaveBeenCalledTimes(2);
+    expect(services.showNotification).toHaveBeenCalledOnce();
+});
+
+test("a failed single-file album creation can be retried", async () => {
+    services.createAlbum.mockRejectedValueOnce(new Error("HTTP 500"));
+    const dialog = openSingleFileAddDialog();
+    await expect(dialog.submit()).rejects.toThrow("HTTP 500");
+    expect(services.performCollectionOp).not.toHaveBeenCalled();
+    await dialog.submit();
+    expect(services.createAlbum).toHaveBeenCalledTimes(2);
+    expect(services.performCollectionOp).toHaveBeenCalledOnce();
+    expect(dialog.remotePull).toHaveBeenCalledOnce();
+});
+
+test("editing the name on retry renames the same album and retains it after a rename failure", async () => {
+    services.performCollectionOp.mockRejectedValueOnce(new Error("Add failed"));
+    services.renameCollection.mockRejectedValueOnce(new Error("Rename failed"));
+    const dialog = openSingleFileAddDialog();
+    await expect(dialog.submit()).rejects.toThrow("Add failed");
+    await expect(dialog.submit("Renamed album")).rejects.toThrow(
+        "Rename failed",
+    );
+    expect(services.performCollectionOp).toHaveBeenCalledOnce();
+    await dialog.submit("Renamed album");
+    expect(services.createAlbum).toHaveBeenCalledOnce();
+    expect(services.renameCollection).toHaveBeenCalledTimes(2);
+    expect(services.renameCollection).toHaveBeenLastCalledWith(
+        album,
+        "Renamed album",
+    );
+    expect(services.performCollectionOp).toHaveBeenLastCalledWith(
+        "add",
+        { ...album, name: "Renamed album" },
+        [files[0]],
+        10,
+    );
 });
 
 test("an existing-album add failure still reports a generic error", async () => {
