@@ -59,12 +59,14 @@ import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
+import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/ui/viewer/gallery/component/album_cover_app_bar.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
+import "package:photos/ui/viewer/gallery/hooks/edit_album_details_sheet.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -432,6 +434,12 @@ void main() {
     await _pumpAlbum(tester, collection);
     await _expectCover(tester, cover, count: 100);
     expect(find.text("1 JAN – 10 APR 2026"), findsOneWidget);
+    collection.pubMagicMetadata = CollectionPubMagicMetadata(
+      sortBy: "fileName",
+    );
+    await tester.runAsync(() async {
+      expect(await CollectionsService.instance.getCover(collection), cover);
+    });
     await _disposeAlbum(tester);
   });
 
@@ -571,6 +579,12 @@ void main() {
             sortBy: "fileName",
             coverID: coverID,
           );
+        await tester.runAsync(() async {
+          expect(
+            await CollectionsService.instance.getCover(collection),
+            files[coverID == null ? 1 : 2],
+          );
+        });
         await _pumpAlbum(tester, collection);
         await _expectCover(
           tester,
@@ -592,6 +606,12 @@ void main() {
             ),
           );
           final first = files[asc ? 1 : 0];
+          await tester.runAsync(() async {
+            expect(
+              await CollectionsService.instance.getCover(collection),
+              coverID == null ? first : files[2],
+            );
+          });
           await _expectCover(
             tester,
             coverID == null ? first : files[2],
@@ -613,6 +633,59 @@ void main() {
       }
     },
   );
+
+  testWidgets("cover editor previews filename defaults before saving", (
+    tester,
+  ) async {
+    final files = [
+      _file(1)..title = "IMG10.jpg",
+      _file(2)..title = "IMG1.jpg",
+      _file(3)..title = "IMG2.jpg",
+    ];
+    final collection = _collection()
+      ..pubMagicMetadata = CollectionPubMagicMetadata(
+        asc: true,
+        sortBy: "fileName",
+      );
+    await tester.runAsync(() => FilesDB.instance.insertMultiple(files));
+    await _pumpAlbum(tester, collection);
+    await _expectCover(tester, files[1], count: 3);
+
+    int? savedCoverID;
+    void openEditor() => unawaited(
+      showEditAlbumDetailsSheet(
+        context: tester.element(find.byType(CollectionPage)),
+        collection: collection,
+        onSave: (update) async => savedCoverID = update.coverID,
+      ),
+    );
+    openEditor();
+    await _expectEditorCover(tester, files[1]);
+    await tester.tap(find.byTooltip("Close"));
+    await tester.pumpAndSettle();
+
+    collection.pubMagicMetadata = CollectionPubMagicMetadata(
+      asc: true,
+      sortBy: "fileName",
+      coverID: 3,
+    );
+    Bus.instance.fire(
+      CollectionUpdatedEvent(collection.id, [], "cover_change"),
+    );
+    await _expectCover(tester, files[2]);
+    openEditor();
+    await _expectEditorCover(tester, files[2]);
+    await tester.tap(find.byKey(const ValueKey("edit_album_cover")));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text("Reset to default"));
+    await _expectEditorCover(tester, files[1]);
+    expect(savedCoverID, isNull);
+    await tester.tap(find.byKey(const ValueKey("save_album_details")));
+    await tester.pumpAndSettle();
+    expect(savedCoverID, 0);
+    await _disposeAlbum(tester);
+  });
 
   testWidgets(
     "reuses capture dates across selection and refreshes date edits",
@@ -1287,6 +1360,26 @@ Future<void> _expectCover(
       firstFile,
     );
   }
+  expect(tester.takeException(), isNull);
+}
+
+Future<void> _expectEditorCover(WidgetTester tester, EnteFile file) async {
+  final thumbnail = find.descendant(
+    of: find.byType(EditAlbumDetailsSheet),
+    matching: find.byType(ThumbnailWidget),
+  );
+  await tester.runAsync(() async {
+    for (var i = 0; i < 100; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (tester.widgetList<ThumbnailWidget>(thumbnail).singleOrNull?.file ==
+          file) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  });
+  expect(tester.widget<ThumbnailWidget>(thumbnail).file, file);
+  await tester.pumpAndSettle();
   expect(tester.takeException(), isNull);
 }
 
