@@ -1,16 +1,16 @@
 #![cfg(feature = "museum")]
 
-use std::collections::HashSet;
+use std::{collections::HashSet, io::Write};
 
 use ente_collections::client;
 use ente_core::{
     Session, b64,
     crypto::{Header, Key, SecretKey, blob, hash, secretbox},
     http::{ApiConfig, Auth},
+    io::Md5Writer,
 };
 use ente_photos::dedup::{self, Duplicate, RemovalCollection, RemovalFile, RemovalProgress};
 use ente_test_support::{Museum, TestResult, account_fixture};
-use md5::{Digest, Md5};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -232,7 +232,9 @@ async fn upload_object(session: &Session, bytes: Vec<u8>) -> TestResult<String> 
         url: String,
         object_key: String,
     }
-    let checksum = b64::encode(&Md5::digest(&bytes));
+    let mut checksum_writer = Md5Writer::new(std::io::sink());
+    checksum_writer.write_all(&bytes)?;
+    let checksum = b64::encode(&checksum_writer.finalize().1);
     let upload: Upload = session
         .api
         .post("/files/upload-url")
