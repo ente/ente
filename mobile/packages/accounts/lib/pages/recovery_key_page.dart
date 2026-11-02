@@ -247,11 +247,16 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
       ),
     );
 
+    childrens.add(const SizedBox(height: 12));
+
     childrens.add(
       TextButton(
         onPressed: () async {
           await _saveKeys();
         },
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        ),
         child: Text(
           _hasTriedToSave ? widget.doneText : context.strings.continueLabel,
           style: textTheme.bodyBold.copyWith(color: colorScheme.primary700),
