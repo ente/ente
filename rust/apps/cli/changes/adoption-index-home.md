@@ -1,0 +1,1 @@
+- Photos export adoption now keeps its temporary database in the CLI home, respecting `ENTE_CLI_HOME`.

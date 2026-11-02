@@ -130,7 +130,7 @@ impl Export {
     pub async fn prepare(
         &mut self,
         connection: rusqlite::Connection,
-        open_index: impl FnOnce(&Path) -> Result<rusqlite::Connection>,
+        open_index: impl FnOnce() -> Result<(tempfile::TempDir, rusqlite::Connection)>,
         source: &mut impl Source,
         session: &ente_core::Session,
         cancel: &mut watch::Receiver<bool>,

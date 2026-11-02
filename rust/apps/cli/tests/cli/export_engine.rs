@@ -155,10 +155,11 @@ impl Engine {
         let db = self.db();
         tokio::runtime::Runtime::new()?.block_on(export.prepare(
             db,
-            |path| {
-                let db = rusqlite::Connection::open(path)?;
+            || {
+                let directory = tempfile::tempdir_in(self.directory.path())?;
+                let db = rusqlite::Connection::open(directory.path().join("index.db"))?;
                 db.pragma_update(None, "key", b64::encode(Key::generate().as_bytes()))?;
-                Ok(db)
+                Ok((directory, db))
             },
             &mut self.catalog,
             &self.session,
