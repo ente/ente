@@ -56,16 +56,16 @@ Yes! By default, the map view shows photos from all your albums. You can also:
 
 **From an album:**
 
-- Open any album
-- Tap the three dots menu
-- Select "Map"
+- Open an album with photos
+- On mobile, tap the map button on the album cover, or, after scrolling down, tap the three dots menu and select **Map**
+- On web and desktop, click the three dots menu on the right of the album header and select **Map**. For Favorites, click the globe button instead.
 - View only that album's photos on the map
 
 Learn more in the [Map and location guide](/photos/features/search-and-discovery/map-and-location).
 
 ### Why does the Map setting turn back on? {#map-turns-back-on}
 
-On mobile, opening the map from Search or an album turns Map back on so the view can load. If you want to keep it off, avoid opening either map view. If you opened one, turn Map off again in Settings.
+Opening a map view turns Map back on so the view can load. On mobile, this happens when you open the map from Search or an album. On web and desktop, it happens when you open an album's map. If you want to keep Map off, avoid opening these map views. If you opened one, turn Map off again in Settings on mobile, or in **Preferences > Map** on web and desktop.
 
 ## Location Tags
 

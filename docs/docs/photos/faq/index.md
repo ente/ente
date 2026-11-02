@@ -71,6 +71,11 @@ Jump to a category:
 - [What happens if I reorganize my photos in the iOS Photos app after backing up?](/photos/faq/albums-and-organization#ios-reorganize)
 - [How does Ente handle photos that are part of multiple iOS albums?](/photos/faq/albums-and-organization#multiple-ios-albums)
 
+### Gallery Layout
+
+- [How do I change the gallery layout?](/photos/faq/albums-and-organization#gallery-layout)
+- [How do I change how many photos fit on my screen?](/photos/faq/albums-and-organization#gallery-photos-per-row)
+
 ### Uncategorized
 
 - [What is the Uncategorized album?](/photos/faq/albums-and-organization#what-is-uncategorized)
@@ -208,6 +213,11 @@ Jump to a category:
 
 - [How does Ente handle Google Takeout metadata?](/photos/faq/metadata-and-editing#google-takeout-metadata)
 - [Why are my Google Photos dates wrong after import?](/photos/faq/metadata-and-editing#google-photos-dates-wrong)
+
+### Editing Photos
+
+- [What editing tools are available on mobile?](/photos/faq/metadata-and-editing#mobile-photo-editor)
+- [How do I straighten a tilted photo?](/photos/faq/metadata-and-editing#straighten-photo)
 
 ### Editing Metadata
 
