@@ -7,6 +7,10 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.68 (mobile) - Nov 2026
+
+- Fixed crashes during on-device photo processing.
+
 ## v1.3.67 (mobile) - Oct 2026
 
 - Upgraded Flutter to 3.47.8
