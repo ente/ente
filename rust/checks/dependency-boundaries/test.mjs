@@ -31,7 +31,10 @@ for (const framework of [
     );
 }
 
-result = run({ localDependency: "bindings/wasm/lib" });
+result = run({
+    localDependency: "bindings/wasm/lib",
+    dependencyKind: "dependencies",
+});
 assert.equal(result.status, 1, result.stderr);
 assert.match(result.stderr, /dependency "ente-binding" crosses/);
 
