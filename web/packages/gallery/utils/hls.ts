@@ -8,6 +8,8 @@ export const reconstructHLSPlaylist = (
     template: string,
     segmentURL: string,
 ) => {
+    if (/[\r\n]/.test(segmentURL)) return undefined;
+
     const result: string[] = [];
     const segmentURLBytes = new TextEncoder().encode(segmentURL).byteLength;
     let outputBytes = 0;
