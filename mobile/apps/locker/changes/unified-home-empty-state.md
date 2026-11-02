@@ -1,0 +1,1 @@
+- Updated the empty home screen to show save options regardless of Legacy kit setup.

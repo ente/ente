@@ -167,8 +167,6 @@ class _HomePageState extends UploaderPageState<HomePage>
   bool _isSettingsOpen = false;
   bool get _isSyncing => !_hasCompletedInitialLoad || _isLoading;
   bool get _isHomeEmptyState => _error == null && _recentFiles.isEmpty;
-  bool get _showsLegacySetupEmptyState =>
-      _isHomeEmptyState && !_hasSetupLegacyKit;
 
   List<Collection> _collections = [];
   List<Collection> _filteredCollections = [];
@@ -812,7 +810,7 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   Widget _buildEmptyState(double scrollBottomPadding) {
-    if (_hasSetupLegacyKit && !_isSyncing) {
+    if (!_isSyncing) {
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
@@ -848,7 +846,7 @@ class _HomePageState extends UploaderPageState<HomePage>
           onLegacyTapped: () => unawaited(openLegacyFromHome(context)),
           isSyncing: _isSyncing,
         ),
-        if (!_showsLegacySetupEmptyState) _buildSearchBar(),
+        _buildSearchBar(),
         Expanded(child: _buildBody()),
       ],
     );
