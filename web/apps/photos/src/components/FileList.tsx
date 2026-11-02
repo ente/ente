@@ -1,4 +1,9 @@
 import Avatar from "@/components/Avatar";
+import { DateScrubber } from "@/components/date-scrubber/DateScrubber";
+import {
+    createTimeline,
+    indexAtOffset,
+} from "@/components/date-scrubber/timeline";
 import {
     FileContextMenu,
     type ContextMenuPosition,
@@ -23,7 +28,15 @@ import AlbumOutlinedIcon from "@mui/icons-material/AlbumOutlined";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PlayCircleOutlineOutlinedIcon from "@mui/icons-material/PlayCircleOutlineOutlined";
-import { Box, Checkbox, Fab, Typography, styled } from "@mui/material";
+import {
+    Box,
+    Checkbox,
+    Fab,
+    Typography,
+    styled,
+    useMediaQuery,
+    useTheme,
+} from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
 import { assertionFailed } from "ente-base/assert";
 import { Overlay } from "ente-base/components/containers";
@@ -31,7 +44,10 @@ import { formattedDateRelative } from "ente-base/i18n-date";
 import log from "ente-base/log";
 import { downloadManager } from "ente-gallery/services/download";
 import type { EnteFile } from "ente-media/file";
-import { fileDurationString } from "ente-media/file-metadata";
+import {
+    fileCreationPhotoDate,
+    fileDurationString,
+} from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
 import {
     LoadingThumbnail,
@@ -111,6 +127,7 @@ export interface FileListProps {
     user?: LocalUser;
     disableGrouping?: boolean;
     enableSelect?: boolean;
+    enableDateScrubber?: boolean;
     setSelected: (
         selected: SelectedState | ((selected: SelectedState) => SelectedState),
     ) => void;
@@ -147,6 +164,7 @@ export const FileList: React.FC<FileListProps> = ({
     annotatedFiles,
     disableGrouping,
     enableSelect,
+    enableDateScrubber = false,
     selected,
     setSelected,
     activeCollectionID,
@@ -165,6 +183,49 @@ export const FileList: React.FC<FileListProps> = ({
 }) => {
     const [_items, setItems] = useState<FileListItem[]>([]);
     const items = useDeferredValue(_items);
+    const theme = useTheme();
+    const desktop = useMediaQuery(theme.breakpoints.up("md"));
+    const scrubberEnabled = enableDateScrubber && desktop;
+    const [scrollOffset, setScrollOffset] = useState(0);
+    const timeline = useMemo(
+        () =>
+            createTimeline(
+                items.map((item) => ({
+                    height: item.height,
+                    dates:
+                        scrubberEnabled && item.type === "file"
+                            ? item.groups.map((group) =>
+                                  fileCreationPhotoDate(
+                                      group.annotatedFiles[0]!.file,
+                                  ),
+                              )
+                            : undefined,
+                })),
+            ),
+        [items, scrubberEnabled],
+    );
+    const showScrubber =
+        scrubberEnabled &&
+        timeline.months.length > 0 &&
+        timeline.totalHeight > height &&
+        height > 64;
+    // react-window estimates unvisited row sizes. Keep the scroll surface exact
+    // so the scrubber can reach the oldest photos before those rows are visited.
+    const innerElementType = useMemo(() => {
+        if (!showScrubber) return undefined;
+        const Inner = React.forwardRef<
+            HTMLDivElement,
+            React.HTMLAttributes<HTMLDivElement>
+        >(({ style, ...props }, ref) => (
+            <div
+                {...props}
+                ref={ref}
+                style={{ ...style, height: timeline.totalHeight }}
+            />
+        ));
+        Inner.displayName = "DateScrubberListInner";
+        return Inner;
+    }, [showScrubber, timeline.totalHeight]);
 
     const [rangeStartIndex, setRangeStartIndex] = useState<number | undefined>(
         undefined,
@@ -350,6 +411,26 @@ export const FileList: React.FC<FileListProps> = ({
     useEffect(() => {
         listRef.current?.resetAfterIndex(0);
     }, [items]);
+
+    const seekTimeline = useCallback((offset: number, row: number) => {
+        listRef.current?.scrollToItem(row, "start");
+        listRef.current?.scrollTo(offset);
+    }, []);
+
+    const scrollTimelineBy = useCallback((delta: number) => {
+        if (outerRef.current) outerRef.current.scrollTop += delta;
+    }, []);
+
+    useEffect(() => {
+        if (showScrubber) {
+            const offset = Math.min(
+                outerRef.current?.scrollTop ?? 0,
+                timeline.totalHeight - height,
+            );
+            seekTimeline(offset, indexAtOffset(timeline.offsets, offset));
+            setScrollOffset(offset);
+        }
+    }, [timeline, height, showScrubber, seekTimeline]);
 
     useEffect(() => {
         const notSelectedFiles = annotatedFiles.filter(
@@ -776,6 +857,7 @@ export const FileList: React.FC<FileListProps> = ({
             onScroll?.(scrollOffset);
 
             setShowBackToTop(scrollOffset > 500);
+            if (showScrubber) setScrollOffset(scrollOffset);
 
             if (onVisibleDateChange && items.length > 0) {
                 let cumulativeHeight = 0;
@@ -797,7 +879,7 @@ export const FileList: React.FC<FileListProps> = ({
                 }
             }
         },
-        [onScroll, onVisibleDateChange, items],
+        [onScroll, onVisibleDateChange, items, showScrubber],
     );
 
     const handleScrollToTop = useCallback(() => {
@@ -823,12 +905,28 @@ export const FileList: React.FC<FileListProps> = ({
     }
 
     return (
-        <Box sx={{ position: "relative", width, height }}>
+        <Box
+            sx={{
+                position: "relative",
+                width,
+                height,
+                ...(showScrubber && {
+                    "& > .photo-list": {
+                        scrollbarWidth: "none",
+                        "&::-webkit-scrollbar": { display: "none" },
+                    },
+                    "&:has([data-date-scrubber-active]) .back-to-top, &:has([data-date-scrubber]:hover) .back-to-top, &:has([data-date-scrubber] :focus-visible) .back-to-top":
+                        { visibility: "hidden" },
+                }),
+            }}
+        >
             <VariableSizeList
                 key={key}
                 ref={listRef}
                 outerRef={outerRef}
-                {...{ width, height, itemData, itemSize, itemKey }}
+                {...{ height, itemData, itemSize, itemKey, innerElementType }}
+                width={width}
+                className="photo-list"
                 itemCount={items.length}
                 overscanCount={3}
                 useIsScrolling
@@ -841,8 +939,16 @@ export const FileList: React.FC<FileListProps> = ({
             >
                 {FileListRow}
             </VariableSizeList>
+            {showScrubber && (
+                <DateScrubber
+                    {...{ timeline, height, scrollOffset }}
+                    onSeek={seekTimeline}
+                    onScrollBy={scrollTimelineBy}
+                />
+            )}
             {showBackToTop && (
                 <BackToTopButton
+                    className="back-to-top"
                     size="small"
                     aria-label="scroll to top"
                     onClick={handleScrollToTop}
