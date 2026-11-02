@@ -1,4 +1,4 @@
-use ente_accounts::{auth, lifecycle, login, signup};
+use ente_accounts::{auth, lifecycle, signup};
 use ente_core::{b64, crypto::SecretVec};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen as swb;
@@ -182,19 +182,25 @@ pub async fn complete_signup(
 
 #[wasm_bindgen(js_name = unlockAccount, unchecked_return_type = "unknown")]
 pub fn unlock_account(
+    client: &AccountsClient,
     #[wasm_bindgen(unchecked_param_type = "unknown")] response: JsValue,
     kek: &str,
 ) -> Result<JsValue, Error> {
-    let account = login::unlock(&swb::from_value(response)?, &decode(kek)?)?;
+    let account = client
+        .0
+        .unlock(&swb::from_value(response)?, &decode(kek)?)?;
     unlocked_account(account)
 }
 
 #[wasm_bindgen(js_name = unlockAccountWithMasterKey, unchecked_return_type = "unknown")]
 pub fn unlock_account_with_master_key(
+    client: &AccountsClient,
     #[wasm_bindgen(unchecked_param_type = "unknown")] response: JsValue,
     master_key: &str,
 ) -> Result<JsValue, Error> {
-    let account = login::unlock_with_master_key(&swb::from_value(response)?, &decode(master_key)?)?;
+    let account = client
+        .0
+        .unlock_with_master_key(&swb::from_value(response)?, &decode(master_key)?)?;
     unlocked_account(account)
 }
 
@@ -254,10 +260,13 @@ pub async fn recover_two_factor(
 
 #[wasm_bindgen(js_name = recoverAccount, unchecked_return_type = "unknown")]
 pub fn recover_account(
+    client: &AccountsClient,
     #[wasm_bindgen(unchecked_param_type = "unknown")] response: JsValue,
     recovery_key: &str,
 ) -> Result<JsValue, Error> {
-    let account = login::recover_account(&swb::from_value(response)?, recovery_key)?;
+    let account = client
+        .0
+        .recover_account(&swb::from_value(response)?, recovery_key)?;
     unlocked_account(account)
 }
 

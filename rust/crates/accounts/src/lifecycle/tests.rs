@@ -166,57 +166,72 @@ async fn two_factor_recovery_preserves_secret_encoding() {
     let recovery_key =
         crypto::Key::try_from_slice(&hex::decode(&recovery_key_hex).unwrap()).unwrap();
     let mut server = Server::new_async().await;
-    let client = make_client(server.url());
-
-    for (factor, secret) in [
-        (TwoFactorType::Totp, TOTP_SECRET),
-        (TwoFactorType::Passkey, PASSKEY_SECRET),
-    ] {
-        let encrypted = secretbox::encrypt(&b64::decode(secret).unwrap(), &recovery_key);
-        let remove = server
-            .mock("POST", "/users/two-factor/remove")
-            .match_body(Matcher::Json(serde_json::json!({
-                "sessionID": "recovery-session",
-                "secret": secret,
-                "twoFactorType": factor,
-            })))
-            .with_status(200)
-            .with_body(
-                serde_json::json!({
-                    "id": 1,
-                    "keyAttributes": keys.key_attributes,
-                    "encryptedToken": "encrypted-token",
-                })
-                .to_string(),
-            )
-            .create_async()
-            .await;
-
-        let envelope = TwoFactorRecoveryResponse {
-            encrypted_secret: b64::encode(&encrypted.encrypted_data),
-            secret_decryption_nonce: b64::encode(encrypted.nonce.as_bytes()),
+    for strict in [false, true] {
+        let origin = if strict {
+            server.url().replace("127.0.0.1", "localhost")
+        } else {
+            server.url()
         };
-        assert!(matches!(
+        let client = make_client(origin);
+
+        for (factor, secret, proof) in [
+            (
+                TwoFactorType::Totp,
+                TOTP_SECRET,
+                "CBPrRdwiN5FRHBSQfTRIaEAN8Psf46H3iA3IugLVPqw=",
+            ),
+            (
+                TwoFactorType::Passkey,
+                PASSKEY_SECRET,
+                "f+nF2g7+BGieMdZ8uJLndOcDP5GX2ffGgLk5DhHqKFI=",
+            ),
+        ] {
+            let encrypted = secretbox::encrypt(&b64::decode(secret).unwrap(), &recovery_key);
+            let remove = server
+                .mock("POST", "/users/two-factor/remove")
+                .match_body(Matcher::Json(serde_json::json!({
+                    "sessionID": "recovery-session",
+                    if strict { "proof" } else { "secret" }: if strict { proof } else { secret },
+                    "twoFactorType": factor,
+                })))
+                .with_status(200)
+                .with_body(
+                    serde_json::json!({
+                        "id": 1,
+                        "keyAttributes": keys.key_attributes,
+                        "encryptedToken": "encrypted-token",
+                    })
+                    .to_string(),
+                )
+                .create_async()
+                .await;
+
+            let envelope = TwoFactorRecoveryResponse {
+                encrypted_secret: b64::encode(&encrypted.encrypted_data),
+                secret_decryption_nonce: b64::encode(encrypted.nonce.as_bytes()),
+            };
+            assert!(matches!(
+                recover_two_factor(
+                    &client,
+                    factor,
+                    "recovery-session",
+                    &envelope,
+                    &hex::encode(crypto::Key::generate().as_bytes()),
+                )
+                .await,
+                Err(Error::IncorrectRecoveryKey)
+            ));
             recover_two_factor(
                 &client,
                 factor,
                 "recovery-session",
                 &envelope,
-                &hex::encode(crypto::Key::generate().as_bytes()),
+                &recovery_key_hex,
             )
-            .await,
-            Err(Error::IncorrectRecoveryKey)
-        ));
-        recover_two_factor(
-            &client,
-            factor,
-            "recovery-session",
-            &envelope,
-            &recovery_key_hex,
-        )
-        .await
-        .unwrap();
-        remove.assert_async().await;
+            .await
+            .unwrap();
+            remove.assert_async().await;
+        }
     }
 }
 

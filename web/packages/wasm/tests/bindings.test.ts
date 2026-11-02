@@ -15,7 +15,7 @@ test("Photos deletion keeps summary fallback and decrypts the challenge in Rust"
     const masterKey = await generateKey();
     const input = await sessionKeyAttributes(masterKey);
     const encryptedChallenge = cryptoBoxSeal(
-        Buffer.from("deletion-jwt").toString("base64"),
+        Buffer.from("delete-jwtdeletion-jwt").toString("base64"),
         input.keyAttributes.publicKey,
     );
     const summary = {
@@ -73,6 +73,19 @@ test("Photos deletion keeps summary fallback and decrypts the challenge in Rust"
                 "not_listed",
                 feedback,
             );
+        }
+        for (const plaintext of [
+            "deletion-jwt",
+            "delete-jwt",
+            "auth-token" + "a".repeat(32),
+        ]) {
+            const substituted = cryptoBoxSeal(
+                Buffer.from(plaintext).toString("base64"),
+                input.keyAttributes.publicKey,
+            );
+            await expect(
+                photos.deleteAccount(session, substituted, "not_listed"),
+            ).rejects.toThrow("Invalid deletion challenge");
         }
         expect(deletions).toBe(2);
     } finally {

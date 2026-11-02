@@ -107,6 +107,9 @@ func (c *ClICtrl) decryptAccSecretInfo(
 			fmt.Printf("error decrypting token: %v", err)
 			return nil, err
 		}
+		if err := c.Client.ValidateAuthToken(tokenKey); err != nil {
+			return nil, err
+		}
 		break
 	}
 	return &model.AccSecretInfo{

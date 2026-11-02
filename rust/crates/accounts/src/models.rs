@@ -348,7 +348,10 @@ pub struct TwoFactorRecoveryResponse {
 pub struct RemoveTwoFactorRequest {
     #[serde(rename = "sessionID")]
     pub session_id: String,
-    pub secret: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proof: Option<String>,
     pub two_factor_type: TwoFactorType,
 }
 

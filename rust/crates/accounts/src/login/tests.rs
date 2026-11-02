@@ -394,7 +394,7 @@ async fn passkey_expiry_is_preserved() {
 #[test]
 fn recovery_unlocks_the_same_account_for_hex_and_mnemonic() {
     let keys = auth::generate_keys_with_strength("pw", KeyDerivationStrength::Interactive).unwrap();
-    let token = [42; 32];
+    let token = [b"auth-token".as_slice(), &[42; 32]].concat();
     let public_key =
         crypto::PublicKey::try_from_slice(&b64::decode(&keys.key_attributes.public_key).unwrap())
             .unwrap();
@@ -406,8 +406,9 @@ fn recovery_unlocks_the_same_account_for_hex_and_mnemonic() {
     .unwrap();
     let recovery_key = &*keys.private_key_attributes.recovery_key;
     let mnemonic = auth::recovery_key_to_mnemonic(&hex::decode(recovery_key).unwrap()).unwrap();
+    let client = make_client("https://api.ente.com".into());
     for value in [recovery_key, mnemonic.as_str()] {
-        let account = recover_account(&response, value).unwrap();
+        let account = client.recover_account(&response, value).unwrap();
         assert_eq!(account.secrets.token, token);
         assert_eq!(
             b64::encode(&account.secrets.master_key),
@@ -419,7 +420,53 @@ fn recovery_unlocks_the_same_account_for_hex_and_mnemonic() {
         );
     }
     assert!(matches!(
-        recover_account(&response, &hex::encode([0; 32])),
+        client.recover_account(&response, &hex::encode([0; 32])),
         Err(Error::IncorrectRecoveryKey)
     ));
+}
+
+#[test]
+fn encrypted_tokens_require_the_login_tag_on_enforced_endpoints() {
+    let keys = auth::generate_keys_with_strength("pw", KeyDerivationStrength::Interactive).unwrap();
+    let attributes = &keys.key_attributes;
+    let kek = derive_kek(
+        "pw",
+        &attributes.kek_salt,
+        attributes.mem_limit,
+        attributes.ops_limit,
+    )
+    .unwrap();
+    let master_key = b64::decode(&keys.private_key_attributes.key).unwrap();
+    let public_key =
+        crypto::PublicKey::try_from_slice(&b64::decode(&attributes.public_key).unwrap()).unwrap();
+    for origin in ["http://localhost:8080", "https://self-hosted.example"] {
+        let client = make_client(origin.into());
+        for (token, tagged) in [
+            ([b"auth-token".as_slice(), &[1; 32]].concat(), true),
+            (vec![1; 32], false),
+            ([b"auth-token".as_slice(), &[1; 31]].concat(), false),
+            ([b"auth-token".as_slice(), &[1; 33]].concat(), false),
+            (b"delete-jwtheader.payload.signature".to_vec(), false),
+        ] {
+            let mut response: AuthResponse = serde_json::from_value(json!({
+                "id": 77, "keyAttributes": attributes,
+                "encryptedToken": b64::encode(&crypto::sealed::seal(&token, &public_key).unwrap()),
+            }))
+            .unwrap();
+            for result in [
+                client.unlock(&response, &kek),
+                client.unlock_with_master_key(&response, &master_key),
+                client.recover_account(&response, &keys.private_key_attributes.recovery_key),
+            ] {
+                if tagged || origin == "https://self-hosted.example" {
+                    assert_eq!(result.unwrap().secrets.token, token);
+                } else {
+                    assert!(matches!(result, Err(Error::Protocol(_))));
+                }
+            }
+            response.encrypted_token = None;
+            response.token = Some(b64::encode_url_safe(&token));
+            assert_eq!(client.unlock(&response, &kek).unwrap().secrets.token, token);
+        }
+    }
 }

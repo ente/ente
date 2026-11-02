@@ -1,5 +1,6 @@
 mod api;
 mod key_gen;
+pub(crate) mod payload;
 mod recovery;
 mod srp;
 mod types;

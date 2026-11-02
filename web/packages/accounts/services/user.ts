@@ -255,14 +255,21 @@ const UnlockedAccount = z.object({ masterKey: z.string(), token: z.string() });
 export const unlockAccountWithKEK = async (
     response: EmailOrSRPVerificationResponse,
     kek: string,
-) => UnlockedAccount.parse(await unlockAccount(response, kek));
+) =>
+    UnlockedAccount.parse(
+        await withAccountsClient((client) =>
+            unlockAccount(client, response, kek),
+        ),
+    );
 
 export const unlockAccountWithKey = async (
     response: EmailOrSRPVerificationResponse,
     masterKey: string,
 ) =>
     UnlockedAccount.parse(
-        await unlockAccountWithMasterKey(response, masterKey),
+        await withAccountsClient((client) =>
+            unlockAccountWithMasterKey(client, response, masterKey),
+        ),
     );
 
 export const recoverAccount = async (
@@ -271,9 +278,12 @@ export const recoverAccount = async (
 ) => {
     const user = savedPartialLocalUser()!;
     return UnlockedAccount.parse(
-        await rustRecoverAccount(
-            { ...user, id: user.id!, keyAttributes },
-            recoveryKey,
+        await withAccountsClient((client) =>
+            rustRecoverAccount(
+                client,
+                { ...user, id: user.id!, keyAttributes },
+                recoveryKey,
+            ),
         ),
     );
 };

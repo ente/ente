@@ -253,9 +253,23 @@ pub async fn recover_two_factor(
         &crypto::Key::try_from_slice(&recovery_key)?,
     )
     .map_err(|_| Error::IncorrectRecoveryKey)?;
+    let secret = Zeroizing::new(b64::encode(&secret));
+    let (secret, proof) = if auth::payload::enforce_auth_payloads(&client.api) {
+        (
+            None,
+            Some(auth::payload::recovery_proof(
+                &secret,
+                two_factor_type,
+                session_id,
+            )?),
+        )
+    } else {
+        (Some(secret.to_string()), None)
+    };
     let request = RemoveTwoFactorRequest {
         session_id: session_id.to_string(),
-        secret: b64::encode(&secret),
+        secret,
+        proof,
         two_factor_type,
     };
     client.remove_two_factor(&request).await

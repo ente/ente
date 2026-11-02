@@ -23,6 +23,9 @@ pub enum Error {
     #[error("Key derivation failed")]
     KeyDerivationFailed,
 
+    #[error("MAC initialization failed")]
+    MacInitFailed,
+
     #[error("Encryption failed")]
     EncryptionFailed,
 

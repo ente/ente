@@ -1,7 +1,7 @@
 use ente_core::{Session, b64, crypto::sealed, http};
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, Result};
+use crate::{Error, Result, auth::payload};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,7 +43,7 @@ pub async fn delete_account(
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
     struct Request<'a> {
-        challenge: String,
+        challenge: &'a str,
         reason_category: &'a str,
         #[serde(skip_serializing_if = "Option::is_none")]
         feedback: Option<&'a str>,
@@ -55,6 +55,7 @@ pub async fn delete_account(
         &session.secret_key,
     )?;
     let challenge = String::from_utf8(challenge).map_err(|e| Error::Decode(e.to_string()))?;
+    let challenge = payload::deletion_challenge(&session.api, &challenge)?;
     send_request(session.api.delete("/users/delete").json(&Request {
         challenge,
         reason_category: reason,

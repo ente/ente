@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { expect, test, vi } from "vitest";
 import {
     createAccountsClient,
@@ -30,7 +31,7 @@ test("generates SRP setup attributes from a kek", () => {
     );
 });
 
-test("recovers TOTP and passkey through Rust with the existing wire format", async () => {
+test("recovers TOTP and passkey through Rust with session-bound recovery proofs", async () => {
     const recoveryKey = cryptoGenerateKey();
     const recoveryKeyHex = Buffer.from(recoveryKey, "base64").toString("hex");
     const authorization = {
@@ -87,7 +88,9 @@ test("recovers TOTP and passkey through Rust with the existing wire format", asy
                     expect(await request.json()).toStrictEqual({
                         sessionID: "recovery-session",
                         twoFactorType: factor,
-                        secret,
+                        proof: createHmac("sha256", secret)
+                            .update(`recovery:${factor}:recovery-session`)
+                            .digest("base64"),
                     });
                 }
                 const response = Response.json(
