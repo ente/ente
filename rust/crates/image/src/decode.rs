@@ -129,8 +129,8 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage>
     match decode_reader_with_image_crate(reader) {
         Ok(decoded) => Ok(decoded),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
-            eprintln!(
-                "[ml][decode] image crate TIFF decode failed for '{image_path}': {primary_error}. Retrying with tiff crate fallback"
+            log::warn!(
+                "image crate TIFF decode failed for '{image_path}': {primary_error}. Retrying with tiff crate fallback"
             );
 
             match decode_with_tiff_crate(image_path) {
@@ -194,14 +194,14 @@ where
     let icc_profile = match decoder.icc_profile() {
         Ok(icc_profile) => icc_profile,
         Err(err) => {
-            eprintln!("[ml][decode] failed to read embedded ICC profile: {err}");
+            log::warn!("failed to read embedded ICC profile: {err}");
             None
         }
     };
     let orientation = match decoder.orientation() {
         Ok(orientation) => Some(orientation),
         Err(err) => {
-            eprintln!("[ml][decode] failed to read image orientation from decoder: {err}");
+            log::warn!("failed to read image orientation from decoder: {err}");
             None
         }
     };
@@ -464,8 +464,8 @@ fn init_image_decoders() {
         let has_heif_family_support = heic_hook_active || heif_hook_active;
 
         if !has_heif_family_support {
-            eprintln!(
-                "[ml][decode] failed to activate HEIF/HEIC decoder hooks; registration_result=(heic:{}, heif:{}, avif:{}), active_hooks=(heic:{}, heif:{}, avif:{})",
+            log::warn!(
+                "failed to activate HEIF/HEIC decoder hooks; registration_result=(heic:{}, heif:{}, avif:{}), active_hooks=(heic:{}, heif:{}, avif:{})",
                 registration.heic_decoder_hook_registered,
                 registration.heif_decoder_hook_registered,
                 registration.avif_decoder_hook_registered,
@@ -474,8 +474,8 @@ fn init_image_decoders() {
                 avif_hook_active,
             );
         } else if !registration.all_decoder_hooks_registered() {
-            eprintln!(
-                "[ml][decode] ente_heic decoder hooks only partially registered (usually because another initializer registered first); registration_result=(heic:{}, heif:{}, avif:{}), active_hooks=(heic:{}, heif:{}, avif:{})",
+            log::warn!(
+                "ente_heic decoder hooks only partially registered (usually because another initializer registered first); registration_result=(heic:{}, heif:{}, avif:{}), active_hooks=(heic:{}, heif:{}, avif:{})",
                 registration.heic_decoder_hook_registered,
                 registration.heif_decoder_hook_registered,
                 registration.avif_decoder_hook_registered,
@@ -491,8 +491,8 @@ fn init_image_decoders() {
         );
 
         if !jxl_hook_active {
-            eprintln!(
-                "[ml][decode] failed to activate JPEG XL decoder hook; registered_now={jxl_registered_now}, active_hook={jxl_hook_active}"
+            log::warn!(
+                "failed to activate JPEG XL decoder hook; registered_now={jxl_registered_now}, active_hook={jxl_hook_active}"
             );
         }
 
@@ -541,8 +541,8 @@ fn apply_heif_exif_orientation_hint(image: DynamicImage, image_path: &Path) -> D
     let hint = match exif_orientation_hint_from_path(image_path) {
         Ok(hint) => hint,
         Err(err) => {
-            eprintln!(
-                "[ml][decode] failed to inspect HEIF EXIF orientation for '{}': {}",
+            log::warn!(
+                "failed to inspect HEIF EXIF orientation for '{}': {}",
                 image_path.display(),
                 err
             );

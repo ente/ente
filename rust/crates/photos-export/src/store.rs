@@ -325,20 +325,7 @@ impl Store {
         db.execute_batch(
             "PRAGMA foreign_keys = ON; PRAGMA temp_store = MEMORY; PRAGMA journal_mode = WAL;",
         )?;
-        let transaction = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let current: i64 =
-            transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;
-        ensure!(
-            current <= 1,
-            "database version {current} is newer than this build supports (1)"
-        );
-        if current == 0 {
-            transaction.execute_batch(SCHEMA)?;
-            transaction.pragma_update(None, "user_version", 1)?;
-            transaction.commit()?;
-        } else {
-            drop(transaction);
-        }
+        migrate(&mut db)?;
         let connection = &db;
         let existing: Option<Vec<u8>> = connection
             .query_row("SELECT destination FROM export WHERE id=1", [], |r| {
@@ -654,6 +641,27 @@ impl Store {
     }
 }
 
+fn migrate(db: &mut Connection) -> Result<()> {
+    let target = MIGRATIONS.len() as i64;
+    let transaction = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let current: i64 = transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    ensure!(
+        current <= target,
+        "database version {current} is newer than this build supports ({target})"
+    );
+    if current == target {
+        return Ok(());
+    }
+    for script in &MIGRATIONS[current as usize..] {
+        transaction.execute_batch(script)?;
+    }
+    transaction.pragma_update(None, "user_version", target)?;
+    transaction.commit()?;
+    Ok(())
+}
+
+const MIGRATIONS: &[&str] = &[SCHEMA];
+
 const SCHEMA: &str = "
 CREATE TABLE export (id INTEGER PRIMARY KEY CHECK(id=1), destination BLOB NOT NULL, bound INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE albums (key TEXT PRIMARY KEY, id INTEGER NOT NULL, retained INTEGER NOT NULL, name TEXT NOT NULL, path TEXT NOT NULL UNIQUE, parent TEXT NOT NULL, folded TEXT NOT NULL);
@@ -698,4 +706,24 @@ fn read_json<T: DeserializeOwned>(row: &Row<'_>, column: usize) -> rusqlite::Res
     serde_json::from_str(&text).map_err(|e| {
         rusqlite::Error::FromSqlConversionFailure(column, rusqlite::types::Type::Text, Box::new(e))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn released_migrations_are_append_only() {
+        let hashes: Vec<u64> = super::MIGRATIONS
+            .iter()
+            .map(|script| {
+                script.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+                    (hash ^ u64::from(byte)).wrapping_mul(0x100_0000_01b3)
+                })
+            })
+            .collect();
+        assert_eq!(
+            hashes,
+            [10_135_794_253_735_637_244],
+            "released migrations are append-only; add a new entry and record its hash"
+        );
+    }
 }

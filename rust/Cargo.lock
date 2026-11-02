@@ -2653,6 +2653,7 @@ dependencies = [
  "image",
  "jxl-oxide",
  "kamadak-exif",
+ "log",
  "moxcms 0.9.1",
  "png",
  "tempfile",

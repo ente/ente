@@ -1066,8 +1066,6 @@ fn export_excludes_another_writer_while_downloads_are_running() -> TestResult {
                 "--json",
             ]))?;
             held.wait_for(2);
-            std::thread::sleep(Duration::from_millis(500));
-            assert_eq!(objects.reads() - reads, 2);
             let second = ExportChild::spawn(&mut other.command(&[
                 "photos",
                 "export",
@@ -1075,6 +1073,7 @@ fn export_excludes_another_writer_while_downloads_are_running() -> TestResult {
                 "--adopt",
             ]))?;
             assert!(failure(&second.wait_with_output()?).contains("another writer"));
+            assert_eq!(objects.reads() - reads, 2);
             drop(held);
             let result: Value = serde_json::from_slice(&success(child.wait_with_output()?).stdout)?;
             assert_eq!(result["copies"]["completed"], 4);
@@ -1245,6 +1244,45 @@ fn export(home: &TestHome, destination: &Path, options: &[&str]) -> Value {
 }
 fn read_json(path: &Path) -> Value {
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
+}
+
+fn verify_layout(root: &Path) {
+    fn visit(root: &Path, directory: &Path) {
+        for entry in fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            let relative = path.strip_prefix(root).unwrap();
+            let parts: Vec<&str> = relative.iter().map(|part| part.to_str().unwrap()).collect();
+            let album = match parts.as_slice() {
+                ["export.json"] => continue,
+                ["Trash", album @ ..] => album,
+                album => album,
+            };
+            let valid = if path.is_dir() {
+                visit(root, &path);
+                match album {
+                    [] | [_, "metadata"] => true,
+                    [_] => path.join("metadata.json").is_file(),
+                    _ => false,
+                }
+            } else {
+                match album {
+                    [_, "metadata.json"] => true,
+                    [_, "metadata", json] => json
+                        .strip_suffix(".json")
+                        .is_some_and(|name| path.parent().unwrap().with_file_name(name).is_file()),
+                    [_, name] => path
+                        .parent()
+                        .unwrap()
+                        .join("metadata")
+                        .join(format!("{name}.json"))
+                        .is_file(),
+                    _ => false,
+                }
+            };
+            assert!(valid, "unexpected export entry {}", relative.display());
+        }
+    }
+    visit(root, root);
 }
 
 fn export_database(home: &TestHome) -> rusqlite::Connection {
@@ -1443,6 +1481,7 @@ fn export_names_are_portable_and_stable() -> TestResult {
             export(&fresh, &root, &[])["changes"],
             json!({"exported":0,"metadataUpdated":0,"renamed":0,"movedToTrash":0})
         );
+        verify_layout(&root);
         Ok(())
     })
 }
@@ -1821,6 +1860,7 @@ fn export_adopts_go_and_desktop_fixtures_with_a_real_source_account() -> TestRes
                     read_json(&root.join("Family/metadata/Photo.jpg.json"))["ente"]["fileID"],
                     file.to_string()
                 );
+                verify_layout(&root);
             }
             Ok(())
         })
