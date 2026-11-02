@@ -804,8 +804,7 @@ class GalleryState extends State<Gallery> {
 
       if (sortOrder.isFilename) {
         final stopwatch = Stopwatch()..start();
-        await sortFilesByName(result.files, sortOrder);
-        if (sortOrder != _sortOrder) return await _loadFiles();
+        sortFilesByName(result.files, sortOrder);
         stopwatch.stop();
         _logger.info(
           "Sorted ${result.files.length} files by ${sortOrder.name} in "

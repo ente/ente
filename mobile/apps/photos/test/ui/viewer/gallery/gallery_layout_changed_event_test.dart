@@ -1,11 +1,9 @@
 import "dart:async";
-import "dart:typed_data" show Uint32List;
 
 import "package:dio/dio.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
 import "package:flutter_test/flutter_test.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
@@ -22,7 +20,6 @@ import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/settings/local_settings.dart";
-import "package:photos/src/rust/frb_generated.dart";
 import "package:photos/ui/settings/gallery_settings_screen.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
@@ -67,9 +64,7 @@ void main() {
     tester,
   ) async {
     final key = GlobalKey<GalleryState>();
-    final api = _GalleryFileSortApi();
-    EntePhotosRust.initMock(api: api);
-    addTearDown(EntePhotosRust.dispose);
+    Completer<FileLoadResult>? pendingLoad;
     var order = FileSortOrder.filenameAscending;
     final limits = <int?>[];
     final files = List.generate(
@@ -95,6 +90,9 @@ void main() {
               showSelectAll: false,
               asyncLoader: (start, end, {limit, asc}) async {
                 limits.add(limit);
+                final pending = pendingLoad;
+                pendingLoad = null;
+                if (pending != null) return pending.future;
                 return FileLoadResult(List<EnteFile>.from(files), false);
               },
             ),
@@ -108,15 +106,15 @@ void main() {
     expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG1.jpg");
     expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
 
-    final pendingSort = Completer<void>();
-    api.nextCall = pendingSort;
+    final pending = Completer<FileLoadResult>();
+    pendingLoad = pending;
     order = FileSortOrder.filenameAscending;
     Bus.instance.fire(
       CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
     );
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
-    expect(api.nextCall, isNull);
+    expect(pendingLoad, isNull);
 
     order = FileSortOrder.oldestFirst;
     Bus.instance.fire(
@@ -124,7 +122,7 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
-    pendingSort.complete();
+    pending.complete(FileLoadResult(List<EnteFile>.from(files), false));
     await tester.pumpAndSettle();
     expect(key.currentState!.galleryGroups!.groupType, GroupType.day);
     expect(key.currentState!.galleryGroups!.groupHeaderExtent, greaterThan(2));
@@ -764,25 +762,6 @@ Future<void> _mountPinchGallery(WidgetTester tester, Gallery gallery) async {
     ),
   );
   await tester.pumpAndSettle();
-}
-
-class _GalleryFileSortApi extends Fake implements EntePhotosRustApi {
-  Completer<void>? nextCall;
-
-  @override
-  Future<Uint32List> crateApiFileSortApiSortedFilenameIndices({
-    required List<String> names,
-    required Int64List fileIds,
-    required String locale,
-    required bool ascending,
-  }) async {
-    final pending = nextCall;
-    nextCall = null;
-    if (pending != null) await pending.future;
-    return Uint32List.fromList(
-      List.generate(names.length, (i) => ascending ? names.length - i - 1 : i),
-    );
-  }
 }
 
 DummyFile _dummyFile(String groupID) {

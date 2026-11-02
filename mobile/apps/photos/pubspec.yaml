@@ -129,6 +129,7 @@ dependencies:
   home_widget: 0.8.0
   http: 1.6.0
   hugeicons: 1.1.7
+  icu4x: 2.3.0
   image: 4.7.0
   in_app_purchase: 3.3.0
   in_app_purchase_storekit: 0.4.11+1

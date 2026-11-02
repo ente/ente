@@ -1236,7 +1236,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       asc: sortOrder.ascending,
     );
     if (sortOrder.isFilename) {
-      await sortFilesByName(filesResult.files, sortOrder);
+      sortFilesByName(filesResult.files, sortOrder);
     }
     return filesResult.files;
   }
