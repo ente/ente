@@ -23,7 +23,6 @@ use crate::{
 };
 
 pub struct ChangePasswordParams {
-    pub email: String,
     pub password: Zeroizing<String>,
     pub master_key: SecretVec,
     pub key_attributes: KeyAttributes,
@@ -33,7 +32,6 @@ pub struct ChangePasswordParams {
 impl fmt::Debug for ChangePasswordParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ChangePasswordParams")
-            .field("email", &self.email)
             .field("password", &"[REDACTED]")
             .field("master_key", &"[REDACTED]")
             .field("key_attributes", &self.key_attributes)
@@ -42,17 +40,10 @@ impl fmt::Debug for ChangePasswordParams {
     }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChangePasswordResult {
-    pub key_attributes: KeyAttributes,
-    pub srp_attributes: SrpAttributes,
-}
-
 #[derive(Debug)]
 pub struct CheckSessionValidityParams {
     pub email: String,
-    pub local_srp_attributes: SrpAttributes,
+    pub local_srp_attributes: Option<SrpAttributes>,
 }
 
 #[derive(Debug, Serialize)]
@@ -147,7 +138,7 @@ fn verify_totp(secret: &str, code: &str, time: u64) -> Result<()> {
 pub async fn change_password(
     client: &AccountsClient,
     params: ChangePasswordParams,
-) -> Result<ChangePasswordResult> {
+) -> Result<KeyAttributes> {
     change_password_with_strength(client, params, KeyDerivationStrength::Sensitive).await
 }
 
@@ -155,7 +146,7 @@ async fn change_password_with_strength(
     client: &AccountsClient,
     params: ChangePasswordParams,
     key_derivation_strength: KeyDerivationStrength,
-) -> Result<ChangePasswordResult> {
+) -> Result<KeyAttributes> {
     let (updated_key_attributes, login_key) =
         auth::generate_key_attributes_for_new_password_with_strength(
             &params.master_key,
@@ -177,19 +168,7 @@ async fn change_password_with_strength(
     )
     .await?;
 
-    let srp_attributes = client.get_srp_attributes(&params.email).await?;
-
-    srp_attributes.validate_setup(
-        srp_user_id,
-        &srp_setup.srp_salt,
-        &updated_key_attributes,
-        "password change",
-    )?;
-
-    Ok(ChangePasswordResult {
-        key_attributes: updated_key_attributes,
-        srp_attributes,
-    })
+    Ok(updated_key_attributes)
 }
 
 pub async fn check_session_validity(
@@ -208,7 +187,11 @@ pub async fn check_session_validity(
             Err(Error::SrpNotConfigured) => return Ok(SessionValidity::Valid),
             Err(error) => return Err(error),
         };
-        if remote_srp_attributes.kek_salt != params.local_srp_attributes.kek_salt {
+        if params
+            .local_srp_attributes
+            .as_ref()
+            .is_none_or(|local| remote_srp_attributes.kek_salt != local.kek_salt)
+        {
             return Ok(SessionValidity::ValidButPasswordChanged {
                 updated_key_attributes: remote_key_attributes,
                 updated_srp_attributes: remote_srp_attributes,

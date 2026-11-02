@@ -246,24 +246,22 @@ impl AccountsClient {
     pub async fn change_password(
         &self,
         token: String,
-        email: String,
         password: String,
         master_key: Vec<u8>,
         key_attributes: KeyAttributes,
         log_out_other_devices: bool,
     ) -> Result<KeyAttributes, AccountsError> {
-        let result = lifecycle::change_password(
+        lifecycle::change_password(
             &self.0.with_auth_token(token),
             lifecycle::ChangePasswordParams {
-                email,
                 password: password.into(),
                 master_key: SecretVec::new(master_key),
                 key_attributes,
                 log_out_other_devices,
             },
         )
-        .await?;
-        Ok(result.key_attributes)
+        .await
+        .map_err(Into::into)
     }
 
     pub async fn setup_two_factor(&self, token: String) -> Result<TwoFactorSecret, AccountsError> {

@@ -17,7 +17,7 @@ pub use auth::KeyAttributes;
 pub use client::AccountsClient;
 pub use error::{Error, Result};
 pub use lifecycle::{
-    ChangePasswordParams, ChangePasswordResult, CheckSessionValidityParams, RecoveryKeyResult,
-    SessionValidity, TwoFactorSetup,
+    ChangePasswordParams, CheckSessionValidityParams, RecoveryKeyResult, SessionValidity,
+    TwoFactorSetup,
 };
 pub use types::{AccountSecrets, AccountsClientConfig, AuthenticatedAccount, DEFAULT_API_ORIGIN};

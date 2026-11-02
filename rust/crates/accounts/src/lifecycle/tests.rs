@@ -297,22 +297,13 @@ async fn change_password_updates_srp_and_keys() {
         .create_async()
         .await;
 
-    let state_for_attrs = Arc::clone(&state);
     let get_srp_attributes = server
         .mock("GET", "/users/srp/attributes")
         .match_query(Matcher::UrlEncoded(
             "email".into(),
             "user@example.org".into(),
         ))
-        .with_status(200)
-        .with_body_from_request(move |_| {
-            let state = state_for_attrs.lock().unwrap();
-            serde_json::json!({
-                "attributes": state.remote_srp_attributes
-            })
-            .to_string()
-            .into_bytes()
-        })
+        .expect(0)
         .create_async()
         .await;
 
@@ -322,7 +313,6 @@ async fn change_password_updates_srp_and_keys() {
     let result = change_password_with_strength(
         &client,
         ChangePasswordParams {
-            email: "user@example.org".into(),
             password: Zeroizing::new("new-password".into()),
             master_key: SecretVec::new(master_key),
             key_attributes,
@@ -334,8 +324,14 @@ async fn change_password_updates_srp_and_keys() {
     .unwrap();
 
     assert_eq!(
-        result.srp_attributes.kek_salt,
-        result.key_attributes.kek_salt
+        result.kek_salt,
+        state
+            .lock()
+            .unwrap()
+            .remote_srp_attributes
+            .as_ref()
+            .unwrap()
+            .kek_salt
     );
 
     setup_srp.assert_async().await;

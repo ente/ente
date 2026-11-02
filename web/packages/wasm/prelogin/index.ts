@@ -174,7 +174,6 @@ export const recoverAccount = async (
 export const changePassword = async (
     client: AccountsClient,
     token: string,
-    email: string,
     password: string,
     masterKey: string,
     keyAttributes: unknown,
@@ -182,7 +181,6 @@ export const changePassword = async (
     (await wasm()).changePassword(
         client,
         token,
-        email,
         password,
         masterKey,
         keyAttributes,
