@@ -30,7 +30,7 @@ export interface UnifiedSocialDiff {
 }
 
 /** Fetch one page for a file, or the whole album when fileID is omitted.
- * Album requests retain deletion markers; cursors include unreadable records. */
+ * Pagination cursors include deleted and unreadable records. */
 export const getUnifiedSocialDiff = async (
     collectionID: number,
     collectionKey: string,
@@ -59,7 +59,7 @@ export const getUnifiedSocialDiff = async (
     ensureOk(res);
     const data = UnifiedDiffResponse.parse(await res.json());
     return {
-        ...(await decryptSocialDiff(collectionKey, data, fileID === undefined)),
+        ...(await decryptSocialDiff(collectionKey, data)),
         commentsUpdatedAt: Math.max(
             commentsSinceTime,
             ...data.comments.map((c) => c.updatedAt),
@@ -74,7 +74,6 @@ export const getUnifiedSocialDiff = async (
 const decryptSocialDiff = async (
     collectionKey: string,
     responseJson: unknown,
-    retainDeletedReactions = false,
 ): Promise<UnifiedSocialDiff> => {
     const data = UnifiedDiffResponse.parse(responseJson);
 
@@ -123,17 +122,6 @@ const decryptSocialDiff = async (
 
     const reactions: UnifiedReaction[] = [];
     for (const reaction of data.reactions) {
-        if (reaction.isDeleted && retainDeletedReactions) {
-            reactions.push({
-                ...reaction,
-                fileID: reaction.fileID ?? undefined,
-                commentID: reaction.commentID ?? undefined,
-                isCommentReply: reaction.isCommentReply ?? undefined,
-                anonUserID: reaction.anonUserID ?? undefined,
-                reactionType: "",
-            });
-            continue;
-        }
         if (reaction.isDeleted || !reaction.cipher || !reaction.nonce) continue;
         try {
             const decrypted = await decryptBoxBytes(

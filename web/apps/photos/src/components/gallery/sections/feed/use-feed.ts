@@ -1,12 +1,14 @@
-import { buildFeedItems } from "@/services/feed";
-import { fetchFeedSnapshot, type FeedSnapshot } from "@/services/feed-fetch";
+import { buildFeedItems, type FeedSocialData } from "@/services/feed";
+import { fetchFeedData } from "@/services/feed-fetch";
 import log from "ente-base/log";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GallerySectionProps } from "../types";
 
 export const useFeed = (library: GallerySectionProps["library"]) => {
     const userID = library.user!.id;
-    const [snapshot, setSnapshot] = useState<FeedSnapshot>();
+    const [socialByCollection, setSocialByCollection] = useState<
+        Record<number, FeedSocialData>
+    >({});
     const [refreshing, setRefreshing] = useState(true);
     const [failed, setFailed] = useState(false);
     const [revision, setRevision] = useState(0);
@@ -26,9 +28,9 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
             setRefreshing(true);
             setFailed(false);
             try {
-                const result = await fetchFeedSnapshot(collections, signal);
+                const result = await fetchFeedData(collections, signal);
                 signal.throwIfAborted();
-                setSnapshot(result.snapshot);
+                setSocialByCollection(result.socialByCollection);
                 setFailed(result.failed);
             } catch (error) {
                 if (signal.aborted) return;
@@ -47,7 +49,7 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
                 userID,
                 collections,
                 files: library.collectionFiles,
-                socialByCollection: snapshot?.collections ?? {},
+                socialByCollection,
                 hiddenCollectionIDs: library.hiddenCollectionIDs,
                 excludedFileIDs: new Set([
                     ...library.hiddenFileIDs,
@@ -63,7 +65,7 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
             library.hiddenFileIDs,
             library.tempHiddenFileIDs,
             library.tempDeletedFileIDs,
-            snapshot,
+            socialByCollection,
         ],
     );
 
@@ -78,7 +80,7 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
         items: items.slice(0, limit),
         hasMore: items.length > limit,
         loadMore,
-        snapshot,
+        socialByCollection,
         refreshing,
         failed,
         refresh,

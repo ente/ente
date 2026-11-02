@@ -6,7 +6,7 @@ import {
     getUnifiedSocialDiff,
 } from "ente-new/photos/services/social";
 import { beforeEach, expect, test, vi } from "vitest";
-import { fetchFeedSnapshot } from "../src/services/feed-fetch";
+import { fetchFeedData } from "../src/services/feed-fetch";
 
 vi.mock("ente-base/log", () => ({ default: { warn: vi.fn() } }));
 vi.mock("ente-new/photos/services/social", () => ({
@@ -37,7 +37,7 @@ const diff = (
     ...overrides,
 });
 const fetchFeed = (signal = new AbortController().signal) =>
-    fetchFeedSnapshot([album], signal);
+    fetchFeedData([album], signal);
 
 beforeEach(() => vi.resetAllMocks());
 
@@ -56,13 +56,12 @@ test("fetches from zero on every refresh and paginates independent cursors", asy
                 comments: [record("parent", 200, true), record("new", 210)],
                 commentsUpdatedAt: 210,
                 reactionsUpdatedAt: 60,
-                reactions: [{ ...record("like", 60, true), reactionType: "" }],
                 hasMoreComments: true,
             }),
         )
         .mockResolvedValueOnce(
             diff({
-                comments: [record("new", 300)],
+                comments: [record("next", 300)],
                 commentsUpdatedAt: 300,
                 reactionsUpdatedAt: 60,
             }),
@@ -71,8 +70,12 @@ test("fetches from zero on every refresh and paginates independent cursors", asy
     const signal = new AbortController().signal;
     const result = await fetchFeed(signal);
     expect(result.failed).toBe(false);
-    expect(result.snapshot.collections[10]).toEqual({
-        comments: [record("parent", 200, true), record("new", 300)],
+    expect(result.socialByCollection[10]).toEqual({
+        comments: [
+            record("parent", 200, true),
+            record("new", 210),
+            record("next", 300),
+        ],
         reactions: [],
         anonNames: { guest: "Sam" },
     });
@@ -110,7 +113,7 @@ test("discards an incomplete album when a later page fails", async () => {
         .mockRejectedValueOnce(new Error("Offline"));
     const result = await fetchFeed();
     expect(result.failed).toBe(true);
-    expect(result.snapshot.collections).toEqual({});
+    expect(result.socialByCollection).toEqual({});
 });
 
 test("only fetches accessible albums with activity", async () => {
@@ -120,7 +123,7 @@ test("only fetches accessible albums with activity", async () => {
     ]);
     const result = await fetchFeed();
     expect(getUnifiedSocialDiff).not.toHaveBeenCalled();
-    expect(Object.keys(result.snapshot.collections)).toEqual(["10"]);
+    expect(Object.keys(result.socialByCollection)).toEqual(["10"]);
 });
 
 test("cancels an obsolete refresh", async () => {
@@ -144,6 +147,6 @@ test("stops pagination when a cursor does not advance", async () => {
     );
     const result = await fetchFeed();
     expect(result.failed).toBe(true);
-    expect(result.snapshot.collections).toEqual({});
+    expect(result.socialByCollection).toEqual({});
     expect(getUnifiedSocialDiff).toHaveBeenCalledOnce();
 });

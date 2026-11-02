@@ -263,7 +263,7 @@ export const FeedSection = ({
                                     item={item}
                                     emailByUserID={library.emailByUserID}
                                     anonNames={
-                                        feed.snapshot?.collections[
+                                        feed.socialByCollection[
                                             item.collectionID
                                         ]?.anonNames ?? {}
                                     }

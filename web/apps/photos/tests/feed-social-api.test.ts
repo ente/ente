@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-test("Feed keeps reaction tombstones while the file viewer still excludes them", async () => {
+test("Feed and file viewer exclude deleted reactions while raw cursors advance", async () => {
     fetchMock.mockImplementation(() =>
         Promise.resolve(
             Response.json({
@@ -63,10 +63,7 @@ test("Feed keeps reaction tombstones while the file viewer still excludes them",
             isDeleted,
             reactionType,
         })),
-    ).toEqual([
-        { id: "deleted", isDeleted: true, reactionType: "" },
-        { id: "active", isDeleted: false, reactionType: "<3" },
-    ]);
+    ).toEqual([{ id: "active", isDeleted: false, reactionType: "<3" }]);
     expect(result.commentsUpdatedAt).toBe(10);
     expect(result.reactionsUpdatedAt).toBe(50);
     expect(fetchMock).toHaveBeenCalledWith(
@@ -82,7 +79,7 @@ test("Feed keeps reaction tombstones while the file viewer still excludes them",
     expect(decryptBoxBytes).toHaveBeenCalledTimes(2);
 });
 
-test("a corrupt record does not stall the raw sync cursor", async () => {
+test("a corrupt record does not stall the pagination cursor", async () => {
     fetchMock.mockResolvedValue(
         Response.json({
             comments: [record("unreadable", 200)],

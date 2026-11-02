@@ -58,7 +58,6 @@ export const buildFeedItems = ({
     socialByCollection,
     hiddenCollectionIDs,
     excludedFileIDs,
-    sharedPhotoCutoff = 0,
 }: {
     userID: number;
     collections: readonly Collection[];
@@ -66,7 +65,6 @@ export const buildFeedItems = ({
     socialByCollection: Readonly<Record<number, FeedSocialData>>;
     hiddenCollectionIDs: ReadonlySet<number>;
     excludedFileIDs: ReadonlySet<number>;
-    sharedPhotoCutoff?: number;
 }): FeedItem[] => {
     const albums = new Map(
         collections
@@ -188,12 +186,7 @@ export const buildFeedItems = ({
     const initialFiles = new Map<number, EnteFile[]>();
     const sessions = new Map<string, { item: FeedItem; oldestAt: number }>();
     const recentlyAdded = visibleFiles
-        .filter(
-            (f) =>
-                f.ownerID !== userID &&
-                (f.collectionAddedAt ?? 0) > 0 &&
-                (f.collectionAddedAt ?? 0) >= sharedPhotoCutoff,
-        )
+        .filter((f) => f.ownerID !== userID && (f.collectionAddedAt ?? 0) > 0)
         .sort(
             (a, b) =>
                 b.collectionAddedAt! - a.collectionAddedAt! || b.id - a.id,

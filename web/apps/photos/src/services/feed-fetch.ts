@@ -7,31 +7,17 @@ import {
 } from "ente-new/photos/services/social";
 import { emptyFeedSocialData, type FeedSocialData } from "./feed";
 
-export interface FeedSnapshot {
-    collections: Record<number, FeedSocialData>;
-}
-
-const mergeRecords = <T extends { id: string; isDeleted: boolean }>(
-    existing: T[],
-    changes: T[],
-    retainDeleted = false,
-) => {
-    const records = new Map(existing.map((record) => [record.id, record]));
-    for (const record of changes) {
-        if (record.isDeleted && !retainDeleted) records.delete(record.id);
-        else records.set(record.id, record);
-    }
-    return [...records.values()];
-};
-
 /** Fetch activity from the beginning on every refresh; keep it in memory only. */
-export const fetchFeedSnapshot = async (
+export const fetchFeedData = async (
     albums: readonly Collection[],
     signal: AbortSignal,
-): Promise<{ snapshot: FeedSnapshot; failed: boolean }> => {
+): Promise<{
+    socialByCollection: Record<number, FeedSocialData>;
+    failed: boolean;
+}> => {
     const updates = await getSocialUpdates(signal);
     const albumsByID = new Map(albums.map((album) => [album.id, album]));
-    const next: FeedSnapshot = { collections: {} };
+    const socialByCollection: Record<number, FeedSocialData> = {};
     let failed = false;
     // Limit concurrent decryption and requests for accounts with many albums.
     const pending = updates.filter((update) =>
@@ -58,19 +44,9 @@ export const fetchFeedSnapshot = async (
                             album.key,
                             { commentsSinceTime, reactionsSinceTime, signal },
                         );
-                        data = {
-                            ...data,
-                            comments: mergeRecords(
-                                data.comments,
-                                diff.comments,
-                                // A deleted parent still identifies a reply's owner.
-                                true,
-                            ),
-                            reactions: mergeRecords(
-                                data.reactions,
-                                diff.reactions,
-                            ),
-                        };
+                        // Deleted comments still identify the owner of a reply's parent.
+                        data.comments.push(...diff.comments);
+                        data.reactions.push(...diff.reactions);
                         if (!diff.hasMoreComments && !diff.hasMoreReactions)
                             break;
                         if (
@@ -80,7 +56,7 @@ export const fetchFeedSnapshot = async (
                                 diff.reactionsUpdatedAt <= reactionsSinceTime)
                         ) {
                             throw new Error(
-                                "Social sync cursor did not advance",
+                                "Social pagination cursor did not advance",
                             );
                         }
                         commentsSinceTime = diff.commentsUpdatedAt;
@@ -95,7 +71,7 @@ export const fetchFeedSnapshot = async (
                         ),
                     };
                 }
-                next.collections[album.id] = data;
+                socialByCollection[album.id] = data;
             } catch (error) {
                 signal.throwIfAborted();
                 // Discard incomplete albums so partial pages never reach the Feed.
@@ -108,5 +84,5 @@ export const fetchFeedSnapshot = async (
         Array.from({ length: Math.min(3, pending.length) }, worker),
     );
     signal.throwIfAborted();
-    return { snapshot: next, failed };
+    return { socialByCollection, failed };
 };

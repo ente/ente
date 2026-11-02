@@ -237,16 +237,6 @@ describe("sharing activity", () => {
         ]);
         expect(items[0]!.files.map((file) => file.id)).toEqual([3]);
         expect(items[1]!.files.map((file) => file.id)).toEqual([2, 1]);
-        const afterRollout = build({
-            collections: [album(10, 2, 10 * minute)],
-            files,
-            sharedPhotoCutoff: 13 * minute,
-        });
-        expect(afterRollout).toHaveLength(1);
-        expect(afterRollout[0]).toMatchObject({
-            type: "sharedCollection",
-            files: [],
-        });
     });
 
     test("caps previews at thirty and final items at five hundred", () => {
