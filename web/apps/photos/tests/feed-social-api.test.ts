@@ -105,3 +105,47 @@ test("handles a new account with no social update records", async () => {
     fetchMock.mockResolvedValue(Response.json({ updates: null }));
     expect(await getSocialUpdates()).toEqual([]);
 });
+
+test("file viewer decrypts comments and replies and preserves deleted parent metadata", async () => {
+    fetchMock.mockResolvedValue(
+        Response.json({
+            comments: [
+                { ...record("parent", 100), cipher: "parent-cipher" },
+                {
+                    ...record("reply", 200),
+                    cipher: "reply-cipher",
+                    parentCommentID: "parent",
+                    parentCommentUserID: 2,
+                },
+                { ...record("deleted-parent", 300, true), userID: 3 },
+            ],
+            reactions: [],
+            hasMoreComments: false,
+            hasMoreReactions: false,
+        }),
+    );
+    vi.mocked(decryptBoxBytes).mockImplementation(({ encryptedData }) =>
+        Promise.resolve(
+            new TextEncoder().encode(
+                encryptedData === "parent-cipher"
+                    ? "Original comment"
+                    : "Reply text",
+            ),
+        ),
+    );
+    const result = await getUnifiedSocialDiff(10, "key", { fileID: 1 });
+    expect(result.comments).toMatchObject([
+        { id: "parent", fileID: 1, text: "Original comment", isDeleted: false },
+        {
+            id: "reply",
+            fileID: 1,
+            text: "Reply text",
+            isDeleted: false,
+            parentCommentID: "parent",
+            parentCommentUserID: 2,
+        },
+        { id: "deleted-parent", text: "", isDeleted: true, userID: 3 },
+    ]);
+    expect(result.commentsUpdatedAt).toBe(300);
+    expect(decryptBoxBytes).toHaveBeenCalledTimes(2);
+});
