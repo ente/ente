@@ -1,7 +1,7 @@
 use std::{
     ffi::OsStr,
     fs::File,
-    io::{BufRead, BufReader, Cursor, Read, Seek, SeekFrom},
+    io::{BufRead, BufReader, Cursor, Read, Seek},
     path::Path,
     sync::Once,
 };
@@ -18,7 +18,6 @@ use image::{
     DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits, hooks::decoding_hook_registered,
     metadata::Orientation,
 };
-use jxl_oxide::integration::JxlDecoder;
 use tiff::{
     ColorType as TiffColorType,
     decoder::{Decoder as TiffDecoder, DecodingResult as TiffDecodingResult},
@@ -32,8 +31,6 @@ use crate::{
 };
 
 static IMAGE_DECODER_HOOKS_INIT: Once = Once::new();
-
-const BOUNDED_READER_OVERFLOW_MESSAGE: &str = "JPEG XL input exceeds configured max_input_bytes";
 
 const MAX_DECODE_PIXELS: u64 = 210_000_000;
 const MAX_DECODE_ALLOC_BYTES: u64 = 512 * 1024 * 1024;
@@ -340,112 +337,6 @@ fn tiff_result_type_name(result: &TiffDecodingResult) -> &'static str {
     }
 }
 
-fn register_jxl_decoding_hook_with_guardrails(guardrails: DecodeGuardrails) -> bool {
-    let decoder_hook_registered = image::hooks::register_decoding_hook(
-        "jxl".into(),
-        Box::new(move |reader| jxl_decoder_from_reader_with_guardrails(reader, &guardrails)),
-    );
-
-    if decoder_hook_registered {
-        image::hooks::register_format_detection_hook("jxl".into(), &[0xFF, 0x0A], None);
-        image::hooks::register_format_detection_hook(
-            "jxl".into(),
-            &[
-                0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
-            ],
-            None,
-        );
-    }
-
-    decoder_hook_registered
-}
-
-fn jxl_decoder_from_reader_with_guardrails<'a, R>(
-    mut reader: R,
-    guardrails: &DecodeGuardrails,
-) -> image::ImageResult<Box<dyn ImageDecoder + 'a>>
-where
-    R: Read + Seek + 'a,
-{
-    if let Some(max_input_bytes) = guardrails.max_input_bytes {
-        let input_len = reader
-            .seek(SeekFrom::End(0))
-            .map_err(image::ImageError::IoError)?;
-        if input_len > max_input_bytes {
-            return Err(too_large_limit_error());
-        }
-        reader.rewind().map_err(image::ImageError::IoError)?;
-    }
-
-    let decoder = match JxlDecoder::new(BoundedReader::new(
-        reader,
-        guardrails.max_input_bytes.unwrap_or(u64::MAX),
-    )) {
-        Ok(decoder) => decoder,
-        Err(image::ImageError::Decoding(err)) if bounded_reader_overflow(&err) => {
-            return Err(too_large_limit_error());
-        }
-        Err(err) => return Err(err),
-    };
-
-    if let Some(max_pixels) = guardrails.max_pixels {
-        let (width, height) = decoder.dimensions();
-        if u64::from(width) * u64::from(height) > max_pixels {
-            return Err(too_large_limit_error());
-        }
-    }
-
-    Ok(Box::new(decoder))
-}
-
-fn bounded_reader_overflow(err: &image::error::DecodingError) -> bool {
-    use std::error::Error as _;
-
-    let mut source = err.source();
-    while let Some(current) = source {
-        if let Some(io_err) = current.downcast_ref::<std::io::Error>() {
-            return io_err.kind() == std::io::ErrorKind::InvalidData
-                && io_err.to_string().contains(BOUNDED_READER_OVERFLOW_MESSAGE);
-        }
-        source = current.source();
-    }
-    false
-}
-
-fn too_large_limit_error() -> image::ImageError {
-    image::ImageError::Limits(image::error::LimitError::from_kind(
-        image::error::LimitErrorKind::InsufficientMemory,
-    ))
-}
-
-struct BoundedReader<R> {
-    inner: R,
-    bytes_left: u64,
-}
-
-impl<R> BoundedReader<R> {
-    fn new(inner: R, max_bytes: u64) -> Self {
-        Self {
-            inner,
-            bytes_left: max_bytes,
-        }
-    }
-}
-
-impl<R: Read> Read for BoundedReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let count = self.inner.read(buf)?;
-        if count as u64 > self.bytes_left {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                BOUNDED_READER_OVERFLOW_MESSAGE,
-            ));
-        }
-        self.bytes_left -= count as u64;
-        Ok(count)
-    }
-}
-
 fn init_image_decoders() {
     IMAGE_DECODER_HOOKS_INIT.call_once(|| {
         let guardrails = DecodeGuardrails {
@@ -459,7 +350,7 @@ fn init_image_decoders() {
         let heic_hook_active = decoding_hook_registered(OsStr::new("heic"));
         let heif_hook_active = decoding_hook_registered(OsStr::new("heif"));
         let avif_hook_active = decoding_hook_registered(OsStr::new("avif"));
-        let jxl_registered_now = register_jxl_decoding_hook_with_guardrails(guardrails);
+        let jxl_registered_now = crate::jxl::register_decoding_hook(guardrails);
         let jxl_hook_active = decoding_hook_registered(OsStr::new("jxl"));
         let has_heif_family_support = heic_hook_active || heif_hook_active;
 
@@ -608,15 +499,10 @@ fn read_exif_orientation_from_bytes(image_bytes: &[u8]) -> Option<u8> {
         .filter(|value| (1..=8).contains(value))
 }
 
-// jxl-oxide applies codestream orientation; ignore redundant container EXIF.
+// The JPEG XL decoder applies codestream orientation; ignore redundant container EXIF.
 fn bytes_look_like_jxl(image_bytes: &[u8]) -> bool {
-    const BARE_CODESTREAM_SIGNATURE: [u8; 2] = [0xFF, 0x0A];
-    const CONTAINER_SIGNATURE: [u8; 12] = [
-        0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
-    ];
-
-    image_bytes.starts_with(&BARE_CODESTREAM_SIGNATURE)
-        || image_bytes.starts_with(&CONTAINER_SIGNATURE)
+    image_bytes.starts_with(&crate::jxl::CODESTREAM_SIGNATURE)
+        || image_bytes.starts_with(&crate::jxl::CONTAINER_SIGNATURE)
 }
 
 fn file_looks_like_jxl(path: &Path) -> bool {
@@ -652,10 +538,7 @@ fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        ffi::OsStr,
-        io::{Cursor, Read, Seek, SeekFrom},
-    };
+    use std::{ffi::OsStr, io::Cursor};
 
     use image::hooks::decoding_hook_registered;
     use image::{ColorType, ImageEncoder, ImageFormat, codecs::png::PngEncoder};
@@ -666,7 +549,7 @@ mod tests {
     };
 
     use super::{
-        DecodeGuardrails, bytes_look_like_heif, decode_image_from_bytes, decode_image_from_path,
+        bytes_look_like_heif, decode_image_from_bytes, decode_image_from_path,
         decode_tiff_from_bytes, ensure_within_decode_pixel_cap, init_image_decoders,
         should_attempt_tiff_fallback,
     };
@@ -1067,65 +950,72 @@ mod tests {
         exif
     }
 
-    fn jxl_hook_guardrails(
-        max_input_bytes: Option<u64>,
-        max_pixels: Option<u64>,
-    ) -> DecodeGuardrails {
-        DecodeGuardrails {
-            max_input_bytes,
-            max_pixels,
-            max_temp_spool_bytes: None,
-            temp_spool_directory: None,
+    fn jxl_container(codestream: &[u8]) -> Vec<u8> {
+        let mut container = crate::jxl::CONTAINER_SIGNATURE.to_vec();
+        container.extend_from_slice(&20u32.to_be_bytes());
+        container.extend_from_slice(b"ftypjxl \0\0\0\0jxl ");
+        container.extend_from_slice(&(8 + codestream.len() as u32).to_be_bytes());
+        container.extend_from_slice(b"jxlc");
+        container.extend_from_slice(codestream);
+        container
+    }
+
+    #[test]
+    fn decodes_jxl_codestreams_and_containers_to_exact_pixels() {
+        let codestream = crate::jxl::RGB_2X2_CODESTREAM.to_vec();
+        let container = jxl_container(&codestream);
+        let temp = tempfile::Builder::new().suffix(".jxl").tempfile().unwrap();
+        std::fs::write(temp.path(), &container).unwrap();
+
+        for decoded in [
+            decode_image_from_bytes(&codestream).unwrap(),
+            decode_image_from_bytes(&container).unwrap(),
+            decode_image_from_path(temp.path().to_str().unwrap()).unwrap(),
+        ] {
+            assert_eq!(decoded.dimensions.width, 2);
+            assert_eq!(decoded.dimensions.height, 2);
+            assert_eq!(
+                decoded.rgb,
+                [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255]
+            );
         }
     }
 
     #[test]
-    fn rejects_jxl_inputs_exceeding_the_input_cap() {
-        let guardrails = jxl_hook_guardrails(Some(4), None);
+    fn decodes_dci_jxl_with_a_pure_gamma_transfer() {
+        const RGB_DCI_2X1_CODESTREAM: [u8; 35] = [
+            0xFF, 0x0A, 0x00, 0x70, 0x10, 0x50, 0xFC, 0x08, 0x08, 0x00, 0x01, 0x00, 0x54, 0x00,
+            0x4B, 0x18, 0x8B, 0x15, 0xC2, 0x09, 0x63, 0x9C, 0x87, 0xFE, 0x02, 0x21, 0x00, 0x1C,
+            0xD0, 0xBF, 0x3F, 0xD9, 0xC4, 0xAA, 0x00,
+        ];
 
-        let decoder =
-            super::jxl_decoder_from_reader_with_guardrails(Cursor::new([0u8; 16]), &guardrails);
-        assert!(matches!(decoder.err(), Some(image::ImageError::Limits(_))));
-    }
+        let decoded = decode_image_from_bytes(&RGB_DCI_2X1_CODESTREAM).unwrap();
 
-    struct UnderreportingReader {
-        remaining: usize,
-    }
-
-    impl Read for UnderreportingReader {
-        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-            let count = buf.len().min(self.remaining);
-            buf[..count].fill(0);
-            self.remaining -= count;
-            Ok(count)
-        }
-    }
-
-    impl Seek for UnderreportingReader {
-        fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
-            match pos {
-                SeekFrom::End(0) => Ok(4),
-                SeekFrom::Start(0) => {
-                    self.remaining = 16;
-                    Ok(0)
-                }
-                _ => Err(std::io::Error::new(
-                    std::io::ErrorKind::Unsupported,
-                    "unsupported seek",
-                )),
-            }
-        }
+        assert_eq!(decoded.rgb, [113, 113, 113, 183, 46, 14]);
     }
 
     #[test]
-    fn rejects_jxl_inputs_exceeding_the_input_cap_when_the_source_underreports_its_length() {
-        let guardrails = jxl_hook_guardrails(Some(4), None);
+    fn decodes_pq_jxl_without_transforming_its_samples() {
+        const GRAY_PQ_2X1_CODESTREAM: [u8; 31] = [
+            0xFF, 0x0A, 0x00, 0x70, 0x01, 0x04, 0x45, 0x8F, 0x38, 0x1C, 0x00, 0x00, 0x00, 0x00,
+            0x02, 0x08, 0x00, 0x01, 0x00, 0x28, 0x00, 0x4B, 0x18, 0x8B, 0x15, 0xC2, 0x49, 0x61,
+            0x0E, 0x40, 0x00,
+        ];
+        const RGB_PQ_WHITE_POINT_E_2X1_CODESTREAM: [u8; 48] = [
+            0xFF, 0x0A, 0x00, 0x70, 0x01, 0x04, 0x88, 0xD1, 0x23, 0x0E, 0x07, 0x00, 0x00, 0x00,
+            0x80, 0x08, 0x00, 0x01, 0x00, 0x6C, 0x00, 0x4B, 0x18, 0x8B, 0x15, 0xC2, 0x09, 0xEC,
+            0x98, 0x28, 0x13, 0x42, 0x04, 0x8C, 0x2B, 0x9A, 0x79, 0x0B, 0x84, 0x00, 0x30, 0xC0,
+            0x01, 0xA8, 0x21, 0x52, 0x99, 0x0C,
+        ];
 
-        let decoder = super::jxl_decoder_from_reader_with_guardrails(
-            UnderreportingReader { remaining: 16 },
-            &guardrails,
-        );
-        assert!(matches!(decoder.err(), Some(image::ImageError::Limits(_))));
+        for codestream in [
+            &GRAY_PQ_2X1_CODESTREAM[..],
+            &RGB_PQ_WHITE_POINT_E_2X1_CODESTREAM[..],
+        ] {
+            let decoded = decode_image_from_bytes(codestream).unwrap();
+
+            assert_eq!(decoded.rgb, [64, 64, 64, 192, 192, 192]);
+        }
     }
 
     #[test]
@@ -1143,21 +1033,5 @@ mod tests {
             decode_image_from_path(temp.path().to_str().unwrap()),
             Err(ImageError::TooLarge(_))
         ));
-    }
-
-    #[test]
-    fn bounded_reader_errors_once_the_input_cap_is_exceeded() {
-        let mut reader = super::BoundedReader::new(Cursor::new([7u8; 16]), 8);
-        let mut buf = [0u8; 4];
-
-        assert_eq!(reader.read(&mut buf).unwrap(), 4);
-        assert_eq!(reader.read(&mut buf).unwrap(), 4);
-        assert!(
-            reader
-                .read(&mut buf)
-                .unwrap_err()
-                .to_string()
-                .contains("max_input_bytes")
-        );
     }
 }

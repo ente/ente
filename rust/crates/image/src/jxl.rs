@@ -1,0 +1,574 @@
+use std::{
+    borrow::Cow,
+    fmt,
+    io::{BufReader, Read, Seek, SeekFrom},
+    time::{Duration, Instant},
+};
+
+use ::jxl::api::{
+    Endianness, Event, ExtraChannel, JxlBitDepth, JxlColorEncoding, JxlColorProfile, JxlColorType,
+    JxlDataFormat, JxlDecoder, JxlDecoderOptions, JxlOutputBuffer, JxlParallelRunner,
+    JxlParallelRunnerFun, JxlPixelFormat, JxlTransferFunction,
+};
+use ente_heic::DecodeGuardrails;
+use image::{
+    ColorType, ExtendedColorType, ImageDecoder, ImageError, ImageResult,
+    error::{
+        DecodingError, ImageFormatHint, LimitError, LimitErrorKind, UnsupportedError,
+        UnsupportedErrorKind,
+    },
+};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+pub(crate) const CODESTREAM_SIGNATURE: [u8; 2] = [0xFF, 0x0A];
+pub(crate) const CONTAINER_SIGNATURE: [u8; 12] = [
+    0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
+];
+const MAX_DECODE_DURATION: Duration = Duration::from_secs(60);
+const MAX_SAMPLES_PER_PIXEL: u64 = 4;
+
+#[cfg(test)]
+pub(crate) const RGB_2X2_CODESTREAM: [u8; 27] = [
+    0xFF, 0x0A, 0x08, 0x10, 0x10, 0x09, 0x08, 0x00, 0x01, 0x00, 0x3C, 0x00, 0x4B, 0x18, 0x8B, 0x15,
+    0xC2, 0x41, 0x19, 0x5E, 0x20, 0x00, 0x80, 0x08, 0x20, 0x08, 0x06,
+];
+
+pub(crate) fn register_decoding_hook(guardrails: DecodeGuardrails) -> bool {
+    let registered = image::hooks::register_decoding_hook(
+        "jxl".into(),
+        Box::new(move |reader| {
+            decoder_from_reader(reader, &guardrails, Instant::now() + MAX_DECODE_DURATION)
+        }),
+    );
+
+    if registered {
+        image::hooks::register_format_detection_hook("jxl".into(), &CODESTREAM_SIGNATURE, None);
+        image::hooks::register_format_detection_hook("jxl".into(), &CONTAINER_SIGNATURE, None);
+    }
+
+    registered
+}
+
+fn decoder_from_reader<'a, R>(
+    mut reader: R,
+    guardrails: &DecodeGuardrails,
+    deadline: Instant,
+) -> ImageResult<Box<dyn ImageDecoder + 'a>>
+where
+    R: Read + Seek + 'a,
+{
+    if let Some(max_input_bytes) = guardrails.max_input_bytes {
+        let input_len = reader.seek(SeekFrom::End(0)).map_err(ImageError::IoError)?;
+        if input_len > max_input_bytes {
+            return Err(too_large());
+        }
+        reader.rewind().map_err(ImageError::IoError)?;
+    }
+
+    let input = BoundedReader {
+        inner: reader,
+        position: 0,
+        max_position: guardrails.max_input_bytes.unwrap_or(u64::MAX),
+        deadline,
+    };
+    let sample_limit = guardrails.max_pixels.map(|max_pixels| {
+        usize::try_from(max_pixels.saturating_mul(MAX_SAMPLES_PER_PIXEL)).unwrap_or(usize::MAX)
+    });
+    let decoder = JxlImageDecoder::new(input, sample_limit)?;
+
+    if let Some(max_pixels) = guardrails.max_pixels {
+        let (width, height) = decoder.dimensions();
+        if u64::from(width) * u64::from(height) > max_pixels {
+            return Err(too_large());
+        }
+    }
+
+    Ok(Box::new(decoder))
+}
+
+struct JxlImageDecoder<R: Read + Seek> {
+    input: BufReader<BoundedReader<R>>,
+    decoder: JxlDecoder,
+    dimensions: (u32, u32),
+    color_type: ColorType,
+    icc_profile: Option<Vec<u8>>,
+}
+
+impl<R: Read + Seek> JxlImageDecoder<R> {
+    fn new(reader: BoundedReader<R>, sample_limit: Option<usize>) -> ImageResult<Self> {
+        let mut input = BufReader::new(reader);
+        let mut options = JxlDecoderOptions::default();
+        options.sample_limit = sample_limit;
+        let mut decoder = JxlDecoder::new(options);
+        if process(&mut decoder, &mut input, None)? != Event::BasicInfo {
+            return Err(truncated());
+        }
+
+        let info = decoder.basic_info().ok_or_else(truncated)?;
+        if info
+            .extra_channels
+            .iter()
+            .any(|channel| channel.ec_type == ExtraChannel::Black)
+        {
+            return Err(ImageError::Unsupported(
+                UnsupportedError::from_format_and_kind(
+                    format_hint(),
+                    UnsupportedErrorKind::Color(ExtendedColorType::Cmyk8),
+                ),
+            ));
+        }
+        let width = u32::try_from(info.size.0).map_err(|_| dimension_error())?;
+        let height = u32::try_from(info.size.1).map_err(|_| dimension_error())?;
+        let alpha = info
+            .extra_channels
+            .iter()
+            .any(|channel| channel.ec_type == ExtraChannel::Alpha);
+        let num_extra_channels = info.extra_channels.len();
+        let bit_depth = info.bit_depth.clone();
+        let grayscale = decoder
+            .current_pixel_format()
+            .ok_or_else(truncated)?
+            .color_type
+            .is_grayscale();
+
+        let (color_type, data_format) = output_format(&bit_depth, grayscale, alpha);
+        decoder
+            .set_pixel_format(JxlPixelFormat {
+                color_type: jxl_color_type(grayscale, alpha),
+                color_data_format: Some(data_format),
+                extra_channel_format: vec![None; num_extra_channels],
+            })
+            .map_err(jxl_error)?;
+        let icc_profile = decoder
+            .output_color_profile()
+            .filter(|profile| !uses_hdr_transfer(profile))
+            .map(with_dci_as_pure_gamma)
+            .and_then(|profile| profile.try_as_icc().map(Cow::into_owned));
+
+        Ok(Self {
+            input,
+            decoder,
+            dimensions: (width, height),
+            color_type,
+            icc_profile,
+        })
+    }
+
+    fn decode_into(mut self, buf: &mut [u8]) -> ImageResult<()> {
+        assert_eq!(buf.len() as u64, self.total_bytes());
+        let bytes_per_sample =
+            usize::from(self.color_type.bytes_per_pixel() / self.color_type.channel_count());
+        if buf.as_ptr().align_offset(bytes_per_sample) != 0 {
+            return Err(decoding_error(
+                "output buffer is not aligned to its sample size",
+            ));
+        }
+
+        let rows = self.dimensions.1 as usize;
+        let bytes_per_row = buf.len() / rows;
+        let mut output = JxlOutputBuffer::new(buf, rows, bytes_per_row);
+        loop {
+            match process(
+                &mut self.decoder,
+                &mut self.input,
+                Some(std::slice::from_mut(&mut output)),
+            )? {
+                Event::FrameHeader => {}
+                Event::FrameComplete { .. } => return Ok(()),
+                _ => return Err(truncated()),
+            }
+        }
+    }
+}
+
+impl<R: Read + Seek> ImageDecoder for JxlImageDecoder<R> {
+    fn dimensions(&self) -> (u32, u32) {
+        self.dimensions
+    }
+
+    fn color_type(&self) -> ColorType {
+        self.color_type
+    }
+
+    fn icc_profile(&mut self) -> ImageResult<Option<Vec<u8>>> {
+        Ok(self.icc_profile.clone())
+    }
+
+    fn read_image(self, buf: &mut [u8]) -> ImageResult<()> {
+        self.decode_into(buf)
+    }
+
+    fn read_image_boxed(self: Box<Self>, buf: &mut [u8]) -> ImageResult<()> {
+        (*self).decode_into(buf)
+    }
+}
+
+fn process<R: Read + Seek>(
+    decoder: &mut JxlDecoder,
+    input: &mut BufReader<BoundedReader<R>>,
+    output: Option<&mut [JxlOutputBuffer]>,
+) -> ImageResult<Event> {
+    decoder
+        .process(input, output, Some(&mut RayonRunner))
+        .map_err(jxl_error)
+}
+
+fn output_format(
+    bit_depth: &JxlBitDepth,
+    grayscale: bool,
+    alpha: bool,
+) -> (ColorType, JxlDataFormat) {
+    let endianness = Endianness::native();
+    match (bit_depth, grayscale, alpha) {
+        (JxlBitDepth::Float { .. }, false, false) => {
+            (ColorType::Rgb32F, JxlDataFormat::F32 { endianness })
+        }
+        (JxlBitDepth::Float { .. }, false, true) => {
+            (ColorType::Rgba32F, JxlDataFormat::F32 { endianness })
+        }
+        _ if bit_depth.bits_per_sample() > 8 => (
+            match (grayscale, alpha) {
+                (true, false) => ColorType::L16,
+                (true, true) => ColorType::La16,
+                (false, false) => ColorType::Rgb16,
+                (false, true) => ColorType::Rgba16,
+            },
+            JxlDataFormat::U16 {
+                endianness,
+                bit_depth: 16,
+            },
+        ),
+        _ => (
+            match (grayscale, alpha) {
+                (true, false) => ColorType::L8,
+                (true, true) => ColorType::La8,
+                (false, false) => ColorType::Rgb8,
+                (false, true) => ColorType::Rgba8,
+            },
+            JxlDataFormat::U8 { bit_depth: 8 },
+        ),
+    }
+}
+
+fn uses_hdr_transfer(profile: &JxlColorProfile) -> bool {
+    matches!(
+        profile,
+        JxlColorProfile::Simple(
+            JxlColorEncoding::RgbColorSpace {
+                transfer_function: JxlTransferFunction::PQ | JxlTransferFunction::HLG,
+                ..
+            } | JxlColorEncoding::GrayscaleColorSpace {
+                transfer_function: JxlTransferFunction::PQ | JxlTransferFunction::HLG,
+                ..
+            }
+        )
+    )
+}
+
+fn with_dci_as_pure_gamma(profile: &JxlColorProfile) -> Cow<'_, JxlColorProfile> {
+    let JxlColorProfile::Simple(encoding) = profile else {
+        return Cow::Borrowed(profile);
+    };
+    let mut encoding = encoding.clone();
+    match &mut encoding {
+        JxlColorEncoding::RgbColorSpace {
+            transfer_function, ..
+        }
+        | JxlColorEncoding::GrayscaleColorSpace {
+            transfer_function, ..
+        } if *transfer_function == JxlTransferFunction::DCI => {
+            *transfer_function = JxlTransferFunction::Gamma(1.0 / 2.6);
+            Cow::Owned(JxlColorProfile::Simple(encoding))
+        }
+        _ => Cow::Borrowed(profile),
+    }
+}
+
+fn jxl_color_type(grayscale: bool, alpha: bool) -> JxlColorType {
+    match (grayscale, alpha) {
+        (true, false) => JxlColorType::Grayscale,
+        (true, true) => JxlColorType::GrayscaleAlpha,
+        (false, false) => JxlColorType::Rgb,
+        (false, true) => JxlColorType::Rgba,
+    }
+}
+
+struct RayonRunner;
+
+impl JxlParallelRunner for RayonRunner {
+    fn run(&mut self, num: usize, fun: &JxlParallelRunnerFun<'_>) -> ::jxl::error::Result<()> {
+        (0..num).into_par_iter().try_for_each(fun)
+    }
+
+    fn num_threads(&self) -> usize {
+        rayon::current_num_threads()
+    }
+}
+
+#[derive(Debug)]
+enum InputLimitExceeded {
+    Bytes,
+    Duration,
+}
+
+impl fmt::Display for InputLimitExceeded {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Bytes => f.write_str("JPEG XL input exceeds configured max_input_bytes"),
+            Self::Duration => f.write_str("JPEG XL decode exceeded its time budget"),
+        }
+    }
+}
+
+impl std::error::Error for InputLimitExceeded {}
+
+struct BoundedReader<R> {
+    inner: R,
+    position: u64,
+    max_position: u64,
+    deadline: Instant,
+}
+
+impl<R: Read> Read for BoundedReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if Instant::now() >= self.deadline {
+            return Err(std::io::Error::other(InputLimitExceeded::Duration));
+        }
+        let count = self.inner.read(buf)?;
+        self.position = self.position.saturating_add(count as u64);
+        if count > 0 && self.position > self.max_position {
+            return Err(std::io::Error::other(InputLimitExceeded::Bytes));
+        }
+        Ok(count)
+    }
+}
+
+impl<R: Seek> Seek for BoundedReader<R> {
+    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+        self.position = self.inner.seek(pos)?;
+        Ok(self.position)
+    }
+}
+
+fn jxl_error(error: ::jxl::error::Error) -> ImageError {
+    match error {
+        ::jxl::error::Error::ImageSizeTooLarge(..)
+        | ::jxl::error::Error::ImageDimensionTooLarge(_)
+        | ::jxl::error::Error::ImageOutOfMemory(..)
+        | ::jxl::error::Error::OutOfMemory(_) => too_large(),
+        ::jxl::error::Error::IOError(ref io_error) if exceeds_input_limit(io_error) => too_large(),
+        error => decoding_error(error),
+    }
+}
+
+fn exceeds_input_limit(error: &std::io::Error) -> bool {
+    matches!(error.get_ref(), Some(inner) if inner.is::<InputLimitExceeded>())
+}
+
+fn too_large() -> ImageError {
+    ImageError::Limits(LimitError::from_kind(LimitErrorKind::InsufficientMemory))
+}
+
+fn dimension_error() -> ImageError {
+    ImageError::Limits(LimitError::from_kind(LimitErrorKind::DimensionError))
+}
+
+fn truncated() -> ImageError {
+    decoding_error("truncated JPEG XL image")
+}
+
+fn decoding_error(error: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> ImageError {
+    ImageError::Decoding(DecodingError::new(format_hint(), error))
+}
+
+fn format_hint() -> ImageFormatHint {
+    ImageFormatHint::PathExtension("jxl".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        io::{BufReader, Cursor, Read, Seek, SeekFrom},
+        time::{Duration, Instant},
+    };
+
+    use ::jxl::api::JxlBitstreamInput;
+    use ente_heic::DecodeGuardrails;
+    use image::{ImageDecoder, ImageError};
+
+    use super::{BoundedReader, JxlImageDecoder, RGB_2X2_CODESTREAM, decoder_from_reader};
+
+    fn guardrails(max_input_bytes: Option<u64>, max_pixels: Option<u64>) -> DecodeGuardrails {
+        DecodeGuardrails {
+            max_input_bytes,
+            max_pixels,
+            max_temp_spool_bytes: None,
+            temp_spool_directory: None,
+        }
+    }
+
+    fn later() -> Instant {
+        Instant::now() + Duration::from_secs(60)
+    }
+
+    fn decode_rgb(decoder: Box<dyn ImageDecoder + '_>) -> Vec<u8> {
+        image::DynamicImage::from_decoder(decoder)
+            .unwrap()
+            .into_rgb8()
+            .into_raw()
+    }
+
+    #[test]
+    fn decodes_lossless_codestream_to_exact_pixels() {
+        let decoder = decoder_from_reader(
+            Cursor::new(RGB_2X2_CODESTREAM),
+            &guardrails(Some(1024), Some(64)),
+            later(),
+        )
+        .unwrap();
+
+        assert_eq!(decoder.dimensions(), (2, 2));
+        assert_eq!(
+            decode_rgb(decoder),
+            [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255]
+        );
+    }
+
+    #[test]
+    fn rejects_inputs_exceeding_the_input_cap() {
+        let decoder =
+            decoder_from_reader(Cursor::new([0u8; 16]), &guardrails(Some(4), None), later());
+
+        assert!(matches!(decoder.err(), Some(ImageError::Limits(_))));
+    }
+
+    struct UnderreportingReader {
+        bytes: Cursor<[u8; 27]>,
+    }
+
+    impl Read for UnderreportingReader {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            self.bytes.read(buf)
+        }
+    }
+
+    impl Seek for UnderreportingReader {
+        fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+            match pos {
+                SeekFrom::End(0) => Ok(4),
+                pos => self.bytes.seek(pos),
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_inputs_exceeding_the_input_cap_when_the_source_underreports_its_length() {
+        let decoder = decoder_from_reader(
+            UnderreportingReader {
+                bytes: Cursor::new(RGB_2X2_CODESTREAM),
+            },
+            &guardrails(Some(4), None),
+            later(),
+        );
+
+        assert!(matches!(decoder.err(), Some(ImageError::Limits(_))));
+    }
+
+    const RGB_16X16_CODESTREAM: [u8; 45] = [
+        0xFF, 0x0A, 0x43, 0x40, 0x24, 0x08, 0x00, 0x01, 0x00, 0x88, 0x00, 0x4B, 0x18, 0x8B, 0x15,
+        0x00, 0xD4, 0x88, 0x31, 0x66, 0x9C, 0x89, 0x13, 0x42, 0x04, 0x8C, 0x2B, 0x9A, 0x79, 0x03,
+        0xA8, 0x83, 0x43, 0x17, 0x03, 0xDD, 0x04, 0xD0, 0xF6, 0xFF, 0x00, 0xD1, 0x7B, 0x80, 0x00,
+    ];
+
+    #[test]
+    fn rejects_images_exceeding_the_pixel_cap() {
+        let decoder = decoder_from_reader(
+            Cursor::new(RGB_16X16_CODESTREAM),
+            &guardrails(None, Some(255)),
+            later(),
+        );
+
+        assert!(matches!(decoder.err(), Some(ImageError::Limits(_))));
+    }
+
+    #[test]
+    fn rejects_images_exceeding_the_sample_limit_while_reading_the_header() {
+        let reader = BoundedReader {
+            inner: Cursor::new(RGB_2X2_CODESTREAM),
+            position: 0,
+            max_position: u64::MAX,
+            deadline: later(),
+        };
+
+        assert!(matches!(
+            JxlImageDecoder::new(reader, Some(12)).err(),
+            Some(ImageError::Limits(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_decodes_that_pass_their_deadline() {
+        let decoder = decoder_from_reader(
+            Cursor::new(RGB_2X2_CODESTREAM),
+            &guardrails(None, None),
+            Instant::now(),
+        );
+
+        assert!(matches!(decoder.err(), Some(ImageError::Limits(_))));
+    }
+
+    #[test]
+    fn bounded_reader_errors_once_the_input_cap_is_exceeded() {
+        let mut reader = BoundedReader {
+            inner: Cursor::new([7u8; 16]),
+            position: 0,
+            max_position: 8,
+            deadline: later(),
+        };
+        let mut buf = [0u8; 4];
+
+        assert_eq!(reader.read(&mut buf).unwrap(), 4);
+        assert_eq!(reader.read(&mut buf).unwrap(), 4);
+        assert!(
+            reader
+                .read(&mut buf)
+                .unwrap_err()
+                .to_string()
+                .contains("max_input_bytes")
+        );
+    }
+
+    #[test]
+    fn bounded_reader_counts_bytes_reread_after_a_seek_once() {
+        let mut input = BufReader::with_capacity(
+            8,
+            BoundedReader {
+                inner: Cursor::new([7u8; 16]),
+                position: 0,
+                max_position: 16,
+                deadline: later(),
+            },
+        );
+        let mut head = [0u8; 4];
+        input.read_exact(&mut head).unwrap();
+        JxlBitstreamInput::available_bytes(&mut input).unwrap();
+        let mut rest = Vec::new();
+        input.read_to_end(&mut rest).unwrap();
+
+        assert_eq!(rest.len(), 12);
+    }
+
+    #[test]
+    fn bounded_reader_reports_end_of_input_after_seeking_past_the_cap() {
+        let mut reader = BoundedReader {
+            inner: Cursor::new([7u8; 8]),
+            position: 0,
+            max_position: 8,
+            deadline: later(),
+        };
+        let mut buf = [0u8; 4];
+        reader.seek(SeekFrom::Start(100)).unwrap();
+
+        assert_eq!(reader.read(&mut buf).unwrap(), 0);
+    }
+}

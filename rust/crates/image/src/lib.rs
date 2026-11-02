@@ -3,6 +3,7 @@ mod color_management;
 pub mod decode;
 pub mod error;
 pub mod image_compression;
+mod jxl;
 mod png;
 pub mod types;
 
