@@ -479,7 +479,6 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
               _suggestionReloadToken++;
             });
           } else {
-            // A later sync must preserve an earlier request to reload the card.
             _suggestionReloadPending =
                 _suggestionReloadPending ||
                 event is! PeopleChangedEvent ||
