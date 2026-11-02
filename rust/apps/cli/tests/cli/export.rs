@@ -390,12 +390,25 @@ fn export_adopts_relocated_output_and_verifies_later_selections() -> TestResult 
             fs::rename(&root, &relocated)?;
             let fresh = TestHome::new();
             login(&fresh, "photos", &email, &["--host", origin]);
+            let abandoned = fresh
+                .dir
+                .path()
+                .join("accounts")
+                .join(
+                    fresh.read_vault()["accounts"][0]["storage_id"]
+                        .as_str()
+                        .unwrap(),
+                )
+                .join("exports/adoption");
+            fs::create_dir_all(&abandoned)?;
+            fs::write(abandoned.join("index.db"), b"abandoned index")?;
             assert!(
                 failure(&fresh.run(&["photos", "export", relocated.to_str().unwrap()]))
                     .contains("--adopt")
             );
             let reads = objects.reads();
             export(&fresh, &relocated, &["--adopt", "--album", "Travel"]);
+            assert!(!abandoned.exists());
             assert_eq!(objects.reads(), reads);
             assert_eq!(fs::read(relocated.join("export.json"))?, root_bytes);
             fs::write(relocated.join("Work/Work.jpg"), b"xxxx")?;
@@ -415,7 +428,10 @@ fn export_adopts_relocated_output_and_verifies_later_selections() -> TestResult 
             assert_eq!(fs::read(relocated.join("Work/Work.jpg"))?, b"xxxx");
             assert_eq!(objects.reads(), reads);
             fs::remove_file(relocated.join("Work/Work.jpg"))?;
+            fs::create_dir_all(&abandoned)?;
+            fs::write(abandoned.join("index.db"), b"abandoned index")?;
             export(&fresh, &relocated, &["--album", "Work"]);
+            assert!(!abandoned.exists());
             assert_eq!(objects.reads(), reads + 1);
             assert_eq!(fs::read(relocated.join("Work/Work.jpg"))?, b"work");
             Ok(())
