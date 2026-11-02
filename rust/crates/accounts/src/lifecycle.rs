@@ -120,7 +120,8 @@ impl TwoFactorSetup {
             .map_err(|_| Error::InvalidInput("system clock is before the Unix epoch".into()))?
             .as_secs();
         verify_totp(&self.secret_code, code, time)?;
-        enable_two_factor(client, &self.secret_code, &self.recovery_key, code).await
+        let request = encrypt_two_factor_secret(&self.secret_code, &self.recovery_key, code)?;
+        client.enable_two_factor(&request).await
     }
 }
 
@@ -282,7 +283,10 @@ pub async fn enable_two_factor(
     code: &str,
 ) -> Result<()> {
     let request = encrypt_two_factor_secret(secret, recovery_key, code)?;
-    client.enable_two_factor(&request).await
+    match client.enable_two_factor(&request).await {
+        Err(Error::Http(error)) if error.status_code() == Some(401) => Err(Error::IncorrectTotp),
+        result => result,
+    }
 }
 
 pub async fn passkey_management_url(client: &AccountsClient, recovery_key: &str) -> Result<String> {
