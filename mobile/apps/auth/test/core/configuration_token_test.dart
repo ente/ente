@@ -28,8 +28,7 @@ void main() {
     messenger.setMockMethodCallHandler(secureStorageChannel, (call) async {
       final arguments = call.arguments as Map;
       final key = arguments['key'] as String?;
-      if (failingCalls.contains('${call.method}:$key') ||
-          failingCalls.remove('once:${call.method}:$key')) {
+      if (failingCalls.contains('${call.method}:$key')) {
         throw PlatformException(code: 'unavailable');
       }
       switch (call.method) {
@@ -158,41 +157,5 @@ void main() {
     await config.init([]);
 
     expect(config.getToken(), 'token');
-  });
-
-  test('keeps the session after a one-off token read failure', () async {
-    SharedPreferences.setMockInitialValues({
-      BaseConfiguration.hasSecureTokenKey: true,
-      BaseConfiguration.userIDKey: 1,
-    });
-    secureValues.addAll({
-      BaseConfiguration.tokenKey: 'token',
-      BaseConfiguration.keyKey: 'a2V5',
-    });
-    failingCalls.add('once:read:${BaseConfiguration.tokenKey}');
-
-    await config.init([]);
-
-    expect(config.getToken(), 'token');
-  });
-
-  test('signs out when only the token entry is unreadable', () async {
-    SharedPreferences.setMockInitialValues({
-      BaseConfiguration.hasSecureTokenKey: true,
-      BaseConfiguration.userIDKey: 1,
-    });
-    secureValues.addAll({
-      BaseConfiguration.tokenKey: 'token',
-      BaseConfiguration.keyKey: 'a2V5',
-      Configuration.offlineAuthSecretKey: 'b2ZmbGluZQ==',
-    });
-    failingCalls.add('read:${BaseConfiguration.tokenKey}');
-
-    await config.init([]);
-
-    final preferences = await SharedPreferences.getInstance();
-    expect(config.isLoggedIn(), false);
-    expect(preferences.containsKey(BaseConfiguration.userIDKey), false);
-    expect(secureValues[Configuration.offlineAuthSecretKey], 'b2ZmbGluZQ==');
   });
 }

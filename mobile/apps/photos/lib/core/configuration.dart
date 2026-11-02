@@ -129,17 +129,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
           _logger.warning("Failed to move token to secure storage", e, s);
         }
       } else if (_preferences.containsKey(hasSecureTokenKey)) {
-        try {
-          _cachedToken = await _secureStorage.read(key: tokenKey);
-        } on PlatformException catch (e, s) {
-          _logger.warning("Failed to read token from secure storage", e, s);
-          await _secureStorage.read(key: keyKey);
-          try {
-            _cachedToken = await _secureStorage.read(key: tokenKey);
-          } on PlatformException catch (e, s) {
-            _logger.warning("Token is unreadable in secure storage", e, s);
-          }
-        }
+        _cachedToken = await _secureStorage.read(key: tokenKey);
         if (_cachedToken == null) {
           _logger.warning("No token found in secure storage");
           await logout(autoLogout: true);

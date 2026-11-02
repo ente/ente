@@ -264,16 +264,9 @@ abstract class BaseConfiguration {
       } else if (_preferences.containsKey(hasSecureTokenKey)) {
         try {
           _cachedToken = await _secureStorage.read(key: tokenKey);
-        } on PlatformException catch (e, s) {
-          _logger.warning("Failed to read token from secure storage", e, s);
+        } on PlatformException {
           _isTokenUnavailable = true;
-          await _secureStorage.read(key: keyKey);
-          _isTokenUnavailable = false;
-          try {
-            _cachedToken = await _secureStorage.read(key: tokenKey);
-          } on PlatformException catch (e, s) {
-            _logger.warning("Token is unreadable in secure storage", e, s);
-          }
+          rethrow;
         }
         if (_cachedToken == null) {
           _logger.warning("No token found in secure storage");
