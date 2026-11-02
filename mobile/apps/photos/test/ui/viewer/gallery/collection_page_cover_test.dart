@@ -555,6 +555,66 @@ void main() {
   );
 
   testWidgets(
+    "filename-sorted covers follow the gallery unless a cover is set",
+    (tester) async {
+      final files = [
+        _file(1)..title = "IMG10.jpg",
+        _file(2)..title = "IMG1.jpg",
+        _file(3)..title = "IMG2.jpg",
+      ];
+      await tester.runAsync(() => FilesDB.instance.insertMultiple(files));
+
+      for (final coverID in <int?>[null, 3]) {
+        final collection = _collection()
+          ..pubMagicMetadata = CollectionPubMagicMetadata(
+            asc: true,
+            sortBy: "fileName",
+            coverID: coverID,
+          );
+        await _pumpAlbum(tester, collection);
+        await _expectCover(
+          tester,
+          files[coverID == null ? 1 : 2],
+          count: 3,
+          firstFile: files[1],
+        );
+
+        for (final asc in [false, true]) {
+          collection.pubMagicMetadata = CollectionPubMagicMetadata(
+            asc: asc,
+            sortBy: "fileName",
+            coverID: coverID,
+          );
+          Bus.instance.fire(
+            CollectionMetaEvent(
+              collection.id,
+              CollectionMetaEventType.sortChanged,
+            ),
+          );
+          final first = files[asc ? 1 : 0];
+          await _expectCover(
+            tester,
+            coverID == null ? first : files[2],
+            firstFile: first,
+          );
+        }
+        if (coverID != null) {
+          collection.pubMagicMetadata = CollectionPubMagicMetadata(
+            asc: true,
+            sortBy: "fileName",
+            coverID: 0,
+          );
+          Bus.instance.fire(
+            CollectionUpdatedEvent(collection.id, [], "cover_change"),
+          );
+          await _expectCover(tester, files[1]);
+        }
+        await _disposeAlbum(tester);
+      }
+    },
+  );
+
+  testWidgets(
     "reuses capture dates across selection and refreshes date edits",
     (tester) async {
       final files = [_CountingFile(_file(1)), _CountingFile(_file(3))];
@@ -1181,6 +1241,7 @@ Future<void> _expectCover(
   WidgetTester tester,
   EnteFile? file, {
   int? count,
+  EnteFile? firstFile,
 }) async {
   await tester.runAsync(() async {
     for (var i = 0; i < 100; i++) {
@@ -1191,14 +1252,13 @@ Future<void> _expectCover(
       final hasExpectedCover = file == null
           ? covers.isEmpty
           : covers.singleOrNull?.cover == file;
-      final hasExpectedCount =
-          count == null ||
-          tester
-                  .widget<GalleryFilesState>(find.byType(GalleryFilesState))
-                  .galleryFilesOrNull
-                  ?.length ==
-              count;
-      if (hasExpectedCover && hasExpectedCount) {
+      final galleryFiles = tester
+          .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+          .galleryFilesOrNull;
+      final hasExpectedCount = count == null || galleryFiles?.length == count;
+      final hasExpectedFirstFile =
+          firstFile == null || galleryFiles?.firstOrNull == firstFile;
+      if (hasExpectedCover && hasExpectedCount && hasExpectedFirstFile) {
         await tester.pump(const Duration(seconds: 1));
         return;
       }
@@ -1216,6 +1276,15 @@ Future<void> _expectCover(
           .galleryFilesOrNull
           ?.length,
       count,
+    );
+  }
+  if (firstFile != null) {
+    expect(
+      tester
+          .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+          .galleryFiles
+          .firstOrNull,
+      firstFile,
     );
   }
   expect(tester.takeException(), isNull);

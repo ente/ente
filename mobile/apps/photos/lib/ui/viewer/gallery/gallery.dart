@@ -62,6 +62,7 @@ typedef NewLocalFilesResolver =
 
 class Gallery extends StatefulWidget {
   final GalleryLoader asyncLoader;
+  final ValueChanged<List<EnteFile>>? onFilesLoaded;
   final List<EnteFile>? initialFiles;
   final Stream<FilesUpdatedEvent>? reloadEvent;
   final List<Stream<Event>>? forceReloadEvents;
@@ -108,6 +109,7 @@ class Gallery extends StatefulWidget {
   const Gallery({
     required this.asyncLoader,
     required this.tagPrefix,
+    this.onFilesLoaded,
     this.appBar,
     this.selectedFiles,
     this.initialFiles,
@@ -801,6 +803,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   bool _onFilesLoaded(List<EnteFile> files) {
     _allGalleryFiles = files;
     _hasLoadedFiles = true;
+    if (mounted) widget.onFilesLoaded?.call(files);
     return false;
   }
 

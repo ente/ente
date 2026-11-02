@@ -67,7 +67,6 @@ class _CollectionPageState extends State<CollectionPage> {
   late final String? _coverHeroTag;
   late final bool _wasHiddenOnOpen;
   int _coverLoadGeneration = 0;
-  int _galleryLoadGeneration = 0;
 
   @override
   void initState() {
@@ -146,7 +145,6 @@ class _CollectionPageState extends State<CollectionPage> {
     final gallery = Gallery(
       appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
-        final generation = ++_galleryLoadGeneration;
         final FileLoadResult result = await FilesDB.instance
             .getFilesInCollection(
               c.collection.id,
@@ -162,13 +160,12 @@ class _CollectionPageState extends State<CollectionPage> {
               f.uploadedFileID == null &&
               IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, f),
         );
-        if (mounted &&
-            generation == _galleryLoadGeneration &&
-            asc == (c.collection.pubMagicMetadata.asc ?? false)) {
-          _defaultCover = result.files.firstOrNull;
-          await _loadCover();
-        }
         return result;
+      },
+      onFilesLoaded: (files) {
+        _defaultCover = files.firstOrNull;
+        // Initial gallery files can arrive while this page is building.
+        unawaited(Future<void>.microtask(_loadCover));
       },
       reloadEvent: Bus.instance.on<CollectionUpdatedEvent>().where(
         (event) => event.collectionID == c.collection.id,
