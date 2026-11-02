@@ -1,8 +1,10 @@
 {
-  "bringMemoriesTogether": "Reúna suas memórias",
-  "createMyAccount": "Criar minha conta",
-  "localGalleryPermissionDesc": "Conceda permissão para acessar e organizar suas fotos com reconhecimento facial. Todo o processamento é feito no seu dispositivo.",
-  "onboardingOrganizeDesc": "Organize suas fotos e vídeos. Todas as memórias em um só lugar.",
+  "createMyAccount": "Criar conta",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "wallpaper": "Papel de parede",
+  "setWallpaper": "Definir papel de parede",
   "about": "Sobre",
   "acceptTrustInvite": "Aceitar convite",
   "account": "Conta",
@@ -186,7 +188,6 @@
   "albumsOnDevicePermissionCta": "Permitir",
   "albumsOnEnteEmptyCta": "Selecione os álbuns para backup",
   "albumsOnEnteEmptyTitle": "Fazer backup de suas memórias",
-  "albumsReceivedEmptyTitle": "Veja memórias compartilhadas com você",
   "albumsSharedEmptyTitle": "Compartilhe suas memórias",
   "albumsWidgetDesc": "Selecione os álbuns que deseja ver na tela inicial.",
   "albumTitle": "Título do álbum",
@@ -2190,7 +2191,6 @@
   "nextTotpTitle": "próximo",
   "nightLights": "Noites de néon",
   "no": "Não",
-  "noAlbumsOnThisDevice": "Nenhum álbum no dispositivo",
   "noDefaultBackupFolder": "Não foi possível criar uma pasta de backup padrão.",
   "noDeleteSuggestion": "Nenhuma sugestão para exclusão",
   "noDeviceFound": "Nenhum dispositivo encontrado",
@@ -3350,7 +3350,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Comece a tirar fotos, suas fotos aparecerão aqui",
   "startWithAddingPhotosOrFamiliarFaces": "Comece adicionando\nfotos ou rostos familiares",
   "status": "Estado",
   "sticker": "Figurinha",

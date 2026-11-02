@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Reúne tus recuerdos",
-  "createMyAccount": "Crear mi cuenta",
-  "localGalleryPermissionDesc": "Concede permiso para acceder y organizar tus fotos mediante reconocimiento facial. Todo el procesamiento se realiza en tu dispositivo.",
-  "onboardingOrganizeDesc": "Organiza tus fotos y vídeos. Todos tus recuerdos en un solo lugar.",
   "wallpaper": "Fondo de pantalla",
   "setWallpaper": "Establecer fondo de pantalla",
   "wallpaperHome": "Pantalla de inicio",
@@ -156,7 +152,6 @@
   "albumsOnDevicePermissionCta": "Permitir acceso",
   "albumsOnEnteEmptyCta": "Selecciona los álbumes que respaldar en Ente",
   "albumsOnEnteEmptyTitle": "Respalda tus recuerdos",
-  "albumsReceivedEmptyTitle": "Ver recuerdos compartidos contigo",
   "albumsWidgetDesc": "Selecciona los álbumes que quieres ver en tu pantalla de inicio.",
   "albumTitle": "Título del álbum",
   "albumUpdated": "Álbum actualizado",

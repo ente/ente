@@ -4211,6 +4211,35 @@
   "subscribe": "Abonnieren",
   "subscribeToChangeLinkSetting": "Du benötigst ein kostenpflichtiges Abonnement, um diese Link-Einstellung zu ändern.",
   "subscribeToEnableSharing": "Du benötigst ein aktives, bezahltes Abonnement, um das Teilen zu aktivieren.",
+  "subscriptionLearnMore": "Mehr erfahren",
+  "subscriptionCurrentPlan": "Aktueller Tarif",
+  "subscriptionFaqDescription": "Antworten auf deine Fragen",
+  "subscriptionFamilyDescription": "Teile deinen Tarif mit deiner Familie",
+  "subscriptionContinueWithPlan": "Mit dem Tarif {storage} fortfahren",
+  "@subscriptionContinueWithPlan": {
+    "description": "Continue button on the Photos plan picker with the selected storage allowance",
+    "placeholders": {
+      "storage": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionLockerItems": "+ {count} Elemente auf {appName}",
+  "@subscriptionLockerItems": {
+    "description": "Locker allowance included with a Photos plan",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "appName": {
+        "type": "String",
+        "description": "Placeholder for the styled Locker app name"
+      }
+    }
+  },
+  "subscriptionLockerTitle": "Einige Dinge\nverdienen einen Locker.",
+  "subscriptionLockerDescription": "Reisepässe, Zertifikate und wichtige Dokumente des Lebens. Halte sie vertraulich und beisammen.",
   "subscription": "Abonnement",
   "subscriptionRequiredForSharing": "Du benötigst ein kostenpflichtiges Abonnement, um Links zu teilen",
   "subWillBeCancelledOn": "Dein Abo endet am {endDate}",
@@ -4362,6 +4391,7 @@
   },
   "totalSize": "Gesamtgröße",
   "trash": "Papierkorb",
+  "trashAutoDeleteNotice": "Elemente im Papierkorb werden nach 30 Tagen dauerhaft gelöscht",
   "restoreOrPermanentlyDeleteItems": "Elemente wiederherstellen oder dauerhaft löschen",
   "trashClearedSuccessfully": "Papierkorb erfolgreich geleert",
   "trashCode": "Code löschen?",
