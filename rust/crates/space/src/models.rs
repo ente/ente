@@ -67,6 +67,8 @@ pub struct Post {
     pub content: Result<PostContent>,
     pub created_at: String,
     pub viewer_liked: bool,
+    pub comment_count: i64,
+    pub like_count: i64,
 }
 
 pub struct SpaceActor {
@@ -221,6 +223,10 @@ pub struct MessagePage {
 }
 
 pub struct Notification {
+    pub post_space_id: Option<String>,
+    pub post_owner_slug: Option<String>,
+    pub comment_id: Option<String>,
+    pub reply_to_id: Option<String>,
     pub notification_id: String,
     pub notification_ids: Vec<String>,
     pub kind: String,
@@ -304,6 +310,30 @@ pub struct DecryptedFriendShare {
 pub struct HydratedKeys {
     pub owned: Vec<(String, Vec<u8>)>,
     pub friends: Vec<DecryptedFriendShare>,
+}
+
+pub struct CommentReaction {
+    pub actor: SpaceActor,
+    pub emoji: String,
+    pub is_own: bool,
+}
+
+pub struct Comment {
+    pub comment_id: String,
+    pub unread_notification_ids: Vec<String>,
+    pub author: Option<SpaceActor>,
+    pub parent_id: String,
+    pub reply_to_id: String,
+    pub text: Option<String>,
+    pub deleted: bool,
+    pub created_at: String,
+    pub can_delete: bool,
+    pub reactions: Vec<CommentReaction>,
+}
+
+pub struct CommentPage {
+    pub items: Vec<Comment>,
+    pub next_cursor: String,
 }
 
 #[cfg(test)]

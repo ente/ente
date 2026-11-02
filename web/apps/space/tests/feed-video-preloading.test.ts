@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { queueFeedVideoLoad } from "../src/components/feed-video-preloading";
+import {
+    feedVideoPreloadIndices,
+    queueFeedVideoLoad,
+} from "../src/components/feed-video-preloading";
 
 let viewport: { innerHeight: number; scrollY: number };
 let frames: Map<number, FrameRequestCallback>;
@@ -54,8 +57,11 @@ const enqueue = (name: string, top: number, slideOffset = 0) => {
                 : null,
     } as unknown as HTMLElement;
     const download = Promise.withResolvers<string>();
-    const load = vi.fn(() => {
+    const load = vi.fn((signal: AbortSignal) => {
         started.push(name);
+        signal.addEventListener("abort", () => download.reject(signal.reason), {
+            once: true,
+        });
         return download.promise;
     });
     const control = queueFeedVideoLoad(element, load);
@@ -64,6 +70,26 @@ const enqueue = (name: string, top: number, slideOffset = 0) => {
     requests.push(request);
     return request;
 };
+
+test.each([
+    [0, [1, 3]],
+    [1, [1, 3]],
+    [2, [3, 4]],
+    [3, [3, 4]],
+    [4, [4]],
+    [5, []],
+] as const)(
+    "prepares two videos ahead of slide %i, skipping photos",
+    (index, expected) => {
+        const video = { durationMs: 1000 };
+        const photos = [{}, { video }, {}, { video }, { video }, {}];
+        expect(feedVideoPreloadIndices(photos, index)).toEqual(expected);
+    },
+);
+
+test("a carousel of photos does not request video preloads", () => {
+    expect(feedVideoPreloadIndices([{}, {}, {}], 0)).toEqual([]);
+});
 
 test("downloads the nearest videos first and limits simultaneous loads to two", async () => {
     const far = enqueue("far", 2400);
@@ -205,18 +231,59 @@ test("a detached video is canceled even when it is the only queued request", asy
     });
 });
 
-test("an in-flight download retains its slot when its post is unmounted", async () => {
+test("unmounting a post aborts its download and releases its slot", async () => {
     const first = enqueue("first", 100);
     enqueue("second", 500);
     enqueue("third", 900);
     flush();
     first.cancel();
+    expect(first.load.mock.calls[0]![0].aborted).toBe(true);
     flush();
     expect(started).toEqual(["first", "second"]);
-    first.download.resolve("blob:first");
-    await expect(first.promise).resolves.toBe("blob:first");
+    await expect(first.promise).rejects.toMatchObject({ name: "AbortError" });
     flush();
     expect(started).toEqual(["first", "second", "third"]);
+});
+
+test("swiping away from a queued video defers it until it is needed again", async () => {
+    const previous = enqueue("previous", 100);
+    const current = enqueue("current", 100);
+    const nextPost = enqueue("next post", 900);
+    previous.setPreloading(false);
+    flush();
+    expect(started).toEqual(["current", "next post"]);
+    current.download.resolve("blob:current");
+    nextPost.download.resolve("blob:next");
+    await Promise.all([current.promise, nextPost.promise]);
+    flush();
+    expect(previous.load).not.toHaveBeenCalled();
+    previous.setPreloading(true);
+    flush();
+    expect(started).toEqual(["current", "next post", "previous"]);
+    expect(previous.load).toHaveBeenCalledOnce();
+});
+
+test("swiping away lets an already-started download finish without restarting it", async () => {
+    const previous = enqueue("previous", 100);
+    flush();
+    previous.setPreloading(false);
+    expect(previous.load.mock.calls[0]![0].aborted).toBe(false);
+    previous.download.resolve("blob:previous");
+    await expect(previous.promise).resolves.toBe("blob:previous");
+    previous.setPreloading(true);
+    flush();
+    expect(previous.load).toHaveBeenCalledOnce();
+});
+
+test("leaving the post cancels a deferred preload", async () => {
+    const previous = enqueue("previous", 100);
+    previous.setPreloading(false);
+    flush();
+    previous.cancel();
+    await expect(previous.promise).rejects.toMatchObject({
+        name: "AbortError",
+    });
+    expect(previous.load).not.toHaveBeenCalled();
 });
 
 test("a failed download releases its slot for the next video", async () => {

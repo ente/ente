@@ -62,13 +62,12 @@ const passwordCardSx = {
     border: "1px solid",
     borderColor: "divider",
     color: "text.base",
-    "& .MuiFormLabel-root.Mui-focused": { color: "accent.light" },
-    "& .MuiButton-root": {
+    "& button[type='submit']": {
         backgroundColor: "accent.main",
         color: "accent.contrastText",
     },
-    "& .MuiButton-root:hover": { backgroundColor: "accent.dark" },
-    "& .MuiButton-root.Mui-disabled": {
+    "& button[type='submit']:hover": { backgroundColor: "accent.dark" },
+    "& button[type='submit'].Mui-disabled": {
         backgroundColor: "accent.main",
         color: "accent.contrastText",
         opacity: 0.7,
@@ -85,19 +84,14 @@ export const CollectionShareView: React.FC = () => {
         error,
         collectionInfo,
         selectedItem,
-        notificationAttributes,
+        notificationProps,
         handleItemClick,
         handleCloseItem,
         handleDownload,
         handleSubmitPassword,
         handleCopyContent,
-        setNotificationAttributes,
     } = useCollectionShare();
     const passwordTitle = translatedOrFallback("password", "Password");
-    const passwordDescription = translatedOrFallback(
-        "link_password_description",
-        "Enter the password to unlock this collection.",
-    );
     const unlockLabel = translatedOrFallback("unlock", "Unlock");
 
     return (
@@ -167,16 +161,9 @@ export const CollectionShareView: React.FC = () => {
                         >
                             {passwordTitle}
                         </Typography>
-                        <Typography
-                            variant="body"
-                            sx={{ color: "text.muted", mb: 2 }}
-                        >
-                            {passwordDescription}
-                        </Typography>
                         <SingleInputForm
                             inputType="password"
                             label={passwordTitle}
-                            submitButtonColor="primary"
                             submitButtonTitle={unlockLabel}
                             onSubmit={handleSubmitPassword}
                         />
@@ -393,11 +380,7 @@ export const CollectionShareView: React.FC = () => {
                     </Box>
                 )}
 
-            <Notification
-                open={!!notificationAttributes}
-                onClose={() => setNotificationAttributes(undefined)}
-                attributes={notificationAttributes}
-            />
+            <Notification {...notificationProps} />
         </PublicShareScaffold>
     );
 };

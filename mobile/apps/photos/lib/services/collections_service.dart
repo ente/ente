@@ -688,7 +688,14 @@ class CollectionsService {
 
     outgoing.sort(comparator);
 
-    return SharedCollections(outgoing, incoming, quickLinks);
+    return SharedCollections(
+      [
+        ...outgoing.where((collection) => collection.isPinned),
+        ...outgoing.where((collection) => !collection.isPinned),
+      ],
+      incoming,
+      quickLinks,
+    );
   }
 
   Future<SharedCollectionsAndMemoryLinks>

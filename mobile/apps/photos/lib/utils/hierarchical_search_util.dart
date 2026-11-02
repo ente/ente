@@ -392,7 +392,7 @@ Future<List<LocationFilter>> _curateLocationFilters(
 ) async {
   final locationFilters = <LocationFilter>[];
   final locationTagToOccurrence = await locationService
-      .getLocationTagsToOccurance(files);
+      .getLocationTagsToOccurrence(files);
 
   for (LocationTag locationTag in locationTagToOccurrence.keys) {
     locationFilters.add(

@@ -153,36 +153,11 @@ class MLComputer extends SuperIsolate {
     }
   }
 
-  Future<Map<String, List<QueryResult>>> computeBulkSimilaritiesWithRust(
-    Map<String, List<double>> textQueryToEmbeddingMap,
-    Map<String, double> minimumSimilarityMap,
-  ) async {
+  Future<void> cacheImageEmbeddings(List<EmbeddingVector> embeddings) async {
     try {
-      final queryToResults =
-          await runInIsolate(IsolateOperation.computeBulkSimilaritiesWithRust, {
-                "textQueryToEmbeddingMap": textQueryToEmbeddingMap,
-                "minimumSimilarityMap": minimumSimilarityMap,
-              })
-              as Map<String, List<QueryResult>>;
-      return queryToResults;
-    } catch (e, s) {
-      _logger.severe(
-        "Could not bulk compare embeddings with rust inside MLComputer isolate",
-        e,
-        s,
-      );
-      rethrow;
-    }
-  }
-
-  Future<void> cacheImageEmbeddings(
-    List<EmbeddingVector> embeddings, {
-    bool cacheRustExact = false,
-  }) async {
-    try {
-      await runInIsolate(IsolateOperation.cacheImageEmbeddings, {
-            'embeddings': embeddings,
-            'cacheRustExact': cacheRustExact,
+      await runInIsolate(IsolateOperation.setIsolateCache, {
+            'key': imageEmbeddingsKey,
+            'value': embeddings,
           })
           as bool;
       _logger.info(

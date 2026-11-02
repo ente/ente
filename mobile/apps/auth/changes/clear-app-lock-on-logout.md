@@ -1,0 +1,1 @@
+- Fixed app locks remaining enabled after logout.

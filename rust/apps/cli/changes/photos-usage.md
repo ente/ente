@@ -1,0 +1,1 @@
+- Show Photos storage usage, plan status and file count with `photos usage`.

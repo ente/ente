@@ -412,6 +412,11 @@ export const downloadFile = async (
         return;
     }
 
+    // Never save server bytes without authenticating them first.
+    if (!fileNonce) {
+        throw new Error("Missing file decryption information");
+    }
+
     const body = response.body;
     if (!body) {
         throw new Error("Response body is empty");
@@ -419,16 +424,10 @@ export const downloadFile = async (
 
     const encryptedData = new Uint8Array(await response.arrayBuffer());
 
-    let decryptedData: Uint8Array<ArrayBuffer>;
-
-    if (fileNonce) {
-        decryptedData = await decryptBoxBytes(
-            { encryptedData: await toB64(encryptedData), nonce: fileNonce },
-            fileKey,
-        );
-    } else {
-        decryptedData = encryptedData;
-    }
+    const decryptedData = await decryptBoxBytes(
+        { encryptedData: await toB64(encryptedData), nonce: fileNonce },
+        fileKey,
+    );
 
     const blob = new Blob([decryptedData]);
 

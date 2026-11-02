@@ -1,4 +1,4 @@
-pub use log::warn;
+pub use log::{info, warn};
 
 #[macro_export]
 macro_rules! setup {

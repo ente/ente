@@ -344,6 +344,7 @@ mod tests {
     fn basic_clean_matches_ftfy_style_repairs() {
         assert_eq!(basic_clean(" âœ” No problems "), "✔ No problems");
         assert_eq!(basic_clean("Tom &amp;amp; Jerry"), "Tom & Jerry");
+        assert_eq!(basic_clean("&fjlig; &NotEqualTilde;"), "fj ≂̸");
         assert_eq!(basic_clean("A&#x20;B"), "A B");
         assert_eq!(basic_clean("A&#x1b;B"), "A&#x1b;B");
     }

@@ -5,6 +5,8 @@ PODS:
     - FlutterMacOS
   - device_info_plus (0.0.1):
     - FlutterMacOS
+  - ente_auth_frb (0.0.1):
+    - FlutterMacOS
   - ente_qr (0.0.1):
     - FlutterMacOS
   - file_picker (0.0.1):
@@ -77,6 +79,7 @@ DEPENDENCIES:
   - app_links (from `Flutter/ephemeral/.symlinks/plugins/app_links/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
   - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
+  - ente_auth_frb (from `Flutter/ephemeral/.symlinks/plugins/ente_auth_frb/macos`)
   - ente_qr (from `Flutter/ephemeral/.symlinks/plugins/ente_qr/macos`)
   - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - file_saver (from `Flutter/ephemeral/.symlinks/plugins/file_saver/macos`)
@@ -109,6 +112,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos
   device_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
+  ente_auth_frb:
+    :path: Flutter/ephemeral/.symlinks/plugins/ente_auth_frb/macos
   ente_qr:
     :path: Flutter/ephemeral/.symlinks/plugins/ente_qr/macos
   file_picker:
@@ -152,12 +157,13 @@ SPEC CHECKSUMS:
   app_links: 05a6ec2341985eb05e9f97dc63f5837c39895c3f
   connectivity_plus: 4adf20a405e25b42b9c9f87feff8f4b6fde18a4e
   device_info_plus: 4fb280989f669696856f8b129e4a5e3cd6c48f76
+  ente_auth_frb: 19fff78bf5367ab1a2fd531947837541938ed7e5
   ente_qr: 679dcacb6a07788ee2e79d29485b07064cdec78d
   file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
   file_saver: e35bd97de451dde55ff8c38862ed7ad0f3418d0f
   flutter_local_notifications: 4bf37a31afde695b56091b4ae3e4d9c7a7e6cda0
   flutter_secure_storage_macos: 7f45e30f838cf2659862a4e4e3ee1c347c2b3b54
-  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
   scoped_dir_access: 6d48cfa2b5c90bf9ec7b8f43cf9fd55b3da431b3
@@ -174,6 +180,6 @@ SPEC CHECKSUMS:
   url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
   window_manager: b729e31d38fb04905235df9ea896128991cad99e
 
-PODFILE CHECKSUM: 6ff827273ace187339fc5d3684072a26ad85c298
+PODFILE CHECKSUM: 65859659d1046735c510d67fc704df4253ab399c
 
 COCOAPODS: 1.17.0

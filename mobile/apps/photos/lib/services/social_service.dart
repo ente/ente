@@ -144,10 +144,6 @@ class SocialService {
     );
   }
 
-  Future<Map<int, int>> fetchCounts() async {
-    return socialGateway.fetchCounts();
-  }
-
   ({String cipher, String nonce}) encryptComment(
     String text,
     int collectionID,

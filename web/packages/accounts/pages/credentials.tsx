@@ -41,6 +41,7 @@ import {
 import { checkSessionValidity } from "ente-accounts/services/session";
 import type { SRPAttributes } from "ente-accounts/services/srp";
 import {
+    completePendingSignup,
     generateSRPSetupAttributes,
     getAndSaveSRPAttributes,
     getSRPAttributes,
@@ -58,7 +59,11 @@ import { isDevBuild } from "ente-base/env";
 import { clearLocalStorage } from "ente-base/local-storage";
 import log from "ente-base/log";
 import { customAPIHost } from "ente-base/origins";
-import { saveAuthToken, savedAuthToken } from "ente-base/token";
+import {
+    ensureAuthToken,
+    saveAuthToken,
+    savedAuthToken,
+} from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -137,8 +142,9 @@ const Page: React.FC = () => {
             kek: string,
             keyAttributes: KeyAttributes,
         ) => {
-            await saveMasterKeyInSessionAndSafeStore(masterKey);
             await decryptAndStoreTokenIfNeeded(keyAttributes, masterKey);
+            await completePendingSignup(userEmail, await ensureAuthToken());
+            await saveMasterKeyInSessionAndSafeStore(masterKey);
             try {
                 let srpAttributes = savedSRPAttributes();
                 if (!srpAttributes) {
@@ -244,13 +250,13 @@ const Page: React.FC = () => {
                 saveIsFirstLogin();
 
                 if (passkeySessionID) {
-                    await stashKeyEncryptionKeyInSessionStore(kek);
-                    updateSavedLocalUser({ passkeySessionID });
-                    stashRedirect("/");
                     const url = passkeyVerificationRedirectURL(
                         accountsUrl!,
                         passkeySessionID,
                     );
+                    await stashKeyEncryptionKeyInSessionStore(kek);
+                    updateSavedLocalUser({ passkeySessionID });
+                    stashRedirect("/");
                     setPasskeyVerificationData({ passkeySessionID, url });
                     openPasskeyVerificationURL({ passkeySessionID, url });
                     return "redirecting-second-factor";
@@ -281,29 +287,27 @@ const Page: React.FC = () => {
 
     const handleVerifyMasterPassword: VerifyMasterPasswordFormProps["onVerify"] =
         useCallback(
-            (key, kek, keyAttributes, password) => {
-                void (async () => {
-                    // The page reloads if any attributes changed, so the KEK
-                    // cannot have been generated from stale credentials. The
-                    // await only makes sure the check is done before we let
-                    // the user in.
-                    if (sessionValidityCheck) await sessionValidityCheck;
+            async (key, kek, keyAttributes, password) => {
+                // The page reloads if any attributes changed, so the KEK
+                // cannot have been generated from stale credentials. The
+                // await only makes sure the check is done before we let
+                // the user in.
+                if (sessionValidityCheck) await sessionValidityCheck;
 
-                    const updatedKeyAttributes = savedIsFirstLogin()
-                        ? await generateAndSaveInteractiveKeyAttributes(
-                              password,
-                              keyAttributes,
-                              key,
-                          )
-                        : keyAttributes;
+                const updatedKeyAttributes = savedIsFirstLogin()
+                    ? await generateAndSaveInteractiveKeyAttributes(
+                          password,
+                          keyAttributes,
+                          key,
+                      )
+                    : keyAttributes;
 
-                    await postVerification(
-                        userEmail,
-                        key,
-                        kek,
-                        updatedKeyAttributes,
-                    );
-                })();
+                await postVerification(
+                    userEmail,
+                    key,
+                    kek,
+                    updatedKeyAttributes,
+                );
             },
             [postVerification, userEmail, sessionValidityCheck],
         );

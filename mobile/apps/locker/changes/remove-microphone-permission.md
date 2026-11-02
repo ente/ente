@@ -1,0 +1,1 @@
+- Removed the unused microphone permission on Android.

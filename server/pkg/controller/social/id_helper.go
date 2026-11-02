@@ -32,6 +32,11 @@ func normalizeOrGenerateID(prefix, id string) (string, error) {
 	if len(id) != len(prefix)+nanoidSuffixLength {
 		return "", ente.ErrBadRequest
 	}
+	for _, ch := range id[len(prefix):] {
+		if !(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || ch == '_' || ch == '-') {
+			return "", ente.ErrBadRequest
+		}
+	}
 	return id, nil
 }
 

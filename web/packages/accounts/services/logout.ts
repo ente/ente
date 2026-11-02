@@ -3,6 +3,7 @@ import { clearKVDB } from "ente-base/kv";
 import { clearLocalStorage } from "ente-base/local-storage";
 import log from "ente-base/log";
 import { clearSessionStorage } from "ente-base/session-storage";
+import { clearAccountsClient } from "./accounts-client";
 import { clearStashedRedirect } from "./redirect";
 import { remoteLogoutIfNeeded } from "./user";
 
@@ -13,6 +14,7 @@ export const accountLogout = async () => {
         log.error(`Ignoring error during logout (${label})`, e);
 
     log.info("logout (account)");
+    clearAccountsClient();
 
     try {
         await remoteLogoutIfNeeded();

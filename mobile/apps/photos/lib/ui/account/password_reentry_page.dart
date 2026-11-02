@@ -1,14 +1,13 @@
 import 'dart:async';
 import "dart:typed_data";
 
+import 'package:ente_base/models/accounts.dart';
 import "package:ente_components/ente_components.dart";
-import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart" show TextInput;
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
-import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/subscription_purchased_event.dart';
 import "package:photos/service_locator.dart";
@@ -22,7 +21,9 @@ import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/email_util.dart';
 
 class PasswordReentryPage extends StatefulWidget {
-  const PasswordReentryPage({super.key});
+  final Uint8List? keyEncryptionKey;
+
+  const PasswordReentryPage({this.keyEncryptionKey, super.key});
 
   @override
   State<PasswordReentryPage> createState() => _PasswordReentryPageState();
@@ -97,13 +98,16 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
     try {
-      final kek = await Configuration.instance.decryptSecretsAndGetKeyEncKey(
+      final loginKey = await UserService.instance.unlockAccount(
         password,
         Configuration.instance.getKeyAttributes()!,
+        keyEncryptionKey: password == _volatilePassword
+            ? widget.keyEncryptionKey
+            : null,
       );
       unawaited(installSourceService.autoAttributePendingSource());
-      _registerSRPForExistingUsers(kek).ignore();
-    } on KeyDerivationError catch (e, s) {
+      _registerSRPForExistingUsers(loginKey).ignore();
+    } on AccountsError_KeyDerivation catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
       if (!mounted) return;
@@ -125,8 +129,8 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         );
       }
       return;
-    } on IncorrectPasswordError catch (e, s) {
-      _logger.warning("Password verification failed", e, s);
+    } on AccountsError_IncorrectPassword {
+      _logger.info("Incorrect password");
       await dialog.hide();
       if (!mounted) return;
       setState(() {
@@ -179,20 +183,18 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     }
   }
 
-  Future<void> _registerSRPForExistingUsers(Uint8List key) async {
+  Future<void> _registerSRPForExistingUsers(Uint8List loginKey) async {
     bool shouldSetupSRP = false;
     try {
-      // ignore: unused_local_variable
-      final attr = await UserService.instance.getSrpAttributes(email!);
-    } on SrpSetupNotCompleteError {
+      await UserService.instance.getSrpAttributes(email!);
+    } on AccountsError_SrpNotConfigured {
       shouldSetupSRP = true;
     } catch (e, s) {
       _logger.severe("error while fetching attr", e, s);
     }
     if (shouldSetupSRP) {
       try {
-        final Uint8List loginKey = await CryptoUtil.deriveLoginKey(key);
-        await UserService.instance.registerOrUpdateSrp(loginKey);
+        await UserService.instance.setupSrp(loginKey);
       } catch (e, s) {
         _logger.severe("error while setting up srp for existing users", e, s);
       }

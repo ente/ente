@@ -53,7 +53,7 @@ test("shared build inputs select their consumers", (t) => {
         "web-lint",
     ]);
     assert.ok(select(t, ["server/pkg/api.go"]).includes("rust-test"));
-    assert.deepEqual(select(t, ["rust/apps/cli-next/src/main.rs"]), [
+    assert.deepEqual(select(t, ["rust/apps/cli/src/main.rs"]), [
         "repo-lint",
         "rust-cli-test",
         "rust-lint",

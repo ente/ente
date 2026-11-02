@@ -16,7 +16,7 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/sharing/album_share_info_widget.dart";
 import "package:photos/ui/sharing/more_count_badge.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import 'package:photos/ui/viewer/file/no_thumbnail_widget.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/gallery/collection_page.dart';

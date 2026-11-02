@@ -1,11 +1,18 @@
-import { Paper, Stack, styled, Typography } from "@mui/material";
+import {
+    Paper,
+    Stack,
+    styled,
+    Typography,
+    type SxProps,
+    type Theme,
+} from "@mui/material";
 import { CenteredFill } from "ente-base/components/containers";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { NavbarBase } from "ente-base/components/Navbar";
 
-export const AccountsPageContents: React.FC<React.PropsWithChildren> = ({
-    children,
-}) => (
+export const AccountsPageContents: React.FC<
+    React.PropsWithChildren<{ paperSx?: SxProps<Theme> }>
+> = ({ children, paperSx }) => (
     <Stack
         sx={[
             { minHeight: "100svh", bgcolor: "secondary.main" },
@@ -31,7 +38,7 @@ export const AccountsPageContents: React.FC<React.PropsWithChildren> = ({
                     }),
             ]}
         >
-            <AccountsPagePaper>{children}</AccountsPagePaper>
+            <AccountsPagePaper sx={paperSx}>{children}</AccountsPagePaper>
         </CenteredFill>
     </Stack>
 );

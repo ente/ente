@@ -1,10 +1,11 @@
 {
-    "rust/apps/cli/src/models/export_metadata.rs": [
-        "clippy::trivially_copy_pass_by_ref"
-    ],
-    "rust/apps/cli/src/sync/download.rs": ["clippy::expect_used"],
-    "rust/apps/cli/tests/sync.rs": ["dead_code"],
     "rust/apps/ensu/src-tauri/src/logging.rs": ["clippy::expect_used"],
+    "rust/bindings/frb/auth/src/lib.rs": [
+        "clippy::allow_attributes",
+        "clippy::allow_attributes_without_reason",
+        "clippy::unwrap_used",
+        "unsafe_code"
+    ],
     "rust/bindings/frb/locker/src/lib.rs": [
         "clippy::allow_attributes",
         "clippy::allow_attributes_without_reason",
@@ -28,11 +29,9 @@
     "rust/crates/core/src/crypto/secretbox.rs": ["clippy::expect_used"],
     "rust/crates/core/src/crypto/types.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/config.rs": ["clippy::expect_used"],
-    "rust/crates/ensu/src/config/knowledge.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/llm/generate.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/model/mod.rs": ["clippy::expect_used"],
     "rust/crates/ensu/src/platform.rs": ["unsafe_code"],
-    "rust/crates/ensu/src/transcription/text.rs": ["clippy::expect_used"],
     "rust/crates/exif/src/isobmff.rs": ["clippy::expect_used"],
     "rust/crates/image/src/color_management.rs": ["clippy::expect_used"],
     "rust/crates/location/src/binary.rs": ["clippy::expect_used"],

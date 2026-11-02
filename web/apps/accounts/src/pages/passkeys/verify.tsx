@@ -275,7 +275,7 @@ export default Page;
 const isHTTP = (url: URL) => url.protocol.startsWith("http");
 
 const redirectToURL = (url: URL) => {
-    log.info(`Redirecting to ${url.href}`);
+    log.info("Redirecting after passkey authentication");
     window.location.href = url.href;
 };
 

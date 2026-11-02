@@ -11,5 +11,5 @@ Requires `go` on PATH to build and run Museum. The Postgres binary ([postgresql_
 Tests that use it are gated behind a Cargo feature so that a plain `cargo test` skips them. They can be run by enabling the `museum` feature, e.g.:
 
 ```sh
-cargo test -p ente-rs --features museum
+cargo test -p ente-cli --features museum
 ```

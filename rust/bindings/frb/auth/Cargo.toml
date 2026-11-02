@@ -1,0 +1,17 @@
+[package]
+name = "ente-auth-frb"
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+ente-frb-lib.workspace = true
+flutter_rust_bridge.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+flutter = []

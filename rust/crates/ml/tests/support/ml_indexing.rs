@@ -558,9 +558,7 @@ pub(crate) fn asset_cache_dir() -> Result<PathBuf> {
 async fn init_onnx_runtime(store: &AssetStore, asset_lock: &AssetLock) -> Result<()> {
     let onnx_runtime_library =
         resolve_onnx_runtime_library(store, &asset_lock.onnx_runtime).await?;
-    let _ = ort::init_from(&onnx_runtime_library)
-        .context("load ONNX Runtime dynamic library")?
-        .commit();
+    let _ = ort::init_from(&onnx_runtime_library).context("load ONNX Runtime dynamic library")?;
     Ok(())
 }
 

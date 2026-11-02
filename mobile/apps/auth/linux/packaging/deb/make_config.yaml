@@ -17,7 +17,6 @@ metainfo: linux/packaging/enteauth.appdata.xml
 dependencies:
   - libcurl4
   - libsqlite3-0
-  - libsodium23
   - libsecret-1-0
   - policykit-1 | polkitd
   - libayatana-appindicator3-1

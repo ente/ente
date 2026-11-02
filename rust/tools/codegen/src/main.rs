@@ -30,6 +30,7 @@ enum NativeTarget {
 #[derive(Clone, Copy)]
 enum FrbTarget {
     All,
+    Auth,
     Photos,
     Locker,
 }
@@ -59,6 +60,7 @@ fn run() -> Result<(), DynError> {
         Some("frb") => {
             let target = match args.next().as_deref() {
                 None => FrbTarget::All,
+                Some("auth") => FrbTarget::Auth,
                 Some("photos") => FrbTarget::Photos,
                 Some("locker") => FrbTarget::Locker,
                 _ => return Err(usage_error()),
@@ -79,7 +81,7 @@ fn run() -> Result<(), DynError> {
 }
 
 fn usage_error() -> DynError {
-    "usage: cargo codegen <native [ensu|cast]|frb [photos|locker]|napi>".into()
+    "usage: cargo codegen <native [ensu|cast]|frb [auth|photos|locker]|napi>".into()
 }
 
 fn generate_native(target: NativeTarget) -> Result<(), DynError> {
@@ -166,7 +168,8 @@ fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
         .ok_or("failed to resolve repo root from rust/tools/codegen")?;
 
     let apps: &[&str] = match target {
-        FrbTarget::All => &["photos", "locker"],
+        FrbTarget::All => &["auth", "photos", "locker"],
+        FrbTarget::Auth => &["auth"],
         FrbTarget::Photos => &["photos"],
         FrbTarget::Locker => &["locker"],
     };
@@ -180,7 +183,10 @@ fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
             fs::remove_dir_all(&generated_dir)?;
         }
         generate_frb_package(&package_dir)?;
-        for name in ["contacts", "legacy"] {
+        for name in ["account_deletion", "accounts", "contacts", "legacy"] {
+            if *app == "auth" && matches!(name, "contacts" | "legacy") {
+                continue;
+            }
             let types_path = package_dir
                 .join("lib/src/rust/third_party/ente_frb_lib")
                 .join(format!("{name}/types.dart"));
@@ -218,6 +224,16 @@ fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
             )?;
             shared_types.insert(name, types);
         }
+    }
+    if apps.contains(&"photos") {
+        let notifications = UniffiCrate {
+            crate_name: "ente_notification_uniffi",
+            crate_dir: rust_root.join("bindings/uniffi/notifications"),
+        };
+        generate_swift(
+            &notifications,
+            "mobile/apps/photos/ios/NotificationServiceExtension/Generated",
+        )?;
     }
     format_frb_bindings(target)
 }
@@ -360,9 +376,14 @@ fn format_frb_bindings(target: FrbTarget) -> Result<(), DynError> {
         FrbTarget::All => {
             command
                 .arg("-p")
+                .arg("ente-auth-frb")
+                .arg("-p")
                 .arg("ente-photos-frb")
                 .arg("-p")
                 .arg("ente-locker-frb");
+        }
+        FrbTarget::Auth => {
+            command.arg("-p").arg("ente-auth-frb");
         }
         FrbTarget::Photos => {
             command.arg("-p").arg("ente-photos-frb");

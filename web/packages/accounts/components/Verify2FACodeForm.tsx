@@ -1,6 +1,6 @@
 import { Stack, styled, Typography } from "@mui/material";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
-import { isHTTP401Error } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
@@ -191,7 +191,7 @@ export const Verify2FACodeForm: React.FC<Verify2FACodeFormProps> = ({
                 resetForm();
                 setFieldError(
                     "otp",
-                    isHTTP401Error(e)
+                    isNamedError(e, "incorrect_totp")
                         ? t("incorrect_code")
                         : t("generic_error"),
                 );

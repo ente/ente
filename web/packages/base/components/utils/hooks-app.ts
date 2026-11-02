@@ -62,9 +62,11 @@ export const useNotification = () => {
     >(undefined);
 
     const [open, setOpen] = useState(false);
+    const [notificationID, setNotificationID] = useState(0);
 
     const showNotification = useCallback(
         (attributes: NotificationAttributes) => {
+            setNotificationID((id) => id + 1);
             setAttributes(attributes);
             setOpen(true);
         },
@@ -75,6 +77,11 @@ export const useNotification = () => {
 
     return {
         showNotification,
-        notificationProps: { open, onClose: handleClose, attributes },
+        notificationProps: {
+            notificationID,
+            open,
+            onClose: handleClose,
+            attributes,
+        },
     };
 };

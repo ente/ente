@@ -939,7 +939,6 @@
   "mlConsent": "Activați învățarea automată",
   "mlConsentConfirmation": "Înțeleg și doresc să activez învățarea automată",
   "mlConsentDescription": "Dacă activați învățarea automată, Ente va extrage informații precum geometria fețelor din fișiere, inclusiv din cele distribuite cu dvs.\n\nAcest lucru se va întâmpla pe dispozitivul dvs., iar orice informații biometrice generate vor fi criptate integral.",
-  "mlConsentPrivacy": "Vă rugăm să faceți clic aici pentru mai multe detalii despre această funcție în politica de confidențialitate",
   "moderateStrength": "Moderată",
   "@moderateStrength": {
     "description": "Moderate password strength label"

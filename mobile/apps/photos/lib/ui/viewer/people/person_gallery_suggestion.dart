@@ -225,11 +225,13 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
   }
 
   Future<void> _navigateToCluster() async {
-    if (allSuggestions.isEmpty ||
+    if (isProcessing ||
+        allSuggestions.isEmpty ||
         currentSuggestionIndex >= allSuggestions.length) {
       return;
     }
 
+    var filesChanged = false;
     final currentSuggestion = allSuggestions[currentSuggestionIndex];
     final List<EnteFile> sortedFiles = List<EnteFile>.from(
       currentSuggestion.filesInCluster,
@@ -242,15 +244,20 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
           personID: relevantPerson,
           clusterID: currentSuggestion.clusterIDToMerge,
           showNamingBanner: false,
+          onFilesChanged: () => filesChanged = true,
         ),
       ),
     );
 
-    if (!mounted || result != ClusterPageResult.ignoredPerson) {
+    if (!mounted) {
       return;
     }
 
-    await _consumeCurrentSuggestionAfterExternalAction();
+    if (filesChanged) {
+      await _reloadSuggestions();
+    } else if (result == ClusterPageResult.ignoredPerson) {
+      await _consumeCurrentSuggestionAfterExternalAction();
+    }
   }
 
   Future<void> _consumeCurrentSuggestionAfterExternalAction() async {

@@ -175,7 +175,6 @@ func (c *ObjectCleanupController) AddTempObject(object ente.TempObject) error {
 func (c *ObjectCleanupController) DeleteAllObjectsWithPrefix(prefix string, dc string) error {
 	s3Client := c.S3Config.GetS3Client(dc)
 	bucket := c.S3Config.GetBucket(dc)
-	var keys []string
 	var continuationToken *string
 	for {
 		output, err := s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
@@ -191,7 +190,14 @@ func (c *ObjectCleanupController) DeleteAllObjectsWithPrefix(prefix string, dc s
 			return stacktrace.Propagate(err, "")
 		}
 		for _, obj := range output.Contents {
-			keys = append(keys, *obj.Key)
+			err := c.DeleteObjectFromDataCenter(*obj.Key, dc)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"object_key": *obj.Key,
+					"dc":         dc,
+				}).WithError(err).Error("Failed to delete object")
+				return stacktrace.Propagate(err, "")
+			}
 		}
 		if !aws.BoolValue(output.IsTruncated) {
 			break
@@ -202,16 +208,6 @@ func (c *ObjectCleanupController) DeleteAllObjectsWithPrefix(prefix string, dc s
 			return errors.New("truncated object listing did not provide a new continuation token")
 		}
 		continuationToken = nextContinuationToken
-	}
-	for _, key := range keys {
-		err := c.DeleteObjectFromDataCenter(key, dc)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"object_key": key,
-				"dc":         dc,
-			}).WithError(err).Error("Failed to delete object")
-			return stacktrace.Propagate(err, "")
-		}
 	}
 	return nil
 }

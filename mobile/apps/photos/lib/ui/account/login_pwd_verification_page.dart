@@ -1,13 +1,11 @@
-import "package:dio/dio.dart";
+import 'package:ente_base/models/accounts.dart';
 import "package:ente_components/ente_components.dart";
-import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
 import 'package:photos/core/configuration.dart';
-import "package:photos/gateways/users/models/srp.dart";
 import "package:photos/services/account/user_service.dart";
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import "package:photos/ui/components/buttons/button_widget.dart"
@@ -150,10 +148,6 @@ class _LoginPasswordVerificationPageState
     );
   }
 
-  void _returnToEmailEntry() {
-    if (mounted) Navigator.of(context).pop();
-  }
-
   Future<void> verifyPassword(BuildContext context, String password) async {
     setState(() {
       _isPasswordIncorrect = false;
@@ -176,19 +170,33 @@ class _LoginPasswordVerificationPageState
         dialog,
       );
       if (mounted) TextInput.finishAutofillContext();
-    } on DioException catch (e, s) {
+    } on AccountsError catch (e, s) {
       await dialog.hide();
-      if (e.response != null && e.response!.statusCode == 401) {
-        _logger.severe('server reject, failed verify SRP login', e, s);
+      if (e == const AccountsError.keyDerivation()) {
+        if (!context.mounted) return;
+        final dialogChoice = await showChoiceDialog(
+          context,
+          title: context.strings.recreatePasswordTitle,
+          body: context.strings.recreatePasswordBody,
+          firstButtonLabel: context.strings.useRecoveryKey,
+        );
+        if (dialogChoice?.action == ButtonAction.first && context.mounted) {
+          await UserService.instance.sendOtt(
+            context,
+            email!,
+            isResetPasswordScreen: true,
+          );
+        }
+        return;
+      } else if (e == const AccountsError.incorrectPassword()) {
+        _logger.info("Incorrect password");
         if (!mounted || !context.mounted) return;
         setState(() {
           _isPasswordIncorrect = true;
         });
       } else {
-        _logger.severe('API failure during SRP login ${e.type}', e, s);
-        if (e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.receiveTimeout ||
-            e.type == DioExceptionType.sendTimeout) {
+        _logger.severe('API failure during SRP login', e, s);
+        if (e is AccountsError_Network) {
           if (!context.mounted) return;
           await _showContactSupportDialog(
             context,
@@ -207,42 +215,14 @@ class _LoginPasswordVerificationPageState
     } catch (e, s) {
       _logger.info('error during loginViaPassword', e);
       await dialog.hide();
-      if (e is LoginKeyDerivationError) {
-        _logger.severe('loginKey derivation error', e, s);
-        if (!context.mounted) return;
-        await UserService.instance.sendOtt(
-          context,
-          email!,
-          isCreateAccountScreen: true,
-          onChangeEmail: _returnToEmailEntry,
-        );
-        return;
-      } else if (e is KeyDerivationError) {
-        // This device is not powerful enough to derive the key.
-        if (!context.mounted) return;
-        final dialogChoice = await showChoiceDialog(
-          context,
-          title: context.strings.recreatePasswordTitle,
-          body: context.strings.recreatePasswordBody,
-          firstButtonLabel: context.strings.useRecoveryKey,
-        );
-        if (dialogChoice?.action == ButtonAction.first && context.mounted) {
-          await UserService.instance.sendOtt(
-            context,
-            email!,
-            isResetPasswordScreen: true,
-          );
-        }
-        return;
-      } else {
-        _logger.severe('unexpected error while verifying password', e, s);
-        if (!context.mounted) return;
-        await _showContactSupportDialog(
-          context,
-          context.strings.oops,
-          context.strings.verificationFailedPleaseTryAgain,
-        );
-      }
+
+      _logger.severe('unexpected error while verifying password', e, s);
+      if (!context.mounted) return;
+      await _showContactSupportDialog(
+        context,
+        context.strings.oops,
+        context.strings.verificationFailedPleaseTryAgain,
+      );
     }
   }
 

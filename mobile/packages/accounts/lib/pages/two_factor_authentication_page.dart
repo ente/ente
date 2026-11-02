@@ -10,8 +10,13 @@ import 'package:pinput/pinput.dart';
 
 class TwoFactorAuthenticationPage extends StatefulWidget {
   final String sessionID;
+  final Uint8List? keyEncryptionKey;
 
-  const TwoFactorAuthenticationPage(this.sessionID, {super.key});
+  const TwoFactorAuthenticationPage(
+    this.sessionID, {
+    this.keyEncryptionKey,
+    super.key,
+  });
 
   @override
   State<TwoFactorAuthenticationPage> createState() =>
@@ -199,6 +204,11 @@ class _TwoFactorAuthenticationPageState
   }
 
   Future<void> _verifyTwoFactorCode(String code) async {
-    await UserService.instance.verifyTwoFactor(context, widget.sessionID, code);
+    await UserService.instance.verifyTwoFactor(
+      context,
+      widget.sessionID,
+      code,
+      keyEncryptionKey: widget.keyEncryptionKey,
+    );
   }
 }

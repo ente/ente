@@ -8,7 +8,7 @@ Investigate the release changes and how we use each dependency. Classify which u
 
 Fix mechanical problems and make necessary coordinated changes across consumers and platforms. Investigate updates that need adaptation rather than immediately excluding them. Respect deliberate pins and existing exceptions. New or broader Dependabot exceptions require human approval; recommend them in the report.
 
-Validate the changes with relevant builds and tests. Where existing coverage is insufficient, establish what would give us confidence; for migrations, compare behavior before and after the update.
+Validate the changes with relevant builds and tests. Where existing coverage is insufficient, establish what would give us confidence; for migrations, compare behavior before and after the update. Report CI failures unrelated to these dependency updates as blockers; do not fix them.
 
 Keep the updates we can confidently accept. Leave out those requiring a human decision or further work, without blocking independent updates.
 

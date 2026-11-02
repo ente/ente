@@ -277,6 +277,10 @@ func (h *AdminHandler) UpdateReferral(c *gin.Context) {
 // to reset passkey 2FA. Their identity is verified out of band. Removing
 // passkeys does not disable TOTP 2FA.
 func (h *AdminHandler) RemovePasskeys(c *gin.Context) {
+	if err := h.isFreshAdminToken(c); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
 	var request ente.AdminOpsForUserRequest
 	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
@@ -303,6 +307,10 @@ func (h *AdminHandler) RemovePasskeys(c *gin.Context) {
 }
 
 func (h *AdminHandler) UpdateEmailMFA(c *gin.Context) {
+	if err := h.isFreshAdminToken(c); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
 	var request ente.AdminOpsForUserRequest
 	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
@@ -373,7 +381,6 @@ func (h *AdminHandler) AddOtt(c *gin.Context) {
 	h.notifyAdminAction(adminID, "adding custom ott")
 	logger := logrus.WithFields(logrus.Fields{
 		"user_id":  request.Email,
-		"code":     request.Code,
 		"admin_id": adminID,
 		"req_id":   requestid.Get(c),
 		"req_ctx":  "custom_ott",
@@ -509,6 +516,26 @@ func (h *AdminHandler) ReQueueItem(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{})
+}
+
+func (h *AdminHandler) RepairDeletedCollectionShare(c *gin.Context) {
+	var request ente.RepairDeletedCollectionShareRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	updated, err := h.CollectionRepo.RepairDeletedCollectionShare(c.Request.Context(), request.CollectionID, request.ToUserID)
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	logrus.WithFields(logrus.Fields{
+		"admin_id":      auth.GetUserID(c.Request.Header),
+		"collection_id": request.CollectionID,
+		"to_user_id":    request.ToUserID,
+		"updated":       updated,
+	}).Info("repaired deleted collection share")
+	c.JSON(http.StatusOK, gin.H{"updated": updated})
 }
 
 func (h *AdminHandler) InitializeFileCounts(c *gin.Context) {

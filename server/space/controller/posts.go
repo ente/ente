@@ -67,9 +67,9 @@ func (c *PostsController) Create(ctx context.Context, space *repo.SpaceRecord, r
 			return nil, ente.NewBadRequestWithMessage("invalid object position")
 		}
 		positions[object.Position] = true
-		parts := []models.PostObjectPayload{object}
+		parts := []models.PostAssetPayload{object.PostAssetPayload}
 		if object.Video != nil {
-			if object.Video.Video != nil {
+			if object.Video.NestedVideo != nil {
 				return nil, ente.NewBadRequestWithMessage("invalid nested video")
 			}
 			parts = append(parts, *object.Video)
@@ -276,4 +276,23 @@ func (c *PostsController) SetLike(ctx context.Context, actorSpace *repo.SpaceRec
 
 func (c *PostsController) Delete(ctx context.Context, space *repo.SpaceRecord, postID int64) error {
 	return c.PostsRepo.DeletePost(ctx, postID, space.SpaceID)
+}
+
+func (c *PostsController) ListLikes(ctx context.Context, space *repo.SpaceRecord, postID int64) ([]models.SpaceActorResponse, error) {
+	post, err := c.PostsRepo.GetPost(ctx, postID, space.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	if post.SpaceID != space.SpaceID {
+		return nil, ente.ErrPermissionDenied
+	}
+	actors, err := c.PostsRepo.ListLikes(ctx, postID, space.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]models.SpaceActorResponse, 0, len(actors))
+	for _, actor := range actors {
+		items = append(items, toActorResponse(actor, true))
+	}
+	return items, nil
 }

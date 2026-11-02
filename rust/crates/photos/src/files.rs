@@ -1,5 +1,7 @@
+#[cfg(not(target_arch = "wasm32"))]
+use ente_core::Session;
 use ente_core::{
-    Session, b64,
+    b64,
     crypto::{self, Header, Key, blob},
     http,
 };
@@ -29,6 +31,7 @@ pub struct File {
     pub duration_seconds: Option<u64>,
     pub width: Option<u32>,
     pub height: Option<u32>,
+    pub size: Option<u64>,
     pub visibility: Option<Visibility>,
     pub key: Key,
     pub header: Header,
@@ -63,6 +66,10 @@ pub struct Location {
 pub enum Error {
     #[error(transparent)]
     Http(#[from] http::Error),
+    #[error(
+        "HTTP 404 at /files/download/v3/{0}\nFile downloads require the v3 API. Update your Ente server or check its proxy configuration."
+    )]
+    DownloadApiUnavailable(i64),
     #[error(transparent)]
     Crypto(#[from] crypto::Error),
     #[error(transparent)]
@@ -92,15 +99,15 @@ pub async fn download<W: std::io::Write>(
             let output = output();
             async move {
                 let output = output?;
-                let signed: DownloadUrl = session
+                let response = session
                     .api
                     .get(&format!("/files/download/v3/{id}"))
                     .send()
-                    .await?
-                    .error_for_code()
-                    .await?
-                    .json()
                     .await?;
+                if response.status() == 404 {
+                    return Err(Error::DownloadApiUnavailable(id));
+                }
+                let signed: DownloadUrl = response.error_for_code().await?.json().await?;
                 let response = session
                     .api
                     .http()
@@ -207,6 +214,11 @@ pub fn interpret(
         duration_seconds: metadata.duration,
         width: public.w,
         height: public.h,
+        size: remote
+            .extra
+            .get("info")
+            .and_then(|info| info.get("fileSize"))
+            .and_then(serde_json::Value::as_u64),
         visibility: if remote.owner_id == user_id {
             Some(Visibility::from_value(private.visibility)?)
         } else {

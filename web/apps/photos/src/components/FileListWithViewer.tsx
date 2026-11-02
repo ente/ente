@@ -1,13 +1,12 @@
 import type { RemotePullOpts } from "@/components/gallery";
+import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
 import { downloadAndSaveFiles } from "@/services/save";
 import { uploadManager } from "@/services/upload-manager";
 import { fileTimelineDateString } from "@/utils/file";
-import { IconButton, Tooltip, styled } from "@mui/material";
-import { useColorScheme, useTheme } from "@mui/material/styles";
+import { styled } from "@mui/material";
 import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
 import {
     FileViewer,
-    type FileViewerInitialSidebar,
     type FileViewerProps,
 } from "ente-gallery/components/viewer/FileViewer";
 import type { Collection } from "ente-media/collection";
@@ -28,17 +27,12 @@ import {
 
 export type FileListWithViewerProps = {
     files: EnteFile[];
-    onShowMap?: () => void;
     enableDownload?: boolean;
     enableImageEditing?: boolean;
     onMarkTempDeleted?: (files: EnteFile[]) => void;
     onSetOpenFileViewer?: (open: boolean) => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
     activeCollectionSummary?: CollectionSummary;
-    pendingFileIndex?: number;
-    pendingFileSidebar?: FileViewerInitialSidebar;
-    pendingHighlightCommentID?: string;
-    onPendingNavigationConsumed?: () => void;
     onAddSaveGroup: AddSaveGroup;
 
     onAddFileToCollection?: (
@@ -62,6 +56,7 @@ export type FileListWithViewerProps = {
     | "favoriteFileIDs"
     | "emailByUserID"
     | "listBorderRadius"
+    | "gridLayout"
     | "onContextMenuAction"
     | "onContextMenuOpenChange"
     | "showAddPersonAction"
@@ -85,8 +80,6 @@ export type FileListWithViewerProps = {
         | "onToggleFavorite"
         | "onFileVisibilityUpdate"
         | "onSendLink"
-        | "onSelectCollection"
-        | "onSelectPerson"
     >;
 
 export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
@@ -108,6 +101,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     favoriteFileIDs,
     emailByUserID,
     listBorderRadius,
+    gridLayout,
     onContextMenuAction,
     onContextMenuOpenChange,
     showAddPersonAction,
@@ -131,34 +125,17 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     onFileVisibilityUpdate,
     onSendLink,
     onMarkTempDeleted,
-    onSelectCollection,
-    onSelectPerson,
     onAddFileToCollection,
     onScroll,
     onVisibleDateChange,
-    pendingFileIndex,
-    pendingFileSidebar,
-    pendingHighlightCommentID,
-    onPendingNavigationConsumed,
-    onShowMap,
 }) => {
+    const {
+        selectCollectionFromViewer: onSelectCollection,
+        selectPerson: onSelectPerson,
+    } = usePhotosNavigation();
     const [openFileViewer, setOpenFileViewer] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [initialSidebar, setInitialSidebar] = useState<
-        FileViewerInitialSidebar | undefined
-    >(undefined);
-    const [highlightCommentID, setHighlightCommentID] = useState<
-        string | undefined
-    >(undefined);
     const { showNotification, setIsFileViewerOpen } = usePhotosAppContext();
-    const { mode: colorSchemeMode, systemMode } = useColorScheme();
-    const theme = useTheme();
-    const resolvedMode =
-        colorSchemeMode === "system"
-            ? systemMode
-            : (colorSchemeMode ?? theme.palette.mode);
-    const isDarkMode = resolvedMode === "dark";
-
     const updateOpenFileViewer = useCallback(
         (open: boolean) => {
             setOpenFileViewer(open);
@@ -170,25 +147,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
 
     useEffect(() => () => setIsFileViewerOpen?.(false), [setIsFileViewerOpen]);
 
-    useEffect(() => {
-        if (pendingFileIndex !== undefined) {
-            setCurrentIndex(pendingFileIndex);
-            setInitialSidebar(pendingFileSidebar);
-            setHighlightCommentID(pendingHighlightCommentID);
-            updateOpenFileViewer(true);
-            onPendingNavigationConsumed?.();
-        }
-    }, [
-        pendingFileIndex,
-        pendingFileSidebar,
-        pendingHighlightCommentID,
-        updateOpenFileViewer,
-        onPendingNavigationConsumed,
-    ]);
-
     const handleCloseFileViewerInternal = useCallback(() => {
-        setInitialSidebar(undefined);
-        setHighlightCommentID(undefined);
         updateOpenFileViewer(false);
     }, [updateOpenFileViewer]);
 
@@ -237,7 +196,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
             if (uploadManager.isUploadInProgress()) {
                 showNotification({
                     color: "critical",
-                    title: t("wait_for_active_upload_to_finish"),
+                    title: t("uploads_in_progress"),
+                    caption: t("wait_for_active_upload_to_finish"),
                 });
                 return false;
             }
@@ -248,39 +208,6 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
         };
     }, [enableImageEditing, showNotification]);
 
-    const shouldShowMapButton =
-        !!onShowMap &&
-        modePlus !== "search" &&
-        activeCollectionSummary?.type === "all" &&
-        (activeCollectionSummary.fileCount > 0 || files.length > 0);
-
-    const headerWithMap = useMemo(() => {
-        if (!shouldShowMapButton || !header) return header;
-        return {
-            ...header,
-            component: (
-                <HeaderWithMap>
-                    <HeaderMain>{header.component}</HeaderMain>
-                    <Tooltip title={t("map")}>
-                        <IconButton
-                            className="map-button"
-                            size="small"
-                            aria-label={t("map")}
-                            onClick={onShowMap}
-                        >
-                            <MapIcon
-                                src="/images/gallery-globe/globe.svg"
-                                alt=""
-                                aria-hidden
-                                $isDarkMode={isDarkMode}
-                            />
-                        </IconButton>
-                    </Tooltip>
-                </HeaderWithMap>
-            ),
-        };
-    }, [header, isDarkMode, onShowMap, shouldShowMapButton]);
-
     return (
         <Container>
             <AutoSizer>
@@ -290,7 +217,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                         {...{
                             mode,
                             modePlus,
-                            header: headerWithMap,
+                            header,
                             footer,
                             user,
                             disableGrouping,
@@ -302,6 +229,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                             favoriteFileIDs,
                             emailByUserID,
                             listBorderRadius,
+                            gridLayout,
                             onScroll,
                             onVisibleDateChange,
                             collectionSummary: activeCollectionSummary,
@@ -319,8 +247,6 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                 open={openFileViewer}
                 onClose={handleCloseFileViewerInternal}
                 initialIndex={currentIndex}
-                initialSidebar={initialSidebar}
-                highlightCommentID={highlightCommentID}
                 disableDownload={!enableDownload}
                 isInTrashSection={
                     activeCollectionID == PseudoCollectionID.trash
@@ -362,30 +288,3 @@ const Container = styled("div")`
     flex: 1;
     width: 100%;
 `;
-
-const HeaderWithMap = styled("div")`
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    width: 100%;
-    & > .map-button {
-        flex-shrink: 0;
-        margin-left: auto;
-    }
-`;
-
-const HeaderMain = styled("div")`
-    flex: 1;
-    min-width: 0;
-`;
-
-const MapIcon = styled("img")<{ $isDarkMode: boolean }>(
-    ({ theme, $isDarkMode }) => ({
-        display: "block",
-        width: 24,
-        height: 24,
-        filter:
-            $isDarkMode || theme.palette.mode === "dark" ? "invert(1)" : "none",
-    }),
-);

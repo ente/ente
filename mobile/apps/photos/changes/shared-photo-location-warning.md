@@ -1,1 +1,0 @@
-- Added a reminder that photos shared from another app may not include their locations, with an option to hide the reminder.

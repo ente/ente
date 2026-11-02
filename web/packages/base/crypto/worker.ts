@@ -29,7 +29,6 @@ export class CryptoWorker {
     chunkHashUpdate = libsodium.chunkHashUpdate;
     chunkHashFinal = libsodium.chunkHashFinal;
     boxSeal = libsodium.boxSeal;
-    boxSealOpenBytes = libsodium.boxSealOpenBytes;
     deriveKey = libsodium.deriveKey;
     deriveInteractiveKey = libsodium.deriveInteractiveKey;
 }

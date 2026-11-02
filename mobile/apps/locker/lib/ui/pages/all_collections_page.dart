@@ -88,6 +88,12 @@ class _AllCollectionsPageState extends State<AllCollectionsPage> {
       _uncategorizedCollection = uncategorized;
 
       if (mounted) {
+        final collectionIds = collections.map((c) => c.id).toSet();
+        for (final selected in _selectedCollections.collections.toList()) {
+          if (!collectionIds.contains(selected.id)) {
+            _selectedCollections.toggleSelection(selected);
+          }
+        }
         if (showLoading) {
           setState(() {
             _isLoading = false;

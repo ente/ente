@@ -439,6 +439,22 @@ func TestAutomaticShareLifecycle(t *testing.T) {
 	requireCollectionShareStatus(t, status, ente.CollectionShared, err)
 }
 
+func TestAutomaticShareRejectsDeletedCollection(t *testing.T) {
+	db, collectionRepo, ownerID, shareeID := setupCollectionShareTest(t)
+	collectionID := createShareTestCollection(t, collectionRepo, ownerID)
+	if _, err := db.Exec(`UPDATE collections SET is_deleted = TRUE WHERE collection_id = $1`, collectionID); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := collectionRepo.ShareAutomatically(context.Background(), collectionID, ownerID, shareeID, "share-key", ente.VIEWER, 2)
+	if !errors.Is(err, ente.ErrCollectionDeleted) {
+		t.Fatalf("ShareAutomatically() error = %v, want %v", err, ente.ErrCollectionDeleted)
+	}
+	if count := collectionShareCount(t, db, collectionID); count != 0 {
+		t.Fatalf("collection shares = %d, want 0", count)
+	}
+}
+
 func TestUnShareContextBumpsCollectionForDeletedShareRow(t *testing.T) {
 	db, collectionRepo, ownerID, shareeID := setupCollectionShareTest(t)
 	ctx := context.Background()

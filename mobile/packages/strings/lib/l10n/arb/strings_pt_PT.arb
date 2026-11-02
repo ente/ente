@@ -1142,7 +1142,6 @@
   "mlConsent": "Ativar aprendizagem automática",
   "mlConsentConfirmation": "Eu entendo, e desejo ativar a aprendizagem automática",
   "mlConsentDescription": "Se ativar a aprendizagem automática, o Ente extrairá informações como a geometria do rosto de ficheiros, incluindo os partilhados consigo.\n\n\nIsto acontecerá no seu dispositivo e todas as informações biométricas geradas serão encriptadas de ponta a ponta.",
-  "mlConsentPrivacy": "Por favor, clique aqui para mais detalhes sobre este recurso na nossa política de privacidade",
   "moderateStrength": "Moderada",
   "@moderateStrength": {
     "description": "Moderate password strength label"

@@ -310,7 +310,7 @@ class DownloadManagerCore {
             }
 
             const body = res.body;
-            if (!body) return null;
+            if (!body) throw new Error("Missing final encrypted chunk");
             const reader = body.getReader();
             const { pullState, decryptionChunkSize } =
                 await initChunkDecryption(file.file.decryptionHeader, file.key);
@@ -354,10 +354,11 @@ class DownloadManagerCore {
                             }
 
                             // A network read can contain several encrypted chunks.
-                            while (data.length >= decryptionChunkSize) {
+                            while (data.length > decryptionChunkSize) {
                                 const decryptedData = await decryptStreamChunk(
                                     data.slice(0, decryptionChunkSize),
                                     pullState,
+                                    false,
                                 );
                                 if (isCancelled()) return;
                                 controller.enqueue(decryptedData);
@@ -367,15 +368,17 @@ class DownloadManagerCore {
 
                             if (done) {
                                 // Only EOF proves that a short remainder is the final chunk.
-                                if (data.length) {
-                                    const decryptedData =
-                                        await decryptStreamChunk(
-                                            data,
-                                            pullState,
-                                        );
-                                    if (isCancelled()) return;
-                                    controller.enqueue(decryptedData);
-                                }
+                                if (!data.length)
+                                    throw new Error(
+                                        "Missing final encrypted chunk",
+                                    );
+                                const decryptedData = await decryptStreamChunk(
+                                    data,
+                                    pullState,
+                                    true,
+                                );
+                                if (isCancelled()) return;
+                                controller.enqueue(decryptedData);
                                 didEnqueue = true;
                                 controller.close();
                                 this.setFileDownloadProgress(

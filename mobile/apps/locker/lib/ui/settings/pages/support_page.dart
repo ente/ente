@@ -10,6 +10,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/core/constants.dart";
+import "package:locker/services/feature_flag_service.dart";
 import "package:url_launcher/url_launcher_string.dart";
 
 class SupportPage extends StatelessWidget {
@@ -53,10 +54,10 @@ class SupportPage extends StatelessWidget {
           showOnlyLoadingState: true,
           onTap: () => _onReportIssueTapped(context),
         ),
-        if (kDebugMode) ...[
+        if (FeatureFlagService.instance.internalUser || kDebugMode) ...[
           const SizedBox(height: 8),
           SettingsItem(
-            title: context.strings.viewLogs,
+            title: "(i) ${l10n.viewLogs}",
             icon: HugeIcons.strokeRoundedNote01,
             showOnlyLoadingState: true,
             onTap: () => _viewLogs(context),

@@ -52,10 +52,15 @@ class EntePdfDocument {
 class EntePdfRenderer {
   static const _channel = MethodChannel("io.ente/pdf_renderer");
 
-  static Future<EntePdfDocument> open(String path, {String? password}) async {
+  static Future<EntePdfDocument> open(
+    String path, {
+    String? password,
+    required int maxPages,
+  }) async {
     final reply = await _invoke<Map<Object?, Object?>>("open", {
       "path": path,
       "password": password,
+      "maxPages": maxPages,
     });
     final widths = (reply!["widths"]! as List).cast<double>();
     final heights = (reply["heights"]! as List).cast<double>();

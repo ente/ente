@@ -1,21 +1,21 @@
+import "package:ente_base/models/accounts.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:photos/models/account/two_factor.dart";
 import 'package:photos/services/account/user_service.dart';
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 
 class TwoFactorRecoveryPage extends StatefulWidget {
+  final AccountsClient client;
   final String sessionID;
-  final String encryptedSecret;
-  final String secretDecryptionNonce;
+  final TwoFactorRecoveryResponse recoveryResponse;
   final TwoFactorType type;
 
   const TwoFactorRecoveryPage(
+    this.client,
     this.type,
     this.sessionID,
-    this.encryptedSecret,
-    this.secretDecryptionNonce, {
+    this.recoveryResponse, {
     super.key,
   });
 
@@ -70,11 +70,11 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
                   FocusScope.of(context).unfocus();
                   await UserService.instance.removeTwoFactor(
                     context,
+                    widget.client,
                     widget.type,
                     widget.sessionID,
                     _recoveryKeyController.text,
-                    widget.encryptedSecret,
-                    widget.secretDecryptionNonce,
+                    widget.recoveryResponse,
                   );
                 }
               : null,

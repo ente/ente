@@ -275,7 +275,6 @@
   "mlConsent": "Aktibatu ikasketa automatikoa",
   "mlConsentConfirmation": "Ulertzen dut, eta ikasketa automatikoa aktibatu nahi dut",
   "mlConsentDescription": "Ikasketa automatikoa aktibatuz gero, Ente-k fitxategietatik informazioa aterako du (ad. argazkien geometria), zurekin partekatutako argazkietatik ere.\n\nHau zure gailuan gertatuko da, eta sortutako informazio biometrikoa puntutik puntura zifratuta egongo da.",
-  "mlConsentPrivacy": "Mesedez, klikatu hemen gure pribatutasun politikan ezaugarri honi buruz detaile gehiago izateko",
   "moderateStrength": "Ertaina",
   "@moderateStrength": {
     "description": "Moderate password strength label"

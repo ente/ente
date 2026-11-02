@@ -9,7 +9,7 @@ import {
 import { savedCollectionFiles } from "ente-new/photos/services/photos-fdb";
 
 // Keep the 10 MB threshold aligned with mobile.
-const MIN_LARGE_FILE_SIZE = 10 * 1024 * 1024;
+export const MIN_LARGE_FILE_SIZE = 10 * 1024 * 1024;
 
 export type LargeFileFilter = "all" | "photos" | "videos";
 

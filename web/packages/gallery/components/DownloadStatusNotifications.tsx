@@ -1,20 +1,15 @@
 import {
+    AlertCircleIcon,
     Download01Icon,
     Loading03Icon,
+    ReloadIcon,
     Tick02Icon,
 } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
-import ReplayIcon from "@mui/icons-material/Replay";
+import { Box, Button, Dialog, styled, Typography } from "@mui/material";
 import {
-    Box,
-    Button,
-    Dialog,
-    keyframes,
-    styled,
-    Typography,
-} from "@mui/material";
-import { Notification } from "ente-base/components/Notification";
+    Notification,
+    type NotificationAttributes,
+} from "ente-base/components/Notification";
 import { useBaseContext } from "ente-base/context";
 import {
     isSaveComplete,
@@ -25,7 +20,6 @@ import { t } from "i18next";
 import { useState } from "react";
 
 const MAX_ALBUM_NAME_LENGTH = 25;
-const SINGLE_FILE_SUCCESS_AUTO_CLOSE_DELAY_MS = 3000;
 
 const truncateAlbumName = (name: string): string => {
     if (name.length <= MAX_ALBUM_NAME_LENGTH) return name;
@@ -113,9 +107,6 @@ export const DownloadStatusNotifications: React.FC<
                 const hasErrors = isSaveCompleteWithErrors(group);
                 const isComplete = isSaveComplete(group);
                 const canRetry = hasErrors && !!group.retry;
-                const shouldAutoClose =
-                    group.total === 1 && isComplete && !hasErrors;
-
                 const isZipDownload = !group.downloadDirPath && group.total > 1;
                 const shouldShowZipPart =
                     isZipDownload &&
@@ -180,26 +171,18 @@ export const DownloadStatusNotifications: React.FC<
                     </Box>
                 );
 
-                let startIcon: React.ReactNode;
+                let startIcon: NotificationAttributes["startIcon"];
                 if (hasErrors) {
-                    startIcon = <ErrorOutlinedIcon />;
+                    startIcon = AlertCircleIcon;
                 } else if (isComplete) {
-                    startIcon = (
-                        <GlowingIconWrapper>
-                            <HugeiconsIcon icon={Tick02Icon} size={28} />
-                        </GlowingIconWrapper>
-                    );
+                    startIcon = Tick02Icon;
                 } else if (
                     group.total === 1 ||
                     (isZipDownload && !group.isDownloadingZip)
                 ) {
-                    startIcon = <SpinningIcon />;
+                    startIcon = Loading03Icon;
                 } else {
-                    startIcon = (
-                        <DroppingIconWrapper>
-                            <HugeiconsIcon icon={Download01Icon} size={28} />
-                        </DroppingIconWrapper>
-                    );
+                    startIcon = Download01Icon;
                 }
 
                 const filesCountTitle = t("files_count", {
@@ -216,47 +199,25 @@ export const DownloadStatusNotifications: React.FC<
                         key={group.id}
                         horizontal="left"
                         sx={(theme) => ({
-                            "&&": { bottom: `${index * 80 + 20}px` },
-                            width: "min(400px, 100vw)",
-                            borderRadius: "20px",
-                            "& .MuiButton-root": {
-                                borderRadius: "20px",
-                                padding: "16px 16px 16px 20px",
-                            },
-                            "& .MuiIconButton-root": {
-                                width: "40px",
-                                height: "40px",
-                                "& svg": { fontSize: "22px" },
-                            },
+                            "&&": { bottom: `${index * 96 + 24}px` },
+                            width: "min(400px, calc(100vw - 48px))",
+                            borderRadius: "24px",
                             [theme.breakpoints.down("sm")]: {
                                 "&&": {
-                                    bottom: `${index * 70 + 16}px`,
+                                    bottom: `${index * 96 + 16}px`,
                                     ...(fullWidthOnMobile
                                         ? { left: "8px" }
                                         : {}),
                                 },
                                 width: fullWidthOnMobile
                                     ? "calc(100vw - 16px)"
-                                    : "min(340px, calc(100vw - 16px))",
-                                borderRadius: "16px",
-                                "& .MuiButton-root": {
-                                    borderRadius: "16px",
-                                    padding: "12px 12px 12px 16px",
-                                },
-                                "& .MuiIconButton-root": {
-                                    width: "36px",
-                                    height: "36px",
-                                    "& svg": { fontSize: "20px" },
-                                },
+                                    : "min(340px, calc(100vw - 32px))",
+                                borderRadius: "24px",
                             },
                         })}
                         open={true}
                         onClose={createOnClose(group)}
-                        autoHideDuration={
-                            shouldAutoClose
-                                ? SINGLE_FILE_SUCCESS_AUTO_CLOSE_DELAY_MS
-                                : undefined
-                        }
+                        autoHideDuration={null}
                         keepOpenOnClick
                         attributes={{
                             color: hasErrors ? "critical" : "secondary",
@@ -264,16 +225,11 @@ export const DownloadStatusNotifications: React.FC<
                             title: truncatedName,
                             caption,
                             onClick: createOnClick(group),
-                            endIcon: canRetry ? (
-                                <ReplayIcon
-                                    titleAccess={t("retry")}
-                                    sx={{ color: "white" }}
-                                />
-                            ) : undefined,
+                            endIcon: canRetry ? ReloadIcon : undefined,
                             onEndIconClick: canRetry
                                 ? () => group.retry?.()
                                 : undefined,
-                            showCloseButtonWithEndIcon: canRetry,
+                            endIconLabel: t("retry"),
                         }}
                     />
                 );
@@ -407,47 +363,3 @@ const StopDownloadPrimaryButton = styled(Button)(({ theme }) => ({
     color: theme.vars.palette.critical.contrastText,
     "&:hover": { backgroundColor: theme.vars.palette.critical.dark },
 }));
-
-const spinAnimation = keyframes`
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-`;
-
-const dropAnimation = keyframes`
-    0% { transform: translateY(-100%); opacity: 0.15; }
-    50% { transform: translateY(10%); opacity: 0.6; }
-    100% { transform: translateY(0); opacity: 1; }
-`;
-
-const glowAnimation = keyframes`
-    0% { color: var(--mui-palette-fixed-success); }
-    100% { color: inherit; }
-`;
-
-const fadeInAnimation = keyframes`
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-`;
-
-const DroppingIconWrapper = styled("span")`
-    display: inline-flex;
-    animation: ${dropAnimation} 0.8s ease-out forwards;
-`;
-
-const GlowingIconWrapper = styled("span")`
-    display: inline-flex;
-    animation: ${glowAnimation} 2s ease-out forwards;
-`;
-
-const SpinningIconWrapper = styled("span")`
-    display: inline-flex;
-    animation:
-        ${fadeInAnimation} 0.5s ease-out forwards,
-        ${spinAnimation} 3s linear infinite;
-`;
-
-const SpinningIcon: React.FC = () => (
-    <SpinningIconWrapper>
-        <HugeiconsIcon icon={Loading03Icon} size={28} />
-    </SpinningIconWrapper>
-);

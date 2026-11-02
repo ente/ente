@@ -853,6 +853,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     final result = await showAddToCollectionSheet(
       context,
       collections: dedupedCollections,
+      allowMultiple: false,
     );
 
     if (result == null || result.selectedCollections.isEmpty) {

@@ -12,9 +12,9 @@ import 'package:photos/module/download/thumbnail.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/album_home_widget_service.dart';
 import 'package:photos/services/app_navigation_service.dart';
+import 'package:photos/services/memories/smart_memories_service.dart';
 import 'package:photos/services/memory_home_widget_service.dart';
 import 'package:photos/services/people_home_widget_service.dart';
-import 'package:photos/services/smart_memories_service.dart';
 import 'package:photos/ui/settings/ml/ml_consent_sheet.dart';
 import 'package:photos/ui/settings/widgets/albums_widget_settings.dart';
 import 'package:photos/ui/settings/widgets/memories_widget_settings.dart';
@@ -236,6 +236,11 @@ class HomeWidgetService {
   }
 
   Future<void> onLaunchFromWidget(Uri? uri) async {
+    if (AppNavigationService.instance.isGuestViewActive) {
+      _logger.info("Ignoring widget launch because Guest View is active");
+      return;
+    }
+
     if (uri == null) {
       _logger.warning("Widget launch failed: URI is null");
       return;
@@ -270,7 +275,8 @@ class HomeWidgetService {
           if (!hasGrantedMLConsent) {
             final navigator = await AppNavigationService.instance
                 .waitForNavigator();
-            if (navigator == null ||
+            if (AppNavigationService.instance.isGuestViewActive ||
+                navigator == null ||
                 !navigator.mounted ||
                 !await showMLConsentSheet(navigator.context)) {
               break;

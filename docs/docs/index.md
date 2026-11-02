@@ -30,6 +30,8 @@ But one day, he discovered that "ente" means "duck" in German. This unexpected c
 
 We recommend reading the documentation for [Ente Photos](/photos/), [Ente Auth](/auth/), or [Ente Locker](/locker/) to get started with installation on the desired platform, explore available features and usage.
 
+To use Ente from a terminal, script or agent, start with [Ente CLI](/cli/).
+
 If you are looking to self-host Ente, we recommend you to read the [official documentation](/self-hosting/) for updated information on getting started, installation, administration and maintenance.
 
 ## Contributing

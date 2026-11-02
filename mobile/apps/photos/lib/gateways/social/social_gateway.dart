@@ -176,15 +176,4 @@ class SocialGateway {
     );
     return SocialDiffResponse.fromJson(response.data as Map<String, dynamic>);
   }
-
-  Future<Map<int, int>> fetchCounts() async {
-    final response = await _enteDio.get("/comments-reactions/counts");
-    final countsData = response.data["counts"] as Map<String, dynamic>?;
-    if (countsData == null) {
-      return {};
-    }
-    return countsData.map(
-      (key, value) => MapEntry(int.parse(key), value as int),
-    );
-  }
 }

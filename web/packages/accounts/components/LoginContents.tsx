@@ -6,7 +6,7 @@ import {
 import { getSRPAttributes } from "ente-accounts/services/srp";
 import { sendOTT } from "ente-accounts/services/user";
 import { appName } from "ente-base/app";
-import { HTTPError } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import { JOIN_ALBUM_CONTEXT_KEY } from "ente-base/join-album";
 import log from "ente-base/log";
 import { useFormik } from "formik";
@@ -49,37 +49,10 @@ export const LoginContents: React.FC<LoginContentsProps> = ({
     }, []);
 
     const loginUser = useCallback(
-        async (email: string, setFieldError: (message: string) => void) => {
+        async (email: string) => {
             const srpAttributes = await getSRPAttributes(email);
             if (!srpAttributes || srpAttributes.isEmailMFAEnabled) {
-                try {
-                    await sendOTT(email, "login");
-                } catch (e) {
-                    if (e instanceof HTTPError && e.res.status === 404) {
-                        let errorCode: string | undefined;
-                        try {
-                            errorCode = z
-                                .object({ code: z.string() })
-                                .parse(await e.res.json()).code;
-                        } catch (parseErr) {
-                            log.warn(
-                                "Ignoring error when parsing error payload",
-                                parseErr,
-                            );
-                        }
-                        if (errorCode === "USER_NOT_REGISTERED") {
-                            setFieldError(t("email_not_registered"));
-                            return;
-                        }
-                        if (errorCode === "USER_SIGNUP_INCOMPLETE") {
-                            setFieldError(
-                                t("account_setup_incomplete_create_account"),
-                            );
-                            return;
-                        }
-                    }
-                    throw e;
-                }
+                await sendOTT(email, "login");
                 replaceSavedLocalUser({ email });
                 void router.push("/verify");
             } else {
@@ -108,10 +81,18 @@ export const LoginContents: React.FC<LoginContentsProps> = ({
             }
 
             try {
-                await loginUser(email, setEmailFieldError);
+                await loginUser(email);
             } catch (e) {
-                log.error("Failed to login", e);
-                setEmailFieldError(t("generic_error"));
+                if (isNamedError(e, "not_registered")) {
+                    setEmailFieldError(t("email_not_registered"));
+                } else if (isNamedError(e, "signup_incomplete")) {
+                    setEmailFieldError(
+                        t("account_setup_incomplete_create_account"),
+                    );
+                } else {
+                    log.error("Failed to login", e);
+                    setEmailFieldError(t("generic_error"));
+                }
             }
         },
     });

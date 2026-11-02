@@ -65,10 +65,11 @@ const buttonSx = {
 };
 
 export const MessageQuickReactions: React.FC<{
+    label?: string;
     selected?: string;
     onSelect: (emoji: string) => void;
     onMore: () => void;
-}> = ({ selected, onSelect, onMore }) => {
+}> = ({ selected, onSelect, onMore, label = "React to message" }) => {
     const groupRef = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => {
         groupRef.current?.focus({ preventScroll: true });
@@ -78,7 +79,7 @@ export const MessageQuickReactions: React.FC<{
         <Box
             ref={groupRef}
             role="group"
-            aria-label="React to message"
+            aria-label={label}
             tabIndex={-1}
             sx={{
                 bgcolor: spaceMenuBackground,
@@ -91,9 +92,8 @@ export const MessageQuickReactions: React.FC<{
                 maxWidth: "calc(100vw - 16px)",
                 outline: 0,
                 p: "5px",
-                "& > button": {
-                    transition: "none",
-                    "&:hover, &:active": { transform: "none" },
+                "@media (hover: hover)": {
+                    "& > button:not(:active):hover": { transform: "none" },
                 },
             }}
         >
@@ -156,10 +156,11 @@ const skinTones = [
 const tonePickerWidth = skinTones.length * 40 + 8;
 
 export const MessageReactionPicker: React.FC<{
+    label?: string;
     selected?: string;
     onSelect: (emoji: string) => void;
     onClose: () => void;
-}> = ({ selected, onSelect, onClose }) => {
+}> = ({ selected, onSelect, onClose, label = "React to message" }) => {
     const isBottomSheet = useMediaQuery("(max-width: 599px)");
     const prefersReducedMotion = useMediaQuery(
         "(prefers-reduced-motion: reduce)",
@@ -230,7 +231,7 @@ export const MessageReactionPicker: React.FC<{
             sx={{ zIndex: 1500 }}
             slotProps={{
                 paper: {
-                    "aria-label": "React to message",
+                    "aria-label": label,
                     style: {
                         translate: `0 ${dragOffset}px`,
                         transition:
@@ -321,7 +322,7 @@ export const MessageReactionPicker: React.FC<{
                     ...buttonSx,
                     borderRadius: "999px",
                     cursor: isDragging ? "grabbing" : "grab",
-                    height: 32,
+                    height: 24,
                     touchAction: "none",
                     width: "100%",
                     "&:hover": { bgcolor: "transparent" },

@@ -1,6 +1,12 @@
 package filedata
 
-import "github.com/ente/museum/ente"
+import (
+	"regexp"
+
+	"github.com/ente/museum/ente"
+)
+
+var videoPreviewObjectIDPattern = regexp.MustCompile(`^pv_[0-9A-Za-z]{22}$`)
 
 type VidPreviewRequest struct {
 	FileID         int64  `json:"fileID" binding:"required"`
@@ -14,6 +20,9 @@ type VidPreviewRequest struct {
 func (r VidPreviewRequest) Validate() error {
 	if r.Playlist == "" || r.PlayListHeader == "" {
 		return ente.NewBadRequestWithMessage("playlist and playListHeader are required for preview video")
+	}
+	if !videoPreviewObjectIDPattern.MatchString(r.ObjectID) {
+		return ente.NewBadRequestWithMessage("invalid video preview object ID")
 	}
 	return nil
 }

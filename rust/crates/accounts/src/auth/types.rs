@@ -19,7 +19,7 @@ pub struct KeyAttributes {
     pub public_key: String,
     pub encrypted_secret_key: String,
     pub secret_key_decryption_nonce: String,
-    pub mem_limit: u32,
+    pub mem_limit: u64,
     pub ops_limit: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub master_key_encrypted_with_recovery_key: Option<String>,
@@ -118,7 +118,7 @@ pub struct SrpAttributes {
     #[serde(rename = "srpUserID")]
     pub srp_user_id: Uuid,
     pub srp_salt: String,
-    pub mem_limit: u32,
+    pub mem_limit: u64,
     pub ops_limit: u32,
     pub kek_salt: String,
     #[serde(rename = "isEmailMFAEnabled", default = "default_email_mfa_enabled")]

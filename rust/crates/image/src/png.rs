@@ -10,6 +10,8 @@ use crate::{
 pub(crate) const SIGNATURE: &[u8] = b"\x89PNG\r\n\x1a\n";
 const DECODER_BYTES: usize = 32 * 1024 * 1024;
 const MAX_ROW_BYTES: u64 = 4 * 1024 * 1024;
+const MAX_SOURCE_HEIGHT: u32 = 512 * 1024;
+const MAX_SOURCE_PIXELS: u64 = 256_000_000;
 const MAX_BUFFER_BYTES: u64 = 512 * 1024 * 1024;
 const ADAM7: [(u32, u32, u32, u32); 7] = [
     (0, 0, 8, 8),
@@ -40,7 +42,10 @@ pub(crate) fn decode<R: BufRead + Seek>(
     };
     let interlaced = header.interlaced;
     let row_bytes = u64::from(source.width) * 8;
-    if row_bytes > MAX_ROW_BYTES {
+    if row_bytes > MAX_ROW_BYTES
+        || source.height > MAX_SOURCE_HEIGHT
+        || u64::from(source.width) * u64::from(source.height) > MAX_SOURCE_PIXELS
+    {
         return Err(too_large());
     }
     let target = target_dimensions(&source, max_side);
@@ -719,6 +724,59 @@ mod tests {
             ),
             Err(ImageError::TooLarge(_))
         ));
+    }
+
+    #[test]
+    fn oversized_source_dimensions_are_rejected_before_image_data() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("oversized.png");
+        for (width, height) in [
+            (1, 524_289),
+            (1, u32::MAX),
+            (16_000, 16_001),
+            (65_536, 65_536),
+        ] {
+            for interlaced in [false, true] {
+                let mut bytes = Vec::new();
+                ::png::Encoder::with_info(&mut bytes, rgb_info(width, height, interlaced))
+                    .unwrap()
+                    .write_header()
+                    .unwrap()
+                    .finish()
+                    .unwrap();
+                std::fs::write(&path, &bytes).unwrap();
+                for input in [
+                    ImageInput::Bytes(&bytes),
+                    ImageInput::Path(path.to_str().unwrap()),
+                ] {
+                    let result = decode_bounded(input, 1);
+                    assert!(
+                        matches!(result, Err(ImageError::TooLarge(_))),
+                        "{width}x{height}, interlaced {interlaced}: {result:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn source_dimension_limits_allow_boundary_headers() {
+        for (width, height) in [(1, 524_288), (524_288, 1), (16_000, 16_000)] {
+            for interlaced in [false, true] {
+                let mut bytes = Vec::new();
+                ::png::Encoder::with_info(&mut bytes, rgb_info(width, height, interlaced))
+                    .unwrap()
+                    .write_header()
+                    .unwrap()
+                    .finish()
+                    .unwrap();
+                let result = decode_bounded(ImageInput::Bytes(&bytes), 1);
+                assert!(
+                    matches!(result, Err(ImageError::Decode(_))),
+                    "{width}x{height}, interlaced {interlaced}: {result:?}"
+                );
+            }
+        }
     }
 
     #[test]

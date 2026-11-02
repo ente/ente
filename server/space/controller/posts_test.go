@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/config"
 	"github.com/ente/museum/pkg/utils/s3config"
 	timeutil "github.com/ente/museum/pkg/utils/time"
@@ -33,6 +34,91 @@ func TestPostLikeRejectsOwnPost(t *testing.T) {
 	require.Contains(t, err.Error(), "cannot like your own post")
 }
 
+func TestPostLikesOnlyOwnerCanListCurrentLikes(t *testing.T) {
+	controller, repos, ctx := setupPostsControllerTest(t)
+	ownerID := insertSpaceControllerUser(t, repos, "likes-owner@example.com", "owner-public")
+	owner, err := testCreateSpace(ctx, repos, ownerID, "likes_owner", "key", "public", "secret", "nonce", "profile")
+	require.NoError(t, err)
+	postID, err := testCreatePost(ctx, repos, ownerID, owner.SpaceID, "post-key", nil, 1, nil)
+	require.NoError(t, err)
+	for i := range 2 {
+		require.NoError(t, repos.Comments.Create(ctx, owner.SpaceID, postID, models.CreateCommentRequest{CommentID: fmt.Sprintf("comment-%d", i)}, []byte("comment")))
+	}
+	assertCounts := func(want int64) {
+		t.Helper()
+		post, err := repos.Posts.GetPost(ctx, postID, owner.SpaceID)
+		require.NoError(t, err)
+		require.Equal(t, want, toPostResponse(post, nil, true).LikeCount)
+		require.EqualValues(t, 2, toPostResponse(post, nil, true).CommentCount)
+		posts, _, err := repos.Posts.ListPostsBySpace(ctx, owner.SpaceID, owner.SpaceID, "", 10)
+		require.NoError(t, err)
+		require.Len(t, posts, 1)
+		require.Equal(t, want, posts[0].LikeCount)
+		require.EqualValues(t, 2, posts[0].CommentCount)
+		feed, err := controller.ListFeed(ctx, owner, models.ListFeedRequest{})
+		require.NoError(t, err)
+		require.Len(t, feed.Items, 1)
+		require.Equal(t, want, feed.Items[0].LikeCount)
+		require.EqualValues(t, 2, feed.Items[0].CommentCount)
+	}
+	assertCounts(0)
+	items, err := controller.ListLikes(ctx, owner, postID)
+	require.NoError(t, err)
+	require.NotNil(t, items)
+	require.Empty(t, items)
+
+	var actors []*spacerepo.SpaceRecord
+	for i := range 4 {
+		userID := insertSpaceControllerUser(t, repos, fmt.Sprintf("liker-%d@example.com", i), "public")
+		actor, err := testCreateSpace(ctx, repos, userID, fmt.Sprintf("liker_%d", i), "key", "public", "secret", "nonce", "profile")
+		require.NoError(t, err)
+		require.NoError(t, testAddFriend(ctx, repos, userID, actor.SpaceID, owner.SpaceID, "owner-share", 1, "actor-share", 1))
+		_, err = controller.SetLike(ctx, actor, postID, true)
+		require.NoError(t, err)
+		_, err = repos.Posts.DB.Exec(`UPDATE space_post_likes SET created_at = $1 WHERE post_id = $2 AND actor_space_id = $3`, i+1, postID, actor.SpaceID)
+		require.NoError(t, err)
+		actors = append(actors, actor)
+	}
+	items, err = controller.ListLikes(ctx, owner, postID)
+	require.NoError(t, err)
+	require.Len(t, items, 4)
+	require.Equal(t, actors[3].SpaceID, items[0].SpaceID)
+	require.Equal(t, actors[0].SpaceID, items[3].SpaceID)
+	require.NotEmpty(t, items[0].EncryptedProfile)
+	assertCounts(4)
+	for _, viewerSpaceID := range []string{actors[0].SpaceID, ""} {
+		post, err := repos.Posts.GetPost(ctx, postID, viewerSpaceID)
+		require.NoError(t, err)
+		require.Zero(t, post.LikeCount)
+		require.EqualValues(t, 2, post.CommentCount)
+		posts, _, err := repos.Posts.ListPostsBySpace(ctx, owner.SpaceID, viewerSpaceID, "", 10)
+		require.NoError(t, err)
+		require.Len(t, posts, 1)
+		require.Zero(t, posts[0].LikeCount)
+		require.EqualValues(t, 2, posts[0].CommentCount)
+	}
+	friendFeed, err := controller.ListFeed(ctx, actors[0], models.ListFeedRequest{})
+	require.NoError(t, err)
+	require.Len(t, friendFeed.Items, 1)
+	require.Zero(t, friendFeed.Items[0].LikeCount)
+	require.EqualValues(t, 2, friendFeed.Items[0].CommentCount)
+	_, err = controller.ListLikes(ctx, actors[0], postID)
+	require.ErrorIs(t, err, ente.ErrPermissionDenied)
+	_, err = controller.SetLike(ctx, actors[0], postID, false)
+	require.NoError(t, err)
+	require.NoError(t, repos.Friends.DeleteFriendship(ctx, owner.SpaceID, actors[1].SpaceID))
+	_, err = repos.Posts.DB.Exec(`UPDATE users SET encrypted_email = NULL WHERE user_id = $1`, actors[2].OwnerID)
+	require.NoError(t, err)
+	items, err = controller.ListLikes(ctx, owner, postID)
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	require.Equal(t, actors[3].SpaceID, items[0].SpaceID)
+	assertCounts(1)
+	require.NoError(t, controller.Delete(ctx, owner, postID))
+	_, err = controller.ListLikes(ctx, owner, postID)
+	require.Error(t, err)
+}
+
 func TestCreatePostRequiresAssetMetadataCipher(t *testing.T) {
 	controller, repos, ctx := setupPostsControllerTest(t)
 	aliceID := insertSpaceControllerUser(t, repos, "alice-metadata-post@example.com", "alice-public")
@@ -43,7 +129,7 @@ func TestCreatePostRequiresAssetMetadataCipher(t *testing.T) {
 		EncryptedPostKey: "cG9zdC1rZXk=",
 		KeyVersion:       aliceSpace.CurrentVersion,
 		Objects: []models.PostObjectPayload{{
-			ObjectKey: "space/alice-metadata-post/posts/object",
+			PostAssetPayload: models.PostAssetPayload{ObjectKey: "space/alice-metadata-post/posts/object"},
 		}},
 	})
 
@@ -121,13 +207,15 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 			objects := make([]models.PostObjectPayload, test.count)
 			for position := range test.count {
 				objects[position] = models.PostObjectPayload{
-					ObjectKey:      reserve(),
-					Size:           123,
-					Position:       position,
-					MetadataCipher: "bWV0YWRhdGE=",
+					PostAssetPayload: models.PostAssetPayload{
+						ObjectKey:      reserve(),
+						Size:           123,
+						Position:       position,
+						MetadataCipher: "bWV0YWRhdGE=",
+					},
 				}
 				if position < test.videos {
-					objects[position].Video = &models.PostObjectPayload{ObjectKey: reserve(), Size: 123, Position: position, MetadataCipher: "bWV0YWRhdGE="}
+					objects[position].Video = &models.PostAssetPayload{ObjectKey: reserve(), Size: 123, Position: position, MetadataCipher: "bWV0YWRhdGE="}
 				}
 			}
 			requestObjects := slices.Clone(objects)
@@ -183,7 +271,7 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 				require.ErrorIs(t, err, sql.ErrNoRows)
 			}
 			for _, object := range objects {
-				parts := []models.PostObjectPayload{object}
+				parts := []models.PostAssetPayload{object.PostAssetPayload}
 				if object.Video != nil {
 					parts = append(parts, *object.Video)
 				}
@@ -195,7 +283,7 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 			}
 			require.NoError(t, controller.Delete(ctx, space, created.PostID))
 			for _, object := range objects {
-				parts := []models.PostObjectPayload{object}
+				parts := []models.PostAssetPayload{object.PostAssetPayload}
 				if object.Video != nil {
 					parts = append(parts, *object.Video)
 				}
@@ -246,28 +334,12 @@ func TestCreatePostRejectsInvalidObjectPosition(t *testing.T) {
 				EncryptedPostKey: "cG9zdC1rZXk=",
 				KeyVersion:       1,
 				Objects: []models.PostObjectPayload{{
-					ObjectKey: "photo",
-					Position:  position,
+					PostAssetPayload: models.PostAssetPayload{ObjectKey: "photo", Position: position},
 				}},
 			})
 			require.ErrorContains(t, err, "invalid object position")
 		})
 	}
-}
-
-func TestCreatePostRejectsNestedVideo(t *testing.T) {
-	_, err := (&PostsController{}).Create(t.Context(), &spacerepo.SpaceRecord{}, models.CreatePostRequest{
-		EncryptedPostKey: "cG9zdC1rZXk=",
-		KeyVersion:       1,
-		Objects: []models.PostObjectPayload{{
-			ObjectKey: "preview",
-			Video: &models.PostObjectPayload{
-				ObjectKey: "video",
-				Video:     &models.PostObjectPayload{ObjectKey: "nested"},
-			},
-		}},
-	})
-	require.ErrorContains(t, err, "invalid nested video")
 }
 
 func TestListPostsHydratesPostAssets(t *testing.T) {

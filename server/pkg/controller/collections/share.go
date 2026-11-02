@@ -81,7 +81,7 @@ func (c *CollectionController) BatchShare(ctx *gin.Context, shares []ente.AlterS
 	resolvedShares := make([]repo.CollectionShareItem, 0, len(shares))
 	for _, share := range shares {
 		if err := validateSealedCollectionKey(share.EncryptedKey); err != nil {
-			return nil, ente.NewBadRequestWithMessage(err.Error())
+			return nil, err
 		}
 		role := ente.VIEWER
 		if share.Role != nil {

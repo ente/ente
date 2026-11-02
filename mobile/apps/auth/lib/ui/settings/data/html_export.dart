@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+const _htmlEscape = HtmlEscape(HtmlEscapeMode.element);
+
 Future<String> generateQRImageBase64(String data) async {
   const size = 250.0;
   const padding = 20.0;
@@ -55,21 +57,22 @@ Future<String> generateOTPEntryHtml(Code code) async {
       .replaceAll('algorithm=sha256', 'algorithm=SHA256')
       .replaceAll('algorithm=sha512', 'algorithm=SHA512');
   final qrBase64 = await generateQRImageBase64(qrData);
-  String notes = code.display.note;
-  if (notes.isNotEmpty) {
-    notes = '<p class="group">Note: <b>$notes</b></p>';
-  }
+  final issuer = _htmlEscape.convert(code.issuer);
+  final account = _htmlEscape.convert(code.account);
+  final secret = _htmlEscape.convert(code.secret);
+  final note = _htmlEscape.convert(code.display.note);
+  final notes = note.isEmpty ? '' : '<p class="group">Note: <b>$note</b></p>';
   return '''
     <section class="otp-entry-card">
     <table class="otp-entry">
       <tr>
         <td>
-          <p><b>${code.issuer}</b></p>
-          <p><b>${code.account}</b></p>
+          <p><b>$issuer</b></p>
+          <p><b>$account</b></p>
           <p class="group">Type: <b>${code.type.name}</b></p>
           <p>Algorithm: <b>${code.algorithm.name}</b></p>
           <p>Digits: <b>${code.digits}</b></p>
-          <p>Secret: <b>${code.secret}</b></p>
+          <p>Secret: <b>$secret</b></p>
           $notes
         </td>
         <td class="otp-qr">
@@ -97,8 +100,10 @@ Future<String> generateHtml(BuildContext context) async {
   return '''
   <!DOCTYPE html>
   <html>
-  <meta content="text/html; charset=utf-8" />
+  <head>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'; img-src data: https://email-assets.ente.com; style-src 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <style>
   body {
     background-color: #f0f1f3;

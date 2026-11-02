@@ -1,1 +1,0 @@
-- Fixed Similar Images failing to display photos with missing file sizes.

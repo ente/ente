@@ -10,23 +10,23 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/event_bus.dart';
 import "package:photos/events/people_changed_event.dart";
 import 'package:photos/events/subscription_purchased_event.dart';
+import 'package:photos/models/file/file.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/ml/face/person.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/ui/sharing/share_person_sheet.dart';
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
+import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
 import "package:photos/ui/viewer/gallery/hooks/pick_person_avatar.dart";
 import 'package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart';
-import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
-import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/people/person_cluster_suggestion.dart";
+import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/ui/viewer/people/reassign_me_selection_page.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -36,46 +36,45 @@ const kShowUnnamedIgnoredPersonEventSource =
     "_AppBarWidgetState._showPersonUnnamedDelete";
 
 class PeopleAppBar extends StatefulWidget {
-  static const double _sliverExpandedHeight = 92.0;
-
   static GalleryAppBarConfig sliverConfig(
     GalleryType type,
     String? title,
     SelectedFiles selectedFiles,
     PersonEntity person, {
+    required List<EnteFile> files,
+    Key? coverAppBarKey,
+    String? coverHeroTag,
     bool memoryLaneReady = false,
     Future<void> Function()? onMemoryLaneTap,
   }) {
+    final config = GalleryAppBarWidget.sliverConfig(
+      type,
+      title,
+      selectedFiles,
+      coverWidget: files.isEmpty
+          ? null
+          : PersonFaceWidget(personId: person.remoteID),
+    );
     return GalleryAppBarConfig(
+      extendBodyForCollapse: config.extendBodyForCollapse,
       sliverBuilder: (_) => PeopleAppBar._(
         type,
         title,
         selectedFiles,
         person,
+        files: files,
+        coverAppBarKey: coverAppBarKey,
+        coverHeroTag: coverHeroTag,
         memoryLaneReady: memoryLaneReady,
         onMemoryLaneTap: onMemoryLaneTap,
       ),
-      geometryBuilder: _resolveSliverGeometry,
+      geometryBuilder: config.geometryBuilder,
     );
   }
 
-  static HeaderAppBarGeometry _resolveSliverGeometry(BuildContext context) {
-    final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
-      context,
-    );
-    final isHierarchicalSearchable =
-        inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
-    final bottomHeight = isHierarchicalSearchable
-        ? AppBarFilterChips.preferredHeight(context)
-        : 0.0;
-    return SliverAppBarComponent.resolveGeometry(
-      context,
-      expandedHeight: _sliverExpandedHeight,
-      collapsedHeight: kToolbarHeight,
-      bottomHeight: bottomHeight,
-    );
-  }
-
+  final List<EnteFile> files;
+  final Key? coverAppBarKey;
+  final String? coverHeroTag;
   final GalleryType type;
   final String? title;
   final SelectedFiles selectedFiles;
@@ -92,6 +91,9 @@ class PeopleAppBar extends StatefulWidget {
     this.person, {
     this.memoryLaneReady = false,
     this.onMemoryLaneTap,
+    required this.files,
+    this.coverAppBarKey,
+    this.coverHeroTag,
   });
 
   @override
@@ -156,31 +158,31 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           setState(() {});
         });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _appBarTitle = _resolveAppBarTitle(
-          sourcePerson: person,
-          title: widget.title,
-        );
-
-        _peopleChangedEventSubscription = Bus.instance
-            .on<PeopleChangedEvent>()
-            .listen((event) {
-              if (event.person != null &&
-                  event.type == PeopleEventType.saveOrEditPerson &&
-                  widget.person.remoteID == event.person!.remoteID &&
-                  event.source == "reassignMe") {
-                person = event.person!;
-
-                _appBarTitle = _resolveAppBarTitle(
-                  sourcePerson: person,
-                  title: person.data.name,
-                );
-                setState(() {});
-              }
+    _peopleChangedEventSubscription = Bus.instance
+        .on<PeopleChangedEvent>()
+        .listen((event) {
+          if (event.person != null &&
+              event.type == PeopleEventType.saveOrEditPerson &&
+              widget.person.remoteID == event.person!.remoteID &&
+              event.source == "reassignMe") {
+            person = event.person!;
+            setState(() {
+              _appBarTitle = _resolveAppBarTitle(
+                sourcePerson: person,
+                title: person.data.name,
+              );
             });
-      });
-    });
+          }
+        });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _appBarTitle = _resolveAppBarTitle(
+      sourcePerson: person,
+      title: widget.title,
+    );
   }
 
   @override
@@ -209,49 +211,42 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
-      context,
-    );
-    final isHierarchicalSearchable =
-        inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
-
-    if (!isHierarchicalSearchable) {
-      return _buildSliverAppBar(context, actions: _getDefaultActions(context));
-    }
-
-    return ValueListenableBuilder(
-      valueListenable: inheritedSearchFilterData!
-          .searchFilterDataProvider!
-          .isSearchingNotifier,
-      child: PreferredSize(
-        preferredSize: Size.fromHeight(
-          AppBarFilterChips.preferredHeight(context),
-        ),
-        child: const AppBarFilterChips(),
-      ),
-      builder: (context, isSearching, child) {
-        return _buildSliverAppBar(
-          context,
-          actions: isSearching ? const [] : _getDefaultActions(context),
-          bottom: child as PreferredSizeWidget,
-        );
-      },
-    );
-  }
-
-  Widget _buildSliverAppBar(
-    BuildContext context, {
-    required List<Widget> actions,
-    PreferredSizeWidget? bottom,
-  }) {
-    return SliverAppBarComponent(
-      title: _appBarTitle ?? "",
-      actions: actions,
-      bottom: bottom,
-      expandedHeight: PeopleAppBar._sliverExpandedHeight,
-      collapsedHeight: kToolbarHeight,
-      backgroundColor: getEnteColorScheme(context).backgroundColour,
-    );
+    final currentUserID = Configuration.instance.getUserID();
+    final shareableFiles =
+        widget.selectedFiles.files.isEmpty &&
+            Configuration.instance.hasConfiguredAccount() &&
+            !person.data.isIgnored &&
+            person.data.name.trim().isNotEmpty
+        ? GalleryFilesState.maybeOf(context)?.galleryFilesOrNull?.where(
+            (file) =>
+                file.uploadedFileID != null && file.ownerID == currentUserID,
+          )
+        : null;
+    final hasShareableFiles = shareableFiles?.isNotEmpty ?? false;
+    return GalleryAppBarWidget.sliverConfig(
+      widget.type,
+      _appBarTitle,
+      widget.selectedFiles,
+      files: widget.files,
+      coverAppBarKey: widget.coverAppBarKey,
+      coverWidget: widget.files.isEmpty
+          ? null
+          : PersonFaceWidget(
+              personId: person.remoteID,
+              cachedPixelWidth:
+                  (MediaQuery.sizeOf(context).width *
+                          MediaQuery.devicePixelRatioOf(context))
+                      .ceil(),
+            ),
+      coverHeroTag: widget.coverHeroTag,
+      actionsBuilder: ({required onCover, foregroundColor}) =>
+          _getDefaultActions(
+            context,
+            onCover: onCover,
+            foregroundColor: foregroundColor,
+            shareableFiles: hasShareableFiles ? shareableFiles : null,
+          ),
+    ).buildSliver(context);
   }
 
   Future<dynamic> _editPerson(BuildContext context) async {
@@ -270,7 +265,12 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     }
   }
 
-  List<Widget> _getDefaultActions(BuildContext context) {
+  List<Widget> _getDefaultActions(
+    BuildContext context, {
+    required bool onCover,
+    Color? foregroundColor,
+    required Iterable<EnteFile>? shareableFiles,
+  }) {
     final bool isIgnored = person.data.isIgnored;
     final bool isPinned = person.data.isPinned;
     final bool hideFromMemories = person.data.hideFromMemories;
@@ -281,28 +281,27 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       return actions;
     }
 
-    final currentUserID = Configuration.instance.getUserID();
-    final files = GalleryFilesState.maybeOf(context)?.galleryFilesOrNull
-        ?.where(
-          (file) =>
-              file.uploadedFileID != null && file.ownerID == currentUserID,
-        )
-        .toList();
     if (!isIgnored &&
         person.data.name.trim().isNotEmpty &&
-        files != null &&
-        files.isNotEmpty) {
+        shareableFiles != null) {
       actions.add(
         IconButtonComponent(
           key: shareButtonKey,
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
-          variant: IconButtonComponentVariant.primary,
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedShare08,
+            color: foregroundColor,
+          ),
+          variant: onCover
+              ? IconButtonComponentVariant.unfilled
+              : IconButtonComponentVariant.primary,
+          size: onCover ? kMinInteractiveDimension : 36,
+          iconSize: onCover ? IconSizes.medium : IconSizes.small,
           tooltip: context.strings.share,
           shouldSurfaceExecutionStates: false,
           onTap: () => showSharePersonSheet(
             context,
             person: person,
-            files: files,
+            files: shareableFiles.toList(),
             shareButtonKey: shareButtonKey,
           ),
         ),
@@ -436,10 +435,16 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       ]);
     }
 
+    final overflowMenuAction = onCover
+        ? galleryAppBarActionsSheetAction
+        : galleryAppBarPopupMenuAction;
     actions.add(
-      galleryAppBarPopupMenuAction<PeoplePopupAction>(
+      overflowMenuAction<PeoplePopupAction>(
         tooltip: context.strings.more,
-        icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedMoreVertical,
+          color: foregroundColor,
+        ),
         optionsBuilder: () => items,
         onSelected: (PeoplePopupAction value) async {
           if (value == PeoplePopupAction.reviewSuggestions) {

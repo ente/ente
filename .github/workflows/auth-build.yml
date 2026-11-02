@@ -109,7 +109,7 @@ jobs:
                   submodules: recursive
 
             - name: Setup JDK 17
-              uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
               with:
                   distribution: "temurin"
                   java-version: "17"
@@ -121,6 +121,9 @@ jobs:
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Prepare whatsnew
               run: |
@@ -241,6 +244,9 @@ jobs:
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Create artifacts directory
               run: mkdir artifacts
@@ -398,6 +404,9 @@ jobs:
               run: git config --global core.longpaths true
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Create artifacts directory
               run: mkdir artifacts
@@ -584,6 +593,9 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
+            - run: cargo codegen frb auth
+              working-directory: rust
+
             - name: Install code signing dependencies
               run: |
                   set -euo pipefail
@@ -726,6 +738,9 @@ jobs:
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Install iOS pods
               run: pod install --deployment

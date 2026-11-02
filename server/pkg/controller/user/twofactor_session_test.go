@@ -107,7 +107,7 @@ func TestTwoFactorSessionIsConsumedOnlyAfterSuccessfulAuthorization(t *testing.T
 	if !sessionExists {
 		t.Fatal("failed verification consumed the session")
 	}
-	if _, err = controller.RemoveTOTPTwoFactor(context, recoverySessionID, totpSecret); err != nil {
+	if _, err = controller.RemoveTOTPTwoFactor(context, &ente.TwoFactorRemovalRequest{SessionID: recoverySessionID, Secret: totpSecret}); err != nil {
 		t.Fatalf("recovery failed: %v", err)
 	}
 	if err = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM two_factor_sessions WHERE session_id = $1)`, recoverySessionID).Scan(&sessionExists); err != nil {

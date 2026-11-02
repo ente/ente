@@ -17,7 +17,7 @@ import {
 import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import log from "ente-base/log";
 import { t } from "i18next";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     collectionNamesByUploadItem,
@@ -187,8 +187,15 @@ export const useCreateItemDialogState = ({
     const formType =
         isEditMode && selectedOption === "file" ? "file" : selectedType;
     const displayCollectionsRef = useRef(displayCollections);
+    const defaultCollectionInitializedRef = useRef(false);
 
     displayCollectionsRef.current = displayCollections;
+
+    const handleCollectionSelectionChange: Dispatch<SetStateAction<number[]>> =
+        useCallback((selection) => {
+            defaultCollectionInitializedRef.current = true;
+            setSelectedCollectionIDs(selection);
+        }, []);
 
     const normalizeSelectedCollectionIDs = useCallback(
         (collectionIDs: number[]) =>
@@ -215,6 +222,8 @@ export const useCreateItemDialogState = ({
                       (collection) => collection.id === defaultCollectionID,
                   )?.name
                 : undefined;
+        defaultCollectionInitializedRef.current =
+            defaultCollectionName !== undefined;
         setSelectedCollectionIDs(
             isEditMode
                 ? normalizeSelectedCollectionIDs(
@@ -286,6 +295,7 @@ export const useCreateItemDialogState = ({
         if (
             !open ||
             isEditMode ||
+            defaultCollectionInitializedRef.current ||
             selectedCollectionIDs.length > 0 ||
             defaultCollectionID === null ||
             defaultCollectionID === undefined ||
@@ -296,6 +306,7 @@ export const useCreateItemDialogState = ({
             return;
         }
 
+        defaultCollectionInitializedRef.current = true;
         setSelectedCollectionIDs([defaultCollectionID]);
     }, [
         defaultCollectionID,
@@ -322,14 +333,14 @@ export const useCreateItemDialogState = ({
 
     const resetToOptions = useCallback(() => {
         handleSelectOption(null);
-        setSelectedCollectionIDs(
-            normalizeSelectedCollectionIDs(
-                defaultCollectionID !== null &&
-                    defaultCollectionID !== undefined
-                    ? [defaultCollectionID]
-                    : [],
-            ),
+        const defaultCollectionIDs = normalizeSelectedCollectionIDs(
+            defaultCollectionID !== null && defaultCollectionID !== undefined
+                ? [defaultCollectionID]
+                : [],
         );
+        defaultCollectionInitializedRef.current =
+            defaultCollectionIDs.length > 0;
+        setSelectedCollectionIDs(defaultCollectionIDs);
         setShowPassword(false);
     }, [
         defaultCollectionID,
@@ -528,7 +539,7 @@ export const useCreateItemDialogState = ({
         selectedUploadItems,
         setCustomCollectionNames,
         setCollectionName,
-        setSelectedCollectionIDs,
+        setSelectedCollectionIDs: handleCollectionSelectionChange,
         setSelectedCollectionNamesByFileKey,
         setSelectedUploadItems,
         setShowPassword,

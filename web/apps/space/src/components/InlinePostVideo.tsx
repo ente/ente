@@ -10,33 +10,35 @@ export const SpaceInlinePostVideo: React.FC<{
     imageUrl?: string;
     video: SpacePostVideo;
     isActive: boolean;
+    shouldPreload: boolean;
     muted: boolean;
     onLoadVideo?: SpacePostAssetURLLoader;
-}> = ({ imageUrl, video, isActive, muted, onLoadVideo }) => {
+}> = ({ imageUrl, video, isActive, shouldPreload, muted, onLoadVideo }) => {
     const root = useRef<HTMLDivElement>(null);
     const player = useRef<
         ReturnType<typeof createSpaceVideoContent> | undefined
     >(undefined);
     const playback = useRef<ReturnType<typeof registerFeedVideo>>(undefined);
+    const queuedLoad = useRef<ReturnType<typeof queueFeedVideoLoad>>(undefined);
 
     useEffect(() => {
         const container = root.current!;
-        let queuedLoad: ReturnType<typeof queueFeedVideoLoad> | undefined;
         const content = createSpaceVideoContent(
             { video },
             onLoadVideo
                 ? (asset) => {
-                      queuedLoad?.cancel();
-                      queuedLoad = queueFeedVideoLoad(container, () =>
-                          onLoadVideo(asset),
+                      queuedLoad.current?.cancel();
+                      queuedLoad.current = queueFeedVideoLoad(
+                          container,
+                          (signal) => onLoadVideo(asset, signal),
                       );
-                      return queuedLoad.promise;
+                      return queuedLoad.current.promise;
                   }
                 : undefined,
             {
                 inline: true,
-                onPlay: () => queuedLoad?.prioritize(),
-                onPause: () => queuedLoad?.deprioritize(),
+                onPlay: () => queuedLoad.current?.prioritize(),
+                onPause: () => queuedLoad.current?.deprioritize(),
                 onTogglePlayback: (play) => {
                     if (play) registration.play();
                     else registration.pause();
@@ -47,24 +49,42 @@ export const SpaceInlinePostVideo: React.FC<{
         playback.current = registration;
         player.current = content;
         container.append(content.element);
-        void content.preload().catch((error: unknown) => {
-            if (!(error instanceof DOMException && error.name == "AbortError"))
-                log.warn("Failed to preload feed video", error);
-        });
         return () => {
             registration.unregister();
             content.destroy();
-            queuedLoad?.cancel();
+            queuedLoad.current?.cancel();
             content.element.remove();
             player.current = undefined;
             playback.current = undefined;
+            queuedLoad.current = undefined;
         };
     }, [onLoadVideo, video]);
 
     useEffect(() => {
+        queuedLoad.current?.setPreloading(shouldPreload);
+        if (shouldPreload)
+            void player.current!.preload().catch((error: unknown) => {
+                if (!(
+                    error instanceof DOMException && error.name == "AbortError"
+                ))
+                    log.warn("Failed to preload feed video", error);
+            });
+    }, [shouldPreload, onLoadVideo, video]);
+
+    useEffect(() => {
         const element = player.current!.video;
-        if (imageUrl) element.poster = imageUrl;
-        else element.removeAttribute("poster");
+        const updatePoster = () => {
+            if (imageUrl && element.readyState < element.HAVE_CURRENT_DATA)
+                element.poster = imageUrl;
+            else element.removeAttribute("poster");
+        };
+        updatePoster();
+        element.addEventListener("loadeddata", updatePoster);
+        element.addEventListener("emptied", updatePoster);
+        return () => {
+            element.removeEventListener("loadeddata", updatePoster);
+            element.removeEventListener("emptied", updatePoster);
+        };
     }, [imageUrl, onLoadVideo, video]);
 
     useEffect(() => {

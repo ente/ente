@@ -1,6 +1,7 @@
 import "package:flutter/cupertino.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
+import "package:photos/models/search/search_constants.dart";
 import 'package:photos/models/search/search_result.dart';
 import "package:photos/models/search/search_types.dart";
 
@@ -29,6 +30,12 @@ class GenericSearchResult extends SearchResult {
   @override
   ResultType type() {
     return _type;
+  }
+
+  @override
+  String heroTag() {
+    final locationID = params[kLocationParamID];
+    return locationID != null ? '${type()}_$locationID' : super.heroTag();
   }
 
   @override

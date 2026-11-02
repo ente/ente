@@ -85,7 +85,7 @@ pub struct AuthenticatedAccount {
     pub user_id: i64,
     pub key_attributes: KeyAttributes,
     pub secrets: AccountSecrets,
-    pub recovery_key: Option<String>,
+    pub recovery_key: String,
 }
 
 impl std::fmt::Debug for AuthenticatedAccount {

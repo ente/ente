@@ -123,7 +123,7 @@ func (c *WebPushController) UpsertLinkSubscription(
 func (c *WebPushController) DeleteLinkSubscription(
 	ctx *gin.Context,
 	slug string,
-	req models.SpaceWebPushUnsubscriptionRequest,
+	req models.SpaceLinkWebPushUnsubscriptionRequest,
 ) error {
 	endpoint := strings.TrimSpace(req.Endpoint)
 	if _, err := parseWebPushEndpoint(endpoint); err != nil {
@@ -133,7 +133,7 @@ func (c *WebPushController) DeleteLinkSubscription(
 	if err != nil {
 		return err
 	}
-	return c.webPushRepo.DeleteLinkSubscription(ctx, link.LinkID, endpoint)
+	return c.webPushRepo.DeleteLinkSubscription(ctx, link.LinkID, endpoint, strings.TrimSpace(req.Auth))
 }
 
 func validatedWebPushSubscription(

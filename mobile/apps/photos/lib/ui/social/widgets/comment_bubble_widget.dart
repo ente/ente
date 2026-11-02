@@ -15,7 +15,7 @@ import "package:photos/models/social/social_data_provider.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import "package:photos/ui/social/comment_likes_bottom_sheet.dart";
 import "package:photos/ui/social/widgets/comment_actions_popup.dart";
 import "package:photos/ui/social/widgets/comment_like_count_capsule.dart";

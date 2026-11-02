@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/auth"
@@ -175,7 +176,7 @@ func (repo *UserAuthRepository) AddToken(userID int64, app ente.App, token strin
 }
 
 func (repo *UserAuthRepository) AddLoginResult(ctx context.Context, userID int64, srpAuth *ente.SRPAuthEntity, expectedKeyAttributes *ente.KeyAttributes,
-	app ente.App, token, ip, userAgent, passkeySessionID, twoFactorSessionID string, expirationTime int64,
+	app ente.App, token, ip, userAgent, passkeySessionID, twoFactorSessionID string, expirationTime int64, rejectEmailMFA bool,
 ) error {
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -184,6 +185,19 @@ func (repo *UserAuthRepository) AddLoginResult(ctx context.Context, userID int64
 	defer tx.Rollback()
 	if err = lockUserForLogin(ctx, tx, userID, srpAuth, expectedKeyAttributes); err != nil {
 		return err
+	}
+	if rejectEmailMFA {
+		var enabled bool
+		if err = tx.QueryRowContext(ctx, `SELECT email_mfa FROM users WHERE user_id = $1`, userID).Scan(&enabled); err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+		if enabled {
+			return stacktrace.Propagate(&ente.ApiError{
+				Code:           "EMAIL_MFA_ENABLED",
+				Message:        "Email MFA is enabled",
+				HttpStatusCode: http.StatusConflict,
+			}, "email mfa is enabled")
+		}
 	}
 	now := time.Microseconds()
 	if passkeySessionID != "" {

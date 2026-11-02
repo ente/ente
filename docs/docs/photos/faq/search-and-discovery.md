@@ -5,6 +5,14 @@ description: Frequently asked questions about finding photos using map, face rec
 
 # Search and Discovery
 
+## General Search
+
+### How do I view only photos, videos or Live Photos? {#filter-by-file-type}
+
+On mobile, open **Search** and scroll to **File types**. Select **Photos**, **Videos**, or **Live** to view that type. You can also select a file extension, such as **JPG** or **MP4**.
+
+These shortcuts search your library. They do not change an album's contents.
+
 ## Map View
 
 ### Why doesn't the map show all my photos? {#missing-photos}
@@ -48,16 +56,16 @@ Yes! By default, the map view shows photos from all your albums. You can also:
 
 **From an album:**
 
-- Open any album
-- Tap the three dots menu
-- Select "Map"
+- Open an album with photos
+- On mobile, tap the map button on the album cover, or, after scrolling down, tap the three dots menu and select **Map**
+- On web and desktop, click the three dots menu on the right of the album header and select **Map**. For Favorites, click the globe button instead.
 - View only that album's photos on the map
 
 Learn more in the [Map and location guide](/photos/features/search-and-discovery/map-and-location).
 
 ### Why does the Map setting turn back on? {#map-turns-back-on}
 
-On mobile, opening the map from Search or an album turns Map back on so the view can load. If you want to keep it off, avoid opening either map view. If you opened one, turn Map off again in Settings.
+Opening a map view turns Map back on so the view can load. On mobile, this happens when you open the map from Search or an album. On web and desktop, it happens when you open an album's map. If you want to keep Map off, avoid opening these map views. If you opened one, turn Map off again in Settings on mobile, or in **Preferences > Map** on web and desktop.
 
 ## Location Tags
 
@@ -234,6 +242,14 @@ De-merging a certain grouping can be done by going to the person, pressing `Revi
 Similarly, on desktop you can use the "Add a name" button to merge people by selecting an existing person, and use the "Review suggestions" sheet to de-merge previously merged persons (click the top right history icon on the suggestion sheet to see the previous merges, and if necessary, undo them).
 
 ### How can I remove an incorrectly grouped face from a person? {#remove-incorrect-face}
+
+You can fix this in bulk on the mobile app:
+
+1. Open the person in People, then tap **More** and **Edit**.
+2. Under **Merged photos**, find the group with the wrong face and tap the minus to remove it from this person.
+3. Open that group from People, tap **Add a name**, and pick the correct person from the list.
+
+If only a few photos are wrong, open the group under **Merged photos**, long press to select them, and tap **Not this person?**.
 
 If the same person is tagged on two different faces in one photo, one of those faces may be in the wrong group.
 

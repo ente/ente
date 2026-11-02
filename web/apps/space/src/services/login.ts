@@ -9,7 +9,6 @@ import {
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
 import {
-    decryptBox,
     deriveKey,
     fromB64URLSafeNoPadding,
 } from "ente-accounts/services/crypto";
@@ -27,21 +26,17 @@ import {
     generateAndSaveInteractiveKeyAttributes,
     sendOTT,
     TwoFactorAuthorizationResponse,
+    unlockAccountWithKEK,
     verifyEmail,
     verifyTwoFactor,
 } from "ente-accounts/services/user";
 import { clientPackageName } from "ente-base/app";
-import { isNamedError } from "ente-base/error";
-import { HTTPError } from "ente-base/http";
-import log from "ente-base/log";
 import { nullToUndefined } from "ente-utils/transform";
 import { spaceAuthError } from "services/auth-error";
-import { decryptSpaceBootstrapAuthToken } from "services/bootstrap-auth";
 import {
     createSpaceBrowserSession,
     getOrCreateSpaceRootKey,
 } from "services/persistent-session";
-import { z } from "zod";
 
 export interface SpaceLoginInput {
     email: string;
@@ -109,30 +104,6 @@ const spacePasskeyVerificationRedirectURL = (
     return `${accountsURL}/passkeys/verify?${params.toString()}`;
 };
 
-const sendSpaceLoginOTT = async (email: string) => {
-    try {
-        await sendOTT(email, "login");
-    } catch (error) {
-        if (error instanceof HTTPError && error.res.status == 404) {
-            let errorCode: string | undefined;
-            try {
-                errorCode = z
-                    .object({ code: z.string() })
-                    .parse(await error.res.json()).code;
-            } catch (parseErr) {
-                log.warn("Ignoring error when parsing error payload", parseErr);
-            }
-            if (errorCode == "USER_NOT_REGISTERED") {
-                throw spaceAuthError("email_not_registered", error);
-            }
-            if (errorCode == "USER_SIGNUP_INCOMPLETE") {
-                throw spaceAuthError("signup_incomplete", error);
-            }
-        }
-        throw error;
-    }
-};
-
 export const beginSpaceLogin = async ({
     email,
     password,
@@ -142,7 +113,7 @@ export const beginSpaceLogin = async ({
     const srpAttributes = await getSRPAttributes(emailForLogin);
 
     if (!srpAttributes) {
-        await sendSpaceLoginOTT(emailForLogin);
+        await sendOTT(emailForLogin, "login");
         replaceSavedLocalUser({ email: emailForLogin });
         savePendingSpaceLoginCredentials({ email: emailForLogin, password });
         return { status: "email-otp", email: emailForLogin };
@@ -152,7 +123,7 @@ export const beginSpaceLogin = async ({
     saveSRPAttributes(srpAttributes);
 
     if (srpAttributes.isEmailMFAEnabled) {
-        await sendSpaceLoginOTT(emailForLogin);
+        await sendOTT(emailForLogin, "login");
         savePendingSpaceLoginCredentials({ email: emailForLogin, password });
         return { status: "email-otp", email: emailForLogin };
     }
@@ -160,21 +131,11 @@ export const beginSpaceLogin = async ({
     clearPendingSpaceLoginCredentials();
     const kek = await deriveLoginKEK(password, srpAttributes);
 
-    let verification;
-    try {
-        verification = await verifySRP(srpAttributes, kek);
-    } catch (error) {
-        if (isNamedError(error, "srp_verification_unauthorized")) {
-            throw spaceAuthError("incorrect_credentials", error);
-        }
-        throw error;
-    }
-
     return finishSpaceLoginVerification({
         email: emailForLogin,
         kek,
         password,
-        verification,
+        verification: await verifySRP(srpAttributes, kek),
     });
 };
 
@@ -206,7 +167,7 @@ export const completeSpaceLoginEmailVerification = async ({
 };
 
 export const resendSpaceLoginCode = (email: string) =>
-    sendSpaceLoginOTT(email.trim());
+    sendOTT(email.trim(), "login");
 
 interface FinishSpaceLoginVerificationInput {
     email: string;
@@ -288,6 +249,7 @@ const finishSpaceLoginVerification = async ({
     }
 
     await saveCompletedSpaceLogin({
+        id,
         authToken: token,
         encryptedToken,
         keyAttributes,
@@ -373,6 +335,7 @@ const finishSpaceLoginAuthorization = async ({
         passkeySessionID: undefined,
     });
     await saveCompletedSpaceLogin({
+        id,
         encryptedToken,
         keyAttributes,
         kek,
@@ -384,12 +347,14 @@ const finishSpaceLoginAuthorization = async ({
 };
 
 const saveCompletedSpaceLogin = async ({
+    id,
     authToken,
     encryptedToken,
     keyAttributes,
     kek,
     password,
 }: {
+    id: number;
     authToken?: string;
     encryptedToken?: string;
     keyAttributes: EmailOrSRPVerificationResponse["keyAttributes"];
@@ -404,32 +369,16 @@ const saveCompletedSpaceLogin = async ({
     saveKeyAttributes(keyAttributes);
     saveOriginalKeyAttributes(keyAttributes);
 
-    const masterKey = await decryptBox(
-        {
-            encryptedData: keyAttributes.encryptedKey,
-            nonce: keyAttributes.keyDecryptionNonce,
-        },
+    const { masterKey, token: bootstrapAuthToken } = await unlockAccountWithKEK(
+        { id, token: authToken, encryptedToken, keyAttributes },
         kek,
     );
-    const tokenKeyAttributes = password
-        ? await generateAndSaveInteractiveKeyAttributes(
-              password,
-              keyAttributes,
-              masterKey,
-          )
-        : keyAttributes;
-    const bootstrapAuthToken =
-        authToken ??
-        (encryptedToken
-            ? await decryptSpaceBootstrapAuthToken(
-                  encryptedToken,
-                  tokenKeyAttributes,
-                  masterKey,
-              )
-            : undefined);
-    if (!bootstrapAuthToken) {
-        throw spaceAuthError("login_session_expired");
-    }
+    if (password)
+        await generateAndSaveInteractiveKeyAttributes(
+            password,
+            keyAttributes,
+            masterKey,
+        );
     const spaceRootKey = await getOrCreateSpaceRootKey(
         masterKey,
         bootstrapAuthToken,

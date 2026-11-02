@@ -7,6 +7,72 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.67 (mobile) - Oct 2026
+
+- Upgraded Flutter to 3.47.8
+- Refreshed onboarding, account recovery, and subscription screens.
+- Updated gallery headers for device albums, locations, people, and Discover collections, with smoother album-opening transitions.
+- Added a new photo picker with date-based selection and previews of selected photos and videos.
+- Improved the Add more sheet with a selected-photo count and scrolling while selecting.
+- Unified album and person selection sheets.
+- Added link sharing for Memory Lanes opened from the home screen.
+- Made the Memory Lane slider easier to use.
+- Made the gallery scrollbar easier to grab and kept it visible longer.
+- The gallery now returns to the last viewed photo when closing the viewer.
+- Reduced unnecessary thumbnail downloads when changing gallery layouts.
+- Pinned albums now appear first in Archive and Shared.
+- Backup mode is now offered on iOS with 50 or more pending files.
+- Improved recovery when photo access is denied during Local Gallery setup.
+- Added a reminder that photos shared from other apps may not include location information.
+- Strengthened Guest view by preventing captions and external navigation from opening other screens.
+- Improved privacy by redacting sensitive callback data from logs and keeping account credentials out of video-preview storage uploads.
+- Fixed a startup crash on affected older iOS versions.
+- Improved push notification registration on iOS.
+- Fixed the photo editor getting stuck when opening crop and rotate before a photo finishes loading.
+- Fixed incorrect aspect ratios for newly uploaded videos on Android.
+- Fixed missing gallery date labels after returning from the background.
+- Fixed face suggestions remaining stale after deleting or hiding photos.
+- Fixed the Save Changes button becoming inaccessible when editing album details with the keyboard open.
+- Fixed removed public links remaining visible in the links list.
+- Fixed Similar Images failing when a photo’s file size is unavailable.
+- Restored missing translations and improved interface copy.
+
+## v1.7.31 (desktop) - Oct 2026
+
+- Updated TLS certificate verification to reject compromised eMudhra certificates.
+
+## v1.3.66 (mobile) - Oct 2026
+
+- Added a mosaic gallery layout that shows photos in their original proportions.
+- Pinch in or out to switch gallery layouts and choose how many photos fit on your screen, including when selecting photos.
+- Add text to photos with a choice of fonts, colors, backgrounds, and alignment.
+- You can now straighten tilted photos.
+- Select text, stickers, and drawings to duplicate or delete them.
+- Updated photo adjustments with Tint and corrected Fade. Removed Sharpness and Luminance.
+- Redesigned albums with larger covers and quick slideshow and map buttons.
+- Refreshed album options and photo-selection menus.
+- Added Memory Lane to the home screen.
+- Made preparing photos and videos for upload faster.
+- Added Korean language support.
+- Updated maps with rounded photo markers and clearer photo counts.
+- Videos opened from other apps now support double-tap seeking and press-and-hold 2× playback.
+- Replaced Chewie with the Native/MediaKit player for videos opened from other apps.
+- Choose between sharing a copy and sharing a link from the photo viewer.
+- Made album participants’ roles clearer and their sharing options easier to access.
+- Added notifications when your first curated memories are ready.
+- Improved screen reader support for checkboxes.
+- Refreshed setup screens, empty Feed and Albums screens, and the logout confirmation.
+- Smoothed transitions between the gallery and photo viewer.
+- Fixed missing editor tools after cancelling an edit and improved the visibility of status and navigation icons in light and dark themes.
+- Fixed Photos, Videos, and Live Photos filters showing empty results in hidden albums.
+- Fixed overflowing album names in photo details, flickering people filters, and missing sharing recipients.
+- Fixed errors when viewing photo details with invalid exposure times.
+- Fixed the missing map back button when no photos have location information.
+- Fixed memories continuing to play behind the What’s New sheet.
+- Removed the Feed tab from Local Gallery.
+- Migrated machine-learning model downloads to the Rust assets crate.
+- Improved translations for sharing, account recovery, storage cleanup, and onboarding.
+
 ## v1.7.30 (desktop) - Oct 2026
 
 - Added slideshows for albums.

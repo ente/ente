@@ -24,7 +24,7 @@ Paired with the option to run Ente automatically when your computer starts, this
 
 5. When the app is syncing in the background it'll show a small progress status in the bottom right. You can expand it to see more details if needed.
 
-6. You can stop watching any folder by clicking on the three dots next to the watch folder entry, and then selecting **Stop watching**.
+6. You can stop watching any folder by clicking the **Stop watching** button next to the watch folder entry, then confirming with **Yes, stop**.
 
 > Note: In case you start a new upload while an existing sync is in progress, the sync will be paused then and resumed when your upload is done.
 
@@ -40,6 +40,7 @@ Note that a two way sync is not currently supported. Attempting to export data t
 - [How do I set up watch folders?](/photos/faq/backup-and-sync#set-up-watch-folders)
 - [Can I watch multiple folders at once?](/photos/faq/backup-and-sync#watch-multiple-folders)
 - [What happens if I delete a file from my watched folder?](/photos/faq/backup-and-sync#delete-from-watched-folder)
+- [Can I delete photos from my computer after a watch folder uploads them?](/photos/faq/backup-and-sync#delete-after-watch-folder-upload)
 - [Why are my watch folders not syncing?](/photos/faq/backup-and-sync#watch-folders-not-syncing)
 - [Can I watch folders on a network drive (NAS)?](/photos/faq/backup-and-sync#watch-nas)
 - [Can watch folders preserve my nested folder structure?](/photos/faq/backup-and-sync#watch-nested-structure)

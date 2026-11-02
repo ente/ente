@@ -22,6 +22,9 @@ impl Error {
                 Some("duplicate_legacy_kit_share")
             }
             Self::Legacy(ente_legacy::Error::LegacyKitInactive) => Some("legacy_kit_inactive"),
+            Self::Legacy(ente_legacy::Error::LegacyKitSessionExpired) => {
+                Some("legacy_kit_session_expired")
+            }
             _ => None,
         }
     }

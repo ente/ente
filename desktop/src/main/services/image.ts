@@ -21,7 +21,7 @@ export const convertToJPEG = async (
     const command = convertToJPEGCommand(inputFilePath, outputFilePath);
 
     try {
-        await fs.writeFile(inputFilePath, imageData);
+        await fs.writeFile(inputFilePath, imageData, { mode: 0o600 });
         await execAsync(command);
         return await fs.readFile(outputFilePath);
     } finally {

@@ -1,46 +1,51 @@
 import type { LocalUser } from "ente-accounts/services/user";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { describe, expect, test } from "vitest";
 import {
+    initialNavigationState,
+    navigationReducer,
+} from "../src/components/gallery/navigation/navigation-state";
+import {
     galleryReducer,
     initialGalleryState,
 } from "../src/components/gallery/reducer";
+import {
+    albumFiles,
+    albumView,
+} from "../src/components/gallery/sections/albums/album-files";
 
-const mounted = () =>
+const mounted = (
+    collections: Collection[] = [],
+    collectionFiles: EnteFile[] = [],
+) =>
     galleryReducer(initialGalleryState, {
         type: "mount",
         user: { id: 1 } as LocalUser,
         familyData: undefined,
-        collections: [],
-        collectionFiles: [],
+        collections,
+        collectionFiles,
         trashItems: [],
     });
 
 describe("album overview navigation", () => {
     test("opens a group without an active collection or stale photo search results", () => {
-        const state = galleryReducer(
-            {
-                ...mounted(),
-                isInSearchMode: true,
-                isRecomputingSearchResults: true,
-            },
+        const navigation = navigationReducer(
+            { ...initialNavigationState, overlay: { section: "search" } },
             { type: "showAlbumOverview", albumFilter: "shared" },
         );
-        expect(state.view).toEqual({
-            type: "album-overview",
-            albumFilter: "shared",
-        });
-        expect(state.selectedCollectionSummaryID).toBeUndefined();
-        expect(state.filteredFiles).toEqual([]);
-        expect(state.isInSearchMode).toBe(false);
-        expect(state.isRecomputingSearchResults).toBe(false);
-        expect(state.searchResults).toBeUndefined();
+        const library = mounted();
+        const view = albumView(library, navigation.destination);
+        expect(view).toEqual({ type: "album-overview", albumFilter: "shared" });
+        expect(navigation.destination.collectionID).toBeUndefined();
+        expect(albumFiles(library, view)).toEqual([]);
+        expect(navigation.overlay).toBeUndefined();
     });
-
     test("supports repeated group navigation, opening an album and returning Home", () => {
-        const start = mounted();
-        const favorite: CollectionSummary = {
+        const library = mounted();
+        const summary: CollectionSummary = {
             id: 10,
             type: "album",
             name: "Test album",
@@ -51,68 +56,112 @@ describe("album overview navigation", () => {
             latestFile: undefined,
             updationTime: undefined,
         };
-        start.normalCollectionSummaries.set(favorite.id, favorite);
-        let state = galleryReducer(start, {
+        library.normalCollectionSummaries.set(summary.id, summary);
+        let navigation = navigationReducer(initialNavigationState, {
             type: "showAlbumOverview",
             albumFilter: "ente",
         });
-        state = galleryReducer(state, {
+        navigation = navigationReducer(navigation, {
             type: "showAlbumOverview",
             albumFilter: "received",
         });
-        state = galleryReducer(state, {
+        navigation = navigationReducer(navigation, {
             type: "showCollectionSummary",
-            collectionSummaryID: favorite.id,
+            collectionSummaryID: 10,
+            library,
         });
-        expect(state.view?.type).toBe("albums");
-        expect(state.selectedCollectionSummaryID).toBe(favorite.id);
-        state = galleryReducer(state, { type: "showAll" });
-        expect(
-            state.view?.type == "albums" &&
-                state.view.activeCollectionSummaryID,
-        ).toBe(PseudoCollectionID.all);
+        expect(albumView(library, navigation.destination).type).toBe("albums");
+        expect(navigation.destination.collectionID).toBe(10);
+        navigation = navigationReducer(navigation, { type: "showAll" });
+        expect(navigation.destination.collectionID).toBe(
+            PseudoCollectionID.all,
+        );
     });
-
-    test("keeps the group overview through collection refreshes", () => {
-        let state = galleryReducer(mounted(), {
+    test("refreshes populated album summaries while keeping the group overview", () => {
+        const album: Collection = {
+            id: 10,
+            name: "Original album",
+            type: "album",
+            owner: { id: 1 },
+            key: "album-key",
+            sharees: [],
+            publicURLs: [],
+            updationTime: 1,
+        };
+        const files: EnteFile[] = [1, 2, 3].map((id) => ({
+            id,
+            collectionID: album.id,
+            ownerID: 1,
+            key: "file-key",
+            file: { decryptionHeader: "" },
+            thumbnail: { decryptionHeader: "" },
+            updationTime: id,
+            metadata: {
+                fileType: 0,
+                title: `${id}.jpg`,
+                creationTime: id,
+                modificationTime: id,
+            },
+        }));
+        let library = mounted([album], files.slice(0, 1));
+        const navigation = navigationReducer(initialNavigationState, {
             type: "showAlbumOverview",
             albumFilter: "ente",
         });
-        state = galleryReducer(state, {
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Original album",
+            fileCount: 1,
+            coverFile: { id: 1 },
+        });
+        library = galleryReducer(library, {
             type: "setCollections",
-            collections: [],
+            collections: [{ ...album, name: "Renamed album", updationTime: 2 }],
         });
-        state = galleryReducer(state, {
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Renamed album",
+            fileCount: 1,
+            coverFile: { id: 1 },
+        });
+        library = galleryReducer(library, {
             type: "setCollectionFiles",
-            collectionFiles: [],
+            collectionFiles: files.slice(1),
         });
-        state = galleryReducer(state, {
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Renamed album",
+            fileCount: 2,
+            coverFile: { id: 3 },
+        });
+        library = galleryReducer(library, {
             type: "setTrashItems",
-            trashItems: [],
+            trashItems: [{ file: files[0]!, updatedAt: 4, deleteBy: 5 }],
         });
-        state = galleryReducer(state, { type: "clearUnsyncedState" });
-        expect(state.view).toEqual({
-            type: "album-overview",
-            albumFilter: "ente",
+        expect(
+            library.normalCollectionSummaries.get(PseudoCollectionID.trash)
+                ?.fileCount,
+        ).toBe(1);
+        library = galleryReducer(library, { type: "clearUnsyncedState" });
+        const view = albumView(library, navigation.destination);
+        expect(view).toEqual({ type: "album-overview", albumFilter: "ente" });
+        expect(library.normalCollectionSummaries.get(album.id)).toMatchObject({
+            name: "Renamed album",
+            fileCount: 2,
+            coverFile: { id: 3 },
         });
-        expect(state.filteredFiles).toEqual([]);
     });
-
     test("switches between the People overview and album groups", () => {
-        let state = galleryReducer(mounted(), {
+        let navigation = navigationReducer(initialNavigationState, {
             type: "showAlbumOverview",
             albumFilter: "ente",
         });
-        state = galleryReducer(state, { type: "showPeople" });
-        expect(state.view?.type).toBe("people");
-        state = galleryReducer(state, {
+        navigation = navigationReducer(navigation, { type: "showPeople" });
+        expect(navigation.destination.section).toBe("people");
+        navigation = navigationReducer(navigation, {
             type: "showAlbumOverview",
             albumFilter: "shared",
         });
-        expect(state.view).toEqual({
+        expect(albumView(mounted(), navigation.destination)).toEqual({
             type: "album-overview",
             albumFilter: "shared",
         });
-        expect(state.filteredFiles).toEqual([]);
     });
 });

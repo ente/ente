@@ -101,12 +101,14 @@ async fn request_and_confirm_friend(
 
 #[test]
 fn space_e2e() -> TestResult {
-    Museum::run_async(run)
+    Museum::run(|museum| tokio::runtime::Runtime::new()?.block_on(run(museum)))
 }
 
-async fn run(endpoint: String) -> TestResult {
-    space_bootstrap_posts_and_friend_share_suite(&endpoint).await;
-    space_unfriend_revokes_reciprocal_account_access_suite(&endpoint).await;
+async fn run(museum: &Museum) -> TestResult {
+    let endpoint = museum.endpoint();
+    space_comments_suite(museum).await;
+    space_bootstrap_posts_and_friend_share_suite(endpoint).await;
+    space_unfriend_revokes_reciprocal_account_access_suite(endpoint).await;
     Ok(())
 }
 
@@ -645,5 +647,643 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
             )
             .await,
         403,
+    );
+}
+
+async fn space_comments_suite(museum: &Museum) {
+    let endpoint = museum.endpoint();
+    let x_account = auth::create_account(endpoint, "comments-x").await;
+    let y_account = auth::create_account(endpoint, "comments-y").await;
+    let z_account = auth::create_account(endpoint, "comments-z").await;
+    let outsider_account = auth::create_account(endpoint, "comments-outsider").await;
+    let x = space::open_ctx(endpoint, &x_account).await;
+    let y = space::open_ctx(endpoint, &y_account).await;
+    let z = space::open_ctx(endpoint, &z_account).await;
+    let outsider = space::open_ctx(endpoint, &outsider_account).await;
+    let xs = x
+        .create_space(
+            &format!("cx_{}", x_account.user_id),
+            &space::profile_payload("X private name", "X bio"),
+        )
+        .await
+        .unwrap();
+    let ys = y
+        .create_space(
+            &format!("cy_{}", y_account.user_id),
+            &space::profile_payload("Y private name", "Y bio"),
+        )
+        .await
+        .unwrap();
+    let zs = z
+        .create_space(
+            &format!("cz_{}", z_account.user_id),
+            &space::profile_payload("Z private name", "Z bio"),
+        )
+        .await
+        .unwrap();
+    let os = outsider
+        .create_space(
+            &format!("co_{}", outsider_account.user_id),
+            &space::profile_payload("Outsider", "Private"),
+        )
+        .await
+        .unwrap();
+    z.update_space_profile_with_avatar(
+        &zs.space_id,
+        &space::profile_payload("Z private name", "Z bio"),
+        TEST_WEBP_BYTES,
+    )
+    .await
+    .unwrap();
+    request_and_confirm_friend(&y, &ys.space_id, &x, &xs.space_id, &xs.space_slug).await;
+    request_and_confirm_friend(&z, &zs.space_id, &x, &xs.space_id, &xs.space_slug).await;
+    let post = x
+        .create_photo_post(
+            &xs.space_id,
+            [PostPhotoInput {
+                bytes: TEST_WEBP_BYTES.to_vec(),
+                options: PostPhotoAssetOptions {
+                    width: Some(320),
+                    height: Some(240),
+                    media_type: Some("image/webp".into()),
+                    thumb_hash: None,
+                },
+            }]
+            .into_iter(),
+            Some("Post with comments"),
+        )
+        .await
+        .unwrap();
+    let id = post.post_id;
+    space::assert_http_status(
+        outsider
+            .list_comments(&os.space_id, &xs.space_id, id, None)
+            .await,
+        404,
+    );
+    y.create_comment(
+        &ys.space_id,
+        &xs.space_id,
+        id,
+        "comment-y",
+        None,
+        "Hello everyone",
+    )
+    .await
+    .unwrap();
+    z.create_comment(
+        &zs.space_id,
+        &xs.space_id,
+        id,
+        "reply-z",
+        Some("comment-y"),
+        "Hello Y",
+    )
+    .await
+    .unwrap();
+    y.create_comment(
+        &ys.space_id,
+        &xs.space_id,
+        id,
+        "reply-y",
+        Some("reply-z"),
+        "Hello Z",
+    )
+    .await
+    .unwrap();
+    z.set_comment_reaction(&zs.space_id, &xs.space_id, id, "comment-y", Some("❤️"))
+        .await
+        .unwrap();
+    y.set_comment_reaction(&ys.space_id, &xs.space_id, id, "reply-z", Some("🎉"))
+        .await
+        .unwrap();
+    space::assert_http_status(
+        y.remove_comment_reaction(&ys.space_id, id, "comment-y", &zs.space_id)
+            .await,
+        403,
+    );
+    let raw: serde_json::Value = y
+        .api()
+        .get(&format!(
+            "/spaces/{}/discussions/{id}/comments",
+            ys.space_id
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let asset = &post.content.as_ref().unwrap().photos[0].asset;
+    let space_key = x
+        .resolve_space_key_for_version_for_viewer(
+            &xs.space_id,
+            Some(&xs.space_id),
+            Some(asset.key_version),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    let post_key = ente_core::crypto::secretbox::decrypt_combined(
+        &ente_core::b64::decode(&asset.encrypted_post_key).unwrap(),
+        &ente_core::crypto::Key::try_from_slice(&space_key).unwrap(),
+    )
+    .unwrap();
+    let post_key = ente_core::crypto::Key::try_from_slice(&post_key).unwrap();
+    for (cipher, text) in [
+        (&raw["items"][0]["cipher"], "Hello everyone"),
+        (&raw["items"][0]["reactions"][0]["cipher"], "❤️"),
+    ] {
+        let bytes = ente_core::crypto::secretbox::decrypt_combined(
+            &ente_core::b64::decode(cipher.as_str().unwrap()).unwrap(),
+            &post_key,
+        )
+        .unwrap();
+        let payload: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(payload["text"], text);
+    }
+    let comments = y
+        .list_comments(&ys.space_id, &xs.space_id, id, None)
+        .await
+        .unwrap();
+    assert_eq!(comments.items.len(), 3);
+    assert_eq!(comments.items[0].text.as_deref(), Some("Hello everyone"));
+    assert_eq!(comments.items[1].text.as_deref(), Some("Hello Y"));
+    assert_eq!(comments.items[2].parent_id, "comment-y");
+    assert_eq!(comments.items[2].reply_to_id, "reply-z");
+    assert!(
+        comments.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_none()
+    );
+    assert!(comments.items[1].author.as_ref().unwrap().avatar.is_none());
+    assert_eq!(
+        comments.items[1].author.as_ref().unwrap().space_slug,
+        zs.space_slug
+    );
+    assert!(!comments.items[1].can_delete);
+    assert_eq!(comments.items[0].reactions[0].emoji, "❤️");
+    assert!(
+        comments.items[0].reactions[0]
+            .actor
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        y.resolve_space_key_for_version_for_viewer(&zs.space_id, Some(&ys.space_id), None)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    x.remove_comment_reaction(&xs.space_id, id, "reply-z", &ys.space_id)
+        .await
+        .unwrap();
+    assert!(
+        y.list_comments(&ys.space_id, &xs.space_id, id, None)
+            .await
+            .unwrap()
+            .items[1]
+            .reactions
+            .is_empty()
+    );
+    let owner_view = x
+        .list_comments(&xs.space_id, &xs.space_id, id, None)
+        .await
+        .unwrap();
+    assert!(
+        owner_view.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        owner_view.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .avatar
+            .is_some()
+    );
+    request_and_confirm_friend(&y, &ys.space_id, &z, &zs.space_id, &zs.space_slug).await;
+    let friend_view = y
+        .list_comments(&ys.space_id, &xs.space_id, id, None)
+        .await
+        .unwrap();
+    assert!(
+        friend_view.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        friend_view.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .avatar
+            .is_some()
+    );
+    z.unfriend_by_space(&zs.space_id, &ys.space_id)
+        .await
+        .unwrap();
+    let nonfriend_view = y
+        .list_comments(&ys.space_id, &xs.space_id, id, None)
+        .await
+        .unwrap();
+    assert!(
+        nonfriend_view.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        nonfriend_view.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .avatar
+            .is_none()
+    );
+    assert!(
+        nonfriend_view.items[0].reactions[0]
+            .actor
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_none()
+    );
+    assert!(nonfriend_view.items[0].reactions[0].actor.avatar.is_none());
+    space::assert_http_status(
+        y.get_space_profile_raw(&zs.space_id, Some(&ys.space_id), None)
+            .await,
+        403,
+    );
+    let notifications = y
+        .list_notifications(&ys.space_id, None, None)
+        .await
+        .unwrap();
+    let reply = notifications
+        .items
+        .iter()
+        .find(|item| item.kind == "comment_reply")
+        .unwrap();
+    assert_eq!(reply.post_space_id.as_deref(), Some(xs.space_id.as_str()));
+    assert!(reply.actors[0].profile.as_ref().unwrap().is_none());
+    assert!(reply.actors[0].avatar.is_none());
+    assert_eq!(reply.actors[0].space_slug, zs.space_slug);
+    let object_key = &post.content.as_ref().unwrap().photos[0].asset.object_key;
+    y.reply_to_post(
+        &ys.space_id,
+        &xs.space_id,
+        id,
+        "Only for X",
+        Some(object_key),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        z.list_comments(&zs.space_id, &xs.space_id, id, None)
+            .await
+            .unwrap()
+            .items
+            .len(),
+        3
+    );
+    space::assert_http_status(y.delete_comment(&ys.space_id, id, "reply-z").await, 403);
+    z.set_comment_reaction(&zs.space_id, &xs.space_id, id, "comment-y", None)
+        .await
+        .unwrap();
+    assert!(
+        y.list_comments(&ys.space_id, &xs.space_id, id, None)
+            .await
+            .unwrap()
+            .items[0]
+            .reactions
+            .is_empty()
+    );
+    x.delete_comment(&xs.space_id, id, "reply-z").await.unwrap();
+    let comments = y
+        .list_comments(&ys.space_id, &xs.space_id, id, None)
+        .await
+        .unwrap();
+    assert!(comments.items[1].deleted);
+    assert!(comments.items[1].text.is_none());
+    assert!(comments.items[1].reactions.is_empty());
+    assert!(comments.items[2].deleted);
+    assert!(comments.items[2].text.is_none());
+    assert!(comments.items[2].reactions.is_empty());
+    space::assert_http_status(
+        y.create_comment(
+            &ys.space_id,
+            &xs.space_id,
+            id,
+            "deleted-reply",
+            Some("reply-z"),
+            "No",
+        )
+        .await,
+        404,
+    );
+    x.request_friend_by_username(&xs.space_id, &os.space_slug)
+        .await
+        .unwrap();
+    y.create_comment(
+        &ys.space_id,
+        &xs.space_id,
+        id,
+        "while-pending",
+        None,
+        "During the request",
+    )
+    .await
+    .unwrap();
+    space::assert_http_status(
+        outsider
+            .list_comments(&os.space_id, &xs.space_id, id, None)
+            .await,
+        404,
+    );
+    let pending = outsider.list_friend_requests(&os.space_id).await.unwrap();
+    outsider
+        .confirm_friend_request(&os.space_id, pending[0].request_id)
+        .await
+        .unwrap();
+    assert_eq!(
+        outsider
+            .list_comments(&os.space_id, &xs.space_id, id, None)
+            .await
+            .unwrap()
+            .items
+            .last()
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("During the request")
+    );
+    assert_eq!(
+        outsider
+            .list_comments(&os.space_id, &xs.space_id, id, None)
+            .await
+            .unwrap()
+            .items[0]
+            .text
+            .as_deref(),
+        Some("Hello everyone")
+    );
+    x.unfriend_by_space(&xs.space_id, &zs.space_id)
+        .await
+        .unwrap();
+    space::assert_http_status(
+        z.list_comments(&zs.space_id, &xs.space_id, id, None).await,
+        404,
+    );
+    space::assert_http_status(
+        z.create_comment(
+            &zs.space_id,
+            &xs.space_id,
+            id,
+            "removed-z",
+            None,
+            "No access",
+        )
+        .await,
+        403,
+    );
+    space::assert_http_status(
+        z.set_comment_reaction(&zs.space_id, &xs.space_id, id, "comment-y", Some("❤️"))
+            .await,
+        403,
+    );
+    assert!(
+        !z.list_notifications(&zs.space_id, None, None)
+            .await
+            .unwrap()
+            .items
+            .iter()
+            .any(|item| item.kind.starts_with("comment"))
+    );
+    let revoked_write = z
+        .api()
+        .post(&format!(
+            "/spaces/{}/discussions/{id}/comments",
+            zs.space_id
+        ))
+        .json(&serde_json::json!({"commentId":"stale-access", "cipher":"YWJj"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(revoked_write.status(), 404);
+    let revoked_reaction = z
+        .api()
+        .put(&format!(
+            "/spaces/{}/discussions/{id}/comments/comment-y/reaction",
+            zs.space_id
+        ))
+        .json(&serde_json::json!({"cipher":"YWJj"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(revoked_reaction.status(), 404);
+    y.create_comment(
+        &ys.space_id,
+        &xs.space_id,
+        id,
+        "after-removal",
+        None,
+        "Still accessible",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        outsider
+            .list_comments(&os.space_id, &xs.space_id, id, None)
+            .await
+            .unwrap()
+            .items
+            .last()
+            .unwrap()
+            .text
+            .as_deref(),
+        Some("Still accessible")
+    );
+    y.delete_comment(&ys.space_id, id, "comment-y")
+        .await
+        .unwrap();
+    space::assert_http_status(
+        outsider
+            .create_comment(
+                &os.space_id,
+                &xs.space_id,
+                id,
+                "continued-thread",
+                Some("reply-y"),
+                "Cannot continue this thread",
+            )
+            .await,
+        404,
+    );
+    let deleted_thread = y
+        .list_comments(&ys.space_id, &xs.space_id, id, None)
+        .await
+        .unwrap();
+    for comment in deleted_thread
+        .items
+        .iter()
+        .filter(|item| item.comment_id == "comment-y" || item.parent_id == "comment-y")
+    {
+        assert!(comment.deleted);
+        assert!(comment.text.is_none());
+        assert!(comment.reactions.is_empty());
+    }
+    space::assert_http_status(
+        y.create_comment(
+            &ys.space_id,
+            &xs.space_id,
+            id,
+            "deleted-root-target",
+            Some("comment-y"),
+            "No",
+        )
+        .await,
+        404,
+    );
+    x.delete_post(&xs.space_id, id).await.unwrap();
+    space::assert_http_status(
+        y.list_comments(&ys.space_id, &xs.space_id, id, None).await,
+        404,
+    );
+    assert!(
+        !y.list_notifications(&ys.space_id, None, None)
+            .await
+            .unwrap()
+            .items
+            .iter()
+            .any(|item| item.kind.starts_with("comment"))
+    );
+    let post = x
+        .create_photo_post(
+            &xs.space_id,
+            [PostPhotoInput {
+                bytes: TEST_WEBP_BYTES.to_vec(),
+                options: PostPhotoAssetOptions {
+                    width: Some(320),
+                    height: Some(240),
+                    media_type: Some("image/webp".into()),
+                    thumb_hash: None,
+                },
+            }]
+            .into_iter(),
+            Some("Discussion deletion"),
+        )
+        .await
+        .unwrap();
+    for (ctx, viewer, id, target) in [
+        (&x, &xs.space_id, "delete-root-x", None),
+        (&y, &ys.space_id, "delete-reply-y", Some("delete-root-x")),
+        (&x, &xs.space_id, "delete-reply-x", Some("delete-reply-y")),
+        (&y, &ys.space_id, "delete-root-y", None),
+        (&x, &xs.space_id, "delete-child-x", Some("delete-root-y")),
+    ] {
+        ctx.create_comment(viewer, &xs.space_id, post.post_id, id, target, id)
+            .await
+            .unwrap();
+    }
+    y.set_comment_reaction(
+        &ys.space_id,
+        &xs.space_id,
+        post.post_id,
+        "delete-root-x",
+        Some("❤️"),
+    )
+    .await
+    .unwrap();
+    let before = x
+        .list_comments(&xs.space_id, &xs.space_id, post.post_id, None)
+        .await
+        .unwrap();
+    assert!(
+        before.items[1]
+            .author
+            .as_ref()
+            .unwrap()
+            .profile
+            .as_ref()
+            .unwrap()
+            .is_some()
+    );
+    for sql in [
+        format!(
+            "UPDATE users SET encrypted_email = NULL WHERE user_id = {}",
+            y_account.user_id
+        ),
+        format!("DELETE FROM spaces WHERE owner_id = {}", y_account.user_id),
+    ] {
+        museum.execute_sql(&sql).unwrap();
+        let comments = x
+            .list_comments(&xs.space_id, &xs.space_id, post.post_id, None)
+            .await
+            .unwrap();
+        assert_eq!(comments.items.len(), 5);
+        for item in &comments.items {
+            if item.comment_id != "delete-root-x" {
+                assert!(item.deleted);
+                assert!(item.text.is_none());
+            } else {
+                assert!(!item.deleted);
+                assert_eq!(item.text.as_deref(), Some(item.comment_id.as_str()));
+            }
+            if item.comment_id == "delete-reply-y" || item.comment_id == "delete-root-y" {
+                assert!(item.author.is_none());
+            }
+            assert!(item.reactions.is_empty());
+        }
+        assert_eq!(comments.items[2].reply_to_id, "delete-reply-y");
+        assert_eq!(comments.items[2].parent_id, "delete-root-x");
+        assert_eq!(comments.items[4].reply_to_id, "delete-root-y");
+        assert_eq!(comments.items[4].parent_id, "delete-root-y");
+    }
+    space::assert_http_status(
+        x.create_comment(
+            &xs.space_id,
+            &xs.space_id,
+            post.post_id,
+            "after-account-deletion",
+            Some("delete-child-x"),
+            "Cannot continue the deleted thread",
+        )
+        .await,
+        404,
+    );
+    museum
+        .execute_sql(&format!(
+            "DELETE FROM space_posts WHERE post_id = {}",
+            post.post_id
+        ))
+        .unwrap();
+    space::assert_http_status(
+        x.list_comments(&xs.space_id, &xs.space_id, post.post_id, None)
+            .await,
+        404,
     );
 }

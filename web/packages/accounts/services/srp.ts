@@ -1,21 +1,23 @@
-import { namedError } from "ente-base/error";
+import { isNamedError } from "ente-base/error";
+import { ensureAuthToken } from "ente-base/token";
 import {
-    authenticatedRequestHeaders,
-    ensureOk,
-    publicRequestHeaders,
-} from "ente-base/http";
-import { apiURL } from "ente-base/origins";
-import {
-    createSRPSession,
-    deriveSRPLoginKey,
     generateSRPSetup,
+    completeSignup as rustCompleteSignup,
+    getSRPAttributes as rustGetSRPAttributes,
+    setupSRP as rustSetupSRP,
+    verifySRP as rustVerifySRP,
 } from "ente-prelogin-wasm";
 import { ensure } from "ente-utils/ensure";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
-import { saveSRPAttributes } from "./accounts-db";
+import { withAccountsClient } from "./accounts-client";
 import {
-    RemoteSRPVerificationResponse,
+    savedOriginalKeyAttributes,
+    saveSRPAttributes,
+    unstashAfterUseSRPSetupAttributes,
+} from "./accounts-db";
+import {
+    RemoteEmailOrSRPVerificationResponse,
     type EmailOrSRPVerificationResponse,
 } from "./user";
 
@@ -40,13 +42,16 @@ export const RemoteSRPAttributes = z.object({
 export const getSRPAttributes = async (
     email: string,
 ): Promise<SRPAttributes | undefined> => {
-    const res = await fetch(await apiURL("/users/srp/attributes", { email }), {
-        headers: publicRequestHeaders(),
-    });
-    if (res.status == 404) return undefined;
-    ensureOk(res);
-    return z.object({ attributes: RemoteSRPAttributes }).parse(await res.json())
-        .attributes;
+    try {
+        return RemoteSRPAttributes.parse(
+            await withAccountsClient((client) =>
+                rustGetSRPAttributes(client, email),
+            ),
+        );
+    } catch (error) {
+        if (isNamedError(error, "srp_not_configured")) return undefined;
+        throw error;
+    }
 };
 
 export const SRPSetupAttributes = z.object({
@@ -60,195 +65,38 @@ export type SRPSetupAttributes = z.infer<typeof SRPSetupAttributes>;
 
 export const generateSRPSetupAttributes = async (
     kek: string,
-): Promise<SRPSetupAttributes> => {
-    const srpUserID = uuidv4();
-    return { srpUserID, ...(await generateSRPSetup(kek, srpUserID)) };
+): Promise<SRPSetupAttributes> => generateSRPSetup(kek, uuidv4());
+
+export const setupSRP = async (srpSetupAttributes: SRPSetupAttributes) => {
+    const token = await ensureAuthToken();
+    return withAccountsClient((client) =>
+        rustSetupSRP(client, token, srpSetupAttributes),
+    );
 };
 
-export const setupSRP = async (srpSetupAttributes: SRPSetupAttributes) =>
-    srpSetupOrReconfigure(srpSetupAttributes, completeSRPSetup);
-
-type SRPSetupOrReconfigureExchangeCallback = ({
-    setupID,
-    srpM1,
-}: {
-    setupID: string;
-    srpM1: string;
-}) => Promise<{ srpM2: string }>;
-
-const srpSetupOrReconfigure = async (
-    { srpSalt, srpUserID, srpVerifier, loginSubKey }: SRPSetupAttributes,
-    exchangeCB: SRPSetupOrReconfigureExchangeCallback,
-) => {
-    const session = await createSRPSession(srpSalt, srpUserID, loginSubKey);
-
-    const { setupID, srpB } = await startSRPSetup({
-        srpUserID,
-        srpSalt,
-        srpVerifier,
-        srpA: session.publicA(),
+export const completePendingSignup = async (email: string, token: string) => {
+    const attributes = savedOriginalKeyAttributes();
+    if (!attributes) return;
+    await unstashAfterUseSRPSetupAttributes(async (setup) => {
+        saveSRPAttributes(
+            RemoteSRPAttributes.parse(
+                await withAccountsClient((client) =>
+                    rustCompleteSignup(client, email, token, attributes, setup),
+                ),
+            ),
+        );
     });
-
-    const { srpM2 } = await exchangeCB({
-        setupID,
-        srpM1: session.computeM1(srpB),
-    });
-
-    session.verifyM2(srpM2);
-};
-
-interface SetupSRPRequest {
-    srpUserID: string;
-    srpSalt: string;
-    srpVerifier: string;
-    srpA: string;
-}
-
-const SetupSRPResponse = z.object({ setupID: z.string(), srpB: z.string() });
-
-const startSRPSetup = async (
-    setupSRPRequest: SetupSRPRequest,
-): Promise<z.infer<typeof SetupSRPResponse>> => {
-    const res = await fetch(await apiURL("/users/srp/setup"), {
-        method: "POST",
-        headers: await authenticatedRequestHeaders(),
-        body: JSON.stringify(setupSRPRequest),
-    });
-    ensureOk(res);
-    return SetupSRPResponse.parse(await res.json());
-};
-
-const CompleteSRPSetupResponse = z.object({
-    setupID: z.string(),
-    srpM2: z.string(),
-});
-
-const completeSRPSetup = async ({
-    setupID,
-    srpM1,
-}: {
-    setupID: string;
-    srpM1: string;
-}) => {
-    const res = await fetch(await apiURL("/users/srp/complete"), {
-        method: "POST",
-        headers: await authenticatedRequestHeaders(),
-        body: JSON.stringify({ setupID, srpM1 }),
-    });
-    ensureOk(res);
-    return CompleteSRPSetupResponse.parse(await res.json());
 };
 
 export const getAndSaveSRPAttributes = async (userEmail: string) =>
     saveSRPAttributes(ensure(await getSRPAttributes(userEmail)));
 
-interface UpdatedKeyAttr {
-    kekSalt: string;
-    encryptedKey: string;
-    keyDecryptionNonce: string;
-    opsLimit: number;
-    memLimit: number;
-}
-
-export const updateSRPAndKeyAttributes = (
-    srpSetupAttributes: SRPSetupAttributes,
-    updatedKeyAttr: UpdatedKeyAttr,
-) =>
-    srpSetupOrReconfigure(srpSetupAttributes, ({ setupID, srpM1 }) =>
-        updateSRPAndKeys({ setupID, srpM1, updatedKeyAttr }),
-    );
-
-interface UpdateSRPAndKeysRequest {
-    setupID: string;
-    srpM1: string;
-    updatedKeyAttr: UpdatedKeyAttr;
-    logOutOtherDevices?: boolean;
-}
-
-const UpdateSRPAndKeysResponse = z.object({
-    srpM2: z.string(),
-    setupID: z.string(),
-});
-
-const updateSRPAndKeys = async (
-    updateSRPAndKeysRequest: UpdateSRPAndKeysRequest,
-): Promise<z.infer<typeof UpdateSRPAndKeysResponse>> => {
-    const res = await fetch(await apiURL("/users/srp/update"), {
-        method: "POST",
-        headers: await authenticatedRequestHeaders(),
-        body: JSON.stringify(updateSRPAndKeysRequest),
-    });
-    ensureOk(res);
-    return UpdateSRPAndKeysResponse.parse(await res.json());
-};
-
 export const verifySRP = async (
-    { srpUserID, srpSalt }: SRPAttributes,
+    attributes: SRPAttributes,
     kek: string,
-): Promise<EmailOrSRPVerificationResponse> => {
-    const session = await createSRPSession(
-        srpSalt,
-        srpUserID,
-        await deriveSRPLoginKey(kek),
+): Promise<EmailOrSRPVerificationResponse> =>
+    RemoteEmailOrSRPVerificationResponse.parse(
+        await withAccountsClient((client) =>
+            rustVerifySRP(client, attributes, kek),
+        ),
     );
-
-    const { srpB, sessionID } = await createSRPSessionOnRemote({
-        srpUserID,
-        srpA: session.publicA(),
-    });
-
-    const { srpM2, ...rest } = await verifySRPSession({
-        sessionID,
-        srpUserID,
-        srpM1: session.computeM1(srpB),
-    });
-
-    session.verifyM2(srpM2);
-
-    return rest;
-};
-
-const CreateSRPSessionResponse = z.object({
-    sessionID: z.string(),
-    srpB: z.string(),
-});
-
-const createSRPSessionOnRemote = async ({
-    srpUserID,
-    srpA,
-}: {
-    srpUserID: string;
-    srpA: string;
-}): Promise<z.infer<typeof CreateSRPSessionResponse>> => {
-    const res = await fetch(await apiURL("/users/srp/create-session"), {
-        method: "POST",
-        headers: publicRequestHeaders(),
-        body: JSON.stringify({ srpUserID, srpA }),
-    });
-    ensureOk(res);
-    return CreateSRPSessionResponse.parse(await res.json());
-};
-
-const verifySRPSession = async ({
-    sessionID,
-    srpUserID,
-    srpM1,
-}: {
-    sessionID: string;
-    srpUserID: string;
-    srpM1: string;
-}): Promise<z.infer<typeof RemoteSRPVerificationResponse>> => {
-    const res = await fetch(await apiURL("/users/srp/verify-session"), {
-        method: "POST",
-        headers: publicRequestHeaders(),
-        body: JSON.stringify({ sessionID, srpUserID, srpM1 }),
-    });
-    if (res.status == 401) {
-        throw namedError(
-            "srp_verification_unauthorized",
-            "SRP verification failed (HTTP 401 Unauthorized)",
-        );
-    }
-    ensureOk(res);
-    return RemoteSRPVerificationResponse.parse(await res.json());
-};

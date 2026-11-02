@@ -4,7 +4,7 @@ import 'package:ente_contacts/contacts.dart';
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_sharing/extensions/user_extension.dart";
 import "package:ente_sharing/models/user.dart";
-import "package:ente_sharing/user_avator_widget.dart";
+import "package:ente_sharing/user_avatar_widget.dart";
 import "package:ente_sharing/verify_identity_dialog.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/date_time_picker.dart";

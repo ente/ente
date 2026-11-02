@@ -6,7 +6,7 @@ import {
     slideshowFiles,
     slideshowIndex,
     slideshowPrefetchFiles,
-} from "../src/components/Collections/album-slideshow";
+} from "../src/components/collections/album-slideshow";
 
 const photo = (id: number, fileType: FileType = FileType.image) =>
     ({ id, metadata: { fileType } }) as EnteFile;

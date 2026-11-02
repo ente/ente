@@ -1573,7 +1573,6 @@
   "mlConsent": "Įjungti mašininį mokymąsi",
   "mlConsentConfirmation": "Suprantu ir noriu įjungti mašininį mokymąsi",
   "mlConsentDescription": "Jei įjungsite mašininį mokymąsi, „Ente“ išsitrauks tokią informaciją kaip veido geometrija iš failų, įskaitant tuos, kuriais su jumis bendrinama.\n\nTai bus daroma jūsų įrenginyje, o visa sugeneruota biometrinė informacija bus visapusiškai užšifruota.",
-  "mlConsentPrivacy": "Spustelėkite čia dėl išsamesnės informacijos apie šią funkciją mūsų privatumo politikoje",
   "mlCouldNotProcessItems": "{count, plural, one {Nepavyko apdoroti {count} elemento} few {Nepavyko apdoroti {count} elementų} many {Nepavyko apdoroti {count} elemento} other {Nepavyko apdoroti {count} elementų}}",
   "@mlCouldNotProcessItems": {
     "description": "Title shown when machine learning could not process one or more items",

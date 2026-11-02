@@ -17,6 +17,8 @@ We decided to leave out the **i** from **GiBs** to reduce noise on our interface
 
 This means that the same file appears to take up less "storage" on Ente compared to providers using GB (base-1000) calculation.
 
+Storage usage in the mobile app is rounded for display, so a small upload may not visibly change the total. To check pending uploads, see [Backup status](/photos/faq/backup-and-sync#check-backup-status).
+
 ### How does Ente deduplicate photos? {#deduplication}
 
 Ente automatically detects and handles duplicate files during backup to save storage space:
@@ -181,6 +183,21 @@ Note that family plans are meant as a way to share storage. For sharing photos, 
 
 Learn more in the [Family plans guide](/photos/features/account/family-plans).
 
+### Where do I manage my family plan? {#manage-family-plan}
+
+The path depends on the app:
+
+- **Mobile (Android and iOS):** Open `Settings > Family`.
+- **Web and desktop:** Open `Settings > Account > Manage subscription`, then select **Manage family**. You can also open your subscription from the storage card at the top of Settings. There is no separate **Family** item in web or desktop Settings.
+
+On mobile, **Family** appears only when you are signed in to an Ente account. It is not shown in gallery mode. If you use the free plan and are not in a family, this page shows an overview with **View plans**. On web and desktop, **Manage family** appears after you subscribe to a paid plan.
+
+If you manage the family plan, you can see shared storage and members. From there, you can invite people, resend or revoke pending invitations, set storage limits, and remove members.
+
+If you are a member, you cannot manage invitations, members, or storage limits. On mobile, `Settings > Family` shows family storage and active members. Use the top-right menu there to **Leave family plan**. On web and desktop, open **Manage subscription** or the storage card to see the managing account and **Leave family plan**.
+
+Each member's photos stay private unless they choose to share them.
+
 ### How many family members can I add to my plan? {#family-members-limit}
 
 You can invite up to 5 family members to your plan. Including yourself, a total of 6 people can share a single subscription while paying only once.
@@ -203,7 +220,7 @@ No. Each family member gets their own private space, and members cannot see each
 
 Yes! As the family plan admin, you can set storage limits for each member:
 
-1. Open Subscription > Manage family
+1. Open [family settings](#manage-family-plan)
 2. Find the member you want to limit
 3. Click the edit icon
 4. Set the storage limit (e.g., 10 GB)
@@ -217,11 +234,11 @@ If a family member accepted your invitation but their account shows 0 GB of avai
 
 **Solution 1: Check if they actually accepted the invite**
 
-Open `Settings > Family plans`, check the "Members" list, and confirm their status shows "Active" (not "Invited" or "Pending"). If still showing as "Invited", ask them to check their email and accept the invitation.
+Open [family settings](#manage-family-plan), check the "Members" list, and confirm their status shows "Active" (not "Invited" or "Pending"). If still showing as "Invited", ask them to check their email and accept the invitation.
 
 **Solution 2: Check if you've set a storage limit**
 
-Open `Settings > Family plans`, find the member in the list, click the edit icon next to their name, and check if a storage limit is set to 0 GB or a very low amount. Either increase the limit or click "Remove Limit" to give them unlimited access to the family plan storage.
+Open [family settings](#manage-family-plan), find the member in the list, select the edit option, and check if a storage limit is set to 0 GB or a very low amount. Either increase the limit or click "Remove Limit" to give them unlimited access to the family plan storage.
 
 **Solution 3: Have the member log out and log back in**
 
@@ -289,7 +306,7 @@ Common reasons and solutions:
 
 ### How do I remove someone from my family plan? {#remove-family-member}
 
-Open `Settings > Family plans`, find the member you want to remove, click the remove/trash icon next to their name, and confirm the removal.
+Open [family settings](#manage-family-plan), find the member you want to remove, select the remove option, and confirm the removal.
 
 **What happens when you remove someone:**
 
@@ -503,7 +520,7 @@ When your subscription expires, you enter a **30-day grace period** before your 
 
 2. **Export your data** during the grace period:
     - Use the desktop app's export feature
-    - Or use the [CLI tool](https://github.com/ente/ente/tree/main/cli#readme) for automated export
+    - Or use the [CLI tool](/cli/photos) for automated export
     - Download all photos to your computer or NAS
     - Learn more in the [Export guide](/photos/migration/export/)
 

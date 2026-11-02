@@ -17,9 +17,7 @@ export interface AuthPageConfig {
     LoginFrame?: ComponentType<AuthLoginFrameProps>;
     keepLoginLoadingOnRedirect?: boolean;
     recoveryKeyCloseDestination?: string;
-    encryptWithRecoveryKey?: (
-        data: string,
-    ) => Promise<{ encryptedData: string; nonce: string }>;
+    recoveryKeyMnemonic?: () => Promise<string>;
     passkeyPresentation?: ComponentType<VerifyingPasskeyPresentationProps>;
     Shell: ComponentType<Pick<AuthPageShellProps, "children" | "contentWidth">>;
 }

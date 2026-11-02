@@ -1,0 +1,20 @@
+plugins {
+    id 'com.android.library'
+}
+
+group 'com.flutter_rust_bridge.ente_auth_frb'
+version '1.0'
+
+android {
+    namespace 'com.flutter_rust_bridge.ente_auth_frb'
+
+    defaultConfig {
+        minSdkVersion 19
+    }
+}
+
+apply from: "../../../../cargokit/gradle/plugin.gradle"
+cargokit {
+    manifestDir = "../../../../../rust/bindings/frb/auth"
+    libname = "ente_auth_frb"
+}

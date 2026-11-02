@@ -46,6 +46,7 @@ analyzer:
     use_build_context_synchronously: error
 
   exclude:
+    - lib/src/rust/**
     - thirdparty/**
     - flutter/**
     - build/**

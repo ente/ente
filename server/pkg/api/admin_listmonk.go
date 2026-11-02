@@ -25,9 +25,9 @@ const listmonkMissingSubscribersDefaultPageSize = 10000
 const listmonkMissingSubscribersMaxLoggedEmails = 10
 const listmonkMissingSubscribersMaxUnsubscribeAttempts = 500
 
-var listminkMissingSubscribersInFlight atomic.Bool
+var listmonkMissingSubscribersInFlight atomic.Bool
 
-type listminkMissingSubscribersJobConfig struct {
+type listmonkMissingSubscribersJobConfig struct {
 	Endpoint           string
 	Username           string
 	Password           string
@@ -39,7 +39,7 @@ type listminkMissingSubscribersJobConfig struct {
 	TargetListIDSet    map[int]struct{}
 }
 
-type listminkMissingSubscribersJobSummary struct {
+type listmonkMissingSubscribersJobSummary struct {
 	StartedAt             int64
 	CompletedAt           int64
 	MissingCount          int
@@ -147,7 +147,7 @@ func (h *AdminHandler) GetListmonkMissingSubscribersCount(c *gin.Context) {
 		return
 	}
 
-	if !listminkMissingSubscribersInFlight.CompareAndSwap(false, true) {
+	if !listmonkMissingSubscribersInFlight.CompareAndSwap(false, true) {
 		logger.Warn("listmonk missing-subscribers job already in progress on this host")
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "listmonk missing-subscribers processing is already in progress on this host",
@@ -160,7 +160,7 @@ func (h *AdminHandler) GetListmonkMissingSubscribersCount(c *gin.Context) {
 		targetListSet[listID] = struct{}{}
 	}
 
-	jobConfig := listminkMissingSubscribersJobConfig{
+	jobConfig := listmonkMissingSubscribersJobConfig{
 		Endpoint:           baseURL + "/api/subscribers",
 		Username:           username,
 		Password:           password,
@@ -172,7 +172,7 @@ func (h *AdminHandler) GetListmonkMissingSubscribersCount(c *gin.Context) {
 		TargetListIDSet:    targetListSet,
 	}
 
-	go h.runListminkMissingSubscribersJobAsync(logger, jobConfig)
+	go h.runListmonkMissingSubscribersJobAsync(logger, jobConfig)
 
 	responsePayload := gin.H{
 		"status":             "started",
@@ -187,7 +187,7 @@ func (h *AdminHandler) GetListmonkMissingSubscribersCount(c *gin.Context) {
 	c.JSON(http.StatusAccepted, responsePayload)
 }
 
-func (h *AdminHandler) runListminkMissingSubscribersJobAsync(logger *logrus.Entry, cfg listminkMissingSubscribersJobConfig) {
+func (h *AdminHandler) runListmonkMissingSubscribersJobAsync(logger *logrus.Entry, cfg listmonkMissingSubscribersJobConfig) {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.WithField("panic", r).Error("listmonk missing-subscribers async job panicked")
@@ -195,11 +195,11 @@ func (h *AdminHandler) runListminkMissingSubscribersJobAsync(logger *logrus.Entr
 				h.DiscordController.Notify(fmt.Sprintf("Listmonk missing-subscribers job panicked on `%s`", h.DiscordController.HostName))
 			}
 		}
-		listminkMissingSubscribersInFlight.Store(false)
+		listmonkMissingSubscribersInFlight.Store(false)
 	}()
 
 	logger.Info("starting listmonk missing-subscribers async job")
-	summary, err := h.runListminkMissingSubscribersJob(cfg, logger)
+	summary, err := h.runListmonkMissingSubscribersJob(cfg, logger)
 	if err != nil {
 		logger.WithError(err).Error("listmonk missing-subscribers async job failed")
 		if h.DiscordController != nil {
@@ -251,8 +251,8 @@ func (h *AdminHandler) runListminkMissingSubscribersJobAsync(logger *logrus.Entr
 	}
 }
 
-func (h *AdminHandler) runListminkMissingSubscribersJob(cfg listminkMissingSubscribersJobConfig, logger *logrus.Entry) (listminkMissingSubscribersJobSummary, error) {
-	summary := listminkMissingSubscribersJobSummary{
+func (h *AdminHandler) runListmonkMissingSubscribersJob(cfg listmonkMissingSubscribersJobConfig, logger *logrus.Entry) (listmonkMissingSubscribersJobSummary, error) {
+	summary := listmonkMissingSubscribersJobSummary{
 		StartedAt:          time.Microseconds(),
 		StopReason:         "exhausted_pages",
 		UnsubscribeMissing: cfg.UnsubscribeMissing,

@@ -4,7 +4,7 @@ import "package:photos/events/sync_status_update_event.dart";
 
 class LargeBackupSessionTracker extends ChangeNotifier {
   static final _logger = Logger("LargeBackupSessionTracker");
-  static const int minimumFileCount = 500;
+  static const int minimumFileCount = 50;
 
   bool _isEligible = false;
   bool _isUploading = false;

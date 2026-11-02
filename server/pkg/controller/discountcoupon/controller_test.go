@@ -1,6 +1,7 @@
 package discountcoupon
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
@@ -9,6 +10,35 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLaunchClaimProcessSnapshotsRequestIDAndDetachesContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ginContext, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ginContext.Writer.Header().Set("X-Request-ID", "request-id-before-reuse")
+
+	req := ClaimCouponRequest{ProviderName: "Test", Email: "user@example.com"}
+	processStarted := make(chan struct{})
+	continueProcess := make(chan struct{})
+	type processResult struct {
+		ctx       context.Context
+		requestID string
+		request   ClaimCouponRequest
+	}
+	result := make(chan processResult, 1)
+	launchClaimProcess(ginContext, req, func(ctx context.Context, requestID string, gotReq ClaimCouponRequest) {
+		close(processStarted)
+		<-continueProcess
+		result <- processResult{ctx: ctx, requestID: requestID, request: gotReq}
+	})
+	<-processStarted
+	ginContext.Writer.Header().Set("X-Request-ID", "request-id-after-reuse")
+	close(continueProcess)
+
+	got := <-result
+	require.Equal(t, "request-id-before-reuse", got.requestID)
+	require.Equal(t, req, got.request)
+	require.Equal(t, context.Background(), got.ctx)
+}
 
 func TestAddCouponsStoresTrimmedCodes(t *testing.T) {
 	db := testutil.RequireTestDB(t)

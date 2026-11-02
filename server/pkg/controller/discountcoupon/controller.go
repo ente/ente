@@ -53,16 +53,25 @@ func (c *Controller) ClaimCoupon(ctx *gin.Context, req ClaimCouponRequest) error
 	if !AllowedProviders[req.ProviderName] {
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage("Invalid provider name"), "")
 	}
-	go c.processClaimRequest(ctx, req)
+	launchClaimProcess(ctx, req, c.processClaimRequest)
 	return nil
 }
 
-func (c *Controller) processClaimRequest(ctx *gin.Context, req ClaimCouponRequest) {
+func launchClaimProcess(
+	requestContext *gin.Context,
+	req ClaimCouponRequest,
+	process func(context.Context, string, ClaimCouponRequest),
+) {
+	requestID := requestid.Get(requestContext)
+	go process(context.Background(), requestID, req)
+}
+
+func (c *Controller) processClaimRequest(ctx context.Context, requestID string, req ClaimCouponRequest) {
 	sanitizedEmail := emailUtil.NormalizeEmail(req.Email)
 	logger :=
 		log.WithField("provider", req.ProviderName).
 			WithField("email", sanitizedEmail).
-			WithField("req_id", requestid.Get(ctx))
+			WithField("req_id", requestID)
 
 	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(sanitizedEmail)
 	if err != nil {

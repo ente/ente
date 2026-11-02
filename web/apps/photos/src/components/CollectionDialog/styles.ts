@@ -69,13 +69,6 @@ export const collectionDialogIconButtonSx = (theme: Theme) => ({
         backgroundColor: "rgba(255 255 255 / 0.12)",
     }),
 });
-export const collectionDialogDividerSx = (theme: Theme) => ({
-    height: "1px",
-    backgroundColor: "rgba(0 0 0 / 0.06)",
-    ...theme.applyStyles("dark", {
-        backgroundColor: "rgba(255 255 255 / 0.08)",
-    }),
-});
 export const collectionDialogNoResultsSx = {
     flex: 1,
     display: "flex",

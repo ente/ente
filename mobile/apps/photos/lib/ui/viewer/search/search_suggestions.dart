@@ -250,7 +250,12 @@ class SearchResultsWidgetGenerator extends StatelessWidget {
         showTypeLabel: showTypeLabel,
         onResultTap: () => routeToPage(
           context,
-          DeviceFolderPage(deviceResult.deviceCollection),
+          DeviceFolderPage(
+            deviceResult.deviceCollection,
+            coverHeroTag:
+                result.heroTag() + (result.previewThumbnail()?.tag ?? ""),
+          ),
+          useFadeTransition: true,
         ),
       );
     } else if (result is GenericSearchResult) {

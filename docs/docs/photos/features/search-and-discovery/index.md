@@ -16,7 +16,9 @@ You can quickly access search using the keyboard shortcut:
 - **Windows/Linux**: `Ctrl + K`
 - **Mac**: `Cmd + K`
 
-This focuses the search bar from anywhere in the app, letting you start searching immediately.
+Close Settings before using this shortcut. It does not open search while Settings is displayed.
+
+On mobile, open **Search** and scroll to **File types** to find **Photos**, **Videos**, **Live**, and file extensions such as **JPG** or **MP4**. These shortcuts search your library; they do not change an album's contents.
 
 ### Date search {#date-search}
 

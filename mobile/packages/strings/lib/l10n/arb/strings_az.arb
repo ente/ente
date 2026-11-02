@@ -1197,7 +1197,6 @@
   "mlConsent": "Maşın öyrənməsini aktivləşdir",
   "mlConsentConfirmation": "Anlayıram və maşın öyrənməsini aktivləşdirmək istəyirəm",
   "mlConsentDescription": "Maşın öyrənməsini aktivləşdirsəniz, Ente fayllardan, o cümlədən sizinlə paylaşılanlardan üz həndəsəsi kimi məlumatları çıxaracaq.\n\nBu, cihazınızda baş verəcək və yaradılan hər hansı biometrik məlumat uçdan-uca şifrələnəcək.",
-  "mlConsentPrivacy": "Məxfilik siyasətimizdə bu funksiya haqqında daha çox məlumat üçün buraya klikləyin",
   "mlProgressBannerDescription": "Üzləri, obyektləri və daha çoxunu müəyyən etmək üçün fotolarınız cihazda emal olunur.",
   "mlProgressBannerStatus": "{total} fotodan {indexed} ədədi emal olundu",
   "@mlProgressBannerStatus": {

@@ -38,14 +38,16 @@ After viewing the entire Memory Lane the banner will disappear from the People p
 
 If the banner does not appear yet, Ente may still be preparing the timeline, or the person may not meet the eligibility requirements above.
 
+Memory Lane can also appear in the memories strip at the top of the home screen, shown as a card titled with the person's name, for example **Alex's memory lane**. Tap the card to open the timeline without visiting the person's page. Like the banner, it appears only when face recognition is enabled and a person's timeline is ready.
+
 ## Share a Memory Lane link
 
 You can share a Memory Lane as a public link so others can view that person's timeline in a browser.
 
 **On mobile:**
 
-1. Open a person's **Memory lane**.
-2. Tap the share action.
+1. Open a person's **Memory lane** from their People page or from the memories strip on the home screen.
+2. Tap **Share link**.
 3. Create or copy the link.
 4. Share the link with anyone you want.
 

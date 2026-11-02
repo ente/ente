@@ -117,7 +117,7 @@ class _TrashPageState extends State<TrashPage> {
           AppBarComponent(
             title: context.strings.trash,
             subtitle: hasTrashFiles
-                ? context.strings.items(count: _trashFiles.length)
+                ? context.strings.trashAutoDeleteNotice
                 : null,
             actions: hasTrashFiles
                 ? [

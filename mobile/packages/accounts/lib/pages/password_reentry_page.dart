@@ -2,11 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ente_accounts/ente_accounts.dart';
-import 'package:ente_accounts/models/errors.dart';
 import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
-import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_strings/ente_strings.dart';
 import "package:ente_ui/components/alert_bottom_sheet.dart";
 import 'package:ente_ui/components/buttons/dynamic_fab.dart';
@@ -20,8 +18,14 @@ import 'package:logging/logging.dart';
 class PasswordReentryPage extends StatefulWidget {
   final BaseConfiguration config;
   final BaseHomePage homePage;
+  final Uint8List? keyEncryptionKey;
 
-  const PasswordReentryPage(this.config, this.homePage, {super.key});
+  const PasswordReentryPage(
+    this.config,
+    this.homePage, {
+    this.keyEncryptionKey,
+    super.key,
+  });
 
   @override
   State<PasswordReentryPage> createState() => _PasswordReentryPageState();
@@ -105,13 +109,16 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
       _logger.info("Using volatile password");
     }
     try {
-      final kek = await widget.config.decryptSecretsAndGetKeyEncKey(
+      final loginKey = await UserService.instance.unlockAccount(
         password,
         widget.config.getKeyAttributes()!,
+        keyEncryptionKey: password == _volatilePassword
+            ? widget.keyEncryptionKey
+            : null,
       );
       unawaited(UserService.instance.autoAttributePendingSource());
-      _registerSRPForExistingUsers(kek).ignore();
-    } on KeyDerivationError catch (e, s) {
+      _registerSRPForExistingUsers(loginKey).ignore();
+    } on AccountsError_KeyDerivation catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
       if (!mounted) {
@@ -145,7 +152,12 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
       }
       return;
     } catch (e, s) {
-      _logger.severe("Password verification failed", e, s);
+      final incorrectPassword = e == const AccountsError.incorrectPassword();
+      if (incorrectPassword) {
+        _logger.info("Incorrect password");
+      } else {
+        _logger.severe("Password verification failed", e, s);
+      }
       await dialog.hide();
       if (!mounted) {
         return;
@@ -153,8 +165,12 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
 
       final result = await showAlertBottomSheet<bool>(
         context,
-        title: context.strings.incorrectPasswordTitle,
-        message: context.strings.pleaseTryAgain,
+        title: incorrectPassword
+            ? context.strings.incorrectPasswordTitle
+            : context.strings.oops,
+        message: incorrectPassword
+            ? context.strings.pleaseTryAgain
+            : context.strings.verificationFailedPleaseTryAgain,
         assetPath: 'assets/warning-grey.png',
         buttons: [
           ButtonComponent(
@@ -187,20 +203,18 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     }
   }
 
-  Future<void> _registerSRPForExistingUsers(Uint8List key) async {
+  Future<void> _registerSRPForExistingUsers(Uint8List loginKey) async {
     bool shouldSetupSRP = false;
     try {
-      // ignore: unused_local_variable
-      final attr = await UserService.instance.getSrpAttributes(email!);
-    } on SrpSetupNotCompleteError {
+      await UserService.instance.getSrpAttributes(email!);
+    } on AccountsError_SrpNotConfigured {
       shouldSetupSRP = true;
     } catch (e, s) {
       _logger.severe("error while fetching attr", e, s);
     }
     if (shouldSetupSRP) {
       try {
-        final Uint8List loginKey = await CryptoUtil.deriveLoginKey(key);
-        await UserService.instance.registerOrUpdateSrp(loginKey);
+        await UserService.instance.setupSrp(loginKey);
       } catch (e, s) {
         _logger.severe("error while setting up srp for existing users", e, s);
       }

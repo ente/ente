@@ -2,13 +2,47 @@ import log from "ente-base/log";
 
 const cacheName = "space-videos";
 const maxCacheBytes = 100 * 1024 * 1024;
-const loads = new Map<string, Promise<Blob>>();
+interface VideoLoad {
+    promise: Promise<Blob>;
+    controller: AbortController;
+    consumers: number;
+}
+
+const loads = new Map<string, VideoLoad>();
 let writes = Promise.resolve();
 let generation = 0;
 
-export const cachedSpaceVideoBlobIfPresent = async (key: string) => {
+const consumeVideoLoad = async (
+    key: string,
+    pending: VideoLoad,
+    signal?: AbortSignal,
+) => {
+    signal?.throwIfAborted();
+    pending.consumers++;
+    let abort: () => void;
+    try {
+        return await new Promise<Blob>((resolve, reject) => {
+            abort = () => reject(signal!.reason as Error);
+            signal?.addEventListener("abort", abort, { once: true });
+            pending.promise.then(resolve, reject);
+        });
+    } finally {
+        signal?.removeEventListener("abort", abort!);
+        pending.consumers--;
+        if (!pending.consumers && loads.get(key) == pending) {
+            loads.delete(key);
+            pending.controller.abort();
+        }
+    }
+};
+
+export const cachedSpaceVideoBlobIfPresent = async (
+    key: string,
+    signal?: AbortSignal,
+) => {
+    signal?.throwIfAborted();
     const pending = loads.get(key);
-    if (pending) return pending;
+    if (pending) return consumeVideoLoad(key, pending, signal);
     try {
         await writes;
         const response = await (await caches.open(cacheName)).match(`/${key}`);
@@ -58,22 +92,28 @@ export const rememberSpaceVideoBlob = (key: string, blob: Blob) => {
 
 export const cachedSpaceVideoBlob = (
     key: string,
-    load: () => Promise<Blob>,
+    load: (signal: AbortSignal) => Promise<Blob>,
+    signal?: AbortSignal,
 ) => {
+    signal?.throwIfAborted();
     const pending = loads.get(key);
-    if (pending) return pending;
+    if (pending) return consumeVideoLoad(key, pending, signal);
     const current = generation;
+    const controller = new AbortController();
     const promise = (async () => {
         const cached = await cachedSpaceVideoBlobIfPresent(key);
+        controller.signal.throwIfAborted();
         if (cached) return cached;
-        const blob = await load();
+        const blob = await load(controller.signal);
+        controller.signal.throwIfAborted();
         if (current == generation) await rememberSpaceVideoBlob(key, blob);
         return blob;
     })().finally(() => {
-        if (loads.get(key) == promise) loads.delete(key);
+        if (loads.get(key) == request) loads.delete(key);
     });
-    loads.set(key, promise);
-    return promise;
+    const request = { promise, controller, consumers: 0 };
+    loads.set(key, request);
+    return consumeVideoLoad(key, request, signal);
 };
 
 export const clearSpaceVideoLoads = () => {

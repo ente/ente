@@ -181,9 +181,13 @@ apps](web-dev-settings.png){width=400px}
 
 ## Step 7: Configure Ente CLI
 
-You can download Ente CLI from [here](https://github.com/ente/ente/releases?q=tag%3Acli).
+[Install Ente CLI](/cli/install), then log in with your server’s API URL:
 
-Check our [documentation](/self-hosting/administration/cli) on how to use Ente CLI for managing self-hosted instances.
+```sh
+ente account login --account home-server --app photos --host https://api.example.org
+```
+
+Learn more about managing users in [Administration](/cli/admin).
 
 > [!NOTE]
 >

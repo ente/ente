@@ -61,7 +61,8 @@ html[data-space-ios-pwa]
 .space-app-layout[data-space-conversation],
 .space-app-layout[data-space-settings],
 .space-app-layout[data-space-profile],
-.space-app-layout[data-space-notifications] {
+.space-app-layout[data-space-notifications],
+.space-app-layout[data-space-post] {
     --space-bottom-nav-height: 0px;
 }
 
@@ -285,6 +286,21 @@ html[data-space-route-motion]::view-transition-new(root) {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+}
+
+.space-video-duration {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    pointer-events: none;
 }
 
 .space-video-spinner {

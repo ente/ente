@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/rollout"
 	"github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
@@ -13,6 +14,11 @@ import (
 type PushTokenRepository struct {
 	DB *sql.DB
 }
+
+const (
+	androidAlbumShareRolloutPercentage = 30
+	androidAlbumShareRollout           = "android-album-share-v1"
+)
 
 func (repo *PushTokenRepository) AddToken(userID int64, sessionTokenHash []byte, token ente.PushTokenRequest) error {
 	var publicKey any
@@ -63,9 +69,9 @@ func (repo *PushTokenRepository) GetTokensToBeNotified(lastNotificationTime int6
 }
 
 func (repo *PushTokenRepository) GetTokensForAlbumShare(ctx context.Context, userIDs []int64) ([]ente.PushToken, error) {
-	rows, err := repo.DB.QueryContext(ctx, `SELECT p.fcm_token FROM push_tokens p
+	rows, err := repo.DB.QueryContext(ctx, `SELECT p.user_id, p.fcm_token, p.notification_public_key, r.user_id IS NOT NULL FROM push_tokens p
 		JOIN tokens t ON t.token_hash = p.session_token_hash AND t.user_id = p.user_id AND t.is_deleted = false AND t.app = $3
-		JOIN remote_store r ON r.user_id = p.user_id AND r.key_name = $2 AND r.key_value = 'true'
+		LEFT JOIN remote_store r ON r.user_id = p.user_id AND r.key_name = $2 AND r.key_value = 'true'
 		WHERE p.user_id = ANY($1) AND p.platform = 'android'`,
 		pq.Array(userIDs), string(ente.IsInternalUser), string(ente.Photos))
 	if err != nil {
@@ -75,10 +81,13 @@ func (repo *PushTokenRepository) GetTokensForAlbumShare(ctx context.Context, use
 	var tokens []ente.PushToken
 	for rows.Next() {
 		var token ente.PushToken
-		if err := rows.Scan(&token.FCMToken); err != nil {
+		var internalUser bool
+		if err := rows.Scan(&token.UserID, &token.FCMToken, &token.NotificationPublicKey, &internalUser); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
-		tokens = append(tokens, token)
+		if internalUser || rollout.IsInPercentageRollout(token.UserID, androidAlbumShareRollout, androidAlbumShareRolloutPercentage) {
+			tokens = append(tokens, token)
+		}
 	}
 	return tokens, stacktrace.Propagate(rows.Err(), "")
 }

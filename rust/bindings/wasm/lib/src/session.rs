@@ -10,8 +10,6 @@ use serde_wasm_bindgen as swb;
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 
-use crate::EncryptedBox;
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
@@ -138,19 +136,6 @@ impl Session {
     pub fn update_auth_token(&self, auth_token: String) {
         self.0.api.set_auth(Some(Auth::User(auth_token)));
     }
-}
-
-#[wasm_bindgen(js_name = authEncryptWithRecoveryKey)]
-pub fn auth_encrypt_with_recovery_key(
-    session: &Session,
-    data_b64: &str,
-) -> Result<<EncryptedBox as Tsify>::JsType, Error> {
-    EncryptedBox::from(crypto::secretbox::encrypt(
-        &b64::decode(data_b64)?,
-        &session.inner().recovery_key,
-    ))
-    .into_js()
-    .map_err(Into::into)
 }
 
 #[wasm_bindgen(js_name = authRecoveryKeyMnemonic)]

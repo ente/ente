@@ -37,7 +37,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
-import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
+import "package:photos/ui/viewer/hierarchical_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/search/contact_avatar_widget.dart";
 import "package:photos/ui/viewer/search/result/edit_contact_page.dart";
 import "package:photos/utils/person_contact_linking_util.dart";

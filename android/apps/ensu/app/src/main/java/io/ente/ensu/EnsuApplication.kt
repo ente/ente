@@ -1,6 +1,7 @@
 package io.ente.ensu
 
 import android.app.Application
+import android.os.Build
 import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.RustLogLevel
 import io.ente.ensu.bindings.RustLogSink
@@ -18,9 +19,11 @@ class EnsuApplication : Application() {
     val transcriber by lazy {
         val store = assetStore
         val transcription = transcriptionModelAsset()
-        Transcriber(
+        Transcriber.withCache(
             store.assetDir(transcription).absolutePath,
             store.voiceActivityModelPath().absolutePath,
+            cacheDir.absolutePath,
+            "${Build.FINGERPRINT}|${Build.HARDWARE}|${Build.SUPPORTED_ABIS.joinToString()}",
         )
     }
 

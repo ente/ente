@@ -13,8 +13,13 @@ class AddToCollectionSheetResult {
 
 class AddToCollectionSheet extends StatefulWidget {
   final List<Collection> collections;
+  final bool allowMultiple;
 
-  const AddToCollectionSheet({super.key, required this.collections});
+  const AddToCollectionSheet({
+    super.key,
+    required this.collections,
+    this.allowMultiple = true,
+  });
 
   @override
   State<AddToCollectionSheet> createState() => _AddToCollectionSheetState();
@@ -37,6 +42,7 @@ class _AddToCollectionSheetState extends State<AddToCollectionSheet> {
       if (_selectedCollectionIds.contains(collectionId)) {
         _selectedCollectionIds.remove(collectionId);
       } else {
+        if (!widget.allowMultiple) _selectedCollectionIds.clear();
         _selectedCollectionIds.add(collectionId);
       }
     });
@@ -84,9 +90,13 @@ class _AddToCollectionSheetState extends State<AddToCollectionSheet> {
 Future<AddToCollectionSheetResult?> showAddToCollectionSheet(
   BuildContext context, {
   required List<Collection> collections,
+  bool allowMultiple = true,
 }) {
   return showBottomSheetComponent<AddToCollectionSheetResult>(
     context: context,
-    builder: (_) => AddToCollectionSheet(collections: collections),
+    builder: (_) => AddToCollectionSheet(
+      collections: collections,
+      allowMultiple: allowMultiple,
+    ),
   );
 }

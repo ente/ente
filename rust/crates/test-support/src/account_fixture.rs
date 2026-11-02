@@ -12,7 +12,7 @@ pub const PASSWORD: &str = "museum-account-fixture-password";
 // Argon2id(PASSWORD, 16 × 0x4d, 256 MiB, 16 ops).
 pub const KEK: &str = "EwUWye3Qiu3bep2oujaO8oJvUgIdn0DSOk2g0oZ+AWs=";
 pub const KEK_SALT: &str = "TU1NTU1NTU1NTU1NTU1NTQ==";
-pub const MEM_LIMIT: u32 = 268_435_456;
+pub const MEM_LIMIT: u64 = 268_435_456;
 pub const OPS_LIMIT: u32 = 16;
 
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestResult<Te
             .with_origin(endpoint.to_string())
             .with_user_agent("ente-tests"),
     )?;
-    client.send_otp(&email, "signup").await?;
+    client.send_otp(&email, "signup", false).await?;
     let verification = client
         .verify_email(&email, HARDCODED_OTT, Some("testAccount"))
         .await?;

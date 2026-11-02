@@ -6,10 +6,6 @@ allprojects {
         jcenter()
         mavenCentral()
         maven { url 'https://jitpack.io' }
-        // mavenLocal() // for FDroid
-        maven {
-            url "${project(':ffmpeg_kit_flutter').projectDir}/libs"
-        }
     }
 }
 

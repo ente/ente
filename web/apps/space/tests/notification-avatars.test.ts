@@ -13,6 +13,7 @@ import {
     loadCurrentFriendAvatarURL,
     loadCurrentMessageConversations,
     loadCurrentNotifications,
+    loadCurrentPostLikes,
 } from "../src/services/space";
 
 vi.mock("ente-base/log", () => ({ default: { warn: vi.fn() } }));
@@ -43,6 +44,8 @@ const context = {
     downloadSpaceAvatar: vi.fn(),
     listNotifications: vi.fn(),
     listConversations: vi.fn(),
+    listSpaceFriends: vi.fn(),
+    listPostLikes: vi.fn(),
 };
 
 beforeEach(() => {
@@ -72,6 +75,27 @@ beforeEach(() => {
         pendingRequests: [],
     });
     vi.mocked(cachedSpaceMediaBlobURLIfPresent).mockResolvedValue(undefined);
+});
+
+test("post likes preserve every actor and reuse cached avatars", async () => {
+    context.listPostLikes.mockResolvedValue([
+        actor,
+        { ...actor, spaceId: "second", spaceSlug: "bob" },
+        { ...actor, spaceId: "third", spaceSlug: "alex" },
+    ]);
+    vi.mocked(cachedSpaceMediaBlobURLIfPresent).mockResolvedValue(
+        "blob:avatar",
+    );
+    const actors = await loadCurrentPostLikes("owner-space", 42);
+    expect(context.listPostLikes).toHaveBeenCalledWith("owner-space", 42n);
+    expect(actors.map((actor) => actor.username)).toEqual([
+        "maya",
+        "bob",
+        "alex",
+    ]);
+    expect(actors[0]?.avatarUrl).toBe("blob:avatar");
+    expect(context.downloadSpaceAvatar).not.toHaveBeenCalled();
+    expect(releaseCurrentSpaceContext).toHaveBeenCalledWith(context);
 });
 
 test("notifications restore the same cached avatar as Messages before returning rows", async () => {
@@ -218,4 +242,79 @@ test("already hydrated avatars do not start another lookup or download", async (
 
     expect(cachedSpaceMediaBlobURLIfPresent).not.toHaveBeenCalled();
     expect(ensureCurrentSpaceContext).not.toHaveBeenCalled();
+});
+
+test("nonfriend discussion actors never restore a cached private avatar", async () => {
+    vi.mocked(cachedSpaceMediaBlobURLIfPresent).mockResolvedValue(
+        "blob:old-friend-avatar",
+    );
+    context.listNotifications.mockResolvedValue({
+        items: [
+            {
+                notificationId: "reply-1",
+                notificationIds: ["reply-1"],
+                kind: "comment_reply",
+                actors: [{ spaceId: "former-friend", spaceSlug: "sam" }],
+                actorCount: 1,
+                postId: 42,
+                postSpaceId: "post-owner",
+                postOwnerSlug: "bob",
+                commentId: "comment-1",
+                createdAt,
+                unread: true,
+            },
+        ],
+    });
+    const notification = (await loadCurrentNotifications("viewer-space"))
+        .items[0]!;
+    expect(notification.actors[0]?.fullName).toBe("sam");
+    expect(notification.actors[0]?.avatarUrl).toBeNull();
+    expect(notification.postSpaceId).toBe("post-owner");
+    expect(notification.postOwnerSlug).toBe("bob");
+    expect(notification.commentId).toBe("comment-1");
+    expect(cachedSpaceMediaBlobURLIfPresent).not.toHaveBeenCalled();
+});
+
+test("comment groups preserve distinct actors and use the post owner's available name", async () => {
+    context.listSpaceFriends.mockResolvedValue([
+        {
+            friend: {
+                spaceId: "post-owner",
+                spaceSlug: "bob",
+                profile: { fullName: "Bob Smith" },
+            },
+        },
+    ]);
+    context.listNotifications.mockResolvedValue({
+        items: [
+            {
+                notificationId: "comment-3",
+                notificationIds: ["comment-1", "comment-2", "comment-3"],
+                kind: "comment",
+                actors: [
+                    actor,
+                    {
+                        spaceId: "second",
+                        spaceSlug: "sam",
+                        profile: { fullName: "Sam" },
+                    },
+                ],
+                actorCount: 2,
+                postId: 42,
+                postSpaceId: "post-owner",
+                postOwnerSlug: "bob",
+                commentId: "latest-comment",
+                createdAt,
+                unread: true,
+            },
+        ],
+    });
+    const page = await loadCurrentNotifications("comment-group-viewer");
+    expect(page.items[0]).toMatchObject({
+        postOwnerName: "Bob Smith",
+        actorCount: 2,
+        commentId: "latest-comment",
+        notificationIds: ["comment-1", "comment-2", "comment-3"],
+        actors: [{ fullName: "Maya Patel" }, { fullName: "Sam" }],
+    });
 });

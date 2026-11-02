@@ -703,6 +703,7 @@ class FileAppBarState extends State<FileAppBar> {
 
   Future<void> _onTapGuestView() async {
     if (await LocalAuthentication().isDeviceSupported()) {
+      if (!mounted) return;
       Bus.instance.fire(GuestViewEvent(true, true));
       await localSettings.setOnGuestView(true);
     } else {

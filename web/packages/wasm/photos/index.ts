@@ -1,24 +1,56 @@
 import type {
     EncryptedBox,
+    ExecuteDuplicateRemovalInput,
+    FindDuplicatesInput,
+    LocationIndex,
     OpenSessionInput,
     Session,
     WrappedRootContactKey,
 } from "./pkg/ente_photos_wasm";
 
-export type { OpenSessionInput, Session } from "./pkg/ente_photos_wasm";
+export type {
+    AccountDeletionSummary,
+    LocationCityGroup,
+    OpenSessionInput,
+    Session,
+} from "./pkg/ente_photos_wasm";
 
 const wasm = () => import("./pkg/ente_photos_wasm");
+
+export const findDuplicates = async (input: FindDuplicatesInput) =>
+    (await wasm()).photosFindDuplicates(input);
+
+export const executeDuplicateRemoval = async (
+    session: Session,
+    input: ExecuteDuplicateRemovalInput,
+    onProgress: (completed: number, total: number) => void,
+) => (await wasm()).photosExecuteDuplicateRemoval(session, input, onProgress);
+
+export const createLocationIndex = async (
+    cities: Uint8Array,
+    urbanCenters: Uint8Array,
+): Promise<LocationIndex> =>
+    new (await wasm()).LocationIndex(cities, urbanCenters);
 
 export const openSession = async (input: OpenSessionInput): Promise<Session> =>
     (await wasm()).openSession(input);
 
+export const getAccountDeletionSummary = async (session: Session) =>
+    (await wasm()).getAccountDeletionSummary(session);
+
+export const getAccountDeleteChallenge = async (session: Session) =>
+    (await wasm()).getAccountDeleteChallenge(session);
+
+export const deleteAccount = async (
+    session: Session,
+    encryptedChallenge: string,
+    reason: string,
+    feedback?: string,
+) =>
+    (await wasm()).deleteAccount(session, encryptedChallenge, reason, feedback);
+
 export const recoveryKeyMnemonic = async (session: Session) =>
     (await wasm()).authRecoveryKeyMnemonic(session);
-
-export const encryptBoxWithRecoveryKey = async (
-    session: Session,
-    dataB64: string,
-) => (await wasm()).authEncryptWithRecoveryKey(session, dataB64);
 
 export const generateKey = async () => (await wasm()).cryptoGenerateKey();
 

@@ -90,6 +90,7 @@ pub fn knowledge_embedding_model_asset() -> Arc<Asset> {
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct AssetDownloadProgress {
     pub label: String,
+    pub queued: bool,
     pub downloaded_bytes: i64,
     pub total_bytes: Option<i64>,
     pub percentage: f64,
@@ -102,6 +103,7 @@ impl From<ente_assets::AssetDownloadProgress> for AssetDownloadProgress {
         let display = ente_ensu::model::display_progress(&value);
         Self {
             label: value.asset_progress.label,
+            queued: value.queued,
             downloaded_bytes: i64::try_from(value.batch_downloaded_bytes).unwrap_or(i64::MAX),
             total_bytes: value
                 .batch_total_bytes

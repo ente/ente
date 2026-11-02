@@ -599,6 +599,7 @@ impl Store {
         name: &str,
         metadata: Value,
         shared: Option<bool>,
+        user_id: i64,
     ) -> Result<()> {
         let mut source: AlbumSource = json(
             &self.db,
@@ -613,8 +614,8 @@ impl Store {
         });
         source.shared = source.shared.or(shared);
         if metadata.is_object() {
-            let (shared, hidden) = crate::metadata::album_categories(&metadata)?;
-            source.shared = source.shared.or(shared);
+            let (shared, hidden) = crate::metadata::album_categories(&metadata, user_id)?;
+            source.shared = source.shared.or(Some(shared));
             source.hidden = source.hidden.or(Some(hidden));
         }
         self.save_album_source(id, &source)

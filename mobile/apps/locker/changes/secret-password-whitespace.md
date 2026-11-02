@@ -1,2 +1,0 @@
-- Fixed Secret passwords losing leading or trailing whitespace when saving or editing.
-- Enabled copying whitespace-only values in displayed info fields.

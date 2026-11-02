@@ -87,13 +87,6 @@ class InvalidStateError extends AssertionError {
   InvalidStateError(String super.message);
 }
 
-class SrpSetupNotCompleteError extends Error {}
-
-class IncorrectPasswordError implements Exception, LocallyHandledError {
-  @override
-  String toString() => "Incorrect password";
-}
-
 class SharingNotPermittedForFreeAccountsError extends Error {}
 
 class RecipientIdentityMismatchError extends Error {}
@@ -103,10 +96,6 @@ class AutomaticShareRecipientNotEligibleError extends Error {}
 class LinkEditNotAllowedError extends Error {}
 
 class NoMediaLocationAccessError extends Error {}
-
-class PassKeySessionNotVerifiedError extends Error {}
-
-class PassKeySessionExpiredError extends Error {}
 
 class MultiPartFileMissingError implements Exception {
   final String message;

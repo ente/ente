@@ -246,6 +246,14 @@ class PersonSearchExample extends StatelessWidget {
                         width: size - 2,
                         height: size - 2,
                         child: FaceThumbnailSquircleClip(
+                          heroTag: selectedPeople == null
+                              ? PersonFaceWidget.coverHeroTag(
+                                  tagPrefix: "people_discover",
+                                  personId: searchResult.params[kPersonParamID],
+                                  clusterID:
+                                      searchResult.params[kClusterParamId],
+                                )
+                              : null,
                           child: Stack(
                             fit: StackFit.expand,
                             children: [

@@ -267,9 +267,15 @@ describe("download byte progress", () => {
 describe("download consumer compatibility", () => {
     test.each([
         ["fragmented chunks", [[1], [2], [3], [4], [5]]],
+        [
+            "full-size final chunk",
+            [
+                [1, 2],
+                [3, 4],
+            ],
+        ],
         ["multiple chunks per read", [[1, 2, 3, 4, 5]]],
         ["empty network chunks", [[], [1, 2], [], [3, 4, 5]]],
-        ["empty stream", []],
     ] as const)("emits decrypted video bytes with %s", async (_, chunks) => {
         vi.mocked(decryptStreamChunk).mockClear();
         vi.mocked(initChunkDecryption).mockClear();
@@ -282,7 +288,11 @@ describe("download consumer compatibility", () => {
         const expectedChunks = [];
         for (let i = 0; i < encryptedBytes.length; i += 2) {
             const chunk = encryptedBytes.slice(i, i + 2);
-            expectedChunks.push([chunk, pullState]);
+            expectedChunks.push([
+                chunk,
+                pullState,
+                i + 2 >= encryptedBytes.length,
+            ]);
             vi.mocked(decryptStreamChunk).mockResolvedValueOnce(
                 chunk.map((byte) => byte + 10),
             );

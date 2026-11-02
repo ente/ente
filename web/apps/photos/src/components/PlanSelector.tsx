@@ -9,6 +9,7 @@ import {
     Dialog,
     IconButton,
     Link,
+    Skeleton,
     Stack,
     styled,
     ToggleButton,
@@ -143,11 +144,12 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
     );
 
     useEffect(() => {
+        const request = { cancelled: false };
         void (async () => {
             try {
-                setLoading(true);
                 const plansData = await getPlansData();
-                const { plans } = plansData;
+                if (request.cancelled) return;
+                const plans = [...plansData.plans];
                 if (subscription && isSubscriptionActive(subscription)) {
                     const activePlan = plans.find((plan) =>
                         isSubscriptionForPlan(subscription, plan),
@@ -164,15 +166,17 @@ export const PlanSelectorContents: React.FC<PlanSelectorContentsProps> = ({
                         });
                     }
                 }
-                setPlansData(plansData);
+                setPlansData({ ...plansData, plans });
             } catch (e) {
+                if (request.cancelled) return;
                 log.error("Failed to get plans", e);
                 onClose();
                 showMiniDialog(genericRetriableErrorDialogAttributes());
-            } finally {
-                setLoading(false);
             }
         })();
+        return () => {
+            request.cancelled = true;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -512,7 +516,16 @@ const Plans: React.FC<PlansProps> = ({
     hasAddOnBonus,
     onPlanSelect,
 }) => (
-    <Stack sx={{ gap: 2 }}>
+    <Stack sx={{ gap: 2 }} aria-busy={!plansData}>
+        {!plansData &&
+            [0, 1, 2].map((index) => (
+                <Skeleton
+                    key={index}
+                    variant="rounded"
+                    height={64}
+                    animation="wave"
+                />
+            ))}
         {plansData?.plans
             .filter((plan) => plan.period === planPeriod)
             .map((plan) => (

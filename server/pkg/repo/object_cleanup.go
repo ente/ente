@@ -32,8 +32,11 @@ func (repo *ObjectCleanupRepository) AddTempObject(tempObject ente.TempObject, e
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) RemoveTempObjectKey(ctx context.Context, tx *sql.Tx, objectKey string, dc string) error {
-	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1`, objectKey)
+func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *sql.Tx, objectKey string, userID int64, app ente.App) error {
+	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1
+		AND (user_id IS NULL OR user_id = $2)
+		AND (app IS NULL OR app = $3)
+		AND (purpose IS NULL OR purpose = 'file_upload')`, objectKey, userID, app)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

@@ -35,7 +35,7 @@ import type { SearchSuggestion } from "ente-new/photos/services/search/types";
 import { t } from "i18next";
 import React, { useRef, useState } from "react";
 
-export { GalleryEmptyState } from "./GalleryEmptyState";
+export { GalleryEmptyState } from "./sections/albums/GalleryEmptyState";
 
 export interface RemotePullOpts {
     silent?: boolean;
@@ -45,7 +45,7 @@ export interface RemotePullOpts {
 export type SelectionContext =
     | {
           mode: "albums" | "hidden-albums" | "archive-albums";
-          collectionID: number;
+          collectionID: number | undefined;
       }
     | { mode: "people"; personID: string };
 

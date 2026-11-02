@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:convert";
 
 import "package:dio/dio.dart";
@@ -11,6 +12,7 @@ import "package:photos/core/cache/thumbnail_in_memory_cache.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/events/files_updated_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
@@ -52,7 +54,7 @@ void main() {
   });
 
   for (final layout in GalleryLayoutType.values) {
-    testWidgets("$layout returns to the current photo with a hero flight", (
+    testWidgets("$layout returns to the current photo after a hidden refresh", (
       tester,
     ) async {
       await localSettings.setGalleryLayoutType(layout);
@@ -76,6 +78,10 @@ void main() {
         ThumbnailInMemoryLruCache.put(file, bytes, thumbnailLargeSize);
         ThumbnailInMemoryLruCache.put(file, bytes, thumbnailSmallSize);
       }
+      var latestFiles = files;
+      var fileLoads = 0;
+      final reloads = StreamController<FilesUpdatedEvent>.broadcast();
+      addTearDown(reloads.close);
       addTearDown(ThumbnailInMemoryLruCache.clearAll);
       final galleryKey = GlobalKey<GalleryState>();
       final appBar = GalleryAppBarConfig(
@@ -101,8 +107,11 @@ void main() {
                 child: Gallery(
                   key: galleryKey,
                   appBar: appBar,
-                  asyncLoader: (start, end, {limit, asc}) async =>
-                      FileLoadResult(files, false),
+                  asyncLoader: (start, end, {limit, asc}) async {
+                    fileLoads++;
+                    return FileLoadResult(latestFiles, false);
+                  },
+                  reloadEvent: reloads.stream,
                   tagPrefix: "return_",
                   groupType: GroupType.month,
                   header: const SizedBox(height: 32),
@@ -148,6 +157,22 @@ void main() {
       );
       expect(targetTile(), findsNothing);
 
+      final oldGroups = gallery.galleryGroups;
+      final addedFile = EnteFile()
+        ..generatedID = 181
+        ..creationTime = DateTime(2026, 10, 15).microsecondsSinceEpoch
+        ..fileType = FileType.image
+        ..title = "new-photo.jpg"
+        ..pubMagicMetadata = PubMagicMetadata(w: 1600, h: 1200);
+      ThumbnailInMemoryLruCache.put(addedFile, bytes, thumbnailLargeSize);
+      ThumbnailInMemoryLruCache.put(addedFile, bytes, thumbnailSmallSize);
+      latestFiles = [addedFile, ...files];
+      reloads.add(FilesUpdatedEvent([addedFile]));
+      await tester.pumpAndSettle();
+      expect(fileLoads, 2);
+      expect(gallery.galleryGroups, same(oldGroups));
+      expect(scrollChanges, 0);
+
       await tester.binding.handlePopRoute();
       expect(scrollChanges, 1);
       await tester.pump();
@@ -158,19 +183,25 @@ void main() {
         isNotNull,
       );
       expect(targetTile(), findsOneWidget);
-      final tileRect = tester.getRect(targetTile());
       final pinnedHeight =
           appBar.resolveGeometry(galleryKey.currentContext!).minExtent +
           gallery.galleryGroups!.groupHeaderExtent;
-      expect(tileRect.top, greaterThanOrEqualTo(pinnedHeight));
-      expect(
-        tileRect.bottom,
-        lessThanOrEqualTo(scrollPosition.viewportDimension),
-      );
-      final returnOffset = scrollPosition.pixels;
+      void expectTargetVisible() {
+        final tileRect = tester.getRect(targetTile());
+        expect(tileRect.top, greaterThanOrEqualTo(pinnedHeight));
+        expect(
+          tileRect.bottom,
+          lessThanOrEqualTo(scrollPosition.viewportDimension),
+        );
+      }
+
+      expectTargetVisible();
       await tester.pumpAndSettle();
-      expect(scrollPosition.pixels, returnOffset);
+      expectTargetVisible();
+      final returnOffset = scrollPosition.pixels;
       expect(find.byType(DetailPage), findsNothing);
+      expect(gallery.galleryGroups!.allFiles.first, same(addedFile));
+      expect(fileLoads, 2);
 
       gallery.revealFile(target.copyWith());
       expect(scrollPosition.pixels, returnOffset);

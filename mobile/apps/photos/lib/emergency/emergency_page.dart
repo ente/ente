@@ -20,7 +20,7 @@ import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart"
 import "package:photos/ui/components/menu_section_title.dart";
 import "package:photos/ui/components/title_bar_title_widget.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 
 class EmergencyPage extends StatefulWidget {
   const EmergencyPage({super.key});

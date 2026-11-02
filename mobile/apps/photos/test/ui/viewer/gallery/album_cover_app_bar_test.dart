@@ -16,8 +16,110 @@ import "package:photos/models/metadata/collection_magic.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/ui/viewer/gallery/component/album_cover_app_bar.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
+import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 
 void main() {
+  testWidgets("preserves the face through rounded cover transitions", (
+    tester,
+  ) async {
+    final bytes = base64Decode(_onePixelPng);
+    final face = find.byKey(const ValueKey("face-image"));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        home: Scaffold(
+          body: Center(
+            child: SizedBox.square(
+              dimension: 80,
+              child: FaceThumbnailSquircleClip(
+                heroTag: "person-cover",
+                child: Image.memory(bytes, key: const ValueKey("face-image")),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final sourceState = tester.state(face);
+    final context = tester.element(face);
+    for (final reverseEarly in [false, true]) {
+      unawaited(
+        routeToPage(
+          context,
+          Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                AlbumCoverAppBar(
+                  coverWidget: Image.memory(bytes, fit: BoxFit.cover),
+                  heroTag: "person-cover",
+                  title: "Person",
+                  actionsBuilder: (_) => const [],
+                  coverActions: const [],
+                  backgroundColor: lightThemeData.scaffoldBackgroundColor,
+                  collapsedHeight: kToolbarHeight,
+                ),
+              ],
+            ),
+          ),
+          useFadeTransition: true,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(
+        tester
+            .widget<ClipRSuperellipse>(find.byType(ClipRSuperellipse))
+            .borderRadius
+            .resolve(TextDirection.ltr)
+            .topLeft
+            .x,
+        inExclusiveRange(0, 24),
+      );
+      if (!reverseEarly) await tester.pumpAndSettle();
+      Navigator.of(context).pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(find.byType(ClipRSuperellipse), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(tester.state(face), same(sourceState));
+      expect(tester.takeException(), isNull);
+    }
+  });
+  testWidgets("supports a device folder cover with its backup status", (
+    tester,
+  ) async {
+    final cover = EnteFile()..generatedID = 7;
+    ThumbnailInMemoryLruCache.put(cover, base64Decode(_onePixelPng));
+    for (final theme in [lightThemeData, darkThemeData]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                AlbumCoverAppBar(
+                  cover: cover,
+                  title: "Camera",
+                  subtitle: "Backup status",
+                  backgroundColor: theme.scaffoldBackgroundColor,
+                  collapsedHeight: kToolbarHeight,
+                  actionsBuilder: (_) => const [],
+                  coverActions: const [],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text("Backup status"), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets("centers responsive cover content and preserves toolbar spacing", (
     tester,
   ) async {
@@ -64,7 +166,7 @@ void main() {
     ]) {
       tester.view.physicalSize = size;
       final header = _coverHeader(cover);
-      header.collection.pubMagicMetadata = CollectionPubMagicMetadata(
+      header.collection!.pubMagicMetadata = CollectionPubMagicMetadata(
         description: caption,
       );
       await tester.pumpWidget(
@@ -157,7 +259,7 @@ void main() {
           valueListenable: files,
           builder: (_, files, _) {
             final header = _coverHeader(cover);
-            header.collection.pubMagicMetadata = CollectionPubMagicMetadata(
+            header.collection!.pubMagicMetadata = CollectionPubMagicMetadata(
               description:
                   "An album description that wraps onto several lines.",
             );

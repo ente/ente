@@ -1,10 +1,8 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter/return_code.dart';
-import 'package:ffmpeg_kit_flutter/statistics.dart';
+import 'package:photos/services/ffmpeg_service.dart';
+import 'package:photos/services/video_preview_service.dart';
 import 'package:photos/ui/tools/editor/video_crop_util.dart';
 import 'package:photos/ui/tools/editor/video_editor/video_editor_controller.dart';
 
@@ -80,49 +78,23 @@ class ExportService {
     FfmpegVideoExportPlan plan, {
     void Function(double)? onProgress,
   }) async {
-    final completer = Completer<File>();
-    try {
-      await FFmpegKit.executeWithArgumentsAsync(
-        plan.arguments,
-        (session) async {
-          try {
-            final returnCode = await session.getReturnCode();
-            if (returnCode != null && ReturnCode.isSuccess(returnCode)) {
-              final file = File(plan.outputPath);
-              if (!await file.exists() || await file.length() == 0) {
-                completer.completeError(
-                  StateError('FFmpeg produced no output at ${plan.outputPath}'),
-                );
-              } else {
-                completer.complete(file);
-              }
-              return;
-            }
-            final output = await session.getOutput();
-            completer.completeError(
-              StateError(
-                'FFmpeg exited with ${returnCode?.getValue() ?? -1}: $output',
-              ),
-            );
-          } catch (error, stackTrace) {
-            if (!completer.isCompleted) {
-              completer.completeError(error, stackTrace);
-            }
-          }
-        },
-        null,
-        (statistics) {
-          if (onProgress != null) {
-            onProgress(_progress(statistics, plan.duration));
-          }
-        },
+    final job = FfmpegService.instance.start(
+      plan.arguments,
+      onProgress: onProgress == null
+          ? null
+          : (time) => onProgress(_progress(time, plan.duration)),
+    );
+    final result = await job.completed;
+    if (!result.isSuccess) {
+      throw StateError(
+        'FFmpeg exited with ${result.returnCode}: ${result.output}',
       );
-    } catch (error, stackTrace) {
-      if (!completer.isCompleted) {
-        completer.completeError(error, stackTrace);
-      }
     }
-    return completer.future;
+    final file = File(plan.outputPath);
+    if (!await file.exists() || await file.length() == 0) {
+      throw StateError('FFmpeg produced no output at ${plan.outputPath}');
+    }
+    return file;
   }
 
   static Future<File> exportVideo({
@@ -131,7 +103,9 @@ class ExportService {
     void Function(double)? onProgress,
     void Function(Object, StackTrace)? onError,
   }) async {
+    final previews = VideoPreviewService.instance;
     try {
+      await previews.pauseForExport();
       return await runFFmpegCommand(
         createPlan(controller: controller, outputPath: outputPath),
         onProgress: onProgress,
@@ -139,12 +113,14 @@ class ExportService {
     } catch (error, stackTrace) {
       onError?.call(error, stackTrace);
       rethrow;
+    } finally {
+      previews.resumeAfterExport();
     }
   }
 
-  static double _progress(Statistics statistics, Duration duration) {
+  static double _progress(Duration time, Duration duration) {
     if (duration.inMilliseconds <= 0) return 0;
-    return (statistics.getTime() / duration.inMilliseconds).clamp(0.0, 1.0);
+    return (time.inMicroseconds / duration.inMicroseconds).clamp(0.0, 1.0);
   }
 
   static String _seconds(Duration duration) =>

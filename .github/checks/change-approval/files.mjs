@@ -19,6 +19,8 @@ const guardrailDirs = [
     "web/packages/build-config/",
 ];
 const guardrailFiles = new Set([
+    "AGENTS.md",
+    "AGENTS.override.md",
     "apple/Package.swift",
     ".swift-format",
     ".swiftlint.yml",

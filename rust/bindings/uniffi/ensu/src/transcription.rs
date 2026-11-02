@@ -41,7 +41,7 @@ impl From<transcription::TranscriptionError> for TranscriptionError {
 
 #[derive(uniffi::Object)]
 pub struct Transcriber {
-    inner: transcription::Transcriber,
+    pub(crate) inner: transcription::Transcriber,
 }
 
 #[uniffi::export]
@@ -50,6 +50,23 @@ impl Transcriber {
     pub fn new(model_dir: String, vad_model_path: String) -> Arc<Self> {
         Arc::new(Self {
             inner: transcription::Transcriber::new(model_dir, vad_model_path),
+        })
+    }
+
+    #[uniffi::constructor]
+    pub fn with_cache(
+        model_dir: String,
+        vad_model_path: String,
+        cache_directory: String,
+        device_identity: String,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            inner: transcription::Transcriber::with_cache(
+                model_dir,
+                vad_model_path,
+                cache_directory,
+                device_identity,
+            ),
         })
     }
 

@@ -43,10 +43,10 @@ The desktop app offers continuous export, which automatically exports new items 
 
 ### CLI export
 
-For advanced users and automation, use the [Ente CLI](/photos/features/utilities/cli) to export via command line. The CLI is particularly useful for:
+For advanced users and automation, use the [Ente CLI](/cli/photos) to export via command line. The CLI is particularly useful for:
 
 - Automated exports with cron jobs
-- Server-to-server transfers
+- Exports from headless servers
 - NAS sync setups
 
 ## What gets exported
@@ -70,21 +70,14 @@ export-folder/
 
 ### Metadata preservation
 
-Metadata is exported as separate JSON files alongside your photos. The original files are not modified. The metadata folder name differs depending on whether you export using Ente Desktop or the Ente CLI.
-
-**Ente Desktop Format:**
+Metadata is exported as separate JSON files alongside your photos. The original files are not modified. Ente Desktop and the current Ente CLI both use a `metadata/` folder.
 
 ```
 photo.jpg
 metadata/photo.jpg.json
 ```
 
-**Ente CLI Format:**
-
-```
-photo.jpg
-.meta/photo.jpg.json
-```
+The previous CLI used `.meta/` instead. Learn more about the current layout in [Photos](/cli/photos#export-layout).
 
 The JSON format matches Google Takeout format, so tools that support Google Takeout imports can read Ente's exported metadata.
 
@@ -95,9 +88,9 @@ For details about the metadata format, see [Metadata and Editing FAQ](/photos/fa
 If a photo exists in multiple albums:
 
 - **In Ente**: Counts as 1 file (storage counted once)
-- **On export**: Appears in each album folder (downloaded multiple times)
+- **On export**: Appears in each album folder
 
-This is why your export size may be larger than your Ente storage usage.
+This is why your export size may be larger than your Ente storage usage. The CLI can save space by [sharing originals through hard links](/cli/photos#save-space-with-hard-links).
 
 ### Shared albums on export
 
@@ -153,5 +146,5 @@ Both desktop continuous export and CLI exports are **incremental**:
 
 ## Related topics
 
-- [CLI](/photos/features/utilities/cli) - Command-line tool for automated exports
+- [CLI](/cli/photos) - Command-line tool for automated exports
 - [Watch folders](/photos/features/backup-and-sync/watch-folders) - Automatic uploads (the counterpart to export)

@@ -66,6 +66,8 @@ To use Backup mode:
 
 You only need Backup mode for large uploads. New photos will continue to back up in the background afterwards.
 
+The progress shown during Backup mode relates to the current upload session. It may restart when a new session begins. A reset counter alone does not mean your entire library is uploading again.
+
 Large videos may not finish during the short time iOS gives Ente in the background. Ente will continue the upload when iOS gives it more time or when you open the app.
 
 Do not swipe Ente away from the app switcher. iOS cannot wake Ente for a background backup after the app has been closed this way.
@@ -125,7 +127,7 @@ When you select this option during onboarding, Ente backs up photos from the **l
 
 When you enable the toggle in settings after onboarding, Ente uses the **current moment** as the cutoff - only photos created from that point forward will be backed up.
 
-In both cases, photos older than the cutoff date on your device will not be uploaded.
+The cutoff applies when Ente selects photos for automatic backup. Turning it on does not cancel uploads already queued. You can also manually select older photos to upload.
 
 ### Folder selection prompt
 

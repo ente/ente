@@ -1,0 +1,1 @@
+- Filter `photos file list` by type, creation date, name or caption words, size, and missing location, and sort it by creation time or size. Files now show their size.

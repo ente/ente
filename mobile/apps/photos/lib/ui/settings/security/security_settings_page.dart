@@ -209,7 +209,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
               final Uint8List loginKey = await CryptoUtil.deriveLoginKey(
                 keyEncryptionKey,
               );
-              await UserService.instance.registerOrUpdateSrp(loginKey);
+              await UserService.instance.setupSrp(loginKey);
             },
           ),
         );
@@ -225,34 +225,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
     final hasAuthenticated = await LocalAuthenticationService.instance
         .requestLocalAuthentication(context, context.strings.authToViewPasskey);
     if (hasAuthenticated && mounted && context.mounted) {
-      await _handlePasskeyClick(context);
-    }
-  }
-
-  Future<void> _handlePasskeyClick(BuildContext buildContext) async {
-    try {
-      final isPassKeyResetEnabled = await PasskeyService.instance
-          .isPasskeyRecoveryEnabled();
-      if (!mounted || !buildContext.mounted) return;
-      if (!isPassKeyResetEnabled) {
-        final Uint8List recoveryKey = await UserService.instance
-            .getOrCreateRecoveryKey(buildContext);
-        final resetKey = CryptoUtil.generateKey();
-        final resetKeyBase64 = CryptoUtil.bin2base64(resetKey);
-        final encryptionResult = CryptoUtil.encryptSync(resetKey, recoveryKey);
-        await PasskeyService.instance.configurePasskeyRecovery(
-          resetKeyBase64,
-          CryptoUtil.bin2base64(encryptionResult.encryptedData!),
-          CryptoUtil.bin2base64(encryptionResult.nonce!),
-        );
-      }
-      if (!mounted || !buildContext.mounted) return;
-      PasskeyService.instance.openPasskeyPage(buildContext).ignore();
-    } catch (e, s) {
-      _logger.severe("failed to open passkey page", e, s);
-      if (buildContext.mounted) {
-        await showGenericErrorDialog(context: buildContext, error: e);
-      }
+      await PasskeyService.instance.openPasskeyPage(context);
     }
   }
 

@@ -1,1 +1,0 @@
-- Improved document scanner opening and closing on Android and iOS.

@@ -207,6 +207,7 @@ s3:
 apps:
     public-albums: http://localhost:3002
     embed-albums: http://localhost:3006
+    photobook: http://localhost:3014
     public-locker: http://localhost:3005
     public-paste: http://localhost:3008
     cast: http://localhost:3004

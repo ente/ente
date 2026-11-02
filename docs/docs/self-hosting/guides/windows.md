@@ -265,7 +265,7 @@ Follow https://ente.com/help/self-hosting/installation/post-install and enjoy th
         mc admin config set admin api cors\_allow\_origin="\*"
         ```
     3. Restart your minio container and you should be ready to upload!
-- In case you missed it, use the ente CLI to increase your storage limits: https://ente.com/help/self-hosting/administration/cli#step-4-increase-storage-and-account-validity
+- Use Ente CLI to increase your storage limits. Learn more in [Administration](/cli/admin#change-a-free-subscription).
 
 ## Next steps
 

@@ -1397,7 +1397,6 @@
   "mlConsent": "Włącz nauczanie maszynowe",
   "mlConsentConfirmation": "Rozumiem i chcę włączyć nauczanie maszynowe",
   "mlConsentDescription": "Jeśli włączysz nauczanie maszynowe, Ente wyodrębni informacje takie jak geometria twarzy z plików, w tym tych udostępnionych z Tobą.\n\nTo się stanie na Twoim urządzeniu i wygenerowane informacje biometryczne zostaną zaszyfrowane end-to-end.",
-  "mlConsentPrivacy": "Kliknij tutaj, aby uzyskać więcej informacji na temat tej funkcji w naszej polityce prywatności",
   "mlIndexingDescription": "Pamiętaj, że nauczanie maszynowe spowoduje większą przepustowość i zużycie baterii do momentu przetworzenia wszystkich elementów. Rozważ użycie wersji aplikacji na komputer dla szybszego procesowania, wszystkie wyniki zostaną automatycznie zsynchronizowane.",
   "mlProgressBannerDescription": "Twoje zdjęcia są przetwarzane na urządzeniu w celu wykrycia twarzy, obiektów i innych.",
   "mlProgressBannerStatus": "{indexed} z {total} przetworzonych zdjęć",

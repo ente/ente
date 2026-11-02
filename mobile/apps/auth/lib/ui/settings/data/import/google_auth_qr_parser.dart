@@ -43,8 +43,8 @@ GoogleAuthMigration parseGoogleAuthMigration(String qrCodeData) {
     );
     for (var otpParameter in mPayload.otpParameters) {
       String otpUrl;
-      String issuer = otpParameter.issuer;
-      String account = otpParameter.name;
+      String issuer = Uri.encodeComponent(otpParameter.issuer);
+      String account = Uri.encodeComponent(otpParameter.name);
       var counter = otpParameter.counter;
       Uint8List bytes = Uint8List.fromList(otpParameter.secret);
 

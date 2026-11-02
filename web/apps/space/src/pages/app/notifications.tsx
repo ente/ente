@@ -1,8 +1,4 @@
-import {
-    ArrowLeft02Icon,
-    Cancel01Icon,
-    FavouriteIcon,
-} from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import {
@@ -49,9 +45,10 @@ import {
     spaceTextMuted,
 } from "styles/colors";
 import { groupSpaceActivities } from "utils/activity-sections";
+import { commentNotificationText } from "utils/comments";
 import { firstNameFrom } from "utils/display";
 import { isFriendRequestCanceledError } from "utils/friend-errors";
-import { spacePostDeletedEvent } from "utils/post-events";
+import { notificationGroupKey } from "utils/notifications";
 import { postQuoteErrorState } from "utils/post-quote";
 import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
@@ -95,7 +92,10 @@ const NotificationRow: React.FC<{
     group: SpaceNotification;
     isNew: boolean;
     spaceId: string;
-    loadPostPreview: (postId: number) => Promise<SpacePostPreview | undefined>;
+    loadPostPreview: (
+        postId: number,
+        postSpaceId?: string,
+    ) => Promise<SpacePostPreview | undefined>;
     onPostSomething: () => void;
     showPostSomething: boolean;
     isOpeningPost: boolean;
@@ -120,6 +120,7 @@ const NotificationRow: React.FC<{
     const otherCount = group.actorCount - 1;
     const isFriendRequest = group.kind == "friend_request";
     const isPostLike = group.kind == "post_like";
+    const isDiscussion = group.kind.startsWith("comment");
     const backgroundColor = isNew ? spaceSurface : "transparent";
     const [isRequestPending, setIsRequestPending] = React.useState(false);
     const [requestError, setRequestError] = React.useState<string>();
@@ -146,7 +147,7 @@ const NotificationRow: React.FC<{
             (entries) => {
                 if (!entries.some((entry) => entry.isIntersecting)) return;
                 observer.disconnect();
-                void loadPostPreview(postId).then((post) => {
+                void loadPostPreview(postId, group.postSpaceId).then((post) => {
                     if (!cancelled) setPreview(post);
                 });
             },
@@ -157,7 +158,7 @@ const NotificationRow: React.FC<{
             cancelled = true;
             observer.disconnect();
         };
-    }, [group.postId, loadPostPreview]);
+    }, [group.postId, group.postSpaceId, loadPostPreview]);
 
     return (
         <Box component="li" sx={{ listStyle: "none" }}>
@@ -228,12 +229,15 @@ const NotificationRow: React.FC<{
                         isFriendRequest
                             ? undefined
                             : () => {
-                                  if (isPostLike)
+                                  if (isPostLike || isDiscussion)
                                       void router.push(
                                           spaceRoutes.post(
-                                              spaceId,
+                                              group.postSpaceId ?? spaceId,
                                               group.postId!,
-                                          ),
+                                          ) +
+                                              (isDiscussion
+                                                  ? `?comments=1&comment=${encodeURIComponent(group.commentId!)}`
+                                                  : "?likes=1"),
                                       );
                                   else
                                       void router.push(
@@ -251,9 +255,10 @@ const NotificationRow: React.FC<{
                         cursor: isFriendRequest ? "default" : "pointer",
                         display: "grid",
                         gap: "10px",
-                        gridTemplateColumns: isPostLike
-                            ? "minmax(0, 1fr) 44px"
-                            : "minmax(0, 1fr)",
+                        gridTemplateColumns:
+                            isPostLike || isDiscussion
+                                ? "minmax(0, 1fr) 44px"
+                                : "minmax(0, 1fr)",
                         minWidth: 0,
                         p: 0,
                         textAlign: "left",
@@ -289,47 +294,28 @@ const NotificationRow: React.FC<{
                             }
                             createdAtMs={group.createdAtMs}
                         />
-                        <Box sx={spaceActivityPreviewSx}>
+                        <Box
+                            sx={{
+                                ...spaceActivityPreviewSx,
+                                ...(isDiscussion && {
+                                    whiteSpace: "normal",
+                                    overflowWrap: "anywhere",
+                                }),
+                            }}
+                        >
                             {isPostLike
                                 ? "Liked your post"
-                                : isFriendRequest
-                                  ? "Sent you a friend request"
-                                  : group.kind == "poke"
-                                    ? "Poked you"
-                                    : "You're now friends"}
+                                : isDiscussion
+                                  ? commentNotificationText(group, spaceId)
+                                  : isFriendRequest
+                                    ? "Sent you a friend request"
+                                    : group.kind == "poke"
+                                      ? "Poked you"
+                                      : "You're now friends"}
                         </Box>
                     </Box>
-                    {isPostLike && (
-                        <Box
-                            sx={{ position: "relative", width: 44, height: 44 }}
-                        >
-                            <SpacePostPreviewThumbnail post={preview} />
-                            <Box
-                                component="span"
-                                aria-hidden
-                                sx={{
-                                    alignItems: "center",
-                                    bottom: -5,
-                                    display: "inline-flex",
-                                    height: 16,
-                                    justifyContent: "center",
-                                    pointerEvents: "none",
-                                    position: "absolute",
-                                    right: -5,
-                                    width: 16,
-                                    zIndex: 1,
-                                }}
-                            >
-                                <HugeiconsIcon
-                                    absoluteStrokeWidth
-                                    color={spaceAppBackgroundColor}
-                                    fill="#08C225"
-                                    icon={FavouriteIcon}
-                                    size={14}
-                                    strokeWidth={1.25}
-                                />
-                            </Box>
-                        </Box>
+                    {(isPostLike || isDiscussion) && (
+                        <SpacePostPreviewThumbnail post={preview} />
                     )}
                 </Box>
                 {showPostSomething && (
@@ -609,8 +595,27 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
     const mounted = React.useRef(true);
     const loadGeneration = React.useRef(0);
 
+    React.useEffect(() => {
+        let timeout: ReturnType<typeof setTimeout>;
+        const reload = () => {
+            if (document.visibilityState != "visible" || !navigator.onLine)
+                return;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => setRefresh((value) => value + 1), 100);
+        };
+        window.addEventListener("focus", reload);
+        window.addEventListener("online", reload);
+        document.addEventListener("visibilitychange", reload);
+        return () => {
+            clearTimeout(timeout);
+            window.removeEventListener("focus", reload);
+            window.removeEventListener("online", reload);
+            document.removeEventListener("visibilitychange", reload);
+        };
+    }, []);
+
     const loadPostPreview = React.useCallback(
-        (postId: number) => {
+        (postId: number, postSpaceId = spaceId) => {
             if (postPreviews.current.generation != refresh) {
                 postPreviews.current = {
                     generation: refresh,
@@ -619,7 +624,7 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
             }
             let preview = postPreviews.current.items.get(postId);
             if (!preview) {
-                const target = { spaceId, postId };
+                const target = { spaceId: postSpaceId, postId };
                 preview = loadCurrentPostPreview(target, spaceId)
                     .then((post) => post ?? { ...target, isUnavailable: true })
                     .catch((error: unknown) => {
@@ -682,7 +687,7 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
                 items: [
                     ...new Map(
                         page.items.map((item) => [
-                            `${item.kind}:${item.postId ?? item.id}`,
+                            notificationGroupKey(item),
                             item,
                         ]),
                     ).values(),
@@ -727,7 +732,9 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
             })
             .catch((error: unknown) => {
                 log.error("Failed to load notifications", error);
-                if (!cancelled) setLoadError("refresh");
+                if (!cancelled) {
+                    setLoadError("refresh");
+                }
             })
             .finally(() => {
                 if (!cancelled) setLoading(undefined);
@@ -736,23 +743,6 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
             cancelled = true;
         };
     }, [spaceId, refresh]);
-
-    React.useEffect(() => {
-        const reload = () => {
-            if (document.visibilityState == "visible")
-                setRefresh((value) => value + 1);
-        };
-        window.addEventListener("focus", reload);
-        window.addEventListener("online", reload);
-        window.addEventListener(spacePostDeletedEvent, reload);
-        document.addEventListener("visibilitychange", reload);
-        return () => {
-            window.removeEventListener("focus", reload);
-            window.removeEventListener("online", reload);
-            window.removeEventListener(spacePostDeletedEvent, reload);
-            document.removeEventListener("visibilitychange", reload);
-        };
-    }, []);
 
     const markRead = React.useCallback(
         async (ids: string[]) => {
@@ -850,9 +840,8 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
                     (item) =>
                         !current.some(
                             (existing) =>
-                                existing.kind == item.kind &&
-                                (existing.postId ?? existing.id) ==
-                                    (item.postId ?? item.id),
+                                notificationGroupKey(existing) ==
+                                notificationGroupKey(item),
                         ),
                 ),
             ]);
@@ -917,7 +906,7 @@ const NotificationsFeed: React.FC<{ spaceId: string; profileLink: string }> = ({
                     >
                         {section.items.map((group) => (
                             <NotificationRow
-                                key={`${group.kind}:${group.postId ?? group.id}`}
+                                key={notificationGroupKey(group)}
                                 group={group}
                                 isNew={newIDs.has(group.id)}
                                 spaceId={spaceId}

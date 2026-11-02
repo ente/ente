@@ -94,9 +94,6 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # Breaks Photos and Locker iOS builds: https://github.com/rust-lang/libc/issues/5601
-      - dependency-name: "libc"
-        versions: ["=0.2.190"]
       # Remove after validating Ensu inference upgrades with representative models.
       - dependency-name: "llama-cpp-*"
       # Remove when crypto_secretbox also uses salsa20 0.11.

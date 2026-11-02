@@ -1,13 +1,50 @@
 import { ThemeProvider } from "@mui/material";
 import { photosTheme } from "ente-base/components/utils/theme";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import {
-    GalleryBarImpl,
-    type GalleryBarImplProps,
-} from "../src/components/gallery/BarImpl";
-import { visibleAlbumFilters } from "../src/utils/album-filters";
+    PhotosNavigationContext,
+    type PhotosNavigationActions,
+} from "../src/components/gallery/navigation/PhotosNavigationContext";
+import {
+    AlbumsNavigation,
+    type AlbumsNavigationProps,
+} from "../src/components/gallery/sections/albums/AlbumsNavigation";
+import { useAlbumNavigationData } from "../src/components/gallery/sections/albums/use-album-navigation-data";
+import { LinksNavigation } from "../src/components/gallery/sections/links/LinksNavigation";
+
+const viewport = vi.hoisted(() => ({ scrollToEnd: false }));
+
+vi.mock("react-window", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("react-window")>();
+    const { createElement } = await import("react");
+    return {
+        ...actual,
+        VariableSizeList: (
+            props: ComponentProps<typeof actual.VariableSizeList>,
+        ) => {
+            let initialScrollOffset = 0;
+            if (viewport.scrollToEnd) {
+                if (typeof props.height != "number")
+                    throw new Error(
+                        "The test viewport must have a numeric height",
+                    );
+                for (let index = 0; index < props.itemCount; index++)
+                    initialScrollOffset += props.itemSize(index);
+                initialScrollOffset = Math.max(
+                    0,
+                    initialScrollOffset - props.height,
+                );
+            }
+            return createElement(actual.VariableSizeList, {
+                ...props,
+                initialScrollOffset,
+            });
+        },
+    };
+});
 
 vi.mock("@/components/CollectionsSortOptions", () => ({
     CollectionsSortOptions: () => null,
@@ -16,8 +53,19 @@ vi.mock("@/components/PeopleSortOptions", () => ({
     PeopleSortOptions: () => null,
 }));
 vi.mock("@/utils/album-filters", () => import("../src/utils/album-filters"));
-vi.mock("i18next", () => ({ t: (key: string) => key }));
-vi.mock("ente-new/photos/components/Tiles", () => ({ ItemCard: () => null }));
+vi.mock("i18next", () => {
+    const translations: Record<string, string> = {
+        section_uncategorized: "Uncategorized",
+        section_hidden: "Hidden",
+        section_archive: "Archive",
+        section_trash: "Trash",
+    };
+    return { t: (key: string) => translations[key] ?? key };
+});
+vi.mock("ente-new/photos/components/Tiles", () => ({
+    ItemCard: () => null,
+    PreviewItemTile: "div",
+}));
 vi.mock("react-virtualized-auto-sizer", () => ({
     default: ({
         children,
@@ -53,53 +101,109 @@ const albums = [owned, shared, link];
 
 const renderSearch = (
     query: string,
-    albumFilter: GalleryBarImplProps["albumFilter"] = "ente",
-    mode: GalleryBarImplProps["mode"] = "albums",
+    albumFilter: AlbumsNavigationProps["albumFilter"] = "ente",
+    mode: AlbumsNavigationProps["mode"] | "links" = "albums",
+    summaries = mode == "links" ? [link] : albums,
+    scrollToEnd = false,
 ) => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const summaries = mode == "links" ? [link] : albums;
-    const props: GalleryBarImplProps = {
-        mode,
+    const props: Omit<AlbumsNavigationProps, "mode"> = {
+        albumExpansion: { value: albumFilter, onChange: vi.fn() },
         albumFilter,
         albumSearchQuery: query,
-        collectionSummaries: summaries.filter((album) =>
-            album.name.toLowerCase().includes(normalizedQuery),
-        ),
-        visibleAlbumFilters: visibleAlbumFilters(summaries, query),
-        normalCollectionSummaries: new Map(),
+        collectionSummaries: [],
+        visibleAlbumFilters: [],
         uncategorizedCollectionSummaryID: 99,
         activeCollectionID: undefined,
         collectionsSortBy: "updation-time-desc",
-        peopleSortBy: "name-asc",
-        people: [],
-        activePerson: undefined,
         collapsed: false,
         mobileDrawerProps: { open: false, onClose: vi.fn() },
         onAlbumSearchQueryChange: vi.fn(),
-        onShowAlbumOverview: vi.fn(),
-        onShowPeopleOverview: vi.fn(),
-        onShowCollectionSummary: vi.fn(),
-        onSelectCollectionID: vi.fn(),
         onCreateAlbum: vi.fn(),
         onChangeCollectionsSortBy: vi.fn(),
-        onChangePeopleSortBy: vi.fn(),
-        onSelectPerson: vi.fn(),
     };
-    return renderToStaticMarkup(
-        <ThemeProvider theme={photosTheme}>
-            <GalleryBarImpl {...props} />
-        </ThemeProvider>,
-    );
+    const navigation: PhotosNavigationActions = {
+        openSection: vi.fn(() => true),
+        goHome: vi.fn(),
+        changeMode: vi.fn(() => true),
+        showLibraryMap: vi.fn(),
+        showCollectionMap: vi.fn(),
+        selectPlace: vi.fn(),
+        showCollectionSummary: vi.fn(() => Promise.resolve(true)),
+        selectCollection: vi.fn(),
+        selectCollectionFromViewer: vi.fn(),
+        openOverviewAlbum: vi.fn(),
+        showAlbumOverview: vi.fn(),
+        backToAlbums: vi.fn(),
+        showLinksOverview: vi.fn(() => true),
+        showPeople: vi.fn(() => true),
+        selectPerson: vi.fn(),
+        backToPeople: vi.fn(),
+        selectSearchOption: vi.fn(),
+        showCleanupView: vi.fn(),
+    };
+    const Sidebar = () => {
+        const data = useAlbumNavigationData({
+            ...props,
+            mode: mode == "links" ? undefined : mode,
+            collectionSummaries: new Map(summaries.map((cs) => [cs.id, cs])),
+        });
+        return (
+            <ThemeProvider theme={photosTheme}>
+                <PhotosNavigationContext.Provider value={navigation}>
+                    {mode == "links" ? (
+                        <LinksNavigation
+                            {...props}
+                            collectionSummaries={summaries.filter((cs) =>
+                                cs.name
+                                    .toLowerCase()
+                                    .includes(query.trim().toLowerCase()),
+                            )}
+                            selectedLinkID={undefined}
+                            searchQuery={query}
+                            onSearchQueryChange={vi.fn()}
+                        />
+                    ) : (
+                        <AlbumsNavigation
+                            mode={mode}
+                            {...props}
+                            {...data}
+                            collectionSummaries={
+                                data.sidebarCollectionSummaries
+                            }
+                        />
+                    )}
+                </PhotosNavigationContext.Provider>
+            </ThemeProvider>
+        );
+    };
+    // SSR cannot dispatch scroll events; render the real virtualizer at the
+    // requested scroll position using its initialScrollOffset instead.
+    viewport.scrollToEnd = scrollToEnd;
+    try {
+        return renderToStaticMarkup(<Sidebar />);
+    } finally {
+        viewport.scrollToEnd = false;
+    }
 };
 
 describe("sidebar album search across groups", () => {
-    test("reveals matching quick links in the Albums Links group", () => {
-        const html = renderSearch("trip");
-        expect(html).toContain('aria-label="links_albums_title"');
-        expect(html).not.toContain('aria-label="Ente"');
-        expect(html).not.toContain('aria-label="shared_albums_title"');
-        expect(html).toContain("Trip link");
-        expect(html).not.toContain("no-matches.svg");
+    test("keeps shortcuts reachable at the end of a long expanded album group", () => {
+        const manyAlbums = Array.from({ length: 100 }, (_, i) => ({
+            ...owned,
+            id: i + 10,
+            name: `Album ${String(i).padStart(3, "0")}`,
+        }));
+        const html = renderSearch("", "ente", "albums", manyAlbums);
+        expect(html).toContain('aria-label="Album 000"');
+        expect(html).not.toContain('aria-label="Album 099"');
+        for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
+            expect(html).not.toContain(`aria-label="${label}"`);
+
+        const endHTML = renderSearch("", "ente", "albums", manyAlbums, true);
+        expect(endHTML).not.toContain('aria-label="Album 000"');
+        expect(endHTML).toContain('aria-label="Album 099"');
+        for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
+            expect(endHTML).toContain(`aria-label="${label}"`);
     });
 
     test("reveals matching Shared albums while Ente is selected", () => {
@@ -118,10 +222,24 @@ describe("sidebar album search across groups", () => {
         expect(html).not.toContain("no-matches.svg");
     });
 
-    test("shows the empty state only when no groups match", () => {
+    test("shows the empty state when neither albums nor shortcuts match", () => {
         const html = renderSearch("missing");
         expect(html).toContain("no-matches.svg");
-        expect(html).not.toContain('aria-label="filter_albums"');
+        for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
+            expect(html).not.toContain(`aria-label="${label}"`);
+    });
+
+    test.each([
+        ["  TRASH  ", "Trash"],
+        ["hid", "Hidden"],
+        ["uncat", "Uncategorized"],
+        ["archive", "Archive"],
+    ])("shows only the matching shortcut for %j", (query, match) => {
+        const html = renderSearch(query);
+        expect(html).not.toContain("no-matches.svg");
+        for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
+            if (label == match) expect(html).toContain(`aria-label="${label}"`);
+            else expect(html).not.toContain(`aria-label="${label}"`);
     });
 
     test.each(["", "   "])(
@@ -130,7 +248,6 @@ describe("sidebar album search across groups", () => {
             const html = renderSearch(query);
             expect(html).toContain('aria-label="Ente"');
             expect(html).toContain('aria-label="shared_albums_title"');
-            expect(html).toContain('aria-label="links_albums_title"');
             expect(html).toContain("Family");
             expect(html).toContain("Holiday album");
             expect(html).not.toContain("no-matches.svg");
@@ -152,5 +269,29 @@ describe("Links sidebar search", () => {
         expect(html).toContain("no-matches.svg");
         expect(html).not.toContain("Trip link");
         expect(html).not.toContain('aria-label="filter_albums"');
+    });
+});
+
+describe("Hidden and Archive sidebars", () => {
+    test.each(["hidden-albums", "archive-albums"] as const)(
+        "%s retains its search field and album cards without shortcuts",
+        (mode) => {
+            const html = renderSearch("", "ente", mode);
+            expect(html).toContain('aria-label="search_in_albums"');
+            expect(html).toContain('aria-label="Family"');
+            expect(html).toContain('aria-label="Holiday album"');
+            const buttons = (html.match(/<button\b[^>]*>/g) ?? []).join("");
+            for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
+                expect(buttons).not.toContain(`aria-label="${label}"`);
+            if (mode == "hidden-albums")
+                expect(html).toContain('role="group" aria-label="Hidden"');
+        },
+    );
+
+    test("keeps the Hidden group available when there are no albums", () => {
+        const html = renderSearch("", "ente", "hidden-albums", []);
+        expect(html).toContain('role="group" aria-label="Hidden"');
+        expect(html).toContain('aria-expanded="true"');
+        expect(html).toContain(">Hidden<");
     });
 });

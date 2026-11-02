@@ -51,13 +51,13 @@ If you are logged into Ente on any of your existing devices, you can use that de
 
 If you are logged out of Ente on all your devices, you can reset your password using your recovery key that was provided to you during account creation.
 
-If you are logged out of Ente on all your devices and you have lost both your password and recovery key, we cannot recover your account or data due to our end-to-end encrypted architecture.
+If you are logged out of Ente on all your devices and have lost both your password and recovery key, Ente support cannot recover your account or data due to end-to-end encryption. A previously accepted [Legacy trusted contact](/photos/features/account/legacy/) may be able to recover your account after the configured waiting period, unless recovery is blocked. You cannot set up this route after losing access.
 
 If you wish to delete your account in such scenarios, please reach out to support@ente.com and we will help you out.
 
 ### What is my recovery key and why is it critical? {#recovery-key-importance}
 
-Your **recovery key is a 24-word phrase** that is the ONLY way to recover your account if you:
+Your **recovery key is a 24-word phrase** used to recover your account if you:
 
 - Forget your password AND
 - Are logged out of all devices
@@ -66,11 +66,13 @@ Your **recovery key is a 24-word phrase** that is the ONLY way to recover your a
 
 ⚠️ **Ente support CANNOT provide or regenerate your recovery key**. Due to end-to-end encryption, we never have access to your recovery key or your encrypted data.
 
-⚠️ **Without your recovery key, losing your password means permanently losing access** to all your photos if you're logged out everywhere.
+⚠️ **Without your recovery key, losing your password means permanently losing access** to your photos if you're logged out everywhere and have no previously accepted [Legacy trusted contact](/photos/features/account/legacy/).
 
 ⚠️ **Your recovery key is different from verification codes**. Verification codes are temporary 6-digit numbers sent to your email. Your recovery key is a permanent 24-word phrase.
 
 The same Ente account uses the same recovery key in Photos, Auth, and Locker. Separate accounts have separate keys. Backup-code lists issued by other websites belong to those websites and cannot be used as your Ente recovery key. Learn [which recovery key or backup codes you need](/auth/faq/#recovery-key-or-backup-codes).
+
+Your recovery key cannot be changed. If it was exposed, see [what to do next](/auth/faq/#change-recovery-key).
 
 ### How do I find my recovery key? {#find-recovery-key}
 

@@ -7,6 +7,7 @@ import {
     dialog,
     nativeTheme,
     protocol,
+    screen,
     type WebContents,
 } from "electron/main";
 import serveNextAt from "next-electron-server";
@@ -59,7 +60,7 @@ const main = () => {
     registerPrivilegedSchemes();
 
     const handleOpenEnteURLEnsuringWindow = (url: string) => {
-        log.info(`Attempting to handle request to open URL: ${url}`);
+        log.info("Attempting to handle deep link");
         if (mainWindow) handleEnteLinks(mainWindow, url);
         else setTimeout(() => handleOpenEnteURLEnsuringWindow(url), 1000);
     };
@@ -233,9 +234,24 @@ const windowBounds = () => {
     if (userPreferences.get("isWindowMaximized")) return undefined;
 
     const bounds = userPreferences.get("windowBounds");
-    if (bounds) return bounds;
+    if (bounds) return fitToDisplay(bounds);
 
     return { width: 1170, height: 710 };
+};
+
+// Saved bounds can point at a display that is no longer connected.
+const fitToDisplay = (bounds: Electron.Rectangle) => {
+    const { workArea } = screen.getDisplayMatching(bounds);
+    const width = Math.min(bounds.width, workArea.width);
+    const height = Math.min(bounds.height, workArea.height);
+    const clamp = (v: number, min: number, max: number) =>
+        Math.min(Math.max(v, min), max);
+    return {
+        x: clamp(bounds.x, workArea.x, workArea.x + workArea.width - width),
+        y: clamp(bounds.y, workArea.y, workArea.y + workArea.height - height),
+        width,
+        height,
+    };
 };
 
 const minimumWindowSize = () => ({ minWidth: 200, minHeight: 200 });

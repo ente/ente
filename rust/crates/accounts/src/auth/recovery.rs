@@ -47,18 +47,18 @@ pub fn recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex: &str) -> 
 
     let recovery_key = SecretVec::new(if trimmed_input.contains(' ') {
         if trimmed_input.split(' ').count() != 24 {
-            return Err(Error::IncorrectRecoveryKey);
+            return Err(Error::MalformedRecoveryKey);
         }
 
         let mnemonic = Mnemonic::parse_in_normalized(Language::English, &trimmed_input)
-            .map_err(|_| Error::IncorrectRecoveryKey)?;
+            .map_err(|_| Error::MalformedRecoveryKey)?;
         mnemonic.to_entropy()
     } else {
-        hex::decode(&trimmed_input).map_err(|_| Error::IncorrectRecoveryKey)?
+        hex::decode(&trimmed_input).map_err(|_| Error::MalformedRecoveryKey)?
     });
 
     if recovery_key.len() != 32 {
-        return Err(Error::IncorrectRecoveryKey);
+        return Err(Error::MalformedRecoveryKey);
     }
 
     Ok(recovery_key)
@@ -66,7 +66,10 @@ pub fn recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex: &str) -> 
 
 pub fn recovery_key_to_mnemonic(recovery_key: &[u8]) -> Result<String> {
     if recovery_key.len() != 32 {
-        return Err(Error::IncorrectRecoveryKey);
+        return Err(Error::InvalidKey(format!(
+            "Recovery key must be 32 bytes, got {}",
+            recovery_key.len()
+        )));
     }
 
     Mnemonic::from_entropy_in(Language::English, recovery_key)

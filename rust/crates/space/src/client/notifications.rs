@@ -51,6 +51,10 @@ impl AccountSpaceCtx {
             }
             items.push(Notification {
                 notification_id: item.notification_id,
+                post_space_id: item.post_space_id,
+                post_owner_slug: item.post_owner_slug,
+                comment_id: item.comment_id,
+                reply_to_id: item.reply_to_id,
                 notification_ids: item.notification_ids,
                 kind: item.kind,
                 actors,
@@ -118,6 +122,33 @@ mod tests {
         assert_eq!(notifications.items[0].post_id, None);
         assert_eq!(notifications.items[0].actors[0].space_slug, "maya");
         page.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn comment_notifications_preserve_post_owner_and_exact_reply() {
+        let mut server = mockito::Server::new_async().await;
+        let ctx = test_account_ctx(&server.url());
+        let page = server.mock("GET", "/spaces/space_owner_main/notifications")
+            .with_body(json!({"items": [{"notificationId":"reply-notification", "notificationIds":["reply-notification"], "kind":"comment_reply", "actors":[{"spaceId":"alice-space", "spaceSlug":"alice"}], "actorCount":1, "unread":true, "postId":42, "postSpaceId":"bob-space", "postOwnerSlug":"bob", "commentId":"reply-42", "replyToId":"parent-42", "createdAt":"2026-10-07T10:00:00Z"}]}).to_string())
+            .create_async().await;
+        let shares = server
+            .mock("GET", "/spaces/space_owner_main/friends/shares")
+            .with_body("[]")
+            .create_async()
+            .await;
+        let notifications = ctx
+            .list_notifications("space_owner_main", None, None)
+            .await
+            .unwrap();
+        let reply = &notifications.items[0];
+        assert_eq!(reply.post_space_id.as_deref(), Some("bob-space"));
+        assert_eq!(reply.post_owner_slug.as_deref(), Some("bob"));
+        assert_eq!(reply.comment_id.as_deref(), Some("reply-42"));
+        assert_eq!(reply.reply_to_id.as_deref(), Some("parent-42"));
+        assert_eq!(reply.actors[0].space_slug, "alice");
+        assert!(reply.actors[0].profile.as_ref().unwrap().is_none());
+        page.assert_async().await;
+        shares.assert_async().await;
     }
 
     #[tokio::test]

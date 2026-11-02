@@ -94,10 +94,8 @@ Trash is a special folder where deleted photos are held temporarily before perma
 
 **On web/desktop:**
 
-1. Open the sidebar menu
-2. Click on "Trash"
-
-![Trash item in the sidebar menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-sidebar.png){width=720px}
+1. Open **Albums**
+2. Select **Trash**
 
 ![Trash view showing deleted photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-trash-view.png){width=720px}
 

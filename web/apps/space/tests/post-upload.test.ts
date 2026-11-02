@@ -459,6 +459,76 @@ const videoBytes = new Uint8Array([
     0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50,
 ]);
 
+test.each(["redirect", "headers", "body"])(
+    "cancels a post asset download during %s and allows another download",
+    async (stage) => {
+        const started = Promise.withResolvers<Request>();
+        let stalled = false;
+        const { ctx, createPhotoPost } = await uploadFixture(
+            false,
+            (request) => {
+                const path = new URL(request.url).pathname;
+                if (
+                    !stalled ||
+                    !(stage == "redirect"
+                        ? path.endsWith("/assets/redirect")
+                        : path.startsWith("/assets/"))
+                )
+                    return;
+                if (stage == "body") {
+                    return Promise.resolve(
+                        new Response(
+                            new ReadableStream({
+                                start(controller) {
+                                    request.signal.addEventListener(
+                                        "abort",
+                                        () =>
+                                            controller.error(
+                                                request.signal.reason,
+                                            ),
+                                        { once: true },
+                                    );
+                                    controller.enqueue(new Uint8Array([1]));
+                                },
+                                pull() {
+                                    started.resolve(request);
+                                },
+                            }),
+                        ),
+                    );
+                }
+                started.resolve(request);
+                return new Promise((_, reject) => {
+                    request.signal.addEventListener(
+                        "abort",
+                        () => reject(request.signal.reason as Error),
+                        { once: true },
+                    );
+                });
+            },
+        );
+        try {
+            const post = await createPhotoPost("test-space", [photo(0)], "");
+            const asset = post.photos[0]!.asset;
+            stalled = true;
+            const controller = new AbortController();
+            const canceled = expect(
+                ctx.downloadPostAsset(asset, "test-space", controller.signal),
+            ).rejects.toMatchObject({ name: "AbortError" });
+            const request = await started.promise;
+            controller.abort();
+            await canceled;
+            expect(request.signal.aborted).toBe(true);
+            stalled = false;
+            await expect(
+                ctx.downloadPostAsset(asset, "test-space"),
+            ).resolves.toEqual(photo(0).bytes);
+        } finally {
+            ctx.free();
+        }
+    },
+);
+
 test.each([
     ["photo", "POST"],
     ["photo", "PUT"],

@@ -142,6 +142,117 @@ test("persisted hydration preserves memberships, metadata, trash and cursors wit
     expect(ensureAuthenticatedSession).toHaveBeenCalledOnce();
 });
 
+const infoItemCases = [
+    { type: "note", data: { title: "Note", content: "Body" } },
+    {
+        type: "accountCredential",
+        data: {
+            name: "Account",
+            username: "user",
+            password: " secret ",
+            notes: "Notes",
+        },
+    },
+    {
+        type: "physicalRecord",
+        data: { name: "Record", location: "Home", notes: "Notes" },
+    },
+    {
+        type: "emergencyContact",
+        data: { name: "Contact", contactDetails: "123", notes: "Notes" },
+    },
+];
+
+test.each(
+    infoItemCases.flatMap(({ type, data }) =>
+        Object.keys(data).flatMap((field) =>
+            [{ unexpected: "object" }, ["array"], 42, true].map((value) => ({
+                type,
+                field,
+                data: { ...data, [field]: value },
+            })),
+        ),
+    ),
+)(
+    "malformed $type $field is isolated during cached hydration and trash loading: $data",
+    async ({ type, data }) => {
+        const saved = snapshot();
+        saved.files.push({
+            ...file(12, 1),
+            pubMagicMetadata: { version: 1, data: "bad", header: "header" },
+        });
+        saved.trashFiles.push({
+            ...file(13, 1),
+            pubMagicMetadata: { version: 1, data: "bad", header: "header" },
+            updatedAt: 40,
+            deleteBy: 100,
+        });
+        vi.mocked(db.loadLockerSnapshotFromDB).mockResolvedValue(saved);
+        decryptMetadataJSON.mockImplementation(
+            (value: { encryptedData: string }) =>
+                value.encryptedData === "bad"
+                    ? { info: { type, data } }
+                    : { title: "Healthy file" },
+        );
+
+        for (let load = 0; load < 2; load++) {
+            const result = await loadPersistedLockerState();
+            expect(result.collections).toHaveLength(2);
+            expect(
+                result.collections.map((entry) =>
+                    entry.items.map((item) => item.id),
+                ),
+            ).toEqual([[10], [10]]);
+            expect(result.trashItems.map((item) => item.id)).toEqual([11]);
+            expect(getLockerCacheSnapshot().files.has(12)).toBe(true);
+        }
+    },
+);
+
+test.each([null, undefined, [], "text", 42, true])(
+    "invalid info data is skipped rather than admitted as an item: %j",
+    async (data) => {
+        decryptMetadataJSON.mockResolvedValue({ info: { type: "note", data } });
+        const result = await loadPersistedLockerState();
+        expect(
+            result.collections.every((entry) => entry.items.length === 0),
+        ).toBe(true);
+        expect(result.trashItems).toEqual([]);
+    },
+);
+
+test.each([
+    ...infoItemCases,
+    { type: "account-credential", data: { name: "Account" } },
+    { type: "physical-record", data: { name: "Record" } },
+    {
+        type: "emergency-contact",
+        data: { name: "Contact", contactDetails: "123" },
+    },
+])("valid $type metadata retains its fields", async ({ type, data }) => {
+    decryptMetadataJSON.mockResolvedValue({ info: { type, data } });
+    const result = await loadPersistedLockerState();
+    const expectedType = type.replace(/-([a-z])/g, (_, letter: string) =>
+        letter.toUpperCase(),
+    );
+    expect(result.collections[0]?.items[0]).toMatchObject({
+        type: expectedType,
+        data,
+    });
+    expect(result.trashItems[0]).toMatchObject({ type: expectedType, data });
+});
+
+test("empty mobile fields are normalized and unknown fields are excluded", async () => {
+    decryptMetadataJSON.mockResolvedValue({
+        info: { type: "note", data: { title: null, extra: { nested: true } } },
+    });
+    const result = await loadPersistedLockerState();
+    expect(result.collections[0]?.items[0]?.data).toEqual({
+        title: "",
+        content: "",
+    });
+});
+
 test("partial decryption failure excludes only the failed collection and its cache records", async () => {
     openCollectionKey.mockImplementation((_session, _owner, key) => {
         if (key === "key-2") throw new Error("Bad key");

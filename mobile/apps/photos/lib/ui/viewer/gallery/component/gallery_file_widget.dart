@@ -17,7 +17,7 @@ import "package:photos/module/share/picker_result_uri.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/ui/common/touch_cross_detector.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/gallery_photo_page_route.dart";

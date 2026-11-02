@@ -24,7 +24,7 @@ class FileIconUtils {
       colorRole: FileIconColorRole.warning,
     ),
     'image': FileIconConfig(
-      extensions: {'.jpg', '.png', '.heic'},
+      extensions: {'.jpg', '.jpeg', '.png', '.heic'},
       icon: HugeIcons.strokeRoundedImage01,
       colorRole: FileIconColorRole.green,
     ),

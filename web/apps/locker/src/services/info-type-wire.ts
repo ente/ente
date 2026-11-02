@@ -14,4 +14,4 @@ const internalTypeByWireType = new Map<string, LockerInfoInternalType>([
 
 export const fromInfoTypeWireValue = (
     value: string,
-): LockerItemType | undefined => internalTypeByWireType.get(value);
+): LockerInfoInternalType | undefined => internalTypeByWireType.get(value);

@@ -1072,7 +1072,11 @@ fn open_cost_from_files(path: &Path) -> OpenCost {
 fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
     let mut half = shared.writer_half();
     shared.ensure_open()?;
-    let WriterState { lock, log, .. } = take_writer_state(&mut half)?;
+    let (lock, log) = match take_writer_state(&mut half) {
+        Ok(WriterState { lock, log, .. }) => (lock, Some(log)),
+        Err(VecDbError::ReadOnly) => (WriterLock::acquire(&shared.path)?, None),
+        Err(error) => return Err(error),
+    };
     let mut st = shared.state_write();
     shared.closed.store(true, Ordering::Release);
     drop(log);
@@ -5613,6 +5617,42 @@ mod tests {
         let fresh = open_writer(&path);
         assert!(fresh.is_empty().unwrap());
         fresh.add("anew", &query).unwrap();
+        assert_key_reads_open(&fresh, "anew", 1);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn purge_closes_a_live_instance_degraded_to_read_only() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let first = open_writer(&path);
+        let survivor = VecDb::open(&path, DIMS, Some(StorageKind::F32)).unwrap();
+        bulk_add(&first, &bulk_entries(0, 70, 955)).unwrap();
+        fs::remove_file(&path).unwrap();
+        fs::create_dir(&path).unwrap();
+        let removals: Vec<String> = (0..65).map(|index| format!("key-{index}")).collect();
+        assert_eq!(first.bulk_remove(&removals).unwrap(), 65);
+        fs::remove_dir(&path).unwrap();
+        assert!(is_degraded(&first));
+        assert!(matches!(
+            survivor.remove("key-66"),
+            Err(VecDbError::ReadOnly)
+        ));
+        assert_key_reads_open(&survivor, "key-66", 5);
+
+        let held = WriterLock::acquire(&path).unwrap();
+        assert!(matches!(VecDb::purge(&path), Err(VecDbError::Locked(_))));
+        assert_key_reads_open(&first, "key-66", 5);
+        assert_key_reads_open(&survivor, "key-66", 5);
+        drop(held);
+
+        VecDb::purge(&path).unwrap();
+        assert_key_reads_closed(&first);
+        assert_key_reads_closed(&survivor);
+        assert!(lock_path(&path).exists());
+        let fresh = open_writer(&path);
+        assert!(fresh.is_empty().unwrap());
+        fresh.add("anew", &seeded_unit_vector(2, DIMS)).unwrap();
         assert_key_reads_open(&fresh, "anew", 1);
     }
 

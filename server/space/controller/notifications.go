@@ -55,6 +55,7 @@ func spaceActivityActor(space *repo.SpaceRecord) SpaceActivityActor {
 }
 
 type SpaceActivityNotifier interface {
+	OnSpaceComment(actor SpaceActivityActor, recipients []repo.CommentNotificationRecipient, postOwner SpaceActivityActor, postID int64, commentID string)
 	OnSpacePostCreated(actor SpaceActivityActor, postID int64)
 	OnSpacePostLiked(actor SpaceActivityActor, recipientUserID int64)
 	OnSpacePostReplied(actor SpaceActivityActor, recipientUserID int64)
@@ -70,6 +71,11 @@ type SpaceWebPushSender struct {
 	options     *webpush.Options
 	sendLimiter *limiter.Limiter
 	sendSlots   chan struct{}
+}
+
+type spaceWebPushDelivery struct {
+	activity      string
+	subscriptions []repo.SpaceWebPushSubscriptionRecord
 }
 
 type spaceWebPushPayload struct {
@@ -192,8 +198,18 @@ func (n *SpaceWebPushSender) send(
 	activity, action, event, destination string,
 	subscriptions []repo.SpaceWebPushSubscriptionRecord,
 ) {
-	subscriptions = deduplicateSpaceWebPushSubscriptions(subscriptions)
 	if len(subscriptions) == 0 {
+		return
+	}
+	n.sendDeliveries(actor, action, event, destination, []spaceWebPushDelivery{{activity, subscriptions}})
+}
+
+func (n *SpaceWebPushSender) sendDeliveries(
+	actor SpaceActivityActor,
+	action, event, destination string,
+	deliveries []spaceWebPushDelivery,
+) {
+	if len(deliveries) == 0 {
 		return
 	}
 	limitContext, err := n.sendLimiter.Get(
@@ -216,31 +232,33 @@ func (n *SpaceWebPushSender) send(
 	}
 
 	var waitGroup sync.WaitGroup
-	for _, subscription := range subscriptions {
-		payload := spaceWebPushPayload{
-			Title:  "Ente Space",
-			Body:   fmt.Sprintf("%s %s", spaceActivityActorLabel(actor.Slug), activity),
-			Action: action,
-		}
-		if subscription.Public {
-			payload.TargetID = subscription.TargetID
-		} else {
-			payload.URL = destination
-		}
-		encoded, err := json.Marshal(payload)
-		if err != nil {
-			log.WithField("event", event).WithError(err).
-				Error("Failed to encode Space web push payload")
-			continue
-		}
+	for _, delivery := range deliveries {
+		for _, subscription := range deduplicateSpaceWebPushSubscriptions(delivery.subscriptions) {
+			payload := spaceWebPushPayload{
+				Title:  "Ente Space",
+				Body:   fmt.Sprintf("%s %s", spaceActivityActorLabel(actor.Slug), delivery.activity),
+				Action: action,
+			}
+			if subscription.Public {
+				payload.TargetID = subscription.TargetID
+			} else {
+				payload.URL = destination
+			}
+			encoded, err := json.Marshal(payload)
+			if err != nil {
+				log.WithField("event", event).WithError(err).
+					Error("Failed to encode Space web push payload")
+				continue
+			}
 
-		waitGroup.Add(1)
-		n.sendSlots <- struct{}{}
-		go func(subscription repo.SpaceWebPushSubscriptionRecord, payload []byte) {
-			defer waitGroup.Done()
-			defer func() { <-n.sendSlots }()
-			n.sendSubscription(event, payload, subscription)
-		}(subscription, encoded)
+			waitGroup.Add(1)
+			n.sendSlots <- struct{}{}
+			go func(subscription repo.SpaceWebPushSubscriptionRecord, payload []byte) {
+				defer waitGroup.Done()
+				defer func() { <-n.sendSlots }()
+				n.sendSubscription(event, payload, subscription)
+			}(subscription, encoded)
+		}
 	}
 	waitGroup.Wait()
 }
@@ -414,4 +432,36 @@ func isPublicWebPushAddress(address net.IP) bool {
 		}
 	}
 	return true
+}
+
+func (n *SpaceWebPushSender) OnSpaceComment(actor SpaceActivityActor, recipients []repo.CommentNotificationRecipient, postOwner SpaceActivityActor, postID int64, commentID string) {
+	if !n.available() {
+		return
+	}
+	var deliveries []spaceWebPushDelivery
+	for _, recipient := range recipients {
+		subscriptions, err := n.webPushRepo.ListActiveAccountSubscriptions(context.Background(), recipient.UserID)
+		if err != nil {
+			log.WithField("event", "comment").WithError(err).Error("Failed to list Space web push subscriptions")
+			continue
+		}
+		if len(subscriptions) == 0 {
+			continue
+		}
+		post := "@" + postOwner.Slug + "'s post"
+		if recipient.UserID == postOwner.UserID {
+			post = "your post"
+		} else if actor.SpaceID == postOwner.SpaceID {
+			post = "their post"
+		}
+		activity := "commented on " + post
+		switch recipient.Kind {
+		case "comment_reply":
+			activity = "replied to your comment"
+		case "comment_reaction":
+			activity = "reacted to your comment"
+		}
+		deliveries = append(deliveries, spaceWebPushDelivery{activity, subscriptions})
+	}
+	n.sendDeliveries(actor, "View comments", "comment", fmt.Sprintf("/app/posts/%s/%d?comments=1&comment=%s", url.PathEscape(postOwner.SpaceID), postID, url.QueryEscape(commentID)), deliveries)
 }

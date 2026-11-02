@@ -199,7 +199,7 @@ type AbuseReportDetails struct {
 }
 
 type ReporterAddress struct {
-	Stress     string `json:"street" binding:"required"`
+	Street     string `json:"street" binding:"required"`
 	City       string `json:"city" binding:"required"`
 	State      string `json:"state" binding:"required"`
 	Country    string `json:"country" binding:"required"`

@@ -12,9 +12,31 @@ import (
 
 const (
 	legacyKitBaseTemplate              = "legacy/legacy_base.html"
+	legacyKitCreatedTemplate           = "legacy/kit_created.html"
 	legacyKitRecoveryStartedTemplate   = "legacy/kit_recovery_started.html"
 	legacyKitRecoveryCompletedTemplate = "legacy/kit_recovery_completed.html"
 )
+
+func (c *Controller) sendKitCreatedNotification(userID int64) {
+	logger := log.WithField("user_id", userID)
+	user, err := c.UserRepo.Get(userID)
+	if err != nil {
+		logger.WithError(err).Error("failed to load legacy kit owner for creation email")
+		return
+	}
+	if err := email.SendTemplatedEmailV2(
+		[]string{user.Email},
+		"Ente",
+		"team@ente.com",
+		"Your Legacy kit was created",
+		legacyKitBaseTemplate,
+		legacyKitCreatedTemplate,
+		nil,
+		nil,
+	); err != nil {
+		logger.WithError(err).Error("failed to send legacy kit creation email")
+	}
+}
 
 func (c *Controller) sendRecoveryStartedNotification(ctx context.Context, userID int64, session *legacykitrepo.RecoverySessionRow, beneficiaryEmail *string) error {
 	user, err := c.UserRepo.Get(userID)

@@ -178,7 +178,7 @@ const ffmpegGenerateHLSPlaylistAndSegments = async (
     // HDR needs BT.709 tonemapping; applying it to SDR reduces brightness.
     const tonemap = isHDR;
 
-    await fs.mkdir(outputPathPrefix);
+    await fs.mkdir(outputPathPrefix, { mode: 0o700 });
 
     const playlistPath = path.join(outputPathPrefix, "output.m3u8");
     const videoPath = path.join(outputPathPrefix, "output.ts");
@@ -246,8 +246,11 @@ const ffmpegGenerateHLSPlaylistAndSegments = async (
 
     try {
         await Promise.all([
-            fs.writeFile(keyPath, keyBytes),
-            fs.writeFile(keyInfoPath, keyInfo, { encoding: "utf8" }),
+            fs.writeFile(keyPath, keyBytes, { mode: 0o600 }),
+            fs.writeFile(keyInfoPath, keyInfo, {
+                encoding: "utf8",
+                mode: 0o600,
+            }),
         ]);
 
         const commandWithRedirection = `${shellescape(command)} 2>${shellescape([stderrPath])}`;

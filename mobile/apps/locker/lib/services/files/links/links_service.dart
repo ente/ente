@@ -30,7 +30,7 @@ class LinksService {
         'encryptedFileKey': secretPayload.encryptedFileKey,
         'encryptedFileKeyNonce': secretPayload.encryptedFileKeyNonce,
         'kdfNonce': secretPayload.kdfNonce,
-        'kdfMemLimit': secretPayload.kdfMemLimit,
+        'kdfMemLimit': secretPayload.kdfMemLimit.toInt(),
         'kdfOpsLimit': secretPayload.kdfOpsLimit,
         'encryptedShareKey': secretPayload.encryptedShareKey,
       },

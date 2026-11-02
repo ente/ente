@@ -19,11 +19,11 @@ type File struct {
 	Thumbnail          FileAttributes `json:"thumbnail" binding:"required"`
 	Metadata           FileAttributes `json:"metadata" binding:"required"`
 	// True when the file was removed from this collection.
-	IsDeleted          bool           `json:"isDeleted"`
-	UpdationTime       int64          `json:"updationTime"`
-	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
-	PubicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
-	Info               *FileInfo      `json:"info,omitempty"`
+	IsDeleted           bool           `json:"isDeleted"`
+	UpdationTime        int64          `json:"updationTime"`
+	MagicMetadata       *MagicMetadata `json:"magicMetadata,omitempty"`
+	PublicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
+	Info                *FileInfo      `json:"info,omitempty"`
 	// Action and ActionUser are optionally set to drive client-side behavior during diffs
 	Action       *string `json:"action,omitempty"`
 	ActionUserID *int64  `json:"actionUser,omitempty"`
@@ -37,10 +37,10 @@ type MetaFile struct {
 	KeyDecryptionNonce string         `json:"keyDecryptionNonce"`
 	Metadata           FileAttributes `json:"metadata" binding:"required"`
 	// True when the file was removed from this collection.
-	IsDeleted          bool           `json:"isDeleted"`
-	UpdationTime       int64          `json:"updationTime"`
-	MagicMetadata      *MagicMetadata `json:"magicMetadata,omitempty"`
-	PubicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
+	IsDeleted           bool           `json:"isDeleted"`
+	UpdationTime        int64          `json:"updationTime"`
+	MagicMetadata       *MagicMetadata `json:"magicMetadata,omitempty"`
+	PublicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
 }
 
 type FileInfo struct {

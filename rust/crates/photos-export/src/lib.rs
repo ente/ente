@@ -78,13 +78,9 @@ pub struct Export {
 }
 
 impl Export {
-    pub fn open(
-        path: &Path,
-        master_key: &ente_core::crypto::Key,
-        options: Options,
-    ) -> Result<Self> {
+    pub fn open(path: &Path, session: &ente_core::Session, options: Options) -> Result<Self> {
         let destination = destination(path)?;
-        let expected_root = Root::new(master_key)?;
+        let expected_root = Root::new(&session.master_key, session.user_id)?;
         let root_lock = open_root(&destination, &expected_root)?;
         let adopting = root_lock.is_none() && legacy::read::recognized(&destination)?;
         ensure!(
@@ -122,9 +118,10 @@ impl Export {
         self.root_lock.is_some()
     }
 
-    pub fn verify_source(&self, master_key: &ente_core::crypto::Key) -> Result<()> {
+    pub fn verify_source(&self, session: &ente_core::Session) -> Result<()> {
         ensure!(
-            Root::new(master_key)?.source_verifier == self.expected_root.source_verifier,
+            Root::new(&session.master_key, session.user_id)?.source_verifier
+                == self.expected_root.source_verifier,
             "account keys changed while waiting for access"
         );
         Ok(())
@@ -168,7 +165,7 @@ impl Export {
             )?;
             if self.root_lock.is_some() {
                 failures.record(
-                    adopt::scan(&self.destination, index, desktop.as_ref()),
+                    adopt::scan(&self.destination, index, desktop.as_ref(), session.user_id),
                     "this CLI's export records",
                 )?;
             }
@@ -191,7 +188,13 @@ impl Export {
             ))
         })? {
             let (id, name, metadata) = row?;
-            store.recover_album(id, &name, serde_json::from_str(&metadata)?, None)?;
+            store.recover_album(
+                id,
+                &name,
+                serde_json::from_str(&metadata)?,
+                None,
+                session.user_id,
+            )?;
         }
         drop(albums);
         if let Some(index) = &index {
@@ -213,6 +216,7 @@ impl Export {
                         .transpose()?
                         .unwrap_or(Value::Null),
                     owner.map(|owner| owner != session.user_id),
+                    session.user_id,
                 )?;
                 store.db.execute(
                     "INSERT OR IGNORE INTO desired_albums(id,name) VALUES(?1,?2)",
@@ -922,7 +926,7 @@ mod tests {
 
     #[test]
     fn initialization_removes_its_marker_on_failure_and_retries() {
-        let root = Root::new(&ente_core::crypto::Key::generate()).unwrap();
+        let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
         let directory = tempfile::tempdir().unwrap();
         let stray = directory.path().join("photo.jpg");
         std::fs::write(&stray, b"unrelated").unwrap();

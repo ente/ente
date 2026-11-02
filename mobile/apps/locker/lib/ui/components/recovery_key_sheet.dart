@@ -1,9 +1,7 @@
 import 'dart:io' as io;
 
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
-import 'package:ente_configuration/constants.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
@@ -46,15 +44,9 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    final String recoveryKeyMnemonic = bip39.entropyToMnemonic(
+    final String recoveryKeyMnemonic = _config.recoveryKeyToMnemonic(
       widget.recoveryKey,
     );
-
-    if (recoveryKeyMnemonic.split(' ').length != mnemonicKeyWordCount) {
-      throw AssertionError(
-        'Recovery code should have $mnemonicKeyWordCount words',
-      );
-    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,

@@ -3,28 +3,28 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 
-const vipsVersion = "8.18.7";
+const vipsVersion = "8.18.7-1";
 
 const vipsAssets = {
     "linux-x64": {
         name: "vips-x64",
-        sha256: "4ae75c23c74537e12e1c1a009f1c46a0fb71ca1df435601a89994b3611f28b72",
-        size: 19536800,
+        sha256: "23080fc90f113d3689d6c50e6e8c1f3f080813242c109d2b720fee002153f034",
+        size: 19507632,
     },
     "linux-arm64": {
         name: "vips-arm64",
-        sha256: "cb86d43a90eb5c5485c692198fe2a33aa20497566e658c31297c3a944d68ddcc",
-        size: 18720208,
+        sha256: "6c8f9c7d33a3995acda6d63e3aed1ddd4fb353217b63a7b17fa73debb0a6b111",
+        size: 18719728,
     },
     "win32-x64": {
         name: "vips-x86_64.exe",
-        sha256: "4be37eaf58ccc4a40774de4e12e6293a086878f1bc9b0ce8bfcef7181fe666e7",
-        size: 31252992,
+        sha256: "91f5b1299b59452cff1762e7f4b1700fc4fd096306af76af1df394238265ff0b",
+        size: 31219200,
     },
     "win32-arm64": {
         name: "vips-aarch64.exe",
-        sha256: "5df2275a63969d0e87efe0162f18f5a80dec34ebdf5bcccc3cb74efb25f8e06d",
-        size: 21235712,
+        sha256: "3dce2a96420d908903d685b4a4efd525a71b6eed7cfa2c54787a4185dea3e40b",
+        size: 21212672,
     },
 };
 

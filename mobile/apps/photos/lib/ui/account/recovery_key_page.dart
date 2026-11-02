@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:ente_components/ente_components.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/configuration.dart';
-import 'package:photos/core/constants.dart';
+import 'package:photos/src/rust/third_party/ente_frb_lib/recovery.dart'
+    as recovery;
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/share_util.dart';
@@ -47,12 +47,9 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
 
-    final String recoveryKey = bip39.entropyToMnemonic(widget.recoveryKey);
-    if (recoveryKey.split(' ').length != mnemonicKeyWordCount) {
-      throw AssertionError(
-        'recovery code should have $mnemonicKeyWordCount words',
-      );
-    }
+    final String recoveryKey = recovery.recoveryKeyToMnemonic(
+      recoveryKeyHex: widget.recoveryKey,
+    );
 
     if (widget.isOnboarding) {
       return OnboardingPageScaffold(

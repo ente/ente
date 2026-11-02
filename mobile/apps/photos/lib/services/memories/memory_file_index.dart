@@ -1,4 +1,4 @@
-part of "../smart_memories_service.dart";
+part of "dart_memories_computer.dart";
 
 typedef _CreationTimeRange = ({int start, int end});
 

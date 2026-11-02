@@ -1,3 +1,4 @@
+import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
 import { sidebarTheme } from "@/components/sidebar/theme";
 import {
     groupSearchOptions,
@@ -32,6 +33,7 @@ import {
     useTheme,
     type Theme,
 } from "@mui/material";
+import { isDesktop } from "ente-base/app";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { useIsSmallWidth } from "ente-base/components/utils/hooks";
@@ -65,15 +67,10 @@ import AsyncSelect from "react-select/async";
 export interface SearchBarProps {
     isInSearchMode: boolean;
     isSettingsOpen: boolean;
-    onSelectSearchOption: (
-        o: SearchOption | undefined,
-        options?: { shouldExitSearchMode?: boolean },
-    ) => void;
-    onSelectPeople: (onNavigate: () => void) => void;
-    onSelectPerson: (personID: string) => void;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = (props) => {
+    const { selectSearchOption } = usePhotosNavigation();
     const isSmallWidth = useIsSmallWidth();
     const [open, setOpen] = useState(false);
     const [searchResetKey, setSearchResetKey] = useState(0);
@@ -94,7 +91,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const showSearch = () => setOpen(true);
     const closeSearch = () => setOpen(false);
     const clearSearch = () => {
-        props.onSelectSearchOption(undefined, { shouldExitSearchMode: true });
+        selectSearchOption(undefined, { shouldExitSearchMode: true });
         setOpen(false);
     };
 
@@ -163,6 +160,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                     slotProps={{
                         paper: {
                             "aria-label": t("search"),
+                            inert: !open,
                             sx: {
                                 width: "621px",
                                 maxWidth: "calc(100% - 24px)",
@@ -194,13 +192,12 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
 
 const SearchInput: React.FC<
     SearchBarProps & { open: boolean; onClose: () => void }
-> = ({
-    onSelectSearchOption,
-    onSelectPeople,
-    onSelectPerson,
-    open,
-    onClose,
-}) => {
+> = ({ open, onClose }) => {
+    const {
+        selectSearchOption: onSelectSearchOption,
+        showPeople: onSelectPeople,
+        selectPerson: onSelectPerson,
+    } = usePhotosNavigation();
     const selectRef = useRef<SelectInstance<SearchOption> | null>(null);
     // undefined makes react-select switch from controlled to uncontrolled.
     const [value, setValue] = useState<SearchOption | null>(null);
@@ -376,6 +373,10 @@ interface SearchCategoryProps {
     };
 }
 
+const searchTabs = searchCategories.filter(
+    (category) => isDesktop || category !== "people",
+);
+
 function SearchMenu(props: MenuProps<SearchOption, false>) {
     const {
         searchCategory: { category, setCategory },
@@ -422,7 +423,7 @@ function SearchMenu(props: MenuProps<SearchOption, false>) {
                         },
                     }}
                 >
-                    {searchCategories.map((category) => (
+                    {searchTabs.map((category) => (
                         <Tab
                             key={category}
                             value={category}
@@ -693,9 +694,10 @@ const Input: React.FC<InputProps<SearchOption, false>> = (props) => (
     />
 );
 
-const EmptyState: React.FC<
-    Pick<SearchBarProps, "onSelectPerson"> & { onSelectPeople: () => void }
-> = ({ onSelectPeople, onSelectPerson }) => {
+const EmptyState: React.FC<{
+    onSelectPerson: (personID: string) => void;
+    onSelectPeople: () => void;
+}> = ({ onSelectPeople, onSelectPerson }) => {
     const mlStatus = useMLStatusSnapshot();
     const people = usePeopleStateSnapshot()?.visiblePeople;
     const vpStatus = useHLSGenerationStatusSnapshot();

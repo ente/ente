@@ -2,6 +2,8 @@
 // `crypto_generichash`.
 
 use blake2b_simd::{Params as Blake2bParams, State as Blake2bState};
+use hmac::{Hmac, KeyInit, Mac};
+use sha2::Sha256;
 
 use crate::crypto::{Error, Result};
 
@@ -15,6 +17,12 @@ pub const HASH_BYTES: usize = 32;
 pub const KEY_BYTES_MIN: usize = 16;
 
 pub const KEY_BYTES_MAX: usize = 64;
+
+pub fn hmac_sha256(key: &[u8], data: &[u8]) -> Result<[u8; 32]> {
+    let mut mac = Hmac::<Sha256>::new_from_slice(key).map_err(|_| Error::MacInitFailed)?;
+    mac.update(data);
+    Ok(mac.finalize().into_bytes().into())
+}
 
 pub fn hash(data: &[u8], out_len: Option<usize>, key: Option<&[u8]>) -> Result<Vec<u8>> {
     let mut state = HashState::new(out_len, key)?;

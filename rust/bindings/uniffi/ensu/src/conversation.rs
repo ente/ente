@@ -17,6 +17,10 @@ pub enum ConversationError {
     Cancelled,
     #[error("Conversation changed; retry the reply")]
     Stale,
+    #[error(
+        "This message is too long for the model, even without earlier messages. Shorten it or split it into smaller messages. Your full text is still available to edit or copy."
+    )]
+    CurrentInputTooLarge,
     #[error("{detail}")]
     Other { detail: String },
 }
@@ -32,6 +36,7 @@ impl From<core::PrepareError> for ConversationError {
         match cause {
             core::PrepareError::Cancelled => Self::Cancelled,
             core::PrepareError::Stale => Self::Stale,
+            core::PrepareError::CurrentInputTooLarge => Self::CurrentInputTooLarge,
             cause => error(cause),
         }
     }

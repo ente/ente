@@ -40,20 +40,19 @@ class DeviceFolderRowItem extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                ClipSmoothRect(
-                  radius: SmoothBorderRadius(
-                    cornerRadius: _cornerRadius,
-                    cornerSmoothing: _cornerSmoothing,
-                  ),
-                  child: SizedBox(
-                    height: sideOfThumbnail,
-                    width: sideOfThumbnail,
-                    child: Hero(
-                      tag:
-                          "device_folder:" +
-                          deviceCollection.name +
-                          deviceCollection.thumbnail!.tag,
-                      transitionOnUserGestures: true,
+                Hero(
+                  tag: "device_folder:${deviceCollection.id}",
+                  createRectTween: (begin, end) =>
+                      RectTween(begin: begin, end: end),
+                  transitionOnUserGestures: true,
+                  child: ClipSmoothRect(
+                    radius: SmoothBorderRadius(
+                      cornerRadius: _cornerRadius,
+                      cornerSmoothing: _cornerSmoothing,
+                    ),
+                    child: SizedBox(
+                      height: sideOfThumbnail,
+                      width: sideOfThumbnail,
                       child: Stack(
                         children: [
                           ThumbnailWidget(
@@ -106,7 +105,11 @@ class DeviceFolderRowItem extends StatelessWidget {
         ],
       ),
       onTap: () {
-        routeToPage(context, DeviceFolderPage(deviceCollection));
+        routeToPage(
+          context,
+          DeviceFolderPage(deviceCollection),
+          useFadeTransition: true,
+        );
       },
     );
   }

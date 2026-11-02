@@ -20,6 +20,7 @@ export const CachedSpacePost = z.object({
     avatarSize: z.number().optional(),
     avatarUpdatedAt: z.string().optional(),
     caption: z.string().optional(),
+    commentCount: z.number().optional(),
     friendID: z.string(),
     height: z.number().optional(),
     video: CachedSpacePostVideo.optional(),
@@ -36,6 +37,7 @@ export const CachedSpacePost = z.object({
         )
         .optional(),
     isUnavailable: z.boolean().optional(),
+    likeCount: z.number().optional(),
     name: z.string(),
     postId: z.number(),
     spaceId: z.string(),

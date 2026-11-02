@@ -166,6 +166,11 @@ pub fn config_defaults() -> ConfigDefaults {
 }
 
 #[uniffi::export]
+pub fn supports_live_voice(total_memory_bytes: Option<u64>) -> bool {
+    config::supports_live_voice(total_memory_bytes)
+}
+
+#[uniffi::export]
 pub fn resolve_model_policy(
     surface: ModelRuntimeSurface,
     total_memory_bytes: Option<u64>,

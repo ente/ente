@@ -35,7 +35,7 @@ jobs:
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-workspace
@@ -58,7 +58,7 @@ jobs:
                       ~/.cache/go-build
                       ~/.cache/.theseus/postgresql
 
-            - run: cargo test --locked --workspace --exclude ente-cli-next --features museum,ente-ml/ml-assets
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets
               if: matrix.suite == 'workspace'
               # postgresql_embedded downloads its binaries from GitHub.
               # GITHUB_TOKEN raises the API rate limit for those downloads.
@@ -66,10 +66,10 @@ jobs:
                   GITHUB_TOKEN: ${{ github.token }}
 
             # Avoid unifying SQLCipher into other packages' SQLite tests.
-            - run: cargo test --locked -p ente-cli-next --features museum
+            - run: cargo test --locked -p ente-cli --features museum
               if: matrix.suite == 'cli'
               env:
                   GITHUB_TOKEN: ${{ github.token }}
 
-            - run: apps/cli-next/scripts/test-with-keyring-linux.sh --features museum
+            - run: apps/cli/scripts/test-with-keyring-linux.sh --features museum
               if: matrix.suite == 'cli'

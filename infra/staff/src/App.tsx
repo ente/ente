@@ -1,7 +1,17 @@
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import {
     Box,
     Button,
     CircularProgress,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    InputAdornment,
+    Menu,
+    MenuItem,
     Tab,
     Tabs,
     TextField,
@@ -35,14 +45,18 @@ import {
 } from "./utils";
 
 export const App: React.FC = () => {
-    const [urlCredentials] = useState(readUrlCredentials);
-    const [searchInput, setSearchInput] = useState(urlCredentials.email ?? "");
-    const [authToken] = useState(
-        () => urlCredentials.token ?? localStorage.getItem("token") ?? "",
+    const [urlEmail] = useState(() =>
+        new URLSearchParams(window.location.search).get("email"),
     );
-    const [selectedUserEmail, setSelectedUserEmail] = useState(
-        urlCredentials.email ?? "",
+    const [searchInput, setSearchInput] = useState(urlEmail ?? "");
+    const [authToken] = useState(() => localStorage.getItem("token") ?? "");
+    const [tokenInput, setTokenInput] = useState("");
+    const [showToken, setShowToken] = useState(false);
+    const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+    const [tokenMenuAnchor, setTokenMenuAnchor] = useState<HTMLElement | null>(
+        null,
     );
+    const [selectedUserEmail, setSelectedUserEmail] = useState(urlEmail ?? "");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [fetchSuccess, setFetchSuccess] = useState(false);
@@ -65,7 +79,23 @@ export const App: React.FC = () => {
         } else {
             localStorage.removeItem("token");
         }
+        removeTokenFromUrl();
     }, [authToken]);
+
+    const handleTokenSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const token = tokenInput.trim();
+        if (!token) return;
+        localStorage.setItem("token", token);
+        removeTokenFromUrl();
+        window.location.reload();
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        removeTokenFromUrl();
+        window.location.reload();
+    };
 
     const fetchData = useCallback(async (input: string, authToken: string) => {
         const requestID = ++searchRequestID.current;
@@ -146,15 +176,14 @@ export const App: React.FC = () => {
     ]);
 
     useEffect(() => {
-        const { email, token } = urlCredentials;
-        if (email && token) {
+        if (urlEmail && authToken) {
             queueMicrotask(() => {
-                fetchData(email, token).catch((error: unknown) =>
+                fetchData(urlEmail, authToken).catch((error: unknown) =>
                     console.error("Fetch data error:", error),
                 );
             });
         }
-    }, [fetchData, urlCredentials]);
+    }, [authToken, fetchData, urlEmail]);
 
     const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -195,6 +224,78 @@ export const App: React.FC = () => {
             setFileCountInitPending(false);
         }
     };
+
+    const tokenForm = (
+        <form className="token-form" onSubmit={handleTokenSubmit}>
+            <TextField
+                label="Token"
+                type={showToken ? "text" : "password"}
+                value={tokenInput}
+                onChange={(event) => setTokenInput(event.target.value)}
+                autoComplete="off"
+                autoFocus
+                required
+                fullWidth
+                slotProps={{
+                    input: {
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton
+                                    type="button"
+                                    aria-label={
+                                        showToken ? "Hide token" : "Show token"
+                                    }
+                                    onClick={() => setShowToken(!showToken)}
+                                    edge="end"
+                                >
+                                    {showToken ? (
+                                        <VisibilityOffIcon />
+                                    ) : (
+                                        <VisibilityIcon />
+                                    )}
+                                </IconButton>
+                            </InputAdornment>
+                        ),
+                    },
+                }}
+            />
+            <div className="token-form-actions">
+                {authToken && (
+                    <Button onClick={() => setTokenDialogOpen(false)}>
+                        Cancel
+                    </Button>
+                )}
+                <Button
+                    type="submit"
+                    variant="contained"
+                    className="token-submit-button"
+                >
+                    {authToken ? "Update token" : "Continue"}
+                </Button>
+            </div>
+        </form>
+    );
+
+    if (!authToken) {
+        return (
+            <main className="container token-entry">
+                <section className="token-entry-card">
+                    <img
+                        src={duckieimage}
+                        alt=""
+                        className="token-entry-image"
+                    />
+                    <h1>Ente Staff</h1>
+                    <p>Enter your token to continue.</p>
+                    {tokenForm}
+                    <p className="token-entry-hint">
+                        The token is saved in this browser. You can update or
+                        remove it later from the menu.
+                    </p>
+                </section>
+            </main>
+        );
+    }
 
     return (
         <StaffSessionProvider session={session}>
@@ -244,6 +345,34 @@ export const App: React.FC = () => {
                                     fetchData(selectedUserEmail, authToken)
                                 }
                             />
+                            <IconButton
+                                aria-label="Staff session options"
+                                color="inherit"
+                                onClick={(event) =>
+                                    setTokenMenuAnchor(event.currentTarget)
+                                }
+                            >
+                                <MoreVertIcon />
+                            </IconButton>
+                            <Menu
+                                anchorEl={tokenMenuAnchor}
+                                open={Boolean(tokenMenuAnchor)}
+                                onClose={() => setTokenMenuAnchor(null)}
+                            >
+                                <MenuItem
+                                    onClick={() => {
+                                        setTokenMenuAnchor(null);
+                                        setTokenInput("");
+                                        setShowToken(false);
+                                        setTokenDialogOpen(true);
+                                    }}
+                                >
+                                    Update token
+                                </MenuItem>
+                                <MenuItem onClick={handleLogout}>
+                                    Log out
+                                </MenuItem>
+                            </Menu>
                         </div>
                     </div>
                 </form>
@@ -328,21 +457,35 @@ export const App: React.FC = () => {
                             )}
                         </>
                     ) : (
-                        <img
-                            src={duckieimage}
-                            alt="duckie"
-                            className="empty-state-image"
-                        />
+                        <div className="empty-state">
+                            <img src={duckieimage} alt="" />
+                            <h2>Find an account</h2>
+                            <p>
+                                Enter an email address or user ID above to view
+                                account details.
+                            </p>
+                        </div>
                     )}
                 </div>
+                <Dialog
+                    open={tokenDialogOpen}
+                    onClose={() => setTokenDialogOpen(false)}
+                    fullWidth
+                    maxWidth="xs"
+                >
+                    <DialogTitle>Update token</DialogTitle>
+                    <DialogContent>{tokenForm}</DialogContent>
+                </Dialog>
             </div>
         </StaffSessionProvider>
     );
 };
 
-const readUrlCredentials = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return { email: urlParams.get("email"), token: urlParams.get("token") };
+const removeTokenFromUrl = () => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("token")) return;
+    url.searchParams.delete("token");
+    window.history.replaceState(window.history.state, "", url);
 };
 
 const noSearchableAccountMessage =

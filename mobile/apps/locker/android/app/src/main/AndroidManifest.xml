@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- The camera plugin unconditionally adds RECORD_AUDIO to the merged
+         manifest even when enableAudio is set to false. We don't record audio
+         anywhere, so strip it from the final build. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
 
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"

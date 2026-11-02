@@ -44,10 +44,18 @@ void main() {
       }
     });
 
-    final document = await EntePdfRenderer.open("/tmp/a.pdf", password: "x");
+    final document = await EntePdfRenderer.open(
+      "/tmp/a.pdf",
+      password: "x",
+      maxPages: 500,
+    );
     expect(document.pageCount, 2);
     expect(document.pageSizes[1], const Size(842, 595));
-    expect(calls.single.arguments, {"path": "/tmp/a.pdf", "password": "x"});
+    expect(calls.single.arguments, {
+      "path": "/tmp/a.pdf",
+      "password": "x",
+      "maxPages": 500,
+    });
 
     final bytes = await document.render(2, width: 100, height: 70);
     expect(bytes, [1, 2, 3]);
@@ -65,25 +73,25 @@ void main() {
   test("platform error codes become typed exceptions", () async {
     fail("password_required");
     await expectLater(
-      EntePdfRenderer.open("/tmp/a.pdf"),
+      EntePdfRenderer.open("/tmp/a.pdf", maxPages: 500),
       throwsA(isA<PdfPasswordRequiredException>()),
     );
 
     fail("password_incorrect");
     await expectLater(
-      EntePdfRenderer.open("/tmp/a.pdf", password: "nope"),
+      EntePdfRenderer.open("/tmp/a.pdf", password: "nope", maxPages: 500),
       throwsA(isA<PdfPasswordIncorrectException>()),
     );
 
     fail("password_unsupported");
     await expectLater(
-      EntePdfRenderer.open("/tmp/a.pdf"),
+      EntePdfRenderer.open("/tmp/a.pdf", maxPages: 500),
       throwsA(isA<PdfPasswordUnsupportedException>()),
     );
 
     fail("invalid", message: "Unable to load");
     await expectLater(
-      EntePdfRenderer.open("/tmp/a.pdf"),
+      EntePdfRenderer.open("/tmp/a.pdf", maxPages: 500),
       throwsA(
         isA<PdfException>().having(
           (e) => e.message,

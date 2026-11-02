@@ -85,7 +85,6 @@ describe("album filters shared by the dialog and sidebar", () => {
         expect(ids("ente")).toEqual([1, 2, 3, 4]);
         expect(ids("shared")).toEqual([2, 4]);
         expect(ids("received")).toEqual([3]);
-        expect(ids("links")).toEqual([5]);
         expect(albums.map(({ id }) => id)).toEqual([1, 2, 3, 4, 5]);
     });
 
@@ -130,7 +129,6 @@ describe("album filters shared by the dialog and sidebar", () => {
             "ente",
             "shared",
             "received",
-            "links",
             "empty-albums",
         ]);
         expect(visibleAlbumFilters([]).map(({ value }) => value)).toEqual([
@@ -147,11 +145,11 @@ describe("album filters shared by the dialog and sidebar", () => {
         ];
         const groups = (query: string) =>
             visibleAlbumFilters(albums, query).map(({ value }) => value);
-        expect(groups("holiday")).toEqual(["links"]);
+        expect(groups("holiday")).toEqual([]);
         expect(groups("  WINTER  ")).toEqual(["ente", "shared", "received"]);
         expect(groups("summer")).toEqual(["ente"]);
         expect(groups("missing")).toEqual([]);
-        expect(groups("   ")).toEqual(["ente", "shared", "received", "links"]);
+        expect(groups("   ")).toEqual(["ente", "shared", "received"]);
     });
 
     test("search preserves empty-group availability when only one empty album matches", () => {

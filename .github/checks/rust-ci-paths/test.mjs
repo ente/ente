@@ -100,7 +100,7 @@ builder = { path = "../../crates/builder" }`,
     );
 
     crate(
-        "apps/cli-next",
+        "apps/cli",
         "cli",
         `[dev-dependencies]
 test-only = { path = "../../crates/test-only" }`,
@@ -162,14 +162,14 @@ test-only = { path = "../../crates/test-only" }`,
     );
     assert.equal(result.status, 0, result.stderr);
 
-    result = run(["rust/apps/cli-next/**", ...base], "rust-cli-test");
+    result = run(["rust/apps/cli/**", ...base], "rust-cli-test");
     assert.equal(result.status, 1, result.stderr);
     assert.equal(
         result.stderr,
         `${pathsFile}: rust-cli-test missing Rust dependency path "rust/crates/test-only/**"\n`,
     );
     result = run(
-        ["rust/apps/cli-next/**", "rust/crates/test-only/**", ...base],
+        ["rust/apps/cli/**", "rust/crates/test-only/**", ...base],
         "rust-cli-test",
     );
     assert.equal(result.status, 0, result.stderr);

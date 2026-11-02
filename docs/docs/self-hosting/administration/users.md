@@ -68,7 +68,7 @@ The administrator users have to be explicitly whitelisted in `museum.yaml`. You 
 
 ## Increase storage and account validity
 
-You can use Ente CLI for increasing storage quota and account validity for users on your instance. Check this guide for more [information](/self-hosting/administration/cli#step-4-increase-storage-and-account-validity)
+Use Ente CLI to change storage quotas and account validity for users on your instance. Learn more in [Administration](/cli/admin#change-a-free-subscription).
 
 ## Handle user verification codes
 

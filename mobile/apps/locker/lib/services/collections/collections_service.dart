@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import "package:ente_accounts/services/user_service.dart";
@@ -83,11 +84,6 @@ class CollectionService {
     for (final collection in updatedCollections) {
       _collectionIDToCollections[collection.id] = collection;
     }
-    await _db.setSyncTime(updatedCollections.last.updationTime);
-    if (shouldCheckFirstSyncCompletion) {
-      await _setFirstSyncCompleted();
-    }
-
     final List<Future<bool>> fileFutures = [];
     for (final collection in updatedCollections) {
       if (collection.isDeleted) {
@@ -123,6 +119,14 @@ class CollectionService {
     }
     final fileSyncResults = await Future.wait(fileFutures);
     if (fileSyncResults.every((didSync) => didSync)) {
+      await _db.setSyncTime(
+        updatedCollections
+            .map((collection) => collection.updationTime)
+            .reduce(max),
+      );
+      if (shouldCheckFirstSyncCompletion) {
+        await _setFirstSyncCompleted();
+      }
       await OfflineFilesService.instance.cleanupInactiveOfflineFiles();
     } else {
       _logger.warning(
@@ -373,10 +377,14 @@ class CollectionService {
 
   Future<Collection> getOrCreateImportantCollection() async {
     final collections = await getCollections();
-    for (final collection in collections) {
-      if (collection.type == CollectionType.favorites) {
-        return collection;
-      }
+    final userID = Configuration.instance.getUserID()!;
+    final ownedCollection = findOwnedCollection(
+      collections,
+      ownerID: userID,
+      type: CollectionType.favorites,
+    );
+    if (ownedCollection != null) {
+      return ownedCollection;
     }
     _logger.info(
       "No favorites collection found, creating important collection.",
@@ -715,11 +723,15 @@ class CollectionService {
 
   Future<Collection> _getOrCreateDocumentsCollection() async {
     final collections = await getCollections();
-    for (final collection in collections) {
-      if (collection.type == CollectionType.folder &&
-          collection.name == "Documents") {
-        return collection;
-      }
+    final userID = Configuration.instance.getUserID()!;
+    final collection = findOwnedCollection(
+      collections,
+      ownerID: userID,
+      type: CollectionType.folder,
+      name: "Documents",
+    );
+    if (collection != null) {
+      return collection;
     }
     _logger.info(
       "No Documents collection found, creating Documents collection.",

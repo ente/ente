@@ -13,7 +13,7 @@ import (
 
 func TestSpacePresignAllowsPhotoBatchesAfterProfileUploads(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	rateLimiter := NewRateLimitMiddleware(discord.NewDiscordController(nil, "test", "test"), 1000, time.Minute)
+	rateLimiter := NewRateLimitMiddleware(discord.NewDiscordController(nil, "test", "test"), 1000, 1000, time.Minute)
 	t.Cleanup(rateLimiter.Stop)
 	router := gin.New()
 	router.POST("/spaces/:spaceID/uploads/presign", rateLimiter.APIRateLimitForUserMiddleware(func(c *gin.Context) string {

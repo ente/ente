@@ -13,7 +13,6 @@ import "package:ente_lock_screen/ui/lock_screen.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/theme/theme_config.dart" as ente_ui;
-import "package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart";
 import 'package:flutter/foundation.dart';
 import "package:flutter/gestures.dart";
 import 'package:flutter/material.dart';
@@ -31,10 +30,12 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/error-reporting/super_logging.dart';
 import 'package:photos/core/errors.dart';
+import 'package:photos/core/event_bus.dart';
 import 'package:photos/core/network/network.dart';
 import 'package:photos/db/files_db.dart';
 import "package:photos/db/ml/db.dart";
 import 'package:photos/ente_theme_data.dart';
+import 'package:photos/events/guest_view_event.dart';
 import "package:photos/locale.dart";
 import 'package:photos/module/upload/service/file_uploader.dart';
 import 'package:photos/module/upload/service/local_file_update_service.dart';
@@ -124,7 +125,6 @@ void main() async {
       }
     });
   }
-  _initializeFFmpegKit().ignore();
   await rive.RiveNative.init();
   MediaKit.ensureInitialized();
 
@@ -140,11 +140,6 @@ void main() async {
   );
 
   unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
-}
-
-Future<void> _initializeFFmpegKit() async {
-  await FFmpegKitConfig.init();
-  await FFmpegKitConfig.disableLogs();
 }
 
 Future<void> _runInForeground(
@@ -184,7 +179,10 @@ Future<void> _runInForeground(
         enabled:
             await LockScreenSettings.instance.shouldShowLockScreen() ||
             localSettings.isOnGuestView(),
-        onUnlock: () => unawaited(localSettings.setOnGuestView(false)),
+        onUnlock: () {
+          unawaited(localSettings.setOnGuestView(false));
+          Bus.instance.fire(GuestViewEvent(false, false));
+        },
         locale: locale,
         supportedLocales: appSupportedLocales,
         localizationsDelegates: const [
@@ -514,10 +512,7 @@ Future<void> _init(
       appLogoAsset: 'assets/ente-branding.svg',
       appLogoHeight: 18,
     );
-    AccountDeletionSettings.instance.init(
-      host: Configuration.instance,
-      enteDio: NetworkClient.instance.enteDio,
-    );
+    AccountDeletionSettings.instance.init(host: Configuration.instance);
 
     await MemoryShareService.instance.init();
 

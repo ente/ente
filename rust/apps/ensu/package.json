@@ -9,9 +9,9 @@
     },
     "dependencies": {
         "@tauri-apps/api": "2.12.1",
-        "@tauri-apps/plugin-dialog": "2.8.2",
+        "@tauri-apps/plugin-dialog": "2.8.3",
         "@tauri-apps/plugin-fs": "2.7.1",
-        "@tauri-apps/plugin-opener": "2.7.1",
+        "@tauri-apps/plugin-opener": "2.7.2",
         "@tauri-apps/plugin-process": "2.4.0",
         "@tauri-apps/plugin-updater": "2.14.0"
     },

@@ -43,6 +43,9 @@ body:
               - Web - Chrome
               - Web - Safari
               - Web - Edge
+              - CLI - Linux
+              - CLI - Windows
+              - CLI - macOS
               - Server
     - type: markdown
       attributes:

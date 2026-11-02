@@ -104,7 +104,7 @@ func TestFileDiffScrubsDeletedFiles(t *testing.T) {
 			if deleted.EncryptedKey != "" || deleted.KeyDecryptionNonce != "" ||
 				deleted.File != (ente.FileAttributes{}) || deleted.Thumbnail != (ente.FileAttributes{}) ||
 				deleted.Metadata != wantMetadata || deleted.MagicMetadata != nil ||
-				deleted.PubicMagicMetadata != nil || deleted.Info != nil {
+				deleted.PublicMagicMetadata != nil || deleted.Info != nil {
 				t.Fatalf("deleted file contents were returned: %+v", deleted)
 			}
 			assertFileDiffTestWireShape(t, deleted)

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:ente_base/models/accounts.dart';
 import 'package:ente_base/typedefs.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/action_sheet_widget.dart';
@@ -60,6 +61,9 @@ String parseErrorForUI(
   try {
     if (error == null) {
       return genericError;
+    }
+    if (error is AccountsError_Network) {
+      return context.strings.networkConnectionRefusedErr;
     }
     if (error is DioException) {
       final DioException dioError = error;

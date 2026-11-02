@@ -1,6 +1,7 @@
 package legacy_kit
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -8,10 +9,124 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
+	userrepo "github.com/ente/museum/pkg/repo"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
+
+func TestRecoveryTokenExpiry(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "legacy-kit-owner@ente.io", CreationTime: 1})
+	kitID := insertLegacyKitForTest(t, db, userID, false)
+	sessionID := uuid.New()
+	insertLegacyKitSessionForTest(t, db, sessionID, kitID, userID, ente.LegacyKitRecoveryStatusReady, 1)
+	insertLegacyKitSessionTokenForTest(t, db, sessionID, "token")
+	createdAt := timeutil.Microseconds()
+	_, err := db.Exec(`UPDATE legacy_kit_recovery_session_token SET created_at = $1`, createdAt)
+	require.NoError(t, err)
+	repository := &Repository{DB: db}
+	deadline := createdAt + 24*timeutil.MicroSecondsInOneHour
+	for _, tc := range []struct {
+		name    string
+		now     int64
+		expired bool
+	}{
+		{"before", deadline - 1, false},
+		{"at", deadline, true},
+		{"after", deadline + 1, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			session, err := repository.GetSessionByIDAndTokenForUse(t.Context(), sessionID, "token", tc.now)
+			if tc.expired {
+				var apiErr *ente.ApiError
+				require.ErrorAs(t, err, &apiErr)
+				require.Equal(t, ente.SessionExpired, apiErr.Code)
+				require.Equal(t, http.StatusGone, apiErr.HttpStatusCode)
+				require.Nil(t, session)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, sessionID, session.ID)
+			}
+		})
+	}
+	for _, tc := range []struct {
+		id    uuid.UUID
+		token string
+	}{{sessionID, "wrong"}, {uuid.New(), "token"}} {
+		session, err := repository.GetSessionByIDAndTokenForUse(t.Context(), tc.id, tc.token, deadline)
+		require.NoError(t, err)
+		require.Nil(t, session)
+	}
+
+	_, err = db.Exec(`UPDATE users SET is_two_factor_enabled = true WHERE user_id = $1`, userID)
+	require.NoError(t, err)
+	_, err = db.Exec(`UPDATE legacy_kit_recovery_session_token SET created_at = $1`, timeutil.MicrosecondsAfterHours(-25))
+	require.NoError(t, err)
+	authRepo := &userrepo.UserAuthRepository{DB: db}
+	_, err = authRepo.InsertOrUpdateSRPAuthAndKeyAttr(t.Context(), userID,
+		ente.UpdateKeysRequest{}, &ente.SRPSetupEntity{SRPUserID: uuid.New()}, true, nil, true,
+		func(ctx context.Context, tx *sql.Tx) error {
+			return repository.CompleteRecovery(ctx, tx, sessionID, kitID, userID, "token")
+		})
+	var apiErr *ente.ApiError
+	require.ErrorAs(t, err, &apiErr)
+	require.Equal(t, ente.SessionExpired, apiErr.Code)
+	var status ente.LegacyKitRecoveryStatus
+	require.NoError(t, db.QueryRow(`SELECT status FROM legacy_kit_recovery_session WHERE id = $1`, sessionID).Scan(&status))
+	require.Equal(t, ente.LegacyKitRecoveryStatusReady, status)
+	var twoFactorEnabled bool
+	require.NoError(t, db.QueryRow(`SELECT is_two_factor_enabled FROM users WHERE user_id = $1`, userID).Scan(&twoFactorEnabled))
+	require.True(t, twoFactorEnabled)
+	var authCount int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM srp_auth WHERE user_id = $1`, userID).Scan(&authCount))
+	require.Zero(t, authCount)
+}
+
+func TestResumeRecoveryAfterTokenExpiry(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "legacy-kit-owner@ente.io", CreationTime: 1})
+	repository := &Repository{DB: db}
+	for _, status := range []ente.LegacyKitRecoveryStatus{ente.LegacyKitRecoveryStatusWaiting, ente.LegacyKitRecoveryStatusReady} {
+		t.Run(string(status), func(t *testing.T) {
+			kitID := insertLegacyKitForTest(t, db, userID, false)
+			sessionID := uuid.New()
+			waitTill := timeutil.MicrosecondsAfterHours(24)
+			if status == ente.LegacyKitRecoveryStatusReady {
+				waitTill = 1
+			}
+			insertLegacyKitSessionForTest(t, db, sessionID, kitID, userID, status, waitTill)
+			expiredToken, liveToken := "expired-"+kitID.String(), "live-"+kitID.String()
+			insertLegacyKitSessionTokenForTest(t, db, sessionID, expiredToken)
+			insertLegacyKitSessionTokenForTest(t, db, sessionID, liveToken)
+			_, err := db.Exec(`UPDATE legacy_kit_recovery_session_token SET created_at = $1 WHERE token_hash = $2`, timeutil.MicrosecondsAfterHours(-25), hashSessionToken(expiredToken))
+			require.NoError(t, err)
+			challenge := "challenge-" + kitID.String()
+			require.NoError(t, repository.CreateChallenge(t.Context(), kitID, challenge, timeutil.MicrosecondsAfterHours(1)))
+			_, session, token, created, err := repository.OpenOrResumeRecovery(t.Context(), kitID, challenge, timeutil.Microseconds(), nil)
+			require.NoError(t, err)
+			require.False(t, created)
+			require.Equal(t, sessionID, session.ID)
+			require.Equal(t, status, session.Status)
+			require.Equal(t, waitTill, session.WaitTill)
+			for _, validToken := range []string{token, liveToken} {
+				resumed, err := repository.GetSessionByIDAndTokenForUse(t.Context(), sessionID, validToken, timeutil.Microseconds())
+				require.NoError(t, err)
+				require.Equal(t, sessionID, resumed.ID)
+			}
+			_, err = repository.GetSessionByIDAndTokenForUse(t.Context(), sessionID, expiredToken, timeutil.Microseconds())
+			var apiErr *ente.ApiError
+			require.ErrorAs(t, err, &apiErr)
+			require.Equal(t, ente.SessionExpired, apiErr.Code)
+		})
+	}
+}
 
 func TestGetSessionByIDAndTokenForUseReturnsBlockedSessionAfterConcurrentBlock(t *testing.T) {
 	testutil.WithServerRoot(t)

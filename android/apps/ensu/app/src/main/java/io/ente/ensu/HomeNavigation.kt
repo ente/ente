@@ -111,17 +111,24 @@ internal fun HomeNavigation(
                     popExitTransition = { backExit() },
                 ) {
                     ChatView(
-                        onVoiceInputJob = store::trackVoiceInput,
+                        voiceController = store.voiceController,
+                        onOpenVoiceInput = { value ->
+                            store.openVoiceInput(
+                                value.text,
+                                value.selection.min,
+                                value.selection.max,
+                                value.composition != null,
+                            )
+                        },
                         onOpenPacks = { navController.navigate(HomeRoute.Knowledge) },
                         onOpenNotes = { navController.navigate(HomeRoute.NotesSetup) },
                         hasSeenSourceIntroduction = store.hasSeenSourceIntroduction(),
                         onCompleteSourceIntroduction = store::completeSourceIntroduction,
                         onRetrySources = store::retrySourceInventory,
                         chatState = appState.chat,
-                        assetStore = store.assetStore,
-                        llmProvider = store.llmProvider,
                         isDrawerOpen = drawerState.currentValue == DrawerValue.Open,
                         onMessageChange = store::updateMessageText,
+                        onComposerSelection = store::updateComposerSelection,
                         onSend = store::sendMessage,
                         onStop = store::stopGeneration,
                         onCancelDownload = store::cancelDownload,

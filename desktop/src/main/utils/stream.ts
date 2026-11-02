@@ -7,10 +7,13 @@ export const writeStream = (
     readableStream: unknown, // @ts-expect-error Node and web ReadableStream types disagree.
 ) => writeNodeStream(filePath, Readable.fromWeb(readableStream));
 
-const writeNodeStream = async (filePath: string, fileStream: Readable) => {
-    const writeable = createWriteStream(filePath);
+export const writeNodeStream = async (
+    filePath: string,
+    fileStream: NodeJS.ReadableStream,
+) => {
+    const writeable = createWriteStream(filePath, { mode: 0o600 });
 
-    fileStream.on("error", (err) => {
+    fileStream.on("error", (err: Error) => {
         writeable.destroy(err);
     });
 

@@ -33,6 +33,24 @@ Enter the two-factor setup key provided by the service you are securing. It is n
 
 Keep the setup key private.
 
+### Why does Ente Auth say "Please verify the details and try again", "Secret can not be empty", or "Digits must be between 1 and 10"? {#manual-entry-errors}
+
+Ente Auth checks the details when you save a code you added with **Enter details manually**. If something is wrong, it shows an **Incorrect details** message and doesn't save the code.
+
+- **Secret can not be empty**: the **Secret** field is blank. Enter the service's setup key in **Secret**.
+- **Please verify the details and try again**: Ente Auth couldn't create a code from what you entered in **Secret**. This happens when the text isn't a valid setup key, for example if you entered a password or a 6-digit code instead. Spaces and lowercase letters in the setup key are fine.
+- **Digits must be between 1 and 10**: the **Digits** value under **Advanced** is outside 1 to 10, for example 0. Set it to the number of digits the service uses, usually 6.
+
+To fix a Secret error:
+
+1. On the service's two-factor setup page, choose **Show setup key** or **Can't scan?**
+2. In Ente Auth, enter that setup key in **Secret**. Don't enter your Ente password, the service's password, or a 6-digit code.
+3. Save the entry, then enter the code Ente Auth shows on the service's setup page to finish setup.
+
+Unless the service tells you otherwise, leave the **Advanced** options at their defaults.
+
+See also [What should I enter in the Secret field when adding a code manually?](#manual-secret-field)
+
 ### Why does Ente Auth say "No QR code found in image"? {#qr-code-not-scanning}
 
 If the QR code is sharp and high-resolution but Ente Auth still won't scan it, the most likely cause is that the service is using a QR format Ente Auth doesn't recognise. Some sites embed proprietary or non-standard data instead of the standard `otpauth://` URI that authenticator apps expect.
@@ -70,9 +88,52 @@ If you cannot sign in to another service, use that service's recovery options or
 
 Keep your recovery materials somewhere you can reach without signing in to the account they protect. See [Enteception](/auth/faq/enteception/) if you store the second factor for Ente or your email account inside Ente Auth.
 
+### Can I change my recovery key if it was exposed? {#change-recovery-key}
+
+No. You cannot change or rotate the recovery key for an existing Ente account. Changing your password does not change the recovery key. If you use the same account in Photos, Auth, and Locker, it has the same recovery key in all three apps.
+
+If your recovery key was exposed, keep any device where you are signed in to Ente signed in. Choose the path that fits your account:
+
+**If the account has no data you need to keep:**
+
+1. Check whether you use the same account in Photos, Auth, or Locker, and whether it has a paid subscription or manages a family plan. **Delete account** deletes its data in all three apps, can cancel its subscription, and removes members from its family plan.
+2. If the account has a paid subscription or manages a family plan, [contact support](mailto:support@ente.com) before deleting it so you can plan for the people using its storage.
+3. Open `Settings > Account > Delete account` and follow the prompts.
+4. After deletion is complete, create a new account. You can use the same email address.
+5. Save the new recovery key somewhere private and secure.
+
+**If the account has Auth codes you need to keep:**
+
+1. Keep the current app signed in. Create an [encrypted export](/auth/migration/export#create-encrypted-export) from `Settings > Data > Export` and keep its password safe.
+2. Create a new Ente account with a different email address. Save its recovery key securely.
+3. Sign in to the new account on another trusted device or installation. Open `Settings > Data > Import codes`, choose **Ente Encrypted export**, and select the file.
+4. Check that all your codes are present, work, and have synced before deleting the old account.
+5. If the old account has a paid subscription or manages a family plan, [contact support](mailto:support@ente.com) before deleting it so you can plan for the people using its storage.
+
+**If the account has Photos or Locker data you need to keep:** [Contact support](mailto:support@ente.com) before deleting the account. This applies even if you have no Auth codes. If you also have Auth codes, follow the export steps above, but keep the old account until you have a plan for your Photos or Locker data.
+
+If someone you do not trust may have seen your key, consider resetting two-factor authentication for your most sensitive services.
+
+> [!WARNING]
+>
+> Never send your recovery key, password, export file, or setup keys to support.
+
 ### How can I delete or edit codes?
 
 You can delete or edit a code by long pressing (or right clicking on desktop) on that item.
+
+### How do I copy the current or next code in Ente Auth? {#copy-current-next-code}
+
+Tap a code on mobile, or click it on desktop, to copy the current code. Ente Auth shows **Copied to clipboard**. On Auth web, clicking a code card also copies the current code.
+
+On mobile and desktop, time-based codes show the upcoming code on the right of the card, under **next**. Tap or click it to copy that code instead. Ente Auth shows **Copied next code to clipboard**. This helps when the current code is about to expire. On Auth web, clicking the displayed next code copies the current code.
+
+On desktop, you can move focus to a code with your keyboard, for example with Tab. Press `C` to copy the current code or `N` to copy the next code.
+
+- Counter-based (HOTP) codes do not have a next code to copy. Tapping the arrow under **next** advances the counter and generates a new code.
+- In multi-select mode, tapping a code selects it instead of copying it.
+- With **Hide codes** on, double-tap a code to reveal it. A single tap still copies it.
+- On Android, turn on `Settings > General > Minimize app on copy` if you want Ente Auth to move to the background after copying.
 
 ### How can I support this project?
 

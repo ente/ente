@@ -9,8 +9,8 @@ import "package:path_provider/path_provider.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/memories_db.dart";
-import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
+import "package:photos/events/diff_sync_complete_event.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/memories_changed_event.dart";
@@ -30,12 +30,10 @@ import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/language_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/memories/photo_selector.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/search_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/all_memories_page.dart";
@@ -53,6 +51,10 @@ class MemoriesCacheService {
   static const _showAnyMemoryKey = "memories.enabled";
   static const _shouldUpdateCacheKey = "memories.shouldUpdateCache";
   static const _tripMemoryCarryForwardLimit = kTripSurfaceSlots;
+  static const _peopleMemoryTypesWithCurrentUser = {
+    PeopleMemoryType.youAndThem,
+    PeopleMemoryType.doingSomethingTogether,
+  };
 
   // Avoid competing with other startup work.
   static const _kCacheUpdateDelay = Duration(seconds: 20);
@@ -75,6 +77,7 @@ class MemoriesCacheService {
 
   final _memoriesUpdateLock = Lock();
   final _memoriesGetLock = Lock();
+  final List<EnteFile> _pendingRemoteSyncDeletedFiles = [];
 
   MemoriesCacheService(this._prefs) {
     _logger.info("MemoriesCacheService constructor");
@@ -97,8 +100,21 @@ class MemoriesCacheService {
               event.source != "moveFrom";
         })
         .listen((event) async {
+          if (event.source == "syncDeleteFromRemote") {
+            _pendingRemoteSyncDeletedFiles.addAll(event.updatedFiles);
+            return;
+          }
           await _invalidateDeletedFiles(event.updatedFiles);
         });
+
+    Bus.instance.on<DiffSyncCompleteEvent>().listen((_) async {
+      if (_pendingRemoteSyncDeletedFiles.isEmpty) {
+        return;
+      }
+      final deletedFiles = List<EnteFile>.of(_pendingRemoteSyncDeletedFiles);
+      _pendingRemoteSyncDeletedFiles.clear();
+      await _invalidateDeletedFiles(deletedFiles);
+    });
 
     Bus.instance.on<LocalPhotosUpdatedEvent>().listen((event) {
       if (_pendingInitialOfflineCacheUpgrade &&
@@ -112,9 +128,8 @@ class MemoriesCacheService {
         );
       }
 
-      final shouldQueueUpdate =
-          _cachedMemories == null || _cachedMemories!.isEmpty;
-      if (!shouldQueueUpdate) {
+      final hasLoadedEmptyMemories = _cachedMemories?.isEmpty ?? false;
+      if (!hasLoadedEmptyMemories) {
         return;
       }
       queueUpdateCache();
@@ -161,33 +176,6 @@ class MemoriesCacheService {
   bool get enableSmartMemories => localSettings.isSmartMemoriesEnabled;
 
   bool get curatedMemoriesOption => showAnyMemories;
-
-  bool get _mlEnabled =>
-      hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
-
-  Future<bool> _isMlReady() async {
-    if (!_mlEnabled) return false;
-    try {
-      final mlDataDB = isLocalGalleryMode
-          ? MLDataDB.localGalleryInstance
-          : MLDataDB.instance;
-      final clipIndexed = await mlDataDB.getClipIndexedFileCount();
-      if (clipIndexed < SmartMemoriesService.minimumMemoryLength) {
-        return false;
-      }
-      if (!await MLModelDownloadService.instance.canLoadClipTextModel()) {
-        _logger.info(
-          "ML not ready for smart memories because CLIP text model is not "
-          "cached and high bandwidth connectivity is unavailable",
-        );
-        return false;
-      }
-      return true;
-    } catch (e, s) {
-      _logger.warning("Failed to determine ML readiness", e, s);
-      return false;
-    }
-  }
 
   void _checkIfTimeToUpdateCache() {
     if (!enableSmartMemories) {
@@ -319,12 +307,9 @@ class MemoriesCacheService {
         cacheChanged = true;
       }
 
-      if (!cacheChanged) {
-        return;
+      if (cacheChanged) {
+        Bus.instance.fire(MemoriesChangedEvent());
       }
-
-      queueUpdateCache();
-      Bus.instance.fire(MemoriesChangedEvent());
     });
   }
 
@@ -345,12 +330,24 @@ class MemoriesCacheService {
       return localIdToIntId.values.toSet();
     }
 
-    return deletedFiles
+    final deletedUploadedIDs = deletedFiles
         .map(
           (file) => PhotoSelector.memoryFileId(file, isLocalGalleryMode: false),
         )
         .whereType<int>()
         .toSet();
+    if (deletedUploadedIDs.isEmpty) {
+      return {};
+    }
+    final remainingFiles = await FilesDB.instance.getFilesFromIDs(
+      deletedUploadedIDs.toList(),
+      collectionsToIgnore: SearchService.instance.ignoreCollections(),
+    );
+    final remainingUploadedIDs = remainingFiles
+        .map((file) => file.uploadedFileID)
+        .whereType<int>()
+        .toSet();
+    return deletedUploadedIDs.difference(remainingUploadedIDs);
   }
 
   bool _removeDeletedFilesFromSmartMemory(
@@ -388,6 +385,7 @@ class MemoriesCacheService {
 
     bool cacheChanged = false;
     final filteredToShowMemories = <ToShowMemory>[];
+    final emptiedMemories = <ToShowMemory>[];
     for (final memory in cache.toShowMemories) {
       final memoryChanged = _removeDeletedFilesFromCacheMemory(
         memory,
@@ -395,6 +393,8 @@ class MemoriesCacheService {
       );
       if (_cacheMemoryHasFiles(memory)) {
         filteredToShowMemories.add(memory);
+      } else {
+        emptiedMemories.add(memory);
       }
       cacheChanged = cacheChanged || memoryChanged;
     }
@@ -414,6 +414,28 @@ class MemoriesCacheService {
       cache,
       MemoriesCache.encodeToJsonString,
     );
+    for (final memory in emptiedMemories) {
+      await NotificationService.instance.clearAllScheduledNotifications(
+        containingPayload: memory.id,
+        logLines: false,
+      );
+    }
+    final remainingBirthdayPersonIDs = filteredToShowMemories
+        .where((memory) => memory.isBirthday ?? false)
+        .map((memory) => memory.personID)
+        .toSet();
+    final emptiedBirthdayPersonIDs = emptiedMemories
+        .where((memory) => memory.isBirthday ?? false)
+        .map((memory) => memory.personID)
+        .whereType<String>()
+        .toSet()
+        .difference(remainingBirthdayPersonIDs);
+    for (final personID in emptiedBirthdayPersonIDs) {
+      await NotificationService.instance.clearAllScheduledNotifications(
+        containingPayload: "birthday_$personID",
+        logLines: false,
+      );
+    }
     return true;
   }
 
@@ -550,7 +572,16 @@ class MemoriesCacheService {
     });
   }
 
-  Future<void> purgePersonFromMemoriesCache(String personID) async {
+  Future<void> purgePersonFromMemoriesCache(
+    String personID, {
+    required bool isCurrentUser,
+  }) async {
+    bool shouldPurge(String? memoryPersonID, PeopleMemoryType? memoryType) {
+      return memoryPersonID == personID ||
+          (isCurrentUser &&
+              _peopleMemoryTypesWithCurrentUser.contains(memoryType));
+    }
+
     await _memoriesUpdateLock.synchronized(() async {
       final removedMemoryIDs = <String>{};
       bool cacheChanged = false;
@@ -558,7 +589,8 @@ class MemoriesCacheService {
       if (_cachedMemories != null && _cachedMemories!.isNotEmpty) {
         final filtered = <SmartMemory>[];
         for (final memory in _cachedMemories!) {
-          if (memory is PeopleMemory && memory.personID == personID) {
+          if (memory is PeopleMemory &&
+              shouldPurge(memory.personID, memory.peopleMemoryType)) {
             removedMemoryIDs.add(memory.id);
             continue;
           }
@@ -574,15 +606,17 @@ class MemoriesCacheService {
       if (cache != null) {
         final originalToShowLength = cache.toShowMemories.length;
         final originalLogLength = cache.peopleShownLogs.length;
+        bool shouldPurgeCacheMemory(ToShowMemory memory) {
+          return memory.type == MemoryType.people &&
+              shouldPurge(memory.personID, memory.peopleMemoryType);
+        }
+
         for (final memory in cache.toShowMemories) {
-          if (memory.type == MemoryType.people && memory.personID == personID) {
+          if (shouldPurgeCacheMemory(memory)) {
             removedMemoryIDs.add(memory.id);
           }
         }
-        cache.toShowMemories.removeWhere(
-          (memory) =>
-              memory.type == MemoryType.people && memory.personID == personID,
-        );
+        cache.toShowMemories.removeWhere(shouldPurgeCacheMemory);
         cache.peopleShownLogs.removeWhere((log) => log.personID == personID);
         final shouldWriteCache =
             cache.toShowMemories.length != originalToShowLength ||
@@ -849,7 +883,7 @@ class MemoriesCacheService {
       final oldCache = await _readCacheFromDisk();
       await _backfillInitialMemoriesNotification(_processOldCache(oldCache));
       if (localSettings.initialMemoriesNotificationScheduledAt() != null ||
-          !await _isMlReady()) {
+          !await memoriesComputer.isMlReady()) {
         return false;
       }
       final indexStatus = await getIndexStatus();
@@ -942,7 +976,7 @@ class MemoriesCacheService {
         await _backfillInitialMemoriesNotification(newCache);
         final now = DateTime.now();
         final next = now.add(kMemoriesUpdateFrequency);
-        final mlReady = await _isMlReady();
+        final mlReady = await memoriesComputer.isMlReady();
         final periodResults = await smartMemoriesService
             .calcCurrentAndNextSmartMemories(
               now,
@@ -1224,8 +1258,8 @@ class MemoriesCacheService {
 
   Future<List<SmartMemory>> debugGetAllMemories({DateTime? calcTime}) async {
     return _memoriesUpdateLock.synchronized(() async {
-      final mlReady = await _isMlReady();
-      final result = await smartMemoriesService.calcSmartMemories(
+      final mlReady = await memoriesComputer.isMlReady();
+      final result = await smartMemoriesService.calcAllSmartMemories(
         calcTime ?? DateTime.now(),
         MemoriesCache(
           toShowMemories: [],
@@ -1234,7 +1268,6 @@ class MemoriesCacheService {
           tripsShownLogs: [],
           baseLocations: [],
         ),
-        debugSurfaceAll: true,
         mlEnabled: mlReady,
       );
       locationService.baseLocations = result.baseLocations;

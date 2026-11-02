@@ -19,6 +19,10 @@ Ente Auth supports the icon pack provided by [simple-icons](https://github.com/s
 
 Quickly find your codes by searching based on issuer or account name. You can also configure the app to focus the search bar automatically on app start by going to **Settings → General → Focus search on app start**.
 
+On desktop, you can search without clicking the search icon. With your code list open, start typing and Ente Auth opens search with what you typed. You can also press `/`, or `Cmd + F` on macOS (`Ctrl + F` on Windows and Linux), to open search. Press `Esc` to clear the search and close it.
+
+If you've moved focus to a code with your keyboard, `C` and `N` copy the current and next code instead of starting a search. See [How do I copy the current or next code?](/auth/faq/#copy-current-next-code)
+
 ### Tags
 
 ![Work tag chip selected with filtered codes on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-tags.png){width=320px}
@@ -105,6 +109,22 @@ Customize how your codes are displayed for optimal usability.
 - **Show large icons:** Display codes with larger icons for enhanced visibility.
 - **Compact mode:** Switch to a more compact layout to view more codes on the screen simultaneously.
 - **Hide codes:** Hide the actual code values for extra privacy. Double-tap a code to reveal it when needed.
+
+### Menu bar mode (macOS) {#menu-bar-mode}
+
+On a Mac, you can run Ente Auth from the menu bar instead of as a regular app window.
+
+1. Open **Settings → General** and turn on **Menubar mode**.
+2. Quit and reopen Ente Auth to apply the change.
+
+In menu bar mode:
+
+- Click the Ente Auth icon in the menu bar to show or hide your codes in a small window below the icon. The window hides when you switch to another app.
+- Ente Auth doesn't show a Dock icon.
+- Right-click the menu bar icon for **Show Window** (opens Ente Auth as a regular, resizable window), **Hide Window**, and **Exit App**.
+- Closing the window hides it. Use **Exit App** from the menu bar icon to quit Ente Auth.
+
+To go back to the regular window, turn off **Settings → General → Menubar mode** and restart the app.
 
 ### App lock
 

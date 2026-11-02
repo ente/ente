@@ -47,11 +47,9 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 
 **On web/desktop:**
 
-- Click the menu icon (three horizontal lines) at top left
+- Open **Albums**
 - Select **Hidden**
 - Authenticate with your Ente password
-
-![Hidden item in the sidebar menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-sidebar.png){width=720px}
 
 ![Password authentication dialog for Hidden on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-auth.png){width=720px}
 

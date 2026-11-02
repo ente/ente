@@ -1,5 +1,3 @@
-import { User03Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import CloseIcon from "@mui/icons-material/Close";
 import {
     Box,
@@ -16,53 +14,10 @@ import { useFormik } from "formik";
 import { t } from "i18next";
 import React from "react";
 
-const SparkleTopRight: React.FC = () => (
-    <svg
-        width="14"
-        height="16"
-        viewBox="0 0 20 22"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ position: "absolute", top: 0, right: 8 }}
-    >
-        <path
-            d="M19.728 9.21189C15.334 9.91374 11.912 12.6353 11.37 16.3181C11.912 12.6353 9.421 9.04853 5.4114 7.10627C9.806 6.40442 13.228 3.68284 13.77 7.55054e-05C13.228 3.68284 15.719 7.26962 19.728 9.21189Z"
-            fill="#08C225"
-        />
-    </svg>
-);
-
-const SparkleBottomRight: React.FC = () => (
-    <svg
-        width="22"
-        height="26"
-        viewBox="0 0 32 36"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ position: "absolute", bottom: 0, right: -8 }}
-    >
-        <path
-            d="M31.579 17.9746C23.591 18.7003 17.114 23.1692 15.689 29.722C17.114 23.1692 13.077 16.4145 6.1117 12.438C14.099 11.7122 20.576 7.2434 22.001 0.6902C20.576 7.2434 24.613 13.9981 31.579 17.9746Z"
-            fill="#08C225"
-        />
-    </svg>
-);
-
-const SparkleBottomLeft: React.FC = () => (
-    <svg
-        width="18"
-        height="16"
-        viewBox="0 0 26 22"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ position: "absolute", bottom: 8, left: -8 }}
-    >
-        <path
-            d="M25.9639 10.8477C19.9399 13.182 15.9104 18.0874 16.263 23.48C15.9104 18.0874 11.2832 13.7544 4.99991 12.2184C11.0238 9.884 15.0533 4.9787 14.7007 -0.4139C15.0533 4.9787 19.6805 9.3117 25.9639 10.8477Z"
-            fill="#08C225"
-        />
-    </svg>
-);
+const ENTER_NAME_ILLUSTRATION_SRC = new URL(
+    "./enter-name.svg",
+    import.meta.url,
+).toString();
 
 type UploaderNameInputProps = ModalVisibilityProps & {
     uploaderName: string;
@@ -85,19 +40,12 @@ export const UploaderNameInput: React.FC<UploaderNameInputProps> = ({
                 </CloseButton>
 
                 <ContentContainer>
-                    <IllustrationContainer>
-                        <SparkleTopRight />
-                        <SparkleBottomRight />
-                        <SparkleBottomLeft />
-                        <IllustrationWrapper>
-                            <HugeiconsIcon
-                                icon={User03Icon}
-                                size={28}
-                                color="#fff"
-                                strokeWidth={1.8}
-                            />
-                        </IllustrationWrapper>
-                    </IllustrationContainer>
+                    <Illustration
+                        src={ENTER_NAME_ILLUSTRATION_SRC}
+                        alt=""
+                        aria-hidden
+                        draggable={false}
+                    />
 
                     <TitleSection>
                         <Title>{t("enter_name")}</Title>
@@ -226,24 +174,11 @@ const ContentContainer = styled(Box)(() => ({
     gap: 16,
 }));
 
-const IllustrationContainer = styled(Box)(() => ({
-    position: "relative",
-    width: 100,
-    height: 70,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+const Illustration = styled("img")(() => ({
+    display: "block",
+    width: 126,
+    height: 121,
     marginBottom: 8,
-}));
-
-const IllustrationWrapper = styled(Box)(() => ({
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 52,
-    height: 52,
-    borderRadius: "50%",
-    backgroundColor: "#08C225",
 }));
 
 const TitleSection = styled(Box)(() => ({

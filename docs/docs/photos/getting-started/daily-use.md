@@ -14,7 +14,9 @@ The first time you open Ente Photos on a mobile device, you'll be prompted to se
 **On mobile (iOS/Android):**
 
 1. When you first open the app, a list of albums from your device's photo library appears
-2. Select the albums to automatically back up (most people choose "Camera Roll" or "All Photos")
+2. Select the albums to automatically back up:
+    - **On iOS:** choose **Recents**. It contains every photo and video in your library, so you don't need to also select Live Photos, Portraits, Screenshots, or other system albums. See [On iOS, which album should I back up to capture everything?](/photos/faq/backup-and-sync#ios-which-album-to-backup)
+    - **On Android:** choose **Camera** for photos taken with your phone, plus any other folders you want to keep, such as Screenshots or WhatsApp images. Folder names vary by device.
 3. Tap to confirm your selection
 4. Your selected albums will now back up automatically
 

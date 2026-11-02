@@ -110,7 +110,7 @@ jobs:
               run: npm ci
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-desktop
@@ -164,11 +164,6 @@ jobs:
                   AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
                   # Allow rebuilds to keep updating the rolling RC draft.
                   EP_GH_IGNORE_TIME: true
-                  # Workaround recommended in
-                  # https://github.com/electron-userland/electron-builder/issues/3179
-                  USE_HARD_LINKS: false
-                  # TODO: Remove when updating to the next electron-builder version.
-                  ELECTRON_BUILDER_7Z_FILTER: BCJ
 
             - name: Upload to nightly
               uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0

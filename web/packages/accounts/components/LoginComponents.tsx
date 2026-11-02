@@ -126,7 +126,7 @@ export const VerifyingPasskey: React.FC<VerifyingPasskeyProps> = ({
         } catch (e) {
             log.error("Passkey verification status check failed", e);
             showMiniDialog(
-                isNamedError(e, "passkey_session_expired")
+                isNamedError(e, "session_expired")
                     ? sessionExpiredDialogAttributes(logout)
                     : genericErrorDialogAttributes(),
             );

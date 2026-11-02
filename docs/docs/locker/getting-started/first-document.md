@@ -57,8 +57,8 @@ Document scanning is available in the Locker mobile app on Android and iOS.
 2. Select **Secret**
 3. Fill in the fields:
     - **Name**: A name for this entry (e.g., "Bank Account")
-    - **Username**: Your username or email
-    - **Password**: Your password
+    - **Username**: Your username or email (optional)
+    - **Password**: Your password (optional)
     - **Notes**: Any additional information (optional)
 4. Leave collections unselected to use **Uncategorized**. Or select one or more collections to organize this item
 5. Tap **Save**

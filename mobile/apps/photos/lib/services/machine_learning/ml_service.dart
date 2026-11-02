@@ -1,7 +1,5 @@
 import "dart:async";
 import "dart:io" show File, Platform;
-import "dart:math" show min;
-import "dart:typed_data" show Uint8List;
 
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
@@ -13,7 +11,6 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/compute_control_event.dart";
-import "package:photos/events/people_changed_event.dart";
 import "package:photos/main.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
@@ -23,8 +20,8 @@ import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/filedata/model/file_data.dart";
+import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
-import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
@@ -80,8 +77,9 @@ class MLService {
         : _kForceClusteringFaceCount;
   }
 
-  IMLDataDB<int> get _mlDataDB =>
-      isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
+  FaceClustering get _faceClustering => isLocalGalleryMode
+      ? FaceClustering.localGalleryInstance
+      : FaceClustering.instance;
 
   IMLDataDB<int> _dbForMode(MLMode mode) {
     return mode == MLMode.localGallery
@@ -720,19 +718,12 @@ class MLService {
     }
   }
 
-  Future<MlLockAttempt> clusterAllImages({
-    bool clusterInBuckets = true,
-    bool force = false,
-  }) async {
+  Future<MlLockAttempt> clusterAllImages({bool force = false}) async {
     final control = MlRunControl();
     final attempt = await _runExclusiveWithControl(
       MlOperation.clustering,
       control,
-      () => _clusterAllImages(
-        clusterInBuckets: clusterInBuckets,
-        force: force,
-        control: control,
-      ),
+      () => _clusterAllImages(force: force, control: control),
     );
     if (attempt != MlLockAttempt.ran) {
       _logger.info(
@@ -744,7 +735,6 @@ class MLService {
 
   Future<void> _clusterAllImages({
     required MlRunControl control,
-    bool clusterInBuckets = true,
     bool force = false,
   }) async {
     assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
@@ -753,7 +743,7 @@ class MLService {
       return;
     }
     if (!_canRunMLFunction(function: "Clustering") && !force) return;
-    final mlDataDB = _mlDataDB;
+    final faceClustering = _faceClustering;
     _logger.info("`clusterAllImages()` called");
     _clusteringIsHappening = true;
     final clusterAllImagesTime = DateTime.now();
@@ -776,169 +766,14 @@ class MLService {
     }
 
     try {
-      final int totalFaces = await mlDataDB.getTotalFaceCount();
       final fileIDToCreationTime = isLocalGalleryMode
           ? await _getLocalGalleryFileIdToCreationTime()
           : await FilesDB.instance.getFileIDToCreationTime();
-      final startEmbeddingFetch = DateTime.now();
-      final result = await mlDataDB.getFaceInfoForClustering(
-        maxFaces: totalFaces,
+      await faceClustering.clusterAllFaces(
+        fileIDToCreationTime: fileIDToCreationTime,
+        rejectedClusterIDsByFaceID: faceIdNotToCluster,
+        control: control,
       );
-      final Set<int> missingFileIDs = {};
-      final allFaceInfoForClustering = <FaceDbInfoForClustering>[];
-      for (final faceInfo in result) {
-        if (!fileIDToCreationTime.containsKey(faceInfo.fileID)) {
-          missingFileIDs.add(faceInfo.fileID);
-        } else {
-          if (faceIdNotToCluster.containsKey(faceInfo.faceID)) {
-            faceInfo.rejectedClusterIds = faceIdNotToCluster[faceInfo.faceID];
-          }
-          allFaceInfoForClustering.add(faceInfo);
-        }
-      }
-      allFaceInfoForClustering.sort((b, a) {
-        return fileIDToCreationTime[a.fileID]!.compareTo(
-          fileIDToCreationTime[b.fileID]!,
-        );
-      });
-      _logger.info(
-        'Getting and sorting embeddings took ${DateTime.now().difference(startEmbeddingFetch).inMilliseconds} ms for ${allFaceInfoForClustering.length} embeddings'
-        'and ${missingFileIDs.length} missing fileIDs',
-      );
-
-      if (missingFileIDs.isNotEmpty) {
-        await mlDataDB.deleteUnclusteredFaceIndexForFiles(
-          missingFileIDs.toList(),
-        );
-        _logger.info(
-          'Pruned unclustered face data for ${missingFileIDs.length} missing files',
-        );
-      }
-
-      if (allFaceInfoForClustering.every((face) => face.clusterId != null)) {
-        _logger.info('All faces clustered');
-        _logger.info(
-          'clusterAllImages() finished, in '
-          '${DateTime.now().difference(clusterAllImagesTime).inSeconds} seconds',
-        );
-        return;
-      }
-
-      final Map<String, (Uint8List, int)> oldClusterSummaries = await mlDataDB
-          .getAllClusterSummary();
-
-      if (clusterInBuckets) {
-        const int bucketSize = 10000;
-        const int offsetIncrement = 7500;
-        int offset = 0;
-        int bucket = 1;
-
-        while (true) {
-          if (control.stopRequested) {
-            _logRunStopped(control, "before clustering bucket $bucket");
-            break;
-          }
-          if (offset > allFaceInfoForClustering.length - 1) {
-            _logger.warning(
-              'faceIdToEmbeddingBucket is empty, this should ideally not happen as it should have stopped earlier. offset: $offset, totalFaces: $totalFaces',
-            );
-            break;
-          }
-          if (offset > totalFaces) {
-            _logger.warning(
-              'offset > totalFaces, this should ideally not happen. offset: $offset, totalFaces: $totalFaces',
-            );
-            break;
-          }
-
-          final bucketStartTime = DateTime.now();
-          final faceInfoForClustering = allFaceInfoForClustering.sublist(
-            offset,
-            min(offset + bucketSize, allFaceInfoForClustering.length),
-          );
-
-          if (faceInfoForClustering.every((face) => face.clusterId != null)) {
-            _logger.info('Everything in bucket $bucket is already clustered');
-            if (offset + bucketSize >= totalFaces) {
-              _logger.info('All faces clustered');
-              break;
-            } else {
-              _logger.info('Skipping to next bucket');
-              offset += offsetIncrement;
-              bucket++;
-              continue;
-            }
-          }
-
-          final clusteringResult = await FaceClusteringService.instance
-              .predictLinearIsolate(
-                faceInfoForClustering.toSet(),
-                fileIDToCreationTime: fileIDToCreationTime,
-                offset: offset,
-                oldClusterSummaries: oldClusterSummaries,
-              );
-          if (clusteringResult == null) {
-            _logger.warning("faceIdToCluster is null");
-            return;
-          }
-
-          await mlDataDB.updateFaceIdToClusterId(
-            clusteringResult.newFaceIdToCluster,
-          );
-          await mlDataDB.clusterSummaryUpdate(
-            clusteringResult.newClusterSummaries,
-          );
-          Bus.instance.fire(PeopleChangedEvent());
-          for (final faceInfo in faceInfoForClustering) {
-            faceInfo.clusterId ??=
-                clusteringResult.newFaceIdToCluster[faceInfo.faceID];
-          }
-          for (final clusterUpdate
-              in clusteringResult.newClusterSummaries.entries) {
-            oldClusterSummaries[clusterUpdate.key] = clusterUpdate.value;
-          }
-          _logger.info(
-            'Done with clustering ${offset + faceInfoForClustering.length} embeddings (${(100 * (offset + faceInfoForClustering.length) / totalFaces).toStringAsFixed(0)}%) in bucket $bucket, offset: $offset, in ${DateTime.now().difference(bucketStartTime).inSeconds} seconds',
-          );
-          if (offset + bucketSize >= totalFaces) {
-            _logger.info('All faces clustered');
-            break;
-          }
-          offset += offsetIncrement;
-          bucket++;
-        }
-      } else {
-        final clusterStartTime = DateTime.now();
-        final clusteringResult = await FaceClusteringService.instance
-            .predictLinearIsolate(
-              allFaceInfoForClustering.toSet(),
-              fileIDToCreationTime: fileIDToCreationTime,
-              oldClusterSummaries: oldClusterSummaries,
-            );
-        if (clusteringResult == null) {
-          _logger.warning("faceIdToCluster is null");
-          return;
-        }
-        final clusterDoneTime = DateTime.now();
-        _logger.info(
-          'done with clustering ${allFaceInfoForClustering.length} in ${clusterDoneTime.difference(clusterStartTime).inSeconds} seconds ',
-        );
-
-        _logger.info(
-          'Updating ${clusteringResult.newFaceIdToCluster.length} FaceIDs with clusterIDs in the DB',
-        );
-        await mlDataDB.updateFaceIdToClusterId(
-          clusteringResult.newFaceIdToCluster,
-        );
-        await mlDataDB.clusterSummaryUpdate(
-          clusteringResult.newClusterSummaries,
-        );
-        Bus.instance.fire(PeopleChangedEvent());
-        _logger.info(
-          'Done updating FaceIDs with clusterIDs in the DB, in '
-          '${DateTime.now().difference(clusterDoneTime).inSeconds} seconds',
-        );
-      }
       _logger.info(
         'clusterAllImages() finished, in '
         '${DateTime.now().difference(clusterAllImagesTime).inSeconds} seconds',

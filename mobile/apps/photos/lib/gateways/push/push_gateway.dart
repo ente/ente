@@ -9,6 +9,7 @@ class PushGateway {
     required String fcmToken,
     required String platform,
     String? apnsToken,
+    String? notificationKey,
   }) async {
     await _enteDio.post(
       "/push/token",
@@ -16,6 +17,7 @@ class PushGateway {
         "fcmToken": fcmToken,
         "platform": platform,
         "apnsToken": apnsToken,
+        "notificationKey": notificationKey,
       },
     );
   }

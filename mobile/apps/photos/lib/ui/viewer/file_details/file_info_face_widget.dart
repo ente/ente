@@ -221,7 +221,9 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
         widget.clusterID ??
         await mlDataDB.getClusterIDForFaceID(widget.face.faceID);
     if (clusterID != null) {
-      final fileIdsToClusterIds = await mlDataDB.getFileIdToClusterIds();
+      final fileIdsToClusterIds = isLocalGalleryMode
+          ? await mlDataDB.getFileIdToClusterIds()
+          : await mlDataDB.getFileIdToClusterIDSetForCluster({clusterID});
       final files = await SearchService.instance.getAllFilesForSearch();
       List<EnteFile> clusterFiles;
       if (isLocalGalleryMode) {

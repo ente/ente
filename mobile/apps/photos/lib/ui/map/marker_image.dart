@@ -6,9 +6,9 @@ import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 class MarkerImage extends StatelessWidget {
   final EnteFile file;
-  final double seperator;
+  final double separator;
 
-  const MarkerImage({super.key, required this.file, required this.seperator});
+  const MarkerImage({super.key, required this.file, required this.separator});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class MarkerImage extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              margin: EdgeInsets.only(top: seperator),
+              margin: EdgeInsets.only(top: separator),
               child: CustomPaint(painter: MarkerPointer(bgColor)),
             ),
           ),

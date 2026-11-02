@@ -9,13 +9,12 @@ environment:
   flutter: ">=3.32.0"
 
 dependencies:
-  dio: 5.9.2
   ente_components:
     path: ../ente_components
+  ente_frb:
+    path: ../frb
   ente_strings:
     path: ../strings
-  ente_ui:
-    path: ../ui
   flutter:
     sdk: flutter
   hugeicons: 1.1.7

@@ -99,6 +99,32 @@ For photos already in Ente, you can select the affected items in the desktop app
 
 If an import is still running, [stop the upload](/photos/migration/from-local-hard-disk#stop-and-resume-an-upload) before cleanup. Files still present in the selected source can be uploaded again during that import or a later retry.
 
+## Editing Photos
+
+### What editing tools are available on mobile? {#mobile-photo-editor}
+
+In the Ente Photos mobile app, open a photo, tap the overflow menu (⋮) and select **Edit**. The editor has these tools:
+
+- **Crop & rotate**: **Crop**, **Straighten** a tilted photo, **Rotate**, or **Flip** it.
+- **Filter**: Apply a filter to the photo.
+- **Adjust**: Change **Brightness**, **Contrast**, **Saturation**, **Exposure**, **Hue**, **Temperature**, **Tint**, and **Fade**.
+- **Draw**: Draw on the photo.
+- **Text**: Add text, then choose its font, text color, background, and alignment.
+- **Sticker**: Add stickers.
+
+To change an added text, sticker, or drawing, tap it and select **Edit**, **Duplicate**, or **Delete**.
+
+Text you add becomes part of the edited image. To add searchable text without changing the image, [add a description](#add-descriptions) instead.
+
+When you are finished, tap **Save copy**. Ente saves the edit as a separate copy and leaves your original untouched. Learn more about [how saving edits affects the copy](#saving-photo-edits).
+
+### How do I straighten a tilted photo? {#straighten-photo}
+
+1. Open the photo, tap the overflow menu (⋮) and select **Edit**.
+2. Tap **Crop & rotate**, then select **Straighten**.
+3. Drag the slider until the photo is level.
+4. Tap **Done**, then **Save copy**.
+
 ## Editing Metadata
 
 ### What metadata is preserved when I edit a photo? {#metadata-preserved-after-edit}
@@ -331,7 +357,7 @@ See [original files during export](#modify-originals) and [file-system creation 
 
 No. Ente exports the original photos and videos without changing their embedded metadata. Metadata imported from Google Takeout JSON files and changes you make in Ente are written separately to metadata JSON files during library export.
 
-Keep those sidecars with the originals when transferring to another app that supports them. See [the export metadata format](#export-data-preserve-metadata). To export selected albums with their metadata, you can also use [CLI photo export](/photos/features/utilities/cli#exporting-photos).
+Keep those sidecars with the originals when transferring to another app that supports them. See [the export metadata format](#export-data-preserve-metadata). To export selected albums with their metadata, you can also use [CLI photo export](/cli/photos).
 
 ### How can I read the date used by Ente from my export? {#read-corrected-date-export}
 
@@ -379,7 +405,7 @@ We're working on bringing all editing features to all platforms.
 
 ### A photo I shared into Ente from WhatsApp shows the wrong date in the timeline. Why? {#whatsapp-wrong-date}
 
-Apps like WhatsApp strip the hidden "date taken" information from photos for privacy. When Ente can't find that information, and can't reliably extract it from the filename either (especially for videos), it falls back to the upload date.
+The timeline date can depend on how the file reaches Ente. On Android, a video shared directly into Ente may use a date from its filename, or the time you imported it, rather than its embedded capture date. This does not by itself show that the sending app removed metadata.
 
 To fix dates already uploaded, the easiest path is the desktop app, which supports bulk editing:
 

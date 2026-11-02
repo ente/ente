@@ -233,6 +233,16 @@ export class FileViewerPhotoSwipe<
                 } else {
                     const i = newIndex;
 
+                    // New files can make an empty neighbour navigable. goTo
+                    // emits change before the refresh below, so fill it first.
+                    pswp.mainScroll.itemHolders.forEach((holder, offset) => {
+                        if (!holder.slide)
+                            pswp.setContent(
+                                holder,
+                                pswp.currIndex + offset - 1,
+                            );
+                    });
+
                     pswp.goTo(i);
                     _currentAnnotatedFile = undefined;
                     pswp.refreshSlideContent(i);
@@ -614,6 +624,16 @@ export class FileViewerPhotoSwipe<
             if (document.querySelector("media-settings-menu:not([hidden])"))
                 toggleMediaChromeSettingsMenu();
         };
+
+        pswp.on("contentAppendImage", ({ content }) => {
+            const image = content.element;
+            if (!(image instanceof HTMLImageElement)) return;
+
+            void image.decode().then(
+                () => image.classList.add("ente-image-decoded"),
+                () => undefined,
+            );
+        });
 
         pswp.on("contentAppend", (e) => {
             // PhotoSwipe can emit this later for content it already detached.

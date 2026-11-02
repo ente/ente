@@ -104,6 +104,9 @@ func resetSpaceAccessTx(ctx context.Context, tx *sql.Tx, userID int64, spaceIDs 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM space_friend_shares WHERE space_id = ANY($1) OR friend_space_id = ANY($1)`, spaceIDArray); err != nil {
 		return stacktrace.Propagate(err, "failed to delete space friend shares")
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM space_pokes WHERE sender_space_id = ANY($1) OR recipient_space_id = ANY($1)`, spaceIDArray); err != nil {
+		return stacktrace.Propagate(err, "failed to delete space pokes")
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM space_friend_requests WHERE requester_space_id = ANY($1) OR target_space_id = ANY($1)`, spaceIDArray); err != nil {
 		return stacktrace.Propagate(err, "failed to delete space friend requests")
 	}
@@ -208,6 +211,23 @@ func deleteSpaceRowsTx(ctx context.Context, tx *sql.Tx, userID int64, spaceIDs [
 		return err
 	}
 	spaceIDArray := pq.Array(spaceIDs)
+	if _, err := tx.ExecContext(ctx, `
+		SELECT post_id FROM space_posts p
+		WHERE EXISTS (SELECT 1 FROM space_comments c WHERE c.post_id = p.post_id AND c.author_space_id = ANY($1))
+		ORDER BY post_id FOR UPDATE
+	`, spaceIDArray); err != nil {
+		return stacktrace.Propagate(err, "failed to lock space comment posts")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		WITH RECURSIVE branch AS (
+			SELECT comment_id FROM space_comments WHERE author_space_id = ANY($1)
+			UNION
+			SELECT c.comment_id FROM space_comments c JOIN branch parent ON c.reply_to_id = parent.comment_id
+		)
+		DELETE FROM space_comments WHERE comment_id IN (SELECT comment_id FROM branch)
+	`, spaceIDArray); err != nil {
+		return stacktrace.Propagate(err, "failed to delete space comment branches")
+	}
 	if _, err := tx.ExecContext(ctx, `
 		DELETE FROM space_messages
 		WHERE sender_space_id = ANY($1)

@@ -14,7 +14,7 @@
         "ente-base": "*",
         "ente-utils": "*",
         "react": "19.3.0",
-        "zod": "4.6.5"
+        "zod": "4.6.6"
     },
     "devDependencies": {
         "@types/react": "19.3.0",

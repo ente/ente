@@ -1,5 +1,3 @@
-import "dart:typed_data" show Float32List;
-
 import "package:logging/logging.dart";
 import "package:photos/db/ml/cluster_centroid_vector_db.dart";
 import "package:photos/db/ml/rust_db.dart";
@@ -51,36 +49,29 @@ class StoreClusterCentroidVectorDB implements ClusterCentroidVectorDB {
     }
   }
 
-  @override
-  Future<List<List<(String, double)>>> bulkSearchNearestAllowed(
-    List<List<double>> queries,
+  Future<List<List<(String, double)>>> bulkSearchNearestAllowedForClusters(
+    List<String> queryClusterIDs,
     Set<String> allowedClusterIDs, {
     required double maxDistance,
-    int count = 10,
+    required int count,
   }) async {
     await _ensureReady();
-    if (count <= 0 || queries.isEmpty || allowedClusterIDs.isEmpty) {
-      return List.generate(queries.length, (_) => const <(String, double)>[]);
+    if (count <= 0 || queryClusterIDs.isEmpty || allowedClusterIDs.isEmpty) {
+      return List.generate(
+        queryClusterIDs.length,
+        (_) => const <(String, double)>[],
+      );
     }
-    final matchesPerQuery = await (await _mlDataDB.store).bulkSearch(
-      index: rust.Index.clusterCentroid,
-      queries: [
-        for (final query in queries)
-          query is Float32List ? query : Float32List.fromList(query),
-      ],
-      limit: count,
-      maxDistance: maxDistance,
-      exact: false,
-      allowedKeys: allowedClusterIDs.toList(),
-    );
+    final matchesPerQuery = await (await _mlDataDB.store)
+        .searchClusterCentroids(
+          clusterIds: queryClusterIDs,
+          allowedClusterIds: allowedClusterIDs.toList(),
+          limit: count,
+          maxDistance: maxDistance,
+        );
     return [
-      for (var i = 0; i < queries.length; i++)
-        i < matchesPerQuery.length
-            ? [
-                for (final match in matchesPerQuery[i])
-                  (match.key, match.distance),
-              ]
-            : const <(String, double)>[],
+      for (final matches in matchesPerQuery)
+        [for (final match in matches) (match.key, match.distance)],
     ];
   }
 

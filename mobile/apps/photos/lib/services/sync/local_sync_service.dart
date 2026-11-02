@@ -82,7 +82,7 @@ class LocalSyncService {
     }
     if (Platform.isAndroid && AppLifecycleService.instance.isForeground) {
       final permissionState = await permissionService
-          .requestPhotoMangerPermissions();
+          .requestPhotoManagerPermissions();
       if (permissionState != PermissionState.authorized) {
         _logger.warning(
           "Skipping local sync because Android gallery permission is "

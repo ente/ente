@@ -6,7 +6,7 @@ import {
     FeedIcon,
     ShareIcon,
 } from "@/public-album/components/ActionIcons";
-import CheckIcon from "@mui/icons-material/Check";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { Box, Button, IconButton, styled } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { t } from "i18next";
@@ -104,7 +104,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     horizontal="left"
                     attributes={{
                         color: "secondary",
-                        startIcon: <CheckIcon />,
+                        startIcon: Tick02Icon,
                         title: "Copied!",
                     }}
                 />

@@ -247,6 +247,13 @@ impl Api {
         &self.http
     }
 
+    pub fn origin_host(&self) -> Option<String> {
+        reqwest::Url::parse(&self.origin)
+            .ok()?
+            .host_str()
+            .map(str::to_owned)
+    }
+
     pub fn set_auth(&self, auth: Option<Auth>) {
         *self.auth.write().unwrap_or_else(PoisonError::into_inner) = auth;
     }

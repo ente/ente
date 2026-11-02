@@ -22,22 +22,31 @@ class DeviceFolderListItem extends StatelessWidget {
     return ThumbnailListItem(
       backgroundColor: thumbnailListItemBackgroundColor(context),
       onTap: () {
-        routeToPage(context, DeviceFolderPage(deviceCollection));
+        routeToPage(
+          context,
+          DeviceFolderPage(deviceCollection),
+          useFadeTransition: true,
+        );
       },
       leading: Stack(
         clipBehavior: Clip.none,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(
-              ThumbnailListItem.defaultLeadingRadius,
-            ),
-            child: ThumbnailWidget(
-              deviceCollection.thumbnail!,
-              shouldShowSyncStatus: false,
-              key: Key(
-                "device_folder:" +
-                    deviceCollection.name +
-                    deviceCollection.thumbnail!.tag,
+          Hero(
+            tag: "device_folder:${deviceCollection.id}",
+            createRectTween: (begin, end) => RectTween(begin: begin, end: end),
+            transitionOnUserGestures: true,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(
+                ThumbnailListItem.defaultLeadingRadius,
+              ),
+              child: ThumbnailWidget(
+                deviceCollection.thumbnail!,
+                shouldShowSyncStatus: false,
+                key: Key(
+                  "device_folder:" +
+                      deviceCollection.name +
+                      deviceCollection.thumbnail!.tag,
+                ),
               ),
             ),
           ),

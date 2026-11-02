@@ -9,6 +9,7 @@ pub mod metadata_api;
 pub mod ml_db_api;
 pub mod ml_indexing_api;
 pub mod motion_photo_api;
+pub mod notification_api;
 pub mod ocr_api;
 pub mod usearch_api;
 pub mod vecdb_api;

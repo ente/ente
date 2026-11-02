@@ -263,6 +263,11 @@ class SelectablePersonSearchExample extends StatelessWidget {
                         width: size - 2,
                         height: size - 2,
                         child: FaceThumbnailSquircleClip(
+                          heroTag: PersonFaceWidget.coverHeroTag(
+                            tagPrefix: "all_people",
+                            personId: searchResult.params[kPersonParamID],
+                            clusterID: searchResult.params[kClusterParamId],
+                          ),
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
@@ -532,6 +537,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
       minClusterSize: kMinimumClusterSizeAllFaces,
       showIgnoredOnly: _showingIgnoredPeople,
       includeEmptyPersons: widget.includeEmptyPersons,
+      coverHeroTagPrefix: "all_people",
     );
     normalFaces.clear();
     extraFaces.clear();

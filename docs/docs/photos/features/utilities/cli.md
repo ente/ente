@@ -5,6 +5,8 @@ description: Ente's command-line tool for advanced users
 
 # CLI (Command Line Interface)
 
+This page covers the previous CLI. For the current CLI, see [Photos export](/cli/photos). To switch versions, follow [Migration](/cli/migration).
+
 The Ente CLI is a command-line tool for advanced users that provides programmatic access to Ente Photos. It's particularly useful for automation, server environments, and power users who prefer terminal-based tools.
 
 ## What is the CLI?
@@ -46,7 +48,7 @@ Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/re
 Before using the CLI, you need to authenticate:
 
 ```sh
-ente account login
+ente account add
 ```
 
 This will prompt for your email and password, then store your session securely.
@@ -176,7 +178,7 @@ You can review, contribute to, or extend the CLI for your specific needs.
 ## Related FAQs
 
 - [What is the Ente CLI?](/photos/faq/advanced-features#what-is-cli)
-- [How do I install the CLI?](/photos/faq/advanced-features#install-cli)
+- [How do I install the CLI?](/photos/faq/advanced-features#install-cli-advanced)
 - [How do I export photos with CLI?](/photos/faq/advanced-features#cli-export-photos)
 - [How do I sync NAS and Ente?](/photos/faq/advanced-features#nas-sync)
 - [CLI not found after installation](/photos/faq/advanced-features#cli-not-found)

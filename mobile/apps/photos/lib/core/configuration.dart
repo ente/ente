@@ -1,9 +1,7 @@
 import "dart:async";
-import 'dart:convert';
 import "dart:io";
 
 import 'package:backup_exclusion/backup_exclusion.dart';
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_contacts/contacts.dart';
 import "package:ente_crypto/ente_crypto.dart";
@@ -12,7 +10,6 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/services.dart";
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_sodium/flutter_sodium.dart' show SodiumException;
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import "package:photos/app_mode.dart";
@@ -21,7 +18,6 @@ import 'package:photos/core/cache/thumbnail_in_memory_cache.dart';
 import 'package:photos/core/cache/video_cache_manager.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/error-reporting/super_logging.dart';
-import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/collections_db.dart';
 import 'package:photos/db/files_db.dart';
@@ -29,6 +25,7 @@ import "package:photos/db/gallery_downloads_db.dart";
 import "package:photos/db/memories_db.dart";
 import "package:photos/db/memory_shares_db.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/db/photo_review_db.dart";
 import "package:photos/db/social_db.dart";
 import 'package:photos/db/trash_db.dart';
 import 'package:photos/db/upload_locks_db.dart';
@@ -36,8 +33,6 @@ import "package:photos/events/app_mode_changed_event.dart";
 import 'package:photos/events/signed_in_event.dart';
 import 'package:photos/events/user_logged_out_event.dart';
 import 'package:photos/gateways/users/models/key_attributes.dart';
-import 'package:photos/gateways/users/models/key_gen_result.dart';
-import 'package:photos/gateways/users/models/private_key_attributes.dart';
 import 'package:photos/module/upload/upload_artifact.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/authenticated_session.dart';
@@ -50,14 +45,15 @@ import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/similar_images_service.dart";
 import "package:photos/services/memory_share_service.dart";
+import 'package:photos/services/notification_key_service.dart';
 import "package:photos/services/notification_service.dart";
 import 'package:photos/services/photos_contacts_service.dart';
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import 'package:photos/services/video_preview_service.dart';
-import 'package:photos/utils/validator_util.dart';
+import 'package:photos/src/rust/third_party/ente_frb_lib/account_deletion.dart'
+    as account_deletion;
 import 'package:shared_preferences/shared_preferences.dart';
-import "package:tuple/tuple.dart";
 import 'package:uuid/uuid.dart';
 
 class Configuration implements LockScreenHost, AccountDeletionHost {
@@ -148,6 +144,9 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       // https://github.com/mogol/flutter_secure_storage/issues/541
       if (e is PlatformException) {
         final PlatformException error = e;
+        if (error.code == 'notification_key_store') {
+          rethrow;
+        }
         final bool isBadPaddingError =
             error.toString().contains('BadPaddingException') ||
             (error.message ?? '').contains('BadPaddingException');
@@ -199,9 +198,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     _logger.info("Logging out, autoLogout: $autoLogout");
     MLService.instance.stopActiveRun(MlStopReason.logout);
     if (!autoLogout) {
-      if (flagService.stopStreamProcess) {
-        VideoPreviewService.instance.stop('logout');
-      }
+      VideoPreviewService.instance.stop('logout');
       if (SyncService.instance.isSyncInProgress()) {
         SyncService.instance.stopSync();
         try {
@@ -214,6 +211,14 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       }
     }
 
+    if (Platform.isIOS) {
+      try {
+        await NotificationKeyService.setNotificationPrivateKey(null);
+      } on PlatformException catch (e, s) {
+        if (e.code != 'notification_key_store') rethrow;
+        _logger.warning("Could not delete notification key", e, s);
+      }
+    }
     await _clearTempFolderOnLogout();
 
     await _preferences.clear();
@@ -233,6 +238,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     await CollectionsDB.instance.clearTable();
     await MemoriesDB.instance.clearTable();
     await MemorySharesDB.instance.clearTable();
+    await PhotoReviewDB.instance.clearTable();
     await MLDataDB.instance.clearTable();
     await UploadLocksDB.instance.clearTable();
     await TrashDB.instance.clearTable();
@@ -332,127 +338,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     return _preferences.remove("auto_logout");
   }
 
-  Future<KeyGenResult> generateKey(String password) async {
-    final masterKey = CryptoUtil.generateKey();
-    final recoveryKey = CryptoUtil.generateKey();
-    final encryptedMasterKey = CryptoUtil.encryptSync(masterKey, recoveryKey);
-    final encryptedRecoveryKey = CryptoUtil.encryptSync(recoveryKey, masterKey);
-    final kekSalt = CryptoUtil.getSaltToDeriveKey();
-    final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
-      utf8.encode(password),
-      kekSalt,
-    );
-    final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-
-    final encryptedKeyData = CryptoUtil.encryptSync(
-      masterKey,
-      derivedKeyResult.key,
-    );
-
-    final keyPair = await CryptoUtil.generateKeyPair();
-    final encryptedSecretKeyData = CryptoUtil.encryptSync(
-      keyPair.sk,
-      masterKey,
-    );
-
-    final attributes = KeyAttributes(
-      CryptoUtil.bin2base64(kekSalt),
-      CryptoUtil.bin2base64(encryptedKeyData.encryptedData!),
-      CryptoUtil.bin2base64(encryptedKeyData.nonce!),
-      CryptoUtil.bin2base64(keyPair.pk),
-      CryptoUtil.bin2base64(encryptedSecretKeyData.encryptedData!),
-      CryptoUtil.bin2base64(encryptedSecretKeyData.nonce!),
-      derivedKeyResult.memLimit,
-      derivedKeyResult.opsLimit,
-      CryptoUtil.bin2base64(encryptedMasterKey.encryptedData!),
-      CryptoUtil.bin2base64(encryptedMasterKey.nonce!),
-      CryptoUtil.bin2base64(encryptedRecoveryKey.encryptedData!),
-      CryptoUtil.bin2base64(encryptedRecoveryKey.nonce!),
-    );
-    final privateAttributes = PrivateKeyAttributes(
-      CryptoUtil.bin2base64(masterKey),
-      CryptoUtil.bin2hex(recoveryKey),
-      CryptoUtil.bin2base64(keyPair.sk),
-    );
-    return KeyGenResult(attributes, privateAttributes, loginKey);
-  }
-
-  Future<Tuple2<KeyAttributes, Uint8List>> getAttributesForNewPassword(
-    String password,
-  ) async {
-    final masterKey = getKey();
-    final kekSalt = CryptoUtil.getSaltToDeriveKey();
-    final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
-      utf8.encode(password),
-      kekSalt,
-    );
-    final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-
-    final encryptedKeyData = CryptoUtil.encryptSync(
-      masterKey!,
-      derivedKeyResult.key,
-    );
-
-    final existingAttributes = getKeyAttributes();
-
-    final updatedAttributes = existingAttributes!.copyWith(
-      kekSalt: CryptoUtil.bin2base64(kekSalt),
-      encryptedKey: CryptoUtil.bin2base64(encryptedKeyData.encryptedData!),
-      keyDecryptionNonce: CryptoUtil.bin2base64(encryptedKeyData.nonce!),
-      memLimit: derivedKeyResult.memLimit,
-      opsLimit: derivedKeyResult.opsLimit,
-    );
-    return Tuple2(updatedAttributes, loginKey);
-  }
-
-  Future<Uint8List> decryptSecretsAndGetKeyEncKey(
-    String password,
-    KeyAttributes attributes, {
-    Uint8List? keyEncryptionKey,
-  }) async {
-    validatePreVerificationStateCheck(
-      attributes,
-      password,
-      getEncryptedToken(),
-    );
-    keyEncryptionKey ??= await CryptoUtil.deriveKey(
-      utf8.encode(password),
-      CryptoUtil.base642bin(attributes.kekSalt),
-      attributes.memLimit!,
-      attributes.opsLimit!,
-    );
-
-    final encryptedKey = CryptoUtil.base642bin(attributes.encryptedKey);
-    final keyDecryptionNonce = CryptoUtil.base642bin(
-      attributes.keyDecryptionNonce,
-    );
-    Uint8List key;
-    try {
-      key = CryptoUtil.decryptSync(
-        encryptedKey,
-        keyEncryptionKey,
-        keyDecryptionNonce,
-      );
-    } on SodiumException catch (e) {
-      _logger.warning('master-key decryption failed: $e');
-      throw IncorrectPasswordError();
-    }
-    await setKey(CryptoUtil.bin2base64(key));
-    final secretKey = CryptoUtil.decryptSync(
-      CryptoUtil.base642bin(attributes.encryptedSecretKey),
-      key,
-      CryptoUtil.base642bin(attributes.secretKeyDecryptionNonce),
-    );
-    await setSecretKey(CryptoUtil.bin2base64(secretKey));
-    final token = CryptoUtil.openSealSync(
-      CryptoUtil.base642bin(getEncryptedToken()!),
-      CryptoUtil.base642bin(attributes.publicKey),
-      secretKey,
-    );
-    await setToken(CryptoUtil.bin2base64(token, urlSafe: true));
-    return keyEncryptionKey;
-  }
-
   Future<KeyAttributes> createNewRecoveryKey() async {
     final masterKey = getKey()!;
     final existingAttributes = getKeyAttributes();
@@ -475,44 +360,6 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
         encryptedRecoveryKey.nonce!,
       ),
     );
-  }
-
-  Future<void> recover(String recoveryKey) async {
-    // Legacy users will have recoveryKey in the form of a hex string, while
-    // newer users will have it as a mnemonic code
-    if (recoveryKey.contains(' ')) {
-      if (recoveryKey.split(' ').length != mnemonicKeyWordCount) {
-        throw AssertionError(
-          'recovery code should have $mnemonicKeyWordCount words',
-        );
-      }
-      recoveryKey = bip39.mnemonicToEntropy(recoveryKey);
-    }
-    final attributes = getKeyAttributes();
-    Uint8List masterKey;
-    try {
-      masterKey = await CryptoUtil.decrypt(
-        CryptoUtil.base642bin(attributes!.masterKeyEncryptedWithRecoveryKey!),
-        CryptoUtil.hex2bin(recoveryKey),
-        CryptoUtil.base642bin(attributes.masterKeyDecryptionNonce!),
-      );
-    } catch (e) {
-      _logger.severe(e);
-      rethrow;
-    }
-    await setKey(CryptoUtil.bin2base64(masterKey));
-    final secretKey = CryptoUtil.decryptSync(
-      CryptoUtil.base642bin(attributes.encryptedSecretKey),
-      masterKey,
-      CryptoUtil.base642bin(attributes.secretKeyDecryptionNonce),
-    );
-    await setSecretKey(CryptoUtil.bin2base64(secretKey));
-    final token = CryptoUtil.openSealSync(
-      CryptoUtil.base642bin(getEncryptedToken()!),
-      CryptoUtil.base642bin(attributes.publicKey),
-      secretKey,
-    );
-    await setToken(CryptoUtil.bin2base64(token, urlSafe: true));
   }
 
   String? getToken() {
@@ -571,14 +418,24 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   }
 
   @override
-  String decryptDeleteChallenge(String encryptedChallenge) {
-    final challenge = CryptoUtil.openSealSync(
-      CryptoUtil.base642bin(encryptedChallenge),
-      CryptoUtil.base642bin(getKeyAttributes()!.publicKey),
-      getSecretKey()!,
-    );
-    return utf8.decode(challenge);
-  }
+  Future<AccountDeletionSummary?> getDeletionSummary() =>
+      account_deletion.getDeletionSummary(session: authenticatedSession());
+
+  @override
+  Future<String> getDeleteChallenge() =>
+      account_deletion.getDeleteChallenge(session: authenticatedSession());
+
+  @override
+  Future<void> deleteAccount({
+    required String encryptedChallenge,
+    required String reason,
+    String? feedback,
+  }) => account_deletion.deleteAccount(
+    session: authenticatedSession(),
+    encryptedChallenge: encryptedChallenge,
+    reason: reason,
+    feedback: feedback,
+  );
 
   Future<void> setKey(String? key) async {
     _key = key;

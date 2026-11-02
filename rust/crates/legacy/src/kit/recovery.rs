@@ -147,7 +147,12 @@ impl LegacyKitRecoveryHandle {
             .json(&self.session_request())
             .send()
             .await?;
-        Ok(response.error_for_status()?.json().await?)
+        Ok(response
+            .error_for_code()
+            .await
+            .map_err(map_session_error)?
+            .json()
+            .await?)
     }
 
     pub async fn recovery_bundle(&self) -> Result<LegacyKitRecoveryBundle> {
@@ -157,7 +162,9 @@ impl LegacyKitRecoveryHandle {
             .json(&self.session_request())
             .send()
             .await?
-            .error_for_status()?
+            .error_for_code()
+            .await
+            .map_err(map_session_error)?
             .json::<LegacyKitRecoveryInfoResponse>()
             .await?;
         let encryption_key = derive_kit_encryption_key(&self.kit_secret)?;
@@ -192,7 +199,9 @@ impl LegacyKitRecoveryHandle {
             })
             .send()
             .await?
-            .error_for_status()?
+            .error_for_code()
+            .await
+            .map_err(map_session_error)?
             .json::<LegacyKitSetupSrpResponse>()
             .await?;
         let srp_m1 = srp_m1(&mut srp_session, &init_response)?;
@@ -216,7 +225,9 @@ impl LegacyKitRecoveryHandle {
             })
             .send()
             .await?
-            .error_for_status()?
+            .error_for_code()
+            .await
+            .map_err(map_session_error)?
             .json::<LegacyKitChangePasswordResponse>()
             .await?;
 
@@ -229,6 +240,15 @@ impl LegacyKitRecoveryHandle {
             session_id: self.session.id.clone(),
             session_token: self.session_token.as_ref().to_owned(),
         }
+    }
+}
+
+fn map_session_error(error: http::Error) -> Error {
+    match &error {
+        http::Error::Api { code, .. } if code == "SESSION_EXPIRED" => {
+            Error::LegacyKitSessionExpired
+        }
+        _ => error.into(),
     }
 }
 
@@ -378,7 +398,7 @@ struct LegacyKitUpdatedKeyAttr {
     kek_salt: String,
     encrypted_key: String,
     key_decryption_nonce: String,
-    mem_limit: u32,
+    mem_limit: u64,
     ops_limit: u32,
 }
 

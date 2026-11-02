@@ -2118,7 +2118,6 @@
   "mlConsent": "Ativar",
   "mlConsentConfirmation": "Concordo e desejo ativar",
   "mlConsentDescription": "Se você ativar a aprendizagem automática, Ente extrairá informações como a geometria facial dos arquivos, incluindo os compartilhados com você.\n\nIsso acontecerá no seu dispositivo, qualquer informação biométrica gerada será criptografada de ponta a ponta.",
-  "mlConsentPrivacy": "Clique aqui para mais detalhes sobre este recurso na política de privacidade",
   "mlIndexingDescription": "Por favor, tome em conta que a aprendizagem automática resultará em maior largura de banda e consumo de bateria até que tudo seja processado. Recomendamos usar o aplicativo para desktop para processamento mais rápido, e todos os resultados serão sincronizados automaticamente.",
   "mlProgressBannerDescription": "Suas fotos estão sendo processadas no dispositivo para detectar rostos, objetos e mais.",
   "mlProgressBannerStatus": "{indexed} de {total} fotos processadas",
@@ -3351,7 +3350,7 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Comece a arrastar, suas fotos aparecerão aqui",
+  "startSnappingYourPhotosWillShowUpHere": "Comece a tirar fotos, suas fotos aparecerão aqui",
   "startWithAddingPhotosOrFamiliarFaces": "Comece adicionando\nfotos ou rostos familiares",
   "status": "Estado",
   "sticker": "Figurinha",

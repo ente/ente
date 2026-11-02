@@ -16,9 +16,11 @@ class ImageEditorMainBottomBar extends StatefulWidget with SimpleConfigsAccess {
     required this.configs,
     required this.callbacks,
     required this.editor,
+    required this.imageReady,
   });
 
   final ProImageEditorState editor;
+  final Future<void> imageReady;
 
   @override
   final ProImageEditorConfigs configs;
@@ -90,7 +92,14 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
                         CircularIconButton(
                           hugeIcon: HugeIcons.strokeRoundedCrop,
                           label: context.strings.cropAndRotate,
-                          onTap: () {
+                          onTap: () async {
+                            await widget.imageReady;
+                            if (!mounted ||
+                                !widget.editor.mounted ||
+                                ModalRoute.of(context)?.isCurrent != true ||
+                                widget.editor.isSubEditorOpen) {
+                              return;
+                            }
                             widget.editor.openCropRotateEditor();
                           },
                         ),

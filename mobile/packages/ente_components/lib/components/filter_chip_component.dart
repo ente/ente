@@ -16,6 +16,8 @@ class FilterChipComponent extends StatelessWidget {
   const FilterChipComponent({
     super.key,
     this.label,
+    this.labelStyle,
+    this.padding,
     this.leading,
     this.trailing,
     this.avatar,
@@ -27,6 +29,8 @@ class FilterChipComponent extends StatelessWidget {
   }) : assert(label != null || avatar != null);
 
   final String? label;
+  final TextStyle? labelStyle;
+  final EdgeInsets? padding;
   final Widget? leading;
   final Widget? trailing;
   final Widget? avatar;
@@ -41,9 +45,17 @@ class FilterChipComponent extends StatelessWidget {
   static const _labelLineHeight = 16.0;
   static const _avatarVerticalPadding = Spacing.xs * 2;
 
-  static double heightForTextScale(BuildContext context) {
-    final textHeight = MediaQuery.textScalerOf(context).scale(_labelLineHeight);
-    final scaledHeight = _textVerticalPadding + textHeight;
+  static double heightForTextScale(
+    BuildContext context, {
+    TextStyle? textStyle,
+    double verticalPadding = _textVerticalPadding,
+  }) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final textHeight = textStyle == null
+        ? scaler.scale(_labelLineHeight)
+        : scaler.scale(textStyle.fontSize ?? TextStyles.mini.fontSize!) *
+              (textStyle.height ?? 1);
+    final scaledHeight = verticalPadding + textHeight;
     return scaledHeight > minHeight ? scaledHeight : minHeight;
   }
 
@@ -77,7 +89,11 @@ class FilterChipComponent extends StatelessWidget {
         ? _inverseBackgroundBase(context)
         : colors.fillLight;
     final effectiveAvatarSize = _avatarSizeFor(context);
-    final textScaledHeight = heightForTextScale(context);
+    final textScaledHeight = heightForTextScale(
+      context,
+      textStyle: labelStyle,
+      verticalPadding: padding?.vertical ?? _textVerticalPadding,
+    );
     final effectiveChipHeight = avatar == null
         ? textScaledHeight
         : math.max(
@@ -92,7 +108,7 @@ class FilterChipComponent extends StatelessWidget {
       semanticLabel: tooltip ?? label,
       minHeight: effectiveChipHeight,
       minWidth: effectiveChipHeight,
-      padding: _padding,
+      padding: padding ?? _padding,
       background: background,
       borderRadius: BorderRadius.circular(effectiveChipHeight / 2),
       onTap: _enabled ? () => onChanged!(!_selected) : null,
@@ -151,7 +167,7 @@ class FilterChipComponent extends StatelessWidget {
             label!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyles.mini.copyWith(color: color),
+            style: (labelStyle ?? TextStyles.mini).copyWith(color: color),
           ),
         ),
       );

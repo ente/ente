@@ -1,4 +1,4 @@
-package authenticaor
+package userentity
 
 import (
 	"github.com/ente/museum/ente"

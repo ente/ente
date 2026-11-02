@@ -146,6 +146,8 @@ class _EditAlbumDetailsSheetState extends State<EditAlbumDetailsSheet> {
         contentSpacing: Spacing.xxl,
         actionsTopSpacing: Spacing.xxl,
         isKeyboardAware: true,
+        isScrollable: true,
+        shrinkWrap: true,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

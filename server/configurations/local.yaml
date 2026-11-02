@@ -65,6 +65,7 @@ apps:
     #
     # For self-hosted instances, set this to the URL where your embed app is running.
     embed-albums:
+    photobook:
     # Default is https://share.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public links for locker,

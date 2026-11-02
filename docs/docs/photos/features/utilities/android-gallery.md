@@ -13,7 +13,7 @@ On Android, Ente integrates with the rest of the system so it can act like a reg
 
 ## Pick photos and videos from Ente in other apps
 
-When another app asks you to attach a photo or video — for example a messenger, an email client, or a social app — Ente shows up as one of the apps you can pick from.
+When another app asks you to attach a photo or video, it may offer Ente Photos in an app chooser or under **Browse**. This depends on the other app's picker flow.
 
 **How it works:**
 
@@ -26,9 +26,11 @@ When another app asks you to attach a photo or video — for example a messenger
 
 The picker opens directly in Ente without interrupting your normal session, and the original app receives the files you selected.
 
+This opens Ente's own picker. It does not add your Ente cloud library as a source inside Android's system Photo Picker. A cloud-only item may need to download before Ente can return it; Ente can reuse a cached copy. Learn more in the [picker FAQ](/photos/faq/backup-and-sync#pick-photos-in-other-apps).
+
 Ente registers as a handler for the standard Android picker intents, so it works with:
 
-- The system photo picker (`PICK_IMAGES`)
+- Apps that send the `PICK_IMAGES` intent and offer Ente through an app chooser or **Browse** option
 - Apps that use `PICK` or `GET_CONTENT` to request media
 - Both single-item and multi-item selection
 - Image-only, video-only, or mixed media requests

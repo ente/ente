@@ -38,7 +38,7 @@ export interface VerifyMasterPasswordFormProps {
         kek: string,
         keyAttributes: KeyAttributes,
         password: string,
-    ) => void;
+    ) => void | Promise<void>;
     presentation?: ComponentType<VerifyMasterPasswordPresentationProps>;
 }
 
@@ -112,7 +112,7 @@ export const VerifyMasterPasswordForm: React.FC<
                     keyAttributes = result;
                 }
             } catch (e) {
-                if (isNamedError(e, "srp_verification_unauthorized")) {
+                if (isNamedError(e, "incorrect_password")) {
                     log.error("Incorrect password or no account", e);
                     setFieldError(t("incorrect_password_or_no_account"));
                     return;
@@ -137,7 +137,7 @@ export const VerifyMasterPasswordForm: React.FC<
             return;
         }
 
-        onVerify(key, kek, keyAttributes, password);
+        await onVerify(key, kek, keyAttributes, password);
     };
 
     if (Presentation) {

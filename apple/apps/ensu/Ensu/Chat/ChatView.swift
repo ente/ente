@@ -161,9 +161,10 @@ struct ChatView: View {
                 viewModel.setAppForeground(newValue != .background)
                 viewModel.notesStore.setForeground(newValue == .active)
                 if newValue == .active {
+                    viewModel.voiceTranscriber.setForeground(true)
                     viewModel.refreshModelDownloadInfo()
                 } else {
-                    viewModel.cancelVoiceInput()
+                    viewModel.voiceTranscriber.setForeground(false)
                 }
             }
         }
@@ -204,6 +205,7 @@ struct ChatView: View {
         }
         .onChange(of: viewState.showSettings) { isPresented in
             if isPresented {
+                viewModel.voiceTranscriber.interrupt()
                 viewState.didDismissKeyboard = true
                 isInputFocused = false
             } else if viewState.pendingSignInRequest {
@@ -374,7 +376,7 @@ struct ChatView: View {
                         isDownloading: viewModel.isDownloading,
                         editingMessage: editingMessage,
                         isProcessingAttachments: viewModel.isProcessingAttachments,
-                        voiceInputState: viewModel.voiceInputState,
+                        voiceService: viewModel.voiceTranscriber,
                         moveCursorToEndToken: viewModel.draftCursorMoveToken,
                         onSend: {
                             viewState.didDismissKeyboard = true
@@ -391,6 +393,11 @@ struct ChatView: View {
                             viewState.didDismissKeyboard = true
                             isInputFocused = false
                             viewModel.toggleVoiceInput()
+                        },
+                        voiceInsertionCaret: viewModel.voiceInsertionCaret,
+                        onComposerSelection: { range, composing in
+                            viewModel.composerSelection = range
+                            viewModel.composerIsComposing = composing
                         },
                         onAddImage: { data, name in
                             viewModel.addImageAttachment(data: data, fileName: name)

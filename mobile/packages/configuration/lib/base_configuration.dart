@@ -1,11 +1,7 @@
-import 'dart:convert';
 import 'dart:io' as io;
 
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:ente_base/models/database.dart';
 import 'package:ente_base/models/key_attributes.dart';
-import 'package:ente_base/models/key_gen_result.dart';
-import 'package:ente_base/models/private_key_attributes.dart';
 import 'package:ente_configuration/app_identity.dart';
 import 'package:ente_configuration/constants.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
@@ -19,7 +15,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tuple/tuple.dart';
 
 export 'package:ente_configuration/app_identity.dart';
 
@@ -58,6 +53,10 @@ abstract class BaseConfiguration {
 
   List<String> get secureStorageKeys;
 
+  String recoveryKeyToMnemonic(String recoveryKeyHex);
+
+  List<String> get lockScreenSecureStorageKeys => const [];
+
   Future<void> init(List<EnteBaseDatabase> dbs) async {
     _databases = dbs;
     _tempDocumentsDirPath =
@@ -79,6 +78,9 @@ abstract class BaseConfiguration {
     await _clearTempFolderOnLogout();
     await _preferences.clear();
     await resetSecureStorage();
+    for (final key in lockScreenSecureStorageKeys) {
+      await _secureStorage.delete(key: key);
+    }
     for (final db in _databases) {
       await db.clearTable();
     }
@@ -109,174 +111,6 @@ abstract class BaseConfiguration {
     for (final key in secureStorageKeys.toSet()) {
       await _secureStorage.delete(key: key);
     }
-  }
-
-  Future<KeyGenResult> generateKey(String password) async {
-    final masterKey = CryptoUtil.generateKey();
-
-    final recoveryKey = CryptoUtil.generateKey();
-
-    final encryptedMasterKey = CryptoUtil.encryptSync(masterKey, recoveryKey);
-    final encryptedRecoveryKey = CryptoUtil.encryptSync(recoveryKey, masterKey);
-
-    final kekSalt = CryptoUtil.getSaltToDeriveKey();
-    final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
-      utf8.encode(password),
-      kekSalt,
-    );
-    final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-
-    final encryptedKeyData = CryptoUtil.encryptSync(
-      masterKey,
-      derivedKeyResult.key,
-    );
-
-    final keyPair = CryptoUtil.generateKeyPair();
-    final encryptedSecretKeyData = CryptoUtil.encryptSync(
-      keyPair.secretKey,
-      masterKey,
-    );
-
-    final attributes = KeyAttributes(
-      CryptoUtil.bin2base64(kekSalt),
-      CryptoUtil.bin2base64(encryptedKeyData.encryptedData!),
-      CryptoUtil.bin2base64(encryptedKeyData.nonce!),
-      CryptoUtil.bin2base64(keyPair.publicKey),
-      CryptoUtil.bin2base64(encryptedSecretKeyData.encryptedData!),
-      CryptoUtil.bin2base64(encryptedSecretKeyData.nonce!),
-      derivedKeyResult.memLimit,
-      derivedKeyResult.opsLimit,
-      CryptoUtil.bin2base64(encryptedMasterKey.encryptedData!),
-      CryptoUtil.bin2base64(encryptedMasterKey.nonce!),
-      CryptoUtil.bin2base64(encryptedRecoveryKey.encryptedData!),
-      CryptoUtil.bin2base64(encryptedRecoveryKey.nonce!),
-    );
-    final privateAttributes = PrivateKeyAttributes(
-      CryptoUtil.bin2base64(masterKey),
-      CryptoUtil.bin2hex(recoveryKey),
-      CryptoUtil.bin2base64(keyPair.secretKey),
-    );
-    return KeyGenResult(attributes, privateAttributes, loginKey);
-  }
-
-  Future<Tuple2<KeyAttributes, Uint8List>> getAttributesForNewPassword(
-    String password,
-  ) async {
-    final masterKey = getKey();
-
-    final kekSalt = CryptoUtil.getSaltToDeriveKey();
-    final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
-      utf8.encode(password),
-      kekSalt,
-    );
-    final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
-
-    final encryptedKeyData = CryptoUtil.encryptSync(
-      masterKey!,
-      derivedKeyResult.key,
-    );
-
-    final existingAttributes = getKeyAttributes();
-
-    final updatedAttributes = existingAttributes!.copyWith(
-      kekSalt: CryptoUtil.bin2base64(kekSalt),
-      encryptedKey: CryptoUtil.bin2base64(encryptedKeyData.encryptedData!),
-      keyDecryptionNonce: CryptoUtil.bin2base64(encryptedKeyData.nonce!),
-      memLimit: derivedKeyResult.memLimit,
-      opsLimit: derivedKeyResult.opsLimit,
-    );
-    return Tuple2(updatedAttributes, loginKey);
-  }
-
-  Future<Uint8List> decryptSecretsAndGetKeyEncKey(
-    String password,
-    KeyAttributes attributes, {
-    Uint8List? keyEncryptionKey,
-  }) async {
-    _logger.info('Start decryptAndSaveSecrets');
-    keyEncryptionKey ??= await CryptoUtil.deriveKey(
-      utf8.encode(password),
-      CryptoUtil.base642bin(attributes.kekSalt),
-      attributes.memLimit,
-      attributes.opsLimit,
-    );
-
-    _logger.info('user-key done');
-    Uint8List key;
-    try {
-      key = CryptoUtil.decryptSync(
-        CryptoUtil.base642bin(attributes.encryptedKey),
-        keyEncryptionKey,
-        CryptoUtil.base642bin(attributes.keyDecryptionNonce),
-      );
-    } catch (e) {
-      _logger.severe('master-key failed, incorrect password?', e);
-      throw Exception("Incorrect password");
-    }
-    _logger.info("master-key done");
-    await setKey(CryptoUtil.bin2base64(key));
-    final secretKey = CryptoUtil.decryptSync(
-      CryptoUtil.base642bin(attributes.encryptedSecretKey),
-      key,
-      CryptoUtil.base642bin(attributes.secretKeyDecryptionNonce),
-    );
-    _logger.info("secret-key done");
-    await setSecretKey(CryptoUtil.bin2base64(secretKey));
-    final token = CryptoUtil.openSealSync(
-      CryptoUtil.base642bin(getEncryptedToken()!),
-      CryptoUtil.base642bin(attributes.publicKey),
-      secretKey,
-    );
-    _logger.info('appToken done');
-    await setToken(CryptoUtil.bin2base64(token, urlSafe: true));
-    return keyEncryptionKey;
-  }
-
-  Future<void> recover(String recoveryKey) async {
-    if (recoveryKey.contains(' ')) {
-      final split = recoveryKey.split(' ');
-      if (split.length != mnemonicKeyWordCount) {
-        String wordThatIsFollowedByEmptySpaceInSplit = '';
-        for (int i = 0; i < split.length; i++) {
-          final String word = split[i];
-          if (word.isEmpty) {
-            wordThatIsFollowedByEmptySpaceInSplit =
-                '\n\nExtra space after word at position $i';
-            break;
-          }
-        }
-        throw AssertionError(
-          '\nRecovery code should have $mnemonicKeyWordCount words, '
-          'found ${split.length} words instead.$wordThatIsFollowedByEmptySpaceInSplit',
-        );
-      }
-      recoveryKey = bip39.mnemonicToEntropy(recoveryKey);
-    }
-    final attributes = getKeyAttributes();
-    Uint8List masterKey;
-    try {
-      masterKey = await CryptoUtil.decrypt(
-        CryptoUtil.base642bin(attributes!.masterKeyEncryptedWithRecoveryKey),
-        CryptoUtil.hex2bin(recoveryKey),
-        CryptoUtil.base642bin(attributes.masterKeyDecryptionNonce),
-      );
-    } catch (e) {
-      _logger.severe(e);
-      rethrow;
-    }
-    await setKey(CryptoUtil.bin2base64(masterKey));
-    final secretKey = CryptoUtil.decryptSync(
-      CryptoUtil.base642bin(attributes.encryptedSecretKey),
-      masterKey,
-      CryptoUtil.base642bin(attributes.secretKeyDecryptionNonce),
-    );
-    await setSecretKey(CryptoUtil.bin2base64(secretKey));
-    final token = CryptoUtil.openSealSync(
-      CryptoUtil.base642bin(getEncryptedToken()!),
-      CryptoUtil.base642bin(attributes.publicKey),
-      secretKey,
-    );
-    await setToken(CryptoUtil.bin2base64(token, urlSafe: true));
   }
 
   String getHttpEndpoint() {
@@ -364,15 +198,6 @@ abstract class BaseConfiguration {
 
   Uint8List? getSecretKey() {
     return _secretKey == null ? null : CryptoUtil.base642bin(_secretKey!);
-  }
-
-  String decryptDeleteChallenge(String encryptedChallenge) {
-    final challenge = CryptoUtil.openSealSync(
-      CryptoUtil.base642bin(encryptedChallenge),
-      CryptoUtil.base642bin(getKeyAttributes()!.publicKey),
-      getSecretKey()!,
-    );
-    return utf8.decode(challenge);
   }
 
   Uint8List getRecoveryKey() {

@@ -984,7 +984,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _handleKeyEvent(KeyEvent event) {
-    if (!mounted) return false;
+    if (!mounted || !FocusScope.of(context).hasFocus) return false;
 
     if (event is KeyDownEvent) {
       _pressedKeys.add(event.logicalKey);
@@ -1009,7 +1009,8 @@ class _HomePageState extends State<HomePage> {
     // don't treat typed characters as global shortcuts.
     final primaryFocus = FocusManager.instance.primaryFocus;
     final bool isEditableTextFocused =
-        primaryFocus?.context?.widget is EditableText;
+        primaryFocus?.context?.findAncestorStateOfType<EditableTextState>() !=
+        null;
     final bool isHomeSearchFocused = searchBoxFocusNode.hasFocus;
     if (isEditableTextFocused && !isHomeSearchFocused) {
       return false;

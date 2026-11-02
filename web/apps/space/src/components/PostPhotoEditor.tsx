@@ -42,6 +42,7 @@ export interface SpaceEditablePostPhoto {
     video?: {
         file: File;
         sourceURL: string;
+        startTime: number;
         duration: number;
         edit: SpacePostVideoEdit;
     };
@@ -357,6 +358,7 @@ export const SpacePostPhotoEditor: React.FC<{
                         key={photo.id}
                         file={photo.video.file}
                         sourceURL={photo.video.sourceURL}
+                        startTime={photo.video.startTime}
                         duration={photo.video.duration}
                         edit={videoEdits[photo.id] ?? photo.video.edit}
                         onChange={(next) =>

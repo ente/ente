@@ -22,10 +22,15 @@ on:
                 type: choice
                 options:
                     - start
+                    - update
                     - promote
             version:
                 description: "Release version, e.g. 0.1.16"
                 required: true
+                type: string
+            commit:
+                description: "Full commit SHA to cherry-pick (required for update)"
+                required: false
                 type: string
 
 permissions:
@@ -45,8 +50,24 @@ jobs:
         env:
             APP: ${{ inputs.app }}
             VERSION: ${{ inputs.version }}
+            COMMIT: ${{ inputs.commit }}
 
         steps:
+            - name: Check release maintainer
+              if: inputs.action == 'update'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+              run: |
+                  actor_id="$(gh api "/users/${TRIGGERING_ACTOR}" --jq .id)"
+                  case "${actor_id}" in
+                      24503581|254676) ;;
+                      *)
+                          echo "::error::${TRIGGERING_ACTOR} is not a release maintainer"
+                          exit 1
+                          ;;
+                  esac
+
             - name: Validate version input
               shell: bash
               run: |
@@ -55,6 +76,29 @@ jobs:
                       exit 1
                   fi
 
+            - name: Validate commit input
+              if: inputs.action == 'update'
+              shell: bash
+              run: |
+                  if [[ ! "${COMMIT}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                      echo "::error::commit must be a full 40-character SHA"
+                      exit 1
+                  fi
+
+            - name: Verify commit is on main
+              if: inputs.action == 'update'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  status="$(gh api "/repos/${GITHUB_REPOSITORY}/compare/${COMMIT}...main?per_page=1" --jq .status)"
+                  case "${status}" in
+                      ahead|identical) ;;
+                      *)
+                          echo "::error::commit must already be on main"
+                          exit 1
+                          ;;
+                  esac
+
             - name: Checkout main
               if: inputs.action == 'start'
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,7 +106,7 @@ jobs:
                   ref: main
 
             - name: Checkout release branch
-              if: inputs.action == 'promote'
+              if: inputs.action == 'update' || inputs.action == 'promote'
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   ref: release/${{ inputs.app }}-v${{ inputs.version }}
@@ -149,6 +193,20 @@ jobs:
                   git push -u origin "${next_branch}"
 
                   gh pr create --base main --head "${next_branch}" --title "[${APP}] Start ${APP^} ${next_version}" --body ""
+
+            - name: Update release
+              if: inputs.action == 'update'
+              env:
+                  GH_TOKEN: ${{ steps.app_token.outputs.token }}
+              run: |
+                  set -euo pipefail
+
+                  git fetch --no-tags --depth=2 origin "${COMMIT}"
+                  git cherry-pick -x FETCH_HEAD
+                  node .github/scripts/app-version.mjs "${APP}" bump-build-and-commit
+                  git -c http.https://github.com/.extraheader= push \
+                      "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+                      "HEAD:refs/heads/release/${APP}-v${VERSION}"
 
             - name: Promote release
               if: inputs.action == 'promote'

@@ -69,15 +69,16 @@ The Auth data is encrypted with `XChaCha20-Poly1305`. The encryption key is deri
 
 ## Automated backups
 
-You can use [Ente's CLI](https://github.com/ente/ente/tree/main/cli#readme) to automatically backup your Auth codes.
+[Install Ente CLI](/cli/install), then log in and choose a backup directory:
 
-To export your data, add an account using `ente account add` command. In the first step, specify `auth` as the app name. At a later point, CLI will also ask you specify the path where it should write the exported codes.
-
-You can change the export directory using following command
-
+```sh
+ente account login --app auth
+ente auth export "$HOME/Backups/Auth"
 ```
-ente account update --app auth --email <email> --dir <path>
-```
+
+> Login uses the selected account. Add `--account NAME` to choose another saved account or add one under a new name.
+
+The export asks for a password and writes a dated encrypted backup. Learn more in [Auth](/cli/auth) and [Automation](/cli/automation#back-up-auth-codes) for scheduled backups. If you use the previous CLI, follow [Migration](/cli/migration) first.
 
 ## Local backups
 
@@ -109,8 +110,10 @@ You can trigger a manual backup at any time using the **Create backup now** butt
 
     > Settings -> Data -> Import Codes -> Ente Encrypted export.
 
-- **Decrypt using Ente CLI** : Download the latest version of [Ente CLI](https://github.com/ente/ente/releases?q=tag%3Acli-v0), and run the following command
+- **Decrypt using Ente CLI**: [Install Ente CLI](/cli/install), then run:
 
-```
-  ./ente auth decrypt <export_file> <output_file>
-```
+    ```sh
+    ente auth decrypt backup.json --output codes.txt
+    ```
+
+    Enter the backup's password when prompted. The output file must not already exist; it contains unencrypted codes. Learn more in [Auth](/cli/auth#decrypt-a-backup).

@@ -12,7 +12,7 @@ const double _kScrollbarThicknessWithTrack = 12.0;
 const double _kScrollbarMargin = 2.0;
 const Radius _kScrollbarRadius = Radius.circular(8.0);
 const Duration _kScrollbarFadeDuration = Duration(milliseconds: 300);
-const Duration _kScrollbarTimeToFade = Duration(milliseconds: 600);
+const Duration _kScrollbarTimeToFade = Duration(seconds: 2);
 
 class ScrollbarWithUseNotifer extends StatelessWidget {
   const ScrollbarWithUseNotifer({
@@ -124,11 +124,15 @@ class _MaterialScrollbar extends RawScrollbar {
 
 class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
   late AnimationController _hoverAnimationController;
+  late final ScrollbarPainter _thumbTargetPainter;
   bool _dragIsActive = false;
   bool _hoverIsActive = false;
   late ColorScheme _colorScheme;
   late ScrollbarThemeData _scrollbarTheme;
   late bool _useAndroidScrollbar;
+
+  @override
+  ScrollbarPainter get scrollbarPainter => _thumbTargetPainter;
 
   @override
   bool get showScrollbar =>
@@ -249,6 +253,15 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
   @override
   void initState() {
     super.initState();
+    // The base painter is final, so override its getter and reuse its animation.
+    final originalPainter = super.scrollbarPainter;
+    _thumbTargetPainter = _ThumbTargetScrollbarPainter(
+      color: originalPainter.color,
+      fadeoutOpacityAnimation: originalPainter.fadeoutOpacityAnimation,
+      minLength: originalPainter.minLength,
+      minOverscrollLength: originalPainter.minOverscrollLength,
+    );
+    originalPainter.dispose();
     _hoverAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -278,8 +291,9 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
 
   @override
   void updateScrollbarPainter() {
+    final thumbColor = _thumbColor.resolve(_states);
     scrollbarPainter
-      ..color = _thumbColor.resolve(_states)
+      ..color = thumbColor
       ..trackColor = _trackColor.resolve(_states)
       ..trackBorderColor = _trackBorderColor.resolve(_states)
       ..textDirection = Directionality.of(context)
@@ -295,7 +309,7 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
       ..minLength = widget.minScrollbarLength
       ..padding = widget.scrollbarPadding ?? MediaQuery.paddingOf(context)
       ..scrollbarOrientation = widget.scrollbarOrientation
-      ..ignorePointer = !enableGestures;
+      ..ignorePointer = !enableGestures || thumbColor.a == 0;
   }
 
   @override
@@ -350,5 +364,47 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
   void dispose() {
     _hoverAnimationController.dispose();
     super.dispose();
+  }
+}
+
+class _ThumbTargetScrollbarPainter extends ScrollbarPainter {
+  _ThumbTargetScrollbarPainter({
+    required super.color,
+    required super.fadeoutOpacityAnimation,
+    required super.minLength,
+    required super.minOverscrollLength,
+  });
+
+  Axis _axis = Axis.vertical;
+
+  @override
+  void update(ScrollMetrics metrics, AxisDirection axisDirection) {
+    _axis = metrics.axis;
+    super.update(metrics, axisDirection);
+  }
+
+  @override
+  bool hitTestOnlyThumbInteractive(Offset position, PointerDeviceKind kind) {
+    if (super.hitTestOnlyThumbInteractive(position, kind)) {
+      return true;
+    }
+    if (kind != PointerDeviceKind.touch) {
+      return false;
+    }
+    final orientation =
+        scrollbarOrientation ??
+        (_axis == Axis.horizontal
+            ? ScrollbarOrientation.bottom
+            : textDirection == TextDirection.rtl
+            ? ScrollbarOrientation.left
+            : ScrollbarOrientation.right);
+    // Extend Flutter's padded thumb target inward without extending the track.
+    final offset = switch (orientation) {
+      ScrollbarOrientation.right => const Offset(16, 0),
+      ScrollbarOrientation.left => const Offset(-16, 0),
+      ScrollbarOrientation.bottom => const Offset(0, 16),
+      ScrollbarOrientation.top => const Offset(0, -16),
+    };
+    return super.hitTestOnlyThumbInteractive(position + offset, kind);
   }
 }

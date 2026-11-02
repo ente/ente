@@ -31,12 +31,6 @@ type UnifiedDiffRequest struct {
 	RequireAccess  bool
 }
 
-type CollectionCount struct {
-	CollectionID int64 `json:"collectionID"`
-	Comments     int64 `json:"comments"`
-	Reactions    int64 `json:"reactions"`
-}
-
 type CollectionLatestUpdate struct {
 	CollectionID          int64  `json:"collectionID"`
 	CommentsUpdatedAt     *int64 `json:"commentsUpdatedAt,omitempty"`
@@ -72,55 +66,6 @@ func (c *Controller) UnifiedDiff(ctx *gin.Context, req UnifiedDiffRequest) ([]so
 		return nil, nil, false, false, stacktrace.Propagate(err, "")
 	}
 	return comments, reactions, moreComments, moreReactions, nil
-}
-
-func (c *Controller) CountActiveCollections(ctx context.Context, userID int64) ([]CollectionCount, error) {
-	ownedMap, err := c.CollectionRepo.GetCollectionIDsOwnedByUser(userID)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	shared, err := c.CollectionRepo.GetCollectionIDsSharedWithUser(userID)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	collectionIDs := make([]int64, 0, len(ownedMap)+len(shared))
-	for id := range ownedMap {
-		collectionIDs = append(collectionIDs, id)
-	}
-	for _, id := range shared {
-		if _, ok := ownedMap[id]; ok {
-			continue
-		}
-		collectionIDs = append(collectionIDs, id)
-	}
-	if len(collectionIDs) == 0 {
-		return nil, nil
-	}
-	commentCounts, err := c.CommentsRepo.CountActiveByCollection(ctx, collectionIDs)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	reactionCounts, err := c.ReactionsRepo.CountActiveByCollection(ctx, collectionIDs)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	results := make([]CollectionCount, 0, len(collectionIDs))
-	sort.Slice(collectionIDs, func(i, j int) bool {
-		return collectionIDs[i] < collectionIDs[j]
-	})
-	seen := map[int64]struct{}{}
-	for _, id := range collectionIDs {
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		results = append(results, CollectionCount{
-			CollectionID: id,
-			Comments:     commentCounts[id],
-			Reactions:    reactionCounts[id],
-		})
-	}
-	return results, nil
 }
 
 func (c *Controller) LatestUpdates(ctx context.Context, userID int64, app ente.App) ([]CollectionLatestUpdate, error) {

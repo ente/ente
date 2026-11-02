@@ -6,6 +6,7 @@ import type { Person } from "ente-new/photos/services/ml/people";
 import type { LocationTag } from "../user-entity";
 
 export type SidebarActionID =
+    | "subscription"
     | "shortcuts.uncategorized"
     | "shortcuts.archive"
     | "shortcuts.hidden"

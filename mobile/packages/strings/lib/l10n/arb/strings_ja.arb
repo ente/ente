@@ -1201,7 +1201,6 @@
   "mlConsent": "機械学習を有効にする",
   "mlConsentConfirmation": "機械学習を有効にします",
   "mlConsentDescription": "機械学習を有効にすると、Enteは顔などの情報をファイルから抽出します。\n\nこれはお使いのデバイスで行われ、生成された生体情報は暗号化されます。",
-  "mlConsentPrivacy": "この機能の詳細については、こちらをクリックしてください。",
   "mlProgressBannerDescription": "あなたの写真は、顔やオブジェクトなどを検出するためにデバイス上で処理されます。",
   "mlProgressBannerTitle": "もう少しお待ちください！",
   "modifyYourQueryOrTrySearchingFor": "クエリを変更するか、以下のように検索してみてください",

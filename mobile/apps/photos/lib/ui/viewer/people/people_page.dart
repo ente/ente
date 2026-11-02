@@ -36,6 +36,7 @@ import "package:photos/ui/viewer/people/person_gallery_suggestion.dart";
 
 class PeoplePage extends StatefulWidget {
   final String tagPrefix;
+  final String? coverHeroTag;
   final PersonEntity person;
   final SearchResult? searchResult;
 
@@ -44,6 +45,7 @@ class PeoplePage extends StatefulWidget {
 
   const PeoplePage({
     this.tagPrefix = "",
+    this.coverHeroTag,
     required this.person,
     required this.searchResult,
     super.key,
@@ -57,6 +59,7 @@ class _PeoplePageState extends State<PeoplePage> {
   final Logger _logger = Logger("_PeoplePageState");
   final Logger _timelineLogger = Logger("MemoryLaneInteractions");
   final _selectedFiles = SelectedFiles();
+  final _coverAppBarKey = GlobalKey();
   List<EnteFile>? files;
   late PersonEntity _person;
 
@@ -76,6 +79,9 @@ class _PeoplePageState extends State<PeoplePage> {
   void initState() {
     super.initState();
     _person = widget.person;
+    files = widget.searchResult == null
+        ? null
+        : List.of(widget.searchResult!.resultFiles());
     ClusterFeedbackService.resetLastViewedClusterID();
     _peopleChangedEvent = Bus.instance.on<PeopleChangedEvent>().listen((event) {
       if (event.source == kShowUnnamedIgnoredPersonEventSource &&
@@ -136,9 +142,8 @@ class _PeoplePageState extends State<PeoplePage> {
       includeManualAssigned: true,
       sortOnTime: true,
     );
-    final previousCount = files?.length;
     files = sortedFiles;
-    if (mounted && previousCount != sortedFiles.length) {
+    if (mounted) {
       setState(() {});
     }
     return sortedFiles;
@@ -245,6 +250,9 @@ class _PeoplePageState extends State<PeoplePage> {
       _getPeoplePageTitle(context),
       _selectedFiles,
       _person,
+      coverAppBarKey: _coverAppBarKey,
+      coverHeroTag: widget.coverHeroTag,
+      files: files ?? const [],
       memoryLaneReady: memoryLaneReady,
       onMemoryLaneTap: _openMemoryLanePage,
     );

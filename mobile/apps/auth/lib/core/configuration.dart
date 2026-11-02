@@ -2,10 +2,16 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_auth/services/authenticated_session.dart';
+import 'package:ente_auth/src/rust/third_party/ente_frb_lib/account_deletion.dart'
+    as account_deletion;
+import 'package:ente_auth/src/rust/third_party/ente_frb_lib/recovery.dart'
+    as recovery;
 import 'package:ente_base/models/database.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_lock_screen/lock_screen_host.dart';
+import 'package:ente_lock_screen/lock_screen_settings.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -42,6 +48,15 @@ class Configuration extends BaseConfiguration
         accessibility: KeychainAccessibility.first_unlock_this_device,
       ),
     );
+    if (!isLoggedIn() && !hasOptedForOfflineMode()) {
+      for (final key in lockScreenSecureStorageKeys) {
+        await _secureStorage.delete(key: key);
+      }
+      await _preferences.remove(LockScreenSettings.keyAppLockSet);
+      await _preferences.remove(LockScreenSettings.keyShouldShowLockScreen);
+      await _preferences.remove(LockScreenSettings.keyInvalidAttempts);
+      await _preferences.remove(LockScreenSettings.lastInvalidAttemptTime);
+    }
     sqfliteFfiInit();
     await _initOfflineAccount();
     await _initOnlineAccount();
@@ -67,7 +82,39 @@ class Configuration extends BaseConfiguration
   ];
 
   @override
+  List<String> get lockScreenSecureStorageKeys => [
+    LockScreenSettings.saltKey,
+    LockScreenSettings.pin,
+    LockScreenSettings.password,
+  ];
+
+  @override
+  Future<AccountDeletionSummary?> getDeletionSummary() =>
+      account_deletion.getDeletionSummary(session: authenticatedSession());
+
+  @override
+  Future<String> getDeleteChallenge() =>
+      account_deletion.getDeleteChallenge(session: authenticatedSession());
+
+  @override
+  Future<void> deleteAccount({
+    required String encryptedChallenge,
+    required String reason,
+    String? feedback,
+  }) => account_deletion.deleteAccount(
+    session: authenticatedSession(),
+    encryptedChallenge: encryptedChallenge,
+    reason: reason,
+    feedback: feedback,
+  );
+
+  @override
+  String recoveryKeyToMnemonic(String recoveryKeyHex) =>
+      recovery.recoveryKeyToMnemonic(recoveryKeyHex: recoveryKeyHex);
+
+  @override
   Future<void> logout({bool autoLogout = false}) async {
+    clearAuthenticatedSession();
     _authSecretKey = null;
     await super.logout();
   }

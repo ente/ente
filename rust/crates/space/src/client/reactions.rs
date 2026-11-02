@@ -97,7 +97,7 @@ fn unpack_reaction(message_id: &str, plaintext: &[u8]) -> Result<String> {
     Ok(payload.emoji)
 }
 
-fn validate_emoji(emoji: &str) -> Result<()> {
+pub(super) fn validate_emoji(emoji: &str) -> Result<()> {
     if emoji.is_empty() || emoji.len() > 64 || !is_emoji_sequence(emoji) {
         return Err(Error::InvalidInput("a single emoji is required".into()));
     }

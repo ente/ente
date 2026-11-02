@@ -1,16 +1,17 @@
 mod api;
 mod key_gen;
+pub(crate) mod payload;
 mod recovery;
 mod srp;
 mod types;
 
 pub use srp::SrpSession;
 
-pub use api::{DecryptedSecrets, GeneratedKek, GeneratedSrpSetup, SrpCredentials};
+pub(crate) use api::decrypt_secret_key;
+pub use api::{GeneratedKek, GeneratedSrpSetup};
 pub use api::{
-    decrypt_keys_only, decrypt_secrets, derive_kek, derive_srp_credentials, derive_srp_login_key,
-    generate_interactive_kek, generate_sensitive_kek, generate_srp_setup,
-    generate_srp_setup_with_login_key,
+    decrypt_keys_only, derive_kek, derive_srp_login_key, generate_interactive_kek,
+    generate_srp_setup, generate_srp_setup_with_login_key,
 };
 
 pub use key_gen::{

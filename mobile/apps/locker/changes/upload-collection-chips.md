@@ -1,1 +1,0 @@
-- Restored collection chips in the redesigned upload screen.

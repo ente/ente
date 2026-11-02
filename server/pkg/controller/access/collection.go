@@ -2,6 +2,7 @@ package access
 
 import (
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
@@ -39,6 +40,9 @@ func (c controllerImpl) GetCollection(ctx *gin.Context, req *GetCollectionParams
 		role = roleValue
 	} else {
 		role = ente.OWNER
+	}
+	if app, ok := auth.GetAuthenticatedApp(ctx); ok && collection.App != string(app) {
+		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "collection app mismatch")
 	}
 
 	if !req.IncludeDeleted && collection.IsDeleted {

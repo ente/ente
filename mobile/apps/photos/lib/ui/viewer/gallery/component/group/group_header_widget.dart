@@ -229,10 +229,13 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   void _showLayoutSettingsOverflowMenu(BuildContext context) {
+    final gallery = context.findAncestorStateOfType<GalleryState>();
     components.showBottomSheetComponent<void>(
       context: context,
       builder: (BuildContext context) {
-        return const GalleryLayoutSettings();
+        return GalleryLayoutSettings(
+          onPreviewVisibilityChanged: gallery?.setLayoutPreviewVisibility,
+        );
       },
     );
   }

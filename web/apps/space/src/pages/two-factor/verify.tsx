@@ -1,7 +1,7 @@
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
 import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
-import { isHTTPErrorWithStatus } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import { VerifyTwoFactorScreen } from "screens/VerifyTwoFactorScreen";
@@ -14,10 +14,10 @@ import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes } from "utils/routes";
 
 const twoFactorErrorMessage = (error: unknown) => {
-    if (isHTTPErrorWithStatus(error, 401)) {
+    if (isNamedError(error, "incorrect_totp")) {
         return "Incorrect code. Please try again.";
     }
-    if (isHTTPErrorWithStatus(error, 404)) {
+    if (isNamedError(error, "session_expired")) {
         return "Login session expired. Please sign in again.";
     }
     return spaceAuthErrorMessage(
@@ -27,7 +27,8 @@ const twoFactorErrorMessage = (error: unknown) => {
 };
 
 const isExpectedTwoFactorError = (error: unknown) =>
-    isHTTPErrorWithStatus(error, 401) || isHTTPErrorWithStatus(error, 404);
+    isNamedError(error, "incorrect_totp") ||
+    isNamedError(error, "session_expired");
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
@@ -59,7 +60,7 @@ const Page: React.FC = () => {
             if (!isExpectedTwoFactorError(error)) {
                 log.error("Space 2FA verification failed", error);
             }
-            if (isHTTPErrorWithStatus(error, 401)) {
+            if (isNamedError(error, "incorrect_totp")) {
                 setCodeResetKey((key) => key + 1);
             }
             setErrorMessage(twoFactorErrorMessage(error));

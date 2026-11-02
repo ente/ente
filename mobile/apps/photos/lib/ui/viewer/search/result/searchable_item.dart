@@ -55,6 +55,9 @@ class SearchableItemWidget extends StatelessWidget {
             routeToPage(
               context,
               SearchResultPage(searchResult, tagPrefix: additionalPrefix),
+              useFadeTransition:
+                  searchResult.type() == ResultType.location ||
+                  searchResult.type() == ResultType.locationSuggestion,
             );
           }
         }

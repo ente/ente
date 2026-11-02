@@ -49,12 +49,27 @@ async fn start_email_login(
 }
 
 #[tokio::test]
-async fn email_login_retries_password_and_accepts_plain_token_without_recovery_key() {
+async fn login_without_srp_requests_an_email_code() {
+    let mut server = Server::new_async().await;
+    let attributes = server
+        .mock("GET", "/users/srp/attributes?email=user%40example.org")
+        .with_status(404)
+        .create_async()
+        .await;
+    let ott = server.mock("POST", "/users/ott").create_async().await;
+    let (_, step) = LoginFlow::start(&make_client(server.url()), "user@example.org".into())
+        .await
+        .unwrap();
+    assert!(matches!(step, LoginStep::EmailCode));
+    attributes.assert_async().await;
+    ott.assert_async().await;
+}
+
+#[tokio::test]
+async fn email_login_retries_password_and_accepts_plain_token() {
     let generated =
         auth::generate_keys_with_strength("password", KeyDerivationStrength::Interactive).unwrap();
-    let mut attributes = generated.key_attributes;
-    attributes.recovery_key_encrypted_with_master_key = None;
-    attributes.recovery_key_decryption_nonce = None;
+    let attributes = generated.key_attributes;
     let mut initial_attributes = attributes.clone();
     initial_attributes.kek_salt = b64::encode(&[1; 16]);
     let token = [255; 32];
@@ -88,7 +103,10 @@ async fn email_login_retries_password_and_accepts_plain_token_without_recovery_k
         account.secrets.master_key,
         b64::decode(&generated.private_key_attributes.key).unwrap()
     );
-    assert!(account.recovery_key.is_none());
+    assert_eq!(
+        account.recovery_key,
+        &*generated.private_key_attributes.recovery_key
+    );
     assert!(matches!(
         flow.submit_password(&client, "password").await,
         Err(Error::InvalidInput(_))
@@ -147,8 +165,8 @@ async fn passkey_login_waits_for_verification_before_requesting_password() {
     };
     assert_eq!(account.secrets.token, [255; 32]);
     assert_eq!(
-        account.recovery_key.as_deref(),
-        Some(&*generated.private_key_attributes.recovery_key)
+        account.recovery_key,
+        &*generated.private_key_attributes.recovery_key
     );
     verified.assert_async().await;
 }
@@ -243,7 +261,9 @@ async fn login_retries_email_and_totp() {
         .await;
     let verify_totp = server
         .mock("POST", "/users/two-factor/verify")
-        .match_body(Matcher::PartialJson(serde_json::json!({"code": "654321"})))
+        .match_body(Matcher::PartialJson(
+            serde_json::json!({"sessionID": "session-1", "code": "654321"}),
+        ))
         .with_status(200)
         .with_body(
             serde_json::json!({
@@ -296,7 +316,7 @@ async fn login_retries_email_and_totp() {
 
     assert_eq!(result.user_id, 77);
     assert_eq!(result.secrets.token, b"plain-auth-token");
-    assert_eq!(result.recovery_key.as_deref(), Some(recovery_key.as_str()));
+    assert_eq!(result.recovery_key, recovery_key);
 
     srp_attrs.assert_async().await;
     ott.assert_async().await;
@@ -369,4 +389,84 @@ async fn passkey_expiry_is_preserved() {
         Err(Error::SecondFactorSessionExpired)
     ));
     status.assert_async().await;
+}
+
+#[test]
+fn recovery_unlocks_the_same_account_for_hex_and_mnemonic() {
+    let keys = auth::generate_keys_with_strength("pw", KeyDerivationStrength::Interactive).unwrap();
+    let token = [b"auth-token".as_slice(), &[42; 32]].concat();
+    let public_key =
+        crypto::PublicKey::try_from_slice(&b64::decode(&keys.key_attributes.public_key).unwrap())
+            .unwrap();
+    let response: AuthResponse = serde_json::from_value(json!({
+        "id": 77,
+        "keyAttributes": keys.key_attributes,
+        "encryptedToken": b64::encode(&crypto::sealed::seal(&token, &public_key).unwrap()),
+    }))
+    .unwrap();
+    let recovery_key = &*keys.private_key_attributes.recovery_key;
+    let mnemonic = auth::recovery_key_to_mnemonic(&hex::decode(recovery_key).unwrap()).unwrap();
+    let client = make_client("https://api.ente.com".into());
+    for value in [recovery_key, mnemonic.as_str()] {
+        let account = client.recover_account(&response, value).unwrap();
+        assert_eq!(account.secrets.token, token);
+        assert_eq!(
+            b64::encode(&account.secrets.master_key),
+            &*keys.private_key_attributes.key
+        );
+        assert_eq!(
+            b64::encode(&account.secrets.secret_key),
+            &*keys.private_key_attributes.secret_key
+        );
+    }
+    assert!(matches!(
+        client.recover_account(&response, &hex::encode([0; 32])),
+        Err(Error::IncorrectRecoveryKey)
+    ));
+}
+
+#[test]
+fn encrypted_tokens_require_the_login_tag_on_enforced_endpoints() {
+    let keys = auth::generate_keys_with_strength("pw", KeyDerivationStrength::Interactive).unwrap();
+    let attributes = &keys.key_attributes;
+    let kek = derive_kek(
+        "pw",
+        &attributes.kek_salt,
+        attributes.mem_limit,
+        attributes.ops_limit,
+    )
+    .unwrap();
+    let master_key = b64::decode(&keys.private_key_attributes.key).unwrap();
+    let public_key =
+        crypto::PublicKey::try_from_slice(&b64::decode(&attributes.public_key).unwrap()).unwrap();
+    for origin in ["http://localhost:8080", "https://self-hosted.example"] {
+        let client = make_client(origin.into());
+        for (token, tagged) in [
+            ([b"auth-token".as_slice(), &[1; 32]].concat(), true),
+            (vec![1; 32], false),
+            ([b"auth-token".as_slice(), &[1; 31]].concat(), false),
+            ([b"auth-token".as_slice(), &[1; 33]].concat(), false),
+            (b"delete-jwtheader.payload.signature".to_vec(), false),
+        ] {
+            let mut response: AuthResponse = serde_json::from_value(json!({
+                "id": 77, "keyAttributes": attributes,
+                "encryptedToken": b64::encode(&crypto::sealed::seal(&token, &public_key).unwrap()),
+            }))
+            .unwrap();
+            for result in [
+                client.unlock(&response, &kek),
+                client.unlock_with_master_key(&response, &master_key),
+                client.recover_account(&response, &keys.private_key_attributes.recovery_key),
+            ] {
+                if tagged || origin == "https://self-hosted.example" {
+                    assert_eq!(result.unwrap().secrets.token, token);
+                } else {
+                    assert!(matches!(result, Err(Error::Protocol(_))));
+                }
+            }
+            response.encrypted_token = None;
+            response.token = Some(b64::encode_url_safe(&token));
+            assert_eq!(client.unlock(&response, &kek).unwrap().secrets.token, token);
+        }
+    }
 }

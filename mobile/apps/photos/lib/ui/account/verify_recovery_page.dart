@@ -1,4 +1,3 @@
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:dio/dio.dart';
 import "package:ente_components/ente_components.dart";
 import 'package:ente_crypto/ente_crypto.dart';
@@ -11,6 +10,8 @@ import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/notification_event.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/account/user_service.dart';
+import 'package:photos/src/rust/third_party/ente_frb_lib/recovery.dart'
+    as recovery;
 import 'package:photos/ui/account/recovery_key_page.dart';
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
@@ -45,7 +46,9 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
       final String recoveryKey = CryptoUtil.bin2hex(
         await UserService.instance.getOrCreateRecoveryKey(context),
       );
-      final String recoveryKeyWords = bip39.entropyToMnemonic(recoveryKey);
+      final String recoveryKeyWords = recovery.recoveryKeyToMnemonic(
+        recoveryKeyHex: recoveryKey,
+      );
       if (inputKey == recoveryKey || inputKey == recoveryKeyWords) {
         try {
           await flagService.setRecoveryKeyVerified(true);

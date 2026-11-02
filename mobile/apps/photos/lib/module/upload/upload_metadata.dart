@@ -47,6 +47,7 @@ Future<PreparedUploadMetadata> prepareUploadMetadata(
       derivedMetadata,
       exifTime,
       isPanorama: isPanorama == true,
+      isVideo: file.fileType == FileType.video,
       hasThumbnail: mediaUploadData.thumbnail != null,
     ),
   );
@@ -56,6 +57,7 @@ Map<String, dynamic> _buildPublicMetadata(
   DerivedMediaMetadata derivedMetadata,
   ParsedExifDateTime? exifTime, {
   required bool isPanorama,
+  required bool isVideo,
   required bool hasThumbnail,
 }) {
   final Map<String, dynamic> publicMetadata = {};
@@ -63,6 +65,10 @@ Map<String, dynamic> _buildPublicMetadata(
     publicMetadata[heightKey] = derivedMetadata.height;
     publicMetadata[widthKey] = derivedMetadata.width;
     publicMetadata[mediaTypeKey] = isPanorama ? 1 : 0;
+  } else if (isVideo) {
+    // Nulls overwrite catalog dimensions when upload metadata is merged.
+    publicMetadata[heightKey] = null;
+    publicMetadata[widthKey] = null;
   }
   if (derivedMetadata.motionPhotoStartIndex != null) {
     publicMetadata[motionVideoIndexKey] = derivedMetadata.motionPhotoStartIndex;

@@ -1,1 +1,0 @@
-- Fixed the app getting stuck after hiding an album.

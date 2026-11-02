@@ -818,19 +818,8 @@ impl Run<'_> {
             && names::available(&store, parent, &[name.to_owned()], &owner, "album")?
         {
             vec![name.to_owned()]
-        } else if !occupied.is_empty() {
-            let mut suffix = 0;
-            loop {
-                if let Some(candidates) = names::candidates(name, true, None, suffix)?
-                    && !occupied.contains(&names::folded(&candidates[0]))
-                    && names::available(&store, parent, &candidates, &owner, "album")?
-                {
-                    break candidates;
-                }
-                suffix += 1;
-            }
         } else {
-            names::allocate(&store, parent, name, "album", None, &owner)?
+            names::allocate(&store, parent, name, "album", None, &owner, &occupied)?
         };
         let target = Pending {
             owner,
@@ -1035,6 +1024,7 @@ impl Run<'_> {
                     None
                 },
                 &owner,
+                &HashSet::new(),
             )?
         };
         let target = Pending {
@@ -1474,6 +1464,7 @@ impl Run<'_> {
                 &placement.kind,
                 extensions,
                 &placement.id,
+                &HashSet::new(),
             )?;
             let target = Pending {
                 owner: placement.id,
