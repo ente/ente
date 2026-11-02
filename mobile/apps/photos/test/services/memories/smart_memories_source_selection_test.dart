@@ -11,7 +11,7 @@ import "package:photos/models/memories/time_memory.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/location_service.dart";
-import "package:photos/services/smart_memories_service.dart";
+import "package:photos/services/memories/dart_memories_computer.dart";
 import "package:timezone/data/latest.dart" as tzdata;
 import "package:timezone/timezone.dart" as timezone;
 

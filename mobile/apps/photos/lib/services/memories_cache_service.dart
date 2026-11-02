@@ -9,7 +9,6 @@ import "package:path_provider/path_provider.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/memories_db.dart";
-import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/diff_sync_complete_event.dart";
 import "package:photos/events/files_updated_event.dart";
@@ -31,12 +30,10 @@ import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/language_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/memories/photo_selector.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/search_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/all_memories_page.dart";
@@ -179,33 +176,6 @@ class MemoriesCacheService {
   bool get enableSmartMemories => localSettings.isSmartMemoriesEnabled;
 
   bool get curatedMemoriesOption => showAnyMemories;
-
-  bool get _mlEnabled =>
-      hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
-
-  Future<bool> _isMlReady() async {
-    if (!_mlEnabled) return false;
-    try {
-      final mlDataDB = isLocalGalleryMode
-          ? MLDataDB.localGalleryInstance
-          : MLDataDB.instance;
-      final clipIndexed = await mlDataDB.getClipIndexedFileCount();
-      if (clipIndexed < SmartMemoriesService.minimumMemoryLength) {
-        return false;
-      }
-      if (!await MLModelDownloadService.instance.canLoadClipTextModel()) {
-        _logger.info(
-          "ML not ready for smart memories because CLIP text model is not "
-          "cached and high bandwidth connectivity is unavailable",
-        );
-        return false;
-      }
-      return true;
-    } catch (e, s) {
-      _logger.warning("Failed to determine ML readiness", e, s);
-      return false;
-    }
-  }
 
   void _checkIfTimeToUpdateCache() {
     if (!enableSmartMemories) {
@@ -913,7 +883,7 @@ class MemoriesCacheService {
       final oldCache = await _readCacheFromDisk();
       await _backfillInitialMemoriesNotification(_processOldCache(oldCache));
       if (localSettings.initialMemoriesNotificationScheduledAt() != null ||
-          !await _isMlReady()) {
+          !await memoriesComputer.isMlReady()) {
         return false;
       }
       final indexStatus = await getIndexStatus();
@@ -1006,7 +976,7 @@ class MemoriesCacheService {
         await _backfillInitialMemoriesNotification(newCache);
         final now = DateTime.now();
         final next = now.add(kMemoriesUpdateFrequency);
-        final mlReady = await _isMlReady();
+        final mlReady = await memoriesComputer.isMlReady();
         final periodResults = await smartMemoriesService
             .calcCurrentAndNextSmartMemories(
               now,
@@ -1288,8 +1258,8 @@ class MemoriesCacheService {
 
   Future<List<SmartMemory>> debugGetAllMemories({DateTime? calcTime}) async {
     return _memoriesUpdateLock.synchronized(() async {
-      final mlReady = await _isMlReady();
-      final result = await smartMemoriesService.calcSmartMemories(
+      final mlReady = await memoriesComputer.isMlReady();
+      final result = await smartMemoriesService.calcAllSmartMemories(
         calcTime ?? DateTime.now(),
         MemoriesCache(
           toShowMemories: [],
@@ -1298,7 +1268,6 @@ class MemoriesCacheService {
           tripsShownLogs: [],
           baseLocations: [],
         ),
-        debugSurfaceAll: true,
         mlEnabled: mlReady,
       );
       locationService.baseLocations = result.baseLocations;

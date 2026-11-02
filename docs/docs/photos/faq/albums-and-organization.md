@@ -88,6 +88,23 @@ The best way to export shared albums is to manually download each shared album:
 
 This will reliably preserve the shared album name and contents.
 
+## Gallery layout {#gallery-layout-section}
+
+### How do I change the gallery layout? {#gallery-layout}
+
+In the Ente Photos mobile app, you can show your photos as square tiles or in a mosaic layout that keeps each photo's original proportions.
+
+1. Open `Settings > Appearance > Gallery`.
+2. Under **Layout**, select **Square photos** or **Photos in original proportions**.
+
+You can also pinch in or out on the gallery to switch layouts. Changing the layout only changes how photos are displayed. It does not crop or edit your photos.
+
+### How do I change how many photos fit on my screen? {#gallery-photos-per-row}
+
+In the Ente Photos mobile app, pinch in or out on the gallery. Pinch in to fit more, smaller photos on your screen, and pinch out to show fewer, larger photos. Pinching out past the largest square grid switches to the mosaic layout. Pinching also works while you are selecting photos.
+
+To set this in Settings, open `Settings > Appearance > Gallery` and change **Photos per row**. This option appears only when **Square photos** is selected.
+
 ## Slideshows {#album-slideshows-section}
 
 ### What does Slideshow do? {#what-is-album-slideshow}
@@ -102,8 +119,9 @@ Album slideshows are available in Ente Photos on iOS and Android for both Ente a
 
 1. Open the **Albums** tab.
 2. Open an Ente album.
-3. Tap the three dots in the top-right corner.
-4. Tap **Slideshow**.
+3. Tap the play button on the album cover at the top of the album.
+
+If you have scrolled down the album, you can instead tap the three dots in the top-right corner and select **Slideshow**.
 
 **On desktop:**
 
@@ -145,7 +163,7 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
-Yes. Open an **On device** album, tap the three dots in the top-right corner, and select **Slideshow**. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+Yes. Open an **On device** album and tap the play button on the album cover. If you have scrolled down, tap the three dots in the top-right corner and select **Slideshow** instead. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
 
 ## Uncategorized
 

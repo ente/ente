@@ -1,4 +1,4 @@
-part of "smart_memories_service.dart";
+part of "memories/dart_memories_computer.dart";
 
 class PeopleMemoriesCalculator {
   static Future<List<PeopleMemory>> compute(
@@ -71,7 +71,7 @@ class PeopleMemoriesCalculator {
     if (isMeAssigned) meFileIDs = personIdToFileIDs[meID]!;
 
     Future<List<Memory>> selectPeopleMemories(List<Memory> memories) {
-      return SmartMemoriesService._bestSelectionPeople(
+      return DartMemoriesComputer._bestSelectionPeople(
         memories,
         isLocalGalleryMode: isLocalGalleryMode,
         fileIDToImageEmbedding: fileIDToImageEmbedding,
@@ -80,7 +80,7 @@ class PeopleMemoriesCalculator {
     }
 
     final unnamedClusterCandidates =
-        SmartMemoriesService._buildUnnamedClusterCandidates(
+        DartMemoriesComputer._buildUnnamedClusterCandidates(
           clusterIdToFaceCount: clusterIdToFaceCount,
           clusterIdToFaceIDs: clusterIdToFaceIDs,
           assignedClusterIDs: assignedClusterIDs,
@@ -95,7 +95,7 @@ class PeopleMemoriesCalculator {
           selectionBuilder: selectPeopleMemories,
         );
     final randomizedUnnamedClusterCandidates =
-        SmartMemoriesService._orderUnnamedCandidatesByRecencyAndRandom(
+        DartMemoriesComputer._orderUnnamedCandidatesByRecencyAndRandom(
           candidates: unnamedClusterCandidates,
           shownPeople: shownPeople,
           currentTime: currentTime,
@@ -103,7 +103,7 @@ class PeopleMemoriesCalculator {
         );
     w?.log('unnamed cluster candidates setup');
 
-    if (kDebugMode && SmartMemoriesService._debugForceUnnamedClustersOnly) {
+    if (kDebugMode && DartMemoriesComputer._debugForceUnnamedClustersOnly) {
       for (final candidate in randomizedUnnamedClusterCandidates) {
         final memory = await candidate.realize();
         if (memory == null) continue;
@@ -130,7 +130,7 @@ class PeopleMemoriesCalculator {
           spotlightFiles.add(file);
         }
       }
-      if (spotlightFiles.length > SmartMemoriesService.minimumMemoryLength) {
+      if (spotlightFiles.length > DartMemoriesComputer.minimumMemoryLength) {
         final spotlightMemories = spotlightFiles
             .map((f) => Memory.fromFile(f, seenTimes))
             .toList(growable: false);
@@ -165,7 +165,7 @@ class PeopleMemoriesCalculator {
             youAndThemFiles.add(file);
           }
         }
-        if (youAndThemFiles.length > SmartMemoriesService.minimumMemoryLength) {
+        if (youAndThemFiles.length > DartMemoriesComputer.minimumMemoryLength) {
           final youAndThemMemories = youAndThemFiles
               .map((f) => Memory.fromFile(f, seenTimes))
               .toList(growable: false);
@@ -191,7 +191,7 @@ class PeopleMemoriesCalculator {
       }
 
       if (isMeAssigned && meID != personID) {
-        final vectors = SmartMemoriesService._getEmbeddingsForFileIDs(
+        final vectors = DartMemoriesComputer._getEmbeddingsForFileIDs(
           fileIDToImageEmbedding,
           personFileIDs,
         );
@@ -216,14 +216,14 @@ class PeopleMemoriesCalculator {
           for (final fileID in personFileIDs) {
             final similarity = similarities[fileID];
             if (similarity == null) continue;
-            if (similarity > SmartMemoriesService._clipActivityQueryThreshold) {
+            if (similarity > DartMemoriesComputer._clipActivityQueryThreshold) {
               final file = allFileIdsToFile[fileID];
               if (file != null) {
                 activityFiles.add(file);
               }
             }
           }
-          if (activityFiles.length > SmartMemoriesService.minimumMemoryLength) {
+          if (activityFiles.length > DartMemoriesComputer.minimumMemoryLength) {
             final activityMemories = activityFiles
                 .map((f) => Memory.fromFile(f, seenTimes))
                 .toList(growable: false);
@@ -292,14 +292,14 @@ class PeopleMemoriesCalculator {
             .map((f) => Memory.fromFile(f, seenTimes))
             .toList();
         final filteredLastTimeMemories =
-            SmartMemoriesService._filterNearDuplicates(
+            DartMemoriesComputer._filterNearDuplicates(
               lastTimeMemories,
               fileIDToImageEmbedding,
               minKeep: 2,
               isLocalGalleryMode: isLocalGalleryMode,
             );
         final spacedLastTimeMemories =
-            SmartMemoriesService._filterByTimeSpacing(filteredLastTimeMemories);
+            DartMemoriesComputer._filterByTimeSpacing(filteredLastTimeMemories);
         final lastTimeList = personToCandidates
             .putIfAbsent(personID, () => {})
             .putIfAbsent(
@@ -532,7 +532,7 @@ class PeopleMemoriesCalculator {
         if (alreadyInResults) {
           continue;
         }
-        if (SmartMemoriesService._wasPersonShownRecently(
+        if (DartMemoriesComputer._wasPersonShownRecently(
           personID: candidatePersonID,
           shownPeople: shownPeople,
           currentTime: currentTime,
@@ -543,7 +543,7 @@ class PeopleMemoriesCalculator {
         eligibleUnnamedCandidates.add(candidate);
       }
       final orderedEligibleUnnamedCandidates =
-          SmartMemoriesService._orderUnnamedCandidatesByRecencyAndRandom(
+          DartMemoriesComputer._orderUnnamedCandidatesByRecencyAndRandom(
             candidates: eligibleUnnamedCandidates,
             shownPeople: shownPeople,
             currentTime: currentTime,

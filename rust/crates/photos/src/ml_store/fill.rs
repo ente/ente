@@ -57,9 +57,13 @@ impl FillSource for ClipSource {
     }
 
     fn decode(key: &str, blob: &[u8]) -> Option<Vec<f32>> {
-        let vector = decode_f32(blob);
-        Index::Clip.accepts(key, &vector).then_some(vector)
+        decode_clip(key, blob)
     }
+}
+
+pub(super) fn decode_clip(file_id: &str, embedding: &[u8]) -> Option<Vec<f32>> {
+    let vector = decode_f32(embedding);
+    Index::Clip.accepts(file_id, &vector).then_some(vector)
 }
 
 fn clip_cursor(after: Option<&str>) -> Option<i64> {

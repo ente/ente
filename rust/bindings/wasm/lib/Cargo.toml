@@ -19,7 +19,7 @@ crypto-seal = ["crypto"]
 legacy = ["session", "dep:ente-legacy", "dep:wasm-bindgen-futures"]
 location = ["dep:ente-location", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify"]
 locker = ["session", "dep:ente-locker"]
-photos = ["dep:ente-photos", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify"]
+photos = ["session", "dep:ente-photos", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify", "dep:wasm-bindgen-futures"]
 prelogin = ["accounts", "crypto", "dep:wasm-bindgen-futures"]
 session = [
     "dep:ente-accounts",

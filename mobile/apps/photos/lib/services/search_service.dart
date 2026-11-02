@@ -1905,10 +1905,9 @@ class SearchService {
       if (pickedTime != null) calcTime = pickedTime;
 
       final cache = await memoriesCacheService.debugCacheForTesting();
-      final memoriesResult = await smartMemoriesService.calcSmartMemories(
+      final memoriesResult = await smartMemoriesService.calcAllSmartMemories(
         calcTime,
         cache,
-        debugSurfaceAll: true,
         mlEnabled:
             hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled,
       );

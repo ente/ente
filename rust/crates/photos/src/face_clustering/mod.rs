@@ -114,6 +114,7 @@ pub(crate) fn normalized_mean(embeddings: &[Vec<f32>]) -> Option<Vec<f32>> {
     Some(normalized_mean_from_sum(sum, embeddings.len()))
 }
 
+#[cfg(any(test, not(target_arch = "wasm32")))]
 pub(crate) fn normalized_mean_from_sum(sum: Vec<f32>, count: usize) -> Vec<f32> {
     normalized(scaled(sum, 1.0 / count as f64))
 }
