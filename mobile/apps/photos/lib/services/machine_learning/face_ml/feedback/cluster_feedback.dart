@@ -1461,9 +1461,6 @@ class ClusterFeedbackService<T> {
     w?.log(
       '${p.data.name} has ${personClusters.length} existing clusters, getting all database data done',
     );
-    final allClusterIdToFaceIDs = await mlDataDB.getAllClusterIdToFaceIDs();
-    w?.log('getAllClusterIdToFaceIDs done');
-
     final smallestPersonClusterSize = personClusters
         .map((clusterID) => allClusterIdsToCountMap[clusterID] ?? 0)
         .reduce((value, element) => min(value, element));
@@ -1495,10 +1492,14 @@ class ClusterFeedbackService<T> {
         w?.log(
           'Calculate suggestions using mean for ${clusterAvgBigClusters.clusterIDs.length} clusters of min size $minimumSize',
         );
+        final candidateFaceIDs = await mlDataDB.getClusterToFaceIDs(
+          suggestionsMeanBigClusters.map((suggestion) => suggestion.$1).toSet(),
+        );
         for (final suggestion in suggestionsMeanBigClusters) {
-          final suggestionSet = allClusterIdToFaceIDs[suggestion.$1]!
-              .map((faceID) => getFileIdFromFaceId<int>(faceID))
-              .toSet();
+          final suggestionSet =
+              (candidateFaceIDs[suggestion.$1] ?? const <String>[])
+                  .map((faceID) => getFileIdFromFaceId<int>(faceID))
+                  .toSet();
           final overlap = personFileIDs.intersection(suggestionSet);
           if (overlap.isNotEmpty &&
               ((overlap.length / suggestionSet.length) > 0.1)) {
