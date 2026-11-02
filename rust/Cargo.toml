@@ -105,8 +105,8 @@ md-5 = "0.11.0"
 mockito = "1.7.2"
 moxcms = "0.9.1"
 open = "5.4.4"
-ort = { version = "=2.0.0-rc.13", default-features = false }
-ort-sys = { version = "=2.0.0-rc.13", default-features = false }
+ort = { version = "=2.0.0-rc.15", default-features = false }
+ort-sys = { version = "=2.0.0-rc.15", default-features = false }
 quick-xml = "0.42.0"
 regex = "1.13.1"
 reqwest = { version = "0.12.28", default-features = false }

@@ -31,7 +31,7 @@ ort = { workspace = true, features = [
     "ndarray",
     "half",
     "coreml",
-    "api-28",
+    "api-31",
 ] }
 
 [target.'cfg(target_os = "android")'.dependencies]
@@ -39,7 +39,7 @@ ash = { version = "0.38.0", default-features = false, features = ["loaded"] }
 ort = { workspace = true, features = [
     "ndarray",
     "half",
-    "api-28",
+    "api-31",
     "load-dynamic",
     "copy-dylibs",
     "webgpu",
@@ -51,7 +51,7 @@ ort = { workspace = true, features = [
     "ndarray",
     "half",
     "coreml",
-    "api-28",
+    "api-31",
     "load-dynamic",
     "copy-dylibs",
 ] }
@@ -60,7 +60,7 @@ ort = { workspace = true, features = [
 ort = { workspace = true, features = [
     "ndarray",
     "half",
-    "api-28",
+    "api-31",
     "load-dynamic",
     "copy-dylibs",
     "webgpu",
@@ -70,7 +70,7 @@ ort = { workspace = true, features = [
 ort = { workspace = true, features = [
     "ndarray",
     "half",
-    "api-28",
+    "api-31",
     "load-dynamic",
     "copy-dylibs",
 ] }

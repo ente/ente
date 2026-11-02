@@ -32,7 +32,7 @@ PODS:
     - Flutter
   - ente_vision (0.0.1):
     - Flutter
-  - EnteOnnxRuntime (1.28.1-r1)
+  - EnteOnnxRuntime (1.31.0-r1)
   - file_saver (0.0.1):
     - Flutter
   - Firebase/CoreOnly (12.19.0):
@@ -453,7 +453,7 @@ SPEC CHECKSUMS:
   ente_screen_brightness: 7dd13c361508ee6098a2578908ebf35e9f567e28
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
   ente_vision: 260965fb4a3bda0c0cb72c5f15eb8748fef7c897
-  EnteOnnxRuntime: 7baa83a95717a6c9c8d0d4599f9f2c90b72d2905
+  EnteOnnxRuntime: e8cd50b12fc3dc8ecd2102dfdf52c8ca9352e296
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
   Firebase: 7ca191e43724142f79fae653547b3382c45413cc
   firebase_core: aa2923f301f5b09667356bb91e59308e6e2e38d3
