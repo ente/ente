@@ -21,7 +21,7 @@ The server is capable of running on minimal resource requirements as a lightweig
 
 - **Docker:** Required for running Ente's server, web application and dependent services (database and object storage). Ente also requires **Docker Compose plugin** to be installed.
 
-  The user running the commands must have permission to access the Docker daemon. Learn more in Docker's [Linux post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/).
+    The user running the commands must have permission to access the Docker daemon. Learn more in Docker's [Linux post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/).
 
 > [!NOTE]
 >

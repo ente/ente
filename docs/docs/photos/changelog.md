@@ -255,13 +255,13 @@ A short summary list of changes to the Ente Photos mobile and desktop apps. For 
 
 ## v1.3.58 (mobile) - Jul 2026
 
-* Added support for casting albums to multiple screens and managing active cast sessions.
-* Improved the account deletion flow with clearer impact details and confirmation.
-* Simplified delete confirmations into a single prompt that remembers the last selected option.
-* Clear cached images and videos from device storage during logout and automatic cache cleanup.
-* Fixed backup folder selection when switching from the local gallery to an account.
-* Reduced storage growth on iOS by deleting temporary photo copies after machine-learning processing.
-* Show smaller detected people groups in Search when larger groups are unavailable.
+- Added support for casting albums to multiple screens and managing active cast sessions.
+- Improved the account deletion flow with clearer impact details and confirmation.
+- Simplified delete confirmations into a single prompt that remembers the last selected option.
+- Clear cached images and videos from device storage during logout and automatic cache cleanup.
+- Fixed backup folder selection when switching from the local gallery to an account.
+- Reduced storage growth on iOS by deleting temporary photo copies after machine-learning processing.
+- Show smaller detected people groups in Search when larger groups are unavailable.
 
 ## v1.7.26 (desktop) - Jul 2026
 

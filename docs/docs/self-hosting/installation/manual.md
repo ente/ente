@@ -51,21 +51,22 @@ If you wish to run Ente from source without using Docker, follow the steps descr
     ```shell
     sudo apt install npm nodejs
     ```
+
 5. **rust and rustup:** Needed for WASM build
 
-   Rust and rustup are required for the web application builds.
+    Rust and rustup are required for the web application builds.
 
-   ```shell
-   # Install the Rust installer
-   sudo apt install rustup
+    ```shell
+    # Install the Rust installer
+    sudo apt install rustup
 
-   # Install the rust compiler from the stable channel and set as default toolchain
-   rustup default stable
-   ```
+    # Install the rust compiler from the stable channel and set as default toolchain
+    rustup default stable
+    ```
 
-   > [!TIP]
-   > `rustup` is available in Debian since Trixie (13). For older builds or other platforms where `rustup` is not available,
-   > please refer to the official installation steps [here](https://rustup.rs/)
+    > [!TIP]
+    > `rustup` is available in Debian since Trixie (13). For older builds or other platforms where `rustup` is not available,
+    > please refer to the official installation steps [here](https://rustup.rs/)
 
 6. **Git:** Needed for cloning the repository and pulling in latest changes
 
