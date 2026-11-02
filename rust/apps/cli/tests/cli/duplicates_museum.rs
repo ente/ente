@@ -42,7 +42,7 @@ fn duplicates_select_remove_and_refresh_against_museum() -> TestResult {
             }}]})).send().await?.error_for_status()?;
         let home = TestHome::new();
         login(&home, "photos", &email, &["--host", &origin, "--no-input"]);
-        let groups = home.json(&["photos", "duplicates", "list", "--all"]);
+        let groups = home.json(&["photos", "duplicate", "list", "--all"]);
         assert_eq!(groups.as_array().unwrap().len(), 2);
         let selected = files[..3].iter().map(|f| f.0).min().unwrap().to_string();
         let retained = files[1].0.to_string();
@@ -56,20 +56,17 @@ fn duplicates_select_remove_and_refresh_against_museum() -> TestResult {
         assert_eq!(group["retainedId"], retained);
         let preview = home.json(&[
             "photos",
-            "duplicates",
+            "duplicate",
             "remove",
             &selected,
             "--dry-run",
             "--no-input",
         ]);
         assert_eq!(preview["trashIds"].as_array().unwrap().len(), 2);
-        assert_eq!(
-            home.json(&["photos", "duplicates", "list", "--all"]),
-            groups
-        );
+        assert_eq!(home.json(&["photos", "duplicate", "list", "--all"]), groups);
         let removed = home.json(&[
             "photos",
-            "duplicates",
+            "duplicate",
             "remove",
             &selected,
             "--yes",
@@ -78,7 +75,7 @@ fn duplicates_select_remove_and_refresh_against_museum() -> TestResult {
         assert_eq!(removed["dryRun"], false);
         assert_eq!(removed["trashIds"], preview["trashIds"]);
         assert_eq!(removed["retainedIds"], json!([retained]));
-        let remaining = home.json(&["photos", "duplicates", "list", "--offline"]);
+        let remaining = home.json(&["photos", "duplicate", "list", "--offline"]);
         assert_eq!(remaining.as_array().unwrap().len(), 1);
         assert_ne!(remaining[0]["id"], selected);
         for album in [alpha, zeta, favorites] {
@@ -111,13 +108,13 @@ fn duplicates_select_remove_and_refresh_against_museum() -> TestResult {
         let mut expected = vec![files[0].0, files[2].0];
         expected.sort();
         assert_eq!(trash_ids, expected);
-        let all = home.json(&["photos", "duplicates", "remove", "--all", "--yes"]);
+        let all = home.json(&["photos", "duplicate", "remove", "--all", "--yes"]);
         assert_eq!(all["trashIds"].as_array().unwrap().len(), 1);
         assert_eq!(
-            home.json(&["photos", "duplicates", "list", "--offline"]),
+            home.json(&["photos", "duplicate", "list", "--offline"]),
             json!([])
         );
-        let empty = home.json(&["photos", "duplicates", "remove", "--all", "--yes"]);
+        let empty = home.json(&["photos", "duplicate", "remove", "--all", "--yes"]);
         assert_eq!(empty["trashIds"], json!([]));
         Ok(())
     })

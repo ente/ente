@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io::Write};
+use std::collections::HashSet;
 
 use anyhow::{Context, Result, ensure};
 use dialoguer::{Confirm, MultiSelect, console::Term};
@@ -8,42 +8,17 @@ use ente_photos::{
     dedup::{self, Duplicate, RemovalCollection, RemovalFile},
     files::File,
 };
-use serde::Serialize;
 use serde_json::json;
 
 use crate::{
     args::{DuplicateCommand, Options},
-    output::{self, escape_controls},
+    output::{self, DuplicateAlbumView, DuplicateFileView, DuplicateGroupView},
 };
 
 use super::replica::Replica;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GroupView {
-    id: String,
-    size_bytes: u64,
-    reclaimable_bytes: u64,
-    retained_id: String,
-    files: Vec<FileView>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct FileView {
-    id: String,
-    name: String,
-    albums: Vec<AlbumView>,
-}
-
-#[derive(Serialize)]
-struct AlbumView {
-    id: String,
-    name: String,
-}
-
 struct Group {
-    view: GroupView,
+    view: DuplicateGroupView,
     items: Vec<Duplicate>,
     file_indices: Vec<usize>,
 }
@@ -95,24 +70,8 @@ pub async fn run(
         let DuplicateCommand::List(args) = command else {
             unreachable!()
         };
-        let limit = args.limit().map_or(usize::MAX, |n| n as usize);
-        let views: Vec<_> = snapshot
-            .groups
-            .iter()
-            .take(limit)
-            .map(|g| &g.view)
-            .collect();
-        if options.json {
-            output::json(&views)?;
-        } else if views.is_empty() {
-            writeln!(std::io::stdout(), "No duplicates found.")?;
-        } else {
-            show(&mut std::io::stdout().lock(), &views)?;
-        }
-        if snapshot.groups.len() > limit {
-            eprintln!("Showing first {limit} results; use --limit N or --all to see more.");
-        }
-        return Ok(());
+        let views: Vec<_> = snapshot.groups.iter().map(|g| &g.view).collect();
+        return output::duplicates(&views, &args, options.json);
     };
 
     let mut selected = HashSet::new();
@@ -123,7 +82,7 @@ pub async fn run(
             .iter()
             .position(|g| g.view.id == id)
             .with_context(|| {
-                format!("no duplicate group matches {id}; run photos duplicates list again")
+                format!("no duplicate group matches {id}; run photos duplicate list again")
             })?;
         selected.insert(index);
     }
@@ -133,20 +92,7 @@ pub async fn run(
         let labels: Vec<_> = snapshot
             .groups
             .iter()
-            .map(|g| {
-                format!(
-                    "{}: {} copies, {} bytes reclaimable — {}",
-                    g.view.id,
-                    g.items.len(),
-                    g.view.reclaimable_bytes,
-                    g.view
-                        .files
-                        .iter()
-                        .map(|f| escape_controls(&f.name))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            })
+            .map(|g| output::duplicate_label(&g.view))
             .collect();
         selected.extend(
             MultiSelect::new()
@@ -162,7 +108,7 @@ pub async fn run(
         .filter_map(|(i, g)| selected.contains(&i).then_some(g))
         .collect();
     let views: Vec<_> = groups.iter().map(|g| &g.view).collect();
-    show(&mut std::io::stderr().lock(), &views)?;
+    output::duplicate_groups(&mut std::io::stderr().lock(), &views)?;
     let reclaimable_bytes = groups
         .iter()
         .try_fold(0_u64, |total, g| {
@@ -208,8 +154,8 @@ pub async fn run(
         })
         .await
         .context("duplicate removal did not finish; some changes may have completed; list duplicates again before retrying")?;
-        replica.sync_collections(session).await.context("duplicates were moved to trash, but refreshing albums failed; run photos duplicates list online")?;
-        load(session, replica, false).await.context("duplicates were moved to trash, but refreshing files failed; run photos duplicates list online")?;
+        replica.sync_collections(session).await.context("duplicates were moved to trash, but refreshing albums failed; run photos duplicate list online")?;
+        load(session, replica, false).await.context("duplicates were moved to trash, but refreshing files failed; run photos duplicate list online")?;
     }
     output::action(
         options.json,
@@ -253,7 +199,7 @@ async fn load(session: &Session, replica: &mut Replica<'_>, offline: bool) -> Re
     for album in &albums {
         ensure!(
             replica.files_synced_to(album.id)?.is_some(),
-            "files for album {:?} have not finished syncing; run photos duplicates list online first",
+            "files for album {:?} have not finished syncing; run photos duplicate list online first",
             album.name
         );
         replica.files(Some(album.id), None, None, |rows| {
@@ -307,7 +253,7 @@ async fn load(session: &Session, replica: &mut Replica<'_>, offline: bool) -> Re
             .map(|f| f.file_id)
             .min()
             .context("empty duplicate group")?;
-        let view = GroupView {
+        let view = DuplicateGroupView {
             id: id.to_string(),
             size_bytes: group.item_size,
             reclaimable_bytes: group
@@ -320,13 +266,13 @@ async fn load(session: &Session, replica: &mut Replica<'_>, offline: bool) -> Re
                 .iter()
                 .map(|item| {
                     let file = &files[item.file_index];
-                    FileView {
+                    DuplicateFileView {
                         id: file.id.to_string(),
                         name: file.name.clone(),
                         albums: albums
                             .iter()
                             .filter(|a| item.collection_ids.contains(&a.id))
-                            .map(|a| AlbumView {
+                            .map(|a| DuplicateAlbumView {
                                 id: a.id.to_string(),
                                 name: a.name.clone(),
                             })
@@ -352,40 +298,4 @@ async fn load(session: &Session, replica: &mut Replica<'_>, offline: bool) -> Re
         files,
         groups,
     })
-}
-
-fn show(out: &mut impl Write, groups: &[&GroupView]) -> Result<()> {
-    if groups.is_empty() {
-        writeln!(out, "No duplicate groups selected.")?;
-    }
-    for group in groups {
-        writeln!(
-            out,
-            "Group {}: {} copies, {} bytes reclaimable",
-            group.id,
-            group.files.len(),
-            group.reclaimable_bytes
-        )?;
-        for file in &group.files {
-            let albums = file
-                .albums
-                .iter()
-                .map(|a| format!("{} ({})", escape_controls(&a.name), a.id))
-                .collect::<Vec<_>>()
-                .join(", ");
-            writeln!(
-                out,
-                "  {} {}  {}  [{}]",
-                if file.id == group.retained_id {
-                    "keep "
-                } else {
-                    "trash"
-                },
-                file.id,
-                escape_controls(&file.name),
-                albums
-            )?;
-        }
-    }
-    Ok(())
 }

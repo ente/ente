@@ -110,18 +110,20 @@ A file must match every filter you pass. `--sort created` lists the newest files
 ## Find and remove duplicates
 
 ```sh
-ente photos duplicates list
-ente photos duplicates remove
+ente photos duplicate list
+ente photos duplicate remove
 ```
+
+`duplicates` is also accepted as an alias for `duplicate`.
 
 `list` shows exact duplicate groups, their files and albums, which copy will be kept, and the space the extra copies occupy. Groups are ordered by reclaimable size. Lists show 100 groups by default; use `--all` or `--limit N` to see more. `remove` lets you select groups with space and continue with enter, then shows the copies to keep or trash and asks for confirmation.
 
 You can also select group IDs from the list, preview removal, or select all current groups:
 
 ```sh
-ente photos duplicates remove 1580559962386999 1580559962387000 --dry-run
-ente photos duplicates remove 1580559962386999 --yes --no-input
-ente photos duplicates remove --all --dry-run --json
+ente photos duplicate remove 1580559962386999 1580559962387000 --dry-run
+ente photos duplicate remove 1580559962386999 --yes --no-input
+ente photos duplicate remove --all --dry-run --json
 ```
 
 Group IDs are the smallest file ID in each group, rather than row numbers. Removal refreshes metadata before selecting groups, so a group can change between runs. A group ID that no longer exists stops the command before it changes anything. `--dry-run` shows the plan without changing files. `--yes` approves removal; `--no-input` disables prompts and requires explicit group IDs or `--all`, plus `--yes` unless previewing.
@@ -130,7 +132,7 @@ The CLI uses the same Rust duplicate detection and removal rules as Photos. It m
 
 For each selected group, the CLI keeps a copy with a caption first, then one with an edited name or date, then the first copy in album-name order (with file IDs breaking ties within an album). It adds that copy to the other copies' albums before moving extra copies to Ente's trash. You select whole groups, as in the web client. The command does not permanently delete files. If removal is interrupted or fails, some changes may have completed; list duplicates again before retrying.
 
-With `--json`, `list` returns groups containing `id`, `sizeBytes`, `reclaimableBytes`, `retainedId`, and `files`. Each file has `id`, `name`, and `albums` with `id` and `name`. `remove` returns `dryRun`, `groupIds`, `retainedIds`, `trashIds`, and `reclaimableBytes`; `trashIds` lists planned removals in a dry run and completed removals otherwise. IDs are strings and byte counts are integers. Previews and progress go to stderr.
+With `--json`, `list` returns an array of groups. `sizeBytes` is the stored encrypted size of one copy; `reclaimableBytes` is the total for the extra copies in that group. `remove` returns one object, with `reclaimableBytes` totaled across the selected groups and `trashIds` listing planned removals in a dry run or completed removals otherwise. See [Read as JSON](#read-as-json) for the fields. Previews and progress go to stderr.
 
 ## Find files by place
 
@@ -176,6 +178,8 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 | `album list`, `album view` | `id`, `name`, `type` (`album`, `folder`, `favorites`, `uncategorized`, `defaultHidden`, `quicklink`), `visibility` (`visible`, `archived`, `hidden`), `ownerId`, `updatedAt`                                                                                                     |
 | `file list`, `file view`   | `id`, `name`, `type` (`image`, `video`, `livephoto`), `ownerId`, `albumIds`, `createdAt`, `updatedAt`; nullable `modifiedAt`, `location` (`latitude`, `longitude`), `caption`, `hash`, `dateTime`, `offsetTime`, `visibility`, `durationSeconds`, `width`, `height`, `sizeBytes` |
 | `file download`            | `id`, `output`, `bytes`                                                                                                                                                                                                                                                          |
+| `duplicate list`           | `id`, `sizeBytes`, `reclaimableBytes`, `retainedId`, `files` (`id`, `name`, `albums`: `id`, `name`). `sizeBytes` is the stored encrypted size of one copy; `reclaimableBytes` is the total for the extra copies in that group.                                                   |
+| `duplicate remove`         | `dryRun`, `groupIds`, `retainedIds`, `trashIds`, `reclaimableBytes` (total across selected groups). IDs are strings and byte counts are integers; `trashIds` contains planned removals in a dry run and completed removals otherwise.                                            |
 | `place list`               | `name`, `country`, `countryCode`, `latitude` and `longitude` (the city's position), `fileCount`                                                                                                                                                                                  |
 | `place list --countries`   | `name`, `code`, `fileCount`                                                                                                                                                                                                                                                      |
 | `usage`                    | `email`, `planExpiresAt`, `planActive`, `totalBytes`, `usedBytes`, `freeBytes`, `planBytes`, `bonusBytes`; nullable `files`, `family` (`usedBytes`, `storageBytes`, `members`: `email`, `status`, `admin`, `usedBytes`, `storageLimitBytes`)                                     |
@@ -183,7 +187,7 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 
 ## Read offline
 
-`album list`, `album view`, `file list`, `file view`, `duplicates list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicates list` to sync albums eligible for duplicate detection. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
+`album list`, `album view`, `file list`, `file view`, `duplicate list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums eligible for duplicate detection. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
 
 ## Limits
 

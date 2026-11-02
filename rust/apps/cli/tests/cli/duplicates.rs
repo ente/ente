@@ -63,8 +63,12 @@ fn duplicates_list_and_preview_use_owned_visible_memberships_and_shared_retentio
         .expect(0)
         .create();
     let trash = server.mock("POST", "/files/trash").expect(0).create();
-    let groups = home.json(&["photos", "duplicates", "list", "--all"]);
+    let groups = home.json(&["photos", "duplicate", "list", "--all"]);
     assert_eq!(groups.as_array().unwrap().len(), 3);
+    assert_eq!(
+        home.json(&["photos", "duplicates", "list", "--all", "--offline"]),
+        groups
+    );
     assert_eq!(groups[0]["id"], "30");
     let one = groups
         .as_array()
@@ -80,15 +84,23 @@ fn duplicates_list_and_preview_use_owned_visible_memberships_and_shared_retentio
         json!([{"id":"4", "name":"Favorites"}, {"id":"1", "name":"Zeta"}])
     );
     assert_eq!(
-        home.json(&["photos", "duplicates", "list", "--offline", "--all"]),
+        home.json(&["photos", "duplicate", "list", "--offline", "--all"]),
         groups
     );
-    let limited = success(home.run(&["photos", "duplicates", "list", "--offline", "--limit", "1"]));
-    assert!(String::from_utf8_lossy(&limited.stdout).contains("keep  30"));
+    let limited = success(home.run(&["photos", "duplicate", "list", "--offline", "--limit", "1"]));
+    let table = String::from_utf8_lossy(&limited.stdout);
+    assert!(table.lines().any(|line| {
+        line.split_whitespace().collect::<Vec<_>>() == ["ACTION", "ID", "NAME", "ALBUMS"]
+    }));
+    assert!(
+        table
+            .lines()
+            .any(|line| { line.split_whitespace().take(2).collect::<Vec<_>>() == ["keep", "30"] })
+    );
     assert!(String::from_utf8_lossy(&limited.stderr).contains("Showing first 1"));
     let preview = home.json(&[
         "photos",
-        "duplicates",
+        "duplicate",
         "remove",
         "10",
         "10",
@@ -99,7 +111,7 @@ fn duplicates_list_and_preview_use_owned_visible_memberships_and_shared_retentio
         preview,
         json!({"dryRun":true, "groupIds":["10"], "retainedIds":["11"], "trashIds":["10"], "reclaimableBytes":100})
     );
-    let all = home.json(&["photos", "duplicates", "remove", "--all", "--dry-run"]);
+    let all = home.json(&["photos", "duplicate", "remove", "--all", "--dry-run"]);
     assert_eq!(all["trashIds"].as_array().unwrap().len(), 3);
     assert!(
         all["retainedIds"]
@@ -108,7 +120,7 @@ fn duplicates_list_and_preview_use_owned_visible_memberships_and_shared_retentio
             .contains(&json!("21"))
     );
     assert!(
-        failure(&home.run(&["photos", "duplicates", "remove", "10", "99", "--yes"]))
+        failure(&home.run(&["photos", "duplicate", "remove", "10", "99", "--yes"]))
             .contains("no duplicate group matches 99")
     );
     hidden_request.assert();
@@ -119,7 +131,7 @@ fn duplicates_list_and_preview_use_owned_visible_memberships_and_shared_retentio
         .mock("POST", "/collections/add-files")
         .with_status(403)
         .create();
-    let result = home.run(&["photos", "duplicates", "remove", "10", "--yes", "--json"]);
+    let result = home.run(&["photos", "duplicate", "remove", "10", "--yes", "--json"]);
     assert!(failure(&result).contains("duplicate removal did not finish"));
     assert!(result.stdout.is_empty());
     denied.assert();
@@ -153,7 +165,7 @@ fn duplicates_refuse_incomplete_metadata_before_removal() {
     .create();
     let trash = server.mock("POST", "/files/trash").expect(0).create();
     assert!(
-        failure(&home.run(&["photos", "duplicates", "remove", "--all", "--yes"]))
+        failure(&home.run(&["photos", "duplicate", "remove", "--all", "--yes"]))
             .contains("file 12 is unavailable")
     );
     trash.assert();
@@ -171,11 +183,11 @@ fn duplicates_require_explicit_selection_and_confirmation_without_a_terminal() {
         (vec!["10", "--no-input"], "supply --yes"),
         (vec!["10", "--all", "--yes"], "cannot be used with"),
     ] {
-        let mut command = vec!["photos", "duplicates", "remove"];
+        let mut command = vec!["photos", "duplicate", "remove"];
         command.extend(args);
         assert!(failure(&home.run(&command)).contains(expected));
     }
     assert_eq!(fs::read_dir(home.dir.path()).unwrap().count(), 0);
-    let help = success(home.run(&["help", "photos", "duplicates", "remove"]));
+    let help = success(home.run(&["help", "photos", "duplicate", "remove"]));
     assert!(String::from_utf8_lossy(&help.stdout).contains("--dry-run"));
 }

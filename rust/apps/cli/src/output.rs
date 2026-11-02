@@ -104,6 +104,29 @@ struct LocationView {
     longitude: f64,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateGroupView {
+    pub id: String,
+    pub size_bytes: u64,
+    pub reclaimable_bytes: u64,
+    pub retained_id: String,
+    pub files: Vec<DuplicateFileView>,
+}
+
+#[derive(Serialize)]
+pub struct DuplicateFileView {
+    pub id: String,
+    pub name: String,
+    pub albums: Vec<DuplicateAlbumView>,
+}
+
+#[derive(Serialize)]
+pub struct DuplicateAlbumView {
+    pub id: String,
+    pub name: String,
+}
+
 impl FileView {
     pub fn new(file: File, album_ids: &[i64]) -> Result<Self> {
         Ok(Self {
@@ -324,6 +347,82 @@ pub fn files(
             ]
         },
     )
+}
+
+pub fn duplicates(groups: &[&DuplicateGroupView], args: &ListArgs, as_json: bool) -> Result<()> {
+    let limit = args.limit().map_or(usize::MAX, |n| n as usize);
+    let shown = &groups[..groups.len().min(limit)];
+    if as_json {
+        json(&shown)?;
+    } else {
+        let mut stdout = std::io::stdout().lock();
+        if shown.is_empty() {
+            writeln!(stdout, "No duplicates found.")?;
+        } else {
+            duplicate_groups(&mut stdout, shown)?;
+        }
+        stdout.flush()?;
+    }
+    if groups.len() > limit {
+        eprintln!("Showing first {limit} results; use --limit N or --all to see more.");
+    }
+    Ok(())
+}
+
+pub fn duplicate_label(group: &DuplicateGroupView) -> String {
+    format!(
+        "{}: {} copies, {} bytes reclaimable — {}",
+        group.id,
+        group.files.len(),
+        group.reclaimable_bytes,
+        group
+            .files
+            .iter()
+            .map(|f| escape_controls(&f.name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+pub fn duplicate_groups(out: &mut impl Write, groups: &[&DuplicateGroupView]) -> Result<()> {
+    if groups.is_empty() {
+        writeln!(out, "No duplicate groups selected.")?;
+    }
+    for (index, group) in groups.iter().enumerate() {
+        if index > 0 {
+            writeln!(out)?;
+        }
+        writeln!(
+            out,
+            "Group {}: {} copies, {} bytes reclaimable",
+            group.id,
+            group.files.len(),
+            group.reclaimable_bytes
+        )?;
+        let rows = group
+            .files
+            .iter()
+            .map(|file| {
+                [
+                    if file.id == group.retained_id {
+                        "keep"
+                    } else {
+                        "trash"
+                    }
+                    .to_owned(),
+                    file.id.clone(),
+                    escape_controls(&file.name),
+                    file.albums
+                        .iter()
+                        .map(|a| format!("{} ({})", escape_controls(&a.name), a.id))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ]
+            })
+            .collect::<Vec<_>>();
+        write_table(out, ["ACTION", "ID", "NAME", "ALBUMS"], &rows)?;
+    }
+    Ok(())
 }
 
 pub fn cities(

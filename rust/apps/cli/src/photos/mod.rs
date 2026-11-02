@@ -29,7 +29,7 @@ pub async fn run(command: PhotosCommand, selected: Option<&str>, options: &Optio
         PhotosCommand::Api(args) => return api::run(App::Photos, args, selected, options).await,
         PhotosCommand::Export(args) => return export::run(args, selected, options).await,
         PhotosCommand::Usage => return usage::photos(selected, options).await,
-        PhotosCommand::Duplicates { ref command } => duplicates::validate(command, options)?,
+        PhotosCommand::Duplicate { ref command } => duplicates::validate(command, options)?,
         _ => {}
     }
     ensure!(
@@ -59,7 +59,7 @@ pub async fn run(command: PhotosCommand, selected: Option<&str>, options: &Optio
     match command {
         PhotosCommand::Api(_) | PhotosCommand::Export(_) | PhotosCommand::Usage => unreachable!(),
         PhotosCommand::Album { command } => album(command, &replica, options),
-        PhotosCommand::Duplicates { command } => {
+        PhotosCommand::Duplicate { command } => {
             duplicates::run(command, &session, &mut replica, options).await
         }
         PhotosCommand::File { album, command } => {

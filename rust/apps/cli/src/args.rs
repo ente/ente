@@ -386,8 +386,11 @@ family is null outside a family; otherwise it contains usedBytes, storageBytes a
 Each member has email, status, admin, usedBytes and storageLimitBytes (null without a cap)."
     )]
     Usage,
-    #[command(about = "Find and remove exact duplicate photos and videos")]
-    Duplicates {
+    #[command(
+        about = "Find and remove exact duplicate photos and videos",
+        visible_alias = "duplicates"
+    )]
+    Duplicate {
         #[command(subcommand)]
         command: DuplicateCommand,
     },
@@ -620,14 +623,16 @@ Remove always refreshes online. Pass group IDs or --all, or omit both to select 
 Without --dry-run, removal asks for confirmation; --yes approves it and --no-input only disables prompts.
 List JSON: an array of groups with id, sizeBytes, reclaimableBytes, retainedId and files.
 Each file has id, name and albums (id and name). All IDs are strings; byte counts are integers.
+sizeBytes is the stored encrypted size of one copy; reclaimableBytes is the total for the extra copies in the group.
 Remove JSON: dryRun, groupIds, retainedIds, trashIds and reclaimableBytes.
+Removal reclaimableBytes is the total for all selected groups.
 With --dry-run, trashIds are planned; otherwise they were moved to trash. Preview and progress go to stderr.
 
 Examples:
-  ente photos duplicates list
-  ente photos duplicates remove
-  ente photos duplicates remove 1580559962386999 --dry-run
-  ente photos duplicates remove 1580559962386999 --yes --no-input --json";
+  ente photos duplicate list
+  ente photos duplicate remove
+  ente photos duplicate remove 1580559962386999 --dry-run
+  ente photos duplicate remove 1580559962386999 --yes --no-input --json";
 
 #[derive(Subcommand)]
 pub enum DuplicateCommand {
