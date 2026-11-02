@@ -2,6 +2,7 @@ package user
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -176,29 +177,43 @@ func (c *UserController) RecoverTwoFactor(sessionID string) (*ente.TwoFactorReco
 	return &response, nil
 }
 
-func (c *UserController) RemoveTOTPTwoFactor(context *gin.Context, sessionID string, secret string) (*ente.TwoFactorAuthorizationResponse, error) {
-	userID, err := c.TwoFactorRepo.GetUserIDWithTwoFactorSession(sessionID)
+func (c *UserController) RemoveTOTPTwoFactor(context *gin.Context, req *ente.TwoFactorRemovalRequest) (*ente.TwoFactorAuthorizationResponse, error) {
+	userID, err := c.TwoFactorRepo.GetUserIDWithTwoFactorSession(req.SessionID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	secretHash, err := crypto.GetHash(secret, c.HashingKey)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-
+	var valid bool
+	if req.Proof != "" {
+		secret, err := c.TwoFactorRepo.GetTwoFactorSecret(userID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		valid = verifyRecoveryProof(secret, "totp", req.SessionID, req.Proof)
+	} else {
+		secretHash, err := crypto.GetHash(req.Secret, c.HashingKey)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		valid, err = c.TwoFactorRepo.VerifyTwoFactorSecret(userID, secretHash)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
 	}
-	exists, err := c.TwoFactorRepo.VerifyTwoFactorSecret(userID, secretHash)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-
-	}
-	if !exists {
+	if !valid {
 		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
-	response, err := c.GetKeyAttributeAndToken(context, userID, sessionID, repo.TOTPPendingLogin, true, false)
+	response, err := c.GetKeyAttributeAndToken(context, userID, req.SessionID, repo.TOTPPendingLogin, true, false)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return &response, nil
+}
+
+func verifyRecoveryProof(secret, factor, sessionID, proof string) bool {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte("recovery:" + factor + ":" + sessionID))
+	expected := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(proof), []byte(expected))
 }
 
 func (c *UserController) GetKeyAttributeAndToken(context *gin.Context, userID int64, sessionID string,
@@ -208,7 +223,7 @@ func (c *UserController) GetKeyAttributeAndToken(context *gin.Context, userID in
 	if err != nil {
 		return ente.TwoFactorAuthorizationResponse{}, stacktrace.Propagate(err, "")
 	}
-	token := auth.GenerateURLSafeRandomString(TokenLength)
+	token := generateAuthToken()
 	encryptedToken, err := crypto.GetEncryptedToken(token, keyAttributes.PublicKey)
 	if err != nil {
 		return ente.TwoFactorAuthorizationResponse{}, stacktrace.Propagate(err, "")

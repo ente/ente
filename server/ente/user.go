@@ -256,6 +256,7 @@ type TwoFactorRecoveryResponse struct {
 
 type TwoFactorRemovalRequest struct {
 	Secret        string `json:"secret"`
+	Proof         string `json:"proof"`
 	SessionID     string `json:"sessionID"`
 	TwoFactorType string `json:"twoFactorType"`
 }

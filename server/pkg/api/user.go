@@ -438,12 +438,20 @@ func (h *UserHandler) RemoveTwoFactor(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
+	if (request.Secret == "") == (request.Proof == "") {
+		handler.Error(c, ente.NewBadRequestWithMessage("provide exactly one of secret or proof"))
+		return
+	}
+	if request.Proof != "" && request.TwoFactorType != "totp" && request.TwoFactorType != "passkey" {
+		handler.Error(c, ente.NewBadRequestWithMessage("proof requires twoFactorType totp or passkey"))
+		return
+	}
 	var response *ente.TwoFactorAuthorizationResponse
 	var err error
 	if request.TwoFactorType == "passkey" {
 		response, err = h.UserController.SkipPasskeyVerification(c, &request)
 	} else {
-		response, err = h.UserController.RemoveTOTPTwoFactor(c, request.SessionID, request.Secret)
+		response, err = h.UserController.RemoveTOTPTwoFactor(c, &request)
 	}
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))

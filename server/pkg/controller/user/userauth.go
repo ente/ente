@@ -678,8 +678,8 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 		return ente.EmailAuthorizationResponse{ID: userID, TwoFactorSessionID: twoFactorSessionID}, nil
 	}
 
-	token := auth.GenerateURLSafeRandomString(TokenLength)
 	if keyAttributes == nil {
+		token := auth.GenerateURLSafeRandomString(TokenLength)
 		// user creation is pending on key attributes set based on the password.
 		// No need to send login notification
 		if err := c.ensureStorageWarningDeletionLoginAllowed(userID, app); err != nil {
@@ -692,6 +692,7 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 		}
 		return ente.EmailAuthorizationResponse{ID: userID, Token: token}, nil
 	}
+	token := generateAuthToken()
 	var encryptedToken string
 	encryptedToken, err = crypto.GetEncryptedToken(token, keyAttributes.PublicKey)
 	if err != nil {
@@ -715,6 +716,11 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 		EncryptedToken: encryptedToken,
 	}, nil
 
+}
+
+func generateAuthToken() string {
+	payload := append([]byte("auth-token"), auth.GenerateRandomBytes(TokenLength)...)
+	return base64.URLEncoding.EncodeToString(payload)
 }
 
 func convertStringToBytes(s string) ([]byte, error) {
