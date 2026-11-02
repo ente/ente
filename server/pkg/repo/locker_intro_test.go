@@ -11,18 +11,21 @@ import (
 
 func TestGetLockerIntroCandidates(t *testing.T) {
 	const cutoff int64 = 1800000000000000
-	const now = cutoff + 40*24*time.MicroSecondsInOneHour
+	const now = cutoff + 6*24*time.MicroSecondsInOneHour
 	const eligibleSignup = now - 72*time.MicroSecondsInOneHour
 	for _, tt := range []struct {
 		name       string
 		signup     int64
+		now        int64
 		photos     any
 		locker     any
 		adjustment string
 		want       bool
 	}{
-		{name: "at cutoff with no upper age window", signup: cutoff, photos: 1, locker: 0, want: true},
+		{name: "at rollout cutoff", signup: cutoff, photos: 1, locker: 0, want: true},
 		{name: "before cutoff", signup: cutoff - 1, photos: 1, locker: 0},
+		{name: "exactly seven days", signup: cutoff + 3*24*time.MicroSecondsInOneHour, now: cutoff + 10*24*time.MicroSecondsInOneHour, photos: 1, locker: 0, want: true},
+		{name: "older than seven days", signup: cutoff + 3*24*time.MicroSecondsInOneHour - 1, now: cutoff + 10*24*time.MicroSecondsInOneHour, photos: 1, locker: 0},
 		{name: "exactly 72 hours", signup: eligibleSignup, photos: 1, locker: 0, want: true},
 		{name: "younger than 72 hours", signup: eligibleSignup + 1, photos: 1, locker: 0},
 		{name: "empty Photos", signup: eligibleSignup, photos: 0, locker: 0},
@@ -44,7 +47,11 @@ func TestGetLockerIntroCandidates(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			got, err := (&NotificationHistoryRepository{DB: db}).GetLockerIntroCandidates(cutoff, now, "locker_intro")
+			selectionTime := int64(now)
+			if tt.now != 0 {
+				selectionTime = tt.now
+			}
+			got, err := (&NotificationHistoryRepository{DB: db}).GetLockerIntroCandidates(cutoff, selectionTime, "locker_intro")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -62,9 +69,9 @@ func TestGetLockerIntroCandidates(t *testing.T) {
 func TestGetLockerIntroCandidatesOldestFirstLimit(t *testing.T) {
 	db := getStorageWarningRepoTestDB(t)
 	const cutoff int64 = 1800000000000000
-	for id := int64(1); id <= 501; id++ {
+	for id := int64(1); id <= 1001; id++ {
 		signup := cutoff + 1
-		if id == 501 {
+		if id == 1001 {
 			signup = cutoff
 		}
 		testutil.InsertUser(t, db, testutil.UserFixture{UserID: id, Email: fmt.Sprintf("locker-%d@example.com", id), CreationTime: signup})
@@ -72,15 +79,28 @@ func TestGetLockerIntroCandidatesOldestFirstLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got, err := (&NotificationHistoryRepository{DB: db}).GetLockerIntroCandidates(cutoff, cutoff+4*24*time.MicroSecondsInOneHour, "locker_intro")
+	repo := &NotificationHistoryRepository{DB: db}
+	got, err := repo.GetLockerIntroCandidates(cutoff, cutoff+4*24*time.MicroSecondsInOneHour, "locker_intro")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []int64{501}
-	for id := int64(1); id <= 499; id++ {
+	want := []int64{1001}
+	for id := int64(1); id <= 999; id++ {
 		want = append(want, id)
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("candidates = %v, want %v", got, want)
+	}
+	for _, userID := range got {
+		if err := repo.SetLastNotificationTimeToNow(userID, "locker_intro"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err = repo.GetLockerIntroCandidates(cutoff, cutoff+5*24*time.MicroSecondsInOneHour, "locker_intro")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got, []int64{1000}) {
+		t.Fatalf("next run candidates = %v, want [1000]", got)
 	}
 }

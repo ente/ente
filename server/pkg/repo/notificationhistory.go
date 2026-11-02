@@ -24,6 +24,7 @@ const (
 )
 
 func (repo *NotificationHistoryRepository) GetLockerIntroCandidates(rolloutTime, now int64, templateID string) ([]int64, error) {
+	signupAfter := max(rolloutTime, now-7*24*time.MicroSecondsInOneHour)
 	rows, err := repo.DB.Query(`
 		SELECT u.user_id
 		FROM users u
@@ -38,7 +39,7 @@ func (repo *NotificationHistoryRepository) GetLockerIntroCandidates(rolloutTime,
 				WHERE nh.user_id = u.user_id AND nh.template_id = $3
 			)
 		ORDER BY u.creation_time, u.user_id
-		LIMIT 500`, rolloutTime, now-72*time.MicroSecondsInOneHour, templateID)
+		LIMIT 1000`, signupAfter, now-72*time.MicroSecondsInOneHour, templateID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to fetch Locker intro candidates")
 	}

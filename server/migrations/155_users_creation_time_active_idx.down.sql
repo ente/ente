@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY users_creation_time_active_idx;
