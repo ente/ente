@@ -69,6 +69,7 @@ const LocalCollection = z
             .nullish()
             .transform(nullishToEmpty),
         updationTime: z.number(),
+        sharedAt: z.number().nullish().transform(nullToUndefined),
         magicMetadata: createMagicMetadataSchema(
             CollectionPrivateMagicMetadataData,
         ),
@@ -107,6 +108,7 @@ export const LocalEnteFile = z.looseObject({
     thumbnail: RemoteFileObjectAttributes,
     info: RemoteFileInfo.nullish().transform(nullToUndefined),
     updationTime: z.number(),
+    collectionAddedAt: z.number().nullish().transform(nullToUndefined),
     metadata: FileMetadata,
     magicMetadata: createMagicMetadataSchema(FilePrivateMagicMetadataData),
     pubMagicMetadata: createMagicMetadataSchema(FilePublicMagicMetadataData),

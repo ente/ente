@@ -50,6 +50,7 @@ export const getUnifiedSocialDiff = async (
 const decryptSocialDiff = async (
     collectionKey: string,
     responseJson: unknown,
+    retainDeletedReactions = false,
 ): Promise<UnifiedSocialDiff> => {
     const data = UnifiedDiffResponse.parse(responseJson);
 
@@ -98,6 +99,17 @@ const decryptSocialDiff = async (
 
     const reactions: UnifiedReaction[] = [];
     for (const reaction of data.reactions) {
+        if (reaction.isDeleted && retainDeletedReactions) {
+            reactions.push({
+                ...reaction,
+                fileID: reaction.fileID ?? undefined,
+                commentID: reaction.commentID ?? undefined,
+                isCommentReply: reaction.isCommentReply ?? undefined,
+                anonUserID: reaction.anonUserID ?? undefined,
+                reactionType: "",
+            });
+            continue;
+        }
         if (reaction.isDeleted || !reaction.cipher || !reaction.nonce) continue;
         try {
             const decrypted = await decryptBoxBytes(
@@ -174,10 +186,11 @@ const UnifiedDiffResponse = z.object({
 export const getAnonProfiles = async (
     collectionID: number,
     collectionKey: string,
+    signal?: AbortSignal,
 ): Promise<Map<string, string>> => {
     const res = await fetch(
         await apiURL("/social/anon-profiles", { collectionID }),
-        { headers: await authenticatedRequestHeaders() },
+        { headers: await authenticatedRequestHeaders(), signal },
     );
     ensureOk(res);
     const { profiles } = GetAnonProfilesResponse.parse(await res.json());
@@ -216,3 +229,53 @@ const GetAnonProfilesResponse = z.object({
         .nullish()
         .transform((v) => v ?? []),
 });
+
+const SocialUpdatesResponse = z.object({
+    updates: z
+        .array(
+            z.object({
+                collectionID: z.number(),
+                commentsUpdatedAt: z.number().nullish(),
+                reactionsUpdatedAt: z.number().nullish(),
+                anonProfilesUpdatedAt: z.number().nullish(),
+            }),
+        )
+        .nullish()
+        .transform((updates) => updates ?? []),
+});
+
+export const getSocialUpdates = async (signal?: AbortSignal) => {
+    const response = await fetch(
+        await apiURL("/comments-reactions/updated-at"),
+        { headers: await authenticatedRequestHeaders(), signal },
+    );
+    ensureOk(response);
+    return SocialUpdatesResponse.parse(await response.json()).updates;
+};
+
+/** Collection-wide incremental sync. Keep tombstones and raw cursors even when
+ * an individual record cannot be decrypted. The file viewer uses a full fetch. */
+export const getCollectionSocialDiff = async (
+    collectionID: number,
+    collectionKey: string,
+    cursors: { commentsSinceTime: number; reactionsSinceTime: number },
+    signal?: AbortSignal,
+) => {
+    const response = await fetch(
+        await apiURL("/social/diff", { collectionID, ...cursors, limit: 1000 }),
+        { headers: await authenticatedRequestHeaders(), signal },
+    );
+    ensureOk(response);
+    const data = UnifiedDiffResponse.parse(await response.json());
+    return {
+        ...(await decryptSocialDiff(collectionKey, data, true)),
+        commentsUpdatedAt: Math.max(
+            cursors.commentsSinceTime,
+            ...data.comments.map((c) => c.updatedAt),
+        ),
+        reactionsUpdatedAt: Math.max(
+            cursors.reactionsSinceTime,
+            ...data.reactions.map((r) => r.updatedAt),
+        ),
+    };
+};
