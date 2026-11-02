@@ -37,7 +37,7 @@ class _EmptyStateIllustrationState extends State<EmptyStateIllustration> {
         file.dispose();
         return;
       }
-      final controller = rive.RiveWidgetController(file);
+      final controller = rive.RiveWidgetController(file)..advance(0);
       setState(() {
         _file = file;
         _controller = controller;
@@ -62,7 +62,13 @@ class _EmptyStateIllustrationState extends State<EmptyStateIllustration> {
       height: widget.size.height,
       child: controller == null
           ? null
-          : rive.RiveWidget(controller: controller, fit: rive.Fit.contain),
+          : TickerMode(
+              enabled: !MediaQuery.disableAnimationsOf(context),
+              child: rive.RiveWidget(
+                controller: controller,
+                fit: rive.Fit.contain,
+              ),
+            ),
     );
   }
 }
