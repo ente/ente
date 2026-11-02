@@ -1,3 +1,4 @@
+mod clip_scan;
 mod cluster_averages;
 mod clustering;
 mod face_distances;
@@ -14,6 +15,7 @@ use ente_vecdb::{VecDb, VecDbError};
 
 use crate::ml_db::MlDb;
 
+pub use clip_scan::{ClipQuery, ClipSimilarity};
 pub use cluster_averages::MeanSuggestion;
 pub use clustering::{
     ClusteredBucket, FaceClusteringPlan, FaceClusteringRequest, FaceClusteringRun,

@@ -8,8 +8,8 @@ pub use ente_photos::ml_db::{
 };
 use ente_photos::ml_store;
 pub use ente_photos::ml_store::{
-    FaceDistance, FillOutcome, FillState, Index, MeanSuggestion, MedianQuery, MedianSuggestion,
-    PersonFaces,
+    ClipQuery, ClipSimilarity, FaceDistance, FillOutcome, FillState, Index, MeanSuggestion,
+    MedianQuery, MedianSuggestion, PersonFaces,
 };
 use flutter_rust_bridge::frb;
 
@@ -130,6 +130,18 @@ pub struct _MedianSuggestion {
 pub struct _PersonFaces {
     pub person_id: String,
     pub face_ids: Vec<String>,
+}
+
+#[frb(mirror(ClipQuery))]
+pub struct _ClipQuery {
+    pub embedding: Vec<f32>,
+    pub minimum_similarity: f64,
+}
+
+#[frb(mirror(ClipSimilarity))]
+pub struct _ClipSimilarity {
+    pub file_id: i64,
+    pub similarity: f64,
 }
 
 #[frb(mirror(FaceDistance))]
@@ -433,6 +445,13 @@ impl MlStore {
         Ok(self
             .inner
             .max_similarities_to_persons(&cluster_id, &person_ids.into_iter().collect())?)
+    }
+
+    pub fn scan_clip_similarities(
+        &self,
+        queries: Vec<ClipQuery>,
+    ) -> Result<Vec<Vec<ClipSimilarity>>, MlDbError> {
+        Ok(self.inner.scan_clip_similarities(&queries)?)
     }
 
     pub fn clear_all(&self) -> Result<(), MlDbError> {
