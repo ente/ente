@@ -16,11 +16,7 @@ pub struct BoundedDecodedImage {
     pub original_dimensions: Dimensions,
 }
 
-pub fn decode_bounded(input: ImageInput<'_>, max_side: u32) -> ImageResult<BoundedDecodedImage> {
-    decode_bounded_with_cancellation(input, max_side, || false)
-}
-
-pub fn decode_bounded_with_cancellation(
+pub fn decode_bounded(
     input: ImageInput<'_>,
     max_side: u32,
     is_cancelled: impl Fn() -> bool,
@@ -112,7 +108,7 @@ mod tests {
                 ImageInput::Path(path.to_str().unwrap()),
             ] {
                 assert!(matches!(
-                    decode_bounded(input, 6000),
+                    decode_bounded(input, 6000, || false),
                     Err(ImageError::Decode(message)) if message.contains("unsupported format")
                 ));
             }

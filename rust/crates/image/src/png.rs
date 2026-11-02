@@ -382,10 +382,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::{
-        ImageInput, decode::decode_image_from_bytes, decode_bounded,
-        decode_bounded_with_cancellation,
-    };
+    use crate::{ImageInput, decode::decode_image_from_bytes, decode_bounded};
 
     fn fixture(info: ::png::Info<'_>, pixels: &[u8]) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -485,7 +482,8 @@ mod tests {
                 let bytes = fixture(rgb_info(width, height, interlaced), &pixels);
                 assert_eq!(decode_image_from_bytes(&bytes).unwrap().rgb, pixels);
                 for max_side in [1, 2, 7, 13, 40] {
-                    let decoded = decode_bounded(ImageInput::Bytes(&bytes), max_side).unwrap();
+                    let decoded =
+                        decode_bounded(ImageInput::Bytes(&bytes), max_side, || false).unwrap();
                     let reference =
                         area_reference(&pixels, width, height, &decoded.image.dimensions);
                     assert_eq!(decoded.original_dimensions, Dimensions { width, height });
@@ -550,7 +548,7 @@ mod tests {
         writer.write_image_data(&[80; 4 * 2 * 3]).unwrap();
         writer.write_image_data(&[120; 4 * 2 * 3]).unwrap();
         writer.finish().unwrap();
-        let output = decode_bounded(ImageInput::Bytes(&bytes), 2).unwrap();
+        let output = decode_bounded(ImageInput::Bytes(&bytes), 2, || false).unwrap();
         assert_eq!(output.image.rgb, [80; 2 * 3]);
     }
 
@@ -590,7 +588,8 @@ mod tests {
                     let bytes = fixture(info, &pixels);
                     let full = decode_image_from_bytes(&bytes).unwrap();
                     for max_side in [4, 6000] {
-                        let bounded = decode_bounded(ImageInput::Bytes(&bytes), max_side).unwrap();
+                        let bounded =
+                            decode_bounded(ImageInput::Bytes(&bytes), max_side, || false).unwrap();
                         if max_side == 6000 {
                             assert_eq!(bounded.image.rgb, full.rgb);
                         } else {
@@ -634,7 +633,8 @@ mod tests {
                 info.icc_profile = profile.clone().map(Cow::Owned);
                 let bytes = fixture(info, &pixels);
                 for max_side in [4, 6000] {
-                    let bounded = decode_bounded(ImageInput::Bytes(&bytes), max_side).unwrap();
+                    let bounded =
+                        decode_bounded(ImageInput::Bytes(&bytes), max_side, || false).unwrap();
                     let expected = area_reference(&pixels, 9, 7, &bounded.image.dimensions);
                     assert_eq!(bounded.image.rgb.len(), expected.len());
                     for (actual, expected) in bounded.image.rgb.iter().zip(expected) {
@@ -657,7 +657,7 @@ mod tests {
             }
             let bytes = fixture(info, &[0b10101010]);
             let full = decode_image_from_bytes(&bytes).unwrap();
-            let bounded = decode_bounded(ImageInput::Bytes(&bytes), 4).unwrap();
+            let bounded = decode_bounded(ImageInput::Bytes(&bytes), 4, || false).unwrap();
             assert_eq!(
                 bounded.image.rgb,
                 area_reference(&full.rgb, 8, 1, &bounded.image.dimensions)
@@ -675,7 +675,7 @@ mod tests {
             info.exif_metadata = Some(Cow::Owned(exif));
             let bytes = fixture(info, &pixels);
             let full = decode_image_from_bytes(&bytes).unwrap();
-            let bounded = decode_bounded(ImageInput::Bytes(&bytes), 4).unwrap();
+            let bounded = decode_bounded(ImageInput::Bytes(&bytes), 4, || false).unwrap();
             assert_eq!(bounded.original_dimensions, full.dimensions);
             let expected = area_reference(
                 &full.rgb,
@@ -693,8 +693,9 @@ mod tests {
         let path = dir.path().join("image.jpg");
         let bytes = fixture(rgb_info(11, 5, true), &[70; 11 * 5 * 3]);
         std::fs::write(&path, &bytes).unwrap();
-        let from_path = decode_bounded(ImageInput::Path(path.to_str().unwrap()), 6).unwrap();
-        let from_bytes = decode_bounded(ImageInput::Bytes(&bytes), 6).unwrap();
+        let from_path =
+            decode_bounded(ImageInput::Path(path.to_str().unwrap()), 6, || false).unwrap();
+        let from_bytes = decode_bounded(ImageInput::Bytes(&bytes), 6, || false).unwrap();
         assert_eq!(from_path.image.rgb, from_bytes.image.rgb);
         assert_eq!(from_path.image.dimensions, from_bytes.image.dimensions);
     }
@@ -708,58 +709,95 @@ mod tests {
             ImageInput::Bytes(b"not an image"),
         ] {
             assert!(matches!(
-                decode_bounded_with_cancellation(input, 6000, || true),
+                decode_bounded(input, 6000, || true),
                 Err(ImageError::Cancelled)
             ));
         }
     }
 
     #[test]
+    fn interlaced_finalization_checks_cancellation_for_each_output_row() {
+        let output = Downsampler::new(
+            Dimensions {
+                width: 2,
+                height: 4,
+            },
+            Dimensions {
+                width: 1,
+                height: 2,
+            },
+            true,
+            16,
+        )
+        .unwrap();
+        let checks = Cell::new(0);
+        let result = output.finish(|| {
+            checks.set(checks.get() + 1);
+            if checks.get() == 2 {
+                Err(ImageError::Cancelled)
+            } else {
+                Ok(())
+            }
+        });
+        assert!(matches!(result, Err(ImageError::Cancelled)));
+    }
+
+    fn assert_cancellation_lifecycle<'a>(
+        input: impl Fn() -> ImageInput<'a>,
+        max_side: u32,
+        source_rows: usize,
+    ) {
+        let checkpoints = Cell::new(0);
+        decode_bounded(input(), max_side, || {
+            checkpoints.set(checkpoints.get() + 1);
+            false
+        })
+        .unwrap();
+        assert!(
+            checkpoints.get() >= source_rows,
+            "expected at least one cancellation checkpoint per source row"
+        );
+        for cancel_after in 0..checkpoints.get() {
+            let checks = Cell::new(0);
+            let result = decode_bounded(input(), max_side, || {
+                checks.set(checks.get() + 1);
+                checks.get() > cancel_after
+            });
+            assert!(
+                matches!(result, Err(ImageError::Cancelled)),
+                "max_side {max_side}, cancel_after {cancel_after}: {result:?}"
+            );
+        }
+        let decoded = decode_bounded(input(), max_side, || false).unwrap();
+        assert_eq!(
+            decoded.image.dimensions,
+            Dimensions {
+                width: max_side / 2,
+                height: max_side,
+            }
+        );
+        assert!(decoded.image.rgb.iter().all(|&value| value == 80));
+    }
+
+    #[test]
     fn cancellation_covers_plain_and_interlaced_decode_lifecycle() {
+        const WIDTH: u32 = 8;
+        const HEIGHT: u32 = 16;
+        const ADAM7_ROWS: usize = 30;
+
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("cancelled.png");
-        let pixels = [80; 8 * 16 * 3];
-        for interlaced in [false, true] {
-            let bytes = fixture(rgb_info(8, 16, interlaced), &pixels);
+        let pixels = [80; (WIDTH * HEIGHT * 3) as usize];
+        for (interlaced, source_rows) in [(false, HEIGHT as usize), (true, ADAM7_ROWS)] {
+            let bytes = fixture(rgb_info(WIDTH, HEIGHT, interlaced), &pixels);
             std::fs::write(&path, &bytes).unwrap();
-            for max_side in [4, 16] {
-                for use_path in [false, true] {
-                    let input = || {
-                        if use_path {
-                            ImageInput::Path(path.to_str().unwrap())
-                        } else {
-                            ImageInput::Bytes(&bytes)
-                        }
-                    };
-                    let checkpoints = Cell::new(0);
-                    decode_bounded_with_cancellation(input(), max_side, || {
-                        checkpoints.set(checkpoints.get() + 1);
-                        false
-                    })
-                    .unwrap();
-                    assert!(checkpoints.get() >= if interlaced { 30 } else { 16 });
-                    for cancel_after in 0..checkpoints.get() {
-                        let checks = Cell::new(0);
-                        let result = decode_bounded_with_cancellation(input(), max_side, || {
-                            checks.set(checks.get() + 1);
-                            checks.get() > cancel_after
-                        });
-                        assert!(
-                            matches!(result, Err(ImageError::Cancelled)),
-                            "interlaced {interlaced}, max_side {max_side}, use_path {use_path}, cancel_after {cancel_after}: {result:?}"
-                        );
-                    }
-                    let decoded =
-                        decode_bounded_with_cancellation(input(), max_side, || false).unwrap();
-                    assert_eq!(
-                        decoded.image.dimensions,
-                        Dimensions {
-                            width: max_side / 2,
-                            height: max_side,
-                        }
-                    );
-                    assert!(decoded.image.rgb.iter().all(|&value| value == 80));
-                }
+            for max_side in [4, HEIGHT] {
+                assert_cancellation_lifecycle(|| ImageInput::Bytes(&bytes), max_side, source_rows);
+                assert_cancellation_lifecycle(
+                    || ImageInput::Path(path.to_str().unwrap()),
+                    max_side,
+                    source_rows,
+                );
             }
         }
     }
@@ -769,7 +807,7 @@ mod tests {
         let bytes = fixture(rgb_info(8, 4, false), &[80; 8 * 4 * 3]);
         for length in [8, 20, bytes.len() / 2, bytes.len() - 1] {
             assert!(
-                decode_bounded(ImageInput::Bytes(&bytes[..length]), 4).is_err(),
+                decode_bounded(ImageInput::Bytes(&bytes[..length]), 4, || false).is_err(),
                 "length {length}"
             );
         }
@@ -779,8 +817,8 @@ mod tests {
             .position(|window| window == b"IDAT")
             .unwrap();
         corrupt[idat + 6] ^= 0x55;
-        assert!(decode_bounded(ImageInput::Bytes(&corrupt), 4).is_err());
-        assert!(decode_bounded(ImageInput::Bytes(&bytes), 0).is_err());
+        assert!(decode_bounded(ImageInput::Bytes(&corrupt), 4, || false).is_err());
+        assert!(decode_bounded(ImageInput::Bytes(&bytes), 0, || false).is_err());
     }
 
     #[test]
@@ -794,7 +832,7 @@ mod tests {
             .finish()
             .unwrap();
         assert!(matches!(
-            decode_bounded(ImageInput::Bytes(&bytes), 6000),
+            decode_bounded(ImageInput::Bytes(&bytes), 6000, || false),
             Err(ImageError::TooLarge(_))
         ));
         assert!(matches!(
@@ -837,7 +875,7 @@ mod tests {
                     ImageInput::Bytes(&bytes),
                     ImageInput::Path(path.to_str().unwrap()),
                 ] {
-                    let result = decode_bounded(input, 1);
+                    let result = decode_bounded(input, 1, || false);
                     assert!(
                         matches!(result, Err(ImageError::TooLarge(_))),
                         "{width}x{height}, interlaced {interlaced}: {result:?}"
@@ -858,7 +896,7 @@ mod tests {
                     .unwrap()
                     .finish()
                     .unwrap();
-                let result = decode_bounded(ImageInput::Bytes(&bytes), 1);
+                let result = decode_bounded(ImageInput::Bytes(&bytes), 1, || false);
                 assert!(
                     matches!(result, Err(ImageError::Decode(_))),
                     "{width}x{height}, interlaced {interlaced}: {result:?}"
@@ -885,7 +923,8 @@ mod tests {
             let full_time = start.elapsed();
             for max_side in [1024, 128] {
                 let start = Instant::now();
-                let bounded = decode_bounded(ImageInput::Bytes(&bytes), max_side).unwrap();
+                let bounded =
+                    decode_bounded(ImageInput::Bytes(&bytes), max_side, || false).unwrap();
                 let bounded_time = start.elapsed();
                 if max_side == 1024 {
                     assert_eq!(bounded.image.rgb, full.rgb);
@@ -923,7 +962,8 @@ mod tests {
         }
         stream.finish().unwrap();
         writer.finish().unwrap();
-        let output = decode_bounded(ImageInput::Path(path.to_str().unwrap()), 6000).unwrap();
+        let output =
+            decode_bounded(ImageInput::Path(path.to_str().unwrap()), 6000, || false).unwrap();
         assert_eq!(
             output.image.dimensions,
             Dimensions {
