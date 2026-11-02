@@ -741,7 +741,7 @@ pub(super) fn remote_file(id: i64, collection_key: &Key, original: &[u8]) -> (Va
     )
 }
 
-fn remote_file_with(
+pub(super) fn remote_file_with(
     id: i64,
     collection_key: &Key,
     original: &[u8],

@@ -107,6 +107,31 @@ ente photos file list --type video --min-size 500MB
 
 A file must match every filter you pass. `--sort created` lists the newest files first and `--sort size` the largest first; add `--reverse` for the opposite order. Files with an unknown size sort as the smallest, and ties keep ID order. Without `--sort`, files are listed by ID.
 
+## Find and remove duplicates
+
+```sh
+ente photos duplicates list
+ente photos duplicates remove
+```
+
+`list` shows exact duplicate groups, their files and albums, which copy will be kept, and the space the extra copies occupy. Groups are ordered by reclaimable size. Lists show 100 groups by default; use `--all` or `--limit N` to see more. `remove` lets you select groups with space and continue with enter, then shows the copies to keep or trash and asks for confirmation.
+
+You can also select group IDs from the list, preview removal, or select all current groups:
+
+```sh
+ente photos duplicates remove 1580559962386999 1580559962387000 --dry-run
+ente photos duplicates remove 1580559962386999 --yes --no-input
+ente photos duplicates remove --all --dry-run --json
+```
+
+Group IDs are the smallest file ID in each group, rather than row numbers. Removal refreshes metadata before selecting groups, so a group can change between runs. A group ID that no longer exists stops the command before it changes anything. `--dry-run` shows the plan without changing files. `--yes` approves removal; `--no-input` disables prompts and requires explicit group IDs or `--all`, plus `--yes` unless previewing.
+
+The CLI uses the same Rust duplicate detection and removal rules as Photos. It matches stored file hashes in non-hidden albums you own, including Favorites and archived albums. Files owned by someone else are excluded. A single file in several albums is counted once, and files without a hash or groups without a known size are omitted. Originals are not downloaded for comparison.
+
+For each selected group, the CLI keeps a copy with a caption first, then one with an edited name or date, then the first copy in album-name order (with file IDs breaking ties within an album). It adds that copy to the other copies' albums before moving extra copies to Ente's trash. You select whole groups, as in the web client. The command does not permanently delete files. If removal is interrupted or fails, some changes may have completed; list duplicates again before retrying.
+
+With `--json`, `list` returns groups containing `id`, `sizeBytes`, `reclaimableBytes`, `retainedId`, and `files`. Each file has `id`, `name`, and `albums` with `id` and `name`. `remove` returns `dryRun`, `groupIds`, `retainedIds`, `trashIds`, and `reclaimableBytes`; `trashIds` lists planned removals in a dry run and completed removals otherwise. IDs are strings and byte counts are integers. Previews and progress go to stderr.
+
 ## Find files by place
 
 ```sh
@@ -158,7 +183,7 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 
 ## Read offline
 
-`album list`, `album view`, `file list`, `file view` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download and usage need the network.
+`album list`, `album view`, `file list`, `file view`, `duplicates list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicates list` to sync albums eligible for duplicate detection. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
 
 ## Limits
 

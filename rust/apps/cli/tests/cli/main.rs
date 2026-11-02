@@ -1191,6 +1191,8 @@ mod export_sources;
 
 mod files;
 
+mod duplicates;
+
 #[cfg(feature = "museum")]
 mod mail;
 

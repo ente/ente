@@ -1,0 +1,1 @@
+- Added Photos duplicate listing, interactive group selection, removal previews and cleanup using the same Rust logic as the web app.
