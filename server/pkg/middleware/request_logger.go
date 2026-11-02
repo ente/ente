@@ -28,7 +28,17 @@ var latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Name:    "museum_latency",
 	Help:    "The amount of time the server is taking to respond to requests",
 	Buckets: []float64{10, 50, 100, 200, 500, 1000, 10000, 30000, 60000, 120000, 600000},
-}, []string{"code", "method", "host", "url"})
+}, []string{"code", "method", "url"})
+
+func metricMethod(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete,
+		http.MethodOptions, http.MethodConnect, http.MethodTrace:
+		return method
+	default:
+		return "OTHER"
+	}
+}
 
 var queryParamDenylist = map[string]struct{}{
 	"accesstoken":       {},
@@ -154,8 +164,7 @@ func Logger(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 		latencyTime := time.Since(startTime)
 		reqURI := urlSanitizer(c)
 		if reqMethod != http.MethodOptions {
-			latency.WithLabelValues(strconv.Itoa(statusCode), reqMethod,
-				c.Request.Host, reqURI).
+			latency.WithLabelValues(strconv.Itoa(statusCode), metricMethod(reqMethod), reqURI).
 				Observe(float64(latencyTime.Milliseconds()))
 		}
 		if statusCode >= 400 && !skipRequestLogUnlessError {
