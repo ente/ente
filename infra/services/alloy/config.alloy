@@ -1,0 +1,19 @@
+loki.source.file "logs" {
+	targets = [
+		{__path__ = "/var/logs/museum.log", job = "museum", host = sys.env("HOSTNAME")},
+		{__path__ = "/var/logs/copycat-db.log", job = "copycat-db", host = sys.env("HOSTNAME")},
+		{__path__ = "/var/logs/phoenix.log", job = "phoenix", host = sys.env("HOSTNAME")},
+		{__path__ = "/var/lib/docker/containers/*/*-json.log", job = "docker", host = sys.env("HOSTNAME")},
+	]
+	forward_to = [loki.write.default.receiver]
+
+	file_match {
+		enabled = true
+	}
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
