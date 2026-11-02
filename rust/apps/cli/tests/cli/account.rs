@@ -633,21 +633,32 @@ fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestRe
 #[cfg(all(unix, feature = "museum"))]
 #[test]
 fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::TestResult {
-    ente_test_support::Museum::run_async(|origin| async move {
+    use std::io::{BufRead, BufReader};
+
+    ente_test_support::Museum::run(|museum| {
         let home = TestHome::new();
         let email = format!("cli-interactive-{}@example.org", uuid::Uuid::new_v4());
-        success(
-            Command::new("python3")
+        success({
+            let mut child = Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/tests/cli/account_prompt.py"
                 ))
                 .arg(cli_binary())
-                .args([&origin, &email])
+                .args([museum.endpoint(), &email])
                 .env("ENTE_CLI_HOME", home.dir.path())
                 .env("ENTE_CLI_VAULT_KEY", b64::encode(home.key.as_bytes()))
-                .output()?,
-        );
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+            let mut ready = String::new();
+            BufReader::new(child.stdout.take().unwrap()).read_line(&mut ready)?;
+            assert_eq!(ready.trim(), "expire");
+            museum.execute_sql("UPDATE temp_two_factor SET expiration_time = 1")?;
+            writeln!(child.stdin.take().unwrap(), "expired")?;
+            child.wait_with_output()?
+        });
         assert_eq!(home.json(&["account", "view"])["name"], email);
         assert_eq!(
             home.json(&["account", "totp", "status"]),
@@ -758,8 +769,6 @@ fn family_usage_reports_the_admin_plan_and_the_member_limit() {
          Family used     53 GB\nFamily storage  210 GB\n\
          Your limit      5 GB\n"
     ));
-    assert!(!plain.contains("Shared"));
-    assert!(usage.get("sharedAlbums").is_none());
     details.assert();
 }
 

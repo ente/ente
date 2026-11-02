@@ -92,7 +92,6 @@ import (
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -527,9 +526,7 @@ func main() {
 		server.TrustedPlatform = clientIPHeader
 	}
 
-	p := ginprometheus.NewPrometheus("museum")
-	p.ReqCntURLLabelMappingFn = urlSanitizer
-	server.Use(p.HandlerFunc())
+	server.Use(middleware.RequestMetrics(urlSanitizer))
 
 	server.LoadHTMLGlob("web-templates/*")
 	// note: the recover middleware must be in the last

@@ -113,9 +113,10 @@ class _HomeGalleryWidgetState extends State<HomeGalleryWidget> {
         .listen((event) {
           localSettings.setHideSharedItemsFromHomeGallery(event.shouldHide);
           _hideSharedItemsToggleDebouncer.run(() async {
-            setState(() {
-              _shouldHideSharedItems = event.shouldHide;
-            });
+            _shouldHideSharedItems = event.shouldHide;
+            Bus.instance.fire(
+              ForceReloadHomeGalleryEvent("hideSharedItemsChanged"),
+            );
           });
         });
   }
@@ -131,7 +132,6 @@ class _HomeGalleryWidgetState extends State<HomeGalleryWidget> {
   Widget build(BuildContext context) {
     final largeBackupSession = SyncService.instance.largeBackupSessionTracker;
     final gallery = Gallery(
-      key: ValueKey(_shouldHideSharedItems),
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
         final ownerID = Configuration.instance.getUserIDV2();
         final hasSelectedAllForBackup =

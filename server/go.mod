@@ -37,7 +37,6 @@ require (
 	github.com/stripe/stripe-go/v72 v72.37.0
 	github.com/ua-parser/uap-go v0.0.0-20211112212520-00c877edfe0f
 	github.com/ulule/limiter/v3 v3.8.0
-	github.com/zsais/go-gin-prometheus v0.1.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/sync v0.23.0
 	golang.org/x/text v0.42.0

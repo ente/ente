@@ -1,0 +1,1 @@
+- Added the option to hide shared items from the home gallery to the gallery layout sheet.

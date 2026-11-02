@@ -18,7 +18,9 @@ const metadata = JSON.parse(
     ),
 );
 const root = resolve(metadata.workspace_root, "..");
+const apps = resolve(root, "rust/apps");
 const bindings = resolve(root, "rust/bindings");
+const crates = resolve(root, "rust/crates");
 const framework =
     /^(?:wasm-bindgen(?:-.*)?|js-sys|web-sys|serde-wasm-bindgen|tsify(?:-.*)?|flutter_rust_bridge(?:_.*)?|uniffi(?:_.*)?|napi(?:-.*)?)$/;
 const pathFromRoot = (path) => relative(root, path).split(sep).join("/");
@@ -73,6 +75,25 @@ if (!domain.length) {
 for (const pkg of domain) {
     const manifest = pathFromRoot(pkg.manifest_path);
     for (const dependency of pkg.dependencies) {
+        if (inside(apps, dependency.path)) {
+            console.error(
+                `${manifest}: dependency ${JSON.stringify(dependency.name)} crosses the Rust app boundary`,
+            );
+            process.exitCode = 1;
+        }
+        if (
+            manifest === "rust/crates/core/Cargo.toml" &&
+            inside(crates, dependency.path) &&
+            !(
+                dependency.kind === "dev" &&
+                dependency.path === resolve(crates, "test-support")
+            )
+        ) {
+            console.error(
+                `${manifest}: ente-core must not depend on other domain crates (${dependency.name})`,
+            );
+            process.exitCode = 1;
+        }
         if (
             !framework.test(dependency.name) &&
             !inside(bindings, dependency.path)
