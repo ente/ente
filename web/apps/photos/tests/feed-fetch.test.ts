@@ -150,3 +150,36 @@ test("stops pagination when a cursor does not advance", async () => {
     expect(result.socialByCollection).toEqual({});
     expect(getUnifiedSocialDiff).toHaveBeenCalledOnce();
 });
+
+test("preserves fetched activity when anonymous profiles fail", async () => {
+    vi.mocked(getSocialUpdates).mockResolvedValue([
+        {
+            collectionID: 10,
+            commentsUpdatedAt: 200,
+            anonProfilesUpdatedAt: 100,
+        },
+    ]);
+    vi.mocked(getUnifiedSocialDiff).mockResolvedValue(
+        diff({ comments: [record("comment", 200)], commentsUpdatedAt: 200 }),
+    );
+    vi.mocked(getAnonProfiles).mockRejectedValue(new Error("Unavailable"));
+    const result = await fetchFeed();
+    expect(result.failed).toBe(true);
+    expect(result.socialByCollection[10]).toEqual({
+        comments: [record("comment", 200)],
+        reactions: [],
+        anonNames: {},
+    });
+});
+
+test("still cancels when the anonymous-profile request is aborted", async () => {
+    const controller = new AbortController();
+    vi.mocked(getSocialUpdates).mockResolvedValue([
+        { collectionID: 10, anonProfilesUpdatedAt: 100 },
+    ]);
+    vi.mocked(getAnonProfiles).mockImplementation(() => {
+        controller.abort();
+        return Promise.reject(new Error("Aborted"));
+    });
+    await expect(fetchFeed(controller.signal)).rejects.toThrow();
+});

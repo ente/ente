@@ -27,7 +27,7 @@ export const fetchFeedData = async (
             signal.throwIfAborted();
             const update = pending[index++]!;
             const album = albumsByID.get(update.collectionID)!;
-            let data = emptyFeedSocialData();
+            const data = emptyFeedSocialData();
             try {
                 if (
                     (update.commentsUpdatedAt ?? 0) > 0 ||
@@ -61,12 +61,15 @@ export const fetchFeedData = async (
                     }
                 }
                 if ((update.anonProfilesUpdatedAt ?? 0) > 0) {
-                    data = {
-                        ...data,
-                        anonNames: Object.fromEntries(
+                    try {
+                        data.anonNames = Object.fromEntries(
                             await getAnonProfiles(album.id, album.key, signal),
-                        ),
-                    };
+                        );
+                    } catch (error) {
+                        signal.throwIfAborted();
+                        failed = true;
+                        log.warn("Could not refresh anonymous names", error);
+                    }
                 }
                 socialByCollection[album.id] = data;
             } catch (error) {

@@ -265,3 +265,37 @@ describe("sharing activity", () => {
         expect(items[499]!.fileID).toBe(2);
     });
 });
+
+test("excludes public uploads before capping sharing activity", () => {
+    const legitimate = photo(1, { ownerID: 2, collectionAddedAt: 1 });
+    const publicUploads = Array.from({ length: 1001 }, (_, i) =>
+        photo(i + 2, {
+            ownerID: 2,
+            collectionAddedAt: i + 2,
+            pubMagicMetadata: {
+                version: 1,
+                count: 1,
+                data: { uploaderName: "Guest" },
+            },
+        }),
+    );
+    const items = build({ files: [legitimate, ...publicUploads] });
+    expect(items).toHaveLength(1);
+    expect(items[0]!.files).toEqual([legitimate]);
+});
+
+test("preserves public uploads already present when an album was shared as previews", () => {
+    const file = photo(1, {
+        ownerID: 2,
+        collectionAddedAt: 1,
+        pubMagicMetadata: {
+            version: 1,
+            count: 1,
+            data: { uploaderName: "Guest" },
+        },
+    });
+    const items = build({ collections: [album(10, 2, 2)], files: [file] });
+    expect(items).toHaveLength(1);
+    expect(items[0]!.type).toBe("sharedCollection");
+    expect(items[0]!.files).toEqual([file]);
+});

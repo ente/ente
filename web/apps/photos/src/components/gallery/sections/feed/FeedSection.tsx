@@ -38,7 +38,7 @@ export const FeedSection = ({
     operations,
     presentation,
 }: GallerySectionProps) => {
-    const feed = useFeed(library);
+    const feed = useFeed(library, operations.onRemotePull);
     const actions = usePhotosNavigation();
     const { setIsFileViewerOpen } = usePhotosAppContext();
     const [viewer, setViewer] = useState<ViewerTarget>();
@@ -83,7 +83,7 @@ export const FeedSection = ({
     const closeViewer = () => {
         setViewer(undefined);
         setIsFileViewerOpen?.(false);
-        refresh();
+        void refresh();
     };
 
     return (
@@ -293,6 +293,10 @@ export const FeedSection = ({
                     }
                     enableComment
                     isCommentsFeatureEnabled
+                    hasSocialActivity={
+                        viewer.item.type !== "sharedCollection" &&
+                        viewer.item.type !== "sharedPhoto"
+                    }
                     isInIncomingSharedCollection={
                         library.collections.find(
                             (c) => c.id === viewer.item.collectionID,

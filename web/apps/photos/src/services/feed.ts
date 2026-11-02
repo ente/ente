@@ -182,7 +182,17 @@ export const buildFeedItems = ({
     const initialFiles = new Map<number, EnteFile[]>();
     const sessions = new Map<string, { item: FeedItem; oldestAt: number }>();
     const recentlyAdded = visibleFiles
-        .filter((f) => f.ownerID !== userID && (f.collectionAddedAt ?? 0) > 0)
+        .filter((f) => {
+            if (f.ownerID === userID || (f.collectionAddedAt ?? 0) <= 0)
+                return false;
+            const album = albums.get(f.collectionID)!;
+            return (
+                f.pubMagicMetadata?.data.uploaderName == null ||
+                (album.owner.id !== userID &&
+                    !!album.sharedAt &&
+                    f.collectionAddedAt! <= album.sharedAt)
+            );
+        })
         .sort(
             (a, b) =>
                 b.collectionAddedAt! - a.collectionAddedAt! || b.id - a.id,

@@ -4,12 +4,16 @@ import log from "ente-base/log";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GallerySectionProps } from "../types";
 
-export const useFeed = (library: GallerySectionProps["library"]) => {
+export const useFeed = (
+    library: GallerySectionProps["library"],
+    onRemotePull: GallerySectionProps["operations"]["onRemotePull"],
+) => {
     const userID = library.user!.id;
     const [socialByCollection, setSocialByCollection] = useState<
         Record<number, FeedSocialData>
     >({});
     const [refreshing, setRefreshing] = useState(true);
+    const [syncingLibrary, setSyncingLibrary] = useState(false);
     const [failed, setFailed] = useState(false);
     const [revision, setRevision] = useState(0);
     const [limit, setLimit] = useState(50);
@@ -69,9 +73,22 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
         ],
     );
 
-    const refresh = useCallback(() => {
-        setRevision((value) => value + 1);
-    }, []);
+    const refresh = useCallback(async () => {
+        setSyncingLibrary(true);
+        try {
+            await onRemotePull({
+                silent: true,
+                strict: true,
+                source: "feed-refresh",
+            });
+            setRevision((value) => value + 1);
+        } catch (error) {
+            log.warn("Could not refresh Feed library", error);
+            setFailed(true);
+        } finally {
+            setSyncingLibrary(false);
+        }
+    }, [onRemotePull]);
     const loadMore = useCallback(
         () => setLimit((value) => Math.min(500, value + 50)),
         [],
@@ -81,7 +98,7 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
         hasMore: items.length > limit,
         loadMore,
         socialByCollection,
-        refreshing,
+        refreshing: refreshing || syncingLibrary,
         failed,
         refresh,
     };

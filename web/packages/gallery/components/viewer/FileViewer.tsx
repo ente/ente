@@ -162,6 +162,7 @@ export type FileViewerProps = ModalVisibilityProps & {
     disableEscapeClose?: boolean;
     enableComment?: boolean;
     isCommentsFeatureEnabled?: boolean;
+    hasSocialActivity?: boolean;
 } & Pick<
         FileInfoProps,
         "collectionNameByID" | "onSelectCollection" | "onSelectPerson"
@@ -204,6 +205,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     shouldCloseOnBrowserBack: shouldCloseOnBrowserBackOverride,
     disableEscapeClose = false,
     enableComment = true,
+    hasSocialActivity = false,
     isCommentsFeatureEnabled = true,
 }) => {
     const { onGenericError } = useBaseContext();
@@ -1055,6 +1057,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         if (!haveUser) return false;
         if (!enableComment) return false;
         if (!isCommentsFeatureEnabled) return false;
+        if (hasSocialActivity) return true;
         if (
             activeCollectionID &&
             activeCollectionID !== 0 &&
@@ -1068,6 +1071,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     }, [
         haveUser,
         enableComment,
+        hasSocialActivity,
         isCommentsFeatureEnabled,
         activeCollectionID,
         collectionSummaries,
