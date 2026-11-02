@@ -18,6 +18,9 @@ export const useFeed = (
     const [failed, setFailed] = useState(false);
     const [revision, setRevision] = useState(0);
     const [limit, setLimit] = useState(50);
+    useEffect(() => {
+        setLibraryFailed(false);
+    }, [library.remotePullRevision]);
     const collections = useMemo(
         () =>
             library.collections.filter(

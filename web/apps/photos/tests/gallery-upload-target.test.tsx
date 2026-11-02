@@ -63,6 +63,7 @@ const uploadTarget = (destination: GalleryDestination) => {
             {
                 state: { ...initialGalleryState, collections: [collection] },
                 searchIndexRevision: 0,
+                remotePullRevision: 0,
                 isFirstLoad: false,
                 dispatch: vi.fn(),
                 peopleState: undefined,
