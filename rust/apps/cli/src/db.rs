@@ -69,4 +69,21 @@ mod tests {
         assert!(!bytes.starts_with(b"SQLite format 3"));
         assert!(scratch(&path).is_err());
     }
+
+    #[test]
+    fn released_migrations_are_append_only() {
+        let hashes: Vec<u64> = MIGRATIONS
+            .iter()
+            .map(|script| {
+                script.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+                    (hash ^ u64::from(byte)).wrapping_mul(0x100_0000_01b3)
+                })
+            })
+            .collect();
+        assert_eq!(
+            hashes,
+            [8_546_364_548_145_080_129, 12_408_635_783_593_254_159],
+            "released migrations are append-only; add a new entry and record its hash"
+        );
+    }
 }

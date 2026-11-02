@@ -168,7 +168,10 @@ Fish loads a saved script on demand. Write it once, and again after upgrading:
 
 Prints the script to stdout, including when --json is set."
     )]
-    Completion { shell: Shell },
+    Completion {
+        #[arg(help = "Shell to generate the script for")]
+        shell: Shell,
+    },
     #[command(about = "Administer an Ente server", after_long_help = ADMIN_HELP)]
     Admin {
         #[command(flatten)]
@@ -1116,6 +1119,63 @@ impl App {
             Self::Photos => "io.ente.photos",
             Self::Locker => "io.ente.locker",
             Self::Auth => "io.ente.auth",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::command;
+
+    fn commands(command: &clap::Command, path: &str) -> Vec<(String, clap::Command)> {
+        let path = format!("{path} {}", command.get_name()).trim().to_owned();
+        let mut all = vec![(path.clone(), command.clone())];
+        for child in command.get_subcommands() {
+            all.extend(commands(child, &path));
+        }
+        all
+    }
+
+    #[test]
+    fn help_shape() {
+        let mut root = command();
+        root.build();
+        for (path, command) in commands(&root, "") {
+            let about = command
+                .get_about()
+                .map(ToString::to_string)
+                .unwrap_or_default();
+            assert!(
+                !about.is_empty() && !about.ends_with('.'),
+                "{path}: about {about:?}"
+            );
+            for arg in command.get_arguments() {
+                let help = arg
+                    .get_help()
+                    .or(arg.get_long_help())
+                    .map(ToString::to_string);
+                assert!(
+                    help.is_some_and(|help| !help.is_empty()),
+                    "{path}: {} has no help",
+                    arg.get_id()
+                );
+            }
+            let notes = [command.get_after_help(), command.get_after_long_help()]
+                .into_iter()
+                .flatten()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n");
+            let Some(examples) = notes.split("Examples:\n").nth(1) else {
+                continue;
+            };
+            assert!(
+                !command.has_subcommands(),
+                "{path}: group help carries examples"
+            );
+            for line in examples.lines().take_while(|line| !line.is_empty()) {
+                assert!(line.starts_with("  ente "), "{path}: example {line:?}");
+            }
         }
     }
 }

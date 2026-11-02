@@ -1,0 +1,12 @@
+{
+    "rust/apps/cli/tests/cli/export.rs": ["export_refills_transfers"],
+    "rust/apps/cli/tests/cli/export_maintenance.rs": [
+        "export_reports_progress_and_keeps_account_storage_while_workers_run"
+    ],
+    "rust/apps/cli/tests/cli/export_process.rs": ["wait_with_output"],
+    "rust/apps/cli/tests/cli/export_resources.rs": [
+        "export_many_records_unchanged_resource_check",
+        "measure"
+    ],
+    "rust/apps/cli/tests/cli/mail.rs": ["new"]
+}
