@@ -146,7 +146,6 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 				"headers": map[string]string{
 					"apns-push-type":  "alert",
 					"apns-priority":   "10",
-					"apns-topic":      "io.ente.frame",
 					"apns-expiration": strconv.FormatInt(gotime.Now().Add(24*gotime.Hour).Unix(), 10),
 				},
 				"payload": map[string]any{"aps": map[string]any{

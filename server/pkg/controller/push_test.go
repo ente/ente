@@ -220,7 +220,7 @@ func TestAlbumShareSendsEncryptedAlertToInternalIOS(t *testing.T) {
 	require.JSONEq(t, `{"eventType":"album_shared"}`, string(plaintext))
 	require.Equal(t, "alert", message.APNS.Headers["apns-push-type"])
 	require.Equal(t, "10", message.APNS.Headers["apns-priority"])
-	require.Equal(t, "io.ente.frame", message.APNS.Headers["apns-topic"])
+	require.NotContains(t, message.APNS.Headers, "apns-topic")
 	expiry, err := strconv.ParseInt(message.APNS.Headers["apns-expiration"], 10, 64)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, expiry, before)
