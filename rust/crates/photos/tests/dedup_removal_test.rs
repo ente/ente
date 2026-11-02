@@ -5,7 +5,9 @@ use ente_core::{
     crypto::{Key, Nonce, SecretKey, secretbox},
     http::{ApiConfig, Auth},
 };
-use ente_photos::dedup::{Addition, RemovalCollection, RemovalFile, RemovalPlan, execute_removal};
+use ente_photos::dedup::{
+    Addition, RemovalCollection, RemovalError, RemovalFile, RemovalPlan, execute_removal,
+};
 use mockito::{Matcher, Server};
 
 fn session(origin: String) -> Result<Session, ente_core::http::Error> {
@@ -202,6 +204,49 @@ async fn validates_every_file_before_the_first_mutation() {
 }
 
 #[tokio::test]
+async fn validates_later_additions_before_the_first_mutation() {
+    for invalid in ["collection", "file", "trashed file"] {
+        let mut server = Server::new_async().await;
+        let (mut plan, collections, files) = fixture();
+        match invalid {
+            "collection" => plan.additions[1].collection_id = 999,
+            "file" => plan.additions[1].file_ids.push(999),
+            "trashed file" => plan.additions[1].file_ids.push(2),
+            _ => unreachable!(),
+        }
+        let addition = server
+            .mock("POST", "/collections/add-files")
+            .expect(0)
+            .create_async()
+            .await;
+        let trash = server
+            .mock("POST", "/files/trash")
+            .expect(0)
+            .create_async()
+            .await;
+        let mut progress = Vec::new();
+        let error = execute_removal(
+            &session(server.url()).unwrap(),
+            &plan,
+            &collections,
+            &files,
+            |p| progress.push(p),
+        )
+        .await
+        .unwrap_err();
+        match invalid {
+            "collection" => assert!(matches!(error, RemovalError::MissingCollection(999))),
+            "file" => assert!(matches!(error, RemovalError::MissingFile(999))),
+            "trashed file" => assert!(matches!(error, RemovalError::InvalidPlan(_))),
+            _ => unreachable!(),
+        }
+        assert!(progress.is_empty(), "{invalid}");
+        addition.assert_async().await;
+        trash.assert_async().await;
+    }
+}
+
+#[tokio::test]
 async fn batches_requests_and_propagates_trash_failure_without_completion() {
     let mut server = Server::new_async().await;
     let collections = vec![RemovalCollection {
@@ -283,16 +328,38 @@ async fn batches_large_album_additions_before_trashing() {
     };
     let batches = Arc::new(Mutex::new(Vec::new()));
     let mut mocks = Vec::new();
-    for size in [1000, 1] {
+    for (start, size) in [(1, 1000), (1001, 1)] {
         let seen = batches.clone();
+        let collection_key = Key::from_bytes(*collections[0].key.as_bytes());
+        let expected_keys: Vec<_> = files[(start - 1)..(start - 1 + size)]
+            .iter()
+            .map(|file| *file.key.as_bytes())
+            .collect();
         mocks.push(
             server
                 .mock("POST", "/collections/add-files")
                 .match_request(move |r| {
                     let value: serde_json::Value =
                         serde_json::from_slice(r.body().unwrap()).unwrap();
-                    if value["files"].as_array().unwrap().len() != size {
+                    let batch = value["files"].as_array().unwrap();
+                    if batch.len() != size {
                         return false;
+                    }
+                    assert_eq!(value["collectionID"], 11);
+                    for (index, (file, expected_key)) in
+                        batch.iter().zip(&expected_keys).enumerate()
+                    {
+                        assert_eq!(file["id"], start + index);
+                        let plaintext = secretbox::decrypt(
+                            &b64::decode(file["encryptedKey"].as_str().unwrap()).unwrap(),
+                            &Nonce::try_from_slice(
+                                &b64::decode(file["keyDecryptionNonce"].as_str().unwrap()).unwrap(),
+                            )
+                            .unwrap(),
+                            &collection_key,
+                        )
+                        .unwrap();
+                        assert_eq!(&plaintext, expected_key);
                     }
                     seen.lock().unwrap().push(size);
                     true

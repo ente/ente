@@ -98,7 +98,7 @@ pub async fn execute_removal(
         let collection = collections
             .get(&addition.collection_id)
             .ok_or(RemovalError::MissingCollection(addition.collection_id))?;
-        let mut wrapped = Vec::with_capacity(addition.file_ids.len());
+        let mut addition_files = Vec::with_capacity(addition.file_ids.len());
         for id in &addition.file_ids {
             if trash_ids.contains(id) {
                 return Err(RemovalError::InvalidPlan(
@@ -106,14 +106,9 @@ pub async fn execute_removal(
                 ));
             }
             let file = files.get(id).ok_or(RemovalError::MissingFile(*id))?;
-            let encrypted = secretbox::encrypt(file.key.as_bytes(), &collection.key);
-            wrapped.push(WrappedFile {
-                id: *id,
-                encrypted_key: b64::encode(&encrypted.encrypted_data),
-                key_decryption_nonce: b64::encode(encrypted.nonce.as_bytes()),
-            });
+            addition_files.push(*file);
         }
-        additions.push((addition.collection_id, wrapped));
+        additions.push((*collection, addition_files));
     }
     let items = plan
         .trash_ids
@@ -129,14 +124,25 @@ pub async fn execute_removal(
 
     let total = additions.len() + usize::from(!items.is_empty());
     let mut completed = 0;
-    for (collection_id, files) in &additions {
+    for (collection, files) in additions {
         for batch in files.chunks(REQUEST_BATCH_SIZE) {
+            let wrapped: Vec<_> = batch
+                .iter()
+                .map(|file| {
+                    let encrypted = secretbox::encrypt(file.key.as_bytes(), &collection.key);
+                    WrappedFile {
+                        id: file.id,
+                        encrypted_key: b64::encode(&encrypted.encrypted_data),
+                        key_decryption_nonce: b64::encode(encrypted.nonce.as_bytes()),
+                    }
+                })
+                .collect();
             session
                 .api
                 .post("/collections/add-files")
                 .json(&AddFiles {
-                    collection_id: *collection_id,
-                    files: batch,
+                    collection_id: collection.id,
+                    files: &wrapped,
                 })
                 .send()
                 .await?
