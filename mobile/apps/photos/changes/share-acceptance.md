@@ -1,0 +1,1 @@
+- Review and accept album invitations, and see when your shared albums are awaiting approval.

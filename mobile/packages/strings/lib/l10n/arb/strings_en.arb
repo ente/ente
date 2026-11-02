@@ -5305,5 +5305,41 @@
     }
   },
   "notEnoughStorageTitle": "Not enough storage",
-  "notEnoughStorageBody": "You do not have enough free space on Ente to add new photos. Free up space or upgrade to keep adding."
+  "notEnoughStorageBody": "You do not have enough free space on Ente to add new photos. Free up space or upgrade to keep adding.",
+  "shareInviteTitle": "Accept invite?",
+  "shareInviteBody": "{inviter} wants to share the album “{album}” with you. Future albums {inviter} shares with you will be added automatically.",
+  "@shareInviteBody": {
+    "placeholders": {
+      "inviter": {
+        "type": "String"
+      },
+      "album": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptOtherShareInvitesBody": "Other pending albums from {inviter} will also be accepted.",
+  "@acceptOtherShareInvitesBody": {
+    "placeholders": {
+      "inviter": {
+        "type": "String"
+      }
+    }
+  },
+  "shareInviteFeedEntry": "{inviter} invited you to “{album}”.",
+  "@shareInviteFeedEntry": {
+    "placeholders": {
+      "inviter": {
+        "type": "String"
+      },
+      "album": {
+        "type": "String"
+      }
+    }
+  },
+  "unseenShareInvitesLabel": "New album invitations",
+  "shareInviteAccept": "Accept",
+  "shareInviteReject": "Reject",
+  "joinAlbumConfirmationTitle": "Join album?",
+  "publicAlbumJoinApprovalBody": "Albums shared with you by this album’s owner will be approved automatically."
 }

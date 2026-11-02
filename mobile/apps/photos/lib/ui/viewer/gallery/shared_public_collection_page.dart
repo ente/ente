@@ -1,6 +1,5 @@
 import "dart:async";
 
-import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
@@ -14,12 +13,11 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
-import "package:photos/services/collections_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/end_to_end_banner.dart";
 import "package:photos/ui/components/models/button_type.dart";
-import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/sharing/widgets/public_album_join_confirmation.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
@@ -55,6 +53,7 @@ class _SharedPublicCollectionPageState
   final _selectedFiles = SelectedFiles();
   final galleryType = GalleryType.sharedPublicCollection;
   final logger = Logger("SharedPublicCollectionPage");
+  bool _isJoining = false;
   @override
   void initState() {
     super.initState();
@@ -62,53 +61,10 @@ class _SharedPublicCollectionPageState
 
     if (widget.shouldShowJoinDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showJoinDialog();
-      });
-    }
-  }
-
-  Future<void> _showJoinDialog() async {
-    final result = await showChoiceDialog(
-      context,
-      title: context.strings.joinAlbum,
-      body: context.strings.joinAlbumConfirmationDialogBody,
-      firstButtonLabel: context.strings.join,
-    );
-    if (result != null && result.action == ButtonAction.first) {
-      if (!mounted) return;
-      final dialog = createProgressDialog(
-        context,
-        context.strings.pleaseWait,
-        isDismissible: true,
-      );
-      await dialog.show();
-      try {
-        if (!mounted) {
-          await dialog.hide();
-          return;
+        if (mounted) {
+          _joinAlbum();
         }
-        await RemoteSyncService.instance.joinAndSyncCollection(
-          context,
-          widget.c.collection.id,
-        );
-        final c = CollectionsService.instance.getCollectionByID(
-          widget.c.collection.id,
-        );
-        await dialog.hide();
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        if (!mounted) return;
-        await routeToPage(
-          context,
-          CollectionPage(CollectionWithThumbnail(c!, null)),
-          useFadeTransition: true,
-        );
-      } catch (e, s) {
-        logger.severe("Failed to join public album", e, s);
-        await dialog.hide();
-        if (!mounted) return;
-        await showGenericErrorDialog(context: context, error: e);
-      }
+      });
     }
   }
 
@@ -217,14 +173,11 @@ class _SharedPublicCollectionPageState
   }
 
   Future<void> _joinAlbum() async {
-    final result = await showChoiceDialog(
-      context,
-      title: context.strings.joinAlbum,
-      body: context.strings.joinAlbumConfirmationDialogBody,
-      firstButtonLabel: context.strings.join,
-    );
-    if (result != null && result.action == ButtonAction.first) {
-      if (!mounted) return;
+    if (_isJoining) return;
+    _isJoining = true;
+    try {
+      final confirmed = await showPublicAlbumJoinConfirmation(context);
+      if (!confirmed || !mounted) return;
       final dialog = createProgressDialog(
         context,
         context.strings.pleaseWait,
@@ -236,28 +189,24 @@ class _SharedPublicCollectionPageState
           await dialog.hide();
           return;
         }
-        await RemoteSyncService.instance.joinAndSyncCollection(
-          context,
-          widget.c.collection.id,
-        );
-        final c = CollectionsService.instance.getCollectionByID(
-          widget.c.collection.id,
-        );
+        final collection = await RemoteSyncService.instance
+            .joinAndSyncCollection(context, widget.c.collection.id);
         await dialog.hide();
         if (!mounted) return;
-        Navigator.of(context).pop();
-        if (!mounted) return;
-        await routeToPage(
-          context,
-          CollectionPage(CollectionWithThumbnail(c!, null)),
-          useFadeTransition: true,
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                CollectionPage(CollectionWithThumbnail(collection, null)),
+          ),
         );
-      } catch (e, s) {
-        logger.severe("Failed to join collection", e, s);
+      } catch (error, stack) {
+        logger.severe("Failed to join public album", error, stack);
         await dialog.hide();
         if (!mounted) return;
-        showToast(context, context.strings.somethingWentWrong);
+        await showGenericErrorBottomSheet(context: context, error: error);
       }
+    } finally {
+      _isJoining = false;
     }
   }
 }

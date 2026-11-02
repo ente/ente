@@ -20,6 +20,7 @@ import 'package:photos/events/local_photos_updated_event.dart';
 import 'package:photos/events/sync_status_update_event.dart';
 import 'package:photos/extensions/logger_extension.dart';
 import 'package:photos/main.dart' show isProcessBg;
+import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
 import 'package:photos/models/file/extensions/file_props.dart';
 import 'package:photos/models/file/file.dart';
@@ -42,6 +43,7 @@ import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import 'package:photos/utils/network_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:synchronized/synchronized.dart';
 
 class RemoteSyncService {
   final _logger = Logger("RemoteSyncService");
@@ -53,6 +55,7 @@ class RemoteSyncService {
   final PhotoManagerPlugin _photoManagerPlugin = PhotoManagerPlugin();
   final LocalFileUpdateService _localFileUpdateService =
       LocalFileUpdateService.instance;
+  final _pullLock = Lock();
   int _completedUploads = 0;
   int _ignoredUploads = 0;
   late SharedPreferences _prefs;
@@ -238,7 +241,9 @@ class RemoteSyncService {
     return false;
   }
 
-  Future<void> _pullDiff() async {
+  Future<void> _pullDiff() => _pullLock.synchronized(_pullDiffLocked);
+
+  Future<void> _pullDiffLocked() async {
     _logger.info("Pulling remote diff");
     final isFirstSync = !_collectionsService.hasSyncedCollections();
     if (isFirstSync && !_isExistingSyncSilent) {
@@ -265,10 +270,7 @@ class RemoteSyncService {
     final Map<int, int> idsToRemoteUpdationTimeMap,
   ) async {
     for (final cid in idsToRemoteUpdationTimeMap.keys) {
-      await _syncCollectionDiff(
-        cid,
-        _collectionsService.getCollectionSyncTime(cid),
-      );
+      await _syncCollection(cid);
       // Collection metadata can advance remote time without a file diff.
       final remoteUpdateTime = idsToRemoteUpdationTimeMap[cid];
       await _collectionsService.setCollectionSyncTime(cid, remoteUpdateTime);
@@ -287,6 +289,25 @@ class RemoteSyncService {
         resetSyncTime,
       );
       await _collectionsService.setCollectionSyncTime(c.id, newSyncTime);
+    }
+  }
+
+  Future<void> _syncCollection(int collectionID) async {
+    final resyncGeneration = _collectionsService.getCollectionResyncGeneration(
+      collectionID,
+    );
+    await _syncCollectionDiff(
+      collectionID,
+      resyncGeneration != null
+          ? 0
+          : _collectionsService.getCollectionSyncTime(collectionID),
+    );
+    if (resyncGeneration != null) {
+      // An older pull must not clear a reset requested while it was running.
+      await _collectionsService.completeCollectionResync(
+        collectionID,
+        resyncGeneration,
+      );
     }
   }
 
@@ -341,13 +362,36 @@ class RemoteSyncService {
     _logger.info("[Collection-$collectionID] synced");
   }
 
-  Future<void> joinAndSyncCollection(
+  Future<Collection> joinAndSyncCollection(
     BuildContext context,
     int collectionID,
   ) async {
-    await _collectionsService.joinPublicCollection(context, collectionID);
-    await _collectionsService.sync();
-    await _syncCollectionDiff(collectionID, 0);
+    final collection = await _collectionsService.joinPublicCollection(
+      context,
+      collectionID,
+    );
+    unawaited(
+      syncAcceptedCollection(collectionID).catchError((
+        Object error,
+        StackTrace stack,
+      ) {
+        _logger.warning('Could not sync joined album', error, stack);
+      }),
+    );
+    return collection;
+  }
+
+  Future<void> syncAcceptedCollection(int collectionID) async {
+    final userID = _config.getUserID();
+    await _pullLock.synchronized(() async {
+      if (!_config.hasConfiguredAccount() || userID != _config.getUserID()) {
+        return;
+      }
+      final collection = _collectionsService.getCollectionByID(collectionID);
+      if (collection == null || collection.isDeleted) return;
+      await _syncCollection(collectionID);
+    });
+    if (userID == _config.getUserID()) await sync(silently: true);
   }
 
   Future<void> _syncCollectionDiffDelete(Diff diff, int collectionID) async {
