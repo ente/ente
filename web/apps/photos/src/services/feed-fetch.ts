@@ -1,6 +1,4 @@
-import { getKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
-import { apiOrigin } from "ente-base/origins";
 import type { Collection } from "ente-media/collection";
 import {
     getAnonProfiles,
@@ -10,31 +8,8 @@ import {
 import { emptyFeedSocialData, type FeedSocialData } from "./feed";
 
 export interface FeedSnapshot {
-    version: 1;
-    sharedPhotoCutoff: number;
     collections: Record<number, FeedSocialData>;
 }
-
-const storageKey = async (userID: number) =>
-    `photos-feed:v1:${await apiOrigin()}:${userID}`;
-
-export const readFeedSnapshot = async (
-    userID: number,
-    signal?: AbortSignal,
-): Promise<FeedSnapshot> => {
-    const key = await storageKey(userID);
-    const saved = (await getKV(key)) as FeedSnapshot | undefined;
-    if (saved?.version === 1) return saved;
-    const initial: FeedSnapshot = {
-        version: 1,
-        sharedPhotoCutoff: Date.now() * 1000,
-        collections: {},
-    };
-    // Keep the rollout boundary stable even if the initial network sync fails.
-    signal?.throwIfAborted();
-    await setKV(key, initial);
-    return initial;
-};
 
 const mergeRecords = <T extends { id: string; isDeleted: boolean }>(
     existing: T[],
@@ -49,23 +24,14 @@ const mergeRecords = <T extends { id: string; isDeleted: boolean }>(
     return [...records.values()];
 };
 
-/** Sync whole collections, with independent cursors and tombstone handling. */
-export const syncFeedSnapshot = async (
-    userID: number,
+/** Fetch activity from the beginning on every refresh; keep it in memory only. */
+export const fetchFeedSnapshot = async (
     albums: readonly Collection[],
-    snapshot: FeedSnapshot,
     signal: AbortSignal,
 ): Promise<{ snapshot: FeedSnapshot; failed: boolean }> => {
     const updates = await getSocialUpdates(signal);
     const albumsByID = new Map(albums.map((album) => [album.id, album]));
-    const next: FeedSnapshot = {
-        ...snapshot,
-        collections: Object.fromEntries(
-            Object.entries(snapshot.collections).filter(([id]) =>
-                albumsByID.has(Number(id)),
-            ),
-        ),
-    };
+    const next: FeedSnapshot = { collections: {} };
     let failed = false;
     // Limit concurrent decryption and requests for accounts with many albums.
     const pending = updates.filter((update) =>
@@ -77,21 +43,14 @@ export const syncFeedSnapshot = async (
             signal.throwIfAborted();
             const update = pending[index++]!;
             const album = albumsByID.get(update.collectionID)!;
-            let data = next.collections[album.id] ?? emptyFeedSocialData();
+            let data = emptyFeedSocialData();
             try {
                 if (
-                    (update.commentsUpdatedAt ?? 0) > data.commentsUpdatedAt ||
-                    (update.reactionsUpdatedAt ?? 0) > data.reactionsUpdatedAt
+                    (update.commentsUpdatedAt ?? 0) > 0 ||
+                    (update.reactionsUpdatedAt ?? 0) > 0
                 ) {
-                    // Overlap the boundary to reconcile edits at equal timestamps.
-                    let commentsSinceTime = Math.max(
-                        0,
-                        data.commentsUpdatedAt - 1,
-                    );
-                    let reactionsSinceTime = Math.max(
-                        0,
-                        data.reactionsUpdatedAt - 1,
-                    );
+                    let commentsSinceTime = 0;
+                    let reactionsSinceTime = 0;
                     for (;;) {
                         signal.throwIfAborted();
                         const diff = await getCollectionSocialDiff(
@@ -112,14 +71,6 @@ export const syncFeedSnapshot = async (
                                 data.reactions,
                                 diff.reactions,
                             ),
-                            commentsUpdatedAt: Math.max(
-                                data.commentsUpdatedAt,
-                                diff.commentsUpdatedAt,
-                            ),
-                            reactionsUpdatedAt: Math.max(
-                                data.reactionsUpdatedAt,
-                                diff.reactionsUpdatedAt,
-                            ),
                         };
                         if (!diff.hasMoreComments && !diff.hasMoreReactions)
                             break;
@@ -137,22 +88,18 @@ export const syncFeedSnapshot = async (
                         reactionsSinceTime = diff.reactionsUpdatedAt;
                     }
                 }
-                if (
-                    (update.anonProfilesUpdatedAt ?? 0) >
-                    data.anonProfilesUpdatedAt
-                ) {
+                if ((update.anonProfilesUpdatedAt ?? 0) > 0) {
                     data = {
                         ...data,
                         anonNames: Object.fromEntries(
                             await getAnonProfiles(album.id, album.key, signal),
                         ),
-                        anonProfilesUpdatedAt: update.anonProfilesUpdatedAt!,
                     };
                 }
                 next.collections[album.id] = data;
             } catch (error) {
                 signal.throwIfAborted();
-                // Keep the previous collection snapshot and cursors on failure.
+                // Discard incomplete albums so partial pages never reach the Feed.
                 failed = true;
                 log.warn("Could not refresh album activity", error);
             }
@@ -161,8 +108,6 @@ export const syncFeedSnapshot = async (
     await Promise.all(
         Array.from({ length: Math.min(3, pending.length) }, worker),
     );
-    const key = await storageKey(userID);
     signal.throwIfAborted();
-    await setKV(key, next);
     return { snapshot: next, failed };
 };

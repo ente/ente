@@ -1215,7 +1215,7 @@
     "feed_added_memories_other": "added {{count}} memories to <strong>{{album}}</strong>",
     "feed_open_album": "Open {{album}}",
     "feed_open_file": "Open {{title}}",
-    "feed_refresh_failed": "Could not refresh all activity. Your saved activity is still available.",
+    "feed_refresh_failed": "Could not refresh all activity. Please try again.",
     "feed_empty_title": "Share your memories",
     "feed_empty_description": "Loved ones can view, react and add comments, without an account.",
     "feed_share_album": "Share an album",

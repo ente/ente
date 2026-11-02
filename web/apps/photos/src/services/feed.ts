@@ -36,18 +36,12 @@ export interface FeedSocialData {
     comments: Comment[];
     reactions: UnifiedReaction[];
     anonNames: Record<string, string>;
-    commentsUpdatedAt: number;
-    reactionsUpdatedAt: number;
-    anonProfilesUpdatedAt: number;
 }
 
 export const emptyFeedSocialData = (): FeedSocialData => ({
     comments: [],
     reactions: [],
     anonNames: {},
-    commentsUpdatedAt: 0,
-    reactionsUpdatedAt: 0,
-    anonProfilesUpdatedAt: 0,
 });
 
 export const feedActorKey = (actor: FeedActor) =>

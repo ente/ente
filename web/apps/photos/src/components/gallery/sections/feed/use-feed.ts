@@ -1,10 +1,5 @@
 import { buildFeedItems } from "@/services/feed";
-import {
-    readFeedSnapshot,
-    syncFeedSnapshot,
-    type FeedSnapshot,
-} from "@/services/feed-sync";
-import { isDevBuild } from "ente-base/env";
+import { fetchFeedSnapshot, type FeedSnapshot } from "@/services/feed-fetch";
 import log from "ente-base/log";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GallerySectionProps } from "../types";
@@ -31,15 +26,7 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
             setRefreshing(true);
             setFailed(false);
             try {
-                const cached = await readFeedSnapshot(userID, signal);
-                if (signal.aborted) return;
-                setSnapshot(cached);
-                const result = await syncFeedSnapshot(
-                    userID,
-                    collections,
-                    cached,
-                    signal,
-                );
+                const result = await fetchFeedSnapshot(collections, signal);
                 signal.throwIfAborted();
                 setSnapshot(result.snapshot);
                 setFailed(result.failed);
@@ -67,9 +54,6 @@ export const useFeed = (library: GallerySectionProps["library"]) => {
                     ...library.tempHiddenFileIDs,
                     ...library.tempDeletedFileIDs,
                 ]),
-                sharedPhotoCutoff: isDevBuild
-                    ? 0
-                    : (snapshot?.sharedPhotoCutoff ?? Date.now() * 1000),
             }),
         [
             userID,
