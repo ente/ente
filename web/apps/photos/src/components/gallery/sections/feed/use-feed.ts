@@ -14,6 +14,7 @@ export const useFeed = (
     >({});
     const [refreshing, setRefreshing] = useState(true);
     const [syncingLibrary, setSyncingLibrary] = useState(false);
+    const [libraryFailed, setLibraryFailed] = useState(false);
     const [failed, setFailed] = useState(false);
     const [revision, setRevision] = useState(0);
     const [limit, setLimit] = useState(50);
@@ -26,6 +27,7 @@ export const useFeed = (
     );
 
     useEffect(() => {
+        if (syncingLibrary) return;
         const controller = new AbortController();
         const { signal } = controller;
         void (async () => {
@@ -45,7 +47,7 @@ export const useFeed = (
             }
         })();
         return () => controller.abort();
-    }, [userID, collections, revision]);
+    }, [userID, collections, revision, syncingLibrary]);
 
     const items = useMemo(
         () =>
@@ -75,17 +77,18 @@ export const useFeed = (
 
     const refresh = useCallback(async () => {
         setSyncingLibrary(true);
+        setLibraryFailed(false);
         try {
             await onRemotePull({
                 silent: true,
                 strict: true,
                 source: "feed-refresh",
             });
-            setRevision((value) => value + 1);
         } catch (error) {
             log.warn("Could not refresh Feed library", error);
-            setFailed(true);
+            setLibraryFailed(true);
         } finally {
+            setRevision((value) => value + 1);
             setSyncingLibrary(false);
         }
     }, [onRemotePull]);
@@ -99,7 +102,7 @@ export const useFeed = (
         loadMore,
         socialByCollection,
         refreshing: refreshing || syncingLibrary,
-        failed,
+        failed: failed || libraryFailed,
         refresh,
     };
 };
