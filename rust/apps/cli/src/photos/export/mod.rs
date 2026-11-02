@@ -64,7 +64,8 @@ async fn run_locked(args: PhotosExportArgs, selected: Option<&str>, as_json: boo
         !export.exists() || db_path.try_exists()? || args.adopt,
         "this export is not associated with this CLI home; use --adopt"
     );
-    home::create(db_path.parent().context("export DB has no parent")?)?;
+    let db_dir = db_path.parent().context("export DB has no parent")?;
+    home::create(db_dir)?;
     let connection = db::connect(&db_path, &account.db_key, true)?;
     let (cancel_send, mut cancel) = watch::channel(false);
     let signal_send = cancel_send.clone();
@@ -80,7 +81,11 @@ async fn run_locked(args: PhotosExportArgs, selected: Option<&str>, as_json: boo
         export
             .prepare(
                 connection,
-                db::scratch,
+                || {
+                    let directory = tempfile::tempdir_in(db_dir)?;
+                    let connection = db::scratch(&directory.path().join("index.db"))?;
+                    Ok((directory, connection))
+                },
                 &mut source,
                 &session,
                 &mut cancel,
