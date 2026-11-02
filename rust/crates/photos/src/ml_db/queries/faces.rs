@@ -184,6 +184,35 @@ impl MlDb {
         Ok(result)
     }
 
+    pub(crate) fn for_each_face_embedding_for_clusters(
+        &self,
+        cluster_ids: &[String],
+        mut visit: impl FnMut(String, Vec<u8>),
+    ) -> Result<()> {
+        let cluster_ids = unique_in_order(cluster_ids);
+        self.db
+            .read(|connection| {
+                for chunk in cluster_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY) {
+                    let sql = format!(
+                        r#"
+                        SELECT fc.cluster_id, fe.embedding
+                        FROM face_clusters fc
+                        INNER JOIN faces fe ON fc.face_id = fe.face_id
+                        WHERE fc.cluster_id IN ({})
+                        "#,
+                        bind_placeholders(chunk.len())
+                    );
+                    let mut statement = connection.prepare_cached(&sql)?;
+                    for row in statement.query_map(params_from_iter(chunk), pair)? {
+                        let (cluster_id, embedding) = row?;
+                        visit(cluster_id, embedding);
+                    }
+                }
+                Ok(())
+            })
+            .map_err(Into::into)
+    }
+
     pub fn get_cover_face_for_person(
         &self,
         recent_file_id: i64,

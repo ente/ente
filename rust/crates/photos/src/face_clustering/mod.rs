@@ -104,14 +104,19 @@ pub(crate) fn new_cluster_id() -> String {
     format!("{CLUSTER_ID_PREFIX}{suffix}")
 }
 
-#[cfg(any(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
 pub(crate) fn normalized_mean(embeddings: &[Vec<f32>]) -> Option<Vec<f32>> {
     let (first, rest) = embeddings.split_first()?;
     let mut sum = first.clone();
     for embedding in rest {
         add_scaled(&mut sum, embedding, 1.0);
     }
-    Some(normalized(scaled(sum, 1.0 / embeddings.len() as f64)))
+    Some(normalized_mean_from_sum(sum, embeddings.len()))
+}
+
+#[cfg(any(test, not(target_arch = "wasm32")))]
+pub(crate) fn normalized_mean_from_sum(sum: Vec<f32>, count: usize) -> Vec<f32> {
+    normalized(scaled(sum, 1.0 / count as f64))
 }
 
 pub(crate) fn weighted_sum(terms: &[(&[f32], f64)]) -> Option<Vec<f32>> {

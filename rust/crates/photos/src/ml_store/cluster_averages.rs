@@ -4,17 +4,53 @@ use std::collections::{HashMap, HashSet};
 use super::clustering::{clusterable_embedding, is_clusterable, summaries};
 use super::fill::decode_centroid;
 use super::{Error, Index, Match, MlStore, Result, SearchParams};
-use crate::face_clustering::{ClusterMean, distance, normalized_mean};
+use crate::face_clustering::{ClusterMean, distance, normalized_mean_from_sum};
 
 const MAX_CLUSTERS_PER_REFRESH: usize = 500;
 const MAX_EMBEDDINGS_PER_REFRESH: i64 = 10_000;
 const MAX_MEAN_SUGGESTIONS: usize = 20;
+const SUMMARY_READ_BATCH_SIZE: usize = 500;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MeanSuggestion {
     pub cluster_id: String,
     pub distance: f64,
     pub person_cluster_id: String,
+}
+
+#[derive(Default)]
+struct ClusterAverage {
+    sum: Vec<f32>,
+    valid_count: usize,
+    count: usize,
+}
+
+impl ClusterAverage {
+    fn add(&mut self, embedding: &[u8]) {
+        self.count += 1;
+        let Some(embedding) = clusterable_embedding(embedding) else {
+            return;
+        };
+        if self.valid_count == 0 {
+            self.sum = embedding;
+        } else {
+            for (sum, value) in self.sum.iter_mut().zip(embedding) {
+                *sum += value;
+            }
+        }
+        self.valid_count += 1;
+    }
+
+    fn into_mean(self) -> Option<ClusterMean> {
+        if self.valid_count == 0 {
+            return None;
+        }
+        let mean = normalized_mean_from_sum(self.sum, self.valid_count);
+        is_clusterable(&mean).then_some(ClusterMean {
+            mean,
+            count: self.count,
+        })
+    }
 }
 
 impl MlStore {
@@ -24,17 +60,26 @@ impl MlStore {
         ignored_cluster_ids: &HashSet<String>,
         min_cluster_size: i64,
     ) -> Result<HashSet<String>> {
-        let summaries_by_id = self.db.get_all_cluster_summary(Some(min_cluster_size))?;
         let mut averaged = HashSet::new();
         let mut stale = Vec::new();
-        for (cluster_id, &face_count) in cluster_face_counts {
-            let current = summaries_by_id.get(cluster_id).is_some_and(|summary| {
-                summary.count == face_count && decode_centroid(cluster_id, &summary.avg).is_some()
-            });
-            if current {
-                averaged.insert(cluster_id.clone());
-            } else if face_count >= min_cluster_size && !ignored_cluster_ids.contains(cluster_id) {
-                stale.push((cluster_id.clone(), face_count));
+        let cluster_ids: Vec<String> = cluster_face_counts
+            .iter()
+            .filter(|&(_, &face_count)| face_count >= min_cluster_size)
+            .map(|(cluster_id, _)| cluster_id.clone())
+            .collect();
+        for chunk in cluster_ids.chunks(SUMMARY_READ_BATCH_SIZE) {
+            let summaries = self.db.get_cluster_to_cluster_summary(chunk)?;
+            for cluster_id in chunk {
+                let face_count = cluster_face_counts[cluster_id];
+                let current = summaries.get(cluster_id).is_some_and(|summary| {
+                    summary.count == face_count
+                        && decode_centroid(cluster_id, &summary.avg).is_some()
+                });
+                if current {
+                    averaged.insert(cluster_id.clone());
+                } else if !ignored_cluster_ids.contains(cluster_id) {
+                    stale.push((cluster_id.clone(), face_count));
+                }
             }
         }
         let means = self.average_clusters(&largest_within_budget(stale))?;
@@ -91,20 +136,18 @@ impl MlStore {
         max_distance: f64,
         ignored_by_person_cluster: &HashMap<String, HashSet<String>>,
     ) -> Result<Vec<MeanSuggestion>> {
-        let cluster_ids: Vec<String> = person_cluster_ids
-            .iter()
-            .chain(candidate_cluster_ids)
-            .cloned()
-            .collect();
-        let centroids = self.cluster_centroids(&cluster_ids)?;
+        let centroids = self.cluster_centroids(person_cluster_ids)?;
         let person_centroids: Vec<(&String, &Vec<f32>)> = person_cluster_ids
             .iter()
             .filter_map(|cluster_id| Some((cluster_id, centroids.get(cluster_id)?)))
             .collect();
-        let mut suggestions: Vec<MeanSuggestion> = candidate_cluster_ids
-            .iter()
-            .filter_map(|candidate_id| {
-                let candidate = centroids.get(candidate_id)?;
+        let mut suggestions: Vec<MeanSuggestion> = Vec::new();
+        for chunk in candidate_cluster_ids.chunks(SUMMARY_READ_BATCH_SIZE) {
+            let candidates = self.cluster_centroids(chunk)?;
+            for candidate_id in chunk {
+                let Some(candidate) = candidates.get(candidate_id) else {
+                    continue;
+                };
                 let mut nearest: Option<(&String, f64)> = None;
                 for &(person_cluster_id, person_centroid) in &person_centroids {
                     if ignored_by_person_cluster
@@ -118,32 +161,36 @@ impl MlStore {
                         nearest = Some((person_cluster_id, distance));
                     }
                 }
-                nearest.map(|(person_cluster_id, distance)| MeanSuggestion {
-                    cluster_id: candidate_id.clone(),
-                    distance,
-                    person_cluster_id: person_cluster_id.clone(),
-                })
-            })
-            .collect();
-        suggestions.sort_by(|a, b| a.distance.total_cmp(&b.distance));
-        suggestions.truncate(MAX_MEAN_SUGGESTIONS);
+                if let Some((person_cluster_id, distance)) = nearest {
+                    let position = suggestions.partition_point(|suggestion| {
+                        suggestion.distance.total_cmp(&distance).is_le()
+                    });
+                    if position < MAX_MEAN_SUGGESTIONS {
+                        suggestions.insert(
+                            position,
+                            MeanSuggestion {
+                                cluster_id: candidate_id.clone(),
+                                distance,
+                                person_cluster_id: person_cluster_id.clone(),
+                            },
+                        );
+                        suggestions.truncate(MAX_MEAN_SUGGESTIONS);
+                    }
+                }
+            }
+        }
         Ok(suggestions)
     }
 
     fn average_clusters(&self, cluster_ids: &[String]) -> Result<HashMap<String, ClusterMean>> {
-        Ok(self
-            .db
-            .get_face_embeddings_for_clusters(cluster_ids, None)?
+        let mut averages: HashMap<String, ClusterAverage> = HashMap::new();
+        self.db
+            .for_each_face_embedding_for_clusters(cluster_ids, |cluster_id, embedding| {
+                averages.entry(cluster_id).or_default().add(&embedding);
+            })?;
+        Ok(averages
             .into_iter()
-            .filter_map(|(cluster_id, embeddings)| {
-                let valid: Vec<Vec<f32>> = embeddings
-                    .iter()
-                    .filter_map(|embedding| clusterable_embedding(embedding))
-                    .collect();
-                let mean = normalized_mean(&valid).filter(|mean| is_clusterable(mean))?;
-                let count = embeddings.len();
-                Some((cluster_id, ClusterMean { mean, count }))
-            })
+            .filter_map(|(cluster_id, average)| Some((cluster_id, average.into_mean()?)))
             .collect())
     }
 
@@ -291,6 +338,28 @@ mod tests {
             .get_cluster_to_cluster_summary(&ids(&["ignored_stale", "small", "large"]))
             .unwrap();
         assert_eq!(refreshed.keys().collect::<Vec<_>>(), ["large"]);
+    }
+
+    #[test]
+    fn refreshing_excludes_current_small_clusters_and_recomputes_eligible_stale_counts() {
+        let (_directory, store) = open();
+        seed(&store, &[(1, 0.0), (2, 0.0), (3, 90.0)]);
+        assign(&store, &[(1, "small"), (2, "stale"), (3, "stale")]);
+        store
+            .cluster_summary_update(&HashMap::from([
+                ("small".to_owned(), summary(30.0, 1)),
+                ("stale".to_owned(), summary(0.0, 1)),
+            ]))
+            .unwrap();
+
+        assert_eq!(refresh(&store, &[], 2), id_set(&["stale"]));
+
+        let (mean, count) = summary_of(&store, "small");
+        assert_eq!(count, 1);
+        assert_direction(&mean, 30.0);
+        let (mean, count) = summary_of(&store, "stale");
+        assert_eq!(count, 2);
+        assert_direction(&mean, 45.0);
     }
 
     #[test]
@@ -492,5 +561,92 @@ mod tests {
         let found: Vec<&str> = suggestions.iter().map(|s| s.cluster_id.as_str()).collect();
         let expected: Vec<String> = (1..=20).map(|degrees| format!("c{degrees}")).collect();
         assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn warm_refresh_spans_summary_batches_and_excludes_invalid_summaries() {
+        let (_directory, store) = open();
+        let clusters: Vec<String> = (0..1100).map(|i| format!("c{i}")).collect();
+        let summaries: Vec<(&str, f64)> = clusters.iter().map(|id| (id.as_str(), 0.0)).collect();
+        put_summaries(&store, &summaries);
+        put_summaries(&store, &[("outside", 0.0)]);
+        store
+            .db()
+            .upsert_cluster_summary_rows(&HashMap::from([(
+                clusters[500].clone(),
+                ClusterSummary {
+                    avg: vec![255],
+                    count: 1,
+                },
+            )]))
+            .unwrap();
+        let counts = clusters.iter().map(|id| (id.clone(), 1)).collect();
+
+        let averaged = store
+            .refresh_cluster_averages(&counts, &HashSet::new(), 1)
+            .unwrap();
+
+        let expected = clusters.into_iter().filter(|id| id != "c500").collect();
+        assert_eq!(averaged, expected);
+    }
+
+    #[test]
+    fn oversized_refresh_matches_collected_mean_and_counts_invalid_rows() {
+        let (_directory, store) = open();
+        let mut faces: Vec<_> = (1..=10003).map(|id| face(id, (id % 17) as f64)).collect();
+        faces[0].embedding.truncate(3);
+        faces[1].embedding[0] = f64::NAN;
+        store.db().bulk_insert_faces(&faces).unwrap();
+        let assignments: Vec<_> = (1..=10003).map(|id| (id, "large")).collect();
+        assign(&store, &assignments);
+        let stored = store
+            .db()
+            .get_face_embeddings_for_clusters(&ids(&["large"]), None)
+            .unwrap();
+        let valid: Vec<_> = stored["large"]
+            .iter()
+            .filter_map(|embedding| crate::ml_store::clustering::clusterable_embedding(embedding))
+            .collect();
+        let expected = crate::face_clustering::normalized_mean(&valid).unwrap();
+
+        assert_eq!(refresh(&store, &[], 1), id_set(&["large"]));
+
+        let (mean, count) = summary_of(&store, "large");
+        assert_eq!(count, 10003);
+        assert_eq!(
+            mean,
+            expected.into_iter().map(f64::from).collect::<Vec<_>>()
+        );
+        assert_eq!(refresh(&store, &[], 1), id_set(&["large"]));
+    }
+
+    #[test]
+    fn mean_suggestions_preserve_ties_and_rejections_across_batches() {
+        let (_directory, store) = open();
+        let candidates: Vec<String> = (0..1100).map(|i| format!("c{i}")).collect();
+        let summaries: Vec<(&str, f64)> = candidates.iter().map(|id| (id.as_str(), 30.0)).collect();
+        put_summaries(&store, &summaries);
+        put_summaries(&store, &[("p1", 0.0), ("p2", 0.0), ("c1099", 1.0)]);
+        let ignored = HashMap::from([
+            ("p1".to_owned(), id_set(&["c1"])),
+            ("p2".to_owned(), id_set(&["c1"])),
+        ]);
+
+        let found = store
+            .suggest_clusters_by_mean(&ids(&["p2", "p1"]), &candidates, 0.5, &ignored)
+            .unwrap();
+
+        let expected: Vec<_> = ["c1099".to_owned()]
+            .into_iter()
+            .chain((0..20).filter(|&i| i != 1).map(|i| format!("c{i}")))
+            .collect();
+        assert_eq!(
+            found
+                .iter()
+                .map(|s| s.cluster_id.clone())
+                .collect::<Vec<_>>(),
+            expected
+        );
+        assert!(found.iter().all(|s| s.person_cluster_id == "p2"));
     }
 }
