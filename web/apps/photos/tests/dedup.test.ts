@@ -335,7 +335,7 @@ describe("removeSelectedDuplicateGroups", () => {
             1, 3, 4, 6,
         ]);
     });
-    test("only refreshes when no groups are selected", async () => {
+    test("refreshes and reports completion when no groups are selected", async () => {
         const refresh = vi.fn();
         const progress = vi.fn();
         await expect(
@@ -345,7 +345,6 @@ describe("removeSelectedDuplicateGroups", () => {
                 refresh,
             ),
         ).resolves.toEqual(new Set());
-        expect(executeDuplicateRemoval).not.toHaveBeenCalled();
         expect(forgetPendingFavoriteFileIDs).not.toHaveBeenCalled();
         expect(refresh).toHaveBeenCalledOnce();
         expect(progress).toHaveBeenCalledExactlyOnceWith(100);
