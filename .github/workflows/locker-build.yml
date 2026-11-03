@@ -12,7 +12,7 @@ on:
         - cron: "15 23 * * 0-4"
 
 permissions:
-    contents: write
+    contents: read
 
 concurrency:
     group: locker-build
@@ -292,6 +292,8 @@ jobs:
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
     finish-build:
+        permissions:
+            contents: write
         needs: [build-metadata, build-android, build-ios]
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
