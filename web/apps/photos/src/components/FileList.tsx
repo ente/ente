@@ -205,8 +205,6 @@ export const FileList: React.FC<FileListProps> = ({
         timeline.months.length > 0 &&
         timeline.totalHeight > height &&
         height > 64;
-    // react-window estimates unvisited row sizes. Keep the scroll surface exact
-    // so the scrubber can reach the oldest photos before those rows are visited.
     const innerElementType = useMemo(() => {
         if (!showScrubber) return undefined;
         const Inner = React.forwardRef<

@@ -9,7 +9,6 @@ export interface TimelineMonth {
     yearStart: boolean;
 }
 
-/** Index the rendered rows, including non-photo headers and footers. */
 export const createTimeline = (rows: TimelineRow[]) => {
     const offsets: number[] = [];
     const months: TimelineMonth[] = [];
@@ -38,7 +37,6 @@ export const createTimeline = (rows: TimelineRow[]) => {
 
 export type Timeline = ReturnType<typeof createTimeline>;
 
-/** Normalize wheel input without consuming horizontal gestures or pinch zoom. */
 export const wheelScrollDelta = (
     event: Pick<WheelEvent, "deltaY" | "deltaX" | "deltaMode" | "ctrlKey">,
     pageHeight: number,
@@ -50,7 +48,6 @@ export const wheelScrollDelta = (
     return event.deltaY * unit;
 };
 
-/** Find the first offset that is outside a sorted prefix. */
 const firstOffsetOutside = (
     offsets: number[],
     inPrefix: (offset: number) => boolean,
@@ -65,20 +62,17 @@ const firstOffsetOutside = (
     return low;
 };
 
-/** Last entry at or before the offset; shared rows use their first month. */
 export const indexAtOffset = (offsets: number[], offset: number) => {
     const end = firstOffsetOutside(offsets, (value) => value <= offset);
     if (end === 0) return 0;
     return firstOffsetOutside(offsets, (value) => value < offsets[end - 1]!);
 };
 
-/** Step between populated months, skipping duplicate targets on shared rows. */
 export const adjacentMonthOffset = (
     offsets: number[],
     offset: number,
     direction: "older" | "newer",
 ) => {
-    // Browsers round scrollTop while thumbnail rows have fractional heights.
     const roundedOffset = offset + 1;
     if (direction === "older") {
         const boundary = Math.max(roundedOffset, offsets[0] ?? 0);
@@ -91,7 +85,6 @@ export const adjacentMonthOffset = (
     return previous === current ? 0 : offsets[previous];
 };
 
-/** Leave mobile-style year labels room, with denser month dots between them. */
 export const timelineMarkers = (
     months: TimelineMonth[],
     maxOffset: number,
