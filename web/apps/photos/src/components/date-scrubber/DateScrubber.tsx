@@ -28,7 +28,9 @@ export const DateScrubber = ({
 }: DateScrubberProps) => {
     const { t, i18n } = useTranslation();
     const railRef = useRef<HTMLDivElement>(null);
-    const pointer = useRef<number | undefined>(undefined);
+    const pointer = useRef<
+        { id: number; grabOffset: number; lastY: number } | undefined
+    >(undefined);
     const [dragging, setDragging] = useState(false);
     const [hoverOffset, setHoverOffset] = useState<number>();
     const [focused, setFocused] = useState(false);
@@ -85,7 +87,7 @@ export const DateScrubber = ({
         setDragging(false);
         const rail = railRef.current!;
         return () => {
-            const id = pointer.current;
+            const id = pointer.current?.id;
             pointer.current = undefined;
             if (id !== undefined && rail.hasPointerCapture(id))
                 rail.releasePointerCapture(id);
@@ -108,17 +110,36 @@ export const DateScrubber = ({
             data-date-scrubber
             data-date-scrubber-active={dragging ? "" : undefined}
             onPointerDown={(event) => {
-                if (event.button !== 0) return;
+                if (event.button !== 0 || pointer.current) return;
                 event.preventDefault();
-                pointer.current = event.pointerId;
+                const handle = (event.target as HTMLElement).closest(
+                    ".date-handle",
+                );
+                const grabOffset = handle
+                    ? event.clientY -
+                      event.currentTarget.getBoundingClientRect().top -
+                      position(scrollOffset)
+                    : 0;
+                pointer.current = {
+                    id: event.pointerId,
+                    grabOffset,
+                    lastY: event.clientY,
+                };
                 event.currentTarget.setPointerCapture(event.pointerId);
                 setDragging(true);
-                seek(offsetAtPointer(event.clientY));
+                if (!handle) seek(offsetAtPointer(event.clientY));
             }}
             onPointerMove={(event) => {
-                const offset = offsetAtPointer(event.clientY);
-                setHoverOffset(offset);
-                if (pointer.current === event.pointerId) seek(offset);
+                const drag = pointer.current;
+                if (!drag) {
+                    setHoverOffset(offsetAtPointer(event.clientY));
+                } else if (
+                    drag.id === event.pointerId &&
+                    drag.lastY !== event.clientY
+                ) {
+                    drag.lastY = event.clientY;
+                    seek(offsetAtPointer(event.clientY - drag.grabOffset));
+                }
             }}
             onPointerLeave={() => setHoverOffset(undefined)}
             onPointerCancel={stopDragging}
@@ -155,7 +176,6 @@ export const DateScrubber = ({
                 },
                 "&:hover, &:has(:focus-visible), &[data-date-scrubber-active]":
                     {
-                        width: 88,
                         "& .date-tick, & .date-handle": { opacity: 1 },
                         "& .date-year-target": { pointerEvents: "auto" },
                     },
@@ -200,10 +220,19 @@ export const DateScrubber = ({
                         sx={{
                             top: inset + marker.position,
                             right: 0,
-                            width: 88,
+                            width: 24,
                             height: 24,
                             bgcolor: "transparent",
                             cursor: "pointer",
+                            "&::before": {
+                                content: '""',
+                                position: "absolute",
+                                top: "50%",
+                                right: 8,
+                                width: 8,
+                                height: "2px",
+                                bgcolor: "text.muted",
+                            },
                         }}
                     >
                         <Box
@@ -211,6 +240,7 @@ export const DateScrubber = ({
                             className="date-year-label date-label"
                             sx={{
                                 right: 32,
+                                pointerEvents: "none",
                                 top: "50%",
                                 color: "text.muted",
                                 typography: "mini",
