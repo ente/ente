@@ -83,6 +83,8 @@ jobs:
                   node .github/scripts/release-notes.mjs mobile/apps/locker/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
 
     build-android:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
