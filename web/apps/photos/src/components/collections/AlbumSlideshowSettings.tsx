@@ -46,7 +46,7 @@ export function AlbumSlideshowSettings({
                         pb: "max(20px, env(safe-area-inset-bottom))",
                         width: { xs: "100%", sm: 440 },
                         maxWidth: { xs: "100%", sm: "calc(100% - 40px)" },
-                        maxHeight: "80dvh",
+                        maxHeight: "80%",
                         borderRadius: { xs: "20px 20px 0 0", sm: "24px" },
                         bgcolor: "#161616",
                         color: "#fff",

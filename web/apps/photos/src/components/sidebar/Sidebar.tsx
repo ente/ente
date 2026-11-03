@@ -499,8 +499,8 @@ function RootSidebarContents({
                     sx: {
                         width: "min(1200px, calc(100vw - 48px))",
                         maxWidth: "calc(100vw - 48px)",
-                        height: "min(900px, calc(100dvh - 48px))",
-                        maxHeight: "calc(100dvh - 48px)",
+                        height: "min(900px, calc(100% - 48px))",
+                        maxHeight: "calc(100% - 48px)",
                         m: 3,
                         p: 2,
                         gap: 2,
@@ -533,8 +533,9 @@ function RootSidebarContents({
                                     root: [
                                         theme.components?.MuiDialog
                                             ?.styleOverrides?.root,
-                                        { position: "absolute" },
+                                        { position: "absolute", top: 0 },
                                     ],
+                                    backdrop: { top: 0 },
                                 },
                             },
                             MuiBackdrop: {

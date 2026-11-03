@@ -646,7 +646,6 @@ const FileInfoSidebar = styled(
         <SidebarDrawer
             {...props}
             maxWidth="425px"
-            disableAppTitlebarBackdrop
             anchor="right"
             // Avoid MUI's aria-hidden focus warning when this closes.
             disableRestoreFocus={true}
