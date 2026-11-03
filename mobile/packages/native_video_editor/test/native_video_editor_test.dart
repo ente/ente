@@ -26,6 +26,10 @@ void main() {
               final arguments = call.arguments as Map<dynamic, dynamic>;
               return processResultOverride ??
                   {'outputPath': arguments['outputPath'], 'isReEncoded': true};
+            case 'exportSlideshow':
+              final arguments = call.arguments as Map<dynamic, dynamic>;
+              return processResultOverride ??
+                  {'outputPath': arguments['outputPath']};
             case 'getVideoInfo':
               return _videoInfoMap;
             case 'extractFrame':
@@ -227,6 +231,85 @@ void main() {
       ),
       throwsFormatException,
     );
+  });
+
+  test('slideshow export sends items, motion, and music', () async {
+    final photo = await File('${directory.path}/photo.jpg').writeAsBytes([0]);
+    final music = await File('${directory.path}/music.mp3').writeAsBytes([0]);
+    final output = '${directory.path}/slideshow.mp4';
+
+    final result = await NativeVideoEditor.exportSlideshow(
+      SlideshowExportRequest(
+        outputPath: output,
+        width: 1080,
+        height: 1920,
+        frameRate: 30,
+        crossfade: const Duration(milliseconds: 600),
+        items: [
+          SlideshowItem.photo(
+            path: photo.path,
+            duration: const Duration(seconds: 5),
+            motion: const SlideshowMotion(
+              startScale: 1.05,
+              endScale: 1.15,
+              startOffset: Offset(0.01, -0.01),
+              endOffset: Offset.zero,
+            ),
+          ),
+          SlideshowItem.video(path: input.path, isMuted: true),
+        ],
+        music: SlideshowMusic(
+          path: music.path,
+          fadeIn: const Duration(milliseconds: 900),
+          fadeOut: const Duration(milliseconds: 250),
+        ),
+      ),
+    );
+
+    expect(result, output);
+    expect(lastCall?.method, 'exportSlideshow');
+    final arguments = lastCall!.arguments as Map<dynamic, dynamic>;
+    expect(arguments, containsPair('crossfadeMs', 600));
+    final items = arguments['items'] as List<dynamic>;
+    expect(items[0], containsPair('type', 'photo'));
+    expect(items[0], containsPair('durationMs', 5000));
+    expect(items[0], containsPair('startScale', 1.05));
+    expect(items[0], containsPair('startY', -0.01));
+    expect(items[1], containsPair('type', 'video'));
+    expect(items[1], containsPair('isMuted', true));
+    expect(items[1], isNot(contains('durationMs')));
+    expect(arguments['music'], containsPair('fadeInMs', 900));
+  });
+
+  test('slideshow photos must outlast the crossfade', () async {
+    lastCall = null;
+    final photo = await File('${directory.path}/photo.jpg').writeAsBytes([0]);
+
+    await expectLater(
+      NativeVideoEditor.exportSlideshow(
+        SlideshowExportRequest(
+          outputPath: '${directory.path}/slideshow.mp4',
+          width: 1080,
+          height: 1920,
+          frameRate: 30,
+          crossfade: const Duration(seconds: 6),
+          items: [
+            SlideshowItem.photo(
+              path: photo.path,
+              duration: const Duration(seconds: 5),
+              motion: const SlideshowMotion(
+                startScale: 1,
+                endScale: 1,
+                startOffset: Offset.zero,
+                endOffset: Offset.zero,
+              ),
+            ),
+          ],
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(lastCall, isNull);
   });
 }
 
