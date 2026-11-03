@@ -36,7 +36,7 @@ static IMAGE_DECODER_HOOKS_INIT: Once = Once::new();
 const BOUNDED_READER_OVERFLOW_MESSAGE: &str = "JPEG XL input exceeds configured max_input_bytes";
 
 const MAX_DECODE_PIXELS: u64 = 210_000_000;
-const MAX_DECODE_ALLOC_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_DECODE_ALLOC_BYTES: u64 = 608 * 1024 * 1024;
 
 fn ensure_within_decode_pixel_cap(width: u32, height: u32) -> image::ImageResult<()> {
     if u64::from(width) * u64::from(height) > MAX_DECODE_PIXELS {
@@ -180,11 +180,15 @@ fn tiff_fallback_failure(
 }
 
 fn decode_reader_with_image_crate<R>(
-    reader: ImageReader<R>,
+    mut reader: ImageReader<R>,
 ) -> image::ImageResult<DecodedDynamicImage>
 where
     R: BufRead + Seek,
 {
+    let mut limits = Limits::default();
+    limits.max_alloc = Some(MAX_DECODE_ALLOC_BYTES);
+    reader.limits(limits.clone());
+
     // ente_heic decodes lazily into DynamicImage's output buffer, so the
     // decoder must remain intact through `from_decoder`.
     let mut decoder = reader.into_decoder()?;
@@ -206,7 +210,6 @@ where
         }
     };
 
-    let mut limits = Limits::default();
     limits.reserve(decoder.total_bytes())?;
     decoder.set_limits(limits)?;
 
@@ -768,10 +771,25 @@ mod tests {
     }
 
     #[test]
-    fn rejects_decoder_output_exceeding_the_alloc_cap() {
+    fn admits_decoder_output_between_the_previous_and_current_alloc_caps() {
         let bytes = header_only_png(
             9_000,
             7_600,
+            ::png::ColorType::Rgba,
+            ::png::BitDepth::Sixteen,
+        );
+
+        assert!(matches!(
+            decode_image_from_bytes(&bytes),
+            Err(ImageError::Decode(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_decoder_output_exceeding_the_alloc_cap() {
+        let bytes = header_only_png(
+            9_000,
+            9_000,
             ::png::ColorType::Rgba,
             ::png::BitDepth::Sixteen,
         );
