@@ -18,6 +18,8 @@
     <dict>
         <key>io.ente.auth</key>
         <string>Auth App Store</string>
+        <key>io.ente.auth.autofill</key>
+        <string>Auth AutoFill App Store</string>
     </dict>
 </dict>
 </plist>

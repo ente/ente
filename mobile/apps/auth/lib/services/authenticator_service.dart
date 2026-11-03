@@ -11,6 +11,7 @@ import 'package:ente_auth/models/authenticator/auth_entity.dart';
 import 'package:ente_auth/models/authenticator/auth_key.dart';
 import 'package:ente_auth/models/authenticator/entity_result.dart';
 import 'package:ente_auth/models/authenticator/local_auth_entity.dart';
+import 'package:ente_auth/services/ios_autofill_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/store/authenticator_db.dart';
 import 'package:ente_auth/store/offline_authenticator_db.dart';
@@ -110,9 +111,12 @@ class AuthenticatorService {
       encryptedKeyData.encryptedData!,
     );
     String header = CryptoUtil.bin2base64(encryptedKeyData.header!);
-    final insertedID = accountMode.isOnline
-        ? await _db.insert(encryptedData, header)
-        : await _offlineDb.insert(encryptedData, header);
+    final insertedID = await IOSAutoFillService.instance
+        .withInvalidatedSnapshot(
+          () => accountMode.isOnline
+              ? _db.insert(encryptedData, header)
+              : _offlineDb.insert(encryptedData, header),
+        );
     if (shouldSync) {
       unawaited(onlineSync());
     }
@@ -134,9 +138,12 @@ class AuthenticatorService {
       encryptedKeyData.encryptedData!,
     );
     String header = CryptoUtil.bin2base64(encryptedKeyData.header!);
-    final int affectedRows = accountMode.isOnline
-        ? await _db.updateEntry(generatedID, encryptedData, header)
-        : await _offlineDb.updateEntry(generatedID, encryptedData, header);
+    final int affectedRows = await IOSAutoFillService.instance
+        .withInvalidatedSnapshot(
+          () => accountMode.isOnline
+              ? _db.updateEntry(generatedID, encryptedData, header)
+              : _offlineDb.updateEntry(generatedID, encryptedData, header),
+        );
     assert(
       affectedRows == 1,
       "updateEntry should have updated exactly one row",
@@ -146,7 +153,12 @@ class AuthenticatorService {
     }
   }
 
-  Future<void> deleteEntry(int genID, AccountMode accountMode) async {
+  Future<void> deleteEntry(int genID, AccountMode accountMode) =>
+      IOSAutoFillService.instance.withInvalidatedSnapshot(
+        () => _deleteEntry(genID, accountMode),
+      );
+
+  Future<void> _deleteEntry(int genID, AccountMode accountMode) async {
     LocalAuthEntity? result = accountMode.isOnline
         ? await _db.getEntryByID(genID)
         : await _offlineDb.getEntryByID(genID);
@@ -215,12 +227,17 @@ class AuthenticatorService {
       Bus.instance.fire(CodesUpdatedEvent());
       return true;
     } on UnauthorizedError {
-      if ((await _db.removeSyncedData()) > 0) {
-        Bus.instance.fire(CodesUpdatedEvent());
+      try {
+        if ((await IOSAutoFillService.instance.withInvalidatedSnapshot(
+              _db.removeSyncedData,
+            )) >
+            0) {
+          Bus.instance.fire(CodesUpdatedEvent());
+        }
+      } finally {
+        debugPrint("Firing logout event");
+        Bus.instance.fire(TriggerLogoutEvent());
       }
-      debugPrint("Firing logout event");
-
-      Bus.instance.fire(TriggerLogoutEvent());
       return false;
     } catch (e) {
       _logger.severe("Failed to sync with remote", e);
@@ -254,10 +271,14 @@ class AuthenticatorService {
         .toList();
     _logger.info("${deletedIDs.length} entries deleted");
     result.removeWhere((element) => element.isDeleted);
-    await _db.insertOrReplace(result);
-    if (deletedIDs.isNotEmpty) {
-      await _db.deleteByIDs(ids: deletedIDs);
-    }
+    await IOSAutoFillService.instance.withInvalidatedSnapshot(() async {
+      await _db.insertOrReplace(result);
+      if (deletedIDs.isNotEmpty) {
+        await _db.deleteByIDs(ids: deletedIDs);
+      }
+    });
+    // Notify after each committed page, even if a later fetch/push fails.
+    Bus.instance.fire(CodesUpdatedEvent());
     await _prefs.setInt(_lastEntitySyncTime, maxSyncTime);
     _logger.info("Setting synctime to $maxSyncTime");
     if (result.length == fetchLimit) {

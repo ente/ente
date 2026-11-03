@@ -38,6 +38,7 @@ test("shared Android build inputs select Ensu", (t) => {
 
 test("shared build inputs select their consumers", (t) => {
     assert.deepEqual(select(t, [".github/actions/setup-flutter/action.yml"]), [
+        "auth-ios",
         "mobile-lint",
         "mobile-podfile-lock",
         "repo-lint",
@@ -45,6 +46,7 @@ test("shared build inputs select their consumers", (t) => {
     assert.deepEqual(select(t, ["rust/crates/core/src/lib.rs"]), [
         "android-lint",
         "apple-lint",
+        "auth-ios",
         "mobile-lint",
         "repo-lint",
         "rust-cli-test",
@@ -100,6 +102,17 @@ test("path filters cover root files, nested files, and dotfiles", (t) => {
             "mobile-lint",
         ),
     );
+});
+
+test("Auth iOS changes select the native build and security tests", (t) => {
+    for (const file of [
+        "mobile/apps/auth/ios/AutoFill/AutoFillStore.swift",
+        "mobile/apps/auth/lib/services/ios_autofill_service.dart",
+        "mobile/packages/configuration/lib/base_configuration.dart",
+        ".github/workflows/auth-ios.yml",
+    ]) {
+        assert.ok(select(t, [file]).includes("auth-ios"), file);
+    }
 });
 
 test("deletions and moves select every affected area", (t) => {

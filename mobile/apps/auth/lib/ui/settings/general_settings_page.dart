@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:ente_auth/app/view/app.dart';
 import 'package:ente_auth/events/icons_changed_event.dart';
 import 'package:ente_auth/locale.dart';
+import 'package:ente_auth/services/ios_autofill_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/ui/settings/app_icon_selection_screen.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_navigation.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
+import 'package:ente_auth/ui/settings/ios_autofill_settings_page.dart';
 import 'package:ente_auth/ui/settings/language_picker.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_components/ente_components.dart';
@@ -26,6 +28,14 @@ class GeneralSettingsPage extends StatelessWidget {
     return AuthSettingsPageScaffold(
       title: l10n.general,
       children: [
+        if (IOSAutoFillService.instance.isSupported) ...[
+          SettingsItem(
+            title: pendingTranslation('Verification code AutoFill'),
+            onTap: () =>
+                pushAuthSettingsPage(context, const IOSAutoFillSettingsPage()),
+          ),
+          const SizedBox(height: Spacing.sm),
+        ],
         SettingsItem(
           title: l10n.language,
           icon: HugeIcons.strokeRoundedLanguageSquare,

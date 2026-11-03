@@ -775,7 +775,8 @@ jobs:
                       CODE_SIGN_STYLE=Manual \
                       CODE_SIGN_IDENTITY="Apple Distribution" \
                       DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
-                      APP_STORE_PROFILE_SPECIFIER="Auth App Store"
+                      APP_STORE_PROFILE_SPECIFIER="Auth App Store" \
+                      AUTH_AUTOFILL_PROFILE_SPECIFIER="Auth AutoFill App Store"
 
                   xcodebuild -exportArchive \
                       -archivePath build/ios/archive/Runner.xcarchive \

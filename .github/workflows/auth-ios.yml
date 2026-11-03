@@ -1,0 +1,46 @@
+name: "Check (Auth iOS)"
+
+on:
+    workflow_call:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    check:
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+                  submodules: recursive
+
+            - name: Test native AutoFill storage and OTP generation
+              run: swift test --package-path mobile/apps/auth/ios
+
+            - name: Install Flutter
+              uses: ./.github/actions/setup-flutter
+
+            - run: flutter pub get --enforce-lockfile
+              working-directory: mobile/apps/auth
+
+            - run: cargo codegen frb auth
+              working-directory: rust
+
+            - name: Test revocation and logout regressions
+              run: flutter test --no-pub test/services/ios_autofill_service_test.dart test/core/configuration_logout_test.dart
+              working-directory: mobile/apps/auth
+
+            - name: Install simulator Rust targets
+              run: rustup target add aarch64-apple-ios-sim x86_64-apple-ios
+
+            - name: Install iOS pods
+              run: pod install --deployment
+              working-directory: mobile/apps/auth/ios
+
+            - name: Build Runner and its embedded AutoFill extension
+              run: |
+                  flutter build ios --simulator --debug --no-pub
+                  test -d build/ios/iphonesimulator/Runner.app/PlugIns/AutoFill.appex
+              working-directory: mobile/apps/auth

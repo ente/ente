@@ -34,6 +34,11 @@ jobs:
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'apple-lint') }}
         uses: ./.github/workflows/apple-lint.yml
 
+    auth-ios:
+        needs: select
+        if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'auth-ios') }}
+        uses: ./.github/workflows/auth-ios.yml
+
     dependency-review:
         needs: select
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'dependency-review') }}
@@ -106,6 +111,7 @@ jobs:
             - select
             - android-lint
             - apple-lint
+            - auth-ios
             - dependency-review
             - desktop-lint
             - docs-verify-build

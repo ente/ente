@@ -52,6 +52,11 @@ To build a release APK, [setup your keystore](https://docs.flutter.dev/deploymen
 
 After updating Flutter dependencies, run `pod install` from `ios/` on macOS and commit `ios/Podfile.lock` if it changes.
 
+### iOS verification-code AutoFill
+
+The iOS 18+ AutoFill extension requires shared App Group and Keychain provisioning.
+See [iOS AutoFill setup and verification](docs/ios-autofill.md).
+
 ## 🔩 Architecture
 
 The architecture that powers end-to-end encrypted storage and sync of your tokens has been documented [here](../../../architecture/README.md#token-encryption).
