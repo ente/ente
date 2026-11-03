@@ -50,6 +50,7 @@ export type FileListWithViewerProps = {
     | "onAddPhotos"
     | "disableGrouping"
     | "enableSelect"
+    | "enableDateScrubber"
     | "selected"
     | "setSelected"
     | "activeCollectionID"
@@ -95,6 +96,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     enableImageEditing = true,
     disableGrouping,
     enableSelect,
+    enableDateScrubber,
     selected,
     setSelected,
     activeCollectionID,
@@ -225,6 +227,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                             user,
                             disableGrouping,
                             enableSelect,
+                            enableDateScrubber,
                             selected,
                             setSelected,
                             activeCollectionID,

@@ -348,6 +348,12 @@ export const AlbumsSection = ({
                 <GalleryMedia
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
+                    enableDateScrubber={
+                        !library.isFirstLoad &&
+                        barMode === "albums" &&
+                        activeCollectionID === PseudoCollectionID.all &&
+                        !isInSearchMode
+                    }
                     onAddPhotos={canAddPhotos ? handleAddPhotos : undefined}
                     source={{
                         mode: barMode,
