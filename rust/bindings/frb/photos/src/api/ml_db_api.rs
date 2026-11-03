@@ -267,7 +267,7 @@ fn search_params(
 
 #[frb(opaque)]
 pub struct MlStore {
-    inner: ml_store::MlStore,
+    pub(crate) inner: ml_store::MlStore,
 }
 
 impl MlStore {

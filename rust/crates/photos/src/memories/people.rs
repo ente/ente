@@ -82,11 +82,7 @@ impl<'a> People<'a> {
             id,
             file_ids: inputs.person_file_ids.get(id).unwrap_or(&no_file_ids),
         });
-        let mut important: Vec<&MemoryPerson> = request
-            .people
-            .iter()
-            .filter(|person| !request.local_gallery_mode && !person.is_ignored)
-            .collect();
+        let mut important: Vec<&MemoryPerson> = important_people(request).collect();
         important.sort_by_key(|&person| &person.id);
         let activity_file_ids = match me {
             Some(me) if important.iter().any(|person| person.id != me.id) => {
@@ -94,15 +90,11 @@ impl<'a> People<'a> {
             }
             _ => Vec::new(),
         };
-        let uses_unnamed_fallback = request.shows_unnamed_people
-            && (request.local_gallery_mode
-                || important.len() < NAMED_PEOPLE_DISABLING_UNNAMED_FALLBACK);
-        let unnamed_people =
-            if uses_unnamed_fallback || (request.shows_unnamed_people && request.surface_all) {
-                unnamed_people(inputs, &photos_by_id, me)
-            } else {
-                Vec::new()
-            };
+        let unnamed_people = if shows_unnamed_clusters(request) {
+            unnamed_people(inputs, &photos_by_id, me)
+        } else {
+            Vec::new()
+        };
         Ok(Self {
             show_timeout_days: PERSON_SHOW_TIMEOUT_DAYS
                 .min(important.len().max(1) as i64 * UPDATE_FREQUENCY_DAYS),
@@ -111,7 +103,7 @@ impl<'a> People<'a> {
                 .map(|person| Person::new(person, inputs, &photos_by_id, me, &activity_file_ids))
                 .collect(),
             unnamed_people,
-            uses_unnamed_fallback,
+            uses_unnamed_fallback: uses_unnamed_fallback(request),
             surface_all: request.surface_all,
             shown: &request.shown_people,
             face_counts: &inputs.face_counts,
@@ -477,6 +469,23 @@ fn activity_file_ids(signals: &Signals) -> Result<Vec<(PeopleActivity, HashSet<i
             Ok((activity, file_ids))
         })
         .collect()
+}
+
+pub(super) fn shows_unnamed_clusters(request: &MemoriesRequest) -> bool {
+    uses_unnamed_fallback(request) || (request.shows_unnamed_people && request.surface_all)
+}
+
+fn uses_unnamed_fallback(request: &MemoriesRequest) -> bool {
+    request.shows_unnamed_people
+        && (request.local_gallery_mode
+            || important_people(request).count() < NAMED_PEOPLE_DISABLING_UNNAMED_FALLBACK)
+}
+
+fn important_people(request: &MemoriesRequest) -> impl Iterator<Item = &MemoryPerson> {
+    request
+        .people
+        .iter()
+        .filter(|person| !request.local_gallery_mode && !person.is_ignored)
 }
 
 fn is_last_met_anniversary_near(last_seen: Candidate, today: LocalDate) -> bool {

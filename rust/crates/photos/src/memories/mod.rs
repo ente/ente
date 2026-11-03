@@ -11,6 +11,7 @@ mod places;
 mod rng;
 mod selector;
 mod signals;
+mod store;
 mod text_embeddings;
 mod time;
 mod trips;
@@ -27,6 +28,7 @@ pub use output::{
     BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryKind, PeopleActivity,
     PeopleMemory, PeopleMemoryType, SmartMemories, TimeMemory, TripMemory,
 };
+pub use store::compute_smart_memories_from_store;
 
 use input::PhotoSignals;
 use people::People;
@@ -120,6 +122,11 @@ pub fn compute_smart_memories(
 }
 
 pub fn compute_simple_memories(request: &MemoriesRequest, period: Period) -> Vec<Memory> {
+    log::info!(
+        "computing simple memories for {} files with seed {}",
+        request.files.len(),
+        request.seed
+    );
     let photos = photo::prepare(&request.files);
     let excluded_collection_ids: HashSet<i64> =
         request.excluded_collection_ids.iter().copied().collect();

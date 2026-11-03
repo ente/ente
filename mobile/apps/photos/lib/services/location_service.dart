@@ -141,6 +141,8 @@ class LocationService {
     };
   }
 
+  Future<rust.LocationIndex?> getLocationIndex() => _loadIndex();
+
   Future<List<City>> getCities() async {
     final index = await _loadIndex();
     if (index == null) return [];
