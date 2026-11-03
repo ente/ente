@@ -2908,6 +2908,12 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                     justifyContent: "flex-end",
                                 }}
                             >
+                                {canComment && (
+                                    <SpaceCommentsButton
+                                        count={commentCount}
+                                        onClick={() => setCommentsOpen(true)}
+                                    />
+                                )}
                                 {showPostLikes &&
                                     activePhoto.spaceId &&
                                     activePhoto.postId && (
@@ -2924,12 +2930,6 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                             }
                                         />
                                     )}
-                                {canComment && (
-                                    <SpaceCommentsButton
-                                        count={commentCount}
-                                        onClick={() => setCommentsOpen(true)}
-                                    />
-                                )}
                             </Box>
                         ) : null}
                     </Box>

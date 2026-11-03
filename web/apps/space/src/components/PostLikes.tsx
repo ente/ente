@@ -20,6 +20,7 @@ import {
     spaceTextMuted,
 } from "styles/colors";
 import { spaceTouchTargetSize } from "styles/touch-targets";
+import { firstNameFrom } from "utils/display";
 
 const LikeRow = ({
     actor,
@@ -75,7 +76,7 @@ const LikeRow = ({
                     overflowWrap: "anywhere",
                 }}
             >
-                {actor.fullName.trim() || actor.username}
+                {firstNameFrom(actor.fullName.trim() || actor.username)}
             </Box>
             <HugeiconsIcon
                 aria-hidden
