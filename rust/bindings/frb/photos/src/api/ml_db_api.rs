@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
+use ente_photos::discover;
+pub use ente_photos::discover::DiscoverQuery;
 use ente_photos::ml_db;
 pub use ente_photos::ml_db::{
     ClipEmbedding, ClusterSummary, EmbeddingVector, FaceRow, FaceWithoutEmbedding, FdStatus,
@@ -134,6 +136,12 @@ pub struct _ClipQuery {
 pub struct _ClipSimilarity {
     pub file_id: i64,
     pub similarity: f64,
+}
+
+#[frb(mirror(DiscoverQuery))]
+pub struct _DiscoverQuery {
+    pub query: String,
+    pub minimum_similarity: f64,
 }
 
 #[frb(mirror(FaceDistance))]
@@ -444,6 +452,13 @@ impl MlStore {
         queries: Vec<ClipQuery>,
     ) -> Result<Vec<Vec<ClipSimilarity>>, MlDbError> {
         Ok(self.inner.scan_clip_similarities(&queries)?)
+    }
+
+    pub fn discover_matches(
+        &self,
+        queries: Vec<DiscoverQuery>,
+    ) -> Result<Vec<Vec<i64>>, MlDbError> {
+        Ok(discover::matches(&self.inner, &queries)?)
     }
 
     pub fn clear_all(&self) -> Result<(), MlDbError> {
