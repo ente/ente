@@ -322,7 +322,7 @@ export const AlbumsSection = ({
                     filter={overviewFilter!}
                     searchQuery={albumSearchQuery}
                     sortBy={collectionsSortBy}
-                    onCreateAlbum={operations.onCreateAlbum}
+                    onCreateAlbum={createAlbum.show}
                 />
             ) : (
                 <GalleryMedia
