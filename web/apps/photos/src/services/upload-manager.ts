@@ -313,6 +313,7 @@ class UploadManager {
     private onUploadFile: ((file: EnteFile) => void) | undefined;
     private collections = new Map<number, Collection>();
     private uploadInProgress = false;
+    private uploadStatusListeners = new Set<() => void>();
     private fatalUploadError: Error | undefined;
     private shouldUploadBeCancelled = false;
 
@@ -369,6 +370,7 @@ class UploadManager {
 
         log.info(`Uploading ${itemsWithCollection.length} files`);
         this.uploadInProgress = true;
+        this.notifyUploadStatusChanged();
 
         const logInterval = setInterval(logAboutMemoryPressureIfNeeded, 1000);
 
@@ -417,6 +419,7 @@ class UploadManager {
                 this.comlinkCryptoWorkers[i]?.terminate();
             }
             this.uploadInProgress = false;
+            this.notifyUploadStatusChanged();
             clearInterval(logInterval);
         }
 
@@ -663,6 +666,17 @@ class UploadManager {
     private updateExistingFiles(file: EnteFile) {
         this.existingFiles.push(file);
         this.onUploadFile!(file);
+    }
+
+    public subscribeToUploadStatus = (listener: () => void) => {
+        this.uploadStatusListeners.add(listener);
+        return () => {
+            this.uploadStatusListeners.delete(listener);
+        };
+    };
+
+    public notifyUploadStatusChanged() {
+        for (const listener of this.uploadStatusListeners) listener();
     }
 
     public isUploadInProgress = () => {
