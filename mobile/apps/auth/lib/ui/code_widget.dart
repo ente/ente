@@ -430,13 +430,14 @@ class _CodeWidgetState extends State<CodeWidget> {
               ),
             ),
             const SizedBox(width: 8),
-            // Shrink the next code before it outgrows the current one
             ConstrainedBox(
               constraints: BoxConstraints(maxWidth: constraints.maxWidth / 2),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: _getNextColumn(l10n),
-              ),
+              child: widget.code.type.isTOTPCompatible
+                  ? FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: _getNextColumn(l10n),
+                    )
+                  : _getNextColumn(l10n),
             ),
           ],
         ),
@@ -484,9 +485,13 @@ class _CodeWidgetState extends State<CodeWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  l10n.nextTotpTitle,
-                  style: Theme.of(context).textTheme.bodySmall,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    l10n.nextTotpTitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
                 InkWell(
                   onTap: _onNextHotpTapped,

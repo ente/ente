@@ -65,6 +65,28 @@ void main() {
       },
     );
   }
+
+  testWidgets('keeps the HOTP action at full size with large translated text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(640, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _app(_hotpCode(), isCompactMode: false, locale: const Locale('de')),
+    );
+
+    expect(find.text('Nächster Code'), findsOneWidget);
+    final action = find.byWidgetPredicate(
+      (widget) =>
+          widget is InkWell &&
+          widget.child is Icon &&
+          (widget.child! as Icon).icon == Icons.forward_outlined,
+    );
+    expect(action, findsOneWidget);
+    expect(tester.getRect(action).size, const Size.square(32));
+  });
 }
 
 Code _code() {
@@ -78,9 +100,21 @@ Code _code() {
   );
 }
 
-Widget _app(Code code, {required bool isCompactMode}) {
+Code _hotpCode() {
+  return Code.fromAccountAndSecret(
+    Type.hotp,
+    'person@example.com',
+    'Ente',
+    'JBSWY3DPEHPK3PXP',
+    null,
+    6,
+  );
+}
+
+Widget _app(Code code, {required bool isCompactMode, Locale? locale}) {
   return MaterialApp(
     theme: lightThemeData,
+    locale: locale,
     localizationsDelegates: StringsLocalizations.localizationsDelegates,
     supportedLocales: StringsLocalizations.supportedLocales,
     builder: (context, child) => MediaQuery(
