@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ente/go-srp"
 	"github.com/ente/museum/ente"
@@ -171,4 +172,39 @@ func TestCompleteSRPSetupRequiresOwnerAndPreservesSessionBinding(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, srpUserID, storedAuth.SRPUserID)
 	require.Equal(t, verifier, storedAuth.Verifier)
+}
+
+func TestVerifySRPSessionReportsExpiry(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	repository := &repo.UserAuthRepository{DB: db}
+	controller := &UserController{UserAuthRepo: repository}
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/users/srp/verify-session", nil)
+
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "expired-srp-session@example.com", CreationTime: 1})
+	srpUserID := uuid.New()
+	require.NoError(t, repository.InsertSRPAuth(ctx, userID, srpUserID, FakeVerifier, "salt"))
+	sessionID, err := repository.AddSRPSession(srpUserID, "server-key", "srp-a")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, err := db.Exec(`DELETE FROM srp_sessions WHERE id = $1`, sessionID)
+		require.NoError(t, err)
+	})
+	_, err = db.Exec(`UPDATE srp_sessions SET created_at = now_utc_micro_seconds() - $1 WHERE id = $2`, (31 * time.Minute).Microseconds(), sessionID)
+	require.NoError(t, err)
+
+	response, err := controller.VerifySRPSession(ctx, ente.VerifySRPSessionRequest{
+		SessionID: sessionID,
+		SRPUserID: srpUserID,
+		SRPM1:     convertBytesToString(make([]byte, 32)),
+	})
+	require.Nil(t, response)
+	var apiError *ente.ApiError
+	require.ErrorAs(t, err, &apiError)
+	require.Equal(t, ente.SessionExpired, apiError.Code)
+	require.Equal(t, http.StatusGone, apiError.HttpStatusCode)
 }

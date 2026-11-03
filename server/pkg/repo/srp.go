@@ -196,8 +196,10 @@ func (repo *UserAuthRepository) InsertOrUpdateSRPAuthAndKeyAttr(ctx context.Cont
 
 func (repo *UserAuthRepository) GetSrpSessionEntity(ctx context.Context, sessionID uuid.UUID) (*ente.SRPSessionEntity, error) {
 	result := ente.SRPSessionEntity{}
-	row := repo.DB.QueryRowContext(ctx, `SELECT id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false) FROM srp_sessions WHERE id = $1`, sessionID)
-	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake)
+	row := repo.DB.QueryRowContext(ctx, `SELECT id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false),
+		created_at <= now_utc_micro_seconds() - $2
+		FROM srp_sessions WHERE id = $1`, sessionID, srpSessionValidity.Microseconds())
+	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake, &result.IsExpired)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}

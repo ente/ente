@@ -323,6 +323,12 @@ func (c *UserController) verifySRPSession(ctx context.Context,
 				HttpStatusCode: http.StatusGone,
 			}, "")
 		}
+		if srpSession.IsExpired {
+			return nil, stacktrace.Propagate(&ente.ApiError{
+				Code:           ente.SessionExpired,
+				HttpStatusCode: http.StatusGone,
+			}, "")
+		}
 		return nil, stacktrace.Propagate(&ente.ApiError{
 			Code:           "TOO_MANY_WRONG_ATTEMPTS",
 			HttpStatusCode: http.StatusGone,
