@@ -809,10 +809,7 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
 
   Future<bool> _tryAddNewLocalFiles(LocalPhotosAddedEvent event) async {
     final resolver = widget.newLocalFilesResolver;
-    if (resolver == null ||
-        !_allFilesLoaded ||
-        _activeFileLoads > 0 ||
-        _sortOrder.isFilename) {
+    if (resolver == null || !_allFilesLoaded || _activeFileLoads > 0) {
       return false;
     }
 
