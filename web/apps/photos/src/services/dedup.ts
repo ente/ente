@@ -9,6 +9,8 @@ import {
 import {
     createCollectionNameByID,
     forgetPendingFavoriteFileIDs,
+    isHiddenCollection,
+    savedAllCollections,
     savedNormalCollections,
 } from "ente-new/photos/services/collection";
 import { savedCollectionFiles } from "ente-new/photos/services/photos-fdb";
@@ -31,14 +33,18 @@ export interface DuplicateGroup {
 export const deduceDuplicates = async () => {
     const userID = ensureLocalUser().id;
 
-    const normalCollections = await savedNormalCollections();
+    const collections = await savedAllCollections();
+    const normalCollections = collections.filter(
+        (c) => !isHiddenCollection(c, userID),
+    );
     const collectionNameByID = createCollectionNameByID(normalCollections);
     const collectionFiles = await savedCollectionFiles();
     const { groups } = await findDuplicates({
         userId: userID,
-        collections: normalCollections.map(({ id, owner }) => ({
-            id,
-            ownerId: owner.id,
+        collections: collections.map((collection) => ({
+            id: collection.id,
+            ownerId: collection.owner.id,
+            isHidden: isHiddenCollection(collection, userID),
         })),
         files: collectionFiles.map((file) => ({
             id: file.id,

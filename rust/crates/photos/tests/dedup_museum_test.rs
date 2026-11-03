@@ -379,6 +379,7 @@ async fn load_groups(
         .map(|a| dedup::Collection {
             id: a.id,
             owner_id: session.user_id,
+            is_hidden: false,
         })
         .collect();
     let groups = dedup::find_duplicates(session.user_id, &collections, &candidates);

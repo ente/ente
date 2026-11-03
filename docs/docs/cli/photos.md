@@ -126,7 +126,7 @@ ente photos duplicate remove --all --dry-run --json
 
 Group IDs are the smallest file ID in each group. Removal refreshes metadata first; a group ID that no longer exists stops the command. `--dry-run` previews without changes. `--yes` approves removal; `--no-input` disables prompts and requires IDs or `--all`, plus `--yes` unless previewing.
 
-Duplicates are matched by stored hashes in non-hidden albums you own. The CLI keeps a copy with a caption first, then one with an edited name or date. It preserves album memberships before moving extra copies to Ente's trash. Files are not permanently deleted. If interrupted, list duplicates again before retrying.
+Duplicates are matched by stored hashes in non-hidden albums you own. Files with any hidden album membership are excluded, even if they also belong to a visible album. The CLI keeps a copy with a caption first, then one with an edited name or date. It preserves album memberships before moving extra copies to Ente's trash. Files are not permanently deleted. If interrupted, list duplicates again before retrying.
 
 With `--json`, `list` returns an array and `remove` returns one object; see [Read as JSON](#read-as-json) for fields. Previews and progress go to stderr.
 
@@ -183,7 +183,7 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 
 ## Read offline
 
-`album list`, `album view`, `file list`, `file view`, `duplicate list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums eligible for duplicate detection. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
+`album list`, `album view`, `file list`, `file view`, `duplicate list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums needed for duplicate detection, including hidden memberships. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
 
 ## Limits
 

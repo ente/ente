@@ -33,6 +33,8 @@ impl From<Error> for JsValue {
 struct DedupCollection {
     id: i64,
     owner_id: i64,
+    #[serde(default)]
+    is_hidden: bool,
 }
 
 #[derive(Deserialize, Tsify)]
@@ -83,6 +85,7 @@ pub fn find_duplicates(
         .map(|collection| dedup::Collection {
             id: collection.id,
             owner_id: collection.owner_id,
+            is_hidden: collection.is_hidden,
         })
         .collect();
     let files: Vec<_> = input
