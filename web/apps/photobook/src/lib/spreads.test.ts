@@ -8,13 +8,14 @@ import {
     getSpreads,
 } from "./spreads";
 
-test("preserves content order, recto/verso placement and page jumps without extra binding sheets", () => {
+test("editor and preview use softcover page order for both cover choices", () => {
     for (const count of [24, 100, 300]) {
         const spreads = getSpreads(count);
         const physical = getFlipPages(count);
         assert.equal(
             physical.filter((page) => page.pageIndex === null).length,
             2,
+            "Both cover choices show only the two softcover blanks; extra hardcover binding sheets are intentionally hidden",
         );
         assert.deepEqual(
             spreads.flatMap(getSpreadPageIndices),
