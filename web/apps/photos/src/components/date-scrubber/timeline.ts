@@ -72,7 +72,15 @@ export const adjacentMonthOffset = (
     offsets: number[],
     offset: number,
     direction: "older" | "newer",
+    bottomOffset = Infinity,
 ) => {
+    if (direction === "newer" && offset > 0 && offset >= bottomOffset) {
+        const firstAtBottom = firstOffsetOutside(
+            offsets,
+            (value) => value < bottomOffset,
+        );
+        return offsets[firstAtBottom - 1] ?? 0;
+    }
     const roundedOffset = offset + 1;
     if (direction === "older") {
         const boundary = Math.max(roundedOffset, offsets[0] ?? 0);

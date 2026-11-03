@@ -51,13 +51,15 @@ export const DateScrubber = ({
     const formatter = useMemo(
         () =>
             new Intl.DateTimeFormat(i18n.resolvedLanguage, {
+                calendar: "gregory",
                 month: "long",
                 year: "numeric",
             }),
         [i18n.resolvedLanguage],
     );
+    const bottomOffset = Math.floor(maxOffset);
     const monthAt = (offset: number) =>
-        offset > 0 && offset >= Math.floor(maxOffset)
+        offset > 0 && offset >= bottomOffset
             ? months[months.length - 1]!
             : months[indexAtOffset(monthOffsets, offset + 1)]!;
     const seek = (offset: number) => {
@@ -281,6 +283,7 @@ export const DateScrubber = ({
                                 monthOffsets,
                                 clamp(scrollOffset),
                                 older ? "older" : "newer",
+                                bottomOffset,
                             ) ?? (older ? maxOffset : 0);
                     }
                     if (target === undefined) return;

@@ -12,11 +12,13 @@ import {
     wheelScrollDelta,
 } from "../src/components/date-scrubber/timeline";
 
+let resolvedLanguage = "en-US";
+
 vi.mock("react-i18next", () => ({
     useTranslation: () => ({
         t: (key: string, values?: { date: string }) =>
             values ? `Jump to ${values.date}` : key,
-        i18n: { resolvedLanguage: "en-US" },
+        i18n: { resolvedLanguage },
     }),
 }));
 
@@ -178,36 +180,41 @@ describe("date scrubber timeline", () => {
     });
 });
 
-test("renders mobile-style year chips that are hidden until interaction", () => {
-    const markup = renderToStaticMarkup(
-        <ThemeProvider theme={createTheme()}>
-            <DateScrubber
-                timeline={timelineOf(
-                    [500, november],
-                    [500, october],
-                    [500, december],
-                )}
-                height={300}
-                scrollOffset={0}
-                onSeek={vi.fn()}
-                onScrollBy={vi.fn()}
-            />
-        </ThemeProvider>,
-    );
-    expect(markup).toContain('role="slider"');
-    expect(markup).toContain('aria-orientation="vertical"');
-    expect(markup).toContain('aria-valuetext="November 2026"');
-    expect(markup).toContain('aria-label="Jump to December 2025"');
-    expect(markup).not.toContain('role="tooltip"');
-    expect(markup).not.toMatch(/>November 2026</);
-    expect(markup).toMatch(/>2026</);
-    expect(markup).toMatch(/>2025</);
-    expect(markup).toContain("date-year-label");
-    expect(markup).toContain("opacity:0");
-    expect(markup).toContain("pointer-events:none");
-    expect(markup).toContain("border-radius:6px");
-    expect(markup).toContain("height:3px");
-});
+test.each(["en-US", "en-US-u-ca-buddhist"])(
+    "renders Gregorian month labels and hidden year chips in %s",
+    (language) => {
+        resolvedLanguage = language;
+        const markup = renderToStaticMarkup(
+            <ThemeProvider theme={createTheme()}>
+                <DateScrubber
+                    timeline={timelineOf(
+                        [500, november],
+                        [500, october],
+                        [500, december],
+                    )}
+                    height={300}
+                    scrollOffset={0}
+                    onSeek={vi.fn()}
+                    onScrollBy={vi.fn()}
+                />
+            </ThemeProvider>,
+        );
+        resolvedLanguage = "en-US";
+        expect(markup).toContain('role="slider"');
+        expect(markup).toContain('aria-orientation="vertical"');
+        expect(markup).toContain('aria-valuetext="November 2026"');
+        expect(markup).toContain('aria-label="Jump to December 2025"');
+        expect(markup).not.toContain('role="tooltip"');
+        expect(markup).not.toMatch(/>November 2026</);
+        expect(markup).toMatch(/>2026</);
+        expect(markup).toMatch(/>2025</);
+        expect(markup).toContain("date-year-label");
+        expect(markup).toContain("opacity:0");
+        expect(markup).toContain("pointer-events:none");
+        expect(markup).toContain("border-radius:6px");
+        expect(markup).toContain("height:3px");
+    },
+);
 
 test.each([
     [400, "November 2026"],
@@ -229,3 +236,10 @@ test.each([
         expect(markup).toContain(`aria-valuetext="${label}"`);
     },
 );
+
+test("moves to the preceding reachable month from the scroll limit", () => {
+    expect(adjacentMonthOffset([0, 300, 700], 450, "newer", 450)).toBe(300);
+    expect(adjacentMonthOffset([0, 300, 450, 700], 450, "newer", 450)).toBe(
+        300,
+    );
+});
