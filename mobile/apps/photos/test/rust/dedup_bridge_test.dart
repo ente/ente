@@ -8,8 +8,6 @@ import 'package:photos/src/rust/frb_generated.dart';
 import 'package:photos/src/rust/third_party/ente_frb_lib/session.dart';
 
 void main() {
-  // Build ente-photos-frb with the flutter feature and pass the absolute path
-  // to the host library with --dart-define=ENTE_PHOTOS_FRB_LIBRARY=<path>.
   const library = String.fromEnvironment('ENTE_PHOTOS_FRB_LIBRARY');
 
   test(
@@ -130,7 +128,6 @@ Session _openTestSession(int port) => openSession(
     authToken: 'test-token',
     userId: 1,
     masterKey: Uint8List(32),
-    // Synthetic key pair and recovery key encrypted with the zero master key.
     keyAttributes: const SessionKeyAttributes(
       publicKey: 'pOCSkrZRwni5dyxWn1+puxPZBrRqtoyd+dwrRAn4ogk=',
       encryptedSecretKey:
