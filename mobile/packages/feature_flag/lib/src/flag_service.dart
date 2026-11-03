@@ -88,7 +88,7 @@ class FlagService {
   // Dart anymore and internal users have soaked it for a while.
   bool get rustMlDb => internalUser;
 
-  bool get rustMemories => false;
+  bool get rustMemories => internalUser;
 
   String get castUrl => flags.castUrl;
 
