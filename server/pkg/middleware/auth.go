@@ -59,8 +59,7 @@ func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.
 			if !cached {
 				ip := network.GetClientIP(c)
 				userAgent := c.Request.UserAgent()
-				// skip updating last used for requests routed via CF worker
-				if !network.IsCFWorkerIP(ip) {
+				if !isTrustedWorker(c) {
 					go func() {
 						_ = m.UserAuthRepo.UpdateLastUsedAtByTokenHash(userID, tokenHash[:], ip, userAgent)
 					}()

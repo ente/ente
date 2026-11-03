@@ -1,16 +1,20 @@
 export default {
-    async fetch(request: Request) {
+    async fetch(request: Request, env: Env) {
         switch (request.method) {
             case "OPTIONS":
                 return handleOPTIONS();
             case "GET":
-                return handleGET(request);
+                return handleGET(request, env);
             default:
                 console.log(`Unsupported HTTP method ${request.method}`);
                 return new Response(null, { status: 405 });
         }
     },
-} satisfies ExportedHandler;
+} satisfies ExportedHandler<Env>;
+
+interface Env {
+    MUSEUM_WORKER_SECRET?: string;
+}
 
 const handleOPTIONS = () =>
     new Response("", {
@@ -23,7 +27,7 @@ const handleOPTIONS = () =>
         },
     });
 
-const handleGET = async (request: Request) => {
+const handleGET = async (request: Request, env: Env) => {
     const url = new URL(request.url);
 
     const fileID = url.searchParams.get("fileID");
@@ -37,7 +41,15 @@ const handleGET = async (request: Request) => {
     const museumRequest = new Request(museumURL, request);
     const clientIP = request.headers.get("CF-Connecting-IP") ?? "";
     museumRequest.headers.set("X-Forwarded-For", clientIP);
-    let response = await fetch(museumRequest);
+    if (env.MUSEUM_WORKER_SECRET) {
+        museumRequest.headers.set(
+            "X-Ente-Worker-Secret",
+            env.MUSEUM_WORKER_SECRET,
+        );
+    } else {
+        museumRequest.headers.delete("X-Ente-Worker-Secret");
+    }
+    let response = await fetch(museumRequest, { redirect: "manual" });
     if (response.ok) {
         const { url } = await response.json<{ url: string }>();
         response = await fetch(url);

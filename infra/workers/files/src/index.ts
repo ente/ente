@@ -1,16 +1,20 @@
 export default {
-    async fetch(request: Request) {
+    async fetch(request: Request, env: Env) {
         switch (request.method) {
             case "OPTIONS":
                 return handleOPTIONS(request);
             case "GET":
-                return handleGET(request);
+                return handleGET(request, env);
             default:
                 console.log(`Unsupported HTTP method ${request.method}`);
                 return new Response(null, { status: 405 });
         }
     },
-} satisfies ExportedHandler;
+} satisfies ExportedHandler<Env>;
+
+interface Env {
+    MUSEUM_WORKER_SECRET?: string;
+}
 
 const handleOPTIONS = (request: Request) => {
     const origin = request.headers.get("Origin");
@@ -46,7 +50,7 @@ const isEnteHostname = (hostname: string) =>
     hostname.endsWith(".ente.io") ||
     hostname.endsWith(".ente.sh");
 
-const handleGET = async (request: Request) => {
+const handleGET = async (request: Request, env: Env) => {
     const url = new URL(request.url);
 
     // Random bots keep trying to pentest causing noise in the logs. If the
@@ -59,7 +63,15 @@ const handleGET = async (request: Request) => {
     const museumRequest = new Request(museumURL, request);
     const clientIP = request.headers.get("CF-Connecting-IP") ?? "";
     museumRequest.headers.set("X-Forwarded-For", clientIP);
-    let response = await fetch(museumRequest);
+    if (env.MUSEUM_WORKER_SECRET) {
+        museumRequest.headers.set(
+            "X-Ente-Worker-Secret",
+            env.MUSEUM_WORKER_SECRET,
+        );
+    } else {
+        museumRequest.headers.delete("X-Ente-Worker-Secret");
+    }
+    let response = await fetch(museumRequest, { redirect: "manual" });
     if (response.ok) {
         const { url } = await response.json<{ url: string }>();
         const range = request.headers.get("Range");
