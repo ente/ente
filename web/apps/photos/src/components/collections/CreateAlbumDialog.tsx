@@ -1,12 +1,14 @@
 import type { RemotePullOpts } from "@/components/gallery";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { Collection } from "ente-media/collection";
 import {
     createAlbum,
     createHiddenAlbum,
+    renameCollection,
 } from "ente-new/photos/services/collection";
 import { t } from "i18next";
-import type React from "react";
+import { useRef, type FC } from "react";
 
 interface CreateAlbumDialogProps extends ModalVisibilityProps {
     isHidden: boolean;
@@ -14,24 +16,38 @@ interface CreateAlbumDialogProps extends ModalVisibilityProps {
     onSelectCollectionID: (id: number) => void;
 }
 
-export const CreateAlbumDialog: React.FC<CreateAlbumDialogProps> = ({
+export const CreateAlbumDialog: FC<CreateAlbumDialogProps> = ({
     open,
     onClose,
     isHidden,
     onRemotePull,
     onSelectCollectionID,
 }) => {
+    const submission = useRef<{ album?: Collection }>({});
+    const handleClose = () => {
+        submission.current = {};
+        onClose();
+    };
+
     const handleCreateAlbum = async (albumName: string) => {
-        const newAlbum = isHidden
-            ? await createHiddenAlbum(albumName)
-            : await createAlbum(albumName);
-        await onRemotePull();
-        onSelectCollectionID(newAlbum.id);
+        const pending = submission.current;
+        // A retry after a failed refresh should reuse the album already created.
+        if (!pending.album) {
+            pending.album = isHidden
+                ? await createHiddenAlbum(albumName)
+                : await createAlbum(albumName);
+        } else if (pending.album.name !== albumName) {
+            await renameCollection(pending.album, albumName);
+            pending.album = { ...pending.album, name: albumName };
+        }
+        await onRemotePull({ strict: true });
+        onSelectCollectionID(pending.album.id);
     };
 
     return (
         <SingleInputDialog
-            {...{ open, onClose }}
+            open={open}
+            onClose={handleClose}
             title={t("new_album")}
             label={t("album_name")}
             submitButtonTitle={t("create")}
