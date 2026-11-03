@@ -11,13 +11,19 @@ import {
     Box,
     Button,
     CircularProgress,
+    IconButton,
     LinearProgress,
     Stack,
     Typography,
 } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { forwardRef, memo, useImperativeHandle, useRef } from "react";
 import { ChatInput, type ChatInputHandle } from "./ChatInput";
-import { ComposerIconButton } from "./ComposerIconButton";
+
+interface IconProps {
+    size: number;
+    strokeWidth: number;
+}
 
 interface DocumentAttachment {
     id: string;
@@ -71,6 +77,11 @@ export interface ChatComposerProps {
     openPhotoPicker: () => void;
     showImageAttachment: boolean;
     isImageAttachmentLimitReached: boolean;
+    actionButtonSx: SxProps<Theme>;
+    drawerIconButtonSx: Exclude<SxProps<Theme>, readonly unknown[]>;
+    smallIconProps: IconProps;
+    compactIconProps: IconProps;
+    actionIconProps: IconProps;
 }
 
 export const ChatComposer = memo(
@@ -108,6 +119,11 @@ export const ChatComposer = memo(
             openPhotoPicker,
             showImageAttachment,
             isImageAttachmentLimitReached,
+            actionButtonSx,
+            drawerIconButtonSx,
+            smallIconProps,
+            compactIconProps,
+            actionIconProps,
         },
         ref,
     ) {
@@ -185,18 +201,20 @@ export const ChatComposer = memo(
                                 ) : (
                                     <HugeiconsIcon
                                         icon={Attachment01Icon}
-                                        size={24}
-                                        strokeWidth={2}
+                                        size={22}
+                                        strokeWidth={1.7}
                                     />
                                 )}
-                                <ComposerIconButton
+                                <IconButton
                                     aria-label="Remove image"
-                                    icon={Cancel01Icon}
-                                    size="small"
                                     sx={{
                                         position: "absolute",
                                         top: 4,
                                         right: 4,
+                                        width: 20,
+                                        height: 20,
+                                        p: 0,
+                                        borderRadius: "999px",
                                         bgcolor: "rgba(0, 0, 0, 0.45)",
                                         color: "#fff",
                                         backdropFilter: "blur(8px)",
@@ -205,7 +223,13 @@ export const ChatComposer = memo(
                                         },
                                     }}
                                     onClick={() => removePendingImage(img.id)}
-                                />
+                                >
+                                    <HugeiconsIcon
+                                        icon={Cancel01Icon}
+                                        size={11}
+                                        strokeWidth={smallIconProps.strokeWidth}
+                                    />
+                                </IconButton>
                             </Box>
                         );
                     })}
@@ -420,9 +444,7 @@ export const ChatComposer = memo(
                                     >
                                         <HugeiconsIcon
                                             icon={Edit01Icon}
-                                            size={18}
-                                            strokeWidth={2}
-                                            absoluteStrokeWidth
+                                            {...compactIconProps}
                                         />
                                         <Typography
                                             variant="mini"
@@ -442,12 +464,16 @@ export const ChatComposer = memo(
                                         >
                                             {editingMessage.text}
                                         </Typography>
-                                        <ComposerIconButton
+                                        <IconButton
                                             aria-label="Cancel edit"
-                                            icon={Cancel01Icon}
-                                            size="small"
+                                            sx={actionButtonSx}
                                             onClick={handleCancelEdit}
-                                        />
+                                        >
+                                            <HugeiconsIcon
+                                                icon={Cancel01Icon}
+                                                {...smallIconProps}
+                                            />
+                                        </IconButton>
                                     </Box>
                                 )}
 
@@ -493,16 +519,20 @@ export const ChatComposer = memo(
                                                 >
                                                     {formatBytes(doc.size)}
                                                 </Typography>
-                                                <ComposerIconButton
+                                                <IconButton
                                                     aria-label="Remove document"
-                                                    icon={Cancel01Icon}
-                                                    size="small"
+                                                    sx={actionButtonSx}
                                                     onClick={() =>
                                                         removePendingDocument(
                                                             doc.id,
                                                         )
                                                     }
-                                                />
+                                                >
+                                                    <HugeiconsIcon
+                                                        icon={Cancel01Icon}
+                                                        {...smallIconProps}
+                                                    />
+                                                </IconButton>
                                             </Box>
                                         ))}
                                     </Box>
@@ -541,12 +571,14 @@ export const ChatComposer = memo(
                                     ref={inputRef}
                                     destination={destination}
                                     withVoiceInput={withVoiceInput}
+                                    actionIconProps={actionIconProps}
                                     disableAttachmentButton={
                                         disableAttachmentButton ||
                                         !showImageAttachment
                                     }
                                     sourcesLoading={sourcesLoading}
                                     isPreparingMessage={isPreparingMessage}
+                                    drawerIconButtonSx={drawerIconButtonSx}
                                     handleSend={handleSend}
                                     handleStopGeneration={handleStopGeneration}
                                     hasPendingAttachments={

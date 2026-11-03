@@ -46,11 +46,15 @@ void test("cancellation at queue handoff prevents a late microphone start", asyn
     assert.equal(await queue.run(() => Promise.resolve("retry")), "retry");
 });
 
-void test("running dictation retains model ownership until capture and decoder cleanup finish", async () => {
+void test("failed dictation releases model ownership only after capture and decoder cleanup finish", async () => {
     const queue = new ModelOperationQueue();
     const cleanedUp = deferred();
     const abort = new AbortController();
-    const voice = queue.run(() => cleanedUp.promise, abort.signal);
+    const voice = queue.run(async () => {
+        await cleanedUp.promise;
+        throw new Error("failed");
+    }, abort.signal);
+    const failed = assert.rejects(voice, /failed/);
     await tick();
     let nextStarted = false;
     const next = queue.run(() => {
@@ -61,14 +65,8 @@ void test("running dictation retains model ownership until capture and decoder c
     await tick();
     assert.equal(nextStarted, false);
     cleanedUp.resolve();
-    await Promise.all([voice, next]);
+    await Promise.all([failed, next]);
     assert.equal(nextStarted, true);
-});
-
-void test("a failed operation releases the model queue for retry", async () => {
-    const queue = new ModelOperationQueue();
-    await assert.rejects(queue.run(() => Promise.reject(new Error("failed"))));
-    assert.equal(await queue.run(() => Promise.resolve("retry")), "retry");
 });
 
 void test("abortable initialization stops waiting and observes a later failure", async () => {

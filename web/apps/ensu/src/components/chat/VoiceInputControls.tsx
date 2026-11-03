@@ -1,7 +1,7 @@
 import type { VoiceView } from "@/hooks/use-voice-input";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
-import { Box, LinearProgress, Typography } from "@mui/material";
-import { ComposerIconButton } from "./ComposerIconButton";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Box, IconButton, LinearProgress, Typography } from "@mui/material";
 
 export function VoiceInputControls({
     view,
@@ -14,12 +14,17 @@ export function VoiceInputControls({
     return (
         <Box sx={{ px: 1, py: 1, width: "100%" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <ComposerIconButton
-                    icon={Cancel01Icon}
+                <IconButton
                     aria-label="Discard voice input"
                     onClick={onCancel}
                     disabled={view.phase === "cancelling"}
-                />
+                >
+                    <HugeiconsIcon
+                        icon={Cancel01Icon}
+                        size={24}
+                        strokeWidth={2}
+                    />
+                </IconButton>
                 <Typography variant="small" role="status" sx={{ flex: 1 }}>
                     {view.status}
                 </Typography>

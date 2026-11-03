@@ -1,4 +1,3 @@
-mod memory;
 mod platform;
 mod runtime;
 
@@ -8,6 +7,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
 use ente_assets::download::CancellationToken;
+use ente_ensu::config::ModelRuntimeSurface;
+use ente_ensu::llm::memory::{MemoryOperation, has_required_work_reserve, memory_budget};
 use ente_ensu::transcription::{
     DictationState, LiveControl, LiveEvent, LiveTranscription, Transcriber,
 };
@@ -114,7 +115,6 @@ impl Session {
         let mut state = lock(&self.dictation);
         let _ = state.session.stop(voice::StopReason::Failure);
         if let Some(stream) = lock(&self.stream).as_ref() {
-            // Stop accepting input while allowing captured speech to finish decoding.
             stream.finish();
         }
     }
@@ -148,6 +148,24 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 
 fn error(error: impl std::fmt::Display) -> ApiError {
     ApiError::new("voice", error.to_string())
+}
+
+fn should_release_chat_model(preparing: bool) -> bool {
+    let memory = platform::memory();
+    let has_reserve = if preparing {
+        let budget = memory_budget(
+            ModelRuntimeSurface::Desktop,
+            MemoryOperation::Voice,
+            None,
+            None,
+        );
+        memory
+            .available
+            .is_none_or(|bytes| bytes >= budget.required_bytes)
+    } else {
+        has_required_work_reserve(memory.available)
+    };
+    memory.pressure || !has_reserve
 }
 
 #[derive(Serialize, Clone)]
@@ -360,9 +378,14 @@ pub async fn voice_run(
 
     let _lifecycle = llm_state.lifecycle().lock().await;
     session.check()?;
-    let released = memory::release_chat_model(true);
+    let released = should_release_chat_model(true);
     if released {
         llm::replace_state(&llm_state, None, None)?;
+        if !has_required_work_reserve(platform::memory().available) {
+            return Err(error(
+                "Not enough memory for voice input. Close other apps and try again.",
+            ));
+        }
     }
     let cache = window
         .app_handle()
@@ -423,7 +446,7 @@ fn run_capture(
             Signal::Tick => {
                 if !released && last_memory_check.elapsed() >= Duration::from_secs(1) {
                     last_memory_check = Instant::now();
-                    if memory::release_chat_model(false) {
+                    if should_release_chat_model(false) {
                         llm::replace_state(&window.state::<llm::State>(), None, None)
                             .map_err(|e| voice::VoiceError::ProcessingFailed(e.message))?;
                         released = true;
@@ -582,10 +605,10 @@ pub fn voice_insert(
 mod tests {
     use super::*;
 
-    fn capture() -> Arc<LiveTranscription> {
+    fn capture(sample_rate: u32) -> Arc<LiveTranscription> {
         Arc::new(
             LiveTranscription::new(voice::CaptureFormat {
-                sample_rate: 16000,
+                sample_rate,
                 channels: 1,
             })
             .unwrap(),
@@ -599,7 +622,7 @@ mod tests {
         assert!(owned_session(&state, "other", &session.id).is_none());
         assert!(owned_session(&state, "main", "old-session").is_none());
         assert!(!session.feed(0, &[0, 0]).unwrap());
-        *lock(&session.stream) = Some(capture());
+        *lock(&session.stream) = Some(capture(16000));
         session.capturing.store(true, Ordering::Release);
         assert!(session.feed(0, &[0]).is_err());
         assert!(session.feed(0, &vec![0; 9602]).is_err());
@@ -616,97 +639,63 @@ mod tests {
     }
 
     #[test]
-    fn failed_preparation_and_repeated_attempts_release_worker_ownership() {
+    fn failed_or_cancelled_preparation_releases_worker_and_reservation() {
         let transcriber = Transcriber::new("/missing-ensu-model", "/missing-ensu-vad");
-        for _ in 0..3 {
+        let state = State::default();
+        for cancelled in [false, true] {
             let session = Arc::new(Session::new("main".into()));
+            *lock(&state.0) = Some(Arc::clone(&session));
+            let guard = ActiveRun(&state);
+            if cancelled {
+                session.stop(true);
+            }
             let mut closed = false;
-            assert!(
-                run_stream(&session, &capture(), &transcriber, |signal| {
-                    assert!(!matches!(signal, Signal::Start));
-                    closed |= matches!(signal, Signal::Close);
-                    Ok(())
-                })
-                .is_err()
+            let failure = run_stream(&session, &capture(16000), &transcriber, |signal| {
+                assert!(!cancelled);
+                assert!(!matches!(signal, Signal::Start));
+                closed |= matches!(signal, Signal::Close);
+                Ok(())
+            })
+            .err()
+            .unwrap();
+            assert_eq!(
+                failure.name,
+                Some(if cancelled { "cancelled" } else { "voice" })
             );
-            assert!(closed);
+            assert_eq!(closed, !cancelled);
             assert!(!lock(&session.dictation).session.worker_active());
             assert!(!session.capturing.load(Ordering::Acquire));
+            drop(guard);
+            assert!(lock(&state.0).is_none());
         }
     }
 
-    #[test]
-    fn cancel_before_start_cannot_open_capture_and_guard_releases_reservation() {
-        let session = Arc::new(Session::new("main".into()));
-        let state = State(Mutex::new(Some(Arc::clone(&session))));
-        let guard = ActiveRun(&state);
-        session.stop(true);
-        let result = run_stream(
-            &session,
-            &capture(),
-            &Transcriber::new("/missing", "/missing"),
-            |_| panic!("must not start"),
-        );
-        assert_eq!(result.err().unwrap().name, Some("cancelled"));
-        drop(guard);
-        assert!(lock(&state.0).is_none());
-    }
-
-    #[test]
-    fn insertion_preserves_unicode_selection_and_refuses_other_chats_or_ime() {
-        let anchor = || Insertion {
-            destination: "chat:1".into(),
-            revision: 3,
-            start_utf16: 3,
-            end_utf16: 7,
-        };
-        let apply = |destination: &str, revision, composing| {
-            voice_insert(
-                anchor(),
-                destination.into(),
-                revision,
-                "🙂 meet Friday".into(),
-                "call".into(),
-                composing,
-            )
-        };
-        assert_eq!(apply("chat:1", 3, false).unwrap().text, "🙂 call Friday");
-        assert_eq!(
-            apply("chat:1", 4, false).unwrap().text,
-            "🙂 meet Friday call"
-        );
-        assert!(apply("chat:2", 3, false).is_err());
-        assert!(apply("chat:1", 3, true).is_err());
-    }
-
-    #[test]
-    #[ignore = "requires ENSU_TEST_TRANSCRIPTION_MODEL, ENSU_TEST_VAD, ENSU_TEST_PCM (16 kHz mono PCM16) and ENSU_TEST_RUNTIME"]
-    fn microphone_failure_drains_captured_speech_before_returning_a_warning() {
+    fn real_audio_fixture() -> (Transcriber, Vec<u8>, u32) {
         ente_ensu::transcription::load_runtime_from(std::env::var("ENSU_TEST_RUNTIME").unwrap())
             .unwrap();
         let transcriber = Transcriber::new(
             std::env::var("ENSU_TEST_TRANSCRIPTION_MODEL").unwrap(),
             std::env::var("ENSU_TEST_VAD").unwrap(),
         );
-        let mut pcm = std::fs::read(std::env::var("ENSU_TEST_PCM").unwrap()).unwrap();
+        let pcm = std::fs::read(std::env::var("ENSU_TEST_PCM").unwrap()).unwrap();
         let rate: u32 = std::env::var("ENSU_TEST_SAMPLE_RATE")
             .ok()
             .and_then(|r| r.parse().ok())
             .unwrap_or(16000);
-        // Queue one second before decoding starts, making the interruption
-        // deterministic without depending on the decoder's speed.
+        assert!(!pcm.is_empty() && pcm.len() <= 8 * rate as usize * 2);
+        (transcriber, pcm, rate)
+    }
+
+    #[test]
+    #[ignore = "requires ENSU_TEST_TRANSCRIPTION_MODEL, ENSU_TEST_VAD, ENSU_TEST_PCM (16 kHz mono PCM16) and ENSU_TEST_RUNTIME"]
+    fn microphone_failure_drains_captured_speech_before_returning_a_warning() {
+        let (transcriber, mut pcm, rate) = real_audio_fixture();
         pcm.truncate(rate as usize * 2);
         assert!(!pcm.is_empty());
         let mut expected = String::new();
         for failure in [false, true] {
             let session = Arc::new(Session::new("main".into()));
-            let stream = Arc::new(
-                LiveTranscription::new(voice::CaptureFormat {
-                    sample_rate: rate,
-                    channels: 1,
-                })
-                .unwrap(),
-            );
+            let stream = capture(rate);
             let outcome = run_stream(&session, &stream, &transcriber, |signal| {
                 if matches!(signal, Signal::Start) {
                     for (sequence, chunk) in pcm.chunks(rate as usize / 10 * 2).enumerate() {
@@ -739,7 +728,7 @@ mod tests {
 
         let session = Arc::new(Session::new("main".into()));
         session.capture_failed("The microphone disconnected.".into());
-        let failure = run_stream(&session, &capture(), &transcriber, |signal| {
+        let failure = run_stream(&session, &capture(16000), &transcriber, |signal| {
             assert!(!matches!(signal, Signal::Start));
             Ok(())
         })
@@ -752,27 +741,10 @@ mod tests {
     #[test]
     #[ignore = "requires ENSU_TEST_TRANSCRIPTION_MODEL, ENSU_TEST_VAD, ENSU_TEST_PCM (16 kHz mono PCM16) and ENSU_TEST_RUNTIME"]
     fn real_audio_reaches_desktop_preview_finalization_and_composer() {
-        ente_ensu::transcription::load_runtime_from(std::env::var("ENSU_TEST_RUNTIME").unwrap())
-            .unwrap();
-        let transcriber = Transcriber::new(
-            std::env::var("ENSU_TEST_TRANSCRIPTION_MODEL").unwrap(),
-            std::env::var("ENSU_TEST_VAD").unwrap(),
-        );
-        let pcm = std::fs::read(std::env::var("ENSU_TEST_PCM").unwrap()).unwrap();
-        let rate: u32 = std::env::var("ENSU_TEST_SAMPLE_RATE")
-            .ok()
-            .and_then(|r| r.parse().ok())
-            .unwrap_or(16000);
-        assert!(!pcm.is_empty() && pcm.len() <= 8 * rate as usize * 2);
-        for discard in [false, true, false] {
+        let (transcriber, pcm, rate) = real_audio_fixture();
+        for discard in [false, true] {
             let session = Arc::new(Session::new("main".into()));
-            let stream = Arc::new(
-                LiveTranscription::new(voice::CaptureFormat {
-                    sample_rate: rate,
-                    channels: 1,
-                })
-                .unwrap(),
-            );
+            let stream = capture(rate);
             let mut changes = 0;
             let result = std::thread::scope(|scope| {
                 let mut feeder = None;

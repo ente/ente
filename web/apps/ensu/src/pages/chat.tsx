@@ -4805,6 +4805,11 @@ const Page: React.FC = () => {
                         isImageAttachmentLimitReached={
                             isImageAttachmentLimitReached
                         }
+                        actionButtonSx={actionButtonSx}
+                        drawerIconButtonSx={drawerIconButtonSx}
+                        smallIconProps={smallIconProps}
+                        compactIconProps={compactIconProps}
+                        actionIconProps={actionIconProps}
                     />
                     {showImageDropOverlay && (
                         <Box

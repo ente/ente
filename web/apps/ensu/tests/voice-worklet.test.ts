@@ -56,21 +56,21 @@ void test("worklet preserves final partial PCM, clips samples, and encodes littl
     assert.equal(w.messages.length, 2);
 });
 
-void test("worklet bounds unacknowledged audio even if the UI thread stops responding", () => {
-    const w = worklet();
-    w.command("start");
-    for (let i = 0; i < 50; i++) w.feed(new Float32Array(4800));
-    assert.equal(w.messages.filter((m) => m.pcm).length, 20);
-    assert.equal(w.messages.filter((m) => m.error).length, 1);
-});
-
-void test("acknowledged chunks allow sustained capture without growing the backlog", () => {
-    const w = worklet();
-    w.command("start");
-    for (let i = 0; i < 50; i++) {
-        w.feed(new Float32Array(4800));
-        w.command("ack");
+void test("worklet bounds unacknowledged audio and permits sustained acknowledged capture", () => {
+    for (const acknowledge of [false, true]) {
+        const w = worklet();
+        w.command("start");
+        for (let i = 0; i < 50; i++) {
+            w.feed(new Float32Array(4800));
+            if (acknowledge) w.command("ack");
+        }
+        assert.equal(
+            w.messages.filter((m) => m.pcm).length,
+            acknowledge ? 50 : 20,
+        );
+        assert.equal(
+            w.messages.filter((m) => m.error).length,
+            acknowledge ? 0 : 1,
+        );
     }
-    assert.equal(w.messages.filter((m) => m.pcm).length, 50);
-    assert(!w.messages.some((m) => m.error));
 });

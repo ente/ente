@@ -7,13 +7,16 @@ import {
     Navigation06Icon,
     StopIcon,
 } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
     CircularProgress,
+    IconButton,
     InputBase,
     Tooltip,
     Typography,
 } from "@mui/material";
+import { alpha, type SxProps, type Theme } from "@mui/material/styles";
 import {
     forwardRef,
     memo,
@@ -23,8 +26,14 @@ import {
     useRef,
     useState,
 } from "react";
-import { ComposerIconButton } from "./ComposerIconButton";
 import { VoiceInputControls } from "./VoiceInputControls";
+
+const sendButtonColor = "#E66A28";
+
+interface IconProps {
+    size: number;
+    strokeWidth: number;
+}
 
 export interface ChatInputHandle {
     focus: () => void;
@@ -32,7 +41,9 @@ export interface ChatInputHandle {
 }
 
 interface ChatInputProps {
+    actionIconProps: IconProps;
     disableAttachmentButton: boolean;
+    drawerIconButtonSx: Exclude<SxProps<Theme>, readonly unknown[]>;
     handleSend: (input: string) => void | Promise<void>;
     handleStopGeneration: () => void;
     hasPendingAttachments: boolean;
@@ -53,7 +64,9 @@ interface ChatInputProps {
 export const ChatInput = memo(
     forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput(
         {
+            actionIconProps,
             disableAttachmentButton,
+            drawerIconButtonSx,
             handleSend,
             handleStopGeneration,
             hasPendingAttachments,
@@ -295,12 +308,20 @@ export const ChatInput = memo(
                     }}
                 >
                     {showAttachmentPicker && (
-                        <ComposerIconButton
+                        <IconButton
                             aria-label="Add photos"
-                            icon={ImagePlusIcon}
                             disabled={disableAttachmentButton || !!voice.view}
+                            sx={[
+                                drawerIconButtonSx,
+                                { width: 32, p: 0, flexShrink: 0 },
+                            ]}
                             onClick={openPhotoPicker}
-                        />
+                        >
+                            <HugeiconsIcon
+                                icon={ImagePlusIcon}
+                                {...actionIconProps}
+                            />
+                        </IconButton>
                     )}
                     <InputBase
                         multiline
@@ -396,12 +417,19 @@ export const ChatInput = memo(
                     />
                     {desktop && voice.view ? (
                         listening ? (
-                            <ComposerIconButton
-                                icon={StopIcon}
+                            <IconButton
                                 aria-label="Finish voice input"
                                 onClick={() => void voice.finish()}
-                                color="primary"
-                            />
+                                sx={[
+                                    drawerIconButtonSx,
+                                    { color: sendButtonColor, flexShrink: 0 },
+                                ]}
+                            >
+                                <HugeiconsIcon
+                                    icon={StopIcon}
+                                    {...actionIconProps}
+                                />
+                            </IconButton>
                         ) : (
                             <Box
                                 sx={{
@@ -424,9 +452,9 @@ export const ChatInput = memo(
                                     component="span"
                                     sx={{ display: "inline-flex" }}
                                 >
-                                    <ComposerIconButton
-                                        icon={Mic01Icon}
+                                    <IconButton
                                         aria-label="Dictate message"
+                                        sx={drawerIconButtonSx}
                                         disabled={
                                             !!voiceDisabledReason ||
                                             isComposing ||
@@ -440,23 +468,49 @@ export const ChatInput = memo(
                                             event.preventDefault()
                                         }
                                         onClick={startVoice}
-                                    />
+                                    >
+                                        <HugeiconsIcon
+                                            icon={Mic01Icon}
+                                            {...actionIconProps}
+                                        />
+                                    </IconButton>
                                 </Box>
                             </Tooltip>
                         )
                     )}
-                    <ComposerIconButton
-                        icon={isGenerating ? StopIcon : Navigation06Icon}
+                    <IconButton
                         aria-label={isGenerating ? "Stop" : "Send message"}
-                        color="primary"
                         onClick={isGenerating ? handleStopGeneration : send}
                         disabled={disableSend}
-                        sx={
-                            isGenerating
-                                ? undefined
-                                : { "& svg": { transform: "rotate(90deg)" } }
-                        }
-                    />
+                        sx={{
+                            width: 44,
+                            height: 44,
+                            ml: 0.5,
+                            borderRadius: 2,
+                            bgcolor: "transparent",
+                            color: sendButtonColor,
+                            "&:hover": { bgcolor: "fill.faint" },
+                            "&.Mui-disabled": {
+                                color: alpha(sendButtonColor, 0.45),
+                            },
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                transform: isGenerating
+                                    ? undefined
+                                    : "rotate(90deg)",
+                                display: "flex",
+                            }}
+                        >
+                            <HugeiconsIcon
+                                icon={
+                                    isGenerating ? StopIcon : Navigation06Icon
+                                }
+                                {...actionIconProps}
+                            />
+                        </Box>
+                    </IconButton>
                 </Box>
             </>
         );

@@ -68,7 +68,12 @@ function harness(microphone?: MicrophoneFactory) {
 }
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-void test("cancel while native creation is pending releases its eventual reservation without starting capture", async () => {
+void test("cancellation before or during native creation never starts capture", async () => {
+    const beforeStart = harness();
+    await beforeStart.session.cancel();
+    assert.equal(await beforeStart.session.run(() => undefined), undefined);
+    assert.equal(beforeStart.calls.length, 0);
+
     const h = harness();
     const run = h.session.run(() => assert.fail("cancelled event"));
     await tick();
@@ -80,42 +85,6 @@ void test("cancel while native creation is pending releases its eventual reserva
         ["voice_create", "voice_stop"],
     );
     assert.deepEqual(h.calls[1]?.args, { id: "first", discard: true });
-    assert(h.unlistened());
-});
-
-void test("stop drains before resolving and ignores callbacks from other attempts", async () => {
-    const h = harness();
-    const seen: string[] = [];
-    const run = h.session.run((e) => seen.push(e.id));
-    h.created.resolve("current");
-    await tick();
-    h.emit("old");
-    h.emit("current");
-    await h.session.finish();
-    assert.deepEqual(seen, ["current"]);
-    assert.equal(h.unlistened(), false);
-    assert.deepEqual(h.calls.at(-1)?.args, { id: "current", discard: false });
-    h.outcome.resolve({ text: "hello", incomplete: false });
-    assert.equal((await run)?.text, "hello");
-    assert(h.unlistened());
-    await assert.rejects(
-        h.session.run(() => undefined),
-        /already started/,
-    );
-});
-
-void test("discard while finishing suppresses both late events and insertion", async () => {
-    const h = harness();
-    let changes = 0;
-    const run = h.session.run(() => changes++);
-    h.created.resolve("current");
-    await tick();
-    await h.session.finish();
-    await h.session.cancel();
-    h.emit("current");
-    h.outcome.resolve({ text: "must not insert", incomplete: false });
-    assert.equal(await run, undefined);
-    assert.equal(changes, 0);
     assert(h.unlistened());
 });
 
@@ -133,14 +102,7 @@ void test("native failures stop the session and remove its listener", async () =
     });
 });
 
-void test("cancel before starting never asks for microphone or downloads", async () => {
-    const h = harness();
-    await h.session.cancel();
-    assert.equal(await h.session.run(() => undefined), undefined);
-    assert.equal(h.calls.length, 0);
-});
-
-void test("Stop waits for the worklet's final audio before closing the native queue", async () => {
+void test("Stop drains audio and ignores callbacks from other attempts", async () => {
     const flushed = deferred<undefined>();
     let started = 0;
     const h = harness(() => ({
@@ -153,9 +115,13 @@ void test("Stop waits for the worklet's final audio before closing the native qu
         finish: () => flushed.promise,
         close: () => undefined,
     }));
-    const run = h.session.run(() => undefined);
+    const seen: string[] = [];
+    const run = h.session.run((e) => seen.push(e.id));
     h.created.resolve("stream");
     await tick();
+    h.emit("old");
+    h.emit("stream");
+    assert.deepEqual(seen, ["stream"]);
     assert.equal(h.session.hasStarted, false);
     h.capture("old", true);
     h.capture("stream", true);
@@ -170,8 +136,14 @@ void test("Stop waits for the worklet's final audio before closing the native qu
     flushed.resolve(undefined);
     await stop;
     assert.deepEqual(h.calls.at(-1)?.args, { id: "stream", discard: false });
+    assert.equal(h.unlistened(), false);
     h.outcome.resolve({ text: "including the tail", incomplete: false });
     assert.equal((await run)?.text, "including the tail");
+    assert(h.unlistened());
+    await assert.rejects(
+        h.session.run(() => undefined),
+        /already started/,
+    );
 });
 
 void test("Cancel during a pending flush closes capture immediately and never finalizes", async () => {
@@ -186,13 +158,16 @@ void test("Cancel during a pending flush closes capture immediately and never fi
             closed = true;
         },
     }));
-    const run = h.session.run(() => undefined);
+    let changes = 0;
+    const run = h.session.run(() => changes++);
     h.created.resolve("stream");
     await tick();
+    h.capture("stream", true);
     const stop = h.session.finish();
     await tick();
     await h.session.cancel();
     assert(closed);
+    h.emit("stream");
     flushed.resolve(undefined);
     await stop;
     assert(
@@ -202,6 +177,8 @@ void test("Cancel during a pending flush closes capture immediately and never fi
     );
     h.outcome.resolve({ text: "discarded", incomplete: false });
     assert.equal(await run, undefined);
+    assert.equal(changes, 0);
+    assert(h.unlistened());
 });
 
 void test("capture failure lets native decoding return an incomplete transcript", async () => {

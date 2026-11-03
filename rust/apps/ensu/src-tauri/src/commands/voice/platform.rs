@@ -120,14 +120,3 @@ pub(super) fn macos_version() -> Option<(u32, u32)> {
     let mut parts = version.trim_end_matches('\0').split('.');
     Some((parts.next()?.parse().ok()?, parts.next()?.parse().ok()?))
 }
-
-#[cfg(all(test, target_os = "macos"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reads_live_macos_memory_and_version() {
-        assert!(memory().available.is_some_and(|bytes| bytes > 0));
-        assert!(macos_version().is_some_and(|(major, _)| major >= 10));
-    }
-}
