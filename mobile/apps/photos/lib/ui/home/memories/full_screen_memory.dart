@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:io";
 import "dart:math";
 import "dart:ui";
 
@@ -26,10 +27,12 @@ import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/memories/memory_video_exporter.dart";
 import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
+import "package:photos/ui/common/linear_progress_dialog.dart";
 import "package:photos/ui/home/memories/custom_listener.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/home/memories/memory_progress_indicator.dart";
@@ -43,6 +46,7 @@ import "package:photos/ui/viewer/file_details/favorite_widget.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
+import "package:share_plus/share_plus.dart";
 
 const _memoryCaptionHorizontalInset = 16.0;
 const _memoryCaptionActionBarGap = 4.0;
@@ -1576,9 +1580,58 @@ Future<void> _shareMemory(
         context: context,
       );
       return;
+    case MemoryShareSheetAction.shareVideo:
+      await _shareMemoryVideo(context, result.selectedMemories);
     case MemoryShareSheetAction.shareItems:
       await share(context, Memory.filesFromMemories(result.selectedMemories));
   }
+}
+
+Future<void> _shareMemoryVideo(
+  BuildContext context,
+  List<Memory> memories,
+) async {
+  final memoryAudio = MemoryAudioScope.maybeOf(context, listen: false);
+  final musicTrack = memoryAudio == null || memoryAudio.isMusicMuted
+      ? null
+      : memoryAudio.controller?.activeTrack;
+  final dialogKey = GlobalKey<LinearProgressDialogState>();
+  unawaited(
+    showDialog(
+      context: context,
+      useRootNavigator: false,
+      builder: (_) =>
+          LinearProgressDialog(context.strings.preparingVideo, key: dialogKey),
+    ),
+  );
+  void dismissDialog() {
+    final dialogContext = dialogKey.currentContext ?? context;
+    if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+  }
+
+  final File video;
+  try {
+    video = await MemoryVideoExporter().export(
+      files: Memory.filesFromMemories(memories),
+      musicTrack: musicTrack,
+      muteVideos: memoryAudio?.isVideoMuted ?? false,
+      onProgress: (progress) => dialogKey.currentState?.setProgress(progress),
+    );
+  } catch (e) {
+    dismissDialog();
+    if (context.mounted) {
+      await showGenericErrorBottomSheet(context: context, error: e);
+    }
+    return;
+  }
+  dismissDialog();
+  if (!context.mounted) return;
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [XFile(video.path, mimeType: "video/mp4")],
+      sharePositionOrigin: shareButtonRect(context, null),
+    ),
+  );
 }
 
 Future<(String, int)?> _getOrCreateMemoryLink(

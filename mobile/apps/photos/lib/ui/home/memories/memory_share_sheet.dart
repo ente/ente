@@ -12,7 +12,7 @@ import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
-enum MemoryShareSheetAction { shareMemory, shareItems }
+enum MemoryShareSheetAction { shareMemory, shareVideo, shareItems }
 
 class MemoryShareSheetResult {
   final MemoryShareSheetAction action;
@@ -195,6 +195,16 @@ class _MemoryShareSelectionSheetState
               ),
               const SizedBox(height: Spacing.md),
             ],
+            _buildAction(
+              l10n.shareAsVideo,
+              MemoryShareSheetAction.shareVideo,
+              variant: ButtonComponentVariant.secondary,
+              leading: const HugeIcon(
+                icon: HugeIcons.strokeRoundedVideo01,
+                size: IconSizes.small,
+              ),
+            ),
+            const SizedBox(height: Spacing.md),
             _buildAction(
               l10n.shareItemCount(count: _selectedFiles.files.length),
               MemoryShareSheetAction.shareItems,

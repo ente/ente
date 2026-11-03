@@ -1,0 +1,1 @@
+- Added an option to share a memory as a video.
