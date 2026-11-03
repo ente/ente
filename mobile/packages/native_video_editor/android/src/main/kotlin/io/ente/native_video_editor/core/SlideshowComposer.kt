@@ -379,31 +379,46 @@ private fun decodePhoto(file: File, maxLongSide: Int): Bitmap {
         }
     ) ?: throw IllegalArgumentException("Cannot decode photo: ${file.path}")
     val scale = min(1f, maxLongSide.toFloat() / max(decoded.width, decoded.height))
-    val rotation = exifRotation(file)
-    if (scale == 1f && rotation == 0f) return decoded
+    val orientation = exifTransform(file)
+    if (scale == 1f && orientation == null) return decoded
     val matrix = Matrix().apply {
         postScale(scale, scale)
-        postRotate(rotation)
+        orientation?.let(::postConcat)
     }
     val transformed = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
     if (transformed !== decoded) decoded.recycle()
     return transformed
 }
 
-private fun exifRotation(file: File): Float = try {
-    when (
+private fun exifTransform(file: File): Matrix? {
+    val orientation = try {
         ExifInterface(file.path).getAttributeInt(
             ExifInterface.TAG_ORIENTATION,
             ExifInterface.ORIENTATION_NORMAL
         )
-    ) {
-        ExifInterface.ORIENTATION_ROTATE_90, ExifInterface.ORIENTATION_TRANSPOSE -> 90f
-        ExifInterface.ORIENTATION_ROTATE_180, ExifInterface.ORIENTATION_FLIP_VERTICAL -> 180f
-        ExifInterface.ORIENTATION_ROTATE_270, ExifInterface.ORIENTATION_TRANSVERSE -> 270f
-        else -> 0f
+    } catch (_: Exception) {
+        ExifInterface.ORIENTATION_NORMAL
     }
-} catch (_: Exception) {
-    0f
+    val matrix = Matrix()
+    when (orientation) {
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            matrix.setRotate(90f)
+            matrix.postScale(-1f, 1f)
+        }
+
+        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            matrix.setRotate(-90f)
+            matrix.postScale(-1f, 1f)
+        }
+
+        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(-90f)
+        else -> return null
+    }
+    return matrix
 }
 
 @UnstableApi
