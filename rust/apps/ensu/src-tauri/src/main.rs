@@ -9,6 +9,9 @@ mod platform;
 #[cfg(any(windows, target_os = "linux"))]
 mod single_instance;
 
+#[global_allocator]
+static ALLOCATOR: ente_image::BudgetedAllocator = ente_image::BudgetedAllocator;
+
 fn main() {
     logging::install_panic_hook();
     logging::log("App", "starting Tauri backend");

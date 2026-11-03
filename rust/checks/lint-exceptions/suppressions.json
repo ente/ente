@@ -34,6 +34,7 @@
     "rust/crates/ensu/src/platform.rs": ["unsafe_code"],
     "rust/crates/exif/src/isobmff.rs": ["clippy::expect_used"],
     "rust/crates/image/src/color_management.rs": ["clippy::expect_used"],
+    "rust/crates/image/src/memory_budget.rs": ["unsafe_code"],
     "rust/crates/location/src/binary.rs": ["clippy::expect_used"],
     "rust/crates/location/src/city.rs": [
         "clippy::expect_used",

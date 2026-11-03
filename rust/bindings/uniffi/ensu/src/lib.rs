@@ -12,3 +12,6 @@ pub mod notes;
 pub mod retrieval;
 pub mod transcription;
 pub mod voice;
+
+#[global_allocator]
+static ALLOCATOR: ente_image::BudgetedAllocator = ente_image::BudgetedAllocator;

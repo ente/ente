@@ -2343,6 +2343,7 @@ dependencies = [
  "ente-core",
  "ente-ensu",
  "ente-ensu-crypto",
+ "ente-image",
  "keyring",
  "libc",
  "log",
@@ -2600,6 +2601,7 @@ dependencies = [
  "ente-assets",
  "ente-core",
  "ente-ensu",
+ "ente-image",
  "ente-uniffi-log",
  "thiserror 2.0.21",
  "uniffi",
@@ -2738,6 +2740,7 @@ dependencies = [
  "ente-core",
  "ente-frb-lib",
  "ente-frb-log",
+ "ente-image",
  "ente-ml",
  "flutter_rust_bridge",
 ]
@@ -2902,6 +2905,7 @@ name = "ente-photos-napi"
 version = "0.0.0"
 dependencies = [
  "ente-assets",
+ "ente-image",
  "ente-ml",
  "log",
  "napi",

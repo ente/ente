@@ -10,6 +10,7 @@ crate-type = ["staticlib", "cdylib"]
 ente-assets.workspace = true
 ente-core.workspace = true
 ente-ensu = { workspace = true, features = ["transcription"] }
+ente-image.workspace = true
 ente-uniffi-log.workspace = true
 thiserror.workspace = true
 uniffi = { workspace = true, features = ["tokio"] }
