@@ -56,7 +56,7 @@ jobs:
                           // laurens-pilot
                           239996999: { allowPrefixes: ["mobile/", "rust/", "docs/docs/"] },
                           // AswinAsok
-                          64626875: { allowPrefixes: ["web/", "desktop/", "docs/"] },
+                          64626875: { allowPrefixes: ["web/", "desktop/", "docs/", "rust/"] },
                           // ashil-pilot
                           293300083: { allowPrefixes: ["mobile/", "docs/docs/"] },
                           // ashilkn
