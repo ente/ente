@@ -8,11 +8,6 @@ version '1.0'
 
 ext.media3_version = '1.10.1'
 
-configurations.configureEach {
-    // Frame extraction receives videos only, never still images.
-    exclude group: "androidx.exifinterface", module: "exifinterface"
-}
-
 android {
     namespace 'io.ente.native_video_editor'
 
