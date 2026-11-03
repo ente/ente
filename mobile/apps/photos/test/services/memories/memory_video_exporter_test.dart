@@ -1,5 +1,6 @@
 import "dart:io";
 import "dart:math";
+import "dart:typed_data";
 
 import "package:flutter_test/flutter_test.dart";
 import "package:native_video_editor/native_video_editor.dart";
@@ -17,15 +18,17 @@ void main() {
   late List<SlideshowExportRequest> requests;
   late List<double> progress;
 
-  EnteFile makeFile(int id, FileType type) => EnteFile()
+  EnteFile makeFile(int id, FileType type, {String? title}) => EnteFile()
     ..generatedID = id
     ..localID = "local-$id"
+    ..title = title ?? "file-$id.jpg"
     ..fileType = type;
 
   MemoryVideoExporter createExporter({bool failResolve = false}) {
     return MemoryVideoExporter(
       resolveFile: (file) async =>
           failResolve ? null : File("${directory.path}/${file.localID}"),
+      resolveThumbnail: (file) async => Uint8List.fromList([1, 2, 3]),
       resolveMusic: (track) async => File("${directory.path}/${track.id}.mp3"),
       export: (request, {onProgress}) async {
         requests.add(request);
@@ -132,6 +135,38 @@ void main() {
       for (var id = 1; id <= 7; id++) "${directory.path}/local-$id",
     ]);
     expect(progress, orderedEquals([...progress]..sort()));
+  });
+
+  test("renders RAW photos from their thumbnail", () async {
+    final existedDuringExport = <bool>[];
+    final exporter = MemoryVideoExporter(
+      resolveFile: (file) async => File("${directory.path}/${file.localID}"),
+      resolveThumbnail: (file) async => Uint8List.fromList([1, 2, 3]),
+      resolveMusic: (track) async => File("${directory.path}/${track.id}.mp3"),
+      export: (request, {onProgress}) async {
+        requests.add(request);
+        existedDuringExport.add(File(request.items[1].path).existsSync());
+        return request.outputPath;
+      },
+      outputDirectory: () => "${directory.path}/",
+      random: Random(7),
+    );
+
+    await exporter.export(
+      files: [
+        makeFile(1, FileType.image),
+        makeFile(2, FileType.image, title: "shot.DNG"),
+      ],
+      musicTrack: null,
+      muteVideos: false,
+    );
+
+    final items = requests.single.items;
+    expect(items[0].path, "${directory.path}/local-1");
+    expect(items[1].path, startsWith("${directory.path}/memory-"));
+    expect(items[1].path, endsWith(".jpg"));
+    expect(existedDuringExport, [true]);
+    expect(File(items[1].path).existsSync(), isFalse);
   });
 
   test("fails before exporting when an item cannot be loaded", () async {
