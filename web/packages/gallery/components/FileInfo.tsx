@@ -662,13 +662,11 @@ const FileInfoSidebar = styled(
         display: "flex",
         flexDirection: "column",
         top: "calc(env(titlebar-area-height, 0px) + 12px)",
+        right: "calc(env(safe-area-inset-right, 0px) + 12px)",
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px)",
         height: "auto",
         borderRadius: 20,
-        [theme.breakpoints.down("sm")]: {
-            bottom: 0,
-            borderRadius: "20px 20px 0 0",
-        },
     },
     ".MuiDrawer-paper > .MuiBox-root": {
         flex: 1,
