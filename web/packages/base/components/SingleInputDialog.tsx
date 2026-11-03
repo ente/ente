@@ -21,11 +21,10 @@ import { SingleInputForm, type SingleInputFormProps } from "./SingleInputForm";
 type SingleInputDialogProps = ModalVisibilityProps &
     Omit<SingleInputFormProps, "onCancel" | "onSubmit"> & {
         title: string;
-        /** Return false to skip closing the dialog after submission. */
         onSubmit: (
             value: string,
             setFieldError: (message: string) => void,
-        ) => void | false | Promise<void | false>;
+        ) => ReturnType<SingleInputFormProps["onSubmit"]> | Promise<boolean>;
         description?: string;
         sx?: SxProps<Theme>;
     };

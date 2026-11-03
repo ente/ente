@@ -34,11 +34,8 @@ export const CreateAlbumDialog: FC<CreateAlbumDialogProps> = ({
         onClose();
     };
 
-    const handleCreateAlbum = async (
-        albumName: string,
-    ): Promise<void | false> => {
+    const handleCreateAlbum = async (albumName: string): Promise<boolean> => {
         const pending = submission.current;
-        // A retry after a failed refresh should reuse the album already created.
         if (!pending.album) {
             pending.album = isHidden
                 ? await createHiddenAlbum(albumName)
@@ -50,6 +47,7 @@ export const CreateAlbumDialog: FC<CreateAlbumDialogProps> = ({
         await onRemoteFilesPull();
         if (pending !== submission.current) return false;
         onSelectCollectionID(pending.album.id);
+        return true;
     };
 
     return (
