@@ -9,6 +9,10 @@ func GetClientIP(c *gin.Context) string {
 	return c.ClientIP()
 }
 
+func IsCFWorkerIP(ip string) bool {
+	return ip == "2a06:98c0:3600::103"
+}
+
 func GetClientCountry(c *gin.Context) string {
 	return c.GetHeader("CF-IPCountry")
 }

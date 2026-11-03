@@ -109,6 +109,8 @@ func TestWorkerSessionTracking(t *testing.T) {
 			token := "session-" + tc.name
 			require.NoError(t, userAuthRepo.AddToken(userID, ente.Photos, token, "192.0.2.1", "original"))
 			tokenHash := auth.HashToken(token)
+			var lastUsedBefore int64
+			require.NoError(t, db.QueryRow(`SELECT last_used_at FROM tokens WHERE token_hash = $1`, tokenHash[:]).Scan(&lastUsedBefore))
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 			req.RemoteAddr = net.JoinHostPort(tc.ip, "1234")
 			req.Header.Set("X-Auth-Token", token)
@@ -120,13 +122,29 @@ func TestWorkerSessionTracking(t *testing.T) {
 			require.Equal(t, http.StatusNoContent, response.Code)
 			updated := func() bool {
 				var ua string
-				require.NoError(t, db.QueryRow(`SELECT user_agent FROM tokens WHERE token_hash = $1`, tokenHash[:]).Scan(&ua))
+				if err := db.QueryRow(`SELECT user_agent FROM tokens WHERE token_hash = $1`, tokenHash[:]).Scan(&ua); err != nil {
+					t.Error(err)
+					return false
+				}
 				return ua == "new-client"
 			}
 			if tc.trusted {
 				require.Never(t, updated, 100*time.Millisecond, 10*time.Millisecond)
 			} else {
 				require.Eventually(t, updated, time.Second, 10*time.Millisecond)
+			}
+			var ip string
+			var lastUsedAfter int64
+			require.NoError(t, db.QueryRow(`SELECT ip, last_used_at FROM tokens WHERE token_hash = $1`, tokenHash[:]).Scan(&ip, &lastUsedAfter))
+			wantIP := "192.0.2.1"
+			if tc.name == "direct_client" {
+				wantIP = tc.ip
+			}
+			require.Equal(t, wantIP, ip)
+			if tc.trusted {
+				require.Equal(t, lastUsedBefore, lastUsedAfter)
+			} else {
+				require.Greater(t, lastUsedAfter, lastUsedBefore)
 			}
 		})
 	}

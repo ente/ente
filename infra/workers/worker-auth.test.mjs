@@ -5,7 +5,7 @@ for (const name of ["files", "thumbnails", "public-albums"]) {
     const { default: worker } = await import(`./${name}/src/index.ts`);
 
     for (const secret of ["worker-secret", undefined, ""]) {
-        test(`${name}: API secret ${secret || "absent"}`, async (t) => {
+        test(`${name}: API secret ${JSON.stringify(secret)}`, async (t) => {
             const requests = [];
             t.mock.method(globalThis, "fetch", async (input, init) => {
                 const request = new Request(input, init);
@@ -37,10 +37,7 @@ for (const name of ["files", "thumbnails", "public-albums"]) {
             const [api, blob] = requests;
             assert.equal(new URL(api.url).origin, "https://api.ente.com");
             assert.equal(api.redirect, "manual");
-            assert.equal(
-                api.headers.get("X-Ente-Worker-Secret"),
-                secret || null,
-            );
+            assert.equal(api.headers.get("X-Ente-Worker-Secret"), secret ?? "");
             assert.equal(api.headers.get("X-Auth-Token"), "user-token");
             assert.equal(api.headers.get("X-Auth-Access-Token"), "link-token");
             assert.equal(api.headers.get("X-Forwarded-For"), "192.0.2.1");

@@ -320,8 +320,9 @@ func (repo *UserAuthRepository) RemoveTokenByHash(userID int64, tokenHash []byte
 }
 
 func (repo *UserAuthRepository) UpdateLastUsedAtByTokenHash(userID int64, tokenHash []byte, ip string, userAgent string) error {
-	_, err := repo.DB.Exec(`UPDATE tokens SET ip = $1, user_agent = $2, last_used_at = $3 WHERE user_id = $4 AND token_hash = $5`,
-		ip, userAgent, time.Microseconds(), userID, tokenHash)
+	_, err := repo.DB.Exec(`UPDATE tokens SET ip = CASE WHEN $6 THEN ip ELSE $1 END,
+		user_agent = $2, last_used_at = $3 WHERE user_id = $4 AND token_hash = $5`,
+		ip, userAgent, time.Microseconds(), userID, tokenHash, network.IsCFWorkerIP(ip))
 	return stacktrace.Propagate(err, "")
 }
 

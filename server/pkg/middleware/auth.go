@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -26,6 +27,11 @@ type AuthMiddleware struct {
 	UserAuthRepo   *repo.UserAuthRepository
 	Cache          *cache.Cache
 	UserController *user.UserController
+}
+
+func isTrustedWorker(c *gin.Context) bool {
+	secret := viper.GetString("workers.shared-secret")
+	return secret != "" && subtle.ConstantTimeCompare([]byte(c.GetHeader("X-Ente-Worker-Secret")), []byte(secret)) == 1
 }
 
 func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.HandlerFunc {

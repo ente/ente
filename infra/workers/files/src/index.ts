@@ -63,14 +63,10 @@ const handleGET = async (request: Request, env: Env) => {
     const museumRequest = new Request(museumURL, request);
     const clientIP = request.headers.get("CF-Connecting-IP") ?? "";
     museumRequest.headers.set("X-Forwarded-For", clientIP);
-    if (env.MUSEUM_WORKER_SECRET) {
-        museumRequest.headers.set(
-            "X-Ente-Worker-Secret",
-            env.MUSEUM_WORKER_SECRET,
-        );
-    } else {
-        museumRequest.headers.delete("X-Ente-Worker-Secret");
-    }
+    museumRequest.headers.set(
+        "X-Ente-Worker-Secret",
+        env.MUSEUM_WORKER_SECRET ?? "",
+    );
     let response = await fetch(museumRequest, { redirect: "manual" });
     if (response.ok) {
         const { url } = await response.json<{ url: string }>();
