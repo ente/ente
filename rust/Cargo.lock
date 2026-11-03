@@ -2697,6 +2697,7 @@ dependencies = [
 name = "ente-live-photo"
 version = "0.0.0"
 dependencies = [
+ "crc32fast",
  "tempfile",
  "thiserror 2.0.21",
  "zip",

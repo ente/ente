@@ -3,6 +3,7 @@ name = "ente-live-photo"
 edition.workspace = true
 
 [dependencies]
+crc32fast.workspace = true
 thiserror.workspace = true
 zip.workspace = true
 
