@@ -14,7 +14,7 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
@@ -230,7 +230,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
       final filesById = await MemoryLaneService.instance.getTimelineFiles(
         uniqueFileIds,
       );
-      final Map<int, Future<List<Face>?>> facesFutures = {};
+      final Map<int, Future<List<FaceWithoutEmbedding>?>> facesFutures = {};
 
       await _buildFramesInParallel(
         entries: entries,
@@ -320,7 +320,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   Future<void> _buildFramesInParallel({
     required List<MemoryLaneEntry> entries,
     required Map<int, EnteFile> filesById,
-    required Map<int, Future<List<Face>?>> facesFutures,
+    required Map<int, Future<List<FaceWithoutEmbedding>?>> facesFutures,
     required void Function(_TimelineFrame builtFrame) onFrameReady,
   }) async {
     final readyFrames = <int, _TimelineFrame?>{};
@@ -386,7 +386,7 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   Future<_TimelineFrame> _buildFrame(
     MemoryLaneEntry entry, {
     EnteFile? file,
-    Future<List<Face>?>? facesFuture,
+    Future<List<FaceWithoutEmbedding>?>? facesFuture,
   }) async {
     EnteFile? effectiveFile = file;
     effectiveFile ??= await FilesDB.instance.getAnyUploadedFile(entry.fileId);
@@ -394,13 +394,13 @@ class _MemoryLanePageState extends State<MemoryLanePage>
     double? cropAspectRatio;
     Uint8List? bytes;
     if (effectiveFile != null) {
-      final List<Face>? faces;
+      final List<FaceWithoutEmbedding>? faces;
       if (facesFuture != null) {
         faces = await facesFuture;
       } else {
         faces = await _mlDataDB.getFacesForGivenFileID(entry.fileId);
       }
-      final Face? face = faces?.firstWhereOrNull(
+      final FaceWithoutEmbedding? face = faces?.firstWhereOrNull(
         (element) => element.faceID == entry.faceId,
       );
       if (face != null) {

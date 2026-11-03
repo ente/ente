@@ -350,7 +350,6 @@ class DartMLDataDB
     await db.execute(deletePetBodyVectorIdMappingTable);
   }
 
-  @override
   Future<Iterable<Uint8List>> getFaceEmbeddingsForCluster(
     String clusterID, {
     int? limit,
@@ -363,7 +362,6 @@ class DartMLDataDB
     return maps.map((e) => e[embeddingColumn] as Uint8List);
   }
 
-  @override
   Future<Map<String, Iterable<Uint8List>>> getFaceEmbeddingsForClusters(
     Iterable<String> clusterIDs, {
     int? limit,
@@ -419,7 +417,7 @@ class DartMLDataDB
   }
 
   @override
-  Future<Face?> getCoverFaceForPerson({
+  Future<FaceWithoutEmbedding?> getCoverFaceForPerson({
     required int recentFileID,
     String? personID,
     String? avatarFaceId,
@@ -448,7 +446,8 @@ class DartMLDataDB
 
       final List<Map<String, dynamic>> faceMaps = await db.getAll(
         '''
-        SELECT * FROM $facesTable
+        SELECT $faceIDColumn, $fileIDColumn, $faceScore, $faceDetectionColumn, $faceBlur, $imageWidth, $imageHeight
+        FROM $facesTable
         WHERE $faceIDColumn IN (
         SELECT $faceIDColumn
         FROM $faceClustersTable
@@ -465,10 +464,10 @@ class DartMLDataDB
             (element) => (element[fileIDColumn] as int) == avatarFileId,
           );
           if (row != null) {
-            return mapRowToFace(row);
+            return mapRowToFaceWithoutEmbedding(row);
           }
         }
-        return mapRowToFace(faceMaps.first);
+        return mapRowToFaceWithoutEmbedding(faceMaps.first);
       }
     }
     if (clusterID != null) {
@@ -481,7 +480,9 @@ class DartMLDataDB
       final List<Map<String, dynamic>> faceMaps = await db.getAll(queryFaceID, [
         clusterID,
       ]);
-      final List<Face>? faces = await getFacesForGivenFileID(recentFileID);
+      final List<FaceWithoutEmbedding>? faces = await getFacesForGivenFileID(
+        recentFileID,
+      );
       if (faces != null) {
         for (final face in faces) {
           if (faceMaps.any(
@@ -503,11 +504,14 @@ class DartMLDataDB
   }
 
   @override
-  Future<List<Face>?> getFacesForGivenFileID(int fileUploadID) async {
+  Future<List<FaceWithoutEmbedding>?> getFacesForGivenFileID(
+    int fileUploadID,
+  ) async {
     final db = await asyncDB;
     const String query =
         '''
-      SELECT * FROM $facesTable
+      SELECT $faceIDColumn, $fileIDColumn, $faceScore, $faceDetectionColumn, $faceBlur, $imageWidth, $imageHeight
+      FROM $facesTable
       WHERE $fileIDColumn = ?
     ''';
     final List<Map<String, dynamic>> maps = await db.getAll(query, [
@@ -516,7 +520,7 @@ class DartMLDataDB
     if (maps.isEmpty) {
       return null;
     }
-    return maps.map((e) => mapRowToFace(e)).toList();
+    return maps.map((e) => mapRowToFaceWithoutEmbedding(e)).toList();
   }
 
   @override
@@ -524,7 +528,7 @@ class DartMLDataDB
   getFileIDsToFacesWithoutEmbedding() async {
     final db = await asyncDB;
     final List<Map<String, dynamic>> maps = await db.getAll('''
-      SELECT $faceIDColumn, $fileIDColumn, $faceScore, $faceDetectionColumn, $faceBlur FROM $facesTable
+      SELECT $faceIDColumn, $fileIDColumn, $faceScore, $faceDetectionColumn, $faceBlur, $imageWidth, $imageHeight FROM $facesTable
     ''');
     if (maps.isEmpty) {
       return {};
@@ -728,20 +732,6 @@ class DartMLDataDB
   }
 
   @override
-  Future<Iterable<double>> getBlurValuesForCluster(String clusterID) async {
-    final db = await asyncDB;
-    const String query =
-        '''
-        SELECT $facesTable.$faceBlur
-        FROM $facesTable
-        JOIN $faceClustersTable ON $facesTable.$faceIDColumn = $faceClustersTable.$faceIDColumn
-        WHERE $faceClustersTable.$clusterIDColumn = ?
-      ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(query, [clusterID]);
-    return maps.map((e) => e[faceBlur] as double).toSet();
-  }
-
-  @override
   Future<Map<String, String?>> getFaceIdsToClusterIds(
     Iterable<String> faceIds,
   ) async {
@@ -833,7 +823,6 @@ class DartMLDataDB
     });
   }
 
-  @override
   Future<List<FaceDbInfoForClustering>> getFaceInfoForClustering({
     int maxFaces = 20000,
     int offset = 0,
@@ -887,7 +876,6 @@ class DartMLDataDB
     }
   }
 
-  @override
   Future<Map<String, Uint8List>> getFaceEmbeddingMapForFaces(
     Iterable<String> faceIDs,
   ) async {
@@ -1321,7 +1309,6 @@ class DartMLDataDB
     await db.execute(sqlDelete, [clusterID]);
   }
 
-  @override
   Future<Map<String, (Uint8List, int)>> getAllClusterSummary([
     int? minClusterSize,
   ]) async {
@@ -1339,7 +1326,6 @@ class DartMLDataDB
     return result;
   }
 
-  @override
   Future<Map<String, (Uint8List, int)>> getClusterToClusterSummary(
     Iterable<String> clusterIDs,
   ) async {

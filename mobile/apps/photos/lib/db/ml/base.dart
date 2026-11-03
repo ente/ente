@@ -5,7 +5,6 @@ import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/filedata/model/file_data.dart";
-import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 
 abstract class IMLDataDB<T> {
   Future<void> bulkInsertFaces(List<Face> faces);
@@ -20,21 +19,13 @@ abstract class IMLDataDB<T> {
   Future<Set<String>> getPersonClusterIDs(String personID);
   Future<Set<String>> getPersonsClusterIDs(List<String> personID);
   Future<void> clearTable();
-  Future<Iterable<Uint8List>> getFaceEmbeddingsForCluster(
-    String clusterID, {
-    int? limit,
-  });
-  Future<Map<String, Iterable<Uint8List>>> getFaceEmbeddingsForClusters(
-    Iterable<String> clusterIDs, {
-    int? limit,
-  });
-  Future<Face?> getCoverFaceForPerson({
+  Future<FaceWithoutEmbedding?> getCoverFaceForPerson({
     required T recentFileID,
     String? personID,
     String? avatarFaceId,
     String? clusterID,
   });
-  Future<List<Face>?> getFacesForGivenFileID(T fileUploadID);
+  Future<List<FaceWithoutEmbedding>?> getFacesForGivenFileID(T fileUploadID);
   Future<Map<int, List<FaceWithoutEmbedding>>>
   getFileIDsToFacesWithoutEmbedding();
   Future<Map<String, Iterable<String>>> getClusterToFaceIDs(
@@ -49,20 +40,11 @@ abstract class IMLDataDB<T> {
     String personID,
   );
   Future<Set<String>> getFaceIDsForPerson(String personID);
-  Future<Iterable<double>> getBlurValuesForCluster(String clusterID);
   Future<Map<String, String?>> getFaceIdsToClusterIds(Iterable<String> faceIds);
   Future<Map<T, Set<String>>> getFileIdToClusterIds();
   Future<void> forceUpdateClusterIds(Map<String, String> faceIDToClusterID);
   Future<void> removeFaceIdToClusterId(Map<String, String> faceIDToClusterID);
   Future<void> removePerson(String personID);
-  Future<List<FaceDbInfoForClustering>> getFaceInfoForClustering({
-    int maxFaces,
-    int offset,
-    int batchSize,
-  });
-  Future<Map<String, Uint8List>> getFaceEmbeddingMapForFaces(
-    Iterable<String> faceIDs,
-  );
   Future<int> getTotalFaceCount();
   Future<int> getErroredFaceCount();
   Future<Set<T>> getErroredFileIDs();
@@ -101,12 +83,6 @@ abstract class IMLDataDB<T> {
   );
   Future<void> clusterSummaryUpdate(Map<String, (Uint8List, int)> summary);
   Future<void> deleteClusterSummary(String clusterID);
-  Future<Map<String, (Uint8List, int)>> getAllClusterSummary([
-    int? minClusterSize,
-  ]);
-  Future<Map<String, (Uint8List, int)>> getClusterToClusterSummary(
-    Iterable<String> clusterIDs,
-  );
   Future<Map<String, String>> getClusterIDToPersonID();
   Future<void> dropClustersAndPersonTable({bool faces});
   Future<void> dropFacesFeedbackTables();

@@ -14,7 +14,7 @@ import "package:logging/logging.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/memory_lane/memory_lane_cache_service.dart";
@@ -274,9 +274,8 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
       final mlDataDB = isLocalGalleryMode
           ? MLDataDB.localGalleryInstance
           : MLDataDB.instance;
-      final List<Face>? faces = await mlDataDB.getFacesForGivenFileID(
-        entry.fileId,
-      );
+      final List<FaceWithoutEmbedding>? faces = await mlDataDB
+          .getFacesForGivenFileID(entry.fileId);
       final face = faces?.firstWhereOrNull(
         (face) => face.faceID == entry.faceId,
       );

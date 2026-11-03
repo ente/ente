@@ -3,8 +3,8 @@ use std::sync::OnceLock;
 
 use ente_photos::ml_db;
 pub use ente_photos::ml_db::{
-    ClipEmbedding, ClusterSummary, EmbeddingVector, FaceDbInfoForClustering, FaceRow,
-    FaceWithoutEmbedding, FdStatus, PreviewInfo,
+    ClipEmbedding, ClusterSummary, EmbeddingVector, FaceRow, FaceWithoutEmbedding, FdStatus,
+    PreviewInfo,
 };
 use ente_photos::ml_store;
 pub use ente_photos::ml_store::{
@@ -76,16 +76,8 @@ pub struct _FaceWithoutEmbedding {
     pub score: f64,
     pub detection_json: String,
     pub blur: f64,
-}
-
-#[frb(mirror(FaceDbInfoForClustering))]
-pub struct _FaceDbInfoForClustering {
-    pub face_id: String,
-    pub cluster_id: Option<String>,
-    pub embedding_bytes: Vec<u8>,
-    pub face_score: f64,
-    pub blur_value: f64,
-    pub is_sideways: bool,
+    pub image_height: i64,
+    pub image_width: i64,
 }
 
 #[frb(mirror(ClipEmbedding))]
@@ -543,35 +535,13 @@ impl MlStore {
             .get_face_indexed_file_count(minimum_ml_version)?)
     }
 
-    pub fn get_face_embeddings_for_cluster(
-        &self,
-        cluster_id: String,
-        limit: Option<i64>,
-    ) -> Result<Vec<Vec<u8>>, MlDbError> {
-        Ok(self
-            .inner
-            .db()
-            .get_face_embeddings_for_cluster(&cluster_id, limit)?)
-    }
-
-    pub fn get_face_embeddings_for_clusters(
-        &self,
-        cluster_ids: Vec<String>,
-        limit: Option<i64>,
-    ) -> Result<HashMap<String, Vec<Vec<u8>>>, MlDbError> {
-        Ok(self
-            .inner
-            .db()
-            .get_face_embeddings_for_clusters(&cluster_ids, limit)?)
-    }
-
     pub fn get_cover_face_for_person(
         &self,
         recent_file_id: i64,
         person_id: Option<String>,
         avatar_face_id: Option<String>,
         cluster_id: Option<String>,
-    ) -> Result<Option<FaceRow>, MlDbError> {
+    ) -> Result<Option<FaceWithoutEmbedding>, MlDbError> {
         Ok(self.inner.db().get_cover_face_for_person(
             recent_file_id,
             person_id.as_deref(),
@@ -583,7 +553,7 @@ impl MlStore {
     pub fn get_faces_for_given_file_id(
         &self,
         file_upload_id: i64,
-    ) -> Result<Vec<FaceRow>, MlDbError> {
+    ) -> Result<Vec<FaceWithoutEmbedding>, MlDbError> {
         Ok(self
             .inner
             .db()
@@ -594,28 +564,6 @@ impl MlStore {
         &self,
     ) -> Result<HashMap<i64, Vec<FaceWithoutEmbedding>>, MlDbError> {
         Ok(self.inner.db().get_file_ids_to_faces_without_embedding()?)
-    }
-
-    pub fn get_face_info_for_clustering(
-        &self,
-        max_faces: i64,
-        offset: i64,
-        batch_size: i64,
-    ) -> Result<Vec<FaceDbInfoForClustering>, MlDbError> {
-        Ok(self
-            .inner
-            .db()
-            .get_face_info_for_clustering(max_faces, offset, batch_size)?)
-    }
-
-    pub fn get_face_embedding_rows_for_faces(
-        &self,
-        face_ids: Vec<String>,
-    ) -> Result<Vec<(String, Vec<u8>)>, MlDbError> {
-        Ok(self
-            .inner
-            .db()
-            .get_face_embedding_rows_for_faces(&face_ids)?)
     }
 
     pub fn get_total_face_count(&self) -> Result<i64, MlDbError> {
@@ -756,10 +704,6 @@ impl MlStore {
             .get_face_ids_for_cluster_ordered_by_score(&cluster_id, limit)?)
     }
 
-    pub fn get_blur_values_for_cluster(&self, cluster_id: String) -> Result<Vec<f64>, MlDbError> {
-        Ok(self.inner.db().get_blur_values_for_cluster(&cluster_id)?)
-    }
-
     pub fn get_face_ids_to_cluster_ids(
         &self,
         face_ids: Vec<String>,
@@ -803,23 +747,6 @@ impl MlStore {
 
     pub fn get_file_ids_of_cluster_id(&self, cluster_id: String) -> Result<Vec<i64>, MlDbError> {
         Ok(self.inner.db().get_file_ids_of_cluster_id(&cluster_id)?)
-    }
-
-    pub fn get_all_cluster_summary(
-        &self,
-        min_cluster_size: Option<i64>,
-    ) -> Result<HashMap<String, ClusterSummary>, MlDbError> {
-        Ok(self.inner.db().get_all_cluster_summary(min_cluster_size)?)
-    }
-
-    pub fn get_cluster_to_cluster_summary(
-        &self,
-        cluster_ids: Vec<String>,
-    ) -> Result<HashMap<String, ClusterSummary>, MlDbError> {
-        Ok(self
-            .inner
-            .db()
-            .get_cluster_to_cluster_summary(&cluster_ids)?)
     }
 
     pub fn get_clusters_for_memory_lane(

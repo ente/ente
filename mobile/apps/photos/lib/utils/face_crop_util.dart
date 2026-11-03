@@ -1,12 +1,12 @@
 import 'dart:math' show min;
 
 import 'package:photos/models/ml/face/box.dart';
-import 'package:photos/models/ml/face/face.dart';
+import 'package:photos/models/ml/face/face_with_embedding.dart';
 
 const double _regularPadding = 0.4;
 const double _minimumPadding = 0.1;
 
-FaceBox resolveLaneFaceBox(String faceID, {List<Face>? faces}) {
+FaceBox resolveLaneFaceBox(String faceID, {List<FaceWithoutEmbedding>? faces}) {
   if (faces != null) {
     for (final face in faces) {
       if (face.faceID == faceID) {

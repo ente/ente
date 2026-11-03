@@ -19,7 +19,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/memories/memory.dart';
 import 'package:photos/models/memory_lane/memory_lane_models.dart';
 import 'package:photos/models/metadata/file_magic.dart';
-import 'package:photos/models/ml/face/face.dart';
+import 'package:photos/models/ml/face/face_with_embedding.dart';
 import 'package:photos/service_locator.dart' show entityService;
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/utils/face_crop_util.dart';
@@ -819,7 +819,7 @@ class MemoryShareService {
     String? personId,
     String? personName,
     String? birthDate,
-    Map<int, List<Face>>? facesByFileID,
+    Map<int, List<FaceWithoutEmbedding>>? facesByFileID,
   }) {
     if (laneItems.isEmpty) {
       throw Exception("No uploaded files to share");
@@ -856,7 +856,7 @@ class MemoryShareService {
     };
   }
 
-  Future<Map<int, List<Face>>> _loadLaneFacesByFileID(
+  Future<Map<int, List<FaceWithoutEmbedding>>> _loadLaneFacesByFileID(
     List<_MemoryLaneShareItem> laneItems,
   ) async {
     final uniqueFileIDs = laneItems.map((item) => item.entry.fileId).toSet();
@@ -864,23 +864,23 @@ class MemoryShareService {
       uniqueFileIDs.map((fileID) async {
         try {
           final faces = await MLDataDB.instance.getFacesForGivenFileID(fileID);
-          return MapEntry(fileID, faces ?? const <Face>[]);
+          return MapEntry(fileID, faces ?? const <FaceWithoutEmbedding>[]);
         } catch (e, s) {
           _logger.warning(
             "Failed to load lane faces for fileID=$fileID, falling back to faceID parsing",
             e,
             s,
           );
-          return MapEntry(fileID, const <Face>[]);
+          return MapEntry(fileID, const <FaceWithoutEmbedding>[]);
         }
       }),
     );
-    return Map<int, List<Face>>.fromEntries(faceEntries);
+    return Map<int, List<FaceWithoutEmbedding>>.fromEntries(faceEntries);
   }
 
   Map<String, dynamic> _buildLaneFaceMetadata(
     MemoryLaneEntry entry, {
-    List<Face>? faces,
+    List<FaceWithoutEmbedding>? faces,
   }) {
     final faceBox = resolveLaneFaceBox(entry.faceId, faces: faces);
     final crop = computePaddedFaceCropBox(faceBox);

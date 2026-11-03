@@ -6,7 +6,7 @@ import "package:logging/logging.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -18,7 +18,7 @@ class FileFaceWidget extends StatefulWidget {
   final EnteFile file;
 
   final Uint8List? faceCrop;
-  final Face? face;
+  final FaceWithoutEmbedding? face;
   final String? clusterID;
 
   final bool useFullFile;
@@ -126,7 +126,7 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
         _logger.severe("Missing file ID for face crop generation");
         return null;
       }
-      final Face? faceToUse =
+      final FaceWithoutEmbedding? faceToUse =
           widget.face ??
           await mlDataDB.getCoverFaceForPerson(
             recentFileID: recentFileID,

@@ -12,7 +12,7 @@ import "package:photos/db/offline_files_db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/ml/face/box.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
@@ -137,7 +137,7 @@ Future<void> checkRemoveCachedFaceIDForPersonOrClusterId(
 // Pass personOrClusterID only when every face belongs to that person or cluster.
 Future<Map<String, Uint8List>?> getCachedFaceCrops(
   EnteFile enteFile,
-  Iterable<Face> faces, {
+  Iterable<FaceWithoutEmbedding> faces, {
   int fetchAttempt = 1,
   bool useFullFile = true,
   String? personOrClusterID,
@@ -284,10 +284,11 @@ Future<Uint8List?> precomputeClusterFaceCrop(
   try {
     final w = (kDebugMode ? EnteWatch('precomputeClusterFaceCrop') : null)
       ?..start();
-    final Face? face = await MLDataDB.instance.getCoverFaceForPerson(
-      recentFileID: file.uploadedFileID!,
-      clusterID: clusterID,
-    );
+    final FaceWithoutEmbedding? face = await MLDataDB.instance
+        .getCoverFaceForPerson(
+          recentFileID: file.uploadedFileID!,
+          clusterID: clusterID,
+        );
     w?.log('getCoverFaceForPerson');
     if (face == null) {
       debugPrint(

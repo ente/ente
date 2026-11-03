@@ -8,7 +8,6 @@ import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/filedata/model/file_data.dart";
-import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 
 rust.FaceRow toFaceRow(Face face) {
@@ -26,21 +25,6 @@ rust.FaceRow toFaceRow(Face face) {
   );
 }
 
-Face toFace(rust.FaceRow row) {
-  return Face(
-    row.faceId,
-    row.fileId,
-    row.embedding,
-    row.score,
-    Detection.fromJson(json.decode(row.detectionJson) as Map<String, dynamic>),
-    row.blur,
-    fileInfo: FileInfo(
-      imageWidth: row.imageWidth,
-      imageHeight: row.imageHeight,
-    ),
-  );
-}
-
 FaceWithoutEmbedding toFaceWithoutEmbedding(rust.FaceWithoutEmbedding row) {
   return FaceWithoutEmbedding(
     row.faceId,
@@ -48,19 +32,10 @@ FaceWithoutEmbedding toFaceWithoutEmbedding(rust.FaceWithoutEmbedding row) {
     row.score,
     Detection.fromJson(json.decode(row.detectionJson) as Map<String, dynamic>),
     row.blur,
-  );
-}
-
-FaceDbInfoForClustering toFaceDbInfoForClustering(
-  rust.FaceDbInfoForClustering row,
-) {
-  return FaceDbInfoForClustering(
-    faceID: row.faceId,
-    clusterId: row.clusterId,
-    embeddingBytes: row.embeddingBytes,
-    faceScore: row.faceScore,
-    blurValue: row.blurValue,
-    isSideways: row.isSideways,
+    fileInfo: FileInfo(
+      imageWidth: row.imageWidth,
+      imageHeight: row.imageHeight,
+    ),
   );
 }
 
@@ -78,10 +53,6 @@ EmbeddingVector toEmbeddingVector(rust.EmbeddingVector vector) {
 
 rust.ClusterSummary toClusterSummaryRow((Uint8List, int) summary) {
   return rust.ClusterSummary(avg: summary.$1, count: summary.$2);
-}
-
-(Uint8List, int) toClusterSummaryRecord(rust.ClusterSummary summary) {
-  return (summary.avg, summary.count);
 }
 
 rust.FdStatus toFdStatusRow(FDStatus status) {
