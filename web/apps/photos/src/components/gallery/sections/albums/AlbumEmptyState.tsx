@@ -1,20 +1,10 @@
-import { uploadManager } from "@/services/upload-manager";
 import { ImageAdd02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Stack, Typography } from "@mui/material";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { t } from "i18next";
-import { useSyncExternalStore } from "react";
-
-const getServerUploadStatus = () => false;
 
 export function AlbumEmptyState({ onAddPhotos }: { onAddPhotos?: () => void }) {
-    const isUploadInProgress = useSyncExternalStore(
-        uploadManager.subscribeToUploadStatus,
-        uploadManager.isUploadInProgress,
-        getServerUploadStatus,
-    );
-
     return (
         <Stack
             sx={{
@@ -77,7 +67,6 @@ export function AlbumEmptyState({ onAddPhotos }: { onAddPhotos?: () => void }) {
                     <FocusVisibleButton
                         color="secondary"
                         onClick={onAddPhotos}
-                        disabled={isUploadInProgress}
                         startIcon={
                             <HugeiconsIcon
                                 icon={ImageAdd02Icon}

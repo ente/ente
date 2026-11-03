@@ -231,7 +231,6 @@ class FolderWatcher {
 
             this.activeWatch = watch;
             this.uploadRunning = true;
-            uploadManager.notifyUploadStatusChanged();
 
             const collectionName = event.collectionName;
             log.info(
@@ -369,7 +368,6 @@ class FolderWatcher {
 
         this.activeWatch = undefined;
         this.uploadRunning = false;
-        uploadManager.notifyUploadStatusChanged();
 
         this.debouncedRunNextEvent();
     }
