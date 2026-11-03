@@ -125,7 +125,7 @@ func TestVerifySRPSessionRejectsAnotherAccountAndEnabledEmailMFA(t *testing.T) {
 	require.Equal(t, 1, tokens)
 }
 
-func TestCompleteSRPSetupPreservesSessionBinding(t *testing.T) {
+func TestCompleteSRPSetupRequiresOwnerAndPreservesSessionBinding(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
 	testutil.ResetTables(t, db)
@@ -152,7 +152,15 @@ func TestCompleteSRPSetupPreservesSessionBinding(t *testing.T) {
 	b, err := convertStringToBytes(setup.SRPB)
 	require.NoError(t, err)
 	client.SetB(b)
+	otherUserID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "other-srp-user@example.com", CreationTime: 1})
+	ctx.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(otherUserID, 10))
 	response, err := controller.CompleteSRPSetup(ctx, ente.CompleteSRPSetupRequest{
+		SetupID: setup.SetupID, SRPM1: convertBytesToString(client.ComputeM1()),
+	})
+	require.Error(t, err)
+	require.Nil(t, response)
+	ctx.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(userID, 10))
+	response, err = controller.CompleteSRPSetup(ctx, ente.CompleteSRPSetupRequest{
 		SetupID: setup.SetupID, SRPM1: convertBytesToString(client.ComputeM1()),
 	})
 	require.NoError(t, err)
