@@ -506,6 +506,24 @@ async fn space_unfriend_revokes_reciprocal_account_access_suite(endpoint: &str) 
         &owner_thread_message.content,
         Ok(Some(content)) if content.text == "hello before unfriend"
     ));
+    let friend_thread = friend_ctx
+        .list_message_thread(
+            &friend_space.space_id,
+            &owner_space.space_id,
+            None,
+            Some(10),
+        )
+        .await
+        .expect("friend should read direct message thread before unfriend");
+    let friend_thread_message = friend_thread
+        .items
+        .iter()
+        .find(|message| message.message_id == direct_message.message_id)
+        .expect("direct message should be in friend thread before unfriend");
+    assert!(matches!(
+        &friend_thread_message.content,
+        Ok(Some(content)) if content.text == "hello before unfriend"
+    ));
     owner_ctx
         .like_message(&owner_space.space_id, &direct_message.message_id, true)
         .await
