@@ -27,7 +27,7 @@ pub(crate) const CONTAINER_SIGNATURE: [u8; 12] = [
     0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
 ];
 const MAX_DECODE_DURATION: Duration = Duration::from_secs(60);
-const MAX_DECODE_MEMORY_BYTES: usize = 1 << 30;
+const MAX_DECODE_MEMORY_BYTES: usize = 512 * 1024 * 1024;
 const MAX_SAMPLES_PER_PIXEL: u64 = 4;
 
 #[cfg(test)]
