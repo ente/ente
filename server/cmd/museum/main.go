@@ -1315,6 +1315,7 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 	}
 
 	const deletedTokenRetentionDays = 427 // 13-month deletion window (395 days) + 32-day safety buffer
+	const srpSessionCleanupBatchSize = 10_000
 
 	c := cron.New()
 	schedule(c, "@every 1m", func() {
@@ -1406,11 +1407,14 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 
 	scheduleAndRun(c, "@every 24h", func() {
 		emailNotificationCtrl.NudgePaidSubscriberForFamily()
-		deleted, err := userAuthRepo.CleanupOldFakeSessions(context.Background())
+	})
+
+	scheduleAndRun(c, "@every 1m", func() {
+		deleted, err := userAuthRepo.CleanupOldSRPSessions(context.Background(), srpSessionCleanupBatchSize)
 		if err != nil {
-			log.WithError(err).Error("Failed to cleanup old fake SRP sessions")
+			log.WithError(err).Error("Failed to cleanup old SRP sessions")
 		} else if deleted > 0 {
-			log.WithField("count", deleted).Info("Cleaned up old fake SRP sessions")
+			log.WithField("count", deleted).Info("Cleaned up old SRP sessions")
 		}
 	})
 

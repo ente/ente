@@ -225,13 +225,21 @@ func (repo *UserAuthRepository) TrySetSrpSessionVerified(ctx context.Context, se
 	return rowsAffected == 1, nil
 }
 
-func (repo *UserAuthRepository) CleanupOldFakeSessions(ctx context.Context) (int64, error) {
+func (repo *UserAuthRepository) CleanupOldSRPSessions(ctx context.Context, batchSize int) (int64, error) {
 	result, err := repo.DB.ExecContext(ctx, `
+		WITH old_sessions AS (
+			SELECT id
+			FROM srp_sessions
+			WHERE created_at < (now_utc_micro_seconds() - (24::BIGINT * 60 * 60 * 1000 * 1000))
+			ORDER BY created_at
+			LIMIT $1
+			FOR UPDATE SKIP LOCKED
+		)
 		DELETE FROM srp_sessions
-		WHERE is_fake = true
-		AND created_at < (now_utc_micro_seconds() - (24::BIGINT * 60 * 60 * 1000 * 1000))`)
+		USING old_sessions
+		WHERE srp_sessions.id = old_sessions.id`, batchSize)
 	if err != nil {
-		return 0, stacktrace.Propagate(err, "failed to cleanup old fake sessions")
+		return 0, stacktrace.Propagate(err, "failed to cleanup old SRP sessions")
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
