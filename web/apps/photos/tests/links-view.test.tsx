@@ -121,7 +121,6 @@ const props = (
         selectedLinkID: undefined,
         searchQuery: "",
         sortBy: "updation-time-desc",
-        onCreateAlbum: vi.fn(),
         setBlockingLoad: vi.fn(),
         onRemotePull: vi.fn().mockResolvedValue(undefined),
     };
@@ -153,7 +152,6 @@ test("derives the overview from library data with shared sorting and search", ()
     expect(overview.searchQuery).toBe("  SUMMER  ");
     expect(overview.sortBy).toBe("name-asc");
     expect(overview.onRemotePull).toBe(input.onRemotePull);
-    expect(overview.onCreateAlbum).toBe(input.onCreateAlbum);
     expect(PublicLinkDetails).not.toHaveBeenCalled();
     expect(summaries.get(2)?.sortPriority).toBe(7);
     expect(input.collections.map(({ id }) => id)).toEqual([1, 2, 3, 4, 5]);

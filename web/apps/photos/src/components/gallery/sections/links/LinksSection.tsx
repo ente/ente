@@ -27,7 +27,6 @@ export const LinksSection = ({
             onSearchQueryChange={preferences.setAlbumSearchQuery}
             sortBy={preferences.collectionsSortBy}
             onChangeSortBy={preferences.onChangeCollectionsSortBy}
-            onCreateAlbum={operations.onCreateAlbum}
             setBlockingLoad={operations.setBlockingLoad}
             onRemotePull={operations.onRemotePull}
         />
