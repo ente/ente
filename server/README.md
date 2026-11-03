@@ -78,7 +78,7 @@ Everything that you might needed to run museum is all in here, since this is the
 
 > [!TIP]
 >
-> On our production servers, we wrap museum in a [systemd service](scripts/deploy/museum.service). Our production machines are vanilla Ubuntu images, with Docker and Promtail installed. We then plonk in this systemd service, and use `systemctl start|stop|status museum` to herd it around.
+> On our production servers, we wrap museum in a [systemd service](scripts/deploy/museum.service). Our production machines are vanilla Ubuntu images, with Docker and Alloy installed. We then plonk in this systemd service, and use `systemctl start|stop|status museum` to herd it around.
 
 Some people new to Docker/Go/Postgres might have general questions though. Unfortunately, because of limited engineering bandwidth **we will currently not be able to prioritize support queries related to self hosting**, and we request you to please not open issues around self hosting for the time being (feel free to create discussions though). The best way to summarize the status of self hosting is – **everything you need is here, but it is perhaps not readily documented, or flexible enough.**
 

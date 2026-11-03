@@ -1,0 +1,20 @@
+[Unit]
+Documentation=https://grafana.com/docs/alloy/latest/
+Requires=docker.service
+After=docker.service
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStartPre=docker pull grafana/alloy
+ExecStartPre=-docker stop alloy
+ExecStartPre=-docker rm alloy
+ExecStart=docker run --name alloy \
+    --hostname "%H" \
+    -v /root/config.alloy:/etc/alloy/config.alloy:ro \
+    -v alloy-storage:/var/lib/alloy \
+    -v /var/log:/var/log:ro \
+    -v /root/var/logs:/var/logs:ro \
+    -v /var/lib/docker/containers:/var/lib/docker/containers:ro \
+    grafana/alloy run --storage.path=/var/lib/alloy /etc/alloy/config.alloy

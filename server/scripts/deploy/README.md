@@ -18,7 +18,7 @@ We run Museum's Docker image on Ubuntu hosts with Docker and manage it with syst
 
 To bring up another Museum node, prepare the instance to run our services.
 
-Set up [Promtail](../../../infra/services/promtail/README.md), [Prometheus and node-exporter](../../../infra/services/prometheus/README.md).
+Set up [Alloy](../../../infra/services/alloy/README.md), [Prometheus and node-exporter](../../../infra/services/prometheus/README.md).
 
 If running behind Nginx, install the [nginx](../../../infra/services/nginx/README.md) service.
 
