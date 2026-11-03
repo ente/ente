@@ -133,8 +133,10 @@ const RowButtonGroup: React.FC<React.PropsWithChildren> = ({ children }) => {
                               py: "16px",
                               gap: "12px",
                           },
-                          "& > .MuiStack-root > .MuiTypography-root": {
-                              py: "16px",
+                          "& > label.MuiStack-root": {
+                              minHeight: 52,
+                              boxSizing: "border-box",
+                              py: "12px",
                           },
                           "& .MuiSvgIcon-root": { fontSize: 20 },
                       }
