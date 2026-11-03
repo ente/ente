@@ -1,3 +1,4 @@
+import RestoreErrorDialog from "@/components/RestoreErrorDialog";
 import {
     isBlankPage,
     isRequiredBlankPage,
@@ -138,6 +139,7 @@ function buildEnteOriginalDownloadJob(
 export function BookProvider({ children }: { children: React.ReactNode }) {
     const [appView, setAppViewState] = useState<AppView>("edit");
     const [loading, setLoading] = useState(true);
+    const [restoreFailed, setRestoreFailed] = useState(false);
     const [photos, setPhotos] = useState<Photo[]>([]);
     const photosRef = useRef<Photo[]>(photos);
     photosRef.current = photos;
@@ -283,7 +285,13 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         new Map(),
     );
     useEffect(() => {
-        if (loading || processingPhotos || resettingRef.current) return;
+        if (
+            loading ||
+            restoreFailed ||
+            processingPhotos ||
+            resettingRef.current
+        )
+            return;
         const saveTimeout = setTimeout(() => {
             saveTimeoutRef.current = null;
             autosaveRef.current = autosaveRef.current
@@ -301,7 +309,15 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         saveTimeoutRef.current = saveTimeout;
 
         return () => clearTimeout(saveTimeout);
-    }, [book, photos, appView, currentSpreadIndex, loading, processingPhotos]);
+    }, [
+        book,
+        photos,
+        appView,
+        currentSpreadIndex,
+        loading,
+        restoreFailed,
+        processingPhotos,
+    ]);
 
     useEffect(() => {
         void (async () => {
@@ -342,6 +358,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 }
             } catch (e) {
                 console.error("Failed to restore session:", e);
+                setRestoreFailed(true);
             } finally {
                 setLoading(false);
             }
@@ -1462,6 +1479,8 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             resettingRef.current = false;
         }
     }, []);
+
+    if (restoreFailed) return <RestoreErrorDialog />;
 
     return (
         <BookContext.Provider
