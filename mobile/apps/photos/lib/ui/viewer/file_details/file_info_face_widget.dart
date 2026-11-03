@@ -10,7 +10,7 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/models/base/id.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
@@ -32,7 +32,7 @@ final _logger = Logger("FileInfoFaceWidget");
 
 class FileInfoFaceWidget extends StatefulWidget {
   final EnteFile file;
-  final Face face;
+  final FaceWithoutEmbedding face;
   final Uint8List faceCrop;
   final PersonEntity? person;
   final String? clusterID;

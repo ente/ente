@@ -2,7 +2,6 @@ import 'dart:async';
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
 import 'package:logging/logging.dart';
@@ -25,7 +24,6 @@ import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
 import 'package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart';
-import "package:photos/ui/viewer/people/cluster_breakup_page.dart";
 import "package:photos/ui/viewer/people/cluster_page.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -93,13 +91,7 @@ class ClusterAppBar extends StatefulWidget {
   State<ClusterAppBar> createState() => _AppBarWidgetState();
 }
 
-enum ClusterPopupAction {
-  setCover,
-  breakupCluster,
-  breakupClusterDebug,
-  ignore,
-  memoryLane,
-}
+enum ClusterPopupAction { setCover, breakupCluster, ignore, memoryLane }
 
 class _AppBarWidgetState extends State<ClusterAppBar> {
   final _logger = Logger("_AppBarWidgetState");
@@ -247,15 +239,6 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
             size: IconSizes.small,
           ),
         ),
-        if (kDebugMode)
-          const EntePopupMenuOption(
-            value: ClusterPopupAction.breakupClusterDebug,
-            label: "Debug mixed grouping",
-            leadingWidget: HugeIcon(
-              icon: HugeIcons.strokeRoundedAiBrain01,
-              size: IconSizes.small,
-            ),
-          ),
       ],
     ];
     if (items.isEmpty) return actions;
@@ -276,8 +259,6 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
             await _breakUpCluster(context);
           } else if (value == ClusterPopupAction.ignore) {
             await _onIgnoredClusterClicked(context);
-          } else if (value == ClusterPopupAction.breakupClusterDebug) {
-            await _breakUpClusterDebug(context);
           } else if (value == ClusterPopupAction.memoryLane) {
             await widget.onMemoryLaneTap?.call();
           }
@@ -366,40 +347,5 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
         ),
       );
     }
-  }
-
-  Future<void> _breakUpClusterDebug(BuildContext context) async {
-    final breakupResult = await ClusterFeedbackService.instance.breakUpCluster(
-      widget.clusterID,
-    );
-
-    final Map<String, List<String>> newClusterIDToFaceIDs =
-        breakupResult.newClusterIdToFaceIds;
-
-    final allFileIDs = newClusterIDToFaceIDs.values
-        .expand((e) => e)
-        .map((e) => getFileIdFromFaceId<int>(e))
-        .toList();
-
-    final fileIDtoFile = await FilesDB.instance.getFileIDToFileFromIDs(
-      allFileIDs,
-    );
-
-    final newClusterIDToFiles = newClusterIDToFaceIDs.map(
-      (key, value) => MapEntry(
-        key,
-        value
-            .map((faceId) => fileIDtoFile[getFileIdFromFaceId<int>(faceId)]!)
-            .toList(),
-      ),
-    );
-
-    if (!context.mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            ClusterBreakupPage(newClusterIDToFiles, context.strings.analysis),
-      ),
-    );
   }
 }

@@ -3,7 +3,6 @@ import "dart:typed_data" show Uint8List;
 
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/dart_db.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering.dart";
@@ -14,7 +13,7 @@ import "package:photos/services/machine_learning/ml_run_control.dart";
 class DartFaceClustering implements FaceClustering {
   static final Logger _logger = Logger("DartFaceClustering");
 
-  final IMLDataDB<int> _mlDataDB;
+  final DartMLDataDB _mlDataDB;
 
   DartFaceClustering._(this._mlDataDB);
 
