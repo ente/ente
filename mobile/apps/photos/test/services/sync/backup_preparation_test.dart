@@ -207,9 +207,22 @@ void registerPreparationTests({
     'an intervening owned mapping is not cloned from a stale checklist',
     () async {
       await fixture.file('raced');
+      // Keep this row mapped so it reaches the clone filter before being queued.
+      await fixture.file(
+        'unaffected',
+        owner: 99,
+        uploaded: 457,
+        collection: 9001,
+      );
+      await fixture.file(
+        'backed_up',
+        owner: 42,
+        uploaded: 458,
+        collection: 9002,
+      );
+      await fixture.folder('third', 1002, ['raced', 'unaffected', 'backed_up']);
       await fixture.folder('empty', 1000, []);
-      await fixture.folder('second', 1001, ['raced']);
-      await fixture.folder('third', 1002, ['raced']);
+      await fixture.folder('second', 1001, ['raced', 'unaffected']);
       fixture.db.beforeMapping = (_, _) async {
         fixture.db.beforeMapping = null;
         await fixture.raw.execute(
@@ -219,12 +232,18 @@ void registerPreparationTests({
       await fixture.prepare();
       expect(fixture.db.claimedReads, 1);
       expect(fixture.db.mappingCalls, 1);
-      expect(await fixture.pendingIDs(), ['raced']);
+      expect(await fixture.pendingIDs(), ['raced', 'unaffected']);
       expect(
         (await fixture.raw.get(
           "SELECT collection_id FROM files WHERE local_id='raced'",
         ))['collection_id'],
         9000,
+      );
+      expect(
+        (await fixture.raw.get(
+          "SELECT collection_id FROM files WHERE local_id='unaffected' AND owner_id IS NULL",
+        ))['collection_id'],
+        1001,
       );
     },
   );
