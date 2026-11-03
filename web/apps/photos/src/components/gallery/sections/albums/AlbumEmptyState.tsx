@@ -1,3 +1,4 @@
+import { uploadManager } from "@/services/upload-manager";
 import { ImageAdd02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Stack, Typography } from "@mui/material";
@@ -67,6 +68,7 @@ export function AlbumEmptyState({ onAddPhotos }: { onAddPhotos?: () => void }) {
                     <FocusVisibleButton
                         color="secondary"
                         onClick={onAddPhotos}
+                        disabled={uploadManager.isUploadInProgress()}
                         startIcon={
                             <HugeiconsIcon
                                 icon={ImageAdd02Icon}
