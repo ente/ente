@@ -112,16 +112,17 @@ export const DateScrubber = ({
             data-date-scrubber
             data-date-scrubber-active={dragging ? "" : undefined}
             onPointerDown={(event) => {
-                if (event.button !== 0 || pointer.current) return;
+                if (
+                    event.button !== 0 ||
+                    pointer.current ||
+                    !(event.target as HTMLElement).closest(".date-handle")
+                )
+                    return;
                 event.preventDefault();
-                const handle = (event.target as HTMLElement).closest(
-                    ".date-handle",
-                );
-                const grabOffset = handle
-                    ? event.clientY -
-                      event.currentTarget.getBoundingClientRect().top -
-                      position(scrollOffset)
-                    : 0;
+                const grabOffset =
+                    event.clientY -
+                    event.currentTarget.getBoundingClientRect().top -
+                    position(scrollOffset);
                 pointer.current = {
                     id: event.pointerId,
                     grabOffset,
@@ -129,7 +130,6 @@ export const DateScrubber = ({
                 };
                 event.currentTarget.setPointerCapture(event.pointerId);
                 setDragging(true);
-                if (!handle) seek(offsetAtPointer(event.clientY));
             }}
             onPointerMove={(event) => {
                 const drag = pointer.current;
@@ -154,7 +154,6 @@ export const DateScrubber = ({
                 height,
                 touchAction: "none",
                 userSelect: "none",
-                cursor: "ns-resize",
                 zIndex: 1,
                 "& .date-tick, & .date-handle, & .date-label": {
                     position: "absolute",
