@@ -99,7 +99,7 @@ jobs:
 
             - name: Setup Linux for Rust
               if: ${{ !matrix.pr.reviewOnly }}
-              uses: ./.github/actions/setup-rust-linux
+              uses: $/.github/actions/setup-rust-linux
 
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:

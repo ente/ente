@@ -33,7 +33,7 @@ jobs:
                   save-if: false
 
             - name: Restore Rust target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   shared-key: rust-wasm
 

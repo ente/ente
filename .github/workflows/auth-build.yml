@@ -39,7 +39,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ github.ref_name }}
+                  ref: ${{ github.sha }}
 
             - name: Prepare release
               id: prepare
@@ -115,7 +115,7 @@ jobs:
                   java-version: "17"
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -238,7 +238,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -392,7 +392,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               shell: bash
@@ -452,7 +452,7 @@ jobs:
                     -AllowlistPath "windows/signing/allowed-pe-files.txt"
 
             - name: Sign Windows payload with Trusted Signing
-              uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+              uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
               with:
                   azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -481,7 +481,7 @@ jobs:
                     -CompilerPath $env:INNO_SETUP_COMPILER
 
             - name: Sign Windows installer with Trusted Signing
-              uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+              uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
               with:
                   azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -586,7 +586,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -732,7 +732,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"

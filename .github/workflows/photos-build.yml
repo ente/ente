@@ -39,7 +39,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ github.ref_name }}
+                  ref: ${{ github.sha }}
 
             - name: Prepare release
               id: prepare
@@ -114,7 +114,7 @@ jobs:
                   java-version: "17"
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs photos set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -234,7 +234,7 @@ jobs:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs photos set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"

@@ -163,7 +163,7 @@ jobs:
                   pattern: unsigned-ente-cli-v${{ needs.prepare.outputs.version }}-windows-*
                   path: unsigned
             - name: Sign Windows binaries
-              uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+              uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
               with:
                   azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
