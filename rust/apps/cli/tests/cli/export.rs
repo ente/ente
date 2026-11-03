@@ -1783,10 +1783,8 @@ async fn upload_live_parts(
     parts: [(&str, &[u8]); 2],
 ) -> i64 {
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
-    for name in ["ignored/", "altered/"] {
-        zip.add_directory(name, zip::write::SimpleFileOptions::default())
-            .unwrap();
-    }
+    zip.add_directory("ignored/", zip::write::SimpleFileOptions::default())
+        .unwrap();
     for (role, (extension, bytes)) in ["image", "video"].into_iter().zip(parts) {
         zip.start_file(
             format!("{role}{extension}"),
@@ -1796,12 +1794,7 @@ async fn upload_live_parts(
         .unwrap();
         zip.write_all(bytes).unwrap();
     }
-    let mut archive = zip.finish().unwrap().into_inner();
-    for index in 0..=archive.len() - b"altered/".len() {
-        if &archive[index..index + b"altered/".len()] == b"altered/" {
-            archive[index..index + b"altered/".len()].copy_from_slice(b"ignored/");
-        }
-    }
+    let archive = zip.finish().unwrap().into_inner();
     let mut data = metadata(name, &archive);
     data["fileType"] = json!(2);
     data["hash"] = json!(format!("{}:{}", digest(parts[0].1), digest(parts[1].1)));

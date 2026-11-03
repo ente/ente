@@ -53,4 +53,28 @@ void main() {
       throwsA(isA<FormatException>()),
     );
   });
+
+  test("rejects an incomplete Live Photo through the Rust bridge", () async {
+    final directory = await Directory.systemTemp.createTemp(
+      "incomplete_live_photo_archive_",
+    );
+    addTearDown(() => directory.delete(recursive: true));
+
+    final archiveFile = File("${directory.path}/live-photo.zip");
+    await archiveFile.writeAsBytes(
+      ZipEncoder().encode(
+        Archive()..addFile(ArchiveFile("image.jpg", 3, [1, 2, 3])),
+      ),
+    );
+    final output = await Directory("${directory.path}/output").create();
+
+    await expectLater(
+      extractLivePhotoArchive(
+        archiveFile: archiveFile,
+        outputDirectory: output,
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    expect(await output.list().isEmpty, isTrue);
+  });
 }

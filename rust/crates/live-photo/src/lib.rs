@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fs::File,
     io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
@@ -92,15 +91,11 @@ fn extract_with<R: Read + Seek, W: Write>(
         .seek(SeekFrom::End(0))?
         .saturating_mul(EXPANSION_RATIO)
         .saturating_add(EXPANSION_OVERHEAD);
-    let mut archive = zip::ZipArchive::new(&mut reader)?;
+    let mut archive = zip::ZipArchive::new(reader)?;
     if archive.has_duplicate_names() {
-        let central_directory_start = archive.central_directory_start();
-        let archive_reader = archive.into_inner();
-        if !duplicate_names_are_directories(&mut *archive_reader, central_directory_start)? {
-            return Err(Error::Components);
-        }
-        archive = zip::ZipArchive::new(archive_reader)?;
+        return Err(Error::Components);
     }
+    archive.validate_header_consistency()?;
     let mut image = None;
     let mut video = None;
     let mut declared_remaining = limit;
@@ -153,80 +148,6 @@ fn extract_with<R: Read + Seek, W: Write>(
             &mut output,
         )?,
     ])
-}
-
-fn duplicate_names_are_directories(
-    reader: &mut (impl Read + Seek),
-    central_directory_start: u64,
-) -> Result<bool, Error> {
-    reader.seek(SeekFrom::Start(central_directory_start))?;
-    let mut entries = HashMap::new();
-    let mut found_duplicate = false;
-    loop {
-        let mut header = [0; 46];
-        reader.read_exact(&mut header[..4])?;
-        if header[..4] != *b"PK\x01\x02" {
-            break;
-        }
-        reader.read_exact(&mut header[4..])?;
-        let name_length = u16::from_le_bytes([header[28], header[29]]) as usize;
-        let extra_length = u16::from_le_bytes([header[30], header[31]]) as u64;
-        let comment_length = u16::from_le_bytes([header[32], header[33]]) as u64;
-        let attributes = u32::from_le_bytes([header[38], header[39], header[40], header[41]]);
-        let mut name = vec![0; name_length];
-        reader.read_exact(&mut name)?;
-        let mut extra = vec![0; extra_length as usize];
-        reader.read_exact(&mut extra)?;
-        reader.seek(SeekFrom::Current(comment_length as i64))?;
-        apply_unicode_path(&mut name, &extra)?;
-
-        let file_type = if attributes == 0 {
-            0
-        } else if header[5] == 0 {
-            if attributes & 0x10 == 0 {
-                0o100000
-            } else {
-                0o040000
-            }
-        } else {
-            attributes >> 16 & 0o170000
-        };
-        let is_directory =
-            matches!(name.last(), Some(b'/') | Some(b'\\')) && matches!(file_type, 0 | 0o040000);
-        if let Some(previous_is_directory) = entries.insert(name, is_directory) {
-            found_duplicate = true;
-            if !previous_is_directory || !is_directory {
-                return Ok(false);
-            }
-        }
-    }
-    Ok(found_duplicate)
-}
-
-fn apply_unicode_path(name: &mut Vec<u8>, extra: &[u8]) -> Result<(), Error> {
-    let name_crc = crc32fast::hash(name).to_le_bytes();
-    let mut offset = 0;
-    while offset < extra.len() {
-        let Some(header) = extra.get(offset..offset + 4) else {
-            break;
-        };
-        let field_id = u16::from_le_bytes([header[0], header[1]]);
-        let field_length = u16::from_le_bytes([header[2], header[3]]) as usize;
-        offset += 4;
-        let field = extra
-            .get(offset..offset + field_length)
-            .ok_or(Error::Components)?;
-        offset += field_length;
-        if field_id == 0x7075
-            && field.len() >= 5
-            && field[1..5] == name_crc
-            && std::str::from_utf8(&field[5..]).is_ok()
-        {
-            name.clear();
-            name.extend_from_slice(&field[5..]);
-        }
-    }
-    Ok(())
 }
 
 pub fn extract_to_directory(archive_path: &Path, output_directory: &Path) -> Result<Files, Error> {
@@ -337,9 +258,9 @@ mod tests {
         zip.finish().unwrap().into_inner()
     }
 
-    fn unicode_path(raw_name: &str, name: &str) -> Vec<u8> {
+    fn unicode_path(raw_name_crc: [u8; 4], name: &str) -> Vec<u8> {
         let mut field = vec![1];
-        field.extend_from_slice(&crc32fast::hash(raw_name.as_bytes()).to_le_bytes());
+        field.extend_from_slice(&raw_name_crc);
         field.extend_from_slice(name.as_bytes());
         field
     }
@@ -383,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn skips_repeated_directory_entries() {
+    fn rejects_repeated_directory_entries_before_opening_output() {
         let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
         for name in ["ignored/", "altered/"] {
             zip.add_directory(name, zip::write::SimpleFileOptions::default())
@@ -401,39 +322,19 @@ mod tests {
             }
         }
         let mut opened = 0;
-        extract(Cursor::new(bytes), |_, _| {
+        let result = extract(Cursor::new(bytes), |_, _| {
             opened += 1;
             Ok(std::io::sink())
-        })
-        .unwrap();
-        assert_eq!(opened, 2);
-    }
-
-    #[test]
-    fn skips_repeated_unicode_directory_entries() {
-        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
-        for raw_name in ["raw-a/", "raw-b/"] {
-            let mut options = zip::write::FullFileOptions::default();
-            options
-                .add_extra_field(0x7075, unicode_path(raw_name, "ignored/"), false)
-                .unwrap();
-            zip.add_directory(raw_name, options).unwrap();
-        }
-        for name in ["image.jpg", "video.mov"] {
-            zip.start_file(name, zip::write::SimpleFileOptions::default())
-                .unwrap();
-            zip.write_all(b"component").unwrap();
-        }
-        extract(Cursor::new(zip.finish().unwrap().into_inner()), |_, _| {
-            Ok(std::io::sink())
-        })
-        .unwrap();
+        });
+        assert!(matches!(result, Err(Error::Components)));
+        assert_eq!(opened, 0);
     }
 
     #[test]
     fn rejects_invalid_components_before_opening_output() {
         for names in [
             vec!["image.jpg"],
+            vec!["video.mov"],
             vec!["image.jpg", "image.png", "video.mov"],
             vec!["image.jpg", "video.mov", "other.jpg"],
             vec!["image/../../outside.jpg", "video.mov"],
@@ -465,10 +366,13 @@ mod tests {
         assert_eq!(opened, 0);
 
         let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
-        for raw_name in ["raw-image-a", "raw-image-b"] {
+        for (raw_name, raw_name_crc) in [
+            ("raw-image-a", [0x14, 0x6a, 0x39, 0xf9]),
+            ("raw-image-b", [0xae, 0x3b, 0x30, 0x60]),
+        ] {
             let mut options = zip::write::FullFileOptions::default();
             options
-                .add_extra_field(0x7075, unicode_path(raw_name, "image.jpg"), false)
+                .add_extra_field(0x7075, unicode_path(raw_name_crc, "image.jpg"), false)
                 .unwrap();
             zip.start_file(raw_name, options).unwrap();
             zip.write_all(b"component").unwrap();
@@ -482,6 +386,26 @@ mod tests {
             Ok(std::io::sink())
         });
         assert!(matches!(result, Err(Error::Components)));
+        assert_eq!(opened, 0);
+    }
+
+    #[test]
+    fn rejects_inconsistent_headers_before_opening_output() {
+        let mut bytes = named_archive(&["image.jpg", "video.mov"]);
+        let headers: Vec<_> = bytes
+            .windows(4)
+            .enumerate()
+            .filter_map(|(index, bytes)| (bytes == b"PK\x01\x02").then_some(index))
+            .collect();
+        assert_eq!(headers.len(), 2);
+        let first_offset = bytes[headers[0] + 42..headers[0] + 46].to_vec();
+        bytes[headers[1] + 42..headers[1] + 46].copy_from_slice(&first_offset);
+        let mut opened = 0;
+        let result = extract(Cursor::new(bytes), |_, _| {
+            opened += 1;
+            Ok(std::io::sink())
+        });
+        assert!(matches!(result, Err(Error::Zip(_))));
         assert_eq!(opened, 0);
     }
 
@@ -600,8 +524,7 @@ mod tests {
             opened += 1;
             Ok(Count(&written))
         });
-        assert!(
-            matches!(result, Err(Error::Io(error)) if error.kind() == std::io::ErrorKind::InvalidData)
-        );
+        assert!(matches!(result, Err(Error::Zip(_))));
+        assert_eq!(opened, 0);
     }
 }
