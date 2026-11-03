@@ -1244,10 +1244,10 @@ packages:
     dependency: transitive
     description:
       name: hooks
-      sha256: eaac480a35ec0814146c2c48d96aaa829e0e44a7662c88ae84c9edf4bc35651f
+      sha256: "9a62a50b50b769a737bc0a8ff381f333529df3ab746b2f6b02e83760231455ba"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.0"
+    version: "2.0.2"
   html:
     dependency: transitive
     description:
@@ -1312,14 +1312,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.7"
-  icu4x:
-    dependency: transitive
-    description:
-      name: icu4x
-      sha256: d84ec257a901025d82b642388c1a32d544a08ae39491769100af0098b6c1259f
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.0"
   image:
     dependency: transitive
     description:
@@ -1673,10 +1665,10 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: "307249ce4ff29d58a18e97f6345f539382eb9c9c29ecda628900f31de0443dd9"
+      sha256: c82594181e3312f3d0695fc95aaaf7758d75b8d4ae2bbecf223b9fd5109a059d
       url: "https://pub.dev"
     source: hosted
-    version: "1.19.0"
+    version: "1.18.3"
   mgrs_dart:
     dependency: transitive
     description:
@@ -2205,10 +2197,10 @@ packages:
     dependency: transitive
     description:
       name: record_use
-      sha256: "1cb8564af8d43b464294411db9217f5ec04891c6f22ee2c32d73ae05e88a6bd2"
+      sha256: "2551bd8eecfe95d14ae75f6021ad0248be5c27f138c2ec12fcb52b500b3ba1ed"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.1"
+    version: "0.6.0"
   rive:
     dependency: transitive
     description:
