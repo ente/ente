@@ -35,7 +35,6 @@ interface LinksViewProps {
     selectedLinkID: number | undefined;
     searchQuery: string;
     sortBy: CollectionsSortBy;
-    onCreateAlbum: () => void;
     setBlockingLoad: (value: boolean) => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
 }
@@ -56,7 +55,6 @@ export const LinksView = ({
     selectedLinkID,
     searchQuery,
     sortBy,
-    onCreateAlbum,
     setBlockingLoad,
     onRemotePull,
 }: LinksViewProps) => {
@@ -131,7 +129,6 @@ export const LinksView = ({
             filter="links"
             searchQuery={searchQuery}
             sortBy={sortBy}
-            onCreateAlbum={onCreateAlbum}
             onRemotePull={onRemotePull}
         />
     );

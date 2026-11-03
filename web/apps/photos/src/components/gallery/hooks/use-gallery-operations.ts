@@ -67,7 +67,6 @@ export const useGalleryOperations = (
     const {
         openCollectionSelector,
         albumNameInputVisibilityProps,
-        showCreateAlbum,
         handleOpenCollectionSelector,
         handleCloseCollectionSelector,
         handleAddSingleFileToCollection,
@@ -115,7 +114,6 @@ export const useGalleryOperations = (
         onAddFileToCollection: handleAddSingleFileToCollection,
         setBlockingLoad,
         onUpload: openUploader,
-        onCreateAlbum: () => showCreateAlbum(),
         saveGroups,
         setSectionActivity,
     };

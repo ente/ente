@@ -37,13 +37,13 @@ export const useCollectionDialogs = ({
         useState<CollectionSelectorAttributes>();
     const [creation, setCreation] = useState<{
         getOrCreate: (name: string) => Promise<Collection>;
-        onCreate?: (collection: Collection) => void | Promise<void>;
+        onCreate: (collection: Collection) => void | Promise<void>;
     }>();
     const { show, props: albumNameInputVisibilityProps } = useModalVisibility();
     const showCreateAlbum = useCallback(
         (
-            hidden = false,
-            onCreate?: (collection: Collection) => void | Promise<void>,
+            hidden: boolean,
+            onCreate: (collection: Collection) => void | Promise<void>,
         ) => {
             let collection: Collection | undefined;
             setCreation({
@@ -79,11 +79,7 @@ export const useCollectionDialogs = ({
         const request = creation;
         if (!request) return;
         const collection = await request.getOrCreate(name);
-        if (request.onCreate) await request.onCreate(collection);
-        else {
-            await remotePull();
-            showNotification({ color: "primary", title: t("album_created") });
-        }
+        await request.onCreate(collection);
         setCreation((previous) =>
             previous === request ? undefined : previous,
         );

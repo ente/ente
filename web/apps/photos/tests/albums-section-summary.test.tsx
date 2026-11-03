@@ -140,7 +140,6 @@ const headerSummary = (state: GalleryState, collectionID = 10) => {
             onAddFileToCollection: vi.fn(),
             setBlockingLoad: vi.fn(),
             onUpload: vi.fn(),
-            onCreateAlbum: vi.fn(),
             saveGroups: [],
             setSectionActivity: vi.fn(),
         },
