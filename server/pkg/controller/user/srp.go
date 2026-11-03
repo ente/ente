@@ -375,6 +375,16 @@ func (c *UserController) verifySRPSession(ctx context.Context,
 		return nil, stacktrace.Propagate(err, "")
 	}
 	if !claimed {
+		srpSession, err = c.UserAuthRepo.GetSrpSessionEntity(ctx, sessionID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		if !srpSession.IsVerified && srpSession.IsExpired {
+			return nil, stacktrace.Propagate(&ente.ApiError{
+				Code:           ente.SessionExpired,
+				HttpStatusCode: http.StatusGone,
+			}, "")
+		}
 		return nil, stacktrace.Propagate(&ente.ApiError{
 			Code:           "SESSION_ALREADY_VERIFIED",
 			HttpStatusCode: http.StatusGone,

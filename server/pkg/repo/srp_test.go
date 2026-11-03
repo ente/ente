@@ -47,4 +47,25 @@ func TestSRPSessionValidity(t *testing.T) {
 			require.Equal(t, tc.valid, claimed)
 		})
 	}
+
+	t.Run("expires after reservation", func(t *testing.T) {
+		sessionID, err := repository.AddSRPSession(uuid.New(), "server-key", "srp-a")
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			_, err := db.Exec(`DELETE FROM srp_sessions WHERE id = $1`, sessionID)
+			require.NoError(t, err)
+		})
+		_, err = repository.ReserveSrpSessionAttempt(t.Context(), sessionID, 5)
+		require.NoError(t, err)
+		_, err = db.Exec(`UPDATE srp_sessions SET created_at = now_utc_micro_seconds() - $1 WHERE id = $2`, (srpSessionValidity + time.Minute).Microseconds(), sessionID)
+		require.NoError(t, err)
+
+		claimed, err := repository.TrySetSrpSessionVerified(t.Context(), sessionID)
+		require.NoError(t, err)
+		require.False(t, claimed)
+		session, err := repository.GetSrpSessionEntity(t.Context(), sessionID)
+		require.NoError(t, err)
+		require.False(t, session.IsVerified)
+		require.True(t, session.IsExpired)
+	})
 }
