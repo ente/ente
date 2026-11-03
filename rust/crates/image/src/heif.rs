@@ -68,6 +68,12 @@ mod tests {
         "IMG_8606_rotate_90_cw_contains_text.HEIC",
     ];
 
+    const NON_GRID_FIXTURES: [&str; 3] = [
+        "1718_rotate_90_cw.HEIC",
+        "7765_horizontal_normal.HEIC",
+        "7949_mirror_horizontal_rotate_270_cw.HEIC",
+    ];
+
     fn fixtures_dir() -> Option<PathBuf> {
         if let Some(path) = std::env::var_os("ENTE_TEST_FIXTURES_DIR") {
             return Some(PathBuf::from(path));
@@ -77,12 +83,52 @@ mod tests {
         Some(repo_root.parent()?.join("test-fixtures"))
     }
 
-    #[test]
-    fn grid_heic_fixtures_match_the_full_decoder_when_present() {
-        let Some(directory) = fixtures_dir()
+    fn heic_fixtures_dir() -> Option<PathBuf> {
+        fixtures_dir()
             .map(|path| path.join("media/heic/v1/files"))
             .filter(|path| path.exists())
-        else {
+    }
+
+    #[test]
+    fn memory_budget_failures_are_too_large() {
+        let bytes = b"\0\0\0\x18ftypheic\0\0\0\0mif1heic\0\0\0\x0cmeta\0\0\0\0";
+        assert!(matches!(
+            decode_bounded(
+                ImageInput::Bytes(bytes),
+                BoundedDecodeOptions {
+                    max_memory_bytes: 64 * 1024,
+                    ..BoundedDecodeOptions::default()
+                }
+            ),
+            Err(ImageError::TooLarge(_))
+        ));
+        assert!(matches!(
+            decode_bounded(ImageInput::Bytes(bytes), BoundedDecodeOptions::default()),
+            Err(ImageError::Decode(_))
+        ));
+    }
+
+    #[test]
+    fn non_grid_heic_fixtures_are_rejected_when_present() {
+        let Some(directory) = heic_fixtures_dir() else {
+            eprintln!("Skipping: external HEIC fixtures not present");
+            return;
+        };
+        for name in NON_GRID_FIXTURES {
+            let path = directory.join(name);
+            assert!(
+                matches!(
+                    decode_bounded(ImageInput::Path(path.to_str().unwrap()), options(6000)),
+                    Err(ImageError::Decode(_))
+                ),
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn grid_heic_fixtures_match_the_full_decoder_when_present() {
+        let Some(directory) = heic_fixtures_dir() else {
             eprintln!("Skipping: external HEIC fixtures not present");
             return;
         };
