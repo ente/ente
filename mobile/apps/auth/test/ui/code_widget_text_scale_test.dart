@@ -43,7 +43,6 @@ void main() {
     testWidgets(
       'fits every digit at 2x text${isCompactMode ? ' in compact mode' : ''}',
       (tester) async {
-        // Every glyph of the test font is 1 em wide, so 480 dp is narrow here
         tester.view.physicalSize = const Size(960, 1600);
         tester.view.devicePixelRatio = 2;
         addTearDown(tester.view.reset);

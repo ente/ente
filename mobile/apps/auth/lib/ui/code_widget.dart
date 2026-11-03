@@ -412,8 +412,6 @@ class _CodeWidgetState extends State<CodeWidget> {
                       style: style,
                       maxLines: 1,
                       textDirection: TextDirection.ltr,
-                      // Shrink past the minimum size instead of wrapping, which
-                      // drops the digit groups that do not fit
                       overflowReplacement: FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
