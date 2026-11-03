@@ -115,7 +115,8 @@ export const AlbumsSection = ({
     const canAddPhotos =
         !library.isFirstLoad &&
         user &&
-        activeCollection?.type == "album" &&
+        (activeCollection?.type == "album" ||
+            activeCollection?.type == "folder") &&
         canAddFilesToCollection(activeCollection, user.id);
     const [fileListHeader, setFileListHeader] =
         useState<FileListHeaderOrFooter>();
