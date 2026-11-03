@@ -1,8 +1,5 @@
 pub mod api;
 
-#[global_allocator]
-static ALLOCATOR: ente_image::BudgetedAllocator = ente_image::BudgetedAllocator;
-
 #[cfg(feature = "flutter")]
 #[expect(
     unsafe_code,

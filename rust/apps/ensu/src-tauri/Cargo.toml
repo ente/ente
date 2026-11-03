@@ -11,7 +11,6 @@ ente-assets.workspace = true
 ente-core.workspace = true
 ente-ensu.workspace = true
 ente-ensu-crypto.workspace = true
-ente-image.workspace = true
 keyring = { workspace = true, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 log.workspace = true
 notify = "8.2.0"

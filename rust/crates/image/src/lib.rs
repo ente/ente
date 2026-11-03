@@ -1,3 +1,4 @@
+mod allocator;
 mod bounded;
 mod color_management;
 pub mod decode;
@@ -12,5 +13,4 @@ pub mod types;
 
 pub use bounded::{BoundedDecodeOptions, BoundedDecodedImage, ImageInput, decode_bounded};
 pub use error::{ImageError, ImageResult};
-pub use memory_budget::BudgetedAllocator;
 pub use types::{DecodedImage, Dimensions};

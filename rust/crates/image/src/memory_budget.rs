@@ -1,17 +1,8 @@
-use std::{
-    alloc::{GlobalAlloc, Layout, System},
-    cell::Cell,
-    ptr,
-    sync::atomic::{AtomicBool, AtomicIsize, Ordering},
-};
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
+
+use crate::allocator;
 
 const MIN_REFUSABLE_BYTES: usize = 64 * 1024;
-
-thread_local! {
-    static CURRENT_BUDGET: Cell<*const MemoryBudget> = const { Cell::new(ptr::null()) };
-}
-
-pub struct BudgetedAllocator;
 
 pub(crate) struct MemoryBudget {
     limit: isize,
@@ -29,16 +20,14 @@ impl MemoryBudget {
     }
 
     pub(crate) fn enter<T>(&self, work: impl FnOnce() -> T) -> T {
-        let _scope = Scope::replace(self);
-        work()
+        allocator::with_budget(self, work)
     }
 
     pub(crate) fn suspend<T>(work: impl FnOnce() -> T) -> T {
-        let _scope = Scope::replace(ptr::null());
-        work()
+        allocator::without_budget(work)
     }
 
-    fn charge(&self, bytes: usize, request: usize, allocate: impl FnOnce() -> *mut u8) -> *mut u8 {
+    pub(crate) fn reserve(&self, bytes: usize, request: usize) -> bool {
         let bytes = signed(bytes);
         let used = self
             .used
@@ -49,16 +38,12 @@ impl MemoryBudget {
             && !self.refused.swap(true, Ordering::Relaxed)
         {
             self.used.fetch_sub(bytes, Ordering::Relaxed);
-            return ptr::null_mut();
+            return false;
         }
-        let allocation = allocate();
-        if allocation.is_null() {
-            self.used.fetch_sub(bytes, Ordering::Relaxed);
-        }
-        allocation
+        true
     }
 
-    fn release(&self, bytes: usize) {
+    pub(crate) fn release(&self, bytes: usize) {
         self.used.fetch_sub(signed(bytes), Ordering::Relaxed);
     }
 }
@@ -67,85 +52,11 @@ fn signed(bytes: usize) -> isize {
     isize::try_from(bytes).unwrap_or(isize::MAX)
 }
 
-struct Scope(*const MemoryBudget);
-
-impl Scope {
-    fn replace(budget: *const MemoryBudget) -> Self {
-        Self(CURRENT_BUDGET.replace(budget))
-    }
-}
-
-impl Drop for Scope {
-    fn drop(&mut self) {
-        CURRENT_BUDGET.set(self.0);
-    }
-}
-
-#[expect(
-    unsafe_code,
-    reason = "The thread's budget pointer is only set by a Scope that borrows the budget until it is restored"
-)]
-fn current_budget<'a>() -> Option<&'a MemoryBudget> {
-    let budget = CURRENT_BUDGET.try_with(Cell::get).unwrap_or(ptr::null());
-    unsafe { budget.as_ref() }
-}
-
-#[expect(
-    unsafe_code,
-    reason = "Every call forwards its pointer and layout to the system allocator unchanged"
-)]
-unsafe impl GlobalAlloc for BudgetedAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        match current_budget() {
-            Some(budget) => budget.charge(layout.size(), layout.size(), || unsafe {
-                System.alloc(layout)
-            }),
-            None => unsafe { System.alloc(layout) },
-        }
-    }
-
-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        match current_budget() {
-            Some(budget) => budget.charge(layout.size(), layout.size(), || unsafe {
-                System.alloc_zeroed(layout)
-            }),
-            None => unsafe { System.alloc_zeroed(layout) },
-        }
-    }
-
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        unsafe { System.dealloc(ptr, layout) };
-        if let Some(budget) = current_budget() {
-            budget.release(layout.size());
-        }
-    }
-
-    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        let Some(budget) = current_budget() else {
-            return unsafe { System.realloc(ptr, layout, new_size) };
-        };
-        let old_size = layout.size();
-        if new_size > old_size {
-            return budget.charge(new_size - old_size, new_size, || unsafe {
-                System.realloc(ptr, layout, new_size)
-            });
-        }
-        let allocation = unsafe { System.realloc(ptr, layout, new_size) };
-        if !allocation.is_null() {
-            budget.release(old_size - new_size);
-        }
-        allocation
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{hint::black_box, sync::atomic::Ordering};
 
-    use super::{BudgetedAllocator, MIN_REFUSABLE_BYTES, MemoryBudget};
-
-    #[global_allocator]
-    static ALLOCATOR: BudgetedAllocator = BudgetedAllocator;
+    use super::{MIN_REFUSABLE_BYTES, MemoryBudget};
 
     fn try_allocate(bytes: usize) -> Option<Vec<u8>> {
         let mut block = Vec::new();

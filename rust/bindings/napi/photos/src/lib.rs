@@ -8,9 +8,6 @@ use napi_derive::napi;
 mod log;
 pub use log::init_logging;
 
-#[global_allocator]
-static ALLOCATOR: ente_image::BudgetedAllocator = ente_image::BudgetedAllocator;
-
 #[napi]
 pub fn init_ort(dylib_path: String) -> Result<()> {
     let _ = ort::init_from(&dylib_path).map_err(|error| {
