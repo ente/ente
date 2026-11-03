@@ -1503,7 +1503,7 @@ fn export_names_are_portable_and_stable() -> TestResult {
 }
 
 #[test]
-fn export_allocates_live_pairs_from_their_actual_extensions() -> TestResult {
+fn export_accepts_live_directories_and_uses_actual_extensions() -> TestResult {
     Museum::run(|museum| {
         tokio::runtime::Runtime::new()?.block_on(async {
             let origin = museum.endpoint();
@@ -1783,6 +1783,8 @@ async fn upload_live_parts(
     parts: [(&str, &[u8]); 2],
 ) -> i64 {
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    zip.add_directory("ignored/", zip::write::SimpleFileOptions::default())
+        .unwrap();
     for (role, (extension, bytes)) in ["image", "video"].into_iter().zip(parts) {
         zip.start_file(
             format!("{role}{extension}"),

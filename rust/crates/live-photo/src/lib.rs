@@ -100,10 +100,15 @@ fn extract_with<R: Read + Seek, W: Write>(
     let mut declared_remaining = limit;
     for index in 0..archive.len() {
         let entry = archive.by_index(index)?;
-        let unsupported_unix_type = entry
-            .unix_mode()
-            .is_some_and(|mode| !matches!(mode & 0o170000, 0 | 0o100000));
-        if !entry.is_file() || unsupported_unix_type {
+        let unix_type = entry.unix_mode().map(|mode| mode & 0o170000);
+        if entry.is_dir() {
+            if unix_type.is_some_and(|file_type| !matches!(file_type, 0 | 0o040000)) {
+                return Err(Error::Components);
+            }
+            continue;
+        }
+        if !entry.is_file() || unix_type.is_some_and(|file_type| !matches!(file_type, 0 | 0o100000))
+        {
             return Err(Error::Components);
         }
         let name = entry.name()?;
@@ -291,6 +296,25 @@ mod tests {
     }
 
     #[test]
+    fn skips_directory_entries() {
+        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        zip.add_directory("ignored/", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        for name in ["image.jpg", "video.mov"] {
+            zip.start_file(name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            zip.write_all(b"component").unwrap();
+        }
+        let mut opened = 0;
+        extract(Cursor::new(zip.finish().unwrap().into_inner()), |_, _| {
+            opened += 1;
+            Ok(std::io::sink())
+        })
+        .unwrap();
+        assert_eq!(opened, 2);
+    }
+
+    #[test]
     fn rejects_invalid_components_before_opening_output() {
         for names in [
             vec!["image.jpg"],
@@ -318,22 +342,6 @@ mod tests {
         }
         let mut opened = 0;
         let result = extract(Cursor::new(duplicate), |_, _| {
-            opened += 1;
-            Ok(std::io::sink())
-        });
-        assert!(matches!(result, Err(Error::Components)));
-        assert_eq!(opened, 0);
-
-        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
-        zip.add_directory("ignored/", zip::write::SimpleFileOptions::default())
-            .unwrap();
-        for name in ["image.jpg", "video.mov"] {
-            zip.start_file(name, zip::write::SimpleFileOptions::default())
-                .unwrap();
-            zip.write_all(b"component").unwrap();
-        }
-        let mut opened = 0;
-        let result = extract(Cursor::new(zip.finish().unwrap().into_inner()), |_, _| {
             opened += 1;
             Ok(std::io::sink())
         });
