@@ -54,7 +54,7 @@ func (c *UserController) SetupSRP(context *gin.Context, userID int64, req ente.S
 
 func (c *UserController) CompleteSRPSetup(context *gin.Context, req ente.CompleteSRPSetupRequest) (*ente.CompleteSRPSetupResponse, error) {
 	userID := auth.GetUserID(context.Request.Header)
-	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(context, req.SetupID)
+	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(context, req.SetupID, userID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -99,7 +99,7 @@ func (c *UserController) updateSrpAndKeyAttributes(ctx *gin.Context,
 	if err := req.Validate(); err != nil {
 		return nil, stacktrace.Propagate(err, "invalid request")
 	}
-	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(ctx, req.SetupID)
+	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(ctx, req.SetupID, userID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
