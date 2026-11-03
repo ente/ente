@@ -1,4 +1,3 @@
-import type { RemotePullOpts } from "@/components/gallery";
 import { SingleInputDialog } from "ente-base/components/SingleInputDialog";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import type { Collection } from "ente-media/collection";
@@ -8,11 +7,11 @@ import {
     renameCollection,
 } from "ente-new/photos/services/collection";
 import { t } from "i18next";
-import { useRef, type FC } from "react";
+import { useLayoutEffect, useRef, type FC } from "react";
 
 interface CreateAlbumDialogProps extends ModalVisibilityProps {
     isHidden: boolean;
-    onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
+    onRemoteFilesPull: () => Promise<void>;
     onSelectCollectionID: (id: number) => void;
 }
 
@@ -20,16 +19,24 @@ export const CreateAlbumDialog: FC<CreateAlbumDialogProps> = ({
     open,
     onClose,
     isHidden,
-    onRemotePull,
+    onRemoteFilesPull,
     onSelectCollectionID,
 }) => {
     const submission = useRef<{ album?: Collection }>({});
+    useLayoutEffect(
+        () => () => {
+            submission.current = {};
+        },
+        [],
+    );
     const handleClose = () => {
         submission.current = {};
         onClose();
     };
 
-    const handleCreateAlbum = async (albumName: string) => {
+    const handleCreateAlbum = async (
+        albumName: string,
+    ): Promise<void | false> => {
         const pending = submission.current;
         // A retry after a failed refresh should reuse the album already created.
         if (!pending.album) {
@@ -40,7 +47,8 @@ export const CreateAlbumDialog: FC<CreateAlbumDialogProps> = ({
             await renameCollection(pending.album, albumName);
             pending.album = { ...pending.album, name: albumName };
         }
-        await onRemotePull({ strict: true });
+        await onRemoteFilesPull();
+        if (pending !== submission.current) return false;
         onSelectCollectionID(pending.album.id);
     };
 
