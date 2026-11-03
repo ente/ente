@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ente/go-srp"
 	"github.com/ente/museum/ente"
@@ -171,4 +172,68 @@ func TestCompleteSRPSetupRequiresOwnerAndPreservesSessionBinding(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, srpUserID, storedAuth.SRPUserID)
 	require.Equal(t, verifier, storedAuth.Verifier)
+}
+
+func TestVerifySRPSessionReportsExpiryForRealAndFakeSessions(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	repository := &repo.UserAuthRepository{DB: db}
+	controller := &UserController{UserAuthRepo: repository}
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/users/srp/verify-session", nil)
+
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "expired-srp-session@example.com", CreationTime: 1})
+	realSRPUserID := uuid.New()
+	require.NoError(t, repository.InsertSRPAuth(ctx, userID, realSRPUserID, FakeVerifier, "salt"))
+	realSessionID, err := repository.AddSRPSession(realSRPUserID, "server-key", "srp-a")
+	require.NoError(t, err)
+	fakeSRPUserID := uuid.New()
+	fakeSessionID, err := repository.AddFakeSRPSession(fakeSRPUserID, "server-key", "srp-a")
+	require.NoError(t, err)
+
+	for _, test := range []struct {
+		name      string
+		sessionID uuid.UUID
+		srpUserID uuid.UUID
+	}{
+		{"real session", realSessionID, realSRPUserID},
+		{"fake session", fakeSessionID, fakeSRPUserID},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := db.Exec(`UPDATE srp_sessions SET created_at = now_utc_micro_seconds() - $1 WHERE id = $2`, (31 * time.Minute).Microseconds(), test.sessionID)
+			require.NoError(t, err)
+
+			response, err := controller.VerifySRPSession(ctx, ente.VerifySRPSessionRequest{
+				SessionID: test.sessionID,
+				SRPUserID: test.srpUserID,
+				SRPM1:     convertBytesToString(make([]byte, 32)),
+			})
+			require.Nil(t, response)
+			var apiError *ente.ApiError
+			require.ErrorAs(t, err, &apiError)
+			require.Equal(t, ente.SessionExpired, apiError.Code)
+			require.Equal(t, http.StatusGone, apiError.HttpStatusCode)
+		})
+	}
+}
+
+func TestSRPSessionUnavailableError(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		session ente.SRPSessionEntity
+		code    ente.ErrorCode
+	}{
+		{"attempts exhausted", ente.SRPSessionEntity{}, "TOO_MANY_WRONG_ATTEMPTS"},
+		{"expired", ente.SRPSessionEntity{IsExpired: true}, ente.SessionExpired},
+		{"verified and expired", ente.SRPSessionEntity{IsVerified: true, IsExpired: true}, "SESSION_ALREADY_VERIFIED"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			apiError := srpSessionUnavailableError(&test.session)
+			require.Equal(t, test.code, apiError.Code)
+			require.Equal(t, http.StatusGone, apiError.HttpStatusCode)
+		})
+	}
 }
