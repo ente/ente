@@ -1,9 +1,5 @@
-import { useBook } from "@/context/book";
-import {
-    getCachedImage,
-    getCachedUrl,
-    loadImageCached,
-} from "@/lib/imageCache";
+import { useBookSelector } from "@/context/book";
+import { getCachedImage, loadImageCached } from "@/lib/imageCache";
 import {
     CAPTION_FONT_WEIGHT,
     CAPTION_TEXT_COLOR,
@@ -19,8 +15,7 @@ import {
     type CaptionLayout,
 } from "@/lib/printLayout";
 import type { BookPage, PhotoSlot, TextBlock } from "@/lib/types";
-import Konva from "konva";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Group, Image as KonvaImage, Rect, Text } from "react-konva";
 
 export type CaptionPosition = "top" | "bottom";
@@ -31,7 +26,7 @@ interface PageCanvasProps {
     pageHeight: number;
     isBackCover?: boolean;
     isFrontCover?: boolean;
-    photoUrls?: Map<string, string>;
+    preview?: boolean;
     onSlotClick?: (slotId: string) => void;
     selectedSlotId?: string | null;
     selectedTextId?: string | null;
@@ -64,7 +59,7 @@ function PhotoSlotRenderer({
 }) {
     const photoId = slot.photoId;
     const [image, setImage] = useState<HTMLImageElement | null>(() =>
-        photoId ? getCachedImage(photoId) : null,
+        photoUrl ? getCachedImage(photoUrl) : null,
     );
 
     const sx = (slot.x / 100) * pageWidth;
@@ -77,27 +72,23 @@ function PhotoSlotRenderer({
             setImage(null);
             return;
         }
-        const cached = getCachedImage(photoId);
+        const cached = getCachedImage(photoUrl);
         if (cached) setImage(cached);
 
-        if (cached && getCachedUrl(photoId) === photoUrl) return;
+        if (cached) return;
 
         let cancelled = false;
-        loadImageCached(photoId, photoUrl)
+        loadImageCached(photoUrl)
             .then((img) => {
                 if (!cancelled) setImage(img);
             })
             .catch(() => {
-                if (!cancelled && !cached) setImage(null);
+                if (!cancelled) setImage(null);
             });
         return () => {
             cancelled = true;
         };
     }, [photoId, photoUrl]);
-
-    const clipFunc = (ctx: Konva.Context) => {
-        ctx.rect(sx, sy, sw, sh);
-    };
 
     const drawProps = useMemo(() => {
         if (!image) return null;
@@ -120,7 +111,7 @@ function PhotoSlotRenderer({
     }, [image, sx, sy, sw, sh, slot.cropX, slot.cropY, slot.cropZoom]);
 
     return (
-        <Group clipFunc={clipFunc}>
+        <Group clipX={sx} clipY={sy} clipWidth={sw} clipHeight={sh}>
             <Rect
                 x={sx}
                 y={sy}
@@ -346,7 +337,24 @@ function CaptionText({
     );
 }
 
-export default function PageCanvas({
+export default function PageCanvas(props: PageCanvasProps) {
+    const photoUrls = useBookSelector(
+        (state) =>
+            props.page.slots.map(({ photoId }) =>
+                photoId
+                    ? (props.preview
+                          ? state.photoUrls
+                          : state.thumbnailUrls
+                      ).get(photoId)
+                    : undefined,
+            ),
+        (a, b) =>
+            a.length === b.length && a.every((url, index) => url === b[index]),
+    );
+    return <PageCanvasContent {...props} photoUrls={photoUrls} />;
+}
+
+const PageCanvasContent = memo(function PageCanvasContent({
     page,
     pageWidth,
     pageHeight,
@@ -361,11 +369,8 @@ export default function PageCanvas({
     editingCaption,
     hideCaptions = false,
     hideCenterText = false,
-    photoUrls: photoUrlsProp,
-}: PageCanvasProps) {
-    const { thumbnailUrls } = useBook();
-    const urls = photoUrlsProp ?? thumbnailUrls;
-
+    photoUrls: urls,
+}: PageCanvasProps & { photoUrls: (string | undefined)[] }) {
     const [, setFontsReady] = useState(false);
     useEffect(() => {
         let active = true;
@@ -393,13 +398,13 @@ export default function PageCanvas({
                 listening={false}
             />
 
-            {page.slots.map((slot) => (
+            {page.slots.map((slot, index) => (
                 <PhotoSlotRenderer
                     key={slot.id}
                     slot={slot}
                     pageWidth={pageWidth}
                     pageHeight={pageHeight}
-                    photoUrl={slot.photoId ? urls.get(slot.photoId) : undefined}
+                    photoUrl={urls[index]}
                     isSelected={selectedSlotId === slot.id}
                     isDragOver={dragOverSlotId === slot.id}
                     isDragSource={dragSourceSlotId === slot.id}
@@ -485,4 +490,4 @@ export default function PageCanvas({
             />
         </>
     );
-}
+});

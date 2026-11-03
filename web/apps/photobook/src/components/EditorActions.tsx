@@ -42,7 +42,14 @@ export default function EditorActions({
     onAddPage: () => void;
     onAddPhotos: () => void;
 }) {
-    const { book, processingPhotos, undo, redo, canUndo, canRedo } = useBook();
+    const { book, processingPhotos, undo, redo, canUndo, canRedo } = useBook(
+        "book",
+        "processingPhotos",
+        "undo",
+        "redo",
+        "canUndo",
+        "canRedo",
+    );
 
     return (
         <Box
@@ -121,7 +128,11 @@ export default function EditorActions({
 }
 
 export function EditorPreviewButton() {
-    const { book, setAppView, processingPhotos } = useBook();
+    const { book, setAppView, processingPhotos } = useBook(
+        "book",
+        "setAppView",
+        "processingPhotos",
+    );
     const [validationError, setValidationError] = useState<{
         title: string;
         description: string;

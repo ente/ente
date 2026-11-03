@@ -8,10 +8,12 @@ import { EDITOR_HEADER_HEIGHT } from "./editorLayout";
 export default function BookHeader({
     children,
     showBookControls = true,
+    showBindingSelect = false,
     titleDisabled = false,
 }: {
     children: ReactNode;
     showBookControls?: boolean;
+    showBindingSelect?: boolean;
     titleDisabled?: boolean;
 }) {
     return (
@@ -48,16 +50,18 @@ export default function BookHeader({
                     gap: 1,
                 }}
             >
-                <Box
-                    sx={{
-                        gridColumn: 2,
-                        gridRow: 2,
-                        justifySelf: "end",
-                        display: "flex",
-                    }}
-                >
-                    <BookBindingSelect disabled={titleDisabled} />
-                </Box>
+                {showBindingSelect && (
+                    <Box
+                        sx={{
+                            gridColumn: 2,
+                            gridRow: 2,
+                            justifySelf: "end",
+                            display: "flex",
+                        }}
+                    >
+                        <BookBindingSelect disabled={titleDisabled} />
+                    </Box>
+                )}
                 <Box
                     sx={{
                         gridColumn: 2,

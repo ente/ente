@@ -53,6 +53,7 @@
         "dev:share": "npm run build:prelogin-wasm && npm exec --workspace share -- next dev --webpack -p 3005",
         "dev:space": "npm run build:prelogin-wasm && npm run build:space-wasm && npm exec --workspace space -- next dev --webpack -p 3013",
         "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
+        "postinstall": "patch-package --error-on-fail",
         "lint": "node scripts/lint.mjs",
         "lint:fix": "node scripts/lint.mjs --fix",
         "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace ensu && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space && npm run test --workspace photobook"
@@ -75,6 +76,7 @@
         "concurrently": "10.0.5",
         "eslint": "10.12.0",
         "knip": "6.41.0",
+        "patch-package": "8.0.1",
         "prettier": "3.9.9",
         "typescript": "6.0.3"
     },

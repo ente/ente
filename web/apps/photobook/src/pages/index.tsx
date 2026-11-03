@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 export default function Home() {
     const router = useRouter();
-    const { book, loading } = useBook();
+    const { book, loading } = useBook("book", "loading");
     const hasBook = book.pages.length > 0;
 
     useEffect(() => {

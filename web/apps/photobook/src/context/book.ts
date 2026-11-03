@@ -10,19 +10,22 @@ import type {
 import {
     createContext,
     useContext,
+    useRef,
+    useSyncExternalStore,
     type Dispatch,
     type SetStateAction,
 } from "react";
 
-interface BookContextValue {
+export interface BookContextValue {
     appView: AppView;
     setAppView: (view: AppView) => void;
     loading: boolean;
 
     photos: Photo[];
+    getPhoto: (id: string) => Photo | undefined;
     thumbnailUrls: Map<string, string>;
     photoUrls: Map<string, string>;
-    loadPreviews: (photoIds: string[]) => Promise<void>;
+    retainPreviews: (photoIds: string[]) => () => void;
     addPhotos: (
         files: File[],
         options?: AddPhotosOptions,
@@ -85,10 +88,56 @@ interface BookContextValue {
     startOver: () => Promise<void>;
 }
 
-export const BookContext = createContext<BookContextValue | null>(null);
+export function createBookStore(initial: BookContextValue) {
+    let value = initial;
+    const listeners = new Set<() => void>();
+    return {
+        getSnapshot: () => value,
+        subscribe: (listener: () => void) => {
+            listeners.add(listener);
+            return () => {
+                listeners.delete(listener);
+            };
+        },
+        update: (next: BookContextValue) => {
+            value = next;
+            listeners.forEach((listener) => listener());
+        },
+    };
+}
 
-export function useBook() {
-    const ctx = useContext(BookContext);
-    if (!ctx) throw new Error("useBook must be used within BookProvider");
-    return ctx;
+export const BookContext = createContext<ReturnType<
+    typeof createBookStore
+> | null>(null);
+
+export function useBookSelector<T>(
+    selector: (state: BookContextValue) => T,
+    equal: (a: T, b: T) => boolean = Object.is,
+): T {
+    const store = useContext(BookContext);
+    if (!store) throw new Error("useBook must be used within BookProvider");
+    const previous = useRef<{ value: T } | undefined>(undefined);
+    const getSnapshot = () => {
+        const selected = selector(store.getSnapshot());
+        if (previous.current && equal(previous.current.value, selected))
+            return previous.current.value;
+        previous.current = { value: selected };
+        return selected;
+    };
+    return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
+}
+
+export function useBook<K extends keyof BookContextValue>(
+    ...keys: [K, ...K[]]
+): Pick<BookContextValue, K> {
+    return useBookSelector(
+        (state) =>
+            Object.fromEntries(keys.map((key) => [key, state[key]])) as Pick<
+                BookContextValue,
+                K
+            >,
+        (a, b) =>
+            Object.keys(a).length === keys.length &&
+            keys.every((key) => Object.is(a[key], b[key])),
+    );
 }
