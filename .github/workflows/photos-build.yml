@@ -260,7 +260,7 @@ jobs:
                   p12-file-base64: ${{ secrets.APPLE_DISTRIBUTION_CERT_BASE64 }}
                   p12-password: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
 
-            - name: Archive Photos and export the IPA
+            - name: Archive Photos
               env:
                   ASC_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
                   ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -292,17 +292,17 @@ jobs:
                       MARKETING_VERSION="${RELEASE_VERSION}" \
                       CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
 
-                  ipa_options="${RUNNER_TEMP}/Photos-IPA.plist"
-                  plutil -replace destination -string export -o "${ipa_options}" scripts/ExportOptions-AppStore-CI.plist
-                  xcodebuild -exportArchive \
-                      -archivePath build/ios/archive/Runner.xcarchive \
-                      -exportPath build/ios/qa \
-                      -exportOptionsPlist "${ipa_options}" \
-                      -allowProvisioningUpdates \
-                      -authenticationKeyPath "${key_path}" \
-                      -authenticationKeyID "${ASC_KEY_ID}" \
-                      -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
-                  mv build/ios/qa/*.ipa "build/ios/${ARTIFACT_STEM}.ipa"
+            - name: Package Photos IPA for BrowserStack re-signing
+              run: |
+                  payload="${RUNNER_TEMP}/photos-qa/Payload"
+                  app="${payload}/Runner.app"
+                  mkdir -p "${payload}"
+                  ditto build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app "${app}"
+                  for bundle in "${app}"/PlugIns/*.appex "${app}"; do
+                      rm -f "${bundle}/embedded.mobileprovision"
+                      codesign --force --sign - --preserve-metadata=entitlements "${bundle}"
+                  done
+                  ditto -c -k --norsrc --keepParent "${payload}" "build/ios/${ARTIFACT_STEM}.ipa"
 
             - name: Upload Photos IPA for release
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
