@@ -2694,6 +2694,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente-live-photo"
+version = "0.0.0"
+dependencies = [
+ "tempfile",
+ "thiserror 2.0.21",
+ "zip",
+]
+
+[[package]]
 name = "ente-location"
 version = "0.0.0"
 dependencies = [
@@ -2858,6 +2867,7 @@ dependencies = [
  "chrono",
  "ente-collections",
  "ente-core",
+ "ente-live-photo",
  "ente-photos",
  "icu_casemap 2.2.0",
  "rusqlite",
@@ -2882,12 +2892,15 @@ dependencies = [
  "ente-frb-lib",
  "ente-frb-log",
  "ente-image",
+ "ente-live-photo",
  "ente-location",
  "ente-ml",
  "ente-photos",
  "ente-vecdb",
  "flutter_rust_bridge",
  "log",
+ "tempfile",
+ "zip",
 ]
 
 [[package]]

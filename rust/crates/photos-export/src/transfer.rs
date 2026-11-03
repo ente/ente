@@ -7,6 +7,7 @@ use std::{
 use crate::{metadata::Role, snapshot::FileSnapshot};
 use anyhow::{Context, Result, ensure};
 use ente_core::{Session, b64, crypto::hash};
+use ente_live_photo as live_photo;
 use ente_photos::files;
 use rusqlite::{OptionalExtension, params};
 
@@ -75,6 +76,13 @@ pub fn roles(file: &FileSnapshot) -> Vec<Role> {
         vec![Role::Image, Role::Video]
     } else {
         vec![Role::Original]
+    }
+}
+
+pub(super) fn live_photo_role(component: live_photo::Component) -> Role {
+    match component {
+        live_photo::Component::Image => Role::Image,
+        live_photo::Component::Video => Role::Video,
     }
 }
 
@@ -276,17 +284,17 @@ pub async fn prepare(run: &Run<'_>, session: &Session, file: &FileSnapshot) -> R
     let (archive, size, hash) = writer.finish();
     let components = if file.kind == "livephoto" {
         let mut temporaries = Vec::new();
-        let extracted = crate::live_photo::extract(archive, |role, extension| {
+        let extracted = live_photo::extract(archive, |_, _| {
             let (temporary, file) = run
                 .temporary(&folder, album, Some(file.id))
                 .map_err(std::io::Error::other)?;
-            temporaries.push((role, extension.to_owned(), temporary));
+            temporaries.push(temporary);
             HashWriter::new(file, run.cancel).map_err(std::io::Error::other)
         })?;
         let mut components = Vec::with_capacity(2);
-        for ((role, extension, writer), (_, _, temporary)) in extracted.into_iter().zip(temporaries)
-        {
-            let (_, size, hash) = writer.finish();
+        for (part, temporary) in extracted.into_iter().zip(temporaries) {
+            let role = live_photo_role(part.component);
+            let (_, size, hash) = part.writer.finish();
             if let Some(expected) = expected_hash(file, &role) {
                 ensure!(
                     hash == expected,
@@ -296,7 +304,7 @@ pub async fn prepare(run: &Run<'_>, session: &Session, file: &FileSnapshot) -> R
             }
             components.push(Source {
                 role,
-                extension,
+                extension: part.extension,
                 verified_properties: run
                     .hardlinks
                     .then(|| fs::set_time(&run.path(&temporary)?, file.intended_time))

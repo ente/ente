@@ -2,6 +2,7 @@ pub mod cast_api;
 pub mod dedup_api;
 pub mod image_processing_api;
 pub mod init;
+pub mod live_photo_api;
 pub mod location_api;
 #[cfg(any(feature = "flutter", frb_expand))]
 pub mod log;
