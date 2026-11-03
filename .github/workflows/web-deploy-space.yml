@@ -33,7 +33,7 @@ jobs:
               run: npm audit --audit-level critical
 
             - name: Deploy space
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: space
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

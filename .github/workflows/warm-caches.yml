@@ -32,7 +32,7 @@ jobs:
                   cache: false
 
             - name: Setup Linux for Rust
-              uses: ./.github/actions/setup-rust-linux
+              uses: $/.github/actions/setup-rust-linux
 
             - name: Setup Rust cache
               uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -44,7 +44,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-workspace
@@ -106,7 +106,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-cli
@@ -138,7 +138,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Setup Rust cache
               uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -149,7 +149,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-flutter
@@ -210,7 +210,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-wasm
@@ -275,7 +275,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: photos-desktop-ensu-android
@@ -332,7 +332,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: ensu-ios
