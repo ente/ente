@@ -65,8 +65,10 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import { batch } from "ente-utils/array";
 import React, {
+    createContext,
     memo,
     useCallback,
+    useContext,
     useDeferredValue,
     useEffect,
     useMemo,
@@ -154,6 +156,24 @@ export interface FileListProps {
 
 const emptyTimeline = createTimeline([]);
 
+// Keep the inner element type stable so height changes preserve mounted rows.
+const ListInnerHeightContext = createContext<number | undefined>(undefined);
+
+const FileListInner = React.forwardRef<
+    HTMLDivElement,
+    React.HTMLAttributes<HTMLDivElement>
+>(({ style, ...props }, ref) => {
+    const height = useContext(ListInnerHeightContext);
+    return (
+        <div
+            {...props}
+            ref={ref}
+            style={height === undefined ? style : { ...style, height }}
+        />
+    );
+});
+FileListInner.displayName = "FileListInner";
+
 export const FileList: React.FC<FileListProps> = ({
     height,
     width,
@@ -207,21 +227,6 @@ export const FileList: React.FC<FileListProps> = ({
         timeline.months.length > 0 &&
         timeline.totalHeight > height &&
         height > 64;
-    const innerElementType = useMemo(() => {
-        if (!showScrubber) return undefined;
-        const Inner = React.forwardRef<
-            HTMLDivElement,
-            React.HTMLAttributes<HTMLDivElement>
-        >(({ style, ...props }, ref) => (
-            <div
-                {...props}
-                ref={ref}
-                style={{ ...style, height: timeline.totalHeight }}
-            />
-        ));
-        Inner.displayName = "DateScrubberListInner";
-        return Inner;
-    }, [showScrubber, timeline.totalHeight]);
 
     const [rangeStartIndex, setRangeStartIndex] = useState<number | undefined>(
         undefined,
@@ -917,25 +922,30 @@ export const FileList: React.FC<FileListProps> = ({
                 }),
             }}
         >
-            <VariableSizeList
-                key={key}
-                ref={listRef}
-                outerRef={outerRef}
-                {...{ height, itemData, itemSize, itemKey, innerElementType }}
-                width={width}
-                className="photo-list"
-                itemCount={items.length}
-                overscanCount={3}
-                useIsScrolling
-                onScroll={handleScroll}
-                style={
-                    listBorderRadius
-                        ? { borderRadius: listBorderRadius }
-                        : undefined
-                }
+            <ListInnerHeightContext.Provider
+                value={showScrubber ? timeline.totalHeight : undefined}
             >
-                {FileListRow}
-            </VariableSizeList>
+                <VariableSizeList
+                    key={key}
+                    ref={listRef}
+                    outerRef={outerRef}
+                    {...{ height, itemData, itemSize, itemKey }}
+                    innerElementType={FileListInner}
+                    width={width}
+                    className="photo-list"
+                    itemCount={items.length}
+                    overscanCount={3}
+                    useIsScrolling
+                    onScroll={handleScroll}
+                    style={
+                        listBorderRadius
+                            ? { borderRadius: listBorderRadius }
+                            : undefined
+                    }
+                >
+                    {FileListRow}
+                </VariableSizeList>
+            </ListInnerHeightContext.Provider>
             {showScrubber && (
                 <DateScrubber
                     {...{ timeline, height, scrollOffset }}
