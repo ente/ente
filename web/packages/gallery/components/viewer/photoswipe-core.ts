@@ -1549,6 +1549,39 @@ export class FileViewerPhotoSwipe<
                     case "Delete":
                         cb = handleDelete;
                         break;
+                    case "ArrowUp":
+                    case "ArrowDown": {
+                        const video = videoVideoEl;
+                        if (!video) break;
+                        pswpEvent.preventDefault();
+                        if (
+                            video.muted &&
+                            key == "ArrowDown" &&
+                            (!isFocusVisibledOnUIControl() ||
+                                document.activeElement?.tagName ==
+                                    "MEDIA-VOLUME-RANGE")
+                        ) {
+                            e.preventDefault();
+                            return;
+                        }
+                        if (isFocusVisibledOnUIControl()) return;
+                        e.preventDefault();
+                        const volume = video.muted ? 0 : video.volume;
+                        const step = key == "ArrowUp" ? 0.05 : -0.05;
+                        video
+                            .closest("media-controller")
+                            ?.dispatchEvent(
+                                new CustomEvent("mediavolumerequest", {
+                                    bubbles: true,
+                                    composed: true,
+                                    detail: Math.min(
+                                        1,
+                                        Math.max(0, volume + step),
+                                    ),
+                                }),
+                            );
+                        break;
+                    }
                     case "ArrowLeft":
                         pswpEvent.preventDefault();
                         if (
