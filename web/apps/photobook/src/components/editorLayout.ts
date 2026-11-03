@@ -1,7 +1,10 @@
+import { BOOK_SIZE_MM } from "@/lib/bookFormats";
 import { uiColors } from "@/theme/colors";
 
 export const MOBILE_QUERY = "(max-width: 959px)";
 export const SINGLE_PAGE_QUERY = "(max-width: 599px)";
+export const LARGE_DESKTOP_QUERY = "(min-width: 1920px)";
+export const MAX_DISPLAY_PAGE_SIZE = Math.floor((BOOK_SIZE_MM / 25.4) * 96);
 
 export const EDITOR_SIDEBAR_WIDTH = { xs: 156, sm: 366 };
 export const EDITOR_CANVAS_PADDING = 16;

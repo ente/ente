@@ -23,7 +23,7 @@ const AppShell = dynamic(() => import("@/components/AppShell"), {
 
 export default function Home() {
     const router = useRouter();
-    const { book, loading } = useBook();
+    const { book, loading } = useBook("book", "loading");
     const { importActive } = usePhotoImport();
     const emptyBook = !loading && !importActive && book.pages.length === 0;
 

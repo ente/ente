@@ -1,5 +1,3 @@
-import type { PrintBinding } from "./printProducts";
-
 type SpreadPageRef = number | "printer-blank" | null;
 
 export interface Spread {
@@ -7,14 +5,12 @@ export interface Spread {
     right: SpreadPageRef;
 }
 
-export function getSpreads(pageCount: number, binding: PrintBinding): Spread[] {
+export function getSpreads(pageCount: number): Spread[] {
     if (pageCount === 0) return [];
     const spreads: Spread[] = [{ left: null, right: 0 }];
     if (pageCount === 1) return spreads;
 
     if (pageCount > 2) {
-        if (binding === "Hardcover")
-            spreads.push({ left: "printer-blank", right: "printer-blank" });
         spreads.push({ left: "printer-blank", right: 1 });
         for (let i = 2; i < pageCount - 1; i += 2) {
             spreads.push({
@@ -22,8 +18,6 @@ export function getSpreads(pageCount: number, binding: PrintBinding): Spread[] {
                 right: i + 1 < pageCount - 1 ? i + 1 : "printer-blank",
             });
         }
-        if (binding === "Hardcover")
-            spreads.push({ left: "printer-blank", right: "printer-blank" });
     }
 
     spreads.push({ left: pageCount - 1, right: null });
@@ -50,9 +44,8 @@ export function getSpreadLabel(
 
 export function getFlipPages(
     pageCount: number,
-    binding: PrintBinding,
 ): { pageIndex: number | null; spreadIndex: number }[] {
-    return getSpreads(pageCount, binding).flatMap((spread, spreadIndex) =>
+    return getSpreads(pageCount).flatMap((spread, spreadIndex) =>
         [spread.left, spread.right]
             .filter((page) => page !== null)
             .map((page) => ({
@@ -65,11 +58,10 @@ export function getFlipPages(
 export function getFlipPageIndex(
     pageCount: number,
     pageIndex: number,
-    binding: PrintBinding,
 ): number | null {
     if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex >= pageCount)
         return null;
-    const index = getFlipPages(pageCount, binding).findIndex(
+    const index = getFlipPages(pageCount).findIndex(
         (page) => page.pageIndex === pageIndex,
     );
     return index < 0 ? null : index;

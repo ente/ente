@@ -4,8 +4,9 @@ import { useSpreads } from "@/hooks/useSpreads";
 import { thumbnailShadow, toolbarColors, uiColors } from "@/theme/colors";
 import { Box, Typography, useMediaQuery } from "@mui/material";
 import {
-    useCallback,
+    memo,
     useEffect,
+    useMemo,
     useRef,
     useState,
     type RefCallback,
@@ -19,8 +20,8 @@ interface PageStripProps {
     onSpreadClick?: (spreadIdx: number) => void;
 }
 
-export default function PageStrip({ onSpreadClick }: PageStripProps) {
-    const { book } = useBook();
+function PageStrip({ onSpreadClick }: PageStripProps) {
+    const { book } = useBook("book");
     const isCompact = useMediaQuery("(max-width: 599px)");
     const thumbnailWidth = isCompact ? 52 : 136;
     const rowPadding = isCompact ? 8 : 12;
@@ -75,9 +76,9 @@ export default function PageStrip({ onSpreadClick }: PageStripProps) {
         };
     }, [spreads.length]);
 
-    const stripSpreadRefCallback = useCallback(
-        (idx: number): RefCallback<HTMLDivElement> =>
-            (el) => {
+    const stripSpreadRefs = useMemo(
+        () =>
+            spreads.map((_, idx): RefCallback<HTMLDivElement> => (el) => {
                 const prev = stripElsRef.current.get(idx);
                 if (prev && stripObserverRef.current)
                     stripObserverRef.current.unobserve(prev);
@@ -89,8 +90,8 @@ export default function PageStrip({ onSpreadClick }: PageStripProps) {
                 } else {
                     stripElsRef.current.delete(idx);
                 }
-            },
-        [],
+            }),
+        [spreads],
     );
 
     return (
@@ -135,7 +136,7 @@ export default function PageStrip({ onSpreadClick }: PageStripProps) {
                 {spreads.map((spread, spreadIdx) => (
                     <Box
                         key={spreadIdx}
-                        ref={stripSpreadRefCallback(spreadIdx)}
+                        ref={stripSpreadRefs[spreadIdx]}
                         data-strip-spread-index={spreadIdx}
                         onClick={() => onSpreadClick?.(spreadIdx)}
                         sx={{
@@ -305,3 +306,5 @@ export default function PageStrip({ onSpreadClick }: PageStripProps) {
         </Box>
     );
 }
+
+export default memo(PageStrip);

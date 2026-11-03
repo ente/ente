@@ -12,8 +12,14 @@ export function usePhotoDrag(
     containerRef: React.RefObject<HTMLElement | null>,
     autoScroll: ReturnType<typeof useAutoScroll>,
 ) {
-    const { thumbnailUrls, swapPhotos, movePhotoToPage, book } = useBook();
-    const pages = book.pages;
+    const { thumbnailUrls, swapPhotos, movePhotoToPage, book } = useBook(
+        "thumbnailUrls",
+        "swapPhotos",
+        "movePhotoToPage",
+        "book",
+    );
+    const pagesRef = useRef(book.pages);
+    pagesRef.current = book.pages;
 
     const [dragSourceInfo, setDragSourceInfo] = useState<DragInfo | null>(null);
     const dragSourceRef = useRef<DragInfo | null>(null);
@@ -122,6 +128,7 @@ export function usePhotoDrag(
 
     const handlePageDragOver = useCallback(
         (e: React.DragEvent, pageId: string) => {
+            const pages = pagesRef.current;
             e.preventDefault();
             const isBackCover = pages.at(-1)?.id === pageId;
             const toPage = pages.find((p) => p.id === pageId);
@@ -151,11 +158,12 @@ export function usePhotoDrag(
                 setDragOverPageId(null);
             }
         },
-        [pages],
+        [],
     );
 
     const handlePageDrop = useCallback(
         (e: React.DragEvent, toPageId: string) => {
+            const pages = pagesRef.current;
             e.preventDefault();
             autoScroll.stop();
             dragOverRef.current = null;
@@ -181,7 +189,7 @@ export function usePhotoDrag(
                 setDragSourceInfo(null);
             }
         },
-        [pages, movePhotoToPage, autoScroll],
+        [movePhotoToPage, autoScroll],
     );
 
     const handleDragEnd = useCallback(() => {

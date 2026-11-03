@@ -10,11 +10,12 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import BookBrand from "./BookBrand";
 import { AddPhotosIcon } from "./icons";
 
 export default function StartPage() {
     const router = useRouter();
-    const { loading } = useBook();
+    const { loading } = useBook("loading");
     useEffect(() => {
         void router.prefetch("/app");
     }, [router]);
@@ -60,14 +61,25 @@ export default function StartPage() {
                     position: "relative",
                     overflow: "hidden",
                     borderRadius: { xs: "20px", sm: "28px" },
-                    px: { xs: 2.5, sm: 4 },
-                    pt: { xs: 3, sm: "clamp(24px, 4vh, 48px)" },
+                    px: { xs: 3.5, sm: 5 },
+                    pt: { xs: 3, sm: 4 },
                     pb: {
                         xs: "max(20px, env(safe-area-inset-bottom))",
                         sm: "clamp(24px, 4vh, 48px)",
                     },
                 }}
             >
+                <Box
+                    component="header"
+                    sx={{
+                        alignSelf: "stretch",
+                        display: "flex",
+                        justifyContent: { xs: "center", sm: "flex-start" },
+                        mb: { xs: 2, sm: 3 },
+                    }}
+                >
+                    <BookBrand scale={1.15} />
+                </Box>
                 {dragOver && (
                     <Box
                         sx={{
@@ -98,9 +110,10 @@ export default function StartPage() {
                         position: "relative",
                         zIndex: 10,
                         display: "flex",
-                        flex: { xs: 1, sm: "initial" },
+                        flex: 1,
                         flexDirection: "column",
                         alignItems: "center",
+                        justifyContent: "center",
                         textAlign: "center",
                         maxWidth: 660,
                         width: "100%",
@@ -325,8 +338,9 @@ export default function StartPage() {
                             }
                             sx={{
                                 height: 53,
-                                color: "#FFF2CD",
-                                borderColor: "rgba(255,242,205,0.3)",
+                                color: "rgba(255,253,245,0.9)",
+                                borderColor: "rgba(255,255,255,0.35)",
+                                bgcolor: "rgba(255,255,255,0.12)",
                                 fontFamily: "var(--font-outfit), sans-serif",
                                 fontSize: 14,
                                 fontWeight: 500,
@@ -335,15 +349,16 @@ export default function StartPage() {
                                 py: 0,
                                 borderRadius: "999px",
                                 "&:hover": {
-                                    bgcolor: "rgba(255,242,205,0.12)",
-                                    borderColor: "rgba(255,242,205,0.55)",
+                                    bgcolor: "rgba(255,255,255,0.18)",
+                                    borderColor: "rgba(255,255,255,0.55)",
                                 },
                                 "&.Mui-disabled": {
-                                    color: "rgba(255,242,205,0.45)",
-                                    borderColor: "rgba(255,242,205,0.2)",
+                                    color: "rgba(255,253,245,0.45)",
+                                    borderColor: "rgba(255,255,255,0.2)",
+                                    bgcolor: "rgba(255,255,255,0.05)",
                                 },
                                 "&.Mui-focusVisible": {
-                                    outline: "3px solid #FFF2CD",
+                                    outline: "3px solid rgba(255,255,255,0.7)",
                                     outlineOffset: 3,
                                 },
                             }}

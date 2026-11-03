@@ -16,7 +16,12 @@ import ImportProgress from "./ImportProgress";
 
 export default function AppShell() {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
-    const { appView, loading, importNotice, clearImportNotice } = useBook();
+    const { appView, loading, importNotice, clearImportNotice } = useBook(
+        "appView",
+        "loading",
+        "importNotice",
+        "clearImportNotice",
+    );
     const showPreview = mobile || appView === "results";
     const {
         importActive,
