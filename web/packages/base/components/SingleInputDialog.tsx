@@ -19,8 +19,12 @@ import {
 import { SingleInputForm, type SingleInputFormProps } from "./SingleInputForm";
 
 type SingleInputDialogProps = ModalVisibilityProps &
-    Omit<SingleInputFormProps, "onCancel"> & {
+    Omit<SingleInputFormProps, "onCancel" | "onSubmit"> & {
         title: string;
+        onSubmit: (
+            value: string,
+            setFieldError: (message: string) => void,
+        ) => ReturnType<SingleInputFormProps["onSubmit"]> | Promise<boolean>;
         description?: string;
         sx?: SxProps<Theme>;
     };
@@ -40,11 +44,11 @@ export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
     const handleSubmit: SingleInputFormProps["onSubmit"] = useCallback(
         async (value, setFieldError) => {
             const submission = { hasError: false };
-            await onSubmit(value, (message) => {
+            const result = await onSubmit(value, (message) => {
                 submission.hasError = true;
                 setFieldError(message);
             });
-            if (!submission.hasError) onClose();
+            if (result !== false && !submission.hasError) onClose();
         },
         [onClose, onSubmit],
     );

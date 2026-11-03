@@ -124,7 +124,9 @@ export const AlbumsSection = ({
         props: editAlbumDetailsVisibilityProps,
     } = useModalVisibility();
     const createAlbum = useModalVisibility();
-    const { selectCollection, showAlbumOverview } = usePhotosNavigation();
+    const [createFromOverview, setCreateFromOverview] = useState(false);
+    const { selectCollection, showAlbumOverview, openOverviewAlbum } =
+        usePhotosNavigation();
     const barCollectionSummaries =
         barMode == "hidden-albums"
             ? library.hiddenCollectionSummaries
@@ -306,7 +308,10 @@ export const AlbumsSection = ({
                         library.uncategorizedCollectionSummaryID
                     }
                     activeCollectionID={activeCollectionID}
-                    onCreateAlbum={createAlbum.show}
+                    onCreateAlbum={() => {
+                        setCreateFromOverview(false);
+                        createAlbum.show();
+                    }}
                     collectionsSortBy={collectionsSortBy}
                     onChangeCollectionsSortBy={onChangeCollectionsSortBy}
                 />
@@ -333,7 +338,10 @@ export const AlbumsSection = ({
                     filter={overviewFilter!}
                     searchQuery={albumSearchQuery}
                     sortBy={collectionsSortBy}
-                    onCreateAlbum={operations.onCreateAlbum}
+                    onCreateAlbum={() => {
+                        setCreateFromOverview(true);
+                        createAlbum.show();
+                    }}
                 />
             ) : (
                 <GalleryMedia
@@ -385,9 +393,10 @@ export const AlbumsSection = ({
             <CreateAlbumDialog
                 {...createAlbum.props}
                 isHidden={barMode == "hidden-albums"}
-                onRemotePull={remotePull}
+                onRemoteFilesPull={remoteFilesPull}
                 onSelectCollectionID={(id) => {
-                    selectCollection(id);
+                    if (createFromOverview) openOverviewAlbum(id);
+                    else selectCollection(id);
                     presentation.mobileDrawerProps.onClose();
                 }}
             />

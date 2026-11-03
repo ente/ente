@@ -43,7 +43,6 @@ export type GallerySectionOperations = Pick<
         intent?: UploadTypeSelectorIntent,
         uploadTargetCollection?: Collection,
     ) => void;
-    onCreateAlbum: () => void;
     saveGroups: ReturnType<typeof useSaveGroups>["saveGroups"];
     setSectionActivity: Dispatch<
         SetStateAction<{ selection: boolean; drop: boolean }>

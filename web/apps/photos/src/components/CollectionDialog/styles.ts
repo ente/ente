@@ -52,12 +52,6 @@ export const collectionDialogTitleSx = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
 };
-export const collectionDialogBodyMutedSx = {
-    fontSize: 14,
-    lineHeight: "20px",
-    fontWeight: 500,
-    color: "text.muted",
-};
 export const collectionDialogIconButtonSx = (theme: Theme) => ({
     width: 38,
     height: 38,
