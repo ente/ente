@@ -11,7 +11,7 @@ pub(super) fn unsupported_reason() -> Option<String> {
 
 #[cfg(target_os = "macos")]
 fn supported() -> bool {
-    super::platform::macos_version()
+    crate::platform::macos_version()
         .is_some_and(|(major, minor)| major > 13 || major == 13 && minor >= 3)
 }
 

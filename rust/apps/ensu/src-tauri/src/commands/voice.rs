@@ -1,4 +1,3 @@
-mod platform;
 mod runtime;
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -18,6 +17,7 @@ use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow, asy
 
 use super::common::{ApiError, panic_message};
 use super::llm;
+use crate::platform;
 
 #[derive(Default)]
 pub struct State(Mutex<Option<Arc<Session>>>);
