@@ -208,3 +208,24 @@ test("renders mobile-style year chips that are hidden until interaction", () => 
     expect(markup).toContain("border-radius:6px");
     expect(markup).toContain("height:3px");
 });
+
+test.each([
+    [400, "November 2026"],
+    [450, "December 2025"],
+])(
+    "labels the oldest month at the scroll limit (offset %i)",
+    (offset, label) => {
+        const markup = renderToStaticMarkup(
+            <ThemeProvider theme={createTheme()}>
+                <DateScrubber
+                    timeline={timelineOf([700, november], [50, december])}
+                    height={300}
+                    scrollOffset={offset}
+                    onSeek={vi.fn()}
+                    onScrollBy={vi.fn()}
+                />
+            </ThemeProvider>,
+        );
+        expect(markup).toContain(`aria-valuetext="${label}"`);
+    },
+);

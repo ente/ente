@@ -57,7 +57,9 @@ export const DateScrubber = ({
         [i18n.resolvedLanguage],
     );
     const monthAt = (offset: number) =>
-        months[indexAtOffset(monthOffsets, offset + 1)]!;
+        offset > 0 && offset >= Math.floor(maxOffset)
+            ? months[months.length - 1]!
+            : months[indexAtOffset(monthOffsets, offset + 1)]!;
     const seek = (offset: number) => {
         const target = clamp(offset);
         onSeek(target, indexAtOffset(timeline.offsets, target));
