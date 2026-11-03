@@ -88,7 +88,9 @@ export const DateScrubber = ({
 
     useEffect(() => {
         setHoverOffset(undefined);
-        setDragging(false);
+    }, [timeline, height]);
+
+    useEffect(() => {
         const rail = railRef.current!;
         return () => {
             const id = pointer.current?.id;
@@ -96,7 +98,7 @@ export const DateScrubber = ({
             if (id !== undefined && rail.hasPointerCapture(id))
                 rail.releasePointerCapture(id);
         };
-    }, [timeline, height]);
+    }, []);
 
     const stopDragging = () => {
         pointer.current = undefined;
