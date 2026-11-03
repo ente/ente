@@ -372,14 +372,19 @@ const CopyFilesResponse = z.object({
     oldToNewFileIDMap: z.record(z.string(), z.number()),
 });
 
-const currentUserRoleInCollection = (collection: Collection) => {
-    const userID = ensureLocalUser().id;
+const currentUserRoleInCollection = (
+    collection: Collection,
+    userID = ensureLocalUser().id,
+) => {
     if (collection.owner.id == userID) return "OWNER";
     return collection.sharees.find((sharee) => sharee.id == userID)?.role;
 };
 
-export const canAddFilesToCollection = (collection: Collection) => {
-    const role = currentUserRoleInCollection(collection);
+export const canAddFilesToCollection = (
+    collection: Collection,
+    userID?: number,
+) => {
+    const role = currentUserRoleInCollection(collection, userID);
     return role == "OWNER" || role == "ADMIN" || role == "COLLABORATOR";
 };
 
