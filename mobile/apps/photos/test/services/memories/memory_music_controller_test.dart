@@ -54,6 +54,17 @@ void main() {
     ]);
   });
 
+  test("exposes the track that is actually playing", () async {
+    expect(controller.activeTrack, isNull);
+
+    await controller.activateMemory("memory-1", currentItemIsVideo: false);
+    expect(controller.activeTrack?.id, "track-1");
+
+    player.failedTrackIDs.add("track-2");
+    await controller.activateMemory("memory-2", currentItemIsVideo: false);
+    expect(controller.activeTrack?.id, "track-1");
+  });
+
   test("initial mute state prevents playback", () async {
     controller.dispose();
     player = _FakeMemoryMusicPlayer();
