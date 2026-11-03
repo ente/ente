@@ -1,4 +1,11 @@
+#[cfg(any(feature = "flutter", frb_expand))]
+use ente_core::crypto::Key;
+#[cfg(any(feature = "flutter", frb_expand))]
+use ente_frb_lib::session::{Session, SessionError};
 use ente_photos::dedup;
+
+#[cfg(any(feature = "flutter", frb_expand))]
+use crate::frb_generated::StreamSink;
 
 pub struct DedupCollection {
     pub id: i64,
@@ -71,18 +78,51 @@ pub struct Duplicate {
     pub edited_time: Option<i64>,
 }
 
-pub struct DuplicateAddition {
+pub struct RemovalCollection {
+    pub id: i64,
+    pub key: Vec<u8>,
+}
+
+pub struct RemovalFile {
+    pub id: i64,
     pub collection_id: i64,
-    pub file_ids: Vec<i64>,
+    pub key: Vec<u8>,
 }
 
-pub struct DuplicateRemovalPlan {
-    pub additions: Vec<DuplicateAddition>,
-    pub trash_ids: Vec<i64>,
+pub struct ExecuteDuplicateRemovalInput {
+    pub groups: Vec<Vec<Duplicate>>,
+    pub collections: Vec<RemovalCollection>,
+    pub files: Vec<RemovalFile>,
 }
 
-pub fn plan_duplicate_removal(groups: Vec<Vec<Duplicate>>) -> DuplicateRemovalPlan {
-    let groups: Vec<_> = groups
+#[cfg(any(feature = "flutter", frb_expand))]
+pub enum DuplicateRemovalEvent {
+    Progress { completed: usize, total: usize },
+    Completed { trash_ids: Vec<i64> },
+    Failed { error: SessionError },
+}
+
+#[cfg(any(feature = "flutter", frb_expand))]
+pub async fn execute_duplicate_removal(
+    session: &Session,
+    input: ExecuteDuplicateRemovalInput,
+    events: StreamSink<DuplicateRemovalEvent>,
+) {
+    let result = remove_duplicates(session, input, &events).await;
+    let _ = events.add(match result {
+        Ok(trash_ids) => DuplicateRemovalEvent::Completed { trash_ids },
+        Err(error) => DuplicateRemovalEvent::Failed { error },
+    });
+}
+
+#[cfg(any(feature = "flutter", frb_expand))]
+async fn remove_duplicates(
+    session: &Session,
+    input: ExecuteDuplicateRemovalInput,
+    events: &StreamSink<DuplicateRemovalEvent>,
+) -> Result<Vec<i64>, SessionError> {
+    let groups: Vec<_> = input
+        .groups
         .into_iter()
         .map(|group| {
             group
@@ -97,18 +137,41 @@ pub fn plan_duplicate_removal(groups: Vec<Vec<Duplicate>>) -> DuplicateRemovalPl
                 .collect()
         })
         .collect();
-    let plan = dedup::plan_removal(&groups);
-    DuplicateRemovalPlan {
-        additions: plan
-            .additions
-            .into_iter()
-            .map(|addition| DuplicateAddition {
-                collection_id: addition.collection_id,
-                file_ids: addition.file_ids,
+    let collections = input
+        .collections
+        .into_iter()
+        .map(|collection| {
+            Ok(dedup::RemovalCollection {
+                id: collection.id,
+                key: Key::try_from_slice(&collection.key)?,
             })
-            .collect(),
-        trash_ids: plan.trash_ids,
-    }
+        })
+        .collect::<Result<Vec<_>, SessionError>>()?;
+    let files = input
+        .files
+        .into_iter()
+        .map(|file| {
+            Ok(dedup::RemovalFile {
+                id: file.id,
+                collection_id: file.collection_id,
+                key: Key::try_from_slice(&file.key)?,
+            })
+        })
+        .collect::<Result<Vec<_>, SessionError>>()?;
+    dedup::remove_duplicates(
+        session.as_ref(),
+        &groups,
+        &collections,
+        &files,
+        |progress| {
+            let _ = events.add(DuplicateRemovalEvent::Progress {
+                completed: progress.completed,
+                total: progress.total,
+            });
+        },
+    )
+    .await
+    .map_err(SessionError::from)
 }
 
 #[cfg(test)]
@@ -116,7 +179,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn detection_to_removal_preserves_memberships_and_captioned_file() {
+    fn detection_preserves_memberships() {
         let collections = vec![
             DedupCollection {
                 id: 11,
@@ -139,7 +202,6 @@ mod tests {
                 size: Some(100),
             })
             .collect();
-        let file_ids: Vec<_> = files.iter().map(|file| file.id).collect();
         let groups = find_duplicates(1, collections, files);
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].item_size, 100);
@@ -147,30 +209,5 @@ mod tests {
         assert_eq!(groups[0].items[0].file_index, 0);
         assert_eq!(groups[0].items[0].collection_ids, vec![11, 12]);
         assert_eq!(groups[0].items[1].file_index, 2);
-
-        let selected = groups
-            .into_iter()
-            .map(|group| {
-                group
-                    .items
-                    .into_iter()
-                    .map(|item| {
-                        let file_id = file_ids[item.file_index];
-                        Duplicate {
-                            file_id,
-                            collection_ids: item.collection_ids,
-                            caption: (file_id == 2).then(|| "keep caption".into()),
-                            edited_name: (file_id == 1).then(|| "edited name".into()),
-                            edited_time: Some(123),
-                        }
-                    })
-                    .collect()
-            })
-            .collect();
-        let plan = plan_duplicate_removal(selected);
-        assert_eq!(plan.trash_ids, vec![1]);
-        assert_eq!(plan.additions.len(), 1);
-        assert_eq!(plan.additions[0].collection_id, 11);
-        assert_eq!(plan.additions[0].file_ids, vec![2]);
     }
 }
