@@ -18,25 +18,33 @@ func TestCleanupOldSRPSessions(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	oldRealID, oldFakeID := uuid.New(), uuid.New()
+	oldRealID, oldFakeID, anotherOldRealID := uuid.New(), uuid.New(), uuid.New()
 	recentRealID, recentFakeID := uuid.New(), uuid.New()
 	_, err = db.Exec(`
 		INSERT INTO srp_sessions(id, srp_user_id, server_key, srp_a, is_fake, created_at)
 		VALUES
-			($1, $5, 'key', 'a', false, now_utc_micro_seconds() - (25::BIGINT * 60 * 60 * 1000 * 1000)),
-			($2, $5, 'key', 'a', true, now_utc_micro_seconds() - (25::BIGINT * 60 * 60 * 1000 * 1000)),
-			($3, $5, 'key', 'a', false, now_utc_micro_seconds()),
-			($4, $5, 'key', 'a', true, now_utc_micro_seconds())`,
-		oldRealID, oldFakeID, recentRealID, recentFakeID, uuid.New())
+			($1, $6, 'key', 'a', false, now_utc_micro_seconds() - (25::BIGINT * 60 * 60 * 1000 * 1000)),
+			($2, $6, 'key', 'a', true, now_utc_micro_seconds() - (25::BIGINT * 60 * 60 * 1000 * 1000)),
+			($3, $6, 'key', 'a', false, now_utc_micro_seconds() - (25::BIGINT * 60 * 60 * 1000 * 1000)),
+			($4, $6, 'key', 'a', false, now_utc_micro_seconds()),
+			($5, $6, 'key', 'a', true, now_utc_micro_seconds())`,
+		oldRealID, oldFakeID, anotherOldRealID, recentRealID, recentFakeID, uuid.New())
 	require.NoError(t, err)
 
-	deleted, err := (&UserAuthRepository{DB: db}).CleanupOldSRPSessions(t.Context())
+	repository := &UserAuthRepository{DB: db}
+	deleted, err := repository.CleanupOldSRPSessions(t.Context(), 2)
 	require.NoError(t, err)
 	require.EqualValues(t, 2, deleted)
 
 	var oldCount, recentCount int
-	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM srp_sessions WHERE id IN ($1, $2)`, oldRealID, oldFakeID).Scan(&oldCount))
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM srp_sessions WHERE id IN ($1, $2, $3)`, oldRealID, oldFakeID, anotherOldRealID).Scan(&oldCount))
 	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM srp_sessions WHERE id IN ($1, $2)`, recentRealID, recentFakeID).Scan(&recentCount))
-	require.Zero(t, oldCount)
+	require.Equal(t, 1, oldCount)
 	require.Equal(t, 2, recentCount)
+
+	deleted, err = repository.CleanupOldSRPSessions(t.Context(), 2)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, deleted)
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM srp_sessions WHERE id IN ($1, $2, $3)`, oldRealID, oldFakeID, anotherOldRealID).Scan(&oldCount))
+	require.Zero(t, oldCount)
 }
