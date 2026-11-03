@@ -46,16 +46,11 @@ fn current_budget<'a>() -> Option<&'a MemoryBudget> {
     unsafe { budget.as_ref() }
 }
 
-fn charge(bytes: usize, request: usize, allocate: impl FnOnce() -> *mut u8) -> *mut u8 {
-    let Some(budget) = current_budget() else {
-        return allocate();
-    };
-    if !budget.reserve(bytes, request) {
-        return ptr::null_mut();
-    }
-    let allocation = allocate();
-    if allocation.is_null() {
-        budget.release(bytes);
+fn charged(allocation: *mut u8, bytes: usize) -> *mut u8 {
+    if !allocation.is_null()
+        && let Some(budget) = current_budget()
+    {
+        budget.charge(bytes);
     }
     allocation
 }
@@ -74,15 +69,11 @@ struct BudgetedAllocator;
 )]
 unsafe impl GlobalAlloc for BudgetedAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        charge(layout.size(), layout.size(), || unsafe {
-            System.alloc(layout)
-        })
+        charged(unsafe { System.alloc(layout) }, layout.size())
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        charge(layout.size(), layout.size(), || unsafe {
-            System.alloc_zeroed(layout)
-        })
+        charged(unsafe { System.alloc_zeroed(layout) }, layout.size())
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
@@ -91,16 +82,10 @@ unsafe impl GlobalAlloc for BudgetedAllocator {
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        let old_size = layout.size();
-        if new_size > old_size {
-            return charge(new_size - old_size, new_size, || unsafe {
-                System.realloc(ptr, layout, new_size)
-            });
-        }
         let allocation = unsafe { System.realloc(ptr, layout, new_size) };
         if !allocation.is_null() {
-            release(old_size - new_size);
+            release(layout.size());
         }
-        allocation
+        charged(allocation, new_size)
     }
 }

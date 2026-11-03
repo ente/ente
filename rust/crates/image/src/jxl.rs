@@ -1,7 +1,8 @@
 use std::{
     borrow::Cow,
     fmt,
-    io::{BufReader, Read, Seek, SeekFrom},
+    io::{self, BufReader, Read, Seek, SeekFrom},
+    sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
 
@@ -220,9 +221,11 @@ fn process<R: Read + Seek>(
     output: Option<&mut [JxlOutputBuffer]>,
     budget: &MemoryBudget,
 ) -> ImageResult<Event> {
-    budget
-        .enter(|| decoder.process(input, output, Some(&mut RayonRunner { budget })))
-        .map_err(jxl_error)
+    let result = budget.enter(|| decoder.process(input, output, Some(&mut RayonRunner { budget })));
+    if budget.is_exceeded() {
+        return Err(too_large());
+    }
+    result.map_err(jxl_error)
 }
 
 fn output_format(
@@ -311,16 +314,45 @@ struct RayonRunner<'a> {
 
 impl JxlParallelRunner for RayonRunner<'_> {
     fn run(&mut self, num: usize, fun: &JxlParallelRunnerFun<'_>) -> ::jxl::error::Result<()> {
-        let budget = self.budget;
-        MemoryBudget::suspend(|| {
-            (0..num)
-                .into_par_iter()
-                .try_for_each(|index| budget.enter(|| fun(index)))
-        })
+        self.run_ordered(num, None, fun)
     }
 
     fn num_threads(&self) -> usize {
         rayon::current_num_threads()
+    }
+
+    fn run_ordered(
+        &mut self,
+        num: usize,
+        max_threads: Option<usize>,
+        fun: &JxlParallelRunnerFun<'_>,
+    ) -> ::jxl::error::Result<()> {
+        let budget = self.budget;
+        let workers = max_threads
+            .unwrap_or(usize::MAX)
+            .min(self.num_threads())
+            .min(num);
+        let next_index = AtomicUsize::new(0);
+        let work = || {
+            loop {
+                if budget.is_exceeded() {
+                    return Err(io::Error::from(io::ErrorKind::OutOfMemory).into());
+                }
+                let index = next_index.fetch_add(1, Ordering::Relaxed);
+                if index >= num {
+                    return Ok(());
+                }
+                fun(index)?;
+            }
+        };
+        if workers <= 1 {
+            return work();
+        }
+        MemoryBudget::suspend(|| {
+            (0..workers)
+                .into_par_iter()
+                .try_for_each(|_| budget.enter(work))
+        })
     }
 }
 
@@ -407,9 +439,11 @@ fn format_hint() -> ImageFormatHint {
 #[cfg(test)]
 mod tests {
     use std::{
-        hint::black_box,
         io::{BufReader, Cursor, Read, Seek, SeekFrom},
-        sync::atomic::{AtomicUsize, Ordering},
+        sync::{
+            Mutex,
+            atomic::{AtomicUsize, Ordering},
+        },
         time::{Duration, Instant},
     };
 
@@ -567,21 +601,20 @@ mod tests {
     }
 
     #[test]
-    fn charges_parallel_tasks_to_the_decode_budget() {
-        let budget = MemoryBudget::new(0);
-        let refused = AtomicUsize::new(0);
-        RayonRunner { budget: &budget }
-            .run(64, &|_| {
-                let mut block = Vec::<u8>::new();
-                if block.try_reserve_exact(1 << 20).is_err() {
-                    refused.fetch_add(1, Ordering::Relaxed);
-                }
-                black_box(block);
+    fn stops_parallel_tasks_once_their_allocations_exceed_the_budget() {
+        let budget = MemoryBudget::new(4 << 20);
+        let held = Mutex::new(Vec::new());
+        let started = AtomicUsize::new(0);
+        let result = budget.enter(|| {
+            RayonRunner { budget: &budget }.run_ordered(64, Some(2), &|_| {
+                started.fetch_add(1, Ordering::Relaxed);
+                held.lock().unwrap().push(vec![0u8; 1 << 20]);
                 Ok(())
             })
-            .unwrap();
+        });
 
-        assert_eq!(refused.into_inner(), 1);
+        assert!(result.is_err());
+        assert!((4..=5).contains(&started.into_inner()));
     }
 
     #[test]
