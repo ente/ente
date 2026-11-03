@@ -12,7 +12,7 @@ on:
         - cron: "15 22 * * 0-4"
 
 permissions:
-    contents: write
+    contents: read
 
 concurrency:
     group: auth-build
@@ -83,6 +83,8 @@ jobs:
                   node .github/scripts/release-notes.mjs mobile/apps/auth/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
 
     build-android:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
@@ -213,6 +215,8 @@ jobs:
                   mappingFile: mobile/apps/auth/build/app/outputs/mapping/playstoreRelease/mapping.txt
 
     build-linux:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-22.04
@@ -366,6 +370,8 @@ jobs:
                   updateOnlyUnreleased: true
 
     build-windows:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         # VS2022 is required until local_auth_windows builds cleanly on VS2026.
@@ -561,6 +567,8 @@ jobs:
                   updateOnlyUnreleased: true
 
     build-macos:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: macos-15
@@ -787,6 +795,8 @@ jobs:
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
     finish-build:
+        permissions:
+            contents: write
         needs: [build-metadata, build-android, build-linux, build-windows, build-macos, build-ios]
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest

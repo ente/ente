@@ -15,7 +15,7 @@ env:
     NDK_VERSION: "27.3.13750724"
 
 permissions:
-    contents: write
+    contents: read
 
 concurrency:
     group: ensu-build
@@ -93,6 +93,8 @@ jobs:
                   node .github/scripts/release-notes.mjs rust/apps/ensu/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
 
     build-desktop:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         environment:
@@ -291,6 +293,8 @@ jobs:
                   updateOnlyUnreleased: true
 
     build-android:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
@@ -475,6 +479,8 @@ jobs:
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
     finish-build:
+        permissions:
+            contents: write
         needs: [build-metadata, build-desktop, build-android, build-ios]
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest

@@ -35,8 +35,7 @@ on:
 
 permissions:
     actions: read
-    contents: write
-    pull-requests: write
+    contents: read
 
 concurrency:
     group: ${{ inputs.app }}-release
@@ -44,6 +43,9 @@ concurrency:
 
 jobs:
     release:
+        permissions:
+            actions: read
+            contents: write
         runs-on: ubuntu-latest
         environment:
             name: release-branch-push
