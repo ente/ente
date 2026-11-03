@@ -1,9 +1,14 @@
 import i18n, { t } from "i18next";
 
-// Created on first use, since this module can load before i18n is initialised.
 const lazyDateTimeFormat = (options: Intl.DateTimeFormatOptions) => {
     let format: Intl.DateTimeFormat | undefined;
-    return () => (format ??= new Intl.DateTimeFormat(i18n.language, options));
+
+    return () => {
+        if (format === undefined) {
+            format = new Intl.DateTimeFormat(i18n.language, options);
+        }
+        return format;
+    };
 };
 
 const dateFormat = lazyDateTimeFormat({
