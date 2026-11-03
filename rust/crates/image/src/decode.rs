@@ -630,7 +630,7 @@ fn file_looks_like_jxl(path: &Path) -> bool {
     bytes_look_like_jxl(&signature)
 }
 
-pub(crate) fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
+fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
     if image_bytes.len() < 12 || &image_bytes[4..8] != b"ftyp" {
         return false;
     }

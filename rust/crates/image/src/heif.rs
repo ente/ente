@@ -56,7 +56,9 @@ mod tests {
 
     use super::*;
     use crate::{
-        bounded::tests::options, decode::decode_image_from_path, decode_bounded,
+        bounded::{target_dimensions, tests::options},
+        decode::decode_image_from_path,
+        decode_bounded,
         resample::tests::area_reference,
     };
 
@@ -91,6 +93,11 @@ mod tests {
             for max_side in [6000, 97] {
                 let bounded = decode_bounded(ImageInput::Path(path), options(max_side)).unwrap();
                 assert_eq!(bounded.original_dimensions, full.dimensions, "{name}");
+                assert_eq!(
+                    bounded.image.dimensions,
+                    target_dimensions(&full.dimensions, max_side),
+                    "{name}"
+                );
                 let expected = area_reference(
                     &full.rgb,
                     full.dimensions.width,

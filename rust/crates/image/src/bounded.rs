@@ -65,11 +65,40 @@ pub fn decode_bounded(
 fn sniff(header: &[u8]) -> Option<Format> {
     if header.starts_with(crate::png::SIGNATURE) {
         Some(Format::Png)
-    } else if crate::decode::bytes_look_like_heif(header) {
+    } else if has_heif_brand(header) {
         Some(Format::Heif)
     } else {
         None
     }
+}
+
+fn has_heif_brand(header: &[u8]) -> bool {
+    let Some((size, rest)) = header.split_first_chunk::<4>() else {
+        return false;
+    };
+    let Some((kind, rest)) = rest.split_first_chunk::<4>() else {
+        return false;
+    };
+    if kind != b"ftyp" {
+        return false;
+    }
+    let (box_size, header_size, brands) = if *size == [0, 0, 0, 1] {
+        let Some((large_size, brands)) = rest.split_first_chunk::<8>() else {
+            return false;
+        };
+        (u64::from_be_bytes(*large_size), 16, brands)
+    } else {
+        (u64::from(u32::from_be_bytes(*size)), 8, rest)
+    };
+    let length = usize::try_from(box_size.saturating_sub(header_size))
+        .unwrap_or(usize::MAX)
+        .min(brands.len());
+    brands[..length]
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .enumerate()
+        .any(|(index, brand)| index != 1 && matches!(brand, b"heic" | b"heix" | b"mif1"))
 }
 
 fn decode_format<R: BufRead + Seek>(
@@ -152,6 +181,8 @@ pub(crate) mod tests {
         for bytes in [
             jpeg.as_slice(),
             b"GIF89a\x01\0\x01\0\0\0\0;",
+            b"\0\0\0\x14ftypisom\0\0\0\0isom",
+            b"\0\0\0\x10ftypisomheic",
             b"not an image",
             b"",
         ] {
@@ -170,12 +201,15 @@ pub(crate) mod tests {
 
     #[test]
     fn heif_brands_route_to_the_heif_decoder() {
-        assert!(matches!(
-            decode_bounded(
-                ImageInput::Bytes(b"\0\0\0\x18ftypheic\0\0\0\0"),
-                options(MAX_SIDE)
-            ),
-            Err(ImageError::Decode(message)) if !message.contains("unsupported format")
-        ));
+        for bytes in [
+            &b"\0\0\0\x18ftypheic\0\0\0\0mif1heic"[..],
+            b"\0\0\0\x18ftypmiaf\0\0\0\0mif1heic",
+            b"\0\0\0\x01ftyp\0\0\0\0\0\0\0\x18heic\0\0\0\0",
+        ] {
+            assert!(matches!(
+                decode_bounded(ImageInput::Bytes(bytes), options(MAX_SIDE)),
+                Err(ImageError::Decode(message)) if !message.contains("unsupported format")
+            ));
+        }
     }
 }
