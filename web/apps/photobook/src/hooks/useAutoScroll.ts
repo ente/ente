@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 export function useAutoScroll(
     containerRef: React.RefObject<HTMLElement | null>,
@@ -34,5 +34,5 @@ export function useAutoScroll(
         [],
     );
 
-    return { start, stop, speed };
+    return useMemo(() => ({ start, stop, speed }), [start, stop]);
 }

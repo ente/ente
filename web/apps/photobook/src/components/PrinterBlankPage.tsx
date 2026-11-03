@@ -30,7 +30,7 @@ export default function PrinterBlankPage({
                         color: uiColors.muted,
                         fontWeight: 600,
                         textAlign: "center",
-                        mt: 0.5,
+                        mt: 1.5,
                     }}
                 >
                     Blank page (required)

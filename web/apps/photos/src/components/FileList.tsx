@@ -124,6 +124,7 @@ export interface FileListProps {
     modePlus?: GalleryBarMode | "search";
     header?: FileListHeaderOrFooter;
     footer?: FileListHeaderOrFooter;
+    onAddPhotos?: () => void;
     user?: LocalUser;
     disableGrouping?: boolean;
     enableSelect?: boolean;
@@ -162,6 +163,7 @@ export const FileList: React.FC<FileListProps> = ({
     modePlus,
     header,
     footer,
+    onAddPhotos,
     user,
     annotatedFiles,
     disableGrouping,
@@ -364,13 +366,13 @@ export const FileList: React.FC<FileListProps> = ({
         if (!annotatedFiles.length) {
             items.push({
                 height: Math.max(
-                    340,
+                    onAddPhotos ? 412 : 340,
                     height - (header?.height ?? 0) - (footer?.height ?? 0),
                 ),
                 type: "span",
                 component: (
                     <NoFilesListItem>
-                        <AlbumEmptyState />
+                        <AlbumEmptyState onAddPhotos={onAddPhotos} />
                     </NoFilesListItem>
                 ),
             });
@@ -397,6 +399,7 @@ export const FileList: React.FC<FileListProps> = ({
         height,
         header,
         footer,
+        onAddPhotos,
         annotatedFiles,
         disableGrouping,
         layoutParams,

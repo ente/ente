@@ -15,6 +15,10 @@ function fixture() {
         };
         return {
             style,
+            density: "soft",
+            getDensity() {
+                return this.density;
+            },
             simpleDraw: vi.fn((orientation: number) => {
                 assert.ok(orientation === 0 || orientation === 1);
                 style.clipPath = "";
@@ -89,6 +93,26 @@ test("closing the back cover mirrors the cutout onto the right page", () => {
     pages[6]!.simpleDraw(1);
     assert.equal(visibleAt(pages[6]!.style.clipPath, 290, 150), false);
     assert.equal(visibleAt(pages[6]!.style.clipPath, 20, 150), true);
+});
+
+test("a hard front cover retains its drawing while the back cover uses the soft fold cutout", () => {
+    const { book, pages, state } = fixture();
+    pages[0]!.density = "hard";
+    pages[1]!.density = "hard";
+    const frontDraw = pages[1]!.simpleDraw;
+    const backDraw = pages[6]!.simpleDraw;
+    const restore = clipSoftcoverInsidePages(book);
+    assert.equal(pages[1]!.simpleDraw, frontDraw);
+    pages[1]!.simpleDraw(0);
+    assert.equal(pages[1]!.style.clipPath, "");
+    state.index = 5;
+    state.direction = 0;
+    pages[6]!.simpleDraw(1);
+    assert.equal(visibleAt(pages[6]!.style.clipPath, 290, 150), false);
+    assert.equal(visibleAt(pages[6]!.style.clipPath, 20, 150), true);
+    restore();
+    assert.equal(pages[1]!.simpleDraw, frontDraw);
+    assert.equal(pages[6]!.simpleDraw, backDraw);
 });
 
 test("opening covers and turning interior pages retain the normal page drawing", () => {

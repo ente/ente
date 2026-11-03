@@ -41,6 +41,7 @@ import {
     placeImportedPhotos,
     type AddPhotosOptions,
 } from "@/lib/photoPlacement";
+import { PreviewCache } from "@/lib/previewCache";
 import { constrainTextBlock } from "@/lib/printLayout";
 import type {
     AppView,
@@ -54,11 +55,12 @@ import type {
 import React, {
     useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
 } from "react";
-import { BookContext } from "./book";
+import { BookContext, createBookStore } from "./book";
 
 const MAX_PHOTOS = 650;
 const emptyBook: BookState = { pages: [], currentSpreadIndex: 0 };
@@ -143,6 +145,10 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     const [photos, setPhotos] = useState<Photo[]>([]);
     const photosRef = useRef<Photo[]>(photos);
     photosRef.current = photos;
+    const getPhoto = useCallback(
+        (id: string) => photosRef.current.find((photo) => photo.id === id),
+        [],
+    );
     const [thumbnailUrls, setThumbnailUrls] = useState<Map<string, string>>(
         new Map(),
     );
@@ -151,8 +157,9 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(
         new Map(),
     );
-    const previewUrlsRef = useRef<Map<string, string>>(previewUrls);
-    previewUrlsRef.current = previewUrls;
+    const [previews] = useState(
+        () => new PreviewCache(getPreview, setPreviewUrls),
+    );
     const [book, setBookRaw] = useState<BookState>(emptyBook);
     const [currentSpreadIndex, setCurrentSpreadIndex] = useState(0);
     const resettingRef = useRef(false);
@@ -164,9 +171,9 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         return () => {
             thumbnailUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-            previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+            previews.clear();
         };
-    }, []);
+    }, [previews]);
 
     const undoStackRef = useRef<BookState[]>([]);
     const redoStackRef = useRef<BookState[]>([]);
@@ -223,46 +230,10 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         return merged;
     }, [thumbnailUrls, previewUrls]);
 
-    const loadingPreviewsRef = useRef<Set<string>>(new Set());
-
-    const loadPreviews = useCallback(async (photoIds: string[]) => {
-        const missing = photoIds.filter(
-            (id) =>
-                !previewUrlsRef.current.has(id) &&
-                !loadingPreviewsRef.current.has(id),
-        );
-        if (missing.length === 0) return;
-
-        missing.forEach((id) => loadingPreviewsRef.current.add(id));
-
-        const loaded = new Map<string, string>();
-        await Promise.all(
-            missing.map(async (id) => {
-                try {
-                    const blob = await getPreview(id);
-                    if (blob) {
-                        loaded.set(id, URL.createObjectURL(blob));
-                    }
-                } finally {
-                    loadingPreviewsRef.current.delete(id);
-                }
-            }),
-        );
-
-        for (const [id, url] of loaded) {
-            if (!photosRef.current.some((photo) => photo.id === id)) {
-                URL.revokeObjectURL(url);
-                loaded.delete(id);
-            }
-        }
-        if (loaded.size > 0) {
-            setPreviewUrls((prev) => {
-                const next = new Map(prev);
-                for (const [id, url] of loaded) next.set(id, url);
-                return next;
-            });
-        }
-    }, []);
+    const retainPreviews = useCallback(
+        (photoIds: string[]) => previews.retain(photoIds),
+        [previews],
+    );
 
     const [processingPhotos, setProcessingPhotos] = useState(false);
     const [processingProgress, setProcessingProgress] = useState(0);
@@ -396,7 +367,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             try {
                 if (replace) {
                     thumbnailUrls.forEach((url) => URL.revokeObjectURL(url));
-                    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+                    previews.clear();
                     clearImageCache();
                     await clearAll();
                 }
@@ -405,9 +376,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 const newThumbUrls = replace
                     ? new Map<string, string>()
                     : new Map(thumbnailUrls);
-                const newPreviewUrls = replace
-                    ? new Map<string, string>()
-                    : new Map(previewUrls);
 
                 const scheduleProgressUpdate = (value: number) => {
                     progressRef.current = value;
@@ -422,7 +390,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 interface PhotoResult {
                     photo: Photo;
                     thumbUrl: string;
-                    previewUrl: string;
                 }
                 const results: (PhotoResult | null)[] = Array.from(
                     { length: files.length },
@@ -462,7 +429,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                         results[index] = {
                             photo,
                             thumbUrl: URL.createObjectURL(thumb),
-                            previewUrl: URL.createObjectURL(preview),
                         };
                     } catch (error) {
                         console.warn(
@@ -494,7 +460,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 for (const result of results) {
                     if (result) {
                         newThumbUrls.set(result.photo.id, result.thumbUrl);
-                        newPreviewUrls.set(result.photo.id, result.previewUrl);
                         newPhotos.push(result.photo);
                     }
                 }
@@ -542,7 +507,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                       : Math.max(0, book.pages.length - 1);
                 setPhotos(allPhotos);
                 setThumbnailUrls(newThumbUrls);
-                setPreviewUrls(newPreviewUrls);
 
                 if (replace) {
                     setBookRaw({ pages: nextPages, currentSpreadIndex: 0 });
@@ -566,7 +530,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 setProcessingPhotos(false);
             }
         },
-        [book.pages, thumbnailUrls, previewUrls, photos, setBook],
+        [book.pages, thumbnailUrls, previews, photos, setBook],
     );
 
     const markEnteOriginalDone = useCallback(
@@ -703,16 +667,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                                 )
                             )
                                 continue;
-                            const previewUrl = URL.createObjectURL(previewBlob);
-                            setPreviewUrls((prev) => {
-                                const next = new Map(prev);
-                                const existing = next.get(photoId);
-                                if (existing) {
-                                    URL.revokeObjectURL(existing);
-                                }
-                                next.set(photoId, previewUrl);
-                                return next;
-                            });
+                            previews.refresh(photoId, previewBlob);
                             markEnteOriginalDone(photoId, "ready");
                         } catch (e) {
                             const currentPhoto = photosRef.current.find(
@@ -747,7 +702,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             );
             await Promise.all(workers);
         },
-        [markEnteOriginalDone, isResetting],
+        [markEnteOriginalDone, isResetting, previews],
     );
 
     const addEntePhotos = useCallback(
@@ -775,9 +730,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 thumbnailUrlsRef.current.forEach((url) =>
                     URL.revokeObjectURL(url),
                 );
-                previewUrlsRef.current.forEach((url) =>
-                    URL.revokeObjectURL(url),
-                );
+                previews.clear();
                 clearImageCache();
                 await clearAll();
                 activeEnteOriginalDownloadsRef.current.clear();
@@ -799,7 +752,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             interface ThumbResult {
                 photo: Photo;
                 thumbUrl: string;
-                previewUrl: string;
             }
             const thumbResults: (ThumbResult | null)[] = Array.from(
                 { length: limited.length },
@@ -867,7 +819,6 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                     thumbResults[index] = {
                         photo,
                         thumbUrl: URL.createObjectURL(thumbBlob),
-                        previewUrl: URL.createObjectURL(thumbBlob),
                     };
                 } catch (e) {
                     console.warn(
@@ -916,16 +867,13 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
             const newPhotos: Photo[] = successful.map((r) => r.photo);
             const newThumbUrls = new Map<string, string>();
-            const newPreviewUrls = new Map<string, string>();
             for (const r of successful) {
                 newThumbUrls.set(r.photo.id, r.thumbUrl);
-                newPreviewUrls.set(r.photo.id, r.previewUrl);
             }
 
             const pages = generateAutoLayout(newPhotos);
             setPhotos(newPhotos);
             setThumbnailUrls(newThumbUrls);
-            setPreviewUrls(newPreviewUrls);
             setBookRaw({ pages, currentSpreadIndex: 0 });
             undoStackRef.current = [];
             redoStackRef.current = [];
@@ -937,7 +885,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             setProcessingMessage("Processing your photos...");
             setAppViewState("edit");
         },
-        [],
+        [previews],
     );
 
     const waitForEnteOriginals = useCallback(
@@ -1272,7 +1220,9 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 if (targetPhotoIds.length > 4) return prev;
 
                 const makePhotoStub = (photoId: string): Photo => {
-                    const photo = photos.find((p) => p.id === photoId);
+                    const photo = photosRef.current.find(
+                        (p) => p.id === photoId,
+                    );
                     return (
                         photo || {
                             id: photoId,
@@ -1336,7 +1286,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 return { ...prev, pages: newPages };
             });
         },
-        [photos, setBook],
+        [setBook],
     );
 
     const setPageLayout = useCallback(
@@ -1452,13 +1402,12 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             ]);
             await clearAll();
             thumbnailUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-            previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+            previews.clear();
             clearImageCache();
 
             photosRef.current = [];
             setPhotos([]);
             setThumbnailUrls(new Map());
-            setPreviewUrls(new Map());
             setBookRaw(emptyBook);
             undoStackRef.current = [];
             redoStackRef.current = [];
@@ -1478,54 +1427,55 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
         } finally {
             resettingRef.current = false;
         }
-    }, []);
+    }, [previews]);
+
+    const value = {
+        appView,
+        setAppView,
+        loading,
+        photos,
+        getPhoto,
+        thumbnailUrls,
+        photoUrls,
+        retainPreviews,
+        addPhotos,
+        addEntePhotos,
+        processingPhotos,
+        processingProgress,
+        processingMessage,
+        importNotice,
+        clearImportNotice,
+        pendingEnteOriginals,
+        waitForEnteOriginals,
+        book,
+        setBook,
+        currentSpreadIndex,
+        setCurrentSpreadIndex,
+        addPage,
+        removePage,
+        reorderPages,
+        updatePage,
+        updateSlot,
+        removeSlot,
+        swapPhotos,
+        movePhotoToPage,
+        setPageLayout,
+        addTextBlock,
+        updateTextBlock,
+        removeTextBlock,
+        undo,
+        redo,
+        canUndo,
+        canRedo,
+        startOver,
+    };
+    const [store] = useState(() => createBookStore(value));
+    useLayoutEffect(() => store.update(value));
 
     if (restoreFailed) return <RestoreErrorDialog />;
 
     return (
-        <BookContext.Provider
-            value={{
-                appView,
-                setAppView,
-                loading,
-                photos,
-                thumbnailUrls,
-                photoUrls,
-                loadPreviews,
-                addPhotos,
-                addEntePhotos,
-                processingPhotos,
-                processingProgress,
-                processingMessage,
-                importNotice,
-                clearImportNotice,
-                pendingEnteOriginals,
-                waitForEnteOriginals,
-                book,
-                setBook,
-                currentSpreadIndex,
-                setCurrentSpreadIndex,
-                addPage,
-                removePage,
-                reorderPages,
-                updatePage,
-                updateSlot,
-                removeSlot,
-                swapPhotos,
-                movePhotoToPage,
-                setPageLayout,
-                addTextBlock,
-                updateTextBlock,
-                removeTextBlock,
-                undo,
-                redo,
-                canUndo,
-                canRedo,
-                startOver,
-            }}
-        >
-            {children}
-        </BookContext.Provider>
+        <BookContext.Provider value={store}>{children}</BookContext.Provider>
     );
 }
 

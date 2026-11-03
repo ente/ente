@@ -1,10 +1,11 @@
 import type { Upload } from "@/components/Upload";
 import { uploadManager } from "@/services/upload-manager";
 import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
+import type { Collection } from "ente-media/collection";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import type { ComponentProps } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { FileWithPath } from "react-dropzone";
 type UploadInputs = Pick<
     ComponentProps<typeof Upload>,
@@ -42,10 +43,20 @@ export const useGalleryUploads = ({
     const [uploadTypeSelectorView, setUploadTypeSelectorView] = useState(false);
     const [uploadTypeSelectorIntent, setUploadTypeSelectorIntent] =
         useState<UploadTypeSelectorIntent>("upload");
-    const openUploader = (intent?: UploadTypeSelectorIntent) => {
-        if (uploadManager.isUploadInProgress()) return;
-        setUploadTypeSelectorView(true);
-        setUploadTypeSelectorIntent(intent ?? "upload");
+    const [uploadTargetCollection, setUploadTargetCollection] =
+        useState<Collection>();
+    const openUploader = useCallback(
+        (intent?: UploadTypeSelectorIntent, target?: Collection) => {
+            if (uploadManager.isUploadInProgress()) return;
+            setUploadTargetCollection(target);
+            setUploadTypeSelectorIntent(intent ?? "upload");
+            setUploadTypeSelectorView(true);
+        },
+        [],
+    );
+    const closeUploadTypeSelector = () => {
+        setUploadTypeSelectorView(false);
+        setUploadTargetCollection(undefined);
     };
     const uploadProps: ComponentProps<typeof Upload> | undefined = user
         ? {
@@ -55,10 +66,8 @@ export const useGalleryUploads = ({
               uploadTypeSelectorView,
               isFirstUpload,
               activeCollection,
-              closeUploadTypeSelector: setUploadTypeSelectorView.bind(
-                  null,
-                  false,
-              ),
+              uploadTargetCollection,
+              closeUploadTypeSelector,
               setLoading: setBlockingLoad,
               setShouldDisableDropzone,
               onRemotePull: remotePull,
