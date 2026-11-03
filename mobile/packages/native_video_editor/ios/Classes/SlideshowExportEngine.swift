@@ -150,12 +150,6 @@ struct SlideshowTimeline: Sendable {
     }
 }
 
-private enum SlideshowWriterState {
-    case running
-    case cancelled
-    case failed(Error)
-}
-
 private final class SlideshowWriterSession: @unchecked Sendable {
     private let request: SlideshowExportRequest
     private let timeline: SlideshowTimeline
@@ -167,7 +161,8 @@ private final class SlideshowWriterSession: @unchecked Sendable {
     private let videoQueue = DispatchQueue(label: "io.ente.native_video_editor.slideshow.video")
     private let audioQueue = DispatchQueue(label: "io.ente.native_video_editor.slideshow.audio")
     private let lock = NSLock()
-    private var state: SlideshowWriterState = .running
+    private let appendLock = NSLock()
+    private var terminalError: Error?
     private var pendingInputs = 0
     private var continuation: CheckedContinuation<Void, Error>?
 
@@ -253,11 +248,16 @@ private final class SlideshowWriterSession: @unchecked Sendable {
                     lock.lock()
                     self.continuation = continuation
                     pendingInputs = audio == nil ? 1 : 2
+                    let error = terminalError
                     lock.unlock()
+                    if let error {
+                        resume(with: .failure(error))
+                        return
+                    }
                     videoInput.requestMediaDataWhenReady(on: videoQueue) { [self] in
                         pump(videoInput) {
                             guard let frame = try frames.next() else { return false }
-                            guard adaptor.append(frame.buffer, withPresentationTime: frame.time)
+                            guard append({ adaptor.append(frame.buffer, withPresentationTime: frame.time) })
                             else {
                                 throw VideoEditorError.export(
                                     "Failed to append slideshow frame", writer.error)
@@ -273,7 +273,7 @@ private final class SlideshowWriterSession: @unchecked Sendable {
                             guard let audioInput else { return }
                             pump(audioInput) {
                                 guard let sample = try audio.next() else { return false }
-                                guard audioInput.append(sample) else {
+                                guard append({ audioInput.append(sample) }) else {
                                     throw VideoEditorError.export(
                                         "Failed to append slideshow audio", writer.error)
                                 }
@@ -284,33 +284,30 @@ private final class SlideshowWriterSession: @unchecked Sendable {
                 }
             },
             onCancel: {
-                lock.lock()
-                if case .running = state { state = .cancelled }
-                lock.unlock()
+                terminate(with: CancellationError())
             }
         )
+    }
+
+    private func append(_ body: () -> Bool) -> Bool {
+        appendLock.lock()
+        defer { appendLock.unlock() }
+        return body()
     }
 
     private func pump(_ input: AVAssetWriterInput, appendNext: () throws -> Bool) {
         while input.isReadyForMoreMediaData {
             lock.lock()
-            let isRunning: Bool
-            if case .running = state { isRunning = true } else { isRunning = false }
+            let isRunning = terminalError == nil
             lock.unlock()
-            guard isRunning else {
-                finish(input)
-                return
-            }
+            guard isRunning else { return }
             do {
                 guard try appendNext() else {
                     finish(input)
                     return
                 }
             } catch {
-                lock.lock()
-                if case .running = state { state = .failed(error) }
-                lock.unlock()
-                finish(input)
+                terminate(with: error)
                 return
             }
         }
@@ -319,30 +316,34 @@ private final class SlideshowWriterSession: @unchecked Sendable {
     private func finish(_ input: AVAssetWriterInput) {
         input.markAsFinished()
         lock.lock()
+        defer { lock.unlock() }
+        guard terminalError == nil else { return }
         pendingInputs -= 1
-        let remaining = pendingInputs
-        let finalState = state
-        lock.unlock()
-        guard remaining == 0 else { return }
-        switch finalState {
-        case .running:
-            writer.finishWriting { [self] in
-                if writer.status == .completed {
-                    resume(with: .success(()))
-                } else {
-                    resume(
-                        with: .failure(
-                            VideoEditorError.export("Failed to finish slideshow export", writer.error))
-                    )
-                }
+        guard pendingInputs == 0 else { return }
+        writer.finishWriting { [self] in
+            if writer.status == .completed {
+                resume(with: .success(()))
+            } else {
+                resume(
+                    with: .failure(
+                        VideoEditorError.export("Failed to finish slideshow export", writer.error))
+                )
             }
-        case .cancelled:
-            writer.cancelWriting()
-            resume(with: .failure(CancellationError()))
-        case .failed(let error):
-            writer.cancelWriting()
-            resume(with: .failure(error))
         }
+    }
+
+    private func terminate(with error: Error) {
+        lock.lock()
+        guard terminalError == nil else {
+            lock.unlock()
+            return
+        }
+        terminalError = error
+        lock.unlock()
+        appendLock.lock()
+        writer.cancelWriting()
+        appendLock.unlock()
+        resume(with: .failure(error))
     }
 
     private func resume(with result: Result<Void, Error>) {
