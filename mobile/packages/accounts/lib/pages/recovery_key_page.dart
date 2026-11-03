@@ -255,6 +255,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
           await _saveKeys();
         },
         style: TextButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
         child: Text(

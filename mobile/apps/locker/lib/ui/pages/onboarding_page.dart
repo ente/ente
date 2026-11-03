@@ -217,20 +217,24 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _navigateToSignInPage,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextButton(
+                        onPressed: _navigateToSignInPage,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        l10n.loginToExistingAccount,
-                        style: TextStyles.body.copyWith(
-                          decoration: TextDecoration.underline,
-                          decorationColor: colors.specialWhite,
-                          color: colors.specialWhite,
+                        child: Text(
+                          l10n.loginToExistingAccount,
+                          style: TextStyles.body.copyWith(
+                            decoration: TextDecoration.underline,
+                            decorationColor: colors.specialWhite,
+                            color: colors.specialWhite,
+                          ),
                         ),
                       ),
                     ),
