@@ -86,16 +86,25 @@ impl RecordedPcm {
             let samples = super::audio::pcm16_samples(&self.bytes[start * 2..available * 2])
                 .map_err(|error| super::voice_error("Read recorded audio", error))?;
             let normal_end = start + chunk_end(&samples);
-            let recovery_end = (start + super::MAX_RECORDED_WINDOW_SAMPLES).min(total);
+            let recovery_start = if start < boundary.end as usize {
+                start.saturating_sub(VOICE_SAMPLE_RATE as usize)
+            } else {
+                start
+            };
+            let recovery_end = (recovery_start + super::MAX_RECORDED_WINDOW_SAMPLES).min(total);
             let mut progressed = false;
             let mut failure = VoiceError::IncompleteAudio;
-            for end in [normal_end, recovery_end] {
+            for (decode_start, end) in [(start, normal_end), (recovery_start, recovery_end)] {
                 if end as u64 <= boundary.end {
                     continue;
                 }
-                let result = decode(&self.bytes[start * 2..end * 2]).and_then(|words| {
-                    let update =
-                        boundary.recorded_update(words, &provisional, end - start, end == total)?;
+                let result = decode(&self.bytes[decode_start * 2..end * 2]).and_then(|words| {
+                    let update = boundary.recorded_update(
+                        words,
+                        &provisional,
+                        decode_start as u64..end as u64,
+                        end == total,
+                    )?;
                     if update.commit.is_none()
                         && update.provisional.is_empty()
                         && !self.has_speech(boundary.end as usize..end)
@@ -136,7 +145,7 @@ impl RecordedPcm {
                             break;
                         }
                     }
-                    Err(error @ VoiceError::IncompleteAudio) => {
+                    Err(error @ (VoiceError::IncompleteAudio | VoiceError::UnstableTranscript)) => {
                         failure = error;
                     }
                     Err(error) => {
@@ -146,7 +155,7 @@ impl RecordedPcm {
                         return Err(error);
                     }
                 }
-                if normal_end == recovery_end {
+                if start == recovery_start && normal_end == recovery_end {
                     break;
                 }
             }
@@ -294,6 +303,76 @@ mod tests {
     use super::super::vad::EnergyVad;
     use super::*;
     use crate::voice::CaptureFormat;
+
+    #[test]
+    fn alignment_recovery_retries_earlier_context_without_repeating_committed_words() {
+        let boundary = TranscriptBoundary::default()
+            .recorded_update(
+                vec![AlignedWord {
+                    text: "you".into(),
+                    start: 60000,
+                    end: 65000,
+                }],
+                &[],
+                0..65000,
+                true,
+            )
+            .unwrap()
+            .boundary;
+        let provisional = [AlignedWord {
+            text: "ask".into(),
+            start: 64200,
+            end: 100000,
+        }];
+        let mut pcm = RecordedPcm::default();
+        pcm.push(&vec![0.25; 100000], true).unwrap();
+        for retry_error in [
+            None,
+            Some(VoiceError::UnstableTranscript),
+            Some(VoiceError::Cancelled),
+        ] {
+            let mut calls = 0;
+            let mut committed = String::new();
+            let result = pcm.transcribe(
+                &boundary,
+                &provisional,
+                |bytes| {
+                    calls += 1;
+                    let start = 100000 - bytes.len() as u64 / 2;
+                    assert_eq!(start, if calls == 1 { 36000 } else { 20000 });
+                    if calls == 2
+                        && let Some(error) = &retry_error
+                    {
+                        return Err(error.clone());
+                    }
+                    let mut words = Vec::new();
+                    if calls == 2 {
+                        words.push(AlignedWord {
+                            text: "you,".into(),
+                            start: 60000 - start,
+                            end: 65000 - start,
+                        });
+                    }
+                    words.push(AlignedWord {
+                        text: "ask".into(),
+                        start: 64200 - start,
+                        end: 100000 - start,
+                    });
+                    Ok(words)
+                },
+                |update| {
+                    if let Some((start, end, text)) = update.commit {
+                        assert_eq!((start, end), (65000, 100000));
+                        committed.push_str(&text);
+                    }
+                    Ok(())
+                },
+            );
+            assert_eq!(calls, 2);
+            assert_eq!(committed, if retry_error.is_none() { "ask" } else { "" });
+            assert_eq!(result, retry_error.map_or(Ok(()), Err));
+        }
+    }
 
     #[test]
     fn recorded_decoding_bounds_windows_preserves_tails_and_stops_on_cancel() {
@@ -494,7 +573,7 @@ mod tests {
                 },
             );
             assert_eq!(closed, 1);
-            assert_eq!(decoded, 2);
+            assert_eq!(decoded, if incomplete { 3 } else { 2 });
             state.session.worker_exited(result.is_ok()).unwrap();
             if cancelled || incomplete {
                 assert_eq!(

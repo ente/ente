@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::ops::Range;
 
 use super::{
     AudioRing, MAX_WINDOW_SAMPLES, Result, VOICE_SAMPLE_RATE, VoiceError, transcript_separator,
@@ -43,27 +44,26 @@ pub(crate) struct TranscriptBoundary {
 
 impl TranscriptBoundary {
     pub fn start(&self) -> u64 {
-        self.anchor.as_ref().map_or(self.end, |anchor| {
-            self.end
-                .saturating_sub(LOOKBACK)
-                .min(anchor.start.saturating_sub(PRE_SPEECH))
-        })
+        self.anchor
+            .as_ref()
+            .map_or(self.end, |anchor| anchor.start.saturating_sub(LOOKBACK))
     }
 
     pub fn recorded_update(
         &self,
         words: Vec<AlignedWord>,
         provisional: &[AlignedWord],
-        samples: usize,
+        window: Range<u64>,
         final_window: bool,
     ) -> Result<RecognitionUpdate> {
-        let end = self.start() + samples as u64;
-        let words = absolute_words(words, self.start(), end)?;
+        let start = window.start;
+        let end = window.end;
+        let words = absolute_words(words, start, end)?;
         let skip = self.overlap_end(&words)?;
         if words[skip..].is_empty() {
             return Ok(self.pending_update(provisional.to_vec()));
         }
-        let words = merge_provisional(provisional, &words[skip..], self.start(), end)?;
+        let words = merge_provisional(provisional, &words[skip..], start, end)?;
         let count = words
             .iter()
             .take_while(|word| {
@@ -728,7 +728,7 @@ mod tests {
                             aligned("people", 21120, 25000),
                         ],
                         &[],
-                        32000,
+                        0..32000,
                         true,
                     )
                     .unwrap()
@@ -795,7 +795,7 @@ mod tests {
             end: 56000,
             anchor: Some(aligned("You.", 50000, 56000)),
         };
-        assert_eq!(boundary.start(), 32000);
+        assert_eq!(boundary.start(), 26000);
         assert_eq!(
             boundary
                 .recorded_update(
@@ -806,7 +806,7 @@ mod tests {
                         aligned("again", 30000, 34000),
                     ],
                     &[],
-                    40000,
+                    32000..72000,
                     true,
                 )
                 .unwrap()
@@ -816,17 +816,22 @@ mod tests {
             "you again"
         );
         assert!(matches!(
-            boundary.recorded_update(vec![aligned("different", 12000, 24000)], &[], 40000, true),
+            boundary.recorded_update(
+                vec![aligned("different", 12000, 24000)],
+                &[],
+                32000..72000,
+                true
+            ),
             Err(VoiceError::UnstableTranscript)
         ));
         assert!(matches!(
-            boundary.recorded_update(vec![aligned("you", 18000, 50000)], &[], 40000, true),
+            boundary.recorded_update(vec![aligned("you", 18000, 50000)], &[], 32000..72000, true),
             Err(VoiceError::UnstableTranscript)
         ));
         let provisional = [aligned("you", 58000, 62000), aligned("again", 62000, 66000)];
         for words in [Vec::new(), vec![aligned("you", 18000, 24000)]] {
             let update = boundary
-                .recorded_update(words, &provisional, 40000, true)
+                .recorded_update(words, &provisional, 32000..72000, true)
                 .unwrap();
             assert!(update.commit.is_none());
             assert_eq!(update.boundary.end, boundary.end);
@@ -845,7 +850,7 @@ mod tests {
             end: 403520,
             anchor: Some(aligned("Americans", 379200, 403520)),
         };
-        assert_eq!(boundary.start(), 363200);
+        assert_eq!(boundary.start(), 355200);
         assert_eq!(
             boundary
                 .recorded_update(
@@ -855,7 +860,7 @@ mod tests {
                         aligned("Americans", 70000, 94000),
                     ],
                     &[],
-                    128000,
+                    363200..491200,
                     true,
                 )
                 .unwrap()

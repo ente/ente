@@ -695,11 +695,11 @@ mod tests {
                             Err(recovery_failure.clone())
                         } else {
                             assert_eq!(recovered, 2);
-                            assert_eq!(pcm, &samples[52000 * 2..]);
+                            assert_eq!(pcm, &samples[48000 * 2..]);
                             Ok(vec![
-                                word("tail", 20000, 24000),
-                                word("later", 92000, 100000),
-                                word("ending", 138000, 140000),
+                                word("tail", 24000, 28000),
+                                word("later", 96000, 104000),
+                                word("ending", 142000, 144000),
                             ])
                         }
                     },

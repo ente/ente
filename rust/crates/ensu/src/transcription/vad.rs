@@ -219,7 +219,8 @@ impl Vad for SileroV4Vad {
         SILERO_V4_FRAME_SAMPLES
     }
     fn is_speech(&mut self, frame: &[f32]) -> Result<bool> {
-        Ok(self.speech_probability(frame)? > self.threshold)
+        let probability = self.speech_probability(frame)?;
+        Ok(probability > self.threshold && frame.iter().any(|sample| *sample != 0.0))
     }
     fn reset(&mut self) {
         self.hidden.fill(0.0);

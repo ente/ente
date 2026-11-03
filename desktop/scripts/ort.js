@@ -119,7 +119,7 @@ const main = () => {
     return installONNXRuntime(process.platform, appDir);
 };
 
-module.exports = { stageONNXRuntime };
+module.exports = { stageONNXRuntime, downloadONNXRuntimeIfNeeded, installDir };
 
 if (require.main === module)
     main().catch((e) => {

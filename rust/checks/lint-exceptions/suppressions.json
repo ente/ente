@@ -1,4 +1,5 @@
 {
+    "rust/apps/ensu/src-tauri/src/commands/voice/platform.rs": ["unsafe_code"],
     "rust/apps/ensu/src-tauri/src/logging.rs": ["clippy::expect_used"],
     "rust/bindings/frb/auth/src/lib.rs": [
         "clippy::allow_attributes",
