@@ -101,9 +101,16 @@ jobs:
             - run: flutter analyze --no-pub
               working-directory: mobile
 
+            - name: Build Photos Rust library for tests
+              run: cargo build -p ente-photos-frb --features flutter --locked
+              working-directory: rust
+
             - name: Test
               working-directory: mobile
+              env:
+                  ENTE_PHOTOS_FRB_LIBRARY: ${{ github.workspace }}/rust/target/debug/libente_photos_frb.so
               run: |
+                  test -f "$ENTE_PHOTOS_FRB_LIBRARY"
                   test_package() (
                       member=${1#"$PWD/"}
                       echo "Testing $member"

@@ -8,7 +8,7 @@ import 'package:photos/src/rust/frb_generated.dart';
 import 'package:photos/src/rust/third_party/ente_frb_lib/session.dart';
 
 void main() {
-  const library = String.fromEnvironment('ENTE_PHOTOS_FRB_LIBRARY');
+  final library = Platform.environment['ENTE_PHOTOS_FRB_LIBRARY'] ?? '';
 
   test(
     'finds and removes duplicates through the generated Dart bindings',
