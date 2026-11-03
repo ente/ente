@@ -18,6 +18,7 @@ import {
 } from "ente-gallery/components/utils/save-groups";
 import { ItemVisibility } from "ente-media/file-metadata";
 import {
+    canAddFilesToCollection,
     renameCollection,
     updateCollectionDetails,
 } from "ente-new/photos/services/collection";
@@ -106,6 +107,16 @@ export const AlbumsSection = ({
         view.type == "archive-albums"
             ? view.activeCollectionSummary
             : undefined;
+    const { onUpload } = operations;
+    const handleAddPhotos = useCallback(
+        () => onUpload("upload", activeCollection),
+        [onUpload, activeCollection],
+    );
+    const canAddPhotos =
+        !library.isFirstLoad &&
+        user &&
+        activeCollection?.type == "album" &&
+        canAddFilesToCollection(activeCollection, user.id);
     const [fileListHeader, setFileListHeader] =
         useState<FileListHeaderOrFooter>();
     const {
@@ -328,6 +339,7 @@ export const AlbumsSection = ({
                 <GalleryMedia
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
+                    onAddPhotos={canAddPhotos ? handleAddPhotos : undefined}
                     source={{
                         mode: barMode,
                         modePlus: barMode,

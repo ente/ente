@@ -34,6 +34,7 @@ type GalleryMediaProps = Pick<
 > & {
     source: GalleryMediaSource;
     header?: FileListHeaderOrFooter;
+    onAddPhotos?: () => void;
     children?: (hasSelection: boolean) => ReactNode;
 };
 
@@ -57,6 +58,7 @@ const GalleryMediaContent = ({
     navigation,
     source,
     header,
+    onAddPhotos,
     children,
 }: GalleryMediaProps) => {
     const { selected, setSelected, clearSelection } = useGallerySelection(
@@ -223,6 +225,7 @@ const GalleryMediaContent = ({
                 }
                 user={library.user}
                 header={header}
+                onAddPhotos={onAddPhotos}
                 footer={footer}
                 enableDownload
                 enableSelect
