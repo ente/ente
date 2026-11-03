@@ -1,4 +1,5 @@
 import type { RemotePullOpts } from "@/components/gallery";
+import type { PlaceSelection } from "@/components/gallery/sections/places/PlacesList";
 import type { SelectedState } from "@/utils/file";
 import AddIcon from "@mui/icons-material/Add";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -37,6 +38,7 @@ import React, {
     startTransition,
     useCallback,
     useEffect,
+    useEffectEvent,
     useMemo,
     useRef,
     useState,
@@ -67,10 +69,10 @@ interface CollectionMapProps extends Pick<
     | "onVisualFeedback"
     | "fileNormalCollectionIDs"
     | "collectionNameByID"
-    | "onSelectCollection"
-    | "onSelectPerson"
     | "emailByUserID"
 > {
+    selectedPlace?: PlaceSelection;
+    placeSelectionRevision: number;
     collectionSummary: CollectionSummary;
     files: EnteFile[];
     mapFileSource: MapFileSource;
@@ -991,6 +993,8 @@ function createMarkerIcon(
 }
 
 export const CollectionMap: React.FC<CollectionMapProps> = ({
+    selectedPlace,
+    placeSelectionRevision,
     collectionSummary,
     files,
     onRemotePull,
@@ -1001,8 +1005,6 @@ export const CollectionMap: React.FC<CollectionMapProps> = ({
     onVisualFeedback,
     fileNormalCollectionIDs,
     collectionNameByID,
-    onSelectCollection,
-    onSelectPerson,
     mapFileSource,
     emailByUserID,
 }) => {
@@ -1159,13 +1161,13 @@ export const CollectionMap: React.FC<CollectionMapProps> = ({
                     onRemoteFilesPull={onRemoteFilesPull}
                     fileNormalCollectionIDs={fileNormalCollectionIDs}
                     collectionNameByID={collectionNameByID}
-                    onSelectCollection={onSelectCollection}
-                    onSelectPerson={onSelectPerson}
                     emailByUserID={emailByUserID}
                 />
                 <Box sx={{ width: "100%", height: "100%" }}>
                     <MapCanvas
                         mapComponents={mapComponents}
+                        selectedPlace={selectedPlace}
+                        placeSelectionRevision={placeSelectionRevision}
                         mapCenter={mapCenter}
                         mapIndex={mapIndex}
                         thumbByFileID={thumbByFileID}
@@ -1210,8 +1212,6 @@ interface CollectionSidebarProps {
     onRemoteFilesPull?: FileListWithViewerProps["onRemoteFilesPull"];
     fileNormalCollectionIDs?: FileListWithViewerProps["fileNormalCollectionIDs"];
     collectionNameByID?: FileListWithViewerProps["collectionNameByID"];
-    onSelectCollection?: FileListWithViewerProps["onSelectCollection"];
-    onSelectPerson?: FileListWithViewerProps["onSelectPerson"];
     emailByUserID: FileListWithViewerProps["emailByUserID"];
 }
 
@@ -1235,8 +1235,6 @@ function CollectionSidebar({
     onRemoteFilesPull,
     fileNormalCollectionIDs,
     collectionNameByID,
-    onSelectCollection,
-    onSelectPerson,
     emailByUserID,
 }: CollectionSidebarProps) {
     const emptySelected = useMemo<SelectedState>(
@@ -1251,7 +1249,18 @@ function CollectionSidebar({
     const noOpSetSelected = useCallback(() => undefined, []);
 
     return (
-        <SidebarWrapper>
+        <SidebarWrapper
+            sx={
+                collectionSummary.type === "all"
+                    ? {
+                          left: { md: 24 },
+                          top: { md: 24 },
+                          bottom: { md: 24 },
+                          width: { md: 420 },
+                      }
+                    : undefined
+            }
+        >
             <SidebarContainer>
                 <Stack sx={{ px: "20px", pt: "20px", pb: "20px", gap: "2px" }}>
                     <Typography
@@ -1265,7 +1274,7 @@ function CollectionSidebar({
                         }}
                     >
                         {collectionSummary.type === "all"
-                            ? t("map")
+                            ? t("your_map")
                             : collectionSummary.name}
                     </Typography>
                     <Typography
@@ -1299,8 +1308,6 @@ function CollectionSidebar({
                             onRemoteFilesPull={onRemoteFilesPull}
                             fileNormalCollectionIDs={fileNormalCollectionIDs}
                             collectionNameByID={collectionNameByID}
-                            onSelectCollection={onSelectCollection}
-                            onSelectPerson={onSelectPerson}
                             emailByUserID={emailByUserID}
                             enableImageEditing={false}
                             enableDownload={true}
@@ -1335,6 +1342,8 @@ function CollectionSidebar({
 }
 
 interface MapCanvasProps {
+    selectedPlace?: PlaceSelection;
+    placeSelectionRevision: number;
     mapComponents: MapComponents;
     mapCenter: [number, number];
     mapIndex: MapIndex;
@@ -1351,6 +1360,8 @@ const leafletAttributionPrefix =
     '<a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer">Leaflet</a>';
 
 const MapCanvas = React.memo(function MapCanvas({
+    selectedPlace,
+    placeSelectionRevision,
     mapComponents,
     mapCenter,
     mapIndex,
@@ -1377,6 +1388,12 @@ const MapCanvas = React.memo(function MapCanvas({
                     updateWhenZooming
                     referrerPolicy="strict-origin-when-cross-origin"
                 />
+                <PlaceFocus
+                    placeSelectionRevision={placeSelectionRevision}
+                    useMap={useMap}
+                    selectedPlace={selectedPlace}
+                    mapCenter={mapCenter}
+                />
                 <MapControls useMap={useMap} />
                 <MapClusters
                     useMap={useMap}
@@ -1391,6 +1408,31 @@ const MapCanvas = React.memo(function MapCanvas({
         </MapCanvasContainer>
     );
 });
+
+const PlaceFocus = ({
+    useMap,
+    selectedPlace,
+    placeSelectionRevision,
+    mapCenter,
+}: {
+    useMap: MapComponents["useMap"];
+    selectedPlace?: PlaceSelection;
+    placeSelectionRevision: number;
+    mapCenter: [number, number];
+}) => {
+    const map = useMap();
+    // Read the latest default center without refocusing on background pulls.
+    const focusPlace = useEffectEvent((place: PlaceSelection | undefined) => {
+        map.setView(
+            place ? [place.latitude, place.longitude] : mapCenter,
+            DEFAULT_MAP_ZOOM,
+        );
+    });
+    useEffect(() => {
+        focusPlace(selectedPlace);
+    }, [map, selectedPlace, placeSelectionRevision]);
+    return null;
+};
 
 interface MapControlsProps {
     useMap: typeof import("react-leaflet").useMap;

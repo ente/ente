@@ -1,4 +1,5 @@
 import "package:dio/dio.dart";
+import "package:ente_base/models/accounts.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/loading_widget.dart';
@@ -107,6 +108,9 @@ String parseErrorForUI(
 }) {
   if (error == null) {
     return genericError;
+  }
+  if (error is AccountsError_Network) {
+    return context.strings.networkConnectionRefusedErr;
   }
   if (error.toString() == DownloadManager.applePhotosUnsupportedResourceError) {
     return context.strings.applePhotosUnsupportedResource;

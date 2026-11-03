@@ -981,7 +981,7 @@ func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.F
 		return file, nil
 	}
 	go c.onExistingObjectsReplaced(ctx, file, hotDC)
-	return ente.File{}, ente.ErrBadRequest
+	return ente.File{}, ente.ErrFileUploadConflict
 }
 
 func (c *FileController) safeAlert(msg string) {
@@ -1073,8 +1073,9 @@ func (c *FileController) deleteObjectVersionFromHotStorage(objectKey string, ver
 		return stacktrace.Propagate(err, "")
 	}
 	err = s3Client.WaitUntilObjectNotExists(&s3.HeadObjectInput{
-		Bucket: c.S3Config.GetHotBucket(),
-		Key:    &objectKey,
+		Bucket:    c.S3Config.GetHotBucket(),
+		Key:       &objectKey,
+		VersionId: &versionID,
 	})
 	if err != nil {
 		return stacktrace.Propagate(err, "")

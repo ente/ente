@@ -1,19 +1,26 @@
+mod duplicates;
 mod export;
+mod places;
 pub mod replica;
 
-use std::{io::Seek, path::Path};
+use std::{cmp::Ordering, io::Seek, path::Path};
 
 use anyhow::{Context, Result, ensure};
 use ente_core::Session;
-use ente_photos::files;
+use ente_location::Coordinate;
+use ente_photos::files::{self, File, Kind};
 use serde_json::json;
 
 use crate::{
     api,
-    args::{AlbumCommand, App, FileCommand, Options, PhotosCommand},
+    args::{
+        AlbumCommand, App, FileCommand, FileQuery, FileSort, FileType, Options, PhotosCommand,
+        PlaceCommand,
+    },
     core_db::SqliteResult,
     db, home,
     output::{self, AlbumView, FileView, MAX_CANDIDATES, select},
+    usage,
 };
 use replica::Replica;
 
@@ -21,6 +28,8 @@ pub async fn run(command: PhotosCommand, selected: Option<&str>, options: &Optio
     match command {
         PhotosCommand::Api(args) => return api::run(App::Photos, args, selected, options).await,
         PhotosCommand::Export(args) => return export::run(args, selected, options).await,
+        PhotosCommand::Usage => return usage::photos(selected, options).await,
+        PhotosCommand::Duplicate { ref command } => duplicates::validate(command, options)?,
         _ => {}
     }
     ensure!(
@@ -48,10 +57,16 @@ pub async fn run(command: PhotosCommand, selected: Option<&str>, options: &Optio
         );
     }
     match command {
-        PhotosCommand::Api(_) | PhotosCommand::Export(_) => unreachable!(),
+        PhotosCommand::Api(_) | PhotosCommand::Export(_) | PhotosCommand::Usage => unreachable!(),
         PhotosCommand::Album { command } => album(command, &replica, options),
+        PhotosCommand::Duplicate { command } => {
+            duplicates::run(command, &session, &mut replica, options).await
+        }
         PhotosCommand::File { album, command } => {
             file(command, album.as_deref(), &session, &mut replica, options).await
+        }
+        PhotosCommand::Place { album, command } => {
+            place(command, album.as_deref(), &session, &mut replica, options).await
         }
     }
 }
@@ -102,13 +117,12 @@ fn album(command: AlbumCommand, replica: &Replica<'_>, options: &Options) -> Res
     }
 }
 
-async fn file(
-    command: FileCommand,
+async fn sync_files(
     album: Option<&str>,
     session: &Session,
     replica: &mut Replica<'_>,
     options: &Options,
-) -> Result<()> {
+) -> Result<(Option<i64>, bool)> {
     let mut incomplete = false;
     let albums =
         replica.collections(album, album.map(|_| (MAX_CANDIDATES + 1) as i64), |rows| {
@@ -149,7 +163,25 @@ async fn file(
     } else {
         replica.sync_files(session, &albums).await?;
     }
-    let album_id = album.map(|_| albums[0].id);
+    Ok((album.map(|_| albums[0].id), incomplete))
+}
+
+async fn file(
+    command: FileCommand,
+    album: Option<&str>,
+    session: &Session,
+    replica: &mut Replica<'_>,
+    options: &Options,
+) -> Result<()> {
+    let (album_id, mut incomplete) = sync_files(album, session, replica, options).await?;
+    let placed = match &command {
+        FileCommand::List { query, .. } if query.place.is_some() || query.country.is_some() => {
+            let index = places::open(options.offline).await?;
+            let located = located(replica, album_id, |_, _| {})?;
+            Some(places::matching(&index, query, &located)?)
+        }
+        _ => None,
+    };
     let find = |selector: &str| {
         let entry = replica.files(
             album_id,
@@ -169,17 +201,26 @@ async fn file(
         Ok::<_, anyhow::Error>((file, entry.album_ids))
     };
     match command {
-        FileCommand::List(args) => replica.files(album_id, None, None, |rows| {
+        FileCommand::List { query, list } => replica.files(album_id, None, None, |rows| {
             let files = rows.filter_map(|row| {
                 let entry = match row {
                     Ok(entry) => entry,
                     Err(error) => return Some(Err(error.into())),
                 };
-                match entry
-                    .file
-                    .and_then(|file| FileView::new(file, &entry.album_ids))
-                {
-                    Ok(file) => Some(Ok(file)),
+                let listed = entry.file.and_then(|file| {
+                    if !matches(&query, &file)
+                        || placed.as_ref().is_some_and(|ids| !ids.contains(&file.id))
+                    {
+                        return Ok(None);
+                    }
+                    let key = SortKey {
+                        created_at_micros: file.created_at_micros,
+                        size: file.size,
+                    };
+                    FileView::new(file, &entry.album_ids).map(|view| Some((key, view)))
+                });
+                match listed {
+                    Ok(listed) => listed.map(Ok),
                     Err(error) => {
                         eprintln!("file {}: {error:#}", entry.id);
                         incomplete = true;
@@ -187,7 +228,20 @@ async fn file(
                     }
                 }
             });
-            output::files(files, &args, options.json)
+            let Some(sort) = query.sort else {
+                return output::files(
+                    files.map(|row| row.map(|(_, view)| view)),
+                    &list,
+                    options.json,
+                );
+            };
+            let mut files = files.collect::<Result<Vec<_>>>()?;
+            files.sort_by(|(a, _), (b, _)| compare(sort, query.reverse, a, b));
+            output::files(
+                files.into_iter().map(|(_, view)| Ok(view)),
+                &list,
+                options.json,
+            )
         }),
         FileCommand::View { file } => {
             let (file, album_ids) = find(&file)?;
@@ -233,4 +287,100 @@ async fn file(
     }?;
     ensure!(!incomplete, "file results are incomplete");
     Ok(())
+}
+
+async fn place(
+    command: PlaceCommand,
+    album: Option<&str>,
+    session: &Session,
+    replica: &mut Replica<'_>,
+    options: &Options,
+) -> Result<()> {
+    let (album_id, mut incomplete) = sync_files(album, session, replica, options).await?;
+    let PlaceCommand::List { countries, list } = command;
+    let index = places::open(options.offline).await?;
+    let located = located(replica, album_id, |id, error| {
+        eprintln!("file {id}: {error:#}");
+        incomplete = true;
+    })?;
+    let coordinates = located
+        .into_iter()
+        .map(|(_, coordinate)| coordinate)
+        .collect::<Vec<_>>();
+    places::list(&index, &coordinates, countries, &list, options.json)?;
+    ensure!(!incomplete, "place results are incomplete");
+    Ok(())
+}
+
+fn located(
+    replica: &Replica<'_>,
+    album_id: Option<i64>,
+    mut failed: impl FnMut(i64, anyhow::Error),
+) -> Result<Vec<(i64, Coordinate)>> {
+    replica.files(album_id, None, None, |rows| {
+        let mut located = Vec::new();
+        for row in rows {
+            let entry = row?;
+            match entry.file {
+                Ok(file) => located
+                    .extend(places::coordinate(&file).map(|coordinate| (file.id, coordinate))),
+                Err(error) => failed(entry.id, error),
+            }
+        }
+        Ok(located)
+    })
+}
+
+struct SortKey {
+    created_at_micros: i64,
+    size: Option<u64>,
+}
+
+fn matches(query: &FileQuery, file: &File) -> bool {
+    (query.types.is_empty() || query.types.iter().any(|&kind| file_kind(kind) == file.kind))
+        && query
+            .since
+            .is_none_or(|since| file.created_at_micros >= since)
+        && query
+            .before
+            .is_none_or(|before| file.created_at_micros < before)
+        && (!query.no_location || file.location.is_none())
+        && query
+            .min_size
+            .is_none_or(|min| file.size.is_some_and(|size| size >= min))
+        && query
+            .max_size
+            .is_none_or(|max| file.size.is_some_and(|size| size <= max))
+        && query
+            .search
+            .as_deref()
+            .is_none_or(|text| contains_words(file, text))
+}
+
+fn file_kind(kind: FileType) -> Kind {
+    match kind {
+        FileType::Image => Kind::Image,
+        FileType::Video => Kind::Video,
+        FileType::LivePhoto => Kind::LivePhoto,
+    }
+}
+
+fn contains_words(file: &File, text: &str) -> bool {
+    let name = file.name.to_lowercase();
+    let caption = file.caption.as_deref().unwrap_or_default().to_lowercase();
+    text.to_lowercase()
+        .split_whitespace()
+        .all(|word| name.contains(word) || caption.contains(word))
+}
+
+fn compare(sort: FileSort, reverse: bool, a: &SortKey, b: &SortKey) -> Ordering {
+    let newest_or_largest_first = match sort {
+        FileSort::Created => b.created_at_micros.cmp(&a.created_at_micros),
+        FileSort::Size => b.size.cmp(&a.size),
+    };
+    if reverse {
+        newest_or_largest_first.reverse()
+    } else {
+        newest_or_largest_first
+    }
 }

@@ -4,7 +4,8 @@ import {
     CreateAccountScreen,
     type CreateAccountInput,
 } from "screens/CreateAccountScreen";
-import { beginSpaceSignup, spaceSignupErrorMessage } from "services/signup";
+import { spaceAuthErrorMessage } from "services/auth-error";
+import { beginSpaceSignup } from "services/signup";
 import { useSpaceAppState } from "state/app-state";
 import { spaceAppBackgroundColor } from "styles/colors";
 import { useSpaceRouter } from "utils/route-transitions";
@@ -25,7 +26,12 @@ const Page: React.FC = () => {
             setIsLiveSignupVerification(true);
             void router.push(spaceRoutes.verify);
         } catch (error) {
-            setSignupError(await spaceSignupErrorMessage(error));
+            setSignupError(
+                spaceAuthErrorMessage(
+                    error,
+                    "Couldn't create account. Please try again.",
+                ),
+            );
             setIsSubmitting(false);
         }
     };

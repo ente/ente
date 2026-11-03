@@ -57,19 +57,27 @@ func (r *Repository) GetPasskeyRecoveryData(ctx context.Context, userID int64) (
 }
 
 func (r *Repository) ValidatePasskeyRecoverySecret(userID int64, secret string) (bool, error) {
-	var severSecreteData, serverSecretNonce []byte
-	row := r.Db.QueryRow(`SELECT server_passkey_secret_data, server_passkey_secret_nonce FROM two_factor_recovery WHERE user_id = $1`, userID)
-	err := row.Scan(&severSecreteData, &serverSecretNonce)
+	serverSecret, err := r.GetPasskeyRecoverySecret(userID)
 	if err != nil {
-		return false, stacktrace.Propagate(err, "")
+		return false, err
 	}
-	serverSkipSecretKey, decErr := crypto.Decrypt(severSecreteData, r.SecretEncryptionKey, serverSecretNonce)
-	if decErr != nil {
-		return false, stacktrace.Propagate(decErr, "failed to decrypt passkey reset key")
-	}
-	if subtle.ConstantTimeCompare([]byte(secret), []byte(serverSkipSecretKey)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(secret), []byte(serverSecret)) != 1 {
 		logrus.Warn("invalid passkey skip secret")
 		return false, nil
 	}
 	return true, nil
+}
+
+func (r *Repository) GetPasskeyRecoverySecret(userID int64) (string, error) {
+	var serverSecretData, serverSecretNonce []byte
+	row := r.Db.QueryRow(`SELECT server_passkey_secret_data, server_passkey_secret_nonce FROM two_factor_recovery WHERE user_id = $1`, userID)
+	err := row.Scan(&serverSecretData, &serverSecretNonce)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	secret, err := crypto.Decrypt(serverSecretData, r.SecretEncryptionKey, serverSecretNonce)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "failed to decrypt passkey reset key")
+	}
+	return secret, nil
 }

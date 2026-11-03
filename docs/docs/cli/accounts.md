@@ -114,7 +114,7 @@ Prints `Logged out of Ente Auth for "alice@example.com".` Without `--app`, the C
 
 ## CLI home
 
-The CLI home is the directory where the CLI keeps its data: an encrypted vault with your accounts and keys, and a database per account with synced metadata.
+The CLI home is the directory where the CLI keeps its data: an encrypted vault with your accounts and keys, a database per account with synced metadata, and assets (like location datasets or ML models).
 
 | System  | CLI home                                                               |
 | ------- | ---------------------------------------------------------------------- |

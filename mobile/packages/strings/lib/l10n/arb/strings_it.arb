@@ -2207,7 +2207,6 @@
   "mlConsent": "Abilita l'apprendimento automatico",
   "mlConsentConfirmation": "Comprendo e desidero abilitare l'apprendimento automatico",
   "mlConsentDescription": "Se abiliti il Machine Learning, Ente estrarrà informazioni come la geometria del volto dai file, inclusi quelli condivisi con te.\n\nQuesto accadrà sul tuo dispositivo, e qualsiasi informazione biometrica generata sarà crittografata end-to-end.",
-  "mlConsentPrivacy": "Clicca qui per maggiori dettagli su questa funzione nella nostra informativa sulla privacy",
   "mlIndexingDescription": "L'apprendimento automatico userà più rete e batteria fino a quando tutti gli elementi saranno elaborati. Considera di usare l'app desktop per un'elaborazione più veloce. Tutti i risultati saranno sincronizzati automaticamente.",
   "mlProgressBannerDescription": "Le tue foto sono in fase di elaborazione sul dispositivo per rilevare volti, oggetti e altro ancora.",
   "mlProgressBannerStatus": "{indexed} di {total} foto elaborate",

@@ -7,7 +7,6 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
-  bip39: 1.0.6
   ente_base:
     path: ../../packages/base
   ente_crypto_api:
@@ -25,7 +24,6 @@ dependencies:
   path: 1.9.1
   path_provider: 2.1.5
   shared_preferences: 2.5.4
-  tuple: 2.0.2
 
 dev_dependencies:
   flutter_lints: 6.0.0

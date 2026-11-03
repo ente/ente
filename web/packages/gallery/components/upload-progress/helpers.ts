@@ -125,4 +125,4 @@ export const uploadCountsText = ({
 };
 
 export const normalizePercent = (value: number) =>
-    Math.min(100, Math.max(0, Math.round(value || 0)));
+    Math.min(100, Math.max(0, Math.floor(value || 0)));

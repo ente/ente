@@ -19,7 +19,7 @@ import "package:photos/ui/components/base_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/ui/components/text_input_widget_v2.dart";
-import 'package:photos/ui/sharing/user_avator_widget.dart';
+import 'package:photos/ui/sharing/user_avatar_widget.dart';
 import "package:photos/ui/sharing/verify_identity_dialog.dart";
 import "package:photos/utils/email_util.dart";
 

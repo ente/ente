@@ -112,6 +112,7 @@ class DartMLDataDB
         "MLDataDB Migration took ${stopwatch.elapsedMilliseconds} ms",
       );
       stopwatch.stop();
+      await asyncDBConnection.execute(deleteMlStoreMetaTable);
 
       return asyncDBConnection;
     } catch (_) {

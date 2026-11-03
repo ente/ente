@@ -18,7 +18,7 @@ type QueueRepository struct {
 
 // Negative delays make items immediately eligible.
 var itemDeletionDelayInMinMap = map[string]int64{
-	DropFileEncMedataQueue:    -1 * 24 * 60,
+	DropFileEncMetadataQueue:  -1 * 24 * 60,
 	DeleteObjectQueue:         45 * 24 * 60,
 	DeleteEmbeddingsQueue:     -1 * 24 * 60,
 	OutdatedObjectsQueue:      -1 * 24 * 60,
@@ -30,7 +30,7 @@ var itemDeletionDelayInMinMap = map[string]int64{
 }
 
 const (
-	DropFileEncMedataQueue    string = "dropFileEncMetata"
+	DropFileEncMetadataQueue  string = "dropFileEncMetata"
 	DeleteObjectQueue         string = "deleteObject"
 	DeleteEmbeddingsQueue     string = "deleteEmbedding"
 	OutdatedObjectsQueue      string = "outdatedObject"

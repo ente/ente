@@ -1,9 +1,16 @@
-import "dart:math" as math;
-
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
+import 'package:ente_ui/components/subscription/plan_card.dart';
+import 'package:ente_ui/components/subscription/plan_price.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import "package:photos/ui/payment/subscription_locker_sheet.dart";
+
+String subscriptionStorageLabel(int storage) {
+  final (value, unit) = convertBytesToNumberAndUnit(storage);
+  return "$value ${unit.toUpperCase()}";
+}
 
 class SubscriptionPlanWidget extends StatelessWidget {
   const SubscriptionPlanWidget({
@@ -13,172 +20,110 @@ class SubscriptionPlanWidget extends StatelessWidget {
     required this.period,
     this.monthlyPrice,
     this.isActive = false,
+    this.isCurrentPlan = false,
     this.isPopular = false,
   });
-
-  static const double height = 84;
-  static const double _borderWidth = 2;
-  static const double _horizontalPadding = Spacing.xl - _borderWidth;
-  static const double _verticalPadding = Spacing.lg - _borderWidth;
-  static const double _contentMinHeight =
-      height - 2 * _borderWidth - 2 * _verticalPadding;
-  static const double _badgeWidth = 102;
-  static const double _badgeHeight = 26;
-  static const double _badgeLineHeight = 20;
-  static const double _badgeVerticalPadding =
-      (_badgeHeight - _badgeLineHeight) / 2;
 
   final int storage;
   final String price;
   final String period;
-
   final String? monthlyPrice;
   final bool isActive;
+  final bool isCurrentPlan;
   final bool isPopular;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final numAndUnit = convertBytesToNumberAndUnit(storage);
-    int storageValueInUnit = numAndUnit.$1;
-    String storageUnit = numAndUnit.$2.toUpperCase();
-    if (storageUnit == "TB") {
-      storageValueInUnit = storageValueInUnit * 1000;
-      storageUnit = "GB";
-    }
-    final String storageValue = storageValueInUnit.toString();
-    final badgeHeight =
-        MediaQuery.textScalerOf(context).scale(_badgeLineHeight) +
-        2 * _badgeVerticalPadding;
-    final badgeOverflow = isPopular
-        ? math.max(0.0, badgeHeight - _badgeHeight)
-        : 0.0;
+    final (value, unit) = convertBytesToNumberAndUnit(storage);
+    return SubscriptionPlanCard(
+      value: value.toString(),
+      unit: unit.toUpperCase(),
+      isSelected: isActive,
+      isFree: price.isEmpty,
+      badgeLabel: isCurrentPlan
+          ? context.strings.subscriptionCurrentPlan
+          : isPopular
+          ? context.strings.mostPopular
+          : null,
+      includedAllowance: _LockerAllowance(
+        count: price.isEmpty ? 100 : 1000,
+        isActive: isActive,
+        color: isActive ? colors.specialWhite : colors.textLight,
+      ),
+      price: _Price(
+        price: price,
+        period: period,
+        monthlyPrice: monthlyPrice,
+        isActive: isActive,
+      ),
+    );
+  }
+}
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colors.fillLight,
-        borderRadius: BorderRadius.circular(Radii.button),
-        border: Border.all(
-          color: isActive ? colors.primary : Colors.transparent,
-          width: _borderWidth,
+class _LockerAllowance extends StatefulWidget {
+  const _LockerAllowance({
+    required this.count,
+    required this.isActive,
+    required this.color,
+  });
+
+  final int count;
+  final bool isActive;
+  final Color color;
+
+  @override
+  State<_LockerAllowance> createState() => _LockerAllowanceState();
+}
+
+class _LockerAllowanceState extends State<_LockerAllowance> {
+  final _lockerTap = TapGestureRecognizer();
+
+  @override
+  void initState() {
+    super.initState();
+    _lockerTap.onTap = () => showSubscriptionLockerSheet(context);
+  }
+
+  @override
+  void dispose() {
+    _lockerTap.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.strings
+        .subscriptionLockerItems(count: widget.count, appName: "\uFFFC")
+        .split("\uFFFC");
+    return AnimatedDefaultTextStyle(
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : Motion.slow,
+      curve: Curves.easeOutCubic,
+      style: DefaultTextStyle.of(context).style.merge(
+        TextStyles.mini.copyWith(
+          color: widget.color,
+          decorationColor: widget.color,
+          height: 18 / 12,
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              _horizontalPadding,
-              _verticalPadding + badgeOverflow,
-              _horizontalPadding,
-              _verticalPadding,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: _contentMinHeight),
-              child: Column(
-                mainAxisAlignment: isPopular
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.center,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: RichText(
-                            text: TextSpan(
-                              style: TextStyle(
-                                color: colors.textBase,
-                                fontFamily: TextStyles.outfitFontFamily,
-                                package: TextStyles.fontPackage,
-                                fontWeight: FontWeight.w900,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: storageValue,
-                                  style: const TextStyle(
-                                    fontSize: 36,
-                                    height: 28 / 36,
-                                    letterSpacing: -1.8,
-                                  ),
-                                ),
-                                const TextSpan(
-                                  text: " ",
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    height: 28 / 24,
-                                    letterSpacing: -0.96,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: storageUnit,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    height: 28 / 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            textHeightBehavior: const TextHeightBehavior(
-                              applyHeightToFirstAscent: false,
-                              applyHeightToLastDescent: false,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Flexible(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: _Price(
-                            price: price,
-                            period: period,
-                            monthlyPrice: monthlyPrice,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: label[0]),
+            TextSpan(
+              text: "Locker",
+              recognizer: widget.isActive ? _lockerTap : null,
+              style: TextStyle(
+                decoration: widget.isActive
+                    ? TextDecoration.underline
+                    : TextDecoration.none,
               ),
             ),
-          ),
-          if (isPopular)
-            Positioned(
-              left: -_borderWidth,
-              top: -_borderWidth,
-              child: Container(
-                constraints: const BoxConstraints(
-                  minWidth: _badgeWidth,
-                  minHeight: _badgeHeight,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.lg,
-                  vertical: _badgeVerticalPadding,
-                ),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(Radii.button),
-                    bottomRight: Radius.circular(Radii.button),
-                  ),
-                ),
-                child: Text(
-                  context.strings.mostPopular,
-                  textAlign: TextAlign.center,
-                  style: TextStyles.tiny.copyWith(
-                    color: colors.specialWhite,
-                    fontFamily: TextStyles.outfitFontFamily,
-                    fontWeight: FontWeight.w700,
-                    height: _badgeLineHeight / 10,
-                  ),
-                ),
-              ),
-            ),
-        ],
+            TextSpan(text: label[1]),
+          ],
+        ),
       ),
     );
   }
@@ -189,39 +134,29 @@ class _Price extends StatelessWidget {
     required this.price,
     required this.period,
     required this.monthlyPrice,
+    required this.isActive,
   });
 
   final String price;
   final String period;
   final String? monthlyPrice;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.componentColors;
-    final amountStyle = TextStyles.large.copyWith(
-      color: colors.textBase,
-      height: 28 / 16,
-    );
-    final periodStyle = TextStyles.mini.copyWith(
-      color: colors.textLight,
-      height: 28 / 12,
-    );
     if (price.isEmpty) {
-      return Text(context.strings.free, style: amountStyle);
-    }
-
-    if (period == "month") {
-      return Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(text: price, style: amountStyle),
-            TextSpan(text: "/${context.strings.month}", style: periodStyle),
-          ],
-        ),
-        textAlign: TextAlign.end,
+      return SubscriptionPrice(
+        amount: context.strings.free,
+        isSelected: isActive,
       );
     }
-
+    if (period == "month") {
+      return SubscriptionPrice(
+        amount: _displayPrice(price),
+        periodLabel: context.strings.month,
+        isSelected: isActive,
+      );
+    }
     assert(period == "year", "Invalid period: $period");
     final currencySymbol = price[0];
     final pricePerMonth = double.parse(price.substring(1)) / 12;
@@ -232,47 +167,24 @@ class _Price extends StatelessWidget {
         pricePerMonthString.length - 3,
       );
     }
-    final perMonthStyle = TextStyles.tiny.copyWith(
-      color: colors.textLight,
-      height: 16 / 10,
-    );
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: price, style: amountStyle),
-              TextSpan(text: "/${context.strings.year}", style: periodStyle),
-            ],
-          ),
-          textAlign: TextAlign.end,
-        ),
-        Text.rich(
-          TextSpan(
-            children: [
-              if (monthlyPrice != null) ...[
-                TextSpan(
-                  text: monthlyPrice,
-                  style: perMonthStyle.copyWith(
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: colors.textLight,
-                  ),
-                ),
-                const TextSpan(text: " → "),
-              ],
-              TextSpan(
-                text:
-                    "$currencySymbol$pricePerMonthString"
-                    "/${context.strings.month}",
-              ),
-            ],
-            style: perMonthStyle,
-          ),
-          textAlign: TextAlign.end,
-        ),
-      ],
+    return SubscriptionPrice(
+      amount: _displayPrice(price),
+      periodLabel: context.strings.year,
+      monthlyPriceLabel:
+          "${_displayPrice("$currencySymbol$pricePerMonthString")}/${context.strings.month}",
+      originalMonthlyPrice: monthlyPrice == null
+          ? null
+          : _displayPrice(monthlyPrice!),
+      isSelected: isActive,
     );
   }
+}
+
+String _displayPrice(String price) {
+  final parts = price.split(".");
+  parts[0] = parts[0].replaceAllMapped(
+    RegExp(r"\d(?=(\d{3})+$)"),
+    (match) => "${match[0]},",
+  );
+  return parts.join(".");
 }

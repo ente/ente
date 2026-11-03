@@ -54,7 +54,7 @@ impl<'a> IccConverter<'a> {
         ) {
             Ok(image) => image,
             Err((image, err)) => {
-                eprintln!("[ml][decode] failed to convert embedded ICC profile to sRGB: {err}");
+                log::warn!("failed to convert embedded ICC profile to sRGB: {err}");
                 self.source_profile = None;
                 image
             }
@@ -81,7 +81,7 @@ fn conversion_profile(icc_profile: Option<&[u8]>) -> Option<Arc<ColorProfile>> {
     let source_profile = match cached_color_profile(icc_profile) {
         Ok(profile) => profile,
         Err(err) => {
-            eprintln!("[ml][decode] failed to parse embedded ICC profile: {err}");
+            log::warn!("failed to parse embedded ICC profile: {err}");
             return None;
         }
     };
@@ -91,8 +91,8 @@ fn conversion_profile(icc_profile: Option<&[u8]>) -> Option<Arc<ColorProfile>> {
     }
 
     if profile_uses_hdr_transfer(&source_profile) {
-        eprintln!(
-            "[ml][decode] embedded ICC profile uses PQ/HLG transfer; skipping ICC transform because tone mapping is not implemented"
+        log::warn!(
+            "embedded ICC profile uses PQ/HLG transfer; skipping ICC transform because tone mapping is not implemented"
         );
         return None;
     }

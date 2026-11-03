@@ -40,6 +40,11 @@ type SpaceWebPushUnsubscriptionRequest struct {
 	Endpoint string `json:"endpoint" binding:"required"`
 }
 
+type SpaceLinkWebPushUnsubscriptionRequest struct {
+	Endpoint string `json:"endpoint" binding:"required"`
+	Auth     string `json:"auth" binding:"required"`
+}
+
 type SpaceWebPushTargetResponse struct {
 	TargetID string `json:"targetId"`
 }

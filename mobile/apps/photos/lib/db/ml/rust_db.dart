@@ -10,6 +10,8 @@ import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/ml_exclusive_operation.dart";
 import "package:photos/db/ml/rust_db_model_mappers.dart" as mappers;
+import "package:photos/db/ml/usearch_clip_vector_db.dart";
+import "package:photos/db/ml/usearch_cluster_centroid_vector_db.dart";
 import "package:photos/events/embedding_updated_event.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
@@ -30,13 +32,27 @@ class RustMLDataDB implements IMLDataDB<int> {
       "cluster_centroid_vector_db_migration_in_progress";
 
   final String _databaseName;
+  final UsearchClipVectorDB _dartClipVectorDB;
+  final UsearchClusterCentroidVectorDB _dartClusterCentroidVectorDB;
 
-  RustMLDataDB._privateConstructor({String databaseName = "ente.ml.db"})
-    : _databaseName = databaseName;
+  RustMLDataDB._privateConstructor({
+    String databaseName = "ente.ml.db",
+    UsearchClipVectorDB? dartClipVectorDB,
+    UsearchClusterCentroidVectorDB? dartClusterCentroidVectorDB,
+  }) : _databaseName = databaseName,
+       _dartClipVectorDB = dartClipVectorDB ?? UsearchClipVectorDB.instance,
+       _dartClusterCentroidVectorDB =
+           dartClusterCentroidVectorDB ??
+           UsearchClusterCentroidVectorDB.instance;
 
   static final RustMLDataDB instance = RustMLDataDB._privateConstructor();
   static final RustMLDataDB localGalleryInstance =
-      RustMLDataDB._privateConstructor(databaseName: "ente.ml.offline.db");
+      RustMLDataDB._privateConstructor(
+        databaseName: "ente.ml.offline.db",
+        dartClipVectorDB: UsearchClipVectorDB.localGalleryInstance,
+        dartClusterCentroidVectorDB:
+            UsearchClusterCentroidVectorDB.localGalleryInstance,
+      );
 
   Future<rust.MlStore>? _dbFuture;
 
@@ -56,11 +72,15 @@ class RustMLDataDB implements IMLDataDB<int> {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final String path = join(documentsDirectory.path, _databaseName);
     _logger.info("Opening rust ML DB access: DB path $path");
+    final rust.MlStore store;
     try {
-      return await rust.MlStore.open(path: path);
+      store = await rust.MlStore.open(path: path);
     } on rust.MlDbError_Downgrade catch (e) {
       throw DatabaseDowngradeError(e.message);
     }
+    await _dartClipVectorDB.invalidateMigrationState();
+    await _dartClusterCentroidVectorDB.invalidateMigrationState();
+    return store;
   }
 
   Future<rust.FillState> fillState(rust.Index index) async =>

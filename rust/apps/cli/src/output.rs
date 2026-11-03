@@ -3,7 +3,11 @@ use std::{fmt::Display, io::Write};
 use anyhow::{Context, Result, bail};
 use chrono::{DateTime, SecondsFormat};
 use dialoguer::console::{Alignment, measure_text_width, pad_str};
-use ente_accounts::admin::{Subscription, User, UserDetails};
+use ente_accounts::{
+    admin::{Subscription, User, UserDetails},
+    details::AccountDetails,
+};
+use ente_location::{CityMatch, CountryGroup};
 use ente_photos::{
     collections::{Collection, Visibility},
     files::File,
@@ -90,6 +94,7 @@ pub struct FileView {
     duration_seconds: Option<u64>,
     width: Option<u32>,
     height: Option<u32>,
+    size_bytes: Option<u64>,
     visibility: Option<&'static str>,
 }
 
@@ -97,6 +102,29 @@ pub struct FileView {
 struct LocationView {
     latitude: f64,
     longitude: f64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateGroupView {
+    pub id: String,
+    pub size_bytes: u64,
+    pub reclaimable_bytes: u64,
+    pub retained_id: String,
+    pub files: Vec<DuplicateFileView>,
+}
+
+#[derive(Serialize)]
+pub struct DuplicateFileView {
+    pub id: String,
+    pub name: String,
+    pub albums: Vec<DuplicateAlbumView>,
+}
+
+#[derive(Serialize)]
+pub struct DuplicateAlbumView {
+    pub id: String,
+    pub name: String,
 }
 
 impl FileView {
@@ -121,8 +149,51 @@ impl FileView {
             duration_seconds: file.duration_seconds,
             width: file.width,
             height: file.height,
+            size_bytes: file.size,
             visibility: file.visibility.map(Visibility::name),
         })
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CityView {
+    name: String,
+    country: String,
+    country_code: String,
+    latitude: f32,
+    longitude: f32,
+    file_count: usize,
+}
+
+impl From<CityMatch> for CityView {
+    fn from(group: CityMatch) -> Self {
+        Self {
+            name: group.city.name,
+            country: group.city.country_name,
+            country_code: group.city.country_code.to_string(),
+            latitude: group.city.latitude as f32,
+            longitude: group.city.longitude as f32,
+            file_count: group.coordinate_indices.len(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CountryView {
+    name: String,
+    code: String,
+    file_count: usize,
+}
+
+impl CountryView {
+    pub fn new(name: &str, group: &CountryGroup) -> Self {
+        Self {
+            name: name.to_owned(),
+            code: group.country.to_string(),
+            file_count: group.coordinate_indices.len(),
+        }
     }
 }
 
@@ -261,7 +332,7 @@ pub fn files(
         files,
         args,
         as_json,
-        ["ID", "NAME", "TYPE", "CREATED", "ALBUMS"],
+        ["ID", "NAME", "TYPE", "CREATED", "SIZE", "ALBUMS"],
         "No files.",
         |file| {
             [
@@ -269,7 +340,128 @@ pub fn files(
                 escape_controls(&file.name),
                 type_label(file.kind).to_owned(),
                 file.created_at,
+                file.size_bytes
+                    .map(|bytes| bytes.to_string())
+                    .unwrap_or_default(),
                 file.album_ids.join(","),
+            ]
+        },
+    )
+}
+
+pub fn duplicates(groups: &[&DuplicateGroupView], args: &ListArgs, as_json: bool) -> Result<()> {
+    let limit = args.limit().map_or(usize::MAX, |n| n as usize);
+    let shown = &groups[..groups.len().min(limit)];
+    if as_json {
+        json(&shown)?;
+    } else {
+        let mut stdout = std::io::stdout().lock();
+        if shown.is_empty() {
+            writeln!(stdout, "No duplicates found.")?;
+        } else {
+            duplicate_groups(&mut stdout, shown)?;
+        }
+        stdout.flush()?;
+    }
+    if groups.len() > limit {
+        eprintln!("Showing first {limit} results; use --limit N or --all to see more.");
+    }
+    Ok(())
+}
+
+pub fn duplicate_label(group: &DuplicateGroupView) -> String {
+    format!(
+        "{}: {} copies, {} bytes reclaimable — {}",
+        group.id,
+        group.files.len(),
+        group.reclaimable_bytes,
+        group
+            .files
+            .iter()
+            .map(|f| escape_controls(&f.name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+pub fn duplicate_groups(out: &mut impl Write, groups: &[&DuplicateGroupView]) -> Result<()> {
+    if groups.is_empty() {
+        writeln!(out, "No duplicate groups selected.")?;
+    }
+    for (index, group) in groups.iter().enumerate() {
+        if index > 0 {
+            writeln!(out)?;
+        }
+        writeln!(
+            out,
+            "Group {}: {} copies, {} bytes reclaimable",
+            group.id,
+            group.files.len(),
+            group.reclaimable_bytes
+        )?;
+        let rows = group
+            .files
+            .iter()
+            .map(|file| {
+                [
+                    if file.id == group.retained_id {
+                        "keep"
+                    } else {
+                        "trash"
+                    }
+                    .to_owned(),
+                    file.id.clone(),
+                    escape_controls(&file.name),
+                    file.albums
+                        .iter()
+                        .map(|a| format!("{} ({})", escape_controls(&a.name), a.id))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ]
+            })
+            .collect::<Vec<_>>();
+        write_table(out, ["ACTION", "ID", "NAME", "ALBUMS"], &rows)?;
+    }
+    Ok(())
+}
+
+pub fn cities(
+    cities: impl Iterator<Item = CityView>,
+    args: &ListArgs,
+    as_json: bool,
+) -> Result<()> {
+    list(
+        cities.map(Ok),
+        args,
+        as_json,
+        ["CITY", "COUNTRY", "FILES"],
+        "No places.",
+        |city| {
+            [
+                escape_controls(&city.name),
+                escape_controls(&city.country),
+                city.file_count.to_string(),
+            ]
+        },
+    )
+}
+
+pub fn countries(
+    countries: impl Iterator<Item = CountryView>,
+    args: &ListArgs,
+    as_json: bool,
+) -> Result<()> {
+    list(
+        countries.map(Ok),
+        args,
+        as_json,
+        ["COUNTRY", "CODE", "FILES"],
+        "No places.",
+        |country| {
+            [
+                escape_controls(&country.name),
+                country.code,
+                country.file_count.to_string(),
             ]
         },
     )
@@ -306,6 +498,12 @@ pub fn file(file: &FileView) -> Result<()> {
         ("Duration", file.duration_seconds.map(|s| format!("{s} s"))),
         ("Width", file.width.map(|w| w.to_string())),
         ("Height", file.height.map(|h| h.to_string())),
+        (
+            "Size",
+            file.size_bytes
+                .and_then(|bytes| i64::try_from(bytes).ok())
+                .map(file_size),
+        ),
         ("Hash", file.hash.as_deref().map(escape_controls)),
     ] {
         if let Some(value) = value {
@@ -354,7 +552,115 @@ pub fn admin_user(details: &UserDetails, as_json: bool) -> Result<()> {
     write_fields(&fields)
 }
 
+pub fn usage(details: &AccountDetails, as_json: bool) -> Result<()> {
+    let active = details.plan_active();
+    if as_json {
+        let family = details.family().map(|family| {
+            json_value!({
+                "usedBytes": family.usage(),
+                "storageBytes": details.total_storage(),
+                "members": family.members.iter().map(|member| json_value!({
+                    "email": member.email, "status": member.status, "admin": member.is_admin,
+                    "usedBytes": member.usage, "storageLimitBytes": member.storage_limit,
+                })).collect::<Vec<_>>(),
+            })
+        });
+        return json(&json_value!({
+            "email": details.email,
+            "totalBytes": details.total_storage(),
+            "usedBytes": details.usage,
+            "freeBytes": details.free_storage(),
+            "planBytes": details.plan_storage(),
+            "bonusBytes": details.storage_bonus,
+            "planActive": active,
+            "planExpiresAt": timestamp(details.plan_expiry_time())?,
+            "files": details.file_count,
+            "family": family,
+        }));
+    }
+    let mut fields = vec![
+        ("Email", escape_controls(&details.email)),
+        ("Total", size(details.total_storage())),
+        ("Used", size(details.usage)),
+        ("Free", size(details.free_storage())),
+        ("Plan", size(details.plan_storage())),
+        (
+            "Status",
+            if active { "active" } else { "expired" }.to_owned(),
+        ),
+        ("Bonus", size(details.storage_bonus)),
+        (
+            "Files",
+            details
+                .file_count
+                .map_or("unknown".to_owned(), |count| count.to_string()),
+        ),
+    ];
+    match details.family() {
+        Some(family) => {
+            let members = family
+                .members
+                .iter()
+                .map(|member| {
+                    let mut label = escape_controls(&member.email);
+                    if member.is_admin {
+                        label.push_str(" (admin)");
+                    } else if member.status != "ACCEPTED" {
+                        label.push_str(&format!(" ({})", member.status.to_lowercase()));
+                    }
+                    label
+                })
+                .collect::<Vec<_>>();
+            fields.extend([
+                ("Family", members.join(", ")),
+                ("Family used", size(family.usage())),
+                ("Family storage", size(details.total_storage())),
+            ]);
+            if let Some(limit) = details.family_member().and_then(|m| m.storage_limit) {
+                fields.push(("Your limit", size(limit)));
+            }
+        }
+        None => fields.push(("Family", "none".to_owned())),
+    }
+    write_fields(&fields)
+}
+
 pub fn storage_size(bytes: i64) -> String {
+    scaled_size(
+        bytes,
+        &[
+            ("TB", 1024_i64.pow(4)),
+            ("GB", 1024_i64.pow(3)),
+            ("MB", 1024_i64.pow(2)),
+        ],
+    )
+}
+
+fn file_size(bytes: i64) -> String {
+    scaled_size(
+        bytes,
+        &[
+            ("GB", 1024_i64.pow(3)),
+            ("MB", 1024_i64.pow(2)),
+            ("KB", 1024_i64),
+        ],
+    )
+}
+
+fn scaled_size(bytes: i64, units: &[(&str, i64)]) -> String {
+    for &(unit, divisor) in units {
+        if bytes >= divisor {
+            let size = format!("{:.2}", bytes as f64 / divisor as f64);
+            return format!(
+                "{} {unit} ({bytes} bytes)",
+                size.trim_end_matches('0').trim_end_matches('.')
+            );
+        }
+    }
+    format!("{bytes} bytes")
+}
+
+fn size(bytes: i64) -> String {
     for (unit, divisor) in [
         ("TB", 1024_i64.pow(4)),
         ("GB", 1024_i64.pow(3)),
@@ -363,7 +669,7 @@ pub fn storage_size(bytes: i64) -> String {
         if bytes >= divisor {
             let size = format!("{:.2}", bytes as f64 / divisor as f64);
             return format!(
-                "{} {unit} ({bytes} bytes)",
+                "{} {unit}",
                 size.trim_end_matches('0').trim_end_matches('.')
             );
         }

@@ -10,7 +10,7 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import "package:photos/ui/social/widgets/resolved_social_user_name.dart";
 import "package:photos/ui/social/widgets/shared_photos_grid.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";

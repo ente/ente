@@ -102,7 +102,7 @@
   "@addPage": {
     "description": "Button to capture another page in the document scanner"
   },
-  "addPeopleWidgetPrompt": "Añadir un widget de personas a la pantalla de inicio para personalizarlo aquí.",
+  "addPeopleWidgetPrompt": "Añadir un widget de álbum a la pantalla de inicio para personalizarlo aquí.",
   "addPerson": "Añadir persona",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -176,7 +176,7 @@
   "allowDownloads": "Permitir descargas",
   "allowJoining": "Permitir unirse",
   "allowJoiningAlbum": "Permitir unirse al álbum",
-  "allowJoiningDescription": "Quienes pueden ver tu álbum y tienen una cuenta de Ente pueden unirse a él y mantenerse al día",
+  "allowJoiningDescription": "Los usuarios con una cuenta de Ente pueden unirse a tu álbum y mantenerse actualizados",
   "allowPermBody": "Por favor, permite el acceso a tus fotos desde Ajustes para que Ente pueda mostrar y hacer una copia de seguridad de tu biblioteca.",
   "allowPermTitle": "Permitir el acceso a las fotos",
   "allPersonGroupingWillReset": "Se eliminarán todas las agrupaciones para esta persona, y se eliminarán todas sus sugerencias",
@@ -1204,6 +1204,7 @@
   "featureSearchEtc": "Busca, Etiqueta, Comparte, Siguiente código y mucho más",
   "featureShareAnytime": "Compartelos en cualquier momento",
   "feed": "Actividad",
+  "feedToEngageWithFamily": "Actividad para conectar con tu familia",
   "festivities": "Hurra festivo",
   "fieldCopiedToClipboard": "{fieldName} copiado al portapapeles",
   "@fieldCopiedToClipboard": {
@@ -1667,7 +1668,6 @@
   "mlConsent": "Habilitar aprendizaje automático",
   "mlConsentConfirmation": "Entiendo y deseo habilitar el aprendizaje automático",
   "mlConsentDescription": "Si habilitas el aprendizaje automático, Ente extraerá información como la geometría de la cara de los archivos, incluyendo aquellos compartidos contigo.\n\nEsto sucederá en tu dispositivo, y cualquier información biométrica generada será encriptada de extremo a extremo.",
-  "mlConsentPrivacy": "Por favor, haz clic aquí para más detalles sobre esta característica en nuestra política de privacidad",
   "mlProgressBannerDescription": "Tus fotos están siendo procesadas en el dispositivo para detectar caras, objetos y más.",
   "mlProgressBannerStatus": "{indexed} de {total} fotos procesadas",
   "@mlProgressBannerStatus": {
@@ -2677,6 +2677,10 @@
   "shareStorageWith5Members": "Comparte almacenamiento con 5 miembros",
   "shareThisLink": "Este enlace permite a cualquier persona que lo reciba acceder a tu elemento. Puedes eliminar el acceso en cualquier momento eliminando el enlace.",
   "shareWithNonenteUsers": "Compartir con usuarios fuera de Ente",
+  "shareYourFeedbackHere": "Comparte tu opinión aquí",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
   "shareYourSubscription": "Comparte tu suscripción con tus seres queridos",
   "sharing": "Compartiendo...",
   "sharingAndCollaboration": "Compartir y colaborar",

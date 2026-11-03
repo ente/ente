@@ -11,7 +11,8 @@ final class NotificationKeyPlugin: NSObject, FlutterPlugin {
   }
 
   static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: NotificationKeyStore.service, binaryMessenger: registrar.messenger())
+    let channel = FlutterMethodChannel(
+      name: NotificationKeyStore.service, binaryMessenger: registrar.messenger())
     registrar.addMethodCallDelegate(NotificationKeyPlugin(), channel: channel)
   }
 
@@ -19,12 +20,6 @@ final class NotificationKeyPlugin: NSObject, FlutterPlugin {
     Self.queue.async {
       do {
         let arguments = call.arguments as? [String: Any] ?? [:]
-        if call.method == "getPrivateKey" || call.method == "setPrivateKey" {
-          guard let token = arguments["sessionToken"] as? String,
-            UserDefaults.standard.string(forKey: "flutter.token") == token else {
-            throw NotificationKeyStore.StoreError.invalidRecord
-          }
-        }
         let response: Any?
         switch call.method {
         case "getPrivateKey":
@@ -37,7 +32,11 @@ final class NotificationKeyPlugin: NSObject, FlutterPlugin {
           try NotificationKeyStore.write(privateKey: privateKey)
           response = nil
         case "clear":
+          NotificationKeyStore.clearPreferences()
           try NotificationKeyStore.clear()
+          response = nil
+        case "sharePreferences":
+          NotificationKeyStore.sharePreferences()
           response = nil
         default:
           DispatchQueue.main.async { result(FlutterMethodNotImplemented) }

@@ -94,9 +94,11 @@
     width: 24px !important;
   }
 </style>
+{{block "legacy_styles" .}}{{end}}
 
 <body>
 <div class="gutter" style="padding: 4px">&nbsp;</div>
+{{block "legacy_card" .}}
 <div class="wrap" style=" background-color: rgb(255, 255, 255); padding: 2px
     30px 30px 30px; max-width: 525px; margin: 0 auto; border-radius: 5px;
     font-size: 16px; " >
@@ -104,6 +106,7 @@
     {{block "content" .}} Default Content {{end}}
   </main>
 </div>
+{{end}}
 <br />
 <div class="footer" style="text-align: center; font-size: 12px; color:
     rgb(136, 136, 136)" >
@@ -141,3 +144,32 @@
 </html>
 {{end}}
 
+{{define "legacy_kit_styles"}}
+<style>
+  body {
+    background-color: #ffffff;
+    color: #161616;
+  }
+
+  a {
+    color: #087d2c;
+  }
+</style>
+{{end}}
+
+{{define "legacy_kit_card"}}
+<div
+  class="wrap"
+  style="
+    background-color: #fcfcfc;
+    border: 1px solid #f0f0f0;
+    padding: 2px 30px 30px;
+    max-width: 525px;
+    margin: 0 auto;
+    border-radius: 36px;
+    font-size: 16px;
+  "
+>
+  <main>{{template "content" .}}</main>
+</div>
+{{end}}

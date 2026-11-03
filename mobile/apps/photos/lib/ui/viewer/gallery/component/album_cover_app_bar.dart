@@ -23,7 +23,8 @@ class AlbumCoverAppBar extends StatefulWidget {
   const AlbumCoverAppBar({
     super.key,
     this.collection,
-    required this.cover,
+    this.cover,
+    this.coverWidget,
     this.subtitle,
     required this.title,
     required this.actionsBuilder,
@@ -32,10 +33,11 @@ class AlbumCoverAppBar extends StatefulWidget {
     required this.collapsedHeight,
     this.heroTag,
     this.bottom,
-  });
+  }) : assert(cover != null || coverWidget != null);
 
   final Collection? collection;
-  final EnteFile cover;
+  final EnteFile? cover;
+  final Widget? coverWidget;
   final String? subtitle;
   final String title;
   final List<Widget> Function(Color foregroundColor) actionsBuilder;
@@ -135,6 +137,7 @@ class _AlbumCoverAppBarState extends State<AlbumCoverAppBar> with RouteAware {
           collapseOffset: collapseOffset,
           imageBottomInset: _coverBottomInset(bottomHeight) - 1,
           cover: widget.cover,
+          coverWidget: widget.coverWidget,
           backgroundColor: widget.backgroundColor,
           heroTag: widget.heroTag,
         ),
@@ -255,6 +258,7 @@ class _CoverPhoto extends StatelessWidget {
     required this.collapseOffset,
     required this.imageBottomInset,
     required this.cover,
+    required this.coverWidget,
     required this.backgroundColor,
     this.heroTag,
   });
@@ -264,7 +268,8 @@ class _CoverPhoto extends StatelessWidget {
   final _CoverForegroundNotifier foregroundNotifier;
   final double collapseOffset;
   final double imageBottomInset;
-  final EnteFile cover;
+  final EnteFile? cover;
+  final Widget? coverWidget;
   final Color backgroundColor;
   final String? heroTag;
 
@@ -279,13 +284,15 @@ class _CoverPhoto extends StatelessWidget {
       ),
     );
     foregroundNotifier.update(contextualForeground, context);
-    final thumbnail = ThumbnailWidget(
-      cover,
-      rawThumbnail: true,
-      thumbnailSize: thumbnailLargeSize,
-      useRequestedThumbnailSizeForLocalCache: true,
-      useCachedThumbnailAsPlaceholder: true,
-    );
+    final thumbnail =
+        coverWidget ??
+        ThumbnailWidget(
+          cover!,
+          rawThumbnail: true,
+          thumbnailSize: thumbnailLargeSize,
+          useRequestedThumbnailSizeForLocalCache: true,
+          useCachedThumbnailAsPlaceholder: true,
+        );
     final background = Stack(
       key: photoKey,
       fit: StackFit.expand,
@@ -345,9 +352,16 @@ class _CoverPhoto extends StatelessWidget {
               card = card.child!;
             }
             final SmoothBorderRadius cardRadius;
+            BorderRadius? cardSuperellipseRadius;
             if (card is ClipSmoothRect) {
               cardRadius = card.radius;
               card = card.child;
+            } else if (card is ClipRSuperellipse) {
+              cardSuperellipseRadius = card.borderRadius.resolve(
+                Directionality.of(cardContext),
+              );
+              cardRadius = SmoothBorderRadius.zero;
+              card = card.child!;
             } else if (card is ClipRRect) {
               final radius = card.borderRadius.resolve(
                 Directionality.of(cardContext),
@@ -386,8 +400,9 @@ class _CoverPhoto extends StatelessWidget {
               coverSize: (coverContext.findRenderObject()! as RenderBox).size,
               imageBottomInset: imageBottomInset,
               card: card,
-              showVideoIcon: cover.fileType == FileType.video,
+              showVideoIcon: cover?.fileType == FileType.video,
               cardRadius: cardRadius,
+              cardSuperellipseRadius: cardSuperellipseRadius,
               backgroundColor: backgroundColor,
             );
           },
@@ -423,6 +438,7 @@ class _CoverHeroFlight extends StatefulWidget {
     required this.card,
     required this.showVideoIcon,
     required this.cardRadius,
+    this.cardSuperellipseRadius,
     required this.backgroundColor,
   });
 
@@ -434,6 +450,7 @@ class _CoverHeroFlight extends StatefulWidget {
   final Widget card;
   final bool showVideoIcon;
   final SmoothBorderRadius cardRadius;
+  final BorderRadius? cardSuperellipseRadius;
   final Color backgroundColor;
 
   @override
@@ -491,13 +508,8 @@ class _CoverHeroFlightState extends State<_CoverHeroFlight> {
           ),
         ],
       ),
-      builder: (context, child) => ClipSmoothRect(
-        radius: SmoothBorderRadius.lerp(
-          widget.cardRadius,
-          SmoothBorderRadius.zero,
-          widget.animation.value,
-        )!,
-        child: Stack(
+      builder: (context, child) {
+        final content = Stack(
           fit: StackFit.expand,
           children: [
             Positioned.fill(
@@ -518,8 +530,26 @@ class _CoverHeroFlightState extends State<_CoverHeroFlight> {
               ),
             foreground,
           ],
-        ),
-      ),
+        );
+        if (widget.cardSuperellipseRadius != null) {
+          return ClipRSuperellipse(
+            borderRadius: BorderRadius.lerp(
+              widget.cardSuperellipseRadius,
+              BorderRadius.zero,
+              widget.animation.value,
+            )!,
+            child: content,
+          );
+        }
+        return ClipSmoothRect(
+          radius: SmoothBorderRadius.lerp(
+            widget.cardRadius,
+            SmoothBorderRadius.zero,
+            widget.animation.value,
+          )!,
+          child: content,
+        );
+      },
     );
   }
 }

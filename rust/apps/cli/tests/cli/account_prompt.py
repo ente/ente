@@ -15,7 +15,7 @@ import time
 binary, origin, email = sys.argv[1:4]
 
 
-def run(args, replies):
+def run(args, replies, expected_exit=0):
     pid, fd = pty.fork()
     if pid == 0:
         os.execv(binary, args)
@@ -42,7 +42,7 @@ def run(args, replies):
         while time.monotonic() < deadline:
             done, status = os.waitpid(pid, os.WNOHANG)
             if done:
-                assert os.waitstatus_to_exitcode(status) == 0, output.decode(errors="replace")
+                assert os.waitstatus_to_exitcode(status) == expected_exit, output.decode(errors="replace")
                 return
             if select.select([fd], [], [], 0.1)[0]:
                 try:
@@ -72,17 +72,22 @@ def create(expect, send):
     expect(b"Created ")
 
 
-def enable(expect, send):
+def enable(expect, send, expire=False):
     text = expect(b"Authenticator code:")
     secret = re.search(rb"authenticator: ([A-Z2-7]+)", text)[1]
     send(b"invalid", True)
     expect(b"Code not accepted. Check the code and your computer's date and time, then try again.")
     expect(b"Authenticator code:")
+    if expire:
+        print("expire", flush=True)
+        assert sys.stdin.readline().strip() == "expired"
     key = base64.b32decode(secret + b"=" * (-len(secret) % 8))
     digest = hmac.new(key, (int(time.time()) // 30).to_bytes(8, "big"), hashlib.sha1).digest()
     offset = digest[-1] & 15
     code = (int.from_bytes(digest[offset:offset + 4], "big") & 0x7fffffff) % 1000000
     send(f"{code:06d}".encode(), True)
+    if expire:
+        expect(b"401")
 
 
 def login(expect, send, email_mfa):
@@ -127,4 +132,6 @@ for email_mfa in [True, False]:
     )
     run([binary, "account", "login", "--app", "photos", "--email", email],
         lambda expect, send: login(expect, send, email_mfa))
+run([binary, "account", "totp", "enable"],
+    lambda expect, send: enable(expect, send, expire=True), expected_exit=1)
 run([binary, "account", "totp", "enable"], enable)

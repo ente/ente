@@ -7,6 +7,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	model "github.com/ente/museum/ente/userentity"
+	"github.com/ente/museum/pkg/utils/dbmetrics"
 	"github.com/ente/stacktrace"
 	"github.com/sirupsen/logrus"
 )
@@ -107,7 +108,9 @@ func (r *Repository) Update(ctx context.Context, userID int64, req model.UpdateE
 		query += ` and updated_at = $6`
 		args = append(args, *req.ExpectedUpdatedAt)
 	}
+	finishPhase := dbmetrics.Start(dbmetrics.UserEntityUpdate, "exec_autocommit_with_checkout")
 	result, err := r.DB.ExecContext(ctx, query, args...)
+	finishPhase(err)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -116,7 +119,9 @@ func (r *Repository) Update(ctx context.Context, userID int64, req model.UpdateE
 		return stacktrace.Propagate(err, "")
 	}
 	if affected != 1 {
+		finishPhase = dbmetrics.Start(dbmetrics.UserEntityUpdate, "read_conflict_with_checkout")
 		dbEntity, dbEntityErr := r.Get(ctx, userID, req.ID)
+		finishPhase(dbEntityErr)
 		if dbEntityErr != nil {
 			return stacktrace.Propagate(dbEntityErr, "failed to get entity for update with id=%s", req.ID)
 		}

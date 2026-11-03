@@ -8,7 +8,8 @@ final _allowedTag = RegExp(
 );
 
 String reconstructHlsPlaylist(String template, String segmentUrl) {
-  if (RegExp(r'\r(?!\n)').hasMatch(template)) {
+  if (RegExp(r'\r(?!\n)').hasMatch(template) ||
+      RegExp(r'[\r\n]').hasMatch(segmentUrl)) {
     throw const FormatException('Invalid HLS playlist');
   }
   final result = <String>[];

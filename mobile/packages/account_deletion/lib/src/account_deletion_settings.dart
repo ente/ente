@@ -1,6 +1,4 @@
-import 'package:dio/dio.dart';
 import 'package:ente_account_deletion/src/account_deletion_host.dart';
-import 'package:ente_account_deletion/src/services/account_deletion_service.dart';
 
 class AccountDeletionSettings {
   AccountDeletionSettings._privateConstructor();
@@ -9,11 +7,9 @@ class AccountDeletionSettings {
       AccountDeletionSettings._privateConstructor();
 
   AccountDeletionHost? _host;
-  AccountDeletionService? _service;
 
-  void init({required AccountDeletionHost host, required Dio enteDio}) {
+  void init({required AccountDeletionHost host}) {
     _host = host;
-    _service = AccountDeletionService(enteDio);
   }
 
   AccountDeletionHost get host {
@@ -22,13 +18,5 @@ class AccountDeletionSettings {
       throw StateError('AccountDeletionSettings.init must be called first');
     }
     return host;
-  }
-
-  AccountDeletionService get service {
-    final service = _service;
-    if (service == null) {
-      throw StateError('AccountDeletionSettings.init must be called first');
-    }
-    return service;
   }
 }

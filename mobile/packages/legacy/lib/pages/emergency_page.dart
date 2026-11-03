@@ -15,7 +15,7 @@ import "package:ente_legacy/pages/legacy_kit_intro_page.dart";
 import "package:ente_legacy/pages/other_contact_page.dart";
 import "package:ente_legacy/pages/select_contact_page.dart";
 import "package:ente_legacy/pages/share_legacy_kit_page.dart";
-import "package:ente_sharing/user_avator_widget.dart";
+import "package:ente_sharing/user_avatar_widget.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/alert_bottom_sheet.dart";
 import "package:ente_ui/components/captioned_text_widget_v2.dart";

@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/pages/request_pwd_verification_page.dart';
 import 'package:ente_accounts/pages/sessions_page.dart';
@@ -101,21 +99,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
             context.strings.authenticateGeneric,
             refocusWindows: false,
           );
-      if (!hasAuthenticated) return;
-      final isPassKeyResetEnabled = await PasskeyService.instance
-          .isPasskeyRecoveryEnabled();
-      if (!isPassKeyResetEnabled) {
-        final Uint8List recoveryKey = Configuration.instance.getRecoveryKey();
-        final resetKey = CryptoUtil.generateKey();
-        final resetKeyBase64 = CryptoUtil.bin2base64(resetKey);
-        final encryptionResult = CryptoUtil.encryptSync(resetKey, recoveryKey);
-        await PasskeyService.instance.configurePasskeyRecovery(
-          resetKeyBase64,
-          CryptoUtil.bin2base64(encryptionResult.encryptedData!),
-          CryptoUtil.bin2base64(encryptionResult.nonce!),
-        );
-      }
-      if (!mounted) return;
+      if (!hasAuthenticated || !mounted) return;
       await PasskeyService.instance.openPasskeyPage(context);
     } catch (error, stackTrace) {
       _logger.severe('Failed to open passkey page', error, stackTrace);
@@ -178,7 +162,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                 final loginKey = await CryptoUtil.deriveLoginKey(
                   keyEncryptionKey,
                 );
-                await UserService.instance.registerOrUpdateSrp(loginKey);
+                await UserService.instance.setupSrp(loginKey);
               },
             ),
           ),

@@ -1,0 +1,26 @@
+{
+    "name": "photobook",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "test": "vitest --run"
+    },
+    "dependencies": {
+        "@fontsource/gochi-hand": "5.3.0",
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
+        "bs58": "6.0.0",
+        "ente-base": "*",
+        "ente-gallery": "*",
+        "ente-media": "*",
+        "ente-photobook-wasm": "*",
+        "jszip": "3.10.2",
+        "konva": "9.3.22",
+        "page-flip": "2.0.7",
+        "react-konva": "19.2.3"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "vitest": "5.0.4"
+    }
+}

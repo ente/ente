@@ -149,15 +149,21 @@
         "rust/Cargo.toml",
         "rust/bindings/wasm/**",
         "rust/crates/accounts/**",
+        "rust/crates/assets/**",
         "rust/crates/cast/**",
         "rust/crates/collections/**",
         "rust/crates/contacts/**",
         "rust/crates/core/**",
         "rust/crates/ensu-crypto/**",
+        "rust/crates/exif/**",
         "rust/crates/legacy/**",
+        "rust/crates/location/**",
         "rust/crates/locker/**",
         "rust/crates/paste/**",
+        "rust/crates/photobook/**",
+        "rust/crates/photos/**",
         "rust/crates/space/**",
+        "rust/crates/vecdb/**",
         "web/**"
     ]
 }

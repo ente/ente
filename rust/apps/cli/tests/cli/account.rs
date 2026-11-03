@@ -485,20 +485,40 @@ async fn srp_attributes(
 #[test]
 fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestResult {
     use ente_test_support::{Museum, account_fixture::current_totp};
-    Museum::run_async(|origin| async move {
+    let inbox = super::mail::MailInbox::new();
+    let port = inbox.port.to_string();
+    let env = [
+        ("ENTE_SMTP_HOST", "127.0.0.1"),
+        ("ENTE_SMTP_PORT", &port),
+        ("ENTE_SMTP_USERNAME", ""),
+        ("ENTE_SMTP_PASSWORD", ""),
+        ("ENTE_SMTP_ENCRYPTION", ""),
+    ];
+    Museum::run_with_env(&env, |museum| {
+        let origin = museum.endpoint();
         let home = TestHome::new();
-        let email = format!("cli-create-{}@example.org", uuid::Uuid::new_v4());
+        let email = format!("cli-create-{}@example.com", uuid::Uuid::new_v4());
         home.json(&[
             "account",
             "request-otp",
             "--email",
             &email,
             "--host",
-            &origin,
+            origin,
             "--app",
             "auth",
         ]);
-        let input = json!({"password": " secret 🙂 ", "otp": "123456"});
+        let read_code = || {
+            let message = inbox.receive("Subject: Verification code:");
+            assert!(message.contains(&format!("RCPT TO:<{email}>")));
+            message
+                .lines()
+                .find_map(|line| line.strip_prefix("Subject: Verification code: "))
+                .unwrap()
+                .trim()
+                .to_owned()
+        };
+        let input = json!({"password": " secret 🙂 ", "otp": read_code()});
         let output = success(home.with_input(
             &[
                 "account",
@@ -506,7 +526,7 @@ fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestRe
                 "--email",
                 &email,
                 "--host",
-                &origin,
+                origin,
                 "--app",
                 "auth",
                 "--input",
@@ -548,26 +568,56 @@ fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestRe
             json!({"totpEnabled": true})
         );
         assert!(failure(&home.run(&["account", "totp", "setup"])).contains("already enabled"));
-        let second = TestHome::new();
-        let login =
-            json!({"password": " secret 🙂 ", "otp": "123456", "totp": current_totp(secret)?});
-        success(second.with_input(
+        success(home.with_input(
             &[
-                "account",
-                "login",
-                "--email",
-                &email,
-                "--account",
-                "personal",
-                "--app",
                 "auth",
-                "--host",
-                &origin,
-                "--input",
+                "api",
+                "/users/email-mfa",
+                "--method",
+                "PUT",
+                "--body",
                 "-",
             ],
-            &serde_json::to_vec(&login)?,
+            br#"{"isEnabled":true}"#,
         ));
+        let second = TestHome::new();
+        second.json(&[
+            "account",
+            "request-otp",
+            "--email",
+            &email,
+            "--host",
+            origin,
+            "--app",
+            "auth",
+            "--purpose",
+            "login",
+        ]);
+        let code = read_code();
+        let wrong_code = format!("{:06}", (code.parse::<u32>()? + 1) % 1_000_000);
+        let login = [
+            "account",
+            "login",
+            "--email",
+            &email,
+            "--account",
+            "personal",
+            "--app",
+            "auth",
+            "--host",
+            origin,
+            "--input",
+            "-",
+        ];
+        let mut input = json!({"password": " secret 🙂 ", "otp": wrong_code});
+        let error = failure(&second.with_input(&login, &serde_json::to_vec(&input)?));
+        assert!(
+            error.contains("Incorrect email verification code"),
+            "{error}"
+        );
+        input["otp"] = code.into();
+        input["totp"] = current_totp(secret)?.into();
+        success(second.with_input(&login, &serde_json::to_vec(&input)?));
         assert_eq!(
             home.json(&["account", "recovery-key"]),
             second.json(&["account", "recovery-key", "--account", "personal"])
@@ -583,21 +633,32 @@ fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestRe
 #[cfg(all(unix, feature = "museum"))]
 #[test]
 fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::TestResult {
-    ente_test_support::Museum::run_async(|origin| async move {
+    use std::io::{BufRead, BufReader};
+
+    ente_test_support::Museum::run(|museum| {
         let home = TestHome::new();
         let email = format!("cli-interactive-{}@example.org", uuid::Uuid::new_v4());
-        success(
-            Command::new("python3")
+        success({
+            let mut child = Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/tests/cli/account_prompt.py"
                 ))
                 .arg(cli_binary())
-                .args([&origin, &email])
+                .args([museum.endpoint(), &email])
                 .env("ENTE_CLI_HOME", home.dir.path())
                 .env("ENTE_CLI_VAULT_KEY", b64::encode(home.key.as_bytes()))
-                .output()?,
-        );
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
+            let mut ready = String::new();
+            BufReader::new(child.stdout.take().unwrap()).read_line(&mut ready)?;
+            assert_eq!(ready.trim(), "expire");
+            museum.execute_sql("UPDATE temp_two_factor SET expiration_time = 1")?;
+            writeln!(child.stdin.take().unwrap(), "expired")?;
+            child.wait_with_output()?
+        });
         assert_eq!(home.json(&["account", "view"])["name"], email);
         assert_eq!(
             home.json(&["account", "totp", "status"]),
@@ -609,4 +670,232 @@ fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::Te
         );
         Ok(())
     })
+}
+
+const GB: i64 = 1 << 30;
+
+fn seed_sessions(home: &TestHome, origin: &str, sessions: Value) {
+    let id = "e6b355f0-5d4d-4fc3-b32c-a6c8f52b8210";
+    home.write_vault(&json!({
+        "selected": id,
+        "accounts": [{
+            "storage_id": id, "db_key": vec![42u8; 32], "name": "fixture", "email": "fixture@example.org",
+            "origin": origin, "user_id": 9007199254740993i64,
+            "identity": {"master_key": vec![0u8; 32], "recovery_key": vec![0u8; 32], "secret_key": vec![0u8; 32]},
+            "sessions": sessions
+        }]
+    }));
+}
+
+fn details_body(family: Value) -> String {
+    json!({
+        "email": "fixture@example.org", "usage": 3 * GB, "fileCount": 339, "sharedCollectionsCount": 2,
+        "storageBonus": 10 * GB,
+        "subscription": {"productID": "free", "storage": 10 * GB, "expiryTime": 4942020944746699i64,
+            "originalTransactionID": "none", "paymentProvider": "", "attributes": {}},
+        "familyData": family,
+    })
+    .to_string()
+}
+
+#[test]
+fn usage_reads_account_details_with_the_saved_login() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let details = server
+        .mock("GET", "/users/details/v2")
+        .match_query(Matcher::UrlEncoded("memoryCount".into(), "true".into()))
+        .match_header("x-client-package", "io.ente.photos")
+        .match_header("x-auth-token", b64::encode_url_safe(&[0xfb, 0xef]).as_str())
+        .with_body(details_body(Value::Null))
+        .expect(2)
+        .create();
+    assert_eq!(
+        home.json(&["photos", "usage"]),
+        json!({"email": "fixture@example.org", "usedBytes": 3 * GB, "totalBytes": 20 * GB,
+            "planBytes": 10 * GB, "bonusBytes": 10 * GB, "freeBytes": 17 * GB, "files": 339,
+            "planExpiresAt": "2126-08-10T07:35:44.746699Z", "planActive": true, "family": null})
+    );
+    let plain = success(home.run(&["photos", "usage"]));
+    assert_eq!(
+        String::from_utf8_lossy(&plain.stdout),
+        "Email   fixture@example.org\nTotal   20 GB\n\
+         Used    3 GB\nFree    17 GB\n\
+         Plan    10 GB\nStatus  active\n\
+         Bonus   10 GB\nFiles   339\nFamily  none\n"
+    );
+    details.assert();
+}
+
+#[test]
+fn family_usage_reports_the_admin_plan_and_the_member_limit() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0, "members": [
+        {"id": "a", "email": "admin@example.org", "status": "ACCEPTED", "usage": 50 * GB, "isAdmin": true},
+        {"id": "b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": 5 * GB},
+        {"id": "c", "email": "new@example.org", "status": "INVITED"}
+    ]});
+    // A member's own subscription is a lapsed plan; the family plan is what counts.
+    let mut body: Value = serde_json::from_str(&details_body(family)).unwrap();
+    body["subscription"]["expiryTime"] = json!(1);
+    let details = server
+        .mock("GET", "/users/details/v2")
+        .match_query(Matcher::Any)
+        .with_body(body.to_string())
+        .expect(2)
+        .create();
+    let usage = home.json(&["photos", "usage"]);
+    assert_eq!(usage["planBytes"], 200 * GB);
+    assert_eq!(usage["planActive"], true);
+    assert_eq!(usage["planExpiresAt"], "2126-08-10T07:35:44.746699Z");
+    assert_eq!(usage["totalBytes"], 210 * GB);
+    assert_eq!(usage["freeBytes"], 2 * GB);
+    assert_eq!(usage["family"]["usedBytes"], 53 * GB);
+    assert_eq!(usage["family"]["storageBytes"], 210 * GB);
+    assert_eq!(
+        usage["family"]["members"][2],
+        json!({"email": "new@example.org", "status": "INVITED", "admin": false, "usedBytes": 0, "storageLimitBytes": null})
+    );
+    let plain = String::from_utf8(success(home.run(&["photos", "usage"])).stdout).unwrap();
+    assert!(
+        plain.contains("Plan            200 GB\nStatus          active\n"),
+        "{plain}"
+    );
+    assert!(plain.contains(
+        "Family          admin@example.org (admin), fixture@example.org, new@example.org (invited)\n\
+         Family used     53 GB\nFamily storage  210 GB\n\
+         Your limit      5 GB\n"
+    ));
+    details.assert();
+}
+
+#[test]
+fn family_usage_free_space_respects_both_quotas() {
+    for (family_used, member_limit, free, free_text) in [
+        (53, Some(5), 2, "2 GB"),
+        (209, Some(5), 1, "1 GB"),
+        (210, Some(5), 0, "0 bytes"),
+        (211, Some(5), 0, "0 bytes"),
+        (53, Some(3), 0, "0 bytes"),
+        (53, Some(2), 0, "0 bytes"),
+        (209, None, 1, "1 GB"),
+    ] {
+        let mut server = mockito::Server::new();
+        let home = TestHome::new();
+        home.seed(&server.url());
+        let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "members": [
+            {"email": "admin@example.org", "status": "ACCEPTED", "usage": (family_used - 3) * GB, "isAdmin": true},
+            {"email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB,
+                "storageLimit": member_limit.map(|limit| limit * GB)}
+        ]});
+        let details = server
+            .mock("GET", "/users/details/v2")
+            .match_query(Matcher::Any)
+            .with_body(details_body(family))
+            .expect(2)
+            .create();
+        let usage = home.json(&["photos", "usage"]);
+        assert_eq!(
+            usage["freeBytes"],
+            free * GB,
+            "family used: {family_used} GB; member limit: {member_limit:?} GB"
+        );
+        let plain = String::from_utf8(success(home.run(&["photos", "usage"])).stdout).unwrap();
+        let free_line = plain
+            .lines()
+            .find(|line| line.starts_with("Free "))
+            .unwrap();
+        assert_eq!(free_line.strip_prefix("Free").unwrap().trim(), free_text);
+        details.assert();
+    }
+}
+
+#[test]
+fn usage_counts_photos_files_and_needs_a_photos_login() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    let details = server
+        .mock("GET", "/users/details/v2")
+        .match_query(Matcher::Any)
+        .match_header("x-client-package", "io.ente.photos")
+        .match_header("x-auth-token", b64::encode_url_safe(&[0xfb, 0xef]).as_str())
+        .with_body(details_body(Value::Null))
+        .expect(2)
+        .create();
+    for (app, token) in [("locker", [1u8, 2]), ("auth", [3, 4])] {
+        seed_sessions(&home, &server.url(), json!({app: {"token": token}}));
+        let error = failure(&home.run(&["photos", "usage"]));
+        assert!(error.contains("not logged into Ente Photos"), "{error}");
+        assert!(
+            error.contains("account login --account \"fixture\" --app photos"),
+            "{error}"
+        );
+    }
+    seed_sessions(
+        &home,
+        &server.url(),
+        json!({"locker": {"token": [1, 2]}, "photos": {"token": [0xfb, 0xef]}}),
+    );
+    let with_locker = home.json(&["photos", "usage"]);
+    assert_eq!(with_locker["files"], 339);
+    seed_sessions(
+        &home,
+        &server.url(),
+        json!({"photos": {"token": [0xfb, 0xef]}}),
+    );
+    assert_eq!(home.json(&["photos", "usage"]), with_locker);
+    details.assert();
+}
+
+#[test]
+fn usage_reports_server_errors_and_refuses_offline_or_missing_accounts() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    assert!(failure(&home.run(&["photos", "usage"])).contains("no accounts"));
+    home.seed(&server.url());
+    assert!(
+        failure(&home.run(&["photos", "usage", "--offline"])).contains("requires network access")
+    );
+    assert!(failure(&home.run(&["photos", "usage", "--account", "nobody"])).contains("nobody"));
+    let details = server
+        .mock("GET", "/users/details/v2")
+        .match_query(Matcher::Any)
+        .with_status(503)
+        .with_body("maintenance")
+        .expect(1)
+        .create();
+    let photos = home.run(&["photos", "usage", "--json"]);
+    assert!(failure(&photos).contains("HTTP 503"));
+    assert!(photos.stdout.is_empty());
+    details.assert();
+}
+
+#[test]
+fn usage_marks_an_expired_plan() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let mut body: Value = serde_json::from_str(&details_body(Value::Null)).unwrap();
+    body["subscription"]["storage"] = json!(50 * GB);
+    body["subscription"]["expiryTime"] = json!(1_767_225_600_000_000i64);
+    let details = server
+        .mock("GET", "/users/details/v2")
+        .match_query(Matcher::Any)
+        .with_body(body.to_string())
+        .expect(2)
+        .create();
+    let usage = home.json(&["photos", "usage"]);
+    assert_eq!(usage["planBytes"], 50 * GB);
+    assert_eq!(usage["planExpiresAt"], "2026-01-01T00:00:00.000000Z");
+    assert_eq!(usage["planActive"], false);
+    assert_eq!(usage["totalBytes"], 60 * GB);
+    let plain = String::from_utf8(success(home.run(&["photos", "usage"])).stdout).unwrap();
+    assert!(
+        plain.contains("Plan    50 GB\nStatus  expired\n"),
+        "{plain}"
+    );
+    details.assert();
 }

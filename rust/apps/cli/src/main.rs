@@ -12,6 +12,7 @@ mod output;
 mod password;
 mod paste;
 mod photos;
+mod usage;
 mod vault;
 
 use std::{

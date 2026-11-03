@@ -36,6 +36,18 @@ void main() {
       );
     });
 
+    for (final entry in {'line feed': '\n', 'carriage return': '\r'}.entries) {
+      test('rejects a segment URL containing ${entry.key}', () {
+        final segmentUrl =
+            'https://museum.example/video${entry.value}#EXT-X-KEY:METHOD=NONE';
+
+        expect(
+          () => reconstructHlsPlaylist(playlist, segmentUrl),
+          throwsFormatException,
+        );
+      });
+    }
+
     final invalidPlaylists = {
       'remote key': playlist.replaceFirst(
         'data:text/plain;base64,XjvG7qeRrsOpPUbJPh2Ikg==',

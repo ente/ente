@@ -33,6 +33,24 @@ Enter the two-factor setup key provided by the service you are securing. It is n
 
 Keep the setup key private.
 
+### Why does Ente Auth say "Please verify the details and try again", "Secret can not be empty", or "Digits must be between 1 and 10"? {#manual-entry-errors}
+
+Ente Auth checks the details when you save a code you added with **Enter details manually**. If something is wrong, it shows an **Incorrect details** message and doesn't save the code.
+
+- **Secret can not be empty**: the **Secret** field is blank. Enter the service's setup key in **Secret**.
+- **Please verify the details and try again**: Ente Auth couldn't create a code from what you entered in **Secret**. This happens when the text isn't a valid setup key, for example if you entered a password or a 6-digit code instead. Spaces and lowercase letters in the setup key are fine.
+- **Digits must be between 1 and 10**: the **Digits** value under **Advanced** is outside 1 to 10, for example 0. Set it to the number of digits the service uses, usually 6.
+
+To fix a Secret error:
+
+1. On the service's two-factor setup page, choose **Show setup key** or **Can't scan?**
+2. In Ente Auth, enter that setup key in **Secret**. Don't enter your Ente password, the service's password, or a 6-digit code.
+3. Save the entry, then enter the code Ente Auth shows on the service's setup page to finish setup.
+
+Unless the service tells you otherwise, leave the **Advanced** options at their defaults.
+
+See also [What should I enter in the Secret field when adding a code manually?](#manual-secret-field)
+
 ### Why does Ente Auth say "No QR code found in image"? {#qr-code-not-scanning}
 
 If the QR code is sharp and high-resolution but Ente Auth still won't scan it, the most likely cause is that the service is using a QR format Ente Auth doesn't recognise. Some sites embed proprietary or non-standard data instead of the standard `otpauth://` URI that authenticator apps expect.

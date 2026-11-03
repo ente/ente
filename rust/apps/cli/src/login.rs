@@ -219,12 +219,7 @@ pub(crate) fn email(
 pub(crate) fn saved_keys(
     authenticated: &mut AuthenticatedAccount,
 ) -> Result<(AccountKeys, StoredSession)> {
-    let recovery_key = Zeroizing::new(
-        authenticated
-            .recovery_key
-            .take()
-            .context("account has no recovery key")?,
-    );
+    let recovery_key = Zeroizing::new(std::mem::take(&mut authenticated.recovery_key));
     Ok((
         AccountKeys {
             master_key: std::mem::take(&mut authenticated.secrets.master_key),

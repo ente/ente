@@ -577,7 +577,7 @@ fn photos_lists_limit_output_and_stream_complete_results() {
         )
         .unwrap();
     drop(connection);
-    for as_json in [false, true] {
+    for (as_json, sorted) in [(false, false), (true, false), (false, true), (true, true)] {
         let mut args = vec![
             "--offline",
             "photos",
@@ -590,10 +590,127 @@ fn photos_lists_limit_output_and_stream_complete_results() {
         if as_json {
             args.push("--json");
         }
+        if sorted {
+            args.extend(["--sort", "created"]);
+        }
         let output = home.run(&args);
         assert!(failure(&output).contains("timestamp is outside the supported range"));
         assert!(String::from_utf8_lossy(&output.stdout).contains("Edited 🌧.jpg"));
     }
+}
+
+#[test]
+fn file_lists_handle_size_and_date_boundaries() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let key = Key::generate();
+    let albums = server
+        .mock("GET", "/collections/v2")
+        .match_query(mockito::Matcher::Any)
+        .with_body(json!({"collections": [collection(1, "Album", &key)]}).to_string())
+        .create();
+    let file = |id: i64, metadata: Value, public: Value, size: Option<u64>| {
+        let (mut file, _) = remote_file_with(id, &key, b"original", &metadata, &public);
+        if let Some(size) = size {
+            file["info"] = json!({"fileSize": size});
+        }
+        file
+    };
+    let files = page(
+        &mut server,
+        1,
+        0,
+        json!([
+            file(
+                1,
+                json!({"title": "Beach.jpg", "fileType": 0, "creationTime": 1_700_000_000_000_000i64,
+                    "latitude": 1.0, "longitude": 2.0}),
+                json!({}),
+                Some(1126),
+            ),
+            file(
+                2,
+                json!({"title": "Clip.mp4", "fileType": 1, "creationTime": 1_717_200_000_000_000i64}),
+                json!({}),
+                Some(5_242_880),
+            ),
+            file(
+                3,
+                json!({"title": "Live.heic", "fileType": 2, "creationTime": 1_735_689_600_000_000i64}),
+                json!({}),
+                None,
+            ),
+            file(
+                4,
+                json!({"title": "Holiday.JPG", "fileType": 0, "creationTime": 1_262_304_000_000_000i64,
+                    "latitude": 0.0, "longitude": 0.0}),
+                json!({"editedTime": 1_710_028_800_000_000i64}),
+                Some(1126),
+            ),
+            file(
+                5,
+                json!({"title": "Larger.jpg", "fileType": 0, "creationTime": 1_262_304_000_000_000i64}),
+                json!({}),
+                Some(1127),
+            ),
+        ]),
+        false,
+    )
+    .expect(1)
+    .create();
+    let ids = |args: &[&str]| {
+        let mut command = vec!["--offline", "photos", "file", "list"];
+        command.extend(args);
+        home.json(&command)
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|file| file["id"].as_str().unwrap().parse::<i64>().unwrap())
+            .collect::<Vec<_>>()
+    };
+
+    let listed = home.json(&["photos", "file", "list"]);
+    assert_eq!(listed[0]["sizeBytes"], 1126);
+    assert_eq!(listed[2]["sizeBytes"], Value::Null);
+    albums.assert();
+    files.assert();
+    drop(server);
+
+    for (args, expected) in [
+        (vec!["--since", "2024-06-01"], vec![2, 3]),
+        (vec!["--before", "2024-06-01"], vec![1, 4, 5]),
+        (vec!["--since", "2024-03-10T01:00:00+01:00"], vec![2, 3, 4]),
+        (vec!["--no-location"], vec![2, 3, 4, 5]),
+        (vec!["--min-size", "5MB"], vec![2]),
+        (vec!["--max-size", "5MB"], vec![1, 2, 4, 5]),
+        (vec!["--min-size", "1.1KB"], vec![2, 5]),
+        (vec!["--max-size", "1.1KB"], vec![1, 4]),
+        (vec!["--sort", "size"], vec![2, 5, 1, 4, 3]),
+        (vec!["--sort", "size", "--reverse"], vec![3, 1, 4, 5, 2]),
+    ] {
+        assert_eq!(ids(&args), expected, "{args:?}");
+    }
+
+    let output = success(home.run(&[
+        "--offline",
+        "photos",
+        "file",
+        "list",
+        "--sort",
+        "size",
+        "--limit",
+        "1",
+    ]));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut lines = stdout.lines();
+    assert!(lines.next().unwrap().contains("SIZE"));
+    assert!(lines.next().unwrap().starts_with("2 "));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Showing first 1"));
+    let output = success(home.run(&["--offline", "photos", "file", "view", "1"]));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("1.1 KB (1126 bytes)"));
+    let output = home.run(&["--offline", "photos", "file", "list", "--search", "  "]);
+    assert!(failure(&output).contains("supply search text"));
 }
 
 pub(super) fn collection(id: i64, name: &str, key: &Key) -> Value {
@@ -606,27 +723,35 @@ pub(super) fn collection(id: i64, name: &str, key: &Key) -> Value {
 }
 
 pub(super) fn remote_file(id: i64, collection_key: &Key, original: &[u8]) -> (Value, Vec<u8>) {
-    let key = Key::generate();
-    let wrapped = secretbox::encrypt(key.as_bytes(), collection_key);
-    let metadata = blob::encrypt_json(
+    remote_file_with(
+        id,
+        collection_key,
+        original,
         &json!({
             "title": "Original.jpg", "fileType": 0,
             "creationTime": 1_700_000_000_000_000i64,
             "modificationTime": 1_700_000_001_000_000i64,
             "latitude": 1.0, "longitude": 2.0, "hash": "original-hash"
         }),
-        &key,
-    )
-    .unwrap();
-    let public = blob::encrypt_json(
         &json!({
             "editedName": "Edited 🌧.jpg", "editedTime": 1_788_220_800_000_000i64,
             "caption": 42, "lat": 12.5, "long": 0.0,
             "dateTime": "2026-09-01T05:30:00", "offsetTime": "+05:30",
         }),
-        &key,
     )
-    .unwrap();
+}
+
+pub(super) fn remote_file_with(
+    id: i64,
+    collection_key: &Key,
+    original: &[u8],
+    metadata: &Value,
+    public: &Value,
+) -> (Value, Vec<u8>) {
+    let key = Key::generate();
+    let wrapped = secretbox::encrypt(key.as_bytes(), collection_key);
+    let metadata = blob::encrypt_json(metadata, &key).unwrap();
+    let public = blob::encrypt_json(public, &key).unwrap();
     let private = blob::encrypt_json(&json!({"visibility": 1}), &key).unwrap();
     let mut encrypted = Vec::new();
     let header =

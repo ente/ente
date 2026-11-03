@@ -1,8 +1,15 @@
 use ort::{
+    environment::Environment,
     ep::{CPU, ExecutionProviderDispatch},
-    session::{Session, builder::GraphOptimizationLevel},
+    session::{
+        Session,
+        builder::{AutoDevicePolicy, GraphOptimizationLevel},
+    },
 };
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 #[cfg(target_os = "android")]
 use ort::ep::XNNPACK;
@@ -197,8 +204,23 @@ pub(super) fn provider_attempt(
     }
 }
 
+fn environment() -> MlResult<Environment> {
+    static ENVIRONMENT: Mutex<Option<Environment>> = Mutex::new(None);
+    let mut current = ENVIRONMENT
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some(environment) = current.as_ref() {
+        return Ok(environment.clone());
+    }
+    let environment = ort::init().build()?;
+    *current = Some(environment.clone());
+    Ok(environment)
+}
+
 pub(super) fn build_session(model_path: &str, attempt: ProviderAttempt) -> MlResult<Session> {
-    let mut builder = Session::builder()?
+    let environment = environment()?;
+    let mut builder = Session::builder(&environment)?
+        .with_auto_device(AutoDevicePolicy::PreferCPU)?
         .with_optimization_level(GraphOptimizationLevel::All)?
         .with_intra_threads(1)?
         .with_inter_threads(1)?;
@@ -434,7 +456,7 @@ mod tests {
                 default
                     .providers
                     .iter()
-                    .any(|dispatch| dispatch.downcast_ref::<ort::ep::CPU>().is_some())
+                    .any(|dispatch| dispatch.name() == "CPUExecutionProvider")
             );
             for subgraphs in [false, true] {
                 let options = GpuOptions {

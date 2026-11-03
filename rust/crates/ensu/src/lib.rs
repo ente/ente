@@ -12,3 +12,5 @@ mod platform;
 
 #[cfg(feature = "transcription")]
 pub mod transcription;
+#[cfg(feature = "transcription")]
+pub mod voice;

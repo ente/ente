@@ -10,7 +10,7 @@ import {
     verifyTwoFactor,
 } from "ente-accounts/services/user";
 import { useBaseContext } from "ente-base/context";
-import { isHTTPErrorWithStatus } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 import { unstashRedirect } from "../../services/redirect";
@@ -53,7 +53,7 @@ const Page: React.FC = () => {
                 saveKeyAttributes(keyAttributes);
                 await router.push(unstashRedirect() ?? "/credentials");
             } catch (e) {
-                if (isHTTPErrorWithStatus(e, 404)) {
+                if (isNamedError(e, "session_expired")) {
                     logout();
                 } else {
                     throw e;

@@ -46,11 +46,20 @@ func (c *UserController) SkipPasskeyVerification(context *gin.Context, req *ente
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	exists, err := c.TwoFactorRecoveryRepo.ValidatePasskeyRecoverySecret(userID, req.Secret)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+	var valid bool
+	if req.Proof != "" {
+		secret, err := c.TwoFactorRecoveryRepo.GetPasskeyRecoverySecret(userID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		valid = verifyRecoveryProof(secret, "passkey", req.SessionID, req.Proof)
+	} else {
+		valid, err = c.TwoFactorRecoveryRepo.ValidatePasskeyRecoverySecret(userID, req.Secret)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
 	}
-	if !exists {
+	if !valid {
 		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	response, err := c.GetKeyAttributeAndToken(context, userID, req.SessionID, repo.PasskeyPendingLogin, false, false)

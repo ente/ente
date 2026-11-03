@@ -255,3 +255,5 @@ CREATE TABLE IF NOT EXISTS $mlStoreMetaTable (
   value TEXT NOT NULL
 );
 ''';
+
+const deleteMlStoreMetaTable = 'DELETE FROM $mlStoreMetaTable';

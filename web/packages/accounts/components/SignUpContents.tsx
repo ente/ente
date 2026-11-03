@@ -7,19 +7,16 @@ import {
     stashSRPSetupAttributes,
 } from "ente-accounts/services/accounts-db";
 import { saveMasterKeyInSessionAndSafeStore } from "ente-accounts/services/prelogin-session";
-import { generateSRPSetupAttributes } from "ente-accounts/services/srp";
 import {
     generateAndSaveInteractiveKeyAttributes,
-    generateKeysAndAttributes,
+    generateSignupKeys,
     sendOTT,
-    type GenerateKeysAndAttributesResult,
 } from "ente-accounts/services/user";
 import {
     estimatePasswordStrength,
     type PasswordStrength,
 } from "ente-accounts/utils/password";
 import { isNamedError } from "ente-base/error";
-import { isMuseumHTTPError } from "ente-base/http";
 import { JOIN_ALBUM_CONTEXT_KEY } from "ente-base/join-album";
 import log from "ente-base/log";
 import { useFormik } from "formik";
@@ -118,41 +115,12 @@ export const SignUpContents: React.FC<SignUpContentsProps> = ({
                 const cleanedReferral = referral.trim();
                 if (cleanedReferral) stashReferralSource(cleanedReferral);
 
-                try {
-                    await sendOTT(email, "signup");
-                } catch (e) {
-                    if (
-                        await isMuseumHTTPError(
-                            e,
-                            409,
-                            "USER_ALREADY_REGISTERED",
-                        )
-                    ) {
-                        setFieldError("email", t("email_already_registered"));
-                        return;
-                    }
-                    throw e;
-                }
-
+                await sendOTT(email, "signup");
                 replaceSavedLocalUser({ email });
-
-                let gkResult: GenerateKeysAndAttributesResult;
-                try {
-                    gkResult = await generateKeysAndAttributes(password);
-                } catch (e) {
-                    if (isNamedError(e, "insufficient_memory")) {
-                        setFieldError(
-                            "confirmPassword",
-                            t("password_generation_failed"),
-                        );
-                        return;
-                    }
-                    throw e;
-                }
-
-                const { masterKey, kek, keyAttributes } = gkResult;
+                const { masterKey, keyAttributes, srp } =
+                    await generateSignupKeys(password);
                 saveOriginalKeyAttributes(keyAttributes);
-                stashSRPSetupAttributes(await generateSRPSetupAttributes(kek));
+                stashSRPSetupAttributes(srp);
                 await generateAndSaveInteractiveKeyAttributes(
                     password,
                     keyAttributes,
@@ -163,8 +131,17 @@ export const SignUpContents: React.FC<SignUpContentsProps> = ({
                 saveJustSignedUp();
                 void router.push("/verify");
             } catch (e) {
-                log.error("Signup failed", e);
-                setFieldError("confirmPassword", t("generic_error"));
+                if (isNamedError(e, "already_registered")) {
+                    setFieldError("email", t("email_already_registered"));
+                } else if (isNamedError(e, "insufficient_memory")) {
+                    setFieldError(
+                        "confirmPassword",
+                        t("password_generation_failed"),
+                    );
+                } else {
+                    log.error("Signup failed", e);
+                    setFieldError("confirmPassword", t("generic_error"));
+                }
             }
         },
     });

@@ -31,9 +31,56 @@ for (const framework of [
     );
 }
 
-result = run({ binding: true });
+result = run({
+    localDependency: "bindings/wasm/lib",
+    dependencyKind: "dependencies",
+});
 assert.equal(result.status, 1, result.stderr);
 assert.match(result.stderr, /dependency "ente-binding" crosses/);
+
+for (const dependencyKind of [
+    "dependencies",
+    "dev-dependencies",
+    "build-dependencies",
+    `target.'cfg(target_arch = "wasm32")'.dependencies`,
+]) {
+    result = run({ localDependency: "apps/cli", dependencyKind });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /crosses the Rust app boundary/);
+
+    result = run({
+        domainName: "core",
+        localDependency: "crates/product",
+        dependencyKind,
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(
+        result.stderr,
+        /ente-core must not depend on other domain crates/,
+    );
+}
+
+result = run({ localDependency: "crates/product" });
+assert.equal(result.status, 0, result.stderr);
+
+for (const [dependencyKind, status] of [
+    ["dependencies", 1],
+    ["dev-dependencies", 0],
+    ["build-dependencies", 1],
+    [`target.'cfg(target_arch = "wasm32")'.dev-dependencies`, 0],
+]) {
+    result = run({
+        domainName: "core",
+        localDependency: "crates/test-support",
+        dependencyKind,
+    });
+    assert.equal(result.status, status, result.stderr);
+    if (status === 1)
+        assert.match(
+            result.stderr,
+            /ente-core must not depend on other domain crates/,
+        );
+}
 
 result = run({
     source: '// wasm_bindgen::JsValue is isolated here.\npub const NOTE: &str = "uniffi::export";\n',
@@ -86,6 +133,25 @@ for (const domainName of ["core", "assets"]) {
     assert.equal(result.status, 0, result.stderr);
 }
 
+for (const framework of ["argon2", "aes-gcm", "ring"]) {
+    result = run({ framework });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(
+        result.stderr,
+        new RegExp(`${framework} is a cryptographic dependency`),
+    );
+}
+
+for (const [framework, domainName] of [
+    ["argon2", "core"],
+    ["srp", "accounts"],
+    ["keyring", "domain"],
+]) {
+    result = run({ framework, domainName });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, "");
+}
+
 result = run({
     projections: {
         "rust/bindings/wasm/lib/src/projection.rs":
@@ -112,7 +178,7 @@ assert.equal(result.stderr, "");
 function run({
     source = "pub fn domain() {}\n",
     framework,
-    binding = false,
+    localDependency,
     empty = false,
     unregistered = false,
     deleted = false,
@@ -129,6 +195,15 @@ function run({
         } else {
             const members = [`crates/${domainName}`, "bindings/wasm/lib"];
             if (framework) members.push("vendor/framework");
+            if (localDependency && !members.includes(localDependency)) {
+                members.push(localDependency);
+                write(
+                    root,
+                    `rust/${localDependency}/Cargo.toml`,
+                    packageToml("other"),
+                );
+                write(root, `rust/${localDependency}/src/lib.rs`, "");
+            }
             write(
                 root,
                 "rust/Cargo.toml",
@@ -136,8 +211,8 @@ function run({
             );
             const dependencies = framework
                 ? `\n[${dependencyKind}]\nbinding = { package = ${JSON.stringify(framework)}, path = "../../vendor/framework" }\n`
-                : binding
-                  ? '\n[dependencies]\nbinding = { package = "ente-binding", path = "../../bindings/wasm/lib" }\n'
+                : localDependency
+                  ? `\n[${dependencyKind}]\nlocal = { package = "${localDependency === "bindings/wasm/lib" ? "ente-binding" : "other"}", path = "../../${localDependency}" }\n`
                   : "";
             write(
                 root,

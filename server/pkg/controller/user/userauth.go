@@ -609,6 +609,7 @@ func emailOTT(app ente.App, to string, ott string, purpose string, mobile bool) 
 }
 
 func (c *UserController) onVerificationSuccess(context *gin.Context, email string, source *string, srpAuth *ente.SRPAuthEntity) (ente.EmailAuthorizationResponse, error) {
+	isSRPLogin := srpAuth != nil
 	isTwoFactorEnabled := false
 	app := auth.GetApp(context)
 
@@ -664,7 +665,7 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 		twoFactorSessionID = auth.GenerateURLSafeRandomString(TwoFactorSessionIDLength)
 	}
 	if hasPasskeys || isTwoFactorEnabled {
-		err = c.UserAuthRepo.AddLoginResult(context, userID, srpAuth, keyAttributes, app, "", "", "", passKeySessionID, twoFactorSessionID, time.Microseconds()+TwoFactorValidityDurationInMicroSeconds)
+		err = c.UserAuthRepo.AddLoginResult(context, userID, srpAuth, keyAttributes, app, "", "", "", passKeySessionID, twoFactorSessionID, time.Microseconds()+TwoFactorValidityDurationInMicroSeconds, isSRPLogin)
 		if err != nil {
 			return ente.EmailAuthorizationResponse{}, stacktrace.Propagate(err, "")
 		}
@@ -677,20 +678,21 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 		return ente.EmailAuthorizationResponse{ID: userID, TwoFactorSessionID: twoFactorSessionID}, nil
 	}
 
-	token := auth.GenerateURLSafeRandomString(TokenLength)
 	if keyAttributes == nil {
+		token := auth.GenerateURLSafeRandomString(TokenLength)
 		// user creation is pending on key attributes set based on the password.
 		// No need to send login notification
 		if err := c.ensureStorageWarningDeletionLoginAllowed(userID, app); err != nil {
 			return ente.EmailAuthorizationResponse{}, err
 		}
 		err = c.UserAuthRepo.AddLoginResult(context, userID, srpAuth, nil, app, token,
-			network.GetClientIP(context), context.Request.UserAgent(), "", "", 0)
+			network.GetClientIP(context), context.Request.UserAgent(), "", "", 0, isSRPLogin)
 		if err != nil {
 			return ente.EmailAuthorizationResponse{}, stacktrace.Propagate(err, "")
 		}
 		return ente.EmailAuthorizationResponse{ID: userID, Token: token}, nil
 	}
+	token := generateAuthToken()
 	var encryptedToken string
 	encryptedToken, err = crypto.GetEncryptedToken(token, keyAttributes.PublicKey)
 	if err != nil {
@@ -701,7 +703,7 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 	if err = c.ensureStorageWarningDeletionLoginAllowed(userID, app); err != nil {
 		return ente.EmailAuthorizationResponse{}, err
 	}
-	err = c.UserAuthRepo.AddLoginResult(context, userID, srpAuth, keyAttributes, app, token, ip, userAgent, "", "", 0)
+	err = c.UserAuthRepo.AddLoginResult(context, userID, srpAuth, keyAttributes, app, token, ip, userAgent, "", "", 0, isSRPLogin)
 	if err == nil {
 		err = c.notifyLogin(context, userID, app, ip, userAgent)
 	}
@@ -714,6 +716,11 @@ func (c *UserController) onVerificationSuccess(context *gin.Context, email strin
 		EncryptedToken: encryptedToken,
 	}, nil
 
+}
+
+func generateAuthToken() string {
+	payload := append([]byte("auth-token"), auth.GenerateRandomBytes(TokenLength)...)
+	return base64.URLEncoding.EncodeToString(payload)
 }
 
 func convertStringToBytes(s string) ([]byte, error) {

@@ -1,1 +1,0 @@
-- Added sharing for Memory Lanes opened from the home screen.

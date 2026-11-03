@@ -1,1 +1,0 @@
-- Made the gallery scrollbar easier to grab and kept it visible longer after scrolling.

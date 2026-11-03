@@ -20,12 +20,6 @@ abstract class ClusterCentroidVectorDB {
 
   Future<bool> isReady();
   Future<void> warmup();
-  Future<List<List<(String, double)>>> bulkSearchNearestAllowed(
-    List<List<double>> queries,
-    Set<String> allowedClusterIDs, {
-    required double maxDistance,
-    int count = 10,
-  });
   Future<Map<String, ClusterCentroidMatches>> bulkSearchNearestForClusters(
     Set<String> queryClusterIDs, {
     required Set<String> candidateClusterIDs,

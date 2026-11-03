@@ -28,6 +28,14 @@ import "package:photos/utils/face/face_thumbnail_cache.dart";
 final _logger = Logger("PersonFaceWidget");
 
 class PersonFaceWidget extends StatefulWidget {
+  static String coverHeroTag({
+    required String tagPrefix,
+    String? personId,
+    String? clusterID,
+  }) => personId != null
+      ? "$tagPrefix:person_cover:$personId"
+      : "$tagPrefix:cluster_cover:$clusterID";
+
   final String? personId;
   final String? clusterID;
   final bool useFullFile;

@@ -282,6 +282,7 @@ jobs:
                       DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
                       APP_STORE_PROFILE_SPECIFIER="Photos App Store" \
                       SHARE_EXTENSION_APP_STORE_PROFILE_SPECIFIER="Photos Share Extension App Store" \
+                      NOTIFICATION_SERVICE_EXTENSION_APP_STORE_PROFILE_SPECIFIER="Photos Notification Service Extension App Store" \
                       ALBUM_WIDGET_APP_STORE_PROFILE_SPECIFIER="Photos Album Widget App Store" \
                       MEMORY_WIDGET_APP_STORE_PROFILE_SPECIFIER="Photos Memory Widget App Store" \
                       PEOPLE_WIDGET_APP_STORE_PROFILE_SPECIFIER="Photos People Widget App Store" \

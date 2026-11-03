@@ -1,1 +1,0 @@
-- Avoided gallery layout errors when screen dimensions are temporarily unavailable.

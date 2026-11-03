@@ -294,6 +294,7 @@ func (m *CollectionLinkMiddleware) validateOrigin(c *gin.Context, ownerID int64)
 		// origin to embed.ente.com. Custom embed origins should not inherit this.
 		(embedAlbumsOrigin == "https://embed.ente.com" && origin == "https://embed.ente.io") ||
 		origin == viper.GetString("apps.public-locker") ||
+		origin == viper.GetString("apps.photobook") ||
 		network.IsLoopbackOrigin(origin) {
 		return nil
 	}

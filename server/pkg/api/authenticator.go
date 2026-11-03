@@ -6,7 +6,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	model "github.com/ente/museum/ente/authenticator"
-	authenticaor "github.com/ente/museum/pkg/controller/authenticator"
+	"github.com/ente/museum/pkg/controller/authenticator"
 	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,7 @@ import (
 )
 
 type AuthenticatorHandler struct {
-	Controller *authenticaor.Controller
+	Controller *authenticator.Controller
 }
 
 func (h *AuthenticatorHandler) CreateKey(c *gin.Context) {

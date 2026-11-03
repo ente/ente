@@ -1,1 +1,0 @@
-- Reduced unnecessary thumbnail downloads when changing gallery layouts.

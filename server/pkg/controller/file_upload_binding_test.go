@@ -179,7 +179,7 @@ func TestDuplicateFileRegistrationAppBinding(t *testing.T) {
 			ctx.Request = httptest.NewRequest(http.MethodPost, "/files", nil)
 			result, err := controller.Create(ctx, file.OwnerID, file, "test", tc.app)
 			if tc.collision {
-				require.ErrorIs(t, err, ente.ErrBadRequest)
+				require.ErrorIs(t, err, ente.ErrFileUploadConflict)
 				require.Eventually(t, func() bool {
 					var pending int
 					err := db.QueryRow(`SELECT COUNT(*) FROM object_copies WHERE wasabi IS NULL`).Scan(&pending)

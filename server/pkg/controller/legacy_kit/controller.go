@@ -57,6 +57,7 @@ func (c *Controller) CreateKit(ctx *gin.Context, userID int64, req ente.CreateLe
 	if err := c.Repo.CreateKitWithLimit(ctx, userID, req, maxActiveLegacyKits); err != nil {
 		return nil, err
 	}
+	go c.sendKitCreatedNotification(userID)
 	row, err := c.Repo.GetKitForOwner(ctx, userID, req.ID)
 	if err != nil {
 		return nil, err

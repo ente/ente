@@ -105,8 +105,6 @@ else
         private-network.private-network-id="$SCW_PRIVATE_NETWORK_ID"
     scw rdb instance wait "$BACKUP_INSTANCE_ID" timeout=12h
 
-    sleep 10
-
     PRIVATE_ENDPOINT_IP="$(
         scw rdb endpoint list "$BACKUP_INSTANCE_ID" -o json \
             | jq -er '
@@ -126,6 +124,20 @@ else
                   end
             '
     )"
+
+    if ! PGHOST="$PRIVATE_ENDPOINT_IP" PGPORT="$PRIVATE_ENDPOINT_PORT" PGSSLMODE=require \
+        timeout 5m bash -c '
+            until pg_isready -d ente_db -t 3
+            do
+                echo "copycat-db: waiting for private endpoint (${SECONDS}s elapsed)"
+                sleep 5
+            done
+            echo "copycat-db: private endpoint ready after ${SECONDS}s"
+        '
+    then
+        echo "copycat-db: private endpoint readiness check failed"
+        exit 1
+    fi
 
     PGHOST="$PRIVATE_ENDPOINT_IP" PGPORT="$PRIVATE_ENDPOINT_PORT" PGSSLMODE=require \
         pg_dump -Fd -j 8 --compress=0 --file "db-$NOWS.dumpdir" ente_db

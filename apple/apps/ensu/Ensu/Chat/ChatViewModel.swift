@@ -71,7 +71,14 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var isSendPending: Bool = false
     @Published var isDownloading: Bool = false
     @Published var isProcessingAttachments: Bool = false
-    @Published var draftText: String = ""
+    @Published var draftText: String = "" {
+        didSet {
+            if draftText != oldValue {
+                composerRevision += 1
+                voiceInsertionCaret = nil
+            }
+        }
+    }
     @Published var draftAttachments: [ChatAttachment] = []
     private var draftImageAttachmentCount: Int {
         draftAttachments.filter { $0.kind == .image }.count
@@ -85,7 +92,6 @@ final class ChatViewModel: ObservableObject {
     @Published var deviceCapability: ChatDeviceCapability = .unknown
     @Published var showUnsupportedDeviceDialog: Bool = false
     @Published var generationErrorMessage: String?
-    @Published var voiceInputState: VoiceInputState = .idle
     @Published var draftCursorMoveToken = UUID()
     let knowledgeStore: KnowledgeStore
     let notesStore: NotesStore
@@ -98,7 +104,12 @@ final class ChatViewModel: ObservableObject {
     private let provider: LlmProvider
     private let knowledgeEmbedding: KnowledgeEmbeddingConfig
     private let knowledgeProvider: KnowledgeProvider
-    private let voiceTranscriber: VoiceTranscriptionService
+    let voiceTranscriber: VoiceTranscriptionService
+    private var composerRevision: UInt64 = 0
+    private var emptyComposerId = UUID()
+    var composerSelection = NSRange(location: 0, length: 0)
+    var composerIsComposing = false
+    @Published var voiceInsertionCaret: Int?
     private var chatDb: EnsuDb
     private let attachmentsDir: URL
     private let chatDbPath: String
@@ -116,7 +127,6 @@ final class ChatViewModel: ObservableObject {
     private var pendingSendTask: Task<Void, Never>?
     private var pendingSendId: UUID?
     private var modelDownloadTask: Task<Void, Never>?
-    private var voiceTransientErrorTask: Task<Void, Never>?
     private var sharedModelReadyTask: Task<Void, Error>?
     private var sharedModelReadyTaskId: UUID?
     private var sharedModelReadyKey: ModelReadyKey?
@@ -142,9 +152,18 @@ final class ChatViewModel: ObservableObject {
         // Must initialize after the asset store migrates the persisted selection.
         self.modelSettings = ModelSettingsStore.shared
         let transcription = transcriptionModelAsset()
-        let transcriber = Transcriber(
+        var info = utsname()
+        uname(&info)
+        let machine = withUnsafeBytes(of: &info.machine) { bytes in
+            String(decoding: bytes.prefix { $0 != 0 }, as: UTF8.self)
+        }
+        let transcriber = Transcriber.withCache(
             modelDir: assetStore.assetDir(transcription).path,
-            vadModelPath: assetStore.voiceActivityModelPath().path
+            vadModelPath: assetStore.voiceActivityModelPath().path,
+            cacheDirectory: (FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+                .first
+                ?? FileManager.default.temporaryDirectory).path,
+            deviceIdentity: "\(machine)|\(ProcessInfo.processInfo.operatingSystemVersionString)"
         )
         let provider = LlmProvider(
             assetStore: assetStore, transcriber: transcriber,
@@ -220,14 +239,7 @@ final class ChatViewModel: ObservableObject {
             loadMessagesFromDb(for: current)
         }
 
-        voiceTranscriber.onTaskActivityChanged = { [weak self] active in
-            guard let self else { return }
-            if active {
-                self.cancelChatWarmup(releaseLoadedModel: false)
-            } else {
-                self.refreshChatWarmup()
-            }
-        }
+        voiceTranscriber.onActivityChanged = { [weak self] in self?.refreshChatWarmup() }
         refreshDeviceCapability()
         refreshModelDownloadInfo()
         Task {
@@ -260,6 +272,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func handleMemoryPressure() {
+        voiceTranscriber.interrupt(reason: .memoryUnavailable)
         sessionSummaryTask?.cancel()
         warmupSuppressed = true
         cancelChatWarmup()
@@ -281,7 +294,7 @@ final class ChatViewModel: ObservableObject {
         let key = modelReadyKey(for: selection)
         let eligible =
             appForeground && chatActive && !warmupSuppressed && !isChatUnsupported
-            && !voiceInputState.isWorking && !voiceTranscriber.hasActiveTasks
+            && !voiceTranscriber.active && !voiceTranscriber.hasActiveTasks
         if let attempt = warmupAttempt, attempt.selection != key { cancelChatWarmup() }
         guard eligible, warmupAttempt == nil, !isGenerating, !isDownloading,
             provider.isChatModelReady(selection)
@@ -307,7 +320,7 @@ final class ChatViewModel: ObservableObject {
                             && modelReadyKey(for: modelSettings.currentSelection()) == key
                             && appForeground && chatActive && !warmupSuppressed
                             && !isChatUnsupported && !isGenerating && !isDownloading
-                            && !voiceInputState.isWorking && !voiceTranscriber.hasActiveTasks
+                            && !voiceTranscriber.active && !voiceTranscriber.hasActiveTasks
                     },
                     operation: {
                         try await provider.prewarmChatModelIfDownloaded(selection, owner: owner)
@@ -472,6 +485,7 @@ final class ChatViewModel: ObservableObject {
             return
         }
         if currentSessionId == session.id {
+            cancelVoiceInput()
             discardUnstoredAttachments(draftAttachments)
         }
         for id in attachmentIds {
@@ -501,6 +515,7 @@ final class ChatViewModel: ObservableObject {
             return
         }
         guard message.role == .user else { return }
+        cancelVoiceInput()
         resetGenerationState()
         editingMessageId = message.id
         draftText = message.text
@@ -516,76 +531,51 @@ final class ChatViewModel: ObservableObject {
     }
 
     func toggleVoiceInput() {
+        guard !isGenerating, !isDownloading, !isSendPending, editingMessageId == nil,
+            !composerIsComposing, !voiceTranscriber.active, !voiceTranscriber.hasActiveTasks
+        else { return }
         sessionSummaryTask?.cancel()
         cancelChatWarmup(releaseLoadedModel: false)
-        if voiceInputState.isRecording {
-            voiceTranscriber.stopAndTranscribe(
-                onState: { [weak self] state in
-                    self?.setVoiceInputState(state)
-                },
-                onTranscript: { [weak self] transcript in
-                    self?.appendVoiceTranscript(transcript)
-                }
-            )
-            return
+        let destination = (currentSessionId ?? emptyComposerId).uuidString
+        voiceTranscriber.onInsert = { [weak self] insertion, text in
+            guard let self, self.appForeground else { return false }
+            do {
+                let result = try insertion.apply(
+                    destination: (self.currentSessionId ?? self.emptyComposerId).uuidString,
+                    revision: self.composerRevision, text: self.draftText, voiceText: text,
+                    foreground: self.appForeground, keyboardComposing: self.composerIsComposing)
+                self.draftText = result.text
+                self.composerRevision = result.revision
+                self.voiceInsertionCaret = Int(result.caretUtf16)
+                self.draftCursorMoveToken = UUID()
+                return true
+            } catch { return false }
         }
-
-        guard !isGenerating,
-            !isDownloading,
-            editingMessageId == nil
-        else {
-            return
+        voiceTranscriber.open { [weak self] in
+            guard let self, self.appForeground, self.chatActive,
+                !self.isGenerating, !self.isDownloading, !self.isSendPending,
+                self.editingMessageId == nil, !self.composerIsComposing,
+                (self.currentSessionId ?? self.emptyComposerId).uuidString == destination
+            else { return nil }
+            let range = self.composerSelection
+            let text = self.draftText as NSString
+            guard range.location >= 0, range.length >= 0, range.location <= text.length,
+                range.length <= text.length - range.location,
+                [range.location, NSMaxRange(range)].allSatisfy({
+                    $0 == text.length
+                        || text.rangeOfComposedCharacterSequence(at: $0).location == $0
+                })
+            else { return nil }
+            return DictationInsertion(
+                destination: destination, revision: self.composerRevision,
+                startUtf16: UInt32(range.location), endUtf16: UInt32(NSMaxRange(range)))
         }
-
-        let voiceSessionId = currentSessionId
-        voiceTranscriber.startRecording(
-            onState: { [weak self] state in
-                self?.setVoiceInputState(state)
-            },
-            shouldStartRecording: { [weak self] in
-                guard let self else { return false }
-                return self.currentSessionId == voiceSessionId && !self.isGenerating
-                    && !self.isDownloading && self.editingMessageId == nil
-            }
-        )
     }
 
     func cancelVoiceInput() {
-        voiceTranscriber.cancel()
-        setVoiceInputState(.idle)
-    }
-
-    private func setVoiceInputState(_ state: VoiceInputState) {
-        defer { refreshChatWarmup() }
-        voiceTransientErrorTask?.cancel()
-        voiceTransientErrorTask = nil
-        voiceInputState = state
-
-        guard state.isNoSpeechError else { return }
-        voiceTransientErrorTask = Task { @MainActor in
-            do {
-                try await Task.sleep(nanoseconds: 10_000_000_000)
-            } catch {
-                return
-            }
-            if self.voiceInputState == state {
-                self.voiceInputState = .idle
-            }
-            self.voiceTransientErrorTask = nil
-        }
-    }
-
-    private func appendVoiceTranscript(_ transcript: String) {
-        let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty else { return }
-
-        let trimmedDraft = draftText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedDraft.isEmpty {
-            draftText = cleaned
-        } else {
-            draftText = "\(trimmedDraft) \(cleaned)"
-        }
-        draftCursorMoveToken = UUID()
+        voiceTranscriber.releaseComposer()
+        emptyComposerId = UUID()
+        voiceInsertionCaret = nil
     }
 
     func addImageAttachment(data: Data, fileName: String?) {
@@ -731,6 +721,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func sendDraft() {
+        guard !voiceTranscriber.blocksComposer else { return }
         guard !isGenerating && !isDownloading && !isSendPending else { return }
         guard !isChatUnsupported else {
             showUnsupportedDeviceDialog = true
@@ -749,6 +740,7 @@ final class ChatViewModel: ObservableObject {
             generationErrorMessage = ModelImagesUnsupported().localizedDescription
             return
         }
+        voiceTranscriber.releaseComposer()
         let sourceSnapshot = currentSourceSelection()
         let sendId = UUID()
         pendingSendId = sendId
@@ -1158,6 +1150,7 @@ final class ChatViewModel: ObservableObject {
             userNode = messageStore[sessionId]?.first(where: { $0.id == parentId })
         }
         guard let userNode else { return }
+        voiceTranscriber.interrupt()
         let sourceSnapshot = currentSourceSelection()
         cancelPendingSend()
         priorGeneration?.cancel()
@@ -1485,7 +1478,10 @@ final class ChatViewModel: ObservableObject {
                             let details =
                                 "session=\(userNode.sessionId.uuidString) promptLen=\(prompt.text.count) responseLen=\(snapshot.text.count) tokens=\(snapshot.tokenCount)"
                             logger.error("Generation failed", error, details: details)
-                            if case let ConversationError.Other(detail) = error {
+                            if case ConversationError.CurrentInputTooLarge = error {
+                                generationErrorMessage =
+                                    "This message is too long for the model, even without earlier messages. Shorten it or split it into smaller messages. Your full text is still available to edit or copy."
+                            } else if case let ConversationError.Other(detail) = error {
                                 generationErrorMessage = detail
                             } else if case ConversationError.Stale = error {
                                 generationErrorMessage = "Conversation changed. Retry the message."

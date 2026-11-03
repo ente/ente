@@ -2,13 +2,25 @@ use ente_core::b64;
 use ente_core::crypto::{self, Key, SecretString, SecretVec, argon, kdf, secretbox};
 
 use super::{KeyAttributes, KeyGenResult, PrivateKeyAttributes};
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum KeyDerivationStrength {
     Interactive,
     #[default]
     Sensitive,
+}
+
+impl KeyDerivationStrength {
+    pub(crate) fn derive(self, password: &str) -> Result<argon::DerivedKey> {
+        match self {
+            Self::Interactive => Ok(argon::derive_interactive_key(password)?),
+            Self::Sensitive => argon::derive_sensitive_key(password).map_err(|error| match error {
+                crypto::Error::InvalidKeyDerivationParams(_) => Error::Crypto(error),
+                _ => Error::InsufficientMemory,
+            }),
+        }
+    }
 }
 
 // Account APIs expect the nonce separately from the encrypted data.
@@ -32,10 +44,7 @@ pub fn generate_keys_with_strength(
     let (enc_recovery_with_master, nonce_recovery_master) =
         encrypt_to_b64(recovery_key.as_bytes(), &master_key)?;
 
-    let derived = match strength {
-        KeyDerivationStrength::Interactive => argon::derive_interactive_key(password)?,
-        KeyDerivationStrength::Sensitive => argon::derive_sensitive_key(password)?,
-    };
+    let derived = strength.derive(password)?;
     let login_key = kdf::derive_login_key(&derived.key);
 
     let (enc_key, key_nonce) = encrypt_to_b64(master_key.as_bytes(), &derived.key)?;
@@ -94,10 +103,7 @@ pub fn generate_key_attributes_for_new_password_with_strength(
     password: &str,
     strength: KeyDerivationStrength,
 ) -> Result<(KeyAttributes, SecretVec)> {
-    let derived = match strength {
-        KeyDerivationStrength::Interactive => argon::derive_interactive_key(password)?,
-        KeyDerivationStrength::Sensitive => argon::derive_sensitive_key(password)?,
-    };
+    let derived = strength.derive(password)?;
     let login_key = kdf::derive_login_key(&derived.key);
 
     let (enc_key, key_nonce) = encrypt_to_b64(master_key, &derived.key)?;

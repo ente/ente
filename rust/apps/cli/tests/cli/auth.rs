@@ -1,4 +1,4 @@
-use ente_core::crypto::secretbox;
+use ente_core::{crypto::secretbox, otp};
 use mockito::{Matcher, Mock, Server};
 use uuid::Uuid;
 
@@ -57,7 +57,12 @@ fn code_reads_refresh_select_and_render_without_a_backup() {
         0,
         vec![
             entity(1, 10, &uri("GitHub:alice@example.com"), &key),
-            entity(2, 10, &uri("GitHub:bob@example.com"), &key),
+            entity(
+                2,
+                10,
+                &json!("otpauth://totp/GitHub:bob@example.com?secret=MZXW6YTB"),
+                &key,
+            ),
             entity(3, 10, &json!(format!("{URI}#suffix")), &key),
             entity(4, 10, &json!("otpauth://totp/Steam:alice?secret=MY"), &key),
             entity(
@@ -79,7 +84,8 @@ fn code_reads_refresh_select_and_render_without_a_backup() {
     initial.assert();
     initial.remove();
     let view = |query: &str| {
-        home.json(&[
+        let before = chrono::Utc::now().timestamp();
+        let result = home.json(&[
             "auth",
             "code",
             "view",
@@ -87,20 +93,27 @@ fn code_reads_refresh_select_and_render_without_a_backup() {
             "--offline",
             "--account",
             "fixture",
-        ])
+        ]);
+        let after = chrono::Utc::now().timestamp();
+        let expiry = chrono::DateTime::parse_from_rfc3339(result["validUntil"].as_str().unwrap())
+            .unwrap()
+            .timestamp();
+        assert_eq!(expiry % 30, 0);
+        assert!(expiry > before && expiry <= after + 30);
+        assert!(result["validUntil"].as_str().unwrap().ends_with('Z'));
+        (result, u64::try_from(expiry - 30).unwrap())
     };
     for query in [
         "BOB gitHUB",
         "GitHub (bob@example.com)",
         &Uuid::from_u128(2).to_string(),
     ] {
-        let result = view(query);
+        let (result, time) = view(query);
         assert_eq!(result["id"], Uuid::from_u128(2).to_string());
-        assert_eq!(result["otp"].as_str().unwrap().len(), 6);
-        let expiry =
-            chrono::DateTime::parse_from_rfc3339(result["validUntil"].as_str().unwrap()).unwrap();
-        assert_eq!(expiry.timestamp() % 30, 0);
-        assert!(result["validUntil"].as_str().unwrap().ends_with('Z'));
+        assert_eq!(
+            result["otp"],
+            otp::totp(b"fooba", time, 30, 6, otp::Algorithm::Sha1).unwrap()
+        );
     }
     let ambiguous = home.run(&["auth", "code", "view", "github", "--offline"]);
     let error = failure(&ambiguous);
@@ -117,7 +130,8 @@ fn code_reads_refresh_select_and_render_without_a_backup() {
     assert_eq!(all.as_array().unwrap().len(), 4);
     assert_eq!(all[2]["type"], "steam");
     assert_eq!(all[3]["name"], "Work (a+%2C#tag)");
-    assert_eq!(view("steam")["otp"].as_str().unwrap().len(), 5);
+    let (steam, time) = view("steam");
+    assert_eq!(steam["otp"], otp::steam(b"f", time).unwrap());
     assert!(
         failure(&home.run(&["auth", "code", "view", "Work", "--offline"]))
             .contains("HOTP code generation is not supported")
@@ -197,7 +211,7 @@ fn code_reads_refresh_select_and_render_without_a_backup() {
     unavailable.assert();
     key_request.assert();
     drop(server);
-    assert_eq!(view("bob")["name"], "Work (bob@example.com)");
+    assert_eq!(view("bob").0["name"], "Work (bob@example.com)");
 }
 
 #[test]

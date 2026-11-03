@@ -625,6 +625,16 @@ export class FileViewerPhotoSwipe<
                 toggleMediaChromeSettingsMenu();
         };
 
+        pswp.on("contentAppendImage", ({ content }) => {
+            const image = content.element;
+            if (!(image instanceof HTMLImageElement)) return;
+
+            void image.decode().then(
+                () => image.classList.add("ente-image-decoded"),
+                () => undefined,
+            );
+        });
+
         pswp.on("contentAppend", (e) => {
             // PhotoSwipe can emit this later for content it already detached.
             if (!e.content.hasSlide) {

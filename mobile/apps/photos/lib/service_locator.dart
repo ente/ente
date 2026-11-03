@@ -20,7 +20,6 @@ import "package:photos/gateways/files/files_gateway.dart";
 import "package:photos/gateways/push/push_gateway.dart";
 import "package:photos/gateways/social/social_gateway.dart";
 import "package:photos/gateways/trash/trash_gateway.dart";
-import "package:photos/gateways/users/passkey_gateway.dart";
 import "package:photos/gateways/users/users_gateway.dart";
 import "package:photos/module/download/gallery_download_queue_service.dart";
 import "package:photos/module/download/manager.dart";
@@ -36,11 +35,13 @@ import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/ml_decryption_record_store.dart";
 import "package:photos/services/magic_cache_service.dart";
+import "package:photos/services/memories/dart_memories_computer.dart";
+import "package:photos/services/memories/memories_computer.dart";
+import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
 import "package:photos/services/rituals/rituals_service.dart";
 import "package:photos/services/smart_albums_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/services/storage_bonus_service.dart";
 import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
@@ -96,6 +97,7 @@ FlagService get flagService {
   _flagService ??= FlagService(
     ServiceLocator.instance.prefs,
     ServiceLocator.instance.enteDio,
+    Configuration.instance.getToken,
   );
   return _flagService!;
 }
@@ -231,6 +233,12 @@ SmartMemoriesService? _smartMemoriesService;
 SmartMemoriesService get smartMemoriesService {
   _smartMemoriesService ??= SmartMemoriesService();
   return _smartMemoriesService!;
+}
+
+MemoriesComputer? _memoriesComputer;
+MemoriesComputer get memoriesComputer {
+  _memoriesComputer ??= DartMemoriesComputer();
+  return _memoriesComputer!;
 }
 
 TextEmbeddingsCacheService? _textEmbeddingsCacheService;
@@ -394,12 +402,6 @@ BillingGateway? _billingGateway;
 BillingGateway get billingGateway {
   _billingGateway ??= BillingGateway(ServiceLocator.instance.enteDio);
   return _billingGateway!;
-}
-
-PasskeyGateway? _passkeyGateway;
-PasskeyGateway get passkeyGateway {
-  _passkeyGateway ??= PasskeyGateway(ServiceLocator.instance.enteDio);
-  return _passkeyGateway!;
 }
 
 UsersGateway? _usersGateway;

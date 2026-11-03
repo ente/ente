@@ -122,7 +122,6 @@ class _MemoryLanePageState extends State<MemoryLanePage>
   bool get _showShareAction =>
       !widget.isCluster &&
       MemoryLaneService.instance.isFeatureEnabled &&
-      flagService.enableMemoryShareLink &&
       !isLocalGalleryMode;
 
   @override

@@ -14,9 +14,9 @@ enum NotificationKeyStore {
   static let accessGroup = "group.io.ente.frame.NotificationServiceExtension"
   static let service = "io.ente.frame.notifications"
   #if DEBUG
-  static let account = "recipient.debug"
+    static let account = "recipient.debug"
   #else
-  static let account = "recipient"
+    static let account = "recipient"
   #endif
 
   enum StoreError: Error {
@@ -29,12 +29,32 @@ enum NotificationKeyStore {
   private static var resetPendingKey: String { "\(account).resetPending" }
   private static var preparedKey: String { "flutter.\(account).notificationKeyPrepared" }
 
+  private static let notificationPreferenceKeys = [
+    "notifications_enabled_shared_photos",
+    "notifications_enabled_social",
+  ]
+
+  static func sharePreferences() {
+    for key in notificationPreferenceKeys {
+      let value = UserDefaults.standard.object(forKey: "flutter.\(key)") as? Bool ?? true
+      preferences.set(value, forKey: "\(account).\(key)")
+    }
+  }
+
+  static func clearPreferences() {
+    for key in notificationPreferenceKeys {
+      preferences.removeObject(forKey: "\(account).\(key)")
+    }
+  }
+
   private static var query: [String: Any] {
-    [kSecClass as String: kSecClassGenericPassword,
+    [
+      kSecClass as String: kSecClassGenericPassword,
       kSecAttrAccessGroup as String: accessGroup,
       kSecAttrService as String: service,
       kSecAttrAccount as String: account,
-      kSecAttrSynchronizable as String: false]
+      kSecAttrSynchronizable as String: false,
+    ]
   }
 
   static func read() throws -> NotificationRecipient? {
@@ -54,7 +74,8 @@ enum NotificationKeyStore {
   }
 
   static func readForPreparation() throws -> NotificationRecipient? {
-    if preferences.bool(forKey: resetPendingKey) || !UserDefaults.standard.bool(forKey: preparedKey) {
+    if preferences.bool(forKey: resetPendingKey) || !UserDefaults.standard.bool(forKey: preparedKey)
+    {
       try clear()
     }
     do {
@@ -71,7 +92,8 @@ enum NotificationKeyStore {
     guard record.isValid else { throw StoreError.invalidRecord }
     _ = try readForPreparation()
     let data = try JSONEncoder().encode(record)
-    var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+    var status = SecItemUpdate(
+      query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
     if status == errSecItemNotFound {
       var attributes = query
       attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly

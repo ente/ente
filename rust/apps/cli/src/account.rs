@@ -49,6 +49,7 @@ pub async fn request_otp(
                 VerificationPurpose::Create => "signup",
                 VerificationPurpose::Login => "login",
             },
+            false,
         )
         .await?;
     output::action(
@@ -121,7 +122,7 @@ pub async fn create(args: CreateArgs, options: &Options) -> Result<(State, usize
         pending.signup
     } else {
         if interactive {
-            client.send_otp(&email, "signup").await?;
+            client.send_otp(&email, "signup", false).await?;
             eprintln!(
                 "Verification code sent to {}.",
                 output::escape_controls(&email)

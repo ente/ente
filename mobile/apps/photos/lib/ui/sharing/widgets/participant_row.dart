@@ -7,7 +7,7 @@ import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
 import "package:photos/ui/sharing/share_components.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import "package:photos/ui/sharing/widgets/sharing_role.dart";
 
 class ScrollableParticipantRoster extends StatefulWidget {

@@ -7,16 +7,16 @@ import 'package:ente_utils/email_util.dart';
 import 'package:flutter/material.dart';
 
 class TwoFactorRecoveryPage extends StatefulWidget {
+  final AccountsClient client;
   final String sessionID;
-  final String encryptedSecret;
-  final String secretDecryptionNonce;
+  final TwoFactorRecoveryResponse recoveryResponse;
   final TwoFactorType type;
 
   const TwoFactorRecoveryPage(
+    this.client,
     this.type,
     this.sessionID,
-    this.encryptedSecret,
-    this.secretDecryptionNonce, {
+    this.recoveryResponse, {
     super.key,
   });
 
@@ -30,11 +30,11 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
   Future<void> _onRecover() async {
     await UserService.instance.removeTwoFactor(
       context,
+      widget.client,
       widget.type,
       widget.sessionID,
       _recoveryKey.text,
-      widget.encryptedSecret,
-      widget.secretDecryptionNonce,
+      widget.recoveryResponse,
     );
   }
 

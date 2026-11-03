@@ -206,19 +206,31 @@ export const RowSwitch: React.FC<RowSwitchProps> = ({
     onClick,
 }) => (
     <Stack
+        component="label"
         direction="row"
-        sx={{
+        sx={(theme) => ({
             flex: 1,
             justifyContent: "space-between",
             alignItems: "center",
-            px: "16px",
-            pr: "12px",
-        }}
+            p: "14px 16px",
+            gap: 1,
+            cursor: "pointer",
+            borderRadius: "8px",
+            "&:hover": { bgcolor: "fill.faintHover" },
+            "&:has(:focus-visible)": {
+                outline: `1px solid ${theme.vars.palette.stroke.base}`,
+                outlineOffset: "2px",
+            },
+        })}
     >
-        <Typography sx={{ py: "14px", px: "2px", fontWeight: "medium" }}>
+        <Typography component="span" sx={{ fontWeight: "medium" }}>
             {label}
         </Typography>
-        <EnteSwitch {...{ checked, onClick }} />
+        <EnteSwitch
+            checked={checked}
+            onChange={onClick}
+            sx={{ flexShrink: 0 }}
+        />
     </Stack>
 );
 

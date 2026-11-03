@@ -1,4 +1,6 @@
 import { Export } from "@/components/Export";
+import { FamilyManagement } from "@/components/FamilyManagement";
+import { PlanSelector } from "@/components/PlanSelector";
 import { downloadAppDialogAttributes } from "@/components/utils/download";
 import exportService from "@/services/export";
 import { performSidebarAction as performSidebarRegistryAction } from "@/services/search/sidebar-search-registry";
@@ -76,26 +78,30 @@ type SidebarProps = ModalVisibilityProps & {
     onActionHandled?: (actionID: SidebarActionID) => void;
     onShowLargeFiles: () => void;
     onShowDuplicates: () => void;
-    onShowPlanSelector: () => void;
+    setLoading: (loading: boolean) => void;
     collectionNameByID: Map<number, string>;
-    onCloseOverlays: () => void;
-    children?: (onRootClose: () => void) => React.ReactNode;
     onAuthenticateUser: () => Promise<boolean>;
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
     open,
     onClose: closeRoot,
-    onCloseOverlays,
-    children,
     pendingAction,
     onActionHandled,
-    onShowPlanSelector,
+    setLoading,
     onShowLargeFiles,
     onShowDuplicates,
     collectionNameByID,
     onAuthenticateUser,
 }) => {
+    const { show: onShowPlanSelector, props: planSelectorVisibilityProps } =
+        useModalVisibility();
+    const {
+        show: showFamilyManagement,
+        props: familyManagementVisibilityProps,
+    } = useModalVisibility();
+    const { onClose: closePlanSelector } = planSelectorVisibilityProps;
+    const { onClose: closeFamilyManagement } = familyManagementVisibilityProps;
     const { show: showHelp, props: helpVisibilityProps } = useModalVisibility();
     const { show: showAccount, props: accountVisibilityProps } =
         useModalVisibility();
@@ -128,8 +134,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             closeExport();
             closeMemberSubscription();
             closeDownloadAppDialog();
+            closePlanSelector();
+            closeFamilyManagement();
         }
-    }, [open, closeExport, closeMemberSubscription, closeDownloadAppDialog]);
+    }, [
+        open,
+        closeExport,
+        closeMemberSubscription,
+        closeDownloadAppDialog,
+        closePlanSelector,
+        closeFamilyManagement,
+    ]);
 
     const [pendingAccountAction, setPendingAccountAction] =
         useState<AccountAction>();
@@ -149,7 +164,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         closeMemberSubscription();
         closeDownloadAppDialog();
         setWatchFolderView(false);
-        onCloseOverlays();
+        closePlanSelector();
+        closeFamilyManagement();
     }, [
         accountVisibilityProps,
         referralsVisibilityProps,
@@ -160,7 +176,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         closeMemberSubscription,
         closeDownloadAppDialog,
         setWatchFolderView,
-        onCloseOverlays,
+        closePlanSelector,
+        closeFamilyManagement,
     ]);
 
     const onClose = useCallback(() => {
@@ -225,6 +242,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const performSidebarAction = useCallback(
         async (actionID: SidebarActionID) => {
             if (actionID !== "utility.export") closeSections();
+            if (actionID === "subscription") {
+                showAccount();
+                onShowPlanSelector();
+                return;
+            }
             return performSidebarRegistryAction(actionID, {
                 onClose,
                 onShowPlanSelector,
@@ -288,7 +310,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         helpVisibilityProps.open ||
         freeUpSpaceVisibilityProps.open ||
         exportVisibilityProps.open ||
-        watchFolderView;
+        watchFolderView ||
+        planSelectorVisibilityProps.open ||
+        familyManagementVisibilityProps.open;
 
     return (
         <RootSidebarDrawer
@@ -401,7 +425,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onActionHandled={setPendingFreeUpSpaceAction}
                 />
             )}
-            {children?.(onClose)}
+            <PlanSelector
+                {...planSelectorVisibilityProps}
+                setLoading={setLoading}
+                onManageFamily={showFamilyManagement}
+            />
+            {familyManagementVisibilityProps.open && (
+                <FamilyManagement
+                    {...familyManagementVisibilityProps}
+                    onRootClose={onClose}
+                    onShowPlanSelector={onShowPlanSelector}
+                />
+            )}
         </RootSidebarDrawer>
     );
 };
@@ -585,11 +620,12 @@ const HeaderSection: React.FC<SectionProps> = ({ onCloseSidebar }) => (
     </SpacedRow>
 );
 
-type UserDetailsSectionProps = Pick<SidebarProps, "onShowPlanSelector"> & {
+interface UserDetailsSectionProps {
+    onShowPlanSelector: () => void;
     sidebarOpen: boolean;
     showManageMemberSubscription: () => void;
     manageMemberSubscriptionVisibilityProps: ModalVisibilityProps;
-};
+}
 
 const UserDetailsSection: React.FC<UserDetailsSectionProps> = ({
     sidebarOpen,
@@ -661,9 +697,10 @@ const UserDetailsSection: React.FC<UserDetailsSectionProps> = ({
     );
 };
 
-type SubscriptionStatusProps = Pick<SidebarProps, "onShowPlanSelector"> & {
+interface SubscriptionStatusProps {
+    onShowPlanSelector: () => void;
     userDetails: UserDetails;
-};
+}
 
 const SubscriptionStatus: React.FC<SubscriptionStatusProps> = ({
     userDetails,

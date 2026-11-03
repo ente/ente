@@ -7,15 +7,13 @@ import {
     TwoFactorAuthorizationResponse,
 } from "ente-accounts/services/user";
 import { clientPackageName, isDesktop } from "ente-base/app";
-import { namedError } from "ente-base/error";
+import { httpOrHTTPSURL } from "ente-base/safe-navigation";
+import { ensureAuthToken } from "ente-base/token";
 import {
-    authenticatedRequestHeaders,
-    ensureOk,
-    HTTPError,
-    publicRequestHeaders,
-} from "ente-base/http";
-import { apiURL } from "ente-base/origins";
-import { z } from "zod";
+    passkeyManagementURL,
+    checkPasskeyVerificationStatus as rustCheckPasskeyVerificationStatus,
+} from "ente-prelogin-wasm";
+import { withAccountsClient } from "./accounts-client";
 import { unstashRedirect } from "./redirect";
 
 export const passkeyVerificationRedirectURL = (
@@ -36,7 +34,11 @@ export const passkeyVerificationRedirectURL = (
         redirect,
         ...recoverOption,
     });
-    return `${accountsURL}/passkeys/verify?${params.toString()}`;
+    const url = httpOrHTTPSURL(accountsURL);
+    url.pathname = `${url.pathname.replace(/\/$/, "")}/passkeys/verify`;
+    url.search = params.toString();
+    url.hash = "";
+    return url.href;
 };
 
 interface OpenPasskeyVerificationURLOptions {
@@ -50,96 +52,36 @@ export const openPasskeyVerificationURL = ({
     passkeySessionID,
     url,
 }: OpenPasskeyVerificationURLOptions) => {
+    const destination = httpOrHTTPSURL(url).href;
+
     // The finish page ignores redirects whose session id does not match the
     // inflight value saved here.
     sessionStorage.setItem("inflightPasskeySessionID", passkeySessionID);
 
-    if (globalThis.electron) window.open(url);
-    else window.location.href = url;
+    if (globalThis.electron) window.open(destination);
+    else window.location.href = destination;
 };
 
 export const openAccountsManagePasskeysPage = async (
-    generatePasskeyRecovery: () => Promise<{
-        secret: string;
-        encryptedData: string;
-        nonce: string;
-    }>,
+    recoveryKeyMnemonic: () => Promise<string>,
 ) => {
-    const { isPasskeyRecoveryEnabled } = await getTwoFactorRecoveryStatus();
-    if (!isPasskeyRecoveryEnabled) {
-        const { secret, encryptedData, nonce } =
-            await generatePasskeyRecovery();
-        await configurePasskeyRecovery(secret, encryptedData, nonce);
-    }
-
-    const { accountsToken: token, accountsUrl: accountsURL } =
-        await getAccountsTokenAndURL();
-    const params = new URLSearchParams({ token });
-
-    window.open(`${accountsURL}/passkeys?${params.toString()}`);
-};
-
-const TwoFactorRecoveryStatus = z.object({
-    isPasskeyRecoveryEnabled: z.boolean(),
-});
-
-const getTwoFactorRecoveryStatus = async () => {
-    const res = await fetch(await apiURL("/users/two-factor/recovery-status"), {
-        headers: await authenticatedRequestHeaders(),
-    });
-    ensureOk(res);
-    return TwoFactorRecoveryStatus.parse(await res.json());
-};
-
-const configurePasskeyRecovery = async (
-    secret: string,
-    userSecretCipher: string,
-    userSecretNonce: string,
-) =>
-    ensureOk(
-        await fetch(
-            await apiURL("/users/two-factor/passkeys/configure-recovery"),
-            {
-                method: "POST",
-                headers: await authenticatedRequestHeaders(),
-                body: JSON.stringify({
-                    secret,
-                    userSecretCipher,
-                    userSecretNonce,
-                }),
-            },
-        ),
+    const token = await ensureAuthToken();
+    const recoveryKey = await recoveryKeyMnemonic();
+    const url = await withAccountsClient((client) =>
+        passkeyManagementURL(client, token, recoveryKey),
     );
-
-const getAccountsTokenAndURL = async () => {
-    const res = await fetch(await apiURL("/users/accounts-token"), {
-        headers: await authenticatedRequestHeaders(),
-    });
-    ensureOk(res);
-    return z
-        .object({ accountsUrl: z.string(), accountsToken: z.string() })
-        .parse(await res.json());
+    window.open(httpOrHTTPSURL(url).href);
 };
 
 export const checkPasskeyVerificationStatus = async (
     sessionID: string,
 ): Promise<TwoFactorAuthorizationResponse | undefined> => {
-    const res = await fetch(
-        await apiURL("/users/two-factor/passkeys/get-token", { sessionID }),
-        { headers: publicRequestHeaders() },
+    const response = await withAccountsClient((client) =>
+        rustCheckPasskeyVerificationStatus(client, sessionID),
     );
-    if (!res.ok) {
-        if (res.status == 404 || res.status == 410) {
-            throw namedError(
-                "passkey_session_expired",
-                "Passkey session has expired",
-            );
-        }
-        // Remote uses 400 to indicate that verification is still pending.
-        if (res.status == 400) return undefined;
-        throw new HTTPError(res);
-    }
-    return TwoFactorAuthorizationResponse.parse(await res.json());
+    return response == null
+        ? undefined
+        : TwoFactorAuthorizationResponse.parse(response);
 };
 
 export const saveCredentialsAndNavigateTo = async (

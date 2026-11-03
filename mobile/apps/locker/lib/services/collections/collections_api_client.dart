@@ -71,10 +71,14 @@ class CollectionApiClient {
     bool hasMore = true;
     final List<EnteFile> updatedFiles = [];
     final List<EnteFile> deletedFiles = [];
-    int latestUpdatedAtTime = 0;
+    int latestUpdatedAtTime = sinceTime;
     final collectionKey = CryptoHelper.instance.getCollectionKey(collection);
     while (hasMore) {
-      final diff = await _getDiff(collection.id, collectionKey, sinceTime);
+      final diff = await _getDiff(
+        collection.id,
+        collectionKey,
+        latestUpdatedAtTime,
+      );
       updatedFiles.addAll(diff.updatedFiles);
       deletedFiles.addAll(diff.deletedFiles);
       latestUpdatedAtTime = max(latestUpdatedAtTime, diff.latestUpdatedAtTime);
@@ -239,6 +243,8 @@ class CollectionApiClient {
       return;
     }
 
+    _validateMoveRequest(files, fromCollection, toCollection);
+
     final params = <String, dynamic>{};
     params["fromCollectionID"] = fromCollection.id;
     params["toCollectionID"] = toCollection.id;
@@ -290,6 +296,34 @@ class CollectionApiClient {
         );
       }
       await _enteDio.post("/collections/move-files", data: params);
+    }
+  }
+
+  void _validateMoveRequest(
+    List<EnteFile> files,
+    Collection fromCollection,
+    Collection toCollection,
+  ) {
+    final userID = _config.getUserID();
+    if (userID == null) {
+      throw AssertionError("Must be signed in to move files");
+    }
+    if (!toCollection.isOwner(userID)) {
+      throw AssertionError("Can't move to a collection you don't own");
+    }
+    if (!fromCollection.isOwner(userID)) {
+      throw AssertionError("Can't move from a collection you don't own");
+    }
+    if (toCollection.isDeleted) {
+      throw AssertionError("Can't move to a deleted collection");
+    }
+    if (fromCollection.isDeleted) {
+      throw AssertionError("Can't move from a deleted collection");
+    }
+    for (final file in files) {
+      if (file.ownerID != userID) {
+        throw AssertionError("Can only move files owned by you");
+      }
     }
   }
 

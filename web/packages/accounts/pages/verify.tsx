@@ -6,13 +6,11 @@ import { useSecondFactorChoiceIfNeeded } from "ente-accounts/components/utils/se
 import {
     replaceSavedLocalUser,
     savedKeyAttributes,
-    savedOriginalKeyAttributes,
     savedPartialLocalUser,
     savedSRPAttributes,
     saveIsFirstLogin,
     saveKeyAttributes,
     saveOriginalKeyAttributes,
-    unstashAfterUseSRPSetupAttributes,
     unstashReferralSource,
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
@@ -25,19 +23,14 @@ import {
     unstashRedirect,
 } from "ente-accounts/services/redirect";
 import {
-    getAndSaveSRPAttributes,
+    completePendingSignup,
     getSRPAttributes,
-    setupSRP,
 } from "ente-accounts/services/srp";
-import {
-    putUserKeyAttributes,
-    sendOTT,
-    verifyEmail,
-} from "ente-accounts/services/user";
+import { sendOTT, verifyEmail } from "ente-accounts/services/user";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import type { SingleInputFormProps } from "ente-base/components/SingleInputForm";
 import { useBaseContext } from "ente-base/context";
-import { isHTTPErrorWithStatus } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { clearSessionStorage } from "ente-base/session-storage";
 import { saveAuthToken } from "ente-base/token";
@@ -104,12 +97,12 @@ const Page: React.FC = () => {
             );
 
             if (passkeySessionID) {
-                updateSavedLocalUser({ passkeySessionID });
-                saveIsFirstLogin();
                 const url = passkeyVerificationRedirectURL(
                     accountsUrl!,
                     passkeySessionID,
                 );
+                updateSavedLocalUser({ passkeySessionID });
+                saveIsFirstLogin();
                 setPasskeyVerificationData({ passkeySessionID, url });
                 openPasskeyVerificationURL({ passkeySessionID, url });
             } else if (twoFactorSessionID) {
@@ -126,12 +119,7 @@ const Page: React.FC = () => {
                     saveKeyAttributes(keyAttributes);
                     saveOriginalKeyAttributes(keyAttributes);
                 } else {
-                    const originalKeyAttributes = savedOriginalKeyAttributes();
-                    if (originalKeyAttributes) {
-                        await putUserKeyAttributes(originalKeyAttributes);
-                    }
-                    await unstashAfterUseSRPSetupAttributes(setupSRP);
-                    await getAndSaveSRPAttributes(email);
+                    if (token) await completePendingSignup(email, token);
                 }
                 saveIsFirstLogin();
                 if (keyAttributes) {
@@ -142,9 +130,9 @@ const Page: React.FC = () => {
                 }
             }
         } catch (e) {
-            if (isHTTPErrorWithStatus(e, 401)) {
+            if (isNamedError(e, "incorrect_email_code")) {
                 setFieldError(t("invalid_code_error"));
-            } else if (isHTTPErrorWithStatus(e, 410)) {
+            } else if (isNamedError(e, "email_code_expired")) {
                 setFieldError(t("expired_code_error"));
             } else {
                 log.error("OTT verification failed", e);

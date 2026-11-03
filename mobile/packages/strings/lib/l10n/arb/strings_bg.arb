@@ -2271,7 +2271,6 @@
   "mlConsent": "Enable machine learning",
   "mlConsentConfirmation": "I understand, and wish to enable machine learning",
   "mlConsentDescription": "If you enable machine learning, Ente will extract information like face geometry from files, including those shared with you.\n\nThis will happen on your device, and any generated biometric information will be end-to-end encrypted.",
-  "mlConsentPrivacy": "Please click here for more details about this feature in our privacy policy",
   "mlIndexingDescription": "Please note that machine learning will result in higher bandwidth and battery usage until all items are processed. Consider using the desktop app for faster processing, and all results will be synced automatically.",
   "mlProgressBannerDescription": "Your photos are getting processed on device to detect faces, objects and more.",
   "mlProgressBannerStatus": "{indexed} out of {total} photos processed",

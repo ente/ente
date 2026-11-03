@@ -55,7 +55,7 @@ import "package:photos/ui/viewer/gallery/hooks/add_photos_sheet.dart";
 import "package:photos/ui/viewer/gallery/hooks/album_sort_sheet.dart";
 import "package:photos/ui/viewer/gallery/hooks/edit_album_details_sheet.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
-import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
+import "package:photos/ui/viewer/hierarchical_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/magic_util.dart';
@@ -78,6 +78,9 @@ class GalleryAppBarWidget extends StatefulWidget {
     Future<void> Function()? onDisableDeviceFolderBackup,
     Collection? collection,
     EnteFile? cover,
+    Widget? coverWidget,
+    List<Widget> Function({required bool onCover, Color? foregroundColor})?
+    actionsBuilder,
     String? coverHeroTag,
     Key? coverAppBarKey,
     List<EnteFile>? files,
@@ -92,7 +95,8 @@ class GalleryAppBarWidget extends StatefulWidget {
           files != null,
     );
     return GalleryAppBarConfig(
-      extendBodyForCollapse: cover != null && bottom == null,
+      extendBodyForCollapse:
+          (cover != null || coverWidget != null) && bottom == null,
       sliverBuilder: (_) => GalleryAppBarWidget._(
         type,
         title,
@@ -103,6 +107,8 @@ class GalleryAppBarWidget extends StatefulWidget {
         onDisableDeviceFolderBackup: onDisableDeviceFolderBackup,
         collection: collection,
         cover: cover,
+        coverWidget: coverWidget,
+        actionsBuilder: actionsBuilder,
         coverHeroTag: coverHeroTag,
         coverAppBarKey: coverAppBarKey,
         files: files,
@@ -115,7 +121,7 @@ class GalleryAppBarWidget extends StatefulWidget {
         subtitle: subtitle,
         description: collection?.displayDescription,
         bottomHeight: bottom?.preferredSize.height,
-        hasCover: cover != null,
+        hasCover: cover != null || coverWidget != null,
       ),
     );
   }
@@ -183,6 +189,9 @@ class GalleryAppBarWidget extends StatefulWidget {
   final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
   final EnteFile? cover;
+  final Widget? coverWidget;
+  final List<Widget> Function({required bool onCover, Color? foregroundColor})?
+  actionsBuilder;
   final String? coverHeroTag;
   final Key? coverAppBarKey;
   final List<EnteFile>? files;
@@ -200,6 +209,8 @@ class GalleryAppBarWidget extends StatefulWidget {
     this.onDisableDeviceFolderBackup,
     this.collection,
     this.cover,
+    this.coverWidget,
+    this.actionsBuilder,
     this.coverHeroTag,
     this.coverAppBarKey,
     this.files,
@@ -337,7 +348,10 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         preferredSize: Size.fromHeight(
           AppBarFilterChips.preferredHeight(context),
         ),
-        child: AppBarFilterChips(animateRecommendations: widget.cover != null),
+        child: AppBarFilterChips(
+          animateRecommendations:
+              widget.cover != null || widget.coverWidget != null,
+        ),
       ),
       builder: (context, isSearching, child) => _buildHeader(
         bottom: child as PreferredSizeWidget,
@@ -348,7 +362,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   Widget _buildHeader({PreferredSizeWidget? bottom, bool isSearching = false}) {
     if (GalleryAppBarWidget._usesCoverHeader(
-      hasCover: widget.cover != null,
+      hasCover: widget.cover != null || widget.coverWidget != null,
       hasCustomBottom: widget.bottom != null,
       isSearching: isSearching,
     )) {
@@ -375,7 +389,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     return AlbumCoverAppBar(
       key: widget.coverAppBarKey,
       collection: widget.collection,
-      cover: widget.cover!,
+      cover: widget.cover,
+      coverWidget: widget.coverWidget,
       subtitle: widget.subtitle,
       heroTag: widget.coverHeroTag,
       title: _appBarTitle,
@@ -585,6 +600,12 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     required bool onCover,
     Color? foregroundColor,
   }) {
+    if (widget.actionsBuilder != null) {
+      return widget.actionsBuilder!(
+        onCover: onCover,
+        foregroundColor: foregroundColor,
+      );
+    }
     final List<Widget> actions = <Widget>[];
     final iconButtonVariant = onCover
         ? IconButtonComponentVariant.unfilled
@@ -1234,7 +1255,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           widget.deviceCollection?.name ??
           widget.collection?.displayName ??
           _appBarTitle,
-      includeBackupExcludedFiles: widget.deviceCollection != null,
+      includeBackupExcludedFiles:
+          widget.deviceCollection != null ||
+          (galleryType == GalleryType.cluster && isLocalGalleryMode),
     );
   }
 
@@ -1339,6 +1362,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
               if (widget.deviceCollection != null) {
                 return await _loadAllGalleryFiles() ?? [];
               }
+              if (widget.files != null) return widget.files!;
               return FilesDB.instance.getAllFilesCollection(
                 widget.collection!.id,
               );

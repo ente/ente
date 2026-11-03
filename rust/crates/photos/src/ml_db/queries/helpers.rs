@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use crate::db::{self, FromSql, Params, Row, ToSql, params_from_iter};
+use crate::db::{self, FromSql, Params, Row, ToSql, Transaction, params_from_iter};
 
 use crate::ml_db::{MlDb, Result};
 
@@ -126,6 +126,13 @@ impl MlDb {
                 Ok(())
             })
             .map_err(Into::into)
+    }
+
+    pub(in crate::ml_db) fn write_transaction<T>(
+        &self,
+        write: impl FnOnce(&Transaction<'_>) -> db::Result<T>,
+    ) -> Result<T> {
+        self.db.write_transaction(write).map_err(Into::into)
     }
 
     pub(in crate::ml_db) fn write_batch_atomic<P: Params>(

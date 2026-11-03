@@ -288,6 +288,21 @@ html[data-space-route-motion]::view-transition-new(root) {
     pointer-events: auto;
 }
 
+.space-video-duration {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    pointer-events: none;
+}
+
 .space-video-spinner {
     display: block;
     box-sizing: border-box;

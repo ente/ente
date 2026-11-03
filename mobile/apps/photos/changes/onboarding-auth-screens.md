@@ -1,1 +1,0 @@
-- Redesigned the sign-up, login, verification, recovery and plan selection screens with the new illustrated layout, clearer validation messages, and a code field that resets after an incorrect code.

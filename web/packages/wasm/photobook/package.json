@@ -1,0 +1,24 @@
+{
+    "name": "ente-photobook-wasm",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": {
+            "types": "./index.ts",
+            "import": "./index.ts"
+        }
+    },
+    "module": "./index.ts",
+    "types": "./index.ts",
+    "scripts": {
+        "build": "wasm-pack build ../../../../rust/bindings/wasm/photobook --target bundler --out-dir ../../../../web/packages/wasm/photobook/pkg --no-pack"
+    },
+    "dependencies": {
+        "comlink": "4.4.2",
+        "ente-utils": "*"
+    },
+    "devDependencies": {
+        "ente-build-config": "*",
+        "wasm-pack": "0.15.0"
+    }
+}

@@ -58,7 +58,7 @@ func (c *UserController) CompleteSRPSetup(context *gin.Context, req ente.Complet
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	srpM2, err := c.verifySRPSession(context, setup.Verifier, setup.SessionID, req.SRPM1)
+	srpM2, err := c.verifySRPSession(context, setup.SRPUserID, setup.Verifier, setup.SessionID, req.SRPM1)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (c *UserController) updateSrpAndKeyAttributes(ctx *gin.Context,
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	srpM2, err := c.verifySRPSession(ctx, setup.Verifier, setup.SessionID, req.SRPM1)
+	srpM2, err := c.verifySRPSession(ctx, setup.SRPUserID, setup.Verifier, setup.SessionID, req.SRPM1)
 	if err != nil {
 		return nil, err
 	}
@@ -204,18 +204,25 @@ func (c *UserController) VerifySRPSession(context *gin.Context, req ente.VerifyS
 	srpAuthEntity, err := c.UserAuthRepo.GetSRPAuthEntityBySRPUserID(context, req.SRPUserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			_, verifyErr := c.verifySRPSession(context, FakeVerifier, req.SessionID, req.SRPM1)
+			_, verifyErr := c.verifySRPSession(context, req.SRPUserID, FakeVerifier, req.SessionID, req.SRPM1)
 			return nil, verifyErr
 		}
 		return nil, stacktrace.Propagate(err, "")
 	}
-	srpM2, err := c.verifySRPSession(context, srpAuthEntity.Verifier, req.SessionID, req.SRPM1)
+	srpM2, err := c.verifySRPSession(context, srpAuthEntity.SRPUserID, srpAuthEntity.Verifier, req.SessionID, req.SRPM1)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	user, err := c.UserRepo.Get(srpAuthEntity.UserID)
 	if err != nil {
 		return nil, err
+	}
+	if *user.IsEmailMFAEnabled {
+		return nil, stacktrace.Propagate(&ente.ApiError{
+			Code:           "EMAIL_MFA_ENABLED",
+			Message:        "Email MFA is enabled",
+			HttpStatusCode: http.StatusConflict,
+		}, "email mfa is enabled")
 	}
 	verResponse, err := c.onVerificationSuccess(context, user.Email, nil, srpAuthEntity)
 	if err != nil {
@@ -283,6 +290,7 @@ func (c *UserController) createAndInsertSRPSession(
 }
 
 func (c *UserController) verifySRPSession(ctx context.Context,
+	srpUserID uuid.UUID,
 	srpVerifier string,
 	sessionID uuid.UUID,
 	srpM1 string,
@@ -325,6 +333,9 @@ func (c *UserController) verifySRPSession(ctx context.Context,
 		// Match real-session timing.
 		time.Sleep(time.Duration(20+mathRand.Intn(30)) * time.Millisecond)
 		return nil, stacktrace.Propagate(ente.ErrInvalidPassword, "fake session verification")
+	}
+	if srpSession.SRPUserID != srpUserID {
+		return nil, stacktrace.Propagate(ente.ErrInvalidPassword, "srp session belongs to another account")
 	}
 
 	srpParams := srp.GetParams(Srp4096Params)

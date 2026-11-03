@@ -206,6 +206,10 @@ pub(crate) fn llm_catalog() -> Vec<ModelPreset> {
     ]
 }
 
+pub fn supports_live_voice(total_memory_bytes: Option<u64>) -> bool {
+    total_memory_bytes.is_some_and(|bytes| bytes > MOBILE_SMALL_MEMORY_MAX_BYTES)
+}
+
 pub fn resolve_model_policy(
     surface: ModelRuntimeSurface,
     total_memory_bytes: Option<u64>,
@@ -374,15 +378,17 @@ mod tests {
     fn mobile_ram_ladder_enforces_inclusive_boundaries_and_saved_preferences() {
         let gib = 1024 * 1024 * 1024;
         for surface in [ModelRuntimeSurface::Android, ModelRuntimeSurface::Ios] {
-            for (memory, expected) in [
-                (None, "lfm-350m"),
-                (Some(0), "lfm-350m"),
-                (Some(4 * gib), "lfm-350m"),
-                (Some(4 * gib + 1), "lfm-vl-1.6b"),
-                (Some(8 * gib), "lfm-vl-1.6b"),
-                (Some(8 * gib + 1), "gemma-4-e2b-q4km"),
+            for (memory, expected, live_voice) in [
+                (None, "lfm-350m", false),
+                (Some(0), "lfm-350m", false),
+                (Some(4 * gib - 1), "lfm-350m", false),
+                (Some(4 * gib), "lfm-350m", false),
+                (Some(4 * gib + 1), "lfm-vl-1.6b", true),
+                (Some(8 * gib), "lfm-vl-1.6b", true),
+                (Some(8 * gib + 1), "gemma-4-e2b-q4km", true),
             ] {
                 let policy = resolve_model_policy(surface, memory);
+                assert_eq!(supports_live_voice(memory), live_voice, "RAM: {memory:?}");
                 assert_eq!(policy.default_model.id, expected, "RAM: {memory:?}");
                 assert_eq!(policy.visible_models.len(), 1);
                 assert_eq!(policy.visible_models[0].id, expected);

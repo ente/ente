@@ -3,6 +3,7 @@ import "dart:convert";
 import "dart:io";
 
 import "package:dio/dio.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -13,15 +14,20 @@ import "package:path_provider_platform_interface/path_provider_platform_interfac
 import "package:photos/core/cache/thumbnail_in_memory_cache.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/network/network.dart";
+import "package:photos/db/files_db.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
+import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/favorites_service.dart";
 import "package:photos/settings/local_settings.dart";
+import "package:photos/ui/home/home_gallery_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+import "package:photos/ui/viewer/gallery/component/group/type.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
+import "package:photos/ui/viewer/gallery/layout_settings.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -32,6 +38,7 @@ void main() {
   late PathProviderPlatform previousPathProvider;
   late _HeldThumbnailDownloads downloads;
   late Dio serviceDio;
+  var filesDBOpened = false;
   const userAgentChannel = MethodChannel("ua_client_hints");
 
   setUpAll(() async {
@@ -89,6 +96,7 @@ void main() {
   });
 
   tearDownAll(() async {
+    if (filesDBOpened) await (await FilesDB.instance.sqliteAsyncDB).close();
     NetworkClient.instance.enteDio.close(force: true);
     NetworkClient.instance.downloadDio.close(force: true);
     NetworkClient.instance.getDio().close(force: true);
@@ -193,6 +201,77 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
+  });
+
+  testWidgets("hiding shared items preserves the open home gallery preview", (
+    tester,
+  ) async {
+    await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
+    await localSettings.setHideSharedItemsFromHomeGallery(false);
+    await localSettings.setPhotoGridSize(4);
+    await localSettings.setGalleryGroupType(GroupType.day);
+    filesDBOpened = true;
+    await tester.runAsync(() async {
+      await FilesDB.instance.insertMultiple([
+        for (final ownerID in [1, 2])
+          EnteFile()
+            ..uploadedFileID = 9000 + ownerID
+            ..ownerID = ownerID
+            ..collectionID = 1
+            ..title = "photo-$ownerID.jpg"
+            ..fileType = FileType.image
+            ..creationTime = DateTime(2026, 10, 1).microsecondsSinceEpoch
+            ..modificationTime = DateTime(2026, 10, 1).microsecondsSinceEpoch,
+      ]);
+      // Open SQLite readers outside the widget test's fake clock.
+      await (await FilesDB.instance.sqliteAsyncDB).getAll("SELECT 1");
+    });
+    final selectedFiles = SelectedFiles();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData.copyWith(platform: TargetPlatform.iOS),
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: Scaffold(body: HomeGalleryWidget(selectedFiles: selectedFiles)),
+      ),
+    );
+    Future<void> waitForFileCount(int count) async {
+      final deadline = Stopwatch()..start();
+      while (deadline.elapsed < const Duration(seconds: 5)) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 200));
+        final state = tester.state<GalleryState>(find.byType(Gallery));
+        if (state.galleryGroups?.allFiles.length == count) return;
+      }
+      expect(
+        tester
+            .state<GalleryState>(find.byType(Gallery))
+            .galleryGroups
+            ?.allFiles
+            .length,
+        count,
+      );
+    }
+
+    await waitForFileCount(2);
+    await tester.tap(find.byIcon(Icons.more_vert_outlined).hitTestable().first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(ToggleSwitchComponent));
+    await waitForFileCount(1);
+    final gallery = tester.state<GalleryState>(find.byType(Gallery));
+    expect(gallery.galleryGroups!.allFiles.single.ownerID, 1);
+    await tester.tap(find.byKey(const ValueKey("more-photos-per-row")));
+    await tester.pumpAndSettle();
+    expect(gallery.galleryGroups!.crossAxisCount, 5);
+    await tester.tap(find.byType(ToggleSwitchComponent));
+    await waitForFileCount(2);
+    expect(find.byType(GalleryLayoutSettings), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 3));
+    selectedFiles.dispose();
   });
 }
 

@@ -62,6 +62,48 @@ void main() {
     await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
   });
 
+  testWidgets("the gallery sheet toggle is reachable in landscape", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(640, 360);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(bottom: 24);
+    addTearDown(tester.view.reset);
+    await localSettings.setHideSharedItemsFromHomeGallery(false);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData.copyWith(platform: TargetPlatform.iOS),
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showBottomSheetComponent<void>(
+                context: context,
+                builder: (_) => const GalleryLayoutSettings(),
+              ),
+              child: const Text("Open"),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text("Open"));
+    await tester.pumpAndSettle();
+    final toggle = find.byType(ToggleSwitchComponent);
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(toggle).bottom, lessThanOrEqualTo(336));
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(localSettings.hideSharedItemsFromHomeGallery, isTrue);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await localSettings.setHideSharedItemsFromHomeGallery(false);
+  });
+
   testWidgets(
     "zero-size startup recovers date headers without remounting or reloading",
     (tester) async {

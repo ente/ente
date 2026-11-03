@@ -14,7 +14,6 @@ pub(crate) const KNOWLEDGE_ARTIFACT_FILENAMES: [&str; 4] = [
 
 const EMBEDDING_MODEL_IDENTITY: &str =
     "ggml-org/embeddinggemma-300M-GGUF:embeddinggemma-300M-Q8_0.gguf";
-const DOCUMENT_PROMPT: &str = "title: {title} | text: {text}";
 const QUERY_PROMPT: &str = "task: search result | query: {query}";
 const EMBEDDING_MODEL_URL: &str = "https://huggingface.co/ente-ai/embeddinggemma-300m-gguf/resolve/957b55764bd672f51240ac026e3a23ac9459ee3c/embeddinggemma-300M-Q8_0.gguf";
 const EMBEDDING_MODEL_SHA256: &str =
@@ -86,7 +85,7 @@ pub(crate) fn knowledge_index_contract() -> KnowledgeIndexContract {
         model: EMBEDDING_MODEL_IDENTITY.to_owned(),
         source_dim: SOURCE_DIM,
         matryoshka: true,
-        doc_prompt: DOCUMENT_PROMPT.to_owned(),
+        doc_prompt: format_knowledge_document_prompt("{title}", "{text}"),
         query_prompt: QUERY_PROMPT.to_owned(),
         dim: RETRIEVAL_DIM,
         quant: "int8".to_owned(),
@@ -97,21 +96,7 @@ pub(crate) fn knowledge_index_contract() -> KnowledgeIndexContract {
 }
 
 pub(crate) fn format_knowledge_document_prompt(title: &str, text: &str) -> String {
-    #[expect(
-        clippy::expect_used,
-        reason = "The fixed prompt contains the title placeholder"
-    )]
-    let (prefix, remainder) = DOCUMENT_PROMPT
-        .split_once("{title}")
-        .expect("knowledge document prompt contains a title placeholder");
-    #[expect(
-        clippy::expect_used,
-        reason = "The fixed prompt contains the text placeholder after the title"
-    )]
-    let (middle, suffix) = remainder
-        .split_once("{text}")
-        .expect("knowledge document prompt contains a text placeholder");
-    [prefix, title, middle, text, suffix].concat()
+    format!("title: {title} | text: {text}")
 }
 
 pub(crate) fn knowledge_embedding_config() -> KnowledgeEmbeddingConfig {
@@ -233,6 +218,18 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
+
+    #[test]
+    fn document_prompt_preserves_literal_placeholders_in_content() {
+        assert_eq!(
+            format_knowledge_document_prompt("A {text} title", "Text with {title} and {text}"),
+            "title: A {text} title | text: Text with {title} and {text}"
+        );
+        assert_eq!(
+            knowledge_index_contract().doc_prompt,
+            "title: {title} | text: {text}"
+        );
+    }
 
     #[test]
     fn artifact_urls_append_only_fixed_names() {

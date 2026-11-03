@@ -19,7 +19,7 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 
 const Page: React.FC = () => {
-    const { encryptWithRecoveryKey } = useAuthPageConfig();
+    const { recoveryKeyMnemonic } = useAuthPageConfig();
     const [twoFactorSecret, setTwoFactorSecret] = useState<
         TwoFactorSecret | undefined
     >();
@@ -31,10 +31,11 @@ const Page: React.FC = () => {
     }, []);
 
     const handleSubmit = async (otp: string) => {
-        if (!encryptWithRecoveryKey)
-            throw new Error("Two-factor setup encryption is not configured");
+        if (!recoveryKeyMnemonic)
+            throw new Error("Recovery key is not available");
         await setupTwoFactorFinish(
-            await encryptWithRecoveryKey(twoFactorSecret!.secretCode),
+            twoFactorSecret!.secretCode,
+            await recoveryKeyMnemonic(),
             otp,
         );
         await router.push(appHomeRoute);

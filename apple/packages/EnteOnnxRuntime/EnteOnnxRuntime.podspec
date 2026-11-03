@@ -5,14 +5,14 @@
 # XCFramework's static archive for the active platform via ORT_LIB_PATH.
 Pod::Spec.new do |s|
   s.name     = 'EnteOnnxRuntime'
-  s.version  = '1.28.1-r1'
+  s.version  = '1.31.0-r1'
   s.summary  = "Ente's custom prebuilt ONNX Runtime static-library XCFramework for iOS."
   s.homepage = 'https://github.com/ente/ort-packaging'
   s.authors  = { 'Ente' => 'engineering@ente.io' }
   s.license  = { :type => 'MIT', :file => 'ONNXRUNTIME-LICENSE' }
   s.source   = {
-    :http   => 'https://github.com/ente/ort-packaging/releases/download/ort-1.28.1-r1/onnxruntime-coreml-ios-1.28.1-r1.zip',
-    :sha256 => '774b986bdd8a9f729a3e80ce7f7e7e695f0387be6f66633feaa9835c05e8557e',
+    :http   => 'https://github.com/ente/ort-packaging/releases/download/ort-1.31.0-r1/onnxruntime-coreml-ios-1.31.0-r1.zip',
+    :sha256 => '4e4b12ce37e4a5c971cc758c96446b067c8e25818384e85aeed6be15decd3b86',
   }
 
   s.platform = :ios, '15.1'

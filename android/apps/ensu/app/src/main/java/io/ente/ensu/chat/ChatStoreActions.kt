@@ -1325,10 +1325,7 @@ internal class ChatStoreActions(
                         it.copy(
                             chat =
                                 it.chat.copy(
-                                    transientAssistantError =
-                                        (error as? ConversationException.Other)?.detail
-                                            ?: error.message
-                                            ?: "Unable to prepare conversation",
+                                    transientAssistantError = conversationPreparationError(error),
                                     transientAssistantParentId = userMessage.id,
                                 )
                         )
@@ -1341,6 +1338,13 @@ internal class ChatStoreActions(
             if (isActive()) state.update { it.copy(chat = it.chat.copy(preparationStatus = null)) }
         }
     }
+
+    private fun conversationPreparationError(error: Throwable): String =
+        when (error) {
+            is ConversationException.CurrentInputTooLarge -> CURRENT_INPUT_TOO_LARGE_MESSAGE
+            is ConversationException.Other -> error.detail
+            else -> error.message ?: "Unable to prepare conversation"
+        }
 
     private fun finishGeneration(
         sessionId: String,
@@ -2091,6 +2095,9 @@ internal class ChatStoreActions(
     }
 
     companion object {
+        private const val CURRENT_INPUT_TOO_LARGE_MESSAGE =
+            "This message is too long for the model, even without earlier messages. " +
+                "Shorten it or split it into smaller messages. Your full text is still available to edit or copy."
         private const val MEDIA_MARKER = "<__media__>"
         private const val OVERFLOW_SAFETY_TOKENS = 256
         private const val IMAGE_TOKEN_ESTIMATE = 768

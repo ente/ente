@@ -50,16 +50,16 @@ func (fci fileCopyInternal) newFile(ownedID int64) ente.File {
 	newThumbAttributes := fci.SourceFile.Thumbnail
 	newThumbAttributes.ObjectKey = fci.ThumbCopyReq.DestObjectKey
 	return ente.File{
-		OwnerID:            ownedID,
-		CollectionID:       fci.DestCollectionID,
-		EncryptedKey:       fci.EncryptedFileKey,
-		KeyDecryptionNonce: fci.EncryptedFileKeyNonce,
-		File:               newFileAttributes,
-		Thumbnail:          newThumbAttributes,
-		Metadata:           fci.SourceFile.Metadata,
-		PubicMagicMetadata: fci.SourceFile.PubicMagicMetadata,
-		UpdationTime:       enteTime.Microseconds(),
-		IsDeleted:          false,
+		OwnerID:             ownedID,
+		CollectionID:        fci.DestCollectionID,
+		EncryptedKey:        fci.EncryptedFileKey,
+		KeyDecryptionNonce:  fci.EncryptedFileKeyNonce,
+		File:                newFileAttributes,
+		Thumbnail:           newThumbAttributes,
+		Metadata:            fci.SourceFile.Metadata,
+		PublicMagicMetadata: fci.SourceFile.PublicMagicMetadata,
+		UpdationTime:        enteTime.Microseconds(),
+		IsDeleted:           false,
 	}
 }
 

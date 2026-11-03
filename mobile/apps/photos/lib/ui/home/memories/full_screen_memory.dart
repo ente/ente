@@ -26,8 +26,8 @@ import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memory_share_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
 import "package:photos/ui/home/memories/custom_listener.dart";
@@ -1546,7 +1546,6 @@ Future<void> _shareMemory(
   );
   if (currentIndex == null) return;
   final canShowMemoryShareLinkOption =
-      flagService.enableMemoryShareLink &&
       !(isLocalGalleryMode && !Configuration.instance.hasConfiguredAccount());
   final result = await showMemoryShareSelectionSheet(
     context,

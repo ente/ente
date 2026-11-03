@@ -1,6 +1,6 @@
 import { styled } from "@mui/material";
 import type { TwoFactorVerifyPresentationProps } from "ente-accounts/pages/two-factor/verify";
-import { isHTTP401Error } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
@@ -39,7 +39,7 @@ export function TwoFactorForm({
                 resetForm();
                 setFieldError(
                     "otp",
-                    isHTTP401Error(error)
+                    isNamedError(error, "incorrect_totp")
                         ? t("incorrect_code")
                         : t("generic_error"),
                 );

@@ -10,7 +10,6 @@ environment:
 dependencies:
   adaptive_theme: 3.7.2
   app_links: 6.4.1
-  bip39: 1.0.6
   camera: 0.12.1
   collection: 1.19.1
   dio: 5.9.2

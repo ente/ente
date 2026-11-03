@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/hpke"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -123,9 +124,23 @@ func (c *PushController) NotifyAlbumShare(ctx context.Context, recipients []int6
 	}
 	var unregisteredTokens []string
 	for _, token := range tokens {
+		if token.NotificationPublicKey == nil {
+			continue
+		}
+		publicKey, err := hpke.MLKEM768X25519().NewPublicKey(token.NotificationPublicKey)
+		if err != nil {
+			log.WithError(err).Warn("invalid album share notification public key")
+			continue
+		}
+		ciphertext, err := hpke.Seal(publicKey, hpke.HKDFSHA256(), hpke.ChaCha20Poly1305(),
+			[]byte("ente-push"), []byte(`{"eventType":"album_shared"}`))
+		if err != nil {
+			log.WithError(err).Warn("album share notification encryption failed")
+			continue
+		}
 		err = c.fcm.sendMessage(ctx, map[string]any{
 			"token":   token.FCMToken,
-			"data":    map[string]string{"action": "sync"},
+			"data":    map[string]string{"notificationCiphertext": base64.StdEncoding.EncodeToString(ciphertext)},
 			"android": map[string]string{"priority": "high", "ttl": "86400s"},
 		})
 		if err != nil {

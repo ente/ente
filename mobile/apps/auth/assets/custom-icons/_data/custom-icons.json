@@ -100,6 +100,10 @@
       "hex": "FF5A00"
     },
     {
+      "title": "Alternate",
+      "slug": "alternate"
+    },
+    {
       "title": "Amazon",
       "hex": "FF9900"
     },
@@ -705,10 +709,6 @@
       ]
     },
     {
-      "title": "DeepSeek",
-      "slug": "deepseek"
-    },
-    {
       "title": "Deepal",
       "slug": "deepal",
       "altNames": [
@@ -716,6 +716,10 @@
         "globalchangan.com",
         "forodeepals05"
       ]
+    },
+    {
+      "title": "DeepSeek",
+      "slug": "deepseek"
     },
     {
       "title": "DEGIRO"
@@ -1036,6 +1040,9 @@
       "slug": "freetaxusa"
     },
     {
+      "title": "Frenship"
+    },
+    {
       "title": "FZJ",
       "slug": "fzj",
       "hex": "023d6b",
@@ -1342,6 +1349,14 @@
       "title": "Kagi"
     },
     {
+      "title": "Karlsruhe Institute of Technology",
+      "slug": "kit_karlsruhe",
+      "hex": "000000",
+      "altNames": [
+        "Karlsruher Institut für Technologie"
+      ]
+    },
+    {
       "title": "Kayak",
       "slug": "kayak"
     },
@@ -1426,19 +1441,19 @@
       ]
     },
     {
+      "title": "Lark",
+      "slug": "lark",
+      "altNames": [
+        "飞书"
+      ]
+    },
+    {
       "title": "LatinX in AI",
       "slug": "latinxinai",
       "hex": "000000",
       "altNames": [
         "Latinxinai.com",
         "latinX in AI"
-      ]
-    },
-    {
-      "title": "Lark",
-      "slug": "lark",
-      "altNames": [
-        "飞书"
       ]
     },
     {
@@ -1724,6 +1739,13 @@
     {
       "title": "nasdaq",
       "hex": "0090BA"
+    },
+    {
+      "title": "Nedolauncher",
+      "slug": "nedolauncher",
+      "altNames": [
+        "Недолаунчер"
+      ]
     },
     {
       "title": "NekoHosting",
@@ -2754,6 +2776,10 @@
       "title": "Upstox"
     },
     {
+      "title": "UptimeRobot",
+      "slug": "uptimerobot"
+    },
+    {
       "title": "US Army",
       "slug": "us_army"
     },
@@ -2776,10 +2802,6 @@
         "Universiteit Utrecht",
         "uu"
       ]
-    },
-    {
-      "title": "UptimeRobot",
-      "slug": "uptimerobot"
     },
     {
       "title": "Venice AI",
@@ -2922,6 +2944,16 @@
     },
     {
       "title": "WYZE"
+    },
+    {
+      "title": "X Networks",
+      "slug": "xnetworks",
+      "hex": "00FF66",
+      "altNames": [
+        "xnetworks",
+        "xnet",
+        "sidekick"
+      ]
     },
     {
       "title": "xAI",

@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_base/models/accounts.dart";
 import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
@@ -10,7 +11,6 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/account_configured_event.dart';
 import 'package:photos/events/subscription_purchased_event.dart';
-import "package:photos/gateways/users/models/key_gen_result.dart";
 import 'package:photos/services/account/user_service.dart';
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/account/recovery_key_page.dart';
@@ -329,12 +329,8 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     );
     await dialog.show();
     try {
-      final result = await Configuration.instance.getAttributesForNewPassword(
+      await UserService.instance.changePassword(
         _passwordController1.text,
-      );
-      await UserService.instance.updateKeyAttributes(
-        result.item1,
-        result.item2,
         logoutOtherDevices: logOutFromOthers,
       );
       await dialog.hide();
@@ -384,9 +380,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     );
     await dialog.show();
     try {
-      final KeyGenResult result = await Configuration.instance.generateKey(
-        password,
-      );
+      final result = await UserService.instance.generateKey(password);
       Configuration.instance.resetVolatilePassword();
       await dialog.hide();
       Future<void> onDone() async {
@@ -423,7 +417,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
       routeToPage(
         context,
         RecoveryKeyPage(
-          result.privateKeyAttributes.recoveryKey,
+          result.recoveryKey,
           context.strings.next,
           onDone: onDone,
           isOnboarding: true,
@@ -433,7 +427,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
       _logger.severe(e);
       await dialog.hide();
       if (!mounted) return;
-      if (e is UnsupportedError) {
+      if (e == const AccountsError.keyDerivation()) {
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,

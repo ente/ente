@@ -1,15 +1,15 @@
 import "dart:async";
 import 'dart:convert';
+import 'dart:typed_data';
 
 import "package:app_links/app_links.dart";
+import "package:ente_base/models/accounts.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
-import "package:photos/core/errors.dart";
-import "package:photos/models/account/two_factor.dart";
 import 'package:photos/services/account/user_service.dart';
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import "package:photos/ui/account/two_factor_authentication_page.dart";
@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 class PasskeyPage extends StatefulWidget {
   final String sessionID;
+  final Uint8List? keyEncryptionKey;
   final String totp2FASessionID;
   final String accountsUrl;
 
@@ -27,6 +28,7 @@ class PasskeyPage extends StatefulWidget {
     this.sessionID, {
     required this.totp2FASessionID,
     required this.accountsUrl,
+    this.keyEncryptionKey,
     super.key,
   });
 
@@ -62,16 +64,12 @@ class _PasskeyPageState extends State<PasskeyPage> {
   }
 
   Future<void> checkStatus() async {
-    late dynamic response;
+    Map<String, dynamic>? response;
     try {
       response = await UserService.instance.getTokenForPasskeySession(
         widget.sessionID,
       );
-    } on PassKeySessionNotVerifiedError {
-      if (!mounted) return;
-      showToast(context, context.strings.passKeyPendingVerification);
-      return;
-    } on PassKeySessionExpiredError {
+    } on AccountsError_SessionExpired {
       if (!mounted) return;
       await showAlertBottomSheet(
         context,
@@ -89,7 +87,15 @@ class _PasskeyPageState extends State<PasskeyPage> {
       return;
     }
     if (!mounted) return;
-    await UserService.instance.onPassKeyVerified(context, response);
+    if (response == null) {
+      showToast(context, context.strings.passKeyPendingVerification);
+      return;
+    }
+    await UserService.instance.onPassKeyVerified(
+      context,
+      response,
+      keyEncryptionKey: widget.keyEncryptionKey,
+    );
   }
 
   Future<void> _handleDeeplink(Uri? uri) async {
@@ -123,7 +129,11 @@ class _PasskeyPageState extends State<PasskeyPage> {
         }
         final res = utf8.decode(base64.decode(base64String));
         final json = jsonDecode(res) as Map<String, dynamic>;
-        await UserService.instance.onPassKeyVerified(context, json);
+        await UserService.instance.onPassKeyVerified(
+          context,
+          json,
+          keyEncryptionKey: widget.keyEncryptionKey,
+        );
       } else {
         _logger.info(
           'ignored deeplink: ${baseUrlForLogging(link)} mounted $mounted',
@@ -173,7 +183,10 @@ class _PasskeyPageState extends State<PasskeyPage> {
                 // ignore: unawaited_futures
                 routeToPage(
                   context,
-                  TwoFactorAuthenticationPage(widget.totp2FASessionID),
+                  TwoFactorAuthenticationPage(
+                    widget.totp2FASessionID,
+                    keyEncryptionKey: widget.keyEncryptionKey,
+                  ),
                 );
               },
             ),

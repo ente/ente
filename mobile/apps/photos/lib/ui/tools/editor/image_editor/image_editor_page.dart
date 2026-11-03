@@ -59,6 +59,7 @@ class ImageEditorPage extends StatefulWidget {
 class _ImageEditorPageState extends State<ImageEditorPage> {
   final _mainEditorBarKey = GlobalKey<ImageEditorMainBottomBarState>();
   final editorKey = GlobalKey<ProImageEditorState>();
+  final _imageReady = Completer<void>();
   late final _layerDoubleTap = ImageEditorLayerDoubleTap(
     () => editorKey.currentState,
   );
@@ -285,6 +286,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                 _showExitConfirmationDialog(context);
               },
               mainEditorCallbacks: MainEditorCallbacks(
+                onImageDecoded: () {
+                  if (!_imageReady.isCompleted) _imageReady.complete();
+                },
                 onOpenSubEditor: (editor) => _activeSubEditor = editor,
                 onLayerTapDown: _layerDoubleTap.onLayerDown,
                 onLayerTapUp: _layerDoubleTap.onLayerUp,
@@ -391,6 +395,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                       return ImageEditorMainBottomBar(
                         key: _mainEditorBarKey,
                         editor: editor,
+                        imageReady: _imageReady.future,
                         configs: editor.configs,
                         callbacks: editor.callbacks,
                       );

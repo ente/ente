@@ -12,12 +12,14 @@ struct MessageInputView: View {
     let isDownloading: Bool
     let editingMessage: RenderedChatMessage?
     let isProcessingAttachments: Bool
-    let voiceInputState: VoiceInputState
+    @ObservedObject var voiceService: VoiceTranscriptionService
     let moveCursorToEndToken: UUID
     let onSend: () -> Void
     let onStop: () -> Void
     let onCancelEdit: () -> Void
     let onVoiceInput: () -> Void
+    let voiceInsertionCaret: Int?
+    let onComposerSelection: (NSRange, Bool) -> Void
     let onAddImage: (Data, String?) -> Void
     let onAddDocument: (URL) -> Void
     let onRemoveAttachment: (ChatAttachment) -> Void
@@ -38,7 +40,8 @@ struct MessageInputView: View {
     private var isSendEnabled: Bool {
         let hasContent =
             !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
-        return hasContent && !isDownloading && !isSendPending && !voiceInputState.blocksSend
+        return hasContent && !isDownloading && !isSendPending
+            && !voiceService.blocksComposer
     }
 
     private var isImageAttachmentLimitReached: Bool {
@@ -46,6 +49,9 @@ struct MessageInputView: View {
     }
 
     var body: some View {
+        let voicePreview = voiceService.composerPreview(original: text)
+        let composerText = voicePreview?.text ?? text
+
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
                 if let editingMessage {
@@ -92,41 +98,16 @@ struct MessageInputView: View {
                         .padding(.horizontal, EnsuSpacing.sm)
                     }
 
-                    if let voiceStatus = voiceInputState.statusText {
-                        HStack(spacing: EnsuSpacing.sm) {
-                            switch voiceInputState {
-                            case .downloading, .transcribing:
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            case .recording:
-                                Image("Mic02Icon")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 14, height: 14)
-                                    .foregroundStyle(EnsuColor.stopButton)
-                            case .error:
-                                Image(systemName: "exclamationmark.circle")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(EnsuColor.stopButton)
-                            case .idle:
-                                EmptyView()
-                            }
-                            Text(voiceStatus)
-                                .font(EnsuTypography.small)
-                                .foregroundStyle(
-                                    voiceInputState.isError
-                                        ? EnsuColor.stopButton : EnsuColor.textMuted)
-                            Spacer()
-                        }
-                        .padding(.horizontal, EnsuSpacing.sm)
-                    }
+                    VoiceInputControls(service: voiceService)
+                        .padding(.horizontal, EnsuSpacing.pageHorizontal)
 
                     HStack(alignment: .bottom, spacing: EnsuSpacing.xs) {
-                        if supportsImageAttachments {
+                        if supportsImageAttachments && !voiceService.blocksComposer {
                             ActionButton(
                                 icon: "ImagePlusIcon", tooltip: "Add photos",
                                 color: EnsuColor.textPrimary, size: 32
                             ) {
+                                voiceService.releaseComposer()
                                 dismissInput()
                                 showPhotos = true
                             }
@@ -154,7 +135,10 @@ struct MessageInputView: View {
                         }
 
                         MessageTextView(
-                            text: $text,
+                            text: Binding(
+                                get: { composerText },
+                                set: { if !voiceService.blocksComposer { text = $0 } }
+                            ),
                             isFocused: $isFocused,
                             moveCursorToEndToken: moveCursorToEndToken,
                             onSubmit: {
@@ -164,11 +148,16 @@ struct MessageInputView: View {
                                     hideKeyboard()
                                     onDismissKeyboard()
                                 }
-                            }
+                            },
+                            insertionCaret: voicePreview.map { Int($0.caretUtf16) }
+                                ?? voiceInsertionCaret,
+                            onSelectionChange: onComposerSelection,
+                            readOnly: voiceService.blocksComposer,
+                            maximumLines: voiceService.blocksComposer ? 8 : 5
                         )
                         .padding(.vertical, 6)
                         .overlay(alignment: .topLeading) {
-                            if text.isEmpty {
+                            if composerText.isEmpty {
                                 Text(placeholder)
                                     .font(EnsuTypography.message)
                                     .foregroundStyle(Color(uiColor: .placeholderText))
@@ -184,48 +173,16 @@ struct MessageInputView: View {
                         }
 
                         if editingMessage == nil {
-                            let isVoiceBusy = voiceInputState.isTranscriptionBusy
-                            let canUseVoice =
-                                voiceInputState.isRecording
-                                || (!isGenerating && !isDownloading && !isVoiceBusy)
-
-                            Button {
-                                if voiceInputState.isRecording {
-                                    hapticWarning()
-                                } else {
-                                    hapticTap()
-                                    isFocused = false
-                                    hideKeyboard()
-                                    onDismissKeyboard()
-                                }
+                            VoiceInputButton(
+                                service: voiceService,
+                                enabled: !isGenerating && !isDownloading && !isSendPending
+                            ) {
+                                hapticTap()
+                                isFocused = false
+                                hideKeyboard()
+                                onDismissKeyboard()
                                 onVoiceInput()
-                            } label: {
-                                if isVoiceBusy {
-                                    ProgressView()
-                                        .scaleEffect(0.75)
-                                        .frame(width: 32, height: 32)
-                                } else if voiceInputState.isRecording {
-                                    Image("StopIcon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(
-                                            width: composerIconSize, height: composerIconSize
-                                        )
-                                        .foregroundStyle(EnsuColor.sendButton)
-                                        .frame(width: 32, height: 32)
-                                } else {
-                                    Image("Mic02Icon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: composerIconSize, height: composerIconSize)
-                                        .foregroundStyle(
-                                            canUseVoice
-                                                ? EnsuColor.textPrimary : EnsuColor.textMuted
-                                        )
-                                        .frame(width: 32, height: 32)
-                                }
                             }
-                            .disabled(!canUseVoice)
                             .padding(.leading, EnsuSpacing.xs)
                         }
 

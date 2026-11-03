@@ -5,6 +5,8 @@ import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/ente_theme_data.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:ente_auth/src/rust/third_party/ente_frb_lib/accounts.dart'
+    as accounts;
 import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/store/offline_authenticator_db.dart';
@@ -63,7 +65,11 @@ void main() {
     await Configuration.instance.init([]);
     databaseFactory = databaseFactoryFfi;
     await Network.instance.init(Configuration.instance);
-    await UserService.instance.init(Configuration.instance, const HomePage());
+    await UserService.instance.init(
+      Configuration.instance,
+      const HomePage(),
+      createAccountsClient: accounts.createAccountsClient,
+    );
     await PreferenceService.instance.init();
     await AuthenticatorService.instance.init();
     await CodeStore.instance.init();

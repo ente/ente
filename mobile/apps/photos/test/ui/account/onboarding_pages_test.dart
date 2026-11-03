@@ -1,76 +1,25 @@
-import "dart:io";
-
-import "package:dio/dio.dart";
+import "package:ente_base/models/accounts.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:package_info_plus/package_info_plus.dart";
-import "package:photos/core/configuration.dart";
 import "package:photos/ente_theme_data.dart";
-import "package:photos/service_locator.dart";
-import "package:photos/services/account/user_service.dart";
 import "package:photos/ui/account/email_entry_page.dart";
 import "package:photos/ui/account/login_page.dart";
 import "package:photos/ui/account/ott_verification_page.dart";
 import "package:photos/ui/account/recovery_page.dart";
 import "package:photos/ui/components/base_bottom_sheet.dart";
-import "package:shared_preferences/shared_preferences.dart";
+
+import "accounts_test_support.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  Map<String, Object>? failure;
+  final client = FakeAccountsClient();
 
-  setUpAll(() async {
-    SharedPreferences.setMockInitialValues({"email": "person@example.com"});
-    final preferences = await SharedPreferences.getInstance();
-    final dio = Dio();
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          if (failure != null) {
-            handler.reject(
-              DioException(
-                requestOptions: options,
-                type: DioExceptionType.badResponse,
-                response: Response(
-                  requestOptions: options,
-                  statusCode: 400,
-                  data: failure,
-                ),
-              ),
-            );
-          } else {
-            handler.resolve(Response(requestOptions: options, statusCode: 200));
-          }
-        },
-      ),
-    );
-    ServiceLocator.instance.init(
-      preferences,
-      dio,
-      dio,
-      Dio(),
-      PackageInfo(
-        appName: "Photos",
-        packageName: "photos",
-        version: "1.0.0",
-        buildNumber: "1",
-      ),
-    );
-    const pathProvider = MethodChannel("plugins.flutter.io/path_provider");
-    final directory = Directory.systemTemp.createTempSync("onboarding").path;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(pathProvider, (call) async => directory);
-    try {
-      await Configuration.instance.init(preferences);
-    } on MissingPluginException catch (_) {}
-    await UserService.instance.init();
-  });
+  setUpAll(() => initializeAccountsTest(client));
 
   setUp(() {
-    failure = null;
+    client.failure = null;
   });
 
   // The illustrations animate continuously, so pump a bounded stretch.
@@ -147,7 +96,7 @@ void main() {
       app(const OTTVerificationPage("person@example.com")),
     );
     await settle(tester);
-    failure = {"code": "INCORRECT_OTT"};
+    client.failure = const AccountsError.incorrectEmailCode();
     final pin = tester.widget<PinInputComponent>(
       find.byType(PinInputComponent),
     );

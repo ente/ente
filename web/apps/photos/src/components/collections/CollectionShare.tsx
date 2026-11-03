@@ -35,7 +35,6 @@ import {
 import NumberAvatar from "@mui/material/Avatar";
 import TextField from "@mui/material/TextField";
 import type { LocalUser } from "ente-accounts/services/user";
-import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import {
     NestedSidebarDrawer,
@@ -2626,13 +2625,7 @@ const PublicLinkSwitch: React.FC<
     variant == "inline" ? (
         <RowCard
             title={label}
-            endIcon={
-                <EnteSwitch
-                    checked={checked}
-                    onChange={onClick}
-                    slotProps={{ input: { "aria-label": label } }}
-                />
-            }
+            toggle={{ checked: !!checked, onChange: onClick }}
         />
     ) : (
         <RowSwitch {...{ label, checked, onClick }} />

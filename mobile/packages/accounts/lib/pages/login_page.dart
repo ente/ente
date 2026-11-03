@@ -1,6 +1,5 @@
 import "package:email_validator/email_validator.dart";
 import 'package:ente_accounts/ente_accounts.dart';
-import 'package:ente_accounts/models/errors.dart';
 import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import "package:ente_strings/ente_strings.dart";
@@ -34,9 +33,9 @@ class _LoginPageState extends State<LoginPage> {
     bool isEmailVerificationEnabled = true;
     try {
       attr = await UserService.instance.getSrpAttributes(_email!);
-      isEmailVerificationEnabled = attr.isEmailMFAEnabled;
+      isEmailVerificationEnabled = attr.isEmailMfaEnabled;
     } catch (e) {
-      if (e is! SrpSetupNotCompleteError) {
+      if (e != const AccountsError.srpNotConfigured()) {
         _logger.severe('Error getting SRP attributes', e);
       }
     }

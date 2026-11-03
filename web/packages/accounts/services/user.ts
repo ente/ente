@@ -6,31 +6,36 @@ import {
     saveKeyAttributes,
     updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
-import {
-    boxSealOpenBytes,
-    decryptBox,
-    deriveSensitiveKey,
-    encryptBox,
-    generateKey,
-    generateKeyPair,
-    toB64URLSafe,
-} from "ente-accounts/services/crypto";
+import { generateSignupKeys as rustGenerateSignupKeys } from "ente-accounts/services/crypto";
 import { generateInteractiveKeyAttributes } from "ente-accounts/services/key-attributes";
-import {
-    authenticatedRequestHeaders,
-    ensureOk,
-    publicRequestHeaders,
-} from "ente-base/http";
+import { namedError } from "ente-base/error";
+import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
 import {
+    ensureAuthToken,
     removeAuthToken,
     saveAuthToken,
     savedAuthToken,
 } from "ente-base/token";
+import {
+    getTwoFactorRecovery,
+    recoverTwoFactor,
+    enableTwoFactor as rustEnableTwoFactor,
+    recoverAccount as rustRecoverAccount,
+    setupTwoFactor as rustSetupTwoFactor,
+    verifyEmail as rustVerifyEmail,
+    verifyTwoFactor as rustVerifyTwoFactor,
+    sendOTP,
+    setKeyAttributes,
+    unlockAccount,
+    unlockAccountWithMasterKey,
+    type AccountsClient,
+} from "ente-prelogin-wasm";
 import { nullToUndefined } from "ente-utils/transform";
+import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { getAccountsClient, withAccountsClient } from "./accounts-client";
 import { clearInflightPasskeySessionID } from "./passkey";
-import { recoveryKeyFromMnemonic } from "./recovery-key";
 
 export interface LocalUser {
     id: number;
@@ -109,79 +114,25 @@ export const getTwoFactorStatus = async () => {
     return z.object({ status: z.boolean() }).parse(await res.json()).status;
 };
 
-export interface GenerateKeysAndAttributesResult {
-    masterKey: string;
-    kek: string;
-    keyAttributes: KeyAttributes;
-}
-
-export async function generateKeysAndAttributes(
-    password: string,
-): Promise<GenerateKeysAndAttributesResult> {
-    const masterKey = await generateKey();
-    const recoveryKey = await generateKey();
-    const {
-        key: kek,
-        salt: kekSalt,
-        opsLimit,
-        memLimit,
-    } = await deriveSensitiveKey(password);
-
-    const { encryptedData: encryptedKey, nonce: keyDecryptionNonce } =
-        await encryptBox(masterKey, kek);
-    const {
-        encryptedData: masterKeyEncryptedWithRecoveryKey,
-        nonce: masterKeyDecryptionNonce,
-    } = await encryptBox(masterKey, recoveryKey);
-    const {
-        encryptedData: recoveryKeyEncryptedWithMasterKey,
-        nonce: recoveryKeyDecryptionNonce,
-    } = await encryptBox(recoveryKey, masterKey);
-
-    const keyPair = await generateKeyPair();
-    const {
-        encryptedData: encryptedSecretKey,
-        nonce: secretKeyDecryptionNonce,
-    } = await encryptBox(keyPair.privateKey, masterKey);
-
-    const keyAttributes: KeyAttributes = {
-        encryptedKey,
-        keyDecryptionNonce,
-        kekSalt,
-        opsLimit,
-        memLimit,
-        publicKey: keyPair.publicKey,
-        encryptedSecretKey,
-        secretKeyDecryptionNonce,
-        masterKeyEncryptedWithRecoveryKey,
-        masterKeyDecryptionNonce,
-        recoveryKeyEncryptedWithMasterKey,
-        recoveryKeyDecryptionNonce,
+export const generateSignupKeys = async (password: string) => {
+    const generated = await rustGenerateSignupKeys(password, uuidv4());
+    return {
+        ...generated,
+        keyAttributes: RemoteKeyAttributes.parse(generated.keyAttributes),
     };
+};
 
-    return { masterKey, kek, keyAttributes };
-}
-
-export const putUserKeyAttributes = async (keyAttributes: KeyAttributes) =>
-    ensureOk(
-        await fetch(await apiURL("/users/attributes"), {
-            method: "PUT",
-            headers: await authenticatedRequestHeaders(),
-            body: JSON.stringify({ keyAttributes }),
-        }),
+export const putUserKeyAttributes = async (keyAttributes: KeyAttributes) => {
+    const token = await ensureAuthToken();
+    return withAccountsClient((client) =>
+        setKeyAttributes(client, token, keyAttributes),
     );
+};
 
-export const sendOTT = async (
+export const sendOTT = (
     email: string,
     purpose: "change" | "signup" | "login" | undefined,
-) =>
-    ensureOk(
-        await fetch(await apiURL("/users/ott"), {
-            method: "POST",
-            headers: publicRequestHeaders(),
-            body: JSON.stringify({ email, purpose }),
-        }),
-    );
+) => withAccountsClient((client) => sendOTP(client, email, purpose ?? ""));
 
 export interface EmailOrSRPVerificationResponse {
     id: number;
@@ -215,32 +166,22 @@ const accountsUrlForPasskeyRefinement = {
     message: "accountsUrl is required when passkeySessionID is present",
 };
 
-const RemoteEmailOrSRPVerificationResponse =
+export const RemoteEmailOrSRPVerificationResponse =
     RemoteEmailOrSRPVerificationResponseBase.refine(
         requireAccountsUrlForPasskey,
         accountsUrlForPasskeyRefinement,
     );
 
-// This declaration conceptually belongs to srp.ts, but lives here to avoid a
-// cyclic dependency.
-export const RemoteSRPVerificationResponse =
-    RemoteEmailOrSRPVerificationResponseBase.extend({
-        srpM2: z.string(),
-    }).refine(requireAccountsUrlForPasskey, accountsUrlForPasskeyRefinement);
-
 export const verifyEmail = async (
     email: string,
     ott: string,
     source: string | undefined,
-): Promise<EmailOrSRPVerificationResponse> => {
-    const res = await fetch(await apiURL("/users/verify-email"), {
-        method: "POST",
-        headers: publicRequestHeaders(),
-        body: JSON.stringify({ email, ott, ...(source && { source }) }),
-    });
-    ensureOk(res);
-    return RemoteEmailOrSRPVerificationResponse.parse(await res.json());
-};
+): Promise<EmailOrSRPVerificationResponse> =>
+    RemoteEmailOrSRPVerificationResponse.parse(
+        await withAccountsClient((client) =>
+            rustVerifyEmail(client, email, ott, source),
+        ),
+    );
 
 export const remoteLogoutIfNeeded = async () => {
     if (!(await savedAuthToken())) {
@@ -309,24 +250,54 @@ export const resetSavedLocalUserTokens = async (
     return removeAuthToken();
 };
 
+const UnlockedAccount = z.object({ masterKey: z.string(), token: z.string() });
+
+export const unlockAccountWithKEK = async (
+    response: EmailOrSRPVerificationResponse,
+    kek: string,
+) =>
+    UnlockedAccount.parse(
+        await withAccountsClient((client) =>
+            unlockAccount(client, response, kek),
+        ),
+    );
+
+export const unlockAccountWithKey = async (
+    response: EmailOrSRPVerificationResponse,
+    masterKey: string,
+) =>
+    UnlockedAccount.parse(
+        await withAccountsClient((client) =>
+            unlockAccountWithMasterKey(client, response, masterKey),
+        ),
+    );
+
+export const recoverAccount = async (
+    keyAttributes: KeyAttributes,
+    recoveryKey: string,
+) => {
+    const user = savedPartialLocalUser()!;
+    return UnlockedAccount.parse(
+        await withAccountsClient((client) =>
+            rustRecoverAccount(
+                client,
+                { ...user, id: user.id!, keyAttributes },
+                recoveryKey,
+            ),
+        ),
+    );
+};
+
 export const decryptAndStoreTokenIfNeeded = async (
     keyAttributes: KeyAttributes,
     masterKey: string,
 ) => {
-    const { encryptedToken } = savedPartialLocalUser() ?? {};
-    if (!encryptedToken) return;
-
-    const { encryptedSecretKey, secretKeyDecryptionNonce, publicKey } =
-        keyAttributes;
-    const privateKey = await decryptBox(
-        { encryptedData: encryptedSecretKey, nonce: secretKeyDecryptionNonce },
+    const user = savedPartialLocalUser();
+    if (!user?.encryptedToken) return;
+    const { token } = await unlockAccountWithKey(
+        { ...user, id: user.id!, keyAttributes },
         masterKey,
     );
-
-    const token = await toB64URLSafe(
-        await boxSealOpenBytes(encryptedToken, { publicKey, privateKey }),
-    );
-
     updateSavedLocalUser({ token, encryptedToken: undefined });
     return saveAuthToken(token);
 };
@@ -340,23 +311,21 @@ const TwoFactorSecret = z.object({
 export type TwoFactorSecret = z.infer<typeof TwoFactorSecret>;
 
 export const setupTwoFactor = async (): Promise<TwoFactorSecret> => {
-    const res = await fetch(await apiURL("/users/two-factor/setup"), {
-        method: "POST",
-        headers: await authenticatedRequestHeaders(),
-    });
-    ensureOk(res);
-    return TwoFactorSecret.parse(await res.json());
+    const token = await ensureAuthToken();
+    return TwoFactorSecret.parse(
+        await withAccountsClient((client) => rustSetupTwoFactor(client, token)),
+    );
 };
 
 export const setupTwoFactorFinish = async (
-    { encryptedData, nonce }: { encryptedData: string; nonce: string },
+    secret: string,
+    recoveryKey: string,
     code: string,
 ) => {
-    await enableTwoFactor({
-        code,
-        encryptedTwoFactorSecret: encryptedData,
-        twoFactorSecretDecryptionNonce: nonce,
-    });
+    const token = await ensureAuthToken();
+    await withAccountsClient((client) =>
+        rustEnableTwoFactor(client, token, secret, recoveryKey, code),
+    );
     updateSavedLocalUser({ isTwoFactorEnabled: true });
 };
 
@@ -369,21 +338,6 @@ export const disableTwoFactor = async () => {
     );
     updateSavedLocalUser({ isTwoFactorEnabled: false });
 };
-
-interface EnableTwoFactorRequest {
-    code: string;
-    encryptedTwoFactorSecret: string;
-    twoFactorSecretDecryptionNonce: string;
-}
-
-const enableTwoFactor = async (req: EnableTwoFactorRequest) =>
-    ensureOk(
-        await fetch(await apiURL("/users/two-factor/enable"), {
-            method: "POST",
-            headers: await authenticatedRequestHeaders(),
-            body: JSON.stringify(req),
-        }),
-    );
 
 export const TwoFactorAuthorizationResponse = z.object({
     id: z.number(),
@@ -398,15 +352,12 @@ export type TwoFactorAuthorizationResponse = z.infer<
 export const verifyTwoFactor = async (
     code: string,
     sessionID: string,
-): Promise<TwoFactorAuthorizationResponse> => {
-    const res = await fetch(await apiURL("/users/two-factor/verify"), {
-        method: "POST",
-        headers: publicRequestHeaders(),
-        body: JSON.stringify({ code, sessionID }),
-    });
-    ensureOk(res);
-    return TwoFactorAuthorizationResponse.parse(await res.json());
-};
+): Promise<TwoFactorAuthorizationResponse> =>
+    TwoFactorAuthorizationResponse.parse(
+        await withAccountsClient((client) =>
+            rustVerifyTwoFactor(client, sessionID, code),
+        ),
+    );
 
 export type TwoFactorType = "totp" | "passkey";
 
@@ -415,39 +366,45 @@ const TwoFactorRecoveryResponse = z.object({
     secretDecryptionNonce: z.string(),
 });
 
-export type TwoFactorRecoveryResponse = z.infer<
-    typeof TwoFactorRecoveryResponse
->;
+export interface TwoFactorRecovery {
+    client: AccountsClient;
+    response: z.infer<typeof TwoFactorRecoveryResponse>;
+}
 
 export const getRecoverTwoFactor = async (
     twoFactorType: TwoFactorType,
     sessionID: string,
-): Promise<TwoFactorRecoveryResponse> => {
-    const res = await fetch(
-        await apiURL("/users/two-factor/recover", { twoFactorType, sessionID }),
-        { headers: publicRequestHeaders() },
+): Promise<TwoFactorRecovery> => {
+    const client = await getAccountsClient();
+    const response = TwoFactorRecoveryResponse.parse(
+        await getTwoFactorRecovery(client, twoFactorType, sessionID),
     );
-    ensureOk(res);
-    return TwoFactorRecoveryResponse.parse(await res.json());
+    return { client, response };
 };
 
 export const recoverTwoFactorFinish = async (
     twoFactorType: TwoFactorType,
     sessionID: string,
-    recoveryResponse: TwoFactorRecoveryResponse,
+    recovery: TwoFactorRecovery,
     recoveryKeyMnemonic: string,
 ) => {
-    const { encryptedSecret: encryptedData, secretDecryptionNonce: nonce } =
-        recoveryResponse;
-    const twoFactorSecret = await decryptBox(
-        { encryptedData, nonce },
-        await recoveryKeyFromMnemonic(recoveryKeyMnemonic),
-    );
-    const { id, keyAttributes, encryptedToken } = await removeTwoFactor(
-        twoFactorType,
-        sessionID,
-        twoFactorSecret,
-    );
+    const { client, response } = recovery;
+    if (client !== (await getAccountsClient())) {
+        throw namedError("session_expired", "Server endpoint changed");
+    }
+    const { id, keyAttributes, encryptedToken } =
+        TwoFactorAuthorizationResponse.parse(
+            await recoverTwoFactor(
+                client,
+                twoFactorType,
+                sessionID,
+                response,
+                recoveryKeyMnemonic,
+            ),
+        );
+    if (client !== (await getAccountsClient())) {
+        throw namedError("session_expired", "Server endpoint changed");
+    }
     await resetSavedLocalUserTokens(id, encryptedToken);
     updateSavedLocalUser({
         isTwoFactorEnabled: undefined,
@@ -456,18 +413,4 @@ export const recoverTwoFactorFinish = async (
     });
     if (twoFactorType == "passkey") clearInflightPasskeySessionID();
     saveKeyAttributes(keyAttributes);
-};
-
-const removeTwoFactor = async (
-    twoFactorType: TwoFactorType,
-    sessionID: string,
-    secret: string,
-): Promise<TwoFactorAuthorizationResponse> => {
-    const res = await fetch(await apiURL("/users/two-factor/remove"), {
-        method: "POST",
-        headers: publicRequestHeaders(),
-        body: JSON.stringify({ twoFactorType, sessionID, secret }),
-    });
-    ensureOk(res);
-    return TwoFactorAuthorizationResponse.parse(await res.json());
 };

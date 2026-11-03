@@ -5,6 +5,7 @@ import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { getKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
+import { httpOrHTTPSURL } from "ente-base/safe-navigation";
 import {
     nullishToEmpty,
     nullishToZero,
@@ -250,7 +251,7 @@ export const redirectToCustomerPortal = async () => {
     );
     ensureOk(res);
     const portal = z.object({ url: z.string() }).parse(await res.json());
-    window.location.href = portal.url;
+    window.location.href = httpOrHTTPSURL(portal.url).href;
 };
 
 export const isSubscriptionActive = (subscription: Subscription) =>

@@ -2,6 +2,9 @@ name: Release Ente CLI
 
 on:
     workflow_dispatch:
+    schedule:
+        # Wednesdays at ~2:45 PM IST
+        - cron: "15 9 * * 3"
 
 permissions:
     contents: read
@@ -11,28 +14,70 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    build:
+    prepare:
         if: github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        outputs:
+            should_release: ${{ steps.prepare.outputs.should_release }}
+            version: ${{ steps.prepare.outputs.version }}
+            release_body: ${{ steps.notes.outputs.release_body }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.sha }}
+                  persist-credentials: false
+            - name: Read release notes
+              id: notes
+              run: node .github/scripts/release-notes.mjs rust/apps/cli/changes >> "$GITHUB_OUTPUT"
+            - name: Prepare release
+              id: prepare
+              env:
+                  HAS_CHANGES: ${{ steps.notes.outputs.has_new_changes }}
+              run: |
+                  version=$(node .github/scripts/cli-version.mjs get)
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+                  if [[ "$GITHUB_EVENT_NAME" = schedule && "$HAS_CHANGES" != true ]]; then
+                      echo "No CLI changes; skipping scheduled release"
+                      echo "should_release=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  tag="ente-cli-v$version"
+                  existing=$(git ls-remote --tags origin "refs/tags/$tag")
+                  if [[ -n "$existing" ]]; then
+                      if [[ "$GITHUB_EVENT_NAME" = schedule ]]; then
+                          echo "$tag already exists; merge the release follow-up PR before the next release"
+                          echo "should_release=false" >> "$GITHUB_OUTPUT"
+                          exit 0
+                      fi
+                      echo "::error::$tag already exists"
+                      exit 1
+                  fi
+                  echo "should_release=true" >> "$GITHUB_OUTPUT"
+
+    build:
+        needs: prepare
+        if: needs.prepare.outputs.should_release == 'true'
         runs-on: ${{ matrix.runner }}
+        environment: production
         strategy:
             fail-fast: false
             matrix:
                 include:
                     - { runner: ubuntu-latest, target: x86_64-unknown-linux-musl, suffix: linux-amd64.tar.gz }
                     - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, suffix: linux-arm64.tar.gz }
-                    - { runner: macos-15-intel, target: x86_64-apple-darwin, suffix: darwin-amd64.tar.gz }
-                    - { runner: macos-latest, target: aarch64-apple-darwin, suffix: darwin-arm64.tar.gz }
+                    - { runner: macos-15-intel, target: x86_64-apple-darwin, suffix: macos-amd64.tar.gz }
+                    - { runner: macos-latest, target: aarch64-apple-darwin, suffix: macos-arm64.tar.gz }
                     - { runner: windows-latest, target: x86_64-pc-windows-msvc, suffix: windows-amd64.zip }
                     - { runner: windows-11-arm, target: aarch64-pc-windows-msvc, suffix: windows-arm64.zip }
         defaults:
             run:
+                shell: bash
                 working-directory: rust
         env:
+            VERSION: ${{ needs.prepare.outputs.version }}
             TARGET: ${{ matrix.target }}
             SUFFIX: ${{ matrix.suffix }}
             CFLAGS_aarch64_unknown_linux_musl: -mno-outline-atomics
-        outputs:
-            version: ${{ steps.build.outputs.version }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -43,9 +88,8 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y musl-tools
-            - name: Build release asset
+            - name: Build binary
               id: build
-              shell: bash
               run: |
                   rustup target add "$TARGET"
                   features=()
@@ -57,33 +101,109 @@ jobs:
                       binary=ente.exe
                   fi
                   if [[ "$RUNNER_OS" = Linux ]]; then features=(--features rusqlite/bundled-sqlcipher-vendored-openssl,keyring/vendored); fi
-                  version=$(node ../.github/scripts/cli-version.mjs get)
                   cargo build --locked --release -p ente-cli --bin ente --target "$TARGET" "${features[@]}"
-                  cd "target/$TARGET/release"
-                  [[ "$(./"$binary" --version)" = "ente $version" ]]
-                  asset="ente-cli-v$version-$SUFFIX"
+                  binary="target/$TARGET/release/$binary"
+                  [[ "$(./"$binary" --version)" = "ente $VERSION" ]]
+                  echo "binary=$binary" >> "$GITHUB_OUTPUT"
+            - name: Import macOS signing certificate
+              if: runner.os == 'macOS'
+              id: certificate
+              uses: Apple-Actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9 # v7.1.0
+              with:
+                  p12-file-base64: ${{ secrets.MAC_OS_CERTIFICATE }}
+                  p12-password: ${{ secrets.MAC_OS_CERTIFICATE_PASSWORD }}
+            - name: Sign and notarize macOS binary
+              if: runner.os == 'macOS'
+              env:
+                  BINARY: ${{ steps.build.outputs.binary }}
+                  SIGNING_IDENTITY: ${{ steps.certificate.outputs.identities && fromJSON(steps.certificate.outputs.identities)[0].hash }}
+                  APPLE_ID: ${{ secrets.APPLE_ID }}
+                  APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+                  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+              run: |
+                  codesign --force --timestamp --options runtime --identifier io.ente.cli --sign "$SIGNING_IDENTITY" "$BINARY"
+                  codesign --verify --strict --verbose=2 "$BINARY"
+                  ditto -c -k "$BINARY" "$RUNNER_TEMP/notarization.zip"
+                  xcrun notarytool submit "$RUNNER_TEMP/notarization.zip" \
+                      --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" \
+                      --wait --output-format json > "$RUNNER_TEMP/notarization.json"
+                  cat "$RUNNER_TEMP/notarization.json"
+                  jq -e '.status == "Accepted"' "$RUNNER_TEMP/notarization.json"
+            - name: Package release asset
+              if: runner.os != 'Windows'
+              id: package
+              run: |
+                  asset="ente-cli-v$VERSION-$SUFFIX"
                   dist="$RUNNER_TEMP/cli-release"
                   mkdir -p "$dist"
-                  if [[ "$RUNNER_OS" = Windows ]]; then
-                      python -m zipfile -c "$dist/$asset" "$binary"
-                  else
-                      tar -czf "$dist/$asset" "$binary"
-                  fi
-                  printf 'version=%s\nasset=%s\npath=%s\n' "$version" "$asset" "$dist/$asset" >> "$GITHUB_OUTPUT"
+                  tar -czf "$dist/$asset" -C "target/$TARGET/release" ente
+                  printf 'asset=%s\npath=%s\n' "$asset" "$dist/$asset" >> "$GITHUB_OUTPUT"
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              if: runner.os != 'Windows'
+              with:
+                  name: ${{ steps.package.outputs.asset }}
+                  path: ${{ steps.package.outputs.path }}
+                  if-no-files-found: error
+                  compression-level: 0
+            - name: Upload unsigned Windows binary
+              if: runner.os == 'Windows'
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: unsigned-ente-cli-v${{ env.VERSION }}-${{ matrix.suffix }}
+                  path: rust/${{ steps.build.outputs.binary }}
+                  if-no-files-found: error
+
+    sign-windows:
+        needs: [prepare, build]
+        runs-on: windows-latest
+        environment: production
+        steps:
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  pattern: unsigned-ente-cli-v${{ needs.prepare.outputs.version }}-windows-*
+                  path: unsigned
+            - name: Sign Windows binaries
+              uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+              with:
+                  azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                  azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                  azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+                  endpoint: ${{ secrets.AZURE_ENDPOINT }}
+                  signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+                  certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+                  files-folder: ${{ github.workspace }}/unsigned
+                  files-folder-filter: exe
+                  files-folder-recurse: true
+                  file-digest: SHA256
+                  timestamp-rfc3161: http://timestamp.acs.microsoft.com
+                  timestamp-digest: SHA256
+                  cache-dependencies: false
+            - name: Verify and package Windows binaries
+              shell: pwsh
+              run: |
+                  New-Item -ItemType Directory -Path assets | Out-Null
+                  foreach ($binary in Get-ChildItem unsigned -Recurse -Filter ente.exe) {
+                      $signature = Get-AuthenticodeSignature -FilePath $binary.FullName
+                      if ($signature.Status -ne "Valid") {
+                          throw "Invalid signature for $($binary.FullName): $($signature.StatusMessage)"
+                      }
+                      $asset = $binary.Directory.Name -replace '^unsigned-', ''
+                      Compress-Archive -Path $binary.FullName -DestinationPath "assets/$asset"
+                  }
             - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: ${{ steps.build.outputs.asset }}
-                  path: ${{ steps.build.outputs.path }}
+                  name: ente-cli-v${{ needs.prepare.outputs.version }}-windows
+                  path: assets/*.zip
                   if-no-files-found: error
                   compression-level: 0
 
     release:
-        needs: build
+        needs: [prepare, build, sign-windows]
         runs-on: ubuntu-latest
         environment: release-branch-push
         env:
             GH_REPO: ${{ github.repository }}
-            VERSION: ${{ needs.build.outputs.version }}
+            VERSION: ${{ needs.prepare.outputs.version }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
@@ -91,12 +211,9 @@ jobs:
                   persist-credentials: false
             - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
-                  pattern: ente-cli-v${{ needs.build.outputs.version }}-*
+                  pattern: ente-cli-v${{ needs.prepare.outputs.version }}-*
                   path: assets
                   merge-multiple: true
-            - name: Read release notes
-              id: notes
-              run: node .github/scripts/release-notes.mjs rust/apps/cli/changes >> "$GITHUB_OUTPUT"
             - name: Mint release App token
               id: app-token
               uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
@@ -109,7 +226,7 @@ jobs:
             - name: Publish release
               env:
                   GH_TOKEN: ${{ steps.app-token.outputs.token }}
-                  NOTES: ${{ steps.notes.outputs.release_body }}
+                  NOTES: ${{ needs.prepare.outputs.release_body }}
               run: |
                   tag="ente-cli-v$VERSION"
                   existing=$(git ls-remote --tags origin "refs/tags/$tag")
@@ -124,7 +241,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ steps.app-token.outputs.token }}
                   APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
-                  RELEASE_BODY: ${{ steps.notes.outputs.release_body }}
+                  RELEASE_BODY: ${{ needs.prepare.outputs.release_body }}
               run: |
                   IFS=. read -r major minor patch <<< "$VERSION"
                   next_version="$major.$minor.$((patch + 1))"

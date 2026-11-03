@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/cache"
 	"github.com/ente/museum/internal/testutil"
 	museumcontroller "github.com/ente/museum/pkg/controller"
 	"github.com/ente/museum/pkg/controller/family"
+	"github.com/ente/museum/pkg/controller/usercache"
 	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/passkey"
 	storagebonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -102,6 +105,61 @@ func TestGetLockerUsageReturnsRequesterSpecificUsageWithinActiveFamilyScope(t *t
 	}
 }
 
+func TestGetDetailsV2DiscountsOnlyRequesterLockerUsageInFamily(t *testing.T) {
+	controller, db, ctx := setupLockerUsageControllerTest(t)
+
+	adminID := int64(301)
+	acceptedMemberID := int64(302)
+	invitedMemberID := int64(303)
+
+	insertLockerUsageTestUser(t, db, adminID, &adminID)
+	insertLockerUsageTestUser(t, db, acceptedMemberID, &adminID)
+	insertLockerUsageTestUser(t, db, invitedMemberID, nil)
+
+	insertLockerUsageTestFamilyMember(t, db, adminID, adminID, ente.SELF)
+	insertLockerUsageTestFamilyMember(t, db, adminID, acceptedMemberID, ente.ACCEPTED)
+	insertLockerUsageTestFamilyMember(t, db, adminID, invitedMemberID, ente.INVITED)
+
+	insertLockerUsageTestLockerFile(t, db, adminID, 101)
+	insertLockerUsageTestLockerFile(t, db, acceptedMemberID, 201)
+	insertLockerUsageTestLockerFile(t, db, invitedMemberID, 301)
+
+	testutil.InsertUsage(t, db, adminID, 1000+101)
+	testutil.InsertUsage(t, db, acceptedMemberID, 50+201)
+	for _, userID := range []int64{adminID, acceptedMemberID, invitedMemberID} {
+		testutil.InsertSubscription(t, db, testutil.SubscriptionFixture{UserID: userID, Storage: 1, ProductID: ente.FreePlanProductID})
+	}
+
+	photosDetails, err := controller.GetDetailsV2(ctx, acceptedMemberID, false, ente.Photos)
+	if err != nil {
+		t.Fatalf("GetDetailsV2() error = %v", err)
+	}
+	if photosDetails.Usage != 50 {
+		t.Fatalf("unexpected member usage: got %d want %d", photosDetails.Usage, 50)
+	}
+	familyUsage := map[int64]int64{}
+	for _, member := range photosDetails.FamilyData.Members {
+		familyUsage[member.MemberUserID] = member.Usage
+	}
+	wantFamilyUsage := map[int64]int64{adminID: 1000 + 101, acceptedMemberID: 50 + 201, invitedMemberID: 0}
+	if len(familyUsage) != len(wantFamilyUsage) {
+		t.Fatalf("unexpected family member count: got %d want %d", len(familyUsage), len(wantFamilyUsage))
+	}
+	for memberID, want := range wantFamilyUsage {
+		if got, ok := familyUsage[memberID]; !ok || got != want {
+			t.Fatalf("unexpected family usage for %d: got %d want %d", memberID, got, want)
+		}
+	}
+
+	lockerDetails, err := controller.GetDetailsV2(ctx, acceptedMemberID, false, ente.Locker)
+	if err != nil {
+		t.Fatalf("GetDetailsV2() error = %v", err)
+	}
+	if lockerDetails.LockerFamilyUsage.FamilyFileCount != 2 {
+		t.Fatalf("unexpected family file count: got %d want %d", lockerDetails.LockerFamilyUsage.FamilyFileCount, 2)
+	}
+}
+
 func setupLockerUsageControllerTest(t *testing.T) (*UserController, *sql.DB, *gin.Context) {
 	t.Helper()
 
@@ -116,6 +174,7 @@ func setupLockerUsageControllerTest(t *testing.T) (*UserController, *sql.DB, *gi
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest("GET", "/users/details/v2", nil)
 
 	userRepo := &repo.UserRepository{
 		DB:                  db,
@@ -128,18 +187,27 @@ func setupLockerUsageControllerTest(t *testing.T) (*UserController, *sql.DB, *gi
 	}
 	billingRepo := &repo.BillingRepository{DB: db}
 	storageBonusRepo := &storagebonusrepo.Repository{DB: db}
+	userCacheCtrl := &usercache.Controller{
+		StoreBonusRepo: storageBonusRepo,
+		UserCache:      cache.NewUserCache(),
+	}
 
 	return &UserController{
-		UserRepo:  userRepo,
-		UsageRepo: usageRepo,
+		UserRepo:     userRepo,
+		UsageRepo:    usageRepo,
+		UserAuthRepo: &repo.UserAuthRepository{DB: db},
+		PasskeyRepo:  &passkey.Repository{DB: db},
 		BillingController: &museumcontroller.BillingController{
 			BillingRepo:      billingRepo,
 			UserRepo:         userRepo,
 			StorageBonusRepo: storageBonusRepo,
 		},
 		FamilyController: &family.Controller{
-			FamilyRepo: &repo.FamilyRepository{DB: db},
+			UserRepo:      userRepo,
+			FamilyRepo:    &repo.FamilyRepository{DB: db},
+			UserCacheCtrl: userCacheCtrl,
 		},
+		UserCacheController: userCacheCtrl,
 	}, db, ctx
 }
 

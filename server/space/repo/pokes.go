@@ -50,9 +50,9 @@ func (r *PokesRepository) Create(ctx context.Context, senderSpaceID, recipientSp
 		return false, nil
 	}
 	if _, err := tx.ExecContext(ctx, `
-        DELETE FROM space_pokes
-        WHERE sender_space_id = $1 AND recipient_space_id = $2 AND poke_id <> $3
-    `, senderSpaceID, recipientSpaceID, pokeID); err != nil {
+        DELETE FROM space_notifications
+        WHERE actor_space_id = $1 AND recipient_space_id = $2 AND kind = 'poke'
+    `, senderSpaceID, recipientSpaceID); err != nil {
 		return false, stacktrace.Propagate(err, "")
 	}
 	if _, err := tx.ExecContext(ctx, `

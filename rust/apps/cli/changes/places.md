@@ -1,0 +1,1 @@
+- List the cities and countries where your photos were taken with `photos place list`, and filter `photos file list` by `--place` and `--country`.

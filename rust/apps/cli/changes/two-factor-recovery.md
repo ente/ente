@@ -1,1 +1,0 @@
-- Fixed CLI authenticator (TOTP) setup to support recovery in web and mobile apps.

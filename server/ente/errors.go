@@ -54,6 +54,12 @@ var ErrUncategorizeCollectionAlreadyExists = errors.New("uncategorized collectio
 
 var ErrDuplicateThumbnailObjectFound = errors.New("thumbnail object already exists")
 
+var ErrFileUploadConflict = &ApiError{
+	Code:           "FILE_UPLOAD_CONFLICT",
+	Message:        "File upload conflicts with an existing file",
+	HttpStatusCode: http.StatusBadRequest,
+}
+
 var ErrVersionMismatch = errors.New("client version is out of sync")
 
 var ErrCanNotInviteUserWithPaidPlan = errors.New("can not invite user with active paid plan")
@@ -253,7 +259,7 @@ const (
 
 	NotFoundError ErrorCode = "NOT_FOUND"
 
-	FamiliySizeLimitExceeded ErrorCode = "FAMILY_SIZE_LIMIT_EXCEEDED"
+	FamilySizeLimitExceeded ErrorCode = "FAMILY_SIZE_LIMIT_EXCEEDED"
 
 	UserSignupIncomplete ErrorCode = "USER_SIGNUP_INCOMPLETE"
 

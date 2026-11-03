@@ -84,14 +84,32 @@ type SetUserAttributesRequest struct {
 }
 
 func (sk *SetUserAttributesRequest) Validate() error {
-	strength := sk.KeyAttributes.MemLimit * sk.KeyAttributes.OpsLimit
-	if strength != ExpectedKDFStrength {
-		return NewBadRequestWithMessage("Unexpected KDF strength")
+	keys := sk.KeyAttributes
+	update := UpdateKeysRequest{
+		KEKSalt:            keys.KEKSalt,
+		EncryptedKey:       keys.EncryptedKey,
+		KeyDecryptionNonce: keys.KeyDecryptionNonce,
+		MemLimit:           keys.MemLimit,
+		OpsLimit:           keys.OpsLimit,
 	}
-	if sk.KeyAttributes.MemLimit < 128*1024*1024 {
-		return NewBadRequestWithMessage("memory limit must be at least 128MB")
+	if err := update.Validate(); err != nil {
+		return err
 	}
-	return nil
+	if err := ValidateBase64Length(keys.PublicKey, 32); err != nil {
+		return err
+	}
+	if err := ValidateBase64Length(keys.EncryptedSecretKey, 48); err != nil {
+		return err
+	}
+	if err := ValidateBase64Length(keys.SecretKeyDecryptionNonce, 24); err != nil {
+		return err
+	}
+	return (SetRecoveryKeyRequest{
+		MasterKeyEncryptedWithRecoveryKey: keys.MasterKeyEncryptedWithRecoveryKey,
+		MasterKeyDecryptionNonce:          keys.MasterKeyDecryptionNonce,
+		RecoveryKeyEncryptedWithMasterKey: keys.RecoveryKeyEncryptedWithMasterKey,
+		RecoveryKeyDecryptionNonce:        keys.RecoveryKeyDecryptionNonce,
+	}).Validate()
 }
 
 type UpdateEmailMFA struct {
@@ -114,7 +132,13 @@ func (u *UpdateKeysRequest) Validate() error {
 	if u.MemLimit < 128*1024*1024 {
 		return NewBadRequestWithMessage("memory limit must be at least 128MB")
 	}
-	return nil
+	if err := ValidateBase64Length(u.KEKSalt, 16); err != nil {
+		return err
+	}
+	if err := ValidateBase64Length(u.EncryptedKey, 48); err != nil {
+		return err
+	}
+	return ValidateBase64Length(u.KeyDecryptionNonce, 24)
 }
 
 type SetRecoveryKeyRequest struct {
@@ -122,6 +146,19 @@ type SetRecoveryKeyRequest struct {
 	MasterKeyDecryptionNonce          string `json:"masterKeyDecryptionNonce"`
 	RecoveryKeyEncryptedWithMasterKey string `json:"recoveryKeyEncryptedWithMasterKey"`
 	RecoveryKeyDecryptionNonce        string `json:"recoveryKeyDecryptionNonce"`
+}
+
+func (r SetRecoveryKeyRequest) Validate() error {
+	if err := ValidateBase64Length(r.MasterKeyEncryptedWithRecoveryKey, 48); err != nil {
+		return err
+	}
+	if err := ValidateBase64Length(r.MasterKeyDecryptionNonce, 24); err != nil {
+		return err
+	}
+	if err := ValidateBase64Length(r.RecoveryKeyEncryptedWithMasterKey, 48); err != nil {
+		return err
+	}
+	return ValidateBase64Length(r.RecoveryKeyDecryptionNonce, 24)
 }
 
 type EventReportRequest struct {
@@ -219,6 +256,7 @@ type TwoFactorRecoveryResponse struct {
 
 type TwoFactorRemovalRequest struct {
 	Secret        string `json:"secret"`
+	Proof         string `json:"proof"`
 	SessionID     string `json:"sessionID"`
 	TwoFactorType string `json:"twoFactorType"`
 }

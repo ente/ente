@@ -2,10 +2,6 @@ import 'package:flutter/foundation.dart';
 
 const int microSecondsInDay = 86400000000;
 
-// 256 bit key maps to 24 words
-// https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#Generating_the_mnemonic
-const mnemonicKeyWordCount = 24;
-
 const kDefaultProductionEndpoint = 'https://api.ente.com';
 const String githubDiscussionsUrl = "https://github.com/ente/ente/discussions";
 

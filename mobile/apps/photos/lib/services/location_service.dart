@@ -76,13 +76,13 @@ class LocationService {
     );
   }
 
-  Future<Map<LocationTag, int>> getLocationTagsToOccurance(
+  Future<Map<LocationTag, int>> getLocationTagsToOccurrence(
     List<EnteFile> files,
   ) async {
     final locationTagEntities = await locationService.getLocationTags();
 
     final locationTagToOccurrence = await _computer.compute(
-      _getLocationTagsToOccurenceForIsolate,
+      _getLocationTagsToOccurrenceForIsolate,
       param: {"files": files, "locationTagEntities": locationTagEntities},
     );
 
@@ -349,10 +349,10 @@ class LocationService {
   }
 }
 
-Map<LocationTag, int> _getLocationTagsToOccurenceForIsolate(Map args) {
+Map<LocationTag, int> _getLocationTagsToOccurrenceForIsolate(Map args) {
   final List<EnteFile> files = args["files"];
 
-  final locationTagToOccurence = <LocationTag, int>{};
+  final locationTagToOccurrence = <LocationTag, int>{};
   final locationTagEntities =
       args["locationTagEntities"] as Iterable<LocalEntity<LocationTag>>;
 
@@ -370,7 +370,7 @@ Map<LocationTag, int> _getLocationTagsToOccurenceForIsolate(Map args) {
         fileCoordinates,
         locationTag.radius,
       )) {
-        locationTagToOccurence.update(
+        locationTagToOccurrence.update(
           locationTag,
           (value) => value + 1,
           ifAbsent: () => 1,
@@ -379,7 +379,7 @@ Map<LocationTag, int> _getLocationTagsToOccurenceForIsolate(Map args) {
     }
   }
 
-  return locationTagToOccurence;
+  return locationTagToOccurrence;
 }
 
 bool isFileInsideLocationTag(

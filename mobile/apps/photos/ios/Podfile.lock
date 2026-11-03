@@ -17,6 +17,7 @@ PODS:
     - Flutter
   - ente_mail (0.0.1):
     - Flutter
+  - ente_notification_uniffi (0.1.0)
   - ente_panorama_viewer (0.0.1):
     - Flutter
   - ente_photos_frb (0.0.1):
@@ -31,7 +32,7 @@ PODS:
     - Flutter
   - ente_vision (0.0.1):
     - Flutter
-  - EnteOnnxRuntime (1.28.1-r1)
+  - EnteOnnxRuntime (1.31.0-r1)
   - file_saver (0.0.1):
     - Flutter
   - Firebase/CoreOnly (12.19.0):
@@ -247,6 +248,7 @@ DEPENDENCIES:
   - ente_background_manager (from `.symlinks/plugins/ente_background_manager/ios`)
   - ente_cast (from `.symlinks/plugins/ente_cast/ios`)
   - ente_mail (from `.symlinks/plugins/ente_mail/ios`)
+  - ente_notification_uniffi (from `NotificationServiceExtension`)
   - ente_panorama_viewer (from `.symlinks/plugins/ente_panorama_viewer/ios`)
   - ente_photos_frb (from `.symlinks/plugins/ente_photos_frb/ios`)
   - ente_photos_platform (from `.symlinks/plugins/ente_photos_platform/ios`)
@@ -334,6 +336,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/ente_cast/ios"
   ente_mail:
     :path: ".symlinks/plugins/ente_mail/ios"
+  ente_notification_uniffi:
+    :path: NotificationServiceExtension
   ente_panorama_viewer:
     :path: ".symlinks/plugins/ente_panorama_viewer/ios"
   ente_photos_frb:
@@ -441,6 +445,7 @@ SPEC CHECKSUMS:
   ente_background_manager: f10e3bd64ccd32a3232f0fbacabdd5545af8d81e
   ente_cast: a25feb3127397e5fc6aff03a12120916707757d4
   ente_mail: f0569c7ea17e8324ef28f36a93c49fa1f3de724f
+  ente_notification_uniffi: 51004b2f6928f8fa748c870298e3788b046ae59e
   ente_panorama_viewer: 16357cfb314c3f3f6abc0374ce17bfe371e528c2
   ente_photos_frb: c693c36243f0f65df25e7674552879cc74588fea
   ente_photos_platform: 08757c7e4977863732f75ce0f85cc6144600e3d2
@@ -448,7 +453,7 @@ SPEC CHECKSUMS:
   ente_screen_brightness: 7dd13c361508ee6098a2578908ebf35e9f567e28
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
   ente_vision: 260965fb4a3bda0c0cb72c5f15eb8748fef7c897
-  EnteOnnxRuntime: 7baa83a95717a6c9c8d0d4599f9f2c90b72d2905
+  EnteOnnxRuntime: e8cd50b12fc3dc8ecd2102dfdf52c8ca9352e296
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
   Firebase: 7ca191e43724142f79fae653547b3382c45413cc
   firebase_core: aa2923f301f5b09667356bb91e59308e6e2e38d3
@@ -506,6 +511,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
-PODFILE CHECKSUM: 1e63981d1e734d82b86f2c648779cacefb592a64
+PODFILE CHECKSUM: 10bc57f7956b6938d90465bf024867307eb6f24d
 
 COCOAPODS: 1.17.0

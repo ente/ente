@@ -122,6 +122,9 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
+            - run: cargo codegen frb auth
+              working-directory: rust
+
             - name: Prepare whatsnew
               run: |
                   mkdir -p whatsnew
@@ -241,6 +244,9 @@ jobs:
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Create artifacts directory
               run: mkdir artifacts
@@ -398,6 +404,9 @@ jobs:
               run: git config --global core.longpaths true
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Create artifacts directory
               run: mkdir artifacts
@@ -584,6 +593,9 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
+            - run: cargo codegen frb auth
+              working-directory: rust
+
             - name: Install code signing dependencies
               run: |
                   set -euo pipefail
@@ -726,6 +738,9 @@ jobs:
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
             - run: flutter pub get --enforce-lockfile
+
+            - run: cargo codegen frb auth
+              working-directory: rust
 
             - name: Install iOS pods
               run: pod install --deployment

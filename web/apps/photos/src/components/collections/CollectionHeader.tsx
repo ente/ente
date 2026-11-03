@@ -1,4 +1,5 @@
 import type { RemotePullOpts } from "@/components/gallery";
+import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
 import { downloadAndSaveCollectionFiles } from "@/services/save";
 import {
     CleanIcon,
@@ -21,6 +22,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
 import LinkIcon from "@mui/icons-material/Link";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -86,7 +88,6 @@ import { Trans } from "react-i18next";
 export interface CollectionHeaderProps {
     collectionSummary: CollectionSummary;
     activeCollection: Collection | undefined;
-    setActiveCollectionID: (collectionID: number) => void;
     isActiveCollectionDownloadInProgress: () => boolean;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
     onCollectionShare: () => void;
@@ -96,14 +97,18 @@ export interface CollectionHeaderProps {
     onEditAlbumDetails: () => void;
     hasActiveFileSelection: boolean;
     onAddSaveGroup: AddSaveGroup;
-    onShowMap: () => void;
-    onBackToAlbums: () => void;
+    showBackToAlbums: boolean;
     onDescriptionHeightChange?: (height: number) => void;
 }
 
 export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
-    const { activeCollection, collectionSummary, onDescriptionHeightChange } =
-        props;
+    const { backToAlbums } = usePhotosNavigation();
+    const {
+        activeCollection,
+        collectionSummary,
+        showBackToAlbums,
+        onDescriptionHeightChange,
+    } = props;
     const showCover = useMediaQuery(useTheme().breakpoints.up("sm"));
 
     const { name, type, attributes, fileCount } = collectionSummary;
@@ -157,6 +162,17 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                         ...(isAlbum && { gridArea: "summary" }),
                     }}
                 >
+                    {isAlbum && showBackToAlbums && (
+                        <Tooltip title={t("go_back")}>
+                            <IconButton
+                                aria-label={t("go_back")}
+                                onClick={backToAlbums}
+                                sx={{ width: 32, height: 32, flexShrink: 0 }}
+                            >
+                                <ArrowBackIcon sx={{ fontSize: 20 }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                     {isAlbum && showCover && (
                         <Box
                             aria-hidden
@@ -216,7 +232,6 @@ const shouldShowOptions = (type: CollectionSummaryType) =>
 const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
     activeCollection,
     collectionSummary,
-    setActiveCollectionID,
     onRemotePull,
     onCollectionShare,
     onCollectionManageLink,
@@ -226,8 +241,11 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
     hasActiveFileSelection,
     onAddSaveGroup,
     isActiveCollectionDownloadInProgress,
-    onShowMap,
 }) => {
+    const {
+        selectCollection: setActiveCollectionID,
+        showCollectionMap: onShowMap,
+    } = usePhotosNavigation();
     const { showMiniDialog, onGenericError } = useBaseContext();
     const { showLoadingBar, hideLoadingBar, showNotification } =
         usePhotosAppContext();

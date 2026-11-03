@@ -1,69 +1,29 @@
 import "dart:async";
 
-import "package:dio/dio.dart";
+import "package:ente_base/models/accounts.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/utils/dialog_util.dart" as shared_dialogs;
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/ente_theme_data.dart";
-import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
 import "package:photos/ui/account/ott_verification_page.dart";
 import "package:photos/ui/account/recovery_page.dart";
-import "package:shared_preferences/shared_preferences.dart";
+import "package:photos/utils/dialog_util.dart";
+
+import "accounts_test_support.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  final requests = <RequestOptions>[];
-  Completer<void>? pendingRequest;
-  Map<String, Object>? failure;
+  final client = FakeAccountsClient();
 
-  setUpAll(() async {
-    SharedPreferences.setMockInitialValues({});
-    final preferences = await SharedPreferences.getInstance();
-    final dio = Dio();
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          requests.add(options);
-          await pendingRequest?.future;
-          if (failure != null) {
-            handler.reject(
-              DioException(
-                requestOptions: options,
-                type: DioExceptionType.badResponse,
-                response: Response(
-                  requestOptions: options,
-                  statusCode: 400,
-                  data: failure,
-                ),
-              ),
-            );
-          } else {
-            handler.resolve(Response(requestOptions: options, statusCode: 200));
-          }
-        },
-      ),
-    );
-    ServiceLocator.instance.init(
-      preferences,
-      Dio(),
-      dio,
-      Dio(),
-      PackageInfo(
-        appName: "Photos",
-        packageName: "photos",
-        version: "1.0.0",
-        buildNumber: "1",
-      ),
-    );
-  });
+  setUpAll(() => initializeAccountsTest(client));
 
   setUp(() {
-    requests.clear();
-    pendingRequest = null;
-    failure = null;
+    client.requests.clear();
+    client.pendingRequest = null;
+    client.failure = null;
   });
 
   // The onboarding illustrations animate continuously, so the tree never
@@ -94,6 +54,26 @@ void main() {
       home: home,
     );
   }
+
+  testWidgets("Rust network errors use friendly messages across apps", (
+    tester,
+  ) async {
+    await tester.pumpWidget(app(const Scaffold()));
+    final context = tester.element(find.byType(Scaffold));
+    for (final parse in [parseErrorForUI, shared_dialogs.parseErrorForUI]) {
+      for (final timeout in [false, true]) {
+        expect(
+          parse(
+            context,
+            "Something went wrong",
+            error: AccountsError.network(timeout: timeout),
+            surfaceError: false,
+          ),
+          context.strings.networkConnectionRefusedErr,
+        );
+      }
+    }
+  });
 
   for (final mode in ["signup", "login", "change", "reset", "recreate"]) {
     testWidgets(
@@ -147,10 +127,9 @@ void main() {
           );
           expect(pin.controller.text, "12");
         }
-        expect(requests, hasLength(3));
-        for (final request in requests) {
-          expect(request.path, endsWith("/users/ott"));
-          expect(request.data, {
+        expect(client.requests, hasLength(3));
+        for (final request in client.requests) {
+          expect(request, {
             "email": "person@example.com",
             "purpose": mode == "reset" || mode == "recreate" ? "" : mode,
             "mobile": false,
@@ -222,20 +201,20 @@ void main() {
     await tester.pumpWidget(
       app(const OTTVerificationPage("person@example.com")),
     );
-    pendingRequest = Completer<void>();
+    client.pendingRequest = Completer<void>();
     await tester.tap(find.text("Resend code"));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(requests, hasLength(1));
+    expect(client.requests, hasLength(1));
     final pin = tester.widget<PinInputComponent>(
       find.byType(PinInputComponent),
     );
     expect(pin.isDisabled, isTrue);
     pin.controller.text = "123456";
     await tester.pump();
-    expect(requests, hasLength(1));
+    expect(client.requests, hasLength(1));
     final actions = tester.widgetList<TextButton>(find.byType(TextButton));
     expect(actions.every((button) => button.onPressed == null), isTrue);
-    pendingRequest!.complete();
+    client.pendingRequest!.complete();
     await settle(tester);
     expect(find.byType(OTTVerificationPage), findsOneWidget);
     expect(
@@ -253,17 +232,17 @@ void main() {
     await tester.pumpWidget(
       app(const OTTVerificationPage("person@example.com")),
     );
-    failure = {"code": "USER_NOT_REGISTERED"};
+    client.failure = const AccountsError.notRegistered();
     await tester.tap(find.text("Resend code"));
     await settle(tester);
     expect(find.byType(OTTVerificationPage), findsOneWidget);
     expect(find.text("Resend code"), findsOneWidget);
     Navigator.of(tester.element(find.byType(OTTVerificationPage))).pop();
     await settle(tester);
-    failure = null;
+    client.failure = null;
     await tester.tap(find.text("Resend code"));
     await settle(tester);
-    expect(requests, hasLength(2));
+    expect(client.requests, hasLength(2));
     expect(find.byType(OTTVerificationPage), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -274,13 +253,13 @@ void main() {
     await tester.pumpWidget(
       app(const OTTVerificationPage("person@example.com")),
     );
-    pendingRequest = Completer<void>();
+    client.pendingRequest = Completer<void>();
     await tester.tap(find.text("Resend code"));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pumpWidget(const SizedBox());
-    pendingRequest!.complete();
+    client.pendingRequest!.complete();
     await settle(tester);
-    expect(requests, hasLength(1));
+    expect(client.requests, hasLength(1));
     expect(tester.takeException(), isNull);
   });
 

@@ -115,7 +115,7 @@ interface UploadProps {
     ) => void;
     onCloseCollectionSelector?: () => void;
     onUploadFile: (file: EnteFile) => void;
-    onShowPlanSelector?: () => void;
+    onShowSubscription?: () => void;
     onShowSessionExpiredDialog: () => void;
     isInHiddenSection?: boolean;
 }
@@ -187,7 +187,7 @@ export const Upload: React.FC<UploadProps> = ({
     onOpenCollectionSelector,
     onCloseCollectionSelector,
     onUploadFile,
-    onShowPlanSelector,
+    onShowSubscription,
     onShowSessionExpiredDialog,
     ...props
 }) => {
@@ -1126,7 +1126,7 @@ export const Upload: React.FC<UploadProps> = ({
                     color: "critical",
                     caption: t("storage_quota_exceeded"),
                     title: t("upgrade_now"),
-                    onClick: onShowPlanSelector,
+                    onClick: onShowSubscription,
                     startIcon: Database02Icon,
                 });
                 break;

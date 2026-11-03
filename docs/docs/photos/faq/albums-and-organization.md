@@ -88,6 +88,23 @@ The best way to export shared albums is to manually download each shared album:
 
 This will reliably preserve the shared album name and contents.
 
+## Gallery layout {#gallery-layout-section}
+
+### How do I change the gallery layout? {#gallery-layout}
+
+In the Ente Photos mobile app, you can show your photos as square tiles or in a mosaic layout that keeps each photo's original proportions.
+
+1. Open `Settings > Appearance > Gallery`.
+2. Under **Layout**, select **Square photos** or **Photos in original proportions**.
+
+You can also pinch in or out on the gallery to switch layouts. Changing the layout only changes how photos are displayed. It does not crop or edit your photos.
+
+### How do I change how many photos fit on my screen? {#gallery-photos-per-row}
+
+In the Ente Photos mobile app, pinch in or out on the gallery. Pinch in to fit more, smaller photos on your screen, and pinch out to show fewer, larger photos. Pinching out past the largest square grid switches to the mosaic layout. Pinching also works while you are selecting photos.
+
+To set this in Settings, open `Settings > Appearance > Gallery` and change **Photos per row**. This option appears only when **Square photos** is selected.
+
 ## Slideshows {#album-slideshows-section}
 
 ### What does Slideshow do? {#what-is-album-slideshow}
@@ -102,8 +119,9 @@ Album slideshows are available in Ente Photos on iOS and Android for both Ente a
 
 1. Open the **Albums** tab.
 2. Open an Ente album.
-3. Tap the three dots in the top-right corner.
-4. Tap **Slideshow**.
+3. Tap the play button on the album cover at the top of the album.
+
+If you have scrolled down the album, you can instead tap the three dots in the top-right corner and select **Slideshow**.
 
 **On desktop:**
 
@@ -145,7 +163,7 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
-Yes. Open an **On device** album, tap the three dots in the top-right corner, and select **Slideshow**. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+Yes. Open an **On device** album and tap the play button on the album cover. If you have scrolled down, tap the three dots in the top-right corner and select **Slideshow** instead. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
 
 ## Uncategorized
 
@@ -162,6 +180,22 @@ Photos appear in Uncategorized when:
 You cannot choose Uncategorized as the destination for mobile automatic backup. Selected device folders back up to corresponding Ente albums. See [how mobile backup maps to albums](/photos/faq/backup-and-sync#automatic-backup).
 
 Learn more in the [Uncategorized feature guide](/photos/features/albums-and-organization/uncategorized).
+
+### Why can't I share the Uncategorized album? {#share-uncategorized-album}
+
+Uncategorized is a special system album. You cannot share it using the regular album **Share** controls or create a public link for it.
+
+If the recipient is on your family plan, you can share Uncategorized on mobile: open `Settings > Family`, select the family member, tap **Share albums**, select Uncategorized, and tap **Share**. It is always shared as Viewer. See [library sharing](/photos/features/sharing-and-collaboration/library-sharing#share-albums).
+
+To share photos with someone outside your family plan or by public link on mobile:
+
+1. If you need a new album, open **Albums > Ente** and tap **Create album**.
+2. Open Uncategorized, select the photos, tap **Add to album**, and choose the album.
+3. Open that album and tap **Share**. Enter the email address of someone with an Ente account, or create a public link for someone without one.
+
+On web or desktop, select photos in Uncategorized and choose **Move** to put them in a regular album. Then open that album and use **Share**.
+
+The photos may still appear in Uncategorized. [Clean Uncategorized](#clean-uncategorized) removes them from that section once they are also in an album you own.
 
 ### Why are photos appearing in Uncategorized? {#why-uncategorized}
 

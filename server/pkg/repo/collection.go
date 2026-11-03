@@ -17,6 +17,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/dbmetrics"
 	"github.com/ente/museum/pkg/utils/time"
 	"github.com/lib/pq"
 )
@@ -798,7 +799,9 @@ func (repo *CollectionRepository) AddFiles(
 	files []ente.CollectionFileItem,
 	fileOwnerID int64,
 ) error {
+	finishPhase := dbmetrics.Start(dbmetrics.CollectionAddFiles, "begin_with_checkout")
 	tx, err := repo.DB.BeginTx(ctx, nil)
+	finishPhase(err)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -808,26 +811,38 @@ func (repo *CollectionRepository) AddFiles(
 	for _, file := range files {
 		fileIDs = append(fileIDs, file.ID)
 	}
-	if err := lockFiles(ctx, tx, fileOwnerID, fileIDs); err != nil {
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "lock_files")
+	err = lockFiles(ctx, tx, fileOwnerID, fileIDs)
+	finishPhase(err)
+	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	updationTime := time.Microseconds()
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "check_trash")
 	trashedOrDeletedFileIDs, err := repo.TrashRepo.getFilesInTrashOrDeleted(ctx, tx, fileOwnerID, fileIDs)
+	finishPhase(err)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to check trash state")
 	}
 	if len(trashedOrDeletedFileIDs) > 0 {
 		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
 	}
-	if err := upsertCollectionFiles(ctx, tx, collectionID, collectionOwnerID, files, fileOwnerID, updationTime); err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
-		 WHERE collection_id = $2`, updationTime, collectionID)
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "upsert_memberships")
+	err = upsertCollectionFiles(ctx, tx, collectionID, collectionOwnerID, files, fileOwnerID, updationTime)
+	finishPhase(err)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "update_collection")
+	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
+		 WHERE collection_id = $2`, updationTime, collectionID)
+	finishPhase(err)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	finishPhase = dbmetrics.Start(dbmetrics.CollectionAddFiles, "commit")
 	err = tx.Commit()
+	finishPhase(err)
 	return stacktrace.Propagate(err, "")
 }
 

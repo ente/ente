@@ -86,7 +86,7 @@ pub struct DownloadTarget {
     pub destination: PathBuf,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Progress {
     pub label: String,
     pub downloaded_bytes: u64,

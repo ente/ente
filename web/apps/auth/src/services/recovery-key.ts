@@ -1,5 +1,5 @@
-import { encryptBoxWithRecoveryKey } from "ente-auth-wasm";
+import { recoveryKeyMnemonic as getMnemonic } from "ente-auth-wasm";
 import { ensureAuthenticatedSession } from "./authenticated-session";
 
-export const encryptWithRecoveryKey = async (data: string) =>
-    encryptBoxWithRecoveryKey(await ensureAuthenticatedSession(), data);
+export const recoveryKeyMnemonic = async () =>
+    getMnemonic(await ensureAuthenticatedSession());

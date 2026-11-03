@@ -35,9 +35,8 @@ pub struct Index {
 }
 
 impl Index {
-    pub fn new(open: impl FnOnce(&Path) -> Result<Connection>) -> Result<Self> {
-        let directory = tempfile::tempdir()?;
-        let db = open(&directory.path().join("index.db"))?;
+    pub fn new(open: impl FnOnce() -> Result<(tempfile::TempDir, Connection)>) -> Result<Self> {
+        let (directory, db) = open()?;
         db.execute_batch(
             "PRAGMA temp_store=MEMORY; PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; BEGIN;",
         )?;

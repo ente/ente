@@ -4,6 +4,9 @@ import android.os.SystemClock
 import android.util.Log
 import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.Asset
+import io.ente.ensu.bindings.DictationStopReason
+import io.ente.ensu.bindings.DictationStream
+import io.ente.ensu.bindings.DictationStreamCallback
 import io.ente.ensu.bindings.KnowledgeEmbeddingConfig
 import io.ente.ensu.bindings.LlmChatMessage as NativeChatMessage
 import io.ente.ensu.bindings.LlmChatModelMemory
@@ -27,14 +30,18 @@ import io.ente.ensu.bindings.llmMemoryBudget
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.device.requireChatSupported
 import io.ente.ensu.settings.IS_ENSU_PACKS_ENABLED
-import io.ente.ensu.toDirectByteBuffer
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -73,7 +80,6 @@ class LlmProvider(
     private val activeDownloads = AtomicInteger()
     private val embeddingAsset = knowledgeEmbeddingModelAsset()
     private var chatWarmupOwner: String? = null
-    private var voiceOwner: String? = null
     @Volatile private var chatForeground = false
     @Volatile private var appForeground = false
     private val memoryPressure = ModelMemoryPressure(SystemClock::elapsedRealtime)
@@ -153,45 +159,50 @@ class LlmProvider(
         }
     }
 
-    suspend fun prewarmVoice(owner: String) = withModelContext {
-        withResources {
-            currentCoroutineContext().ensureActive()
-            if (!chatForeground || memoryPressure.suppressesOptionalWork()) return@withResources
-            prepareVoiceResources()
-            var completed = false
-            try {
-                transcriber.loadModel()
-                currentCoroutineContext().ensureActive()
-                voiceOwner = owner
-                completed = true
-            } finally {
-                if (!completed) unloadTranscriptionModelIfLoaded()
+    suspend fun runLiveVoice(
+        stream: DictationStream,
+        callback: DictationStreamCallback,
+    ) = coroutineScope {
+        val exited = AtomicBoolean(false)
+        val cancellation =
+            launch(Dispatchers.Default, start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    awaitCancellation()
+                } finally {
+                    if (!exited.get()) {
+                        runCatching { stream.abandon(DictationStopReason.INTERRUPTION) }
+                    }
+                }
             }
-        }
-    }
-
-    suspend fun releaseVoice(owner: String) =
-        withContext(ioDispatcher) {
-            modelLoadMutex.withLock { if (voiceOwner == owner) unloadTranscriptionModelIfLoaded() }
-        }
-
-    suspend fun transcribe(inputSampleRate: UInt, pcm: ByteArray): String = withModelContext {
-        withResources {
-            currentCoroutineContext().ensureActive()
-            prepareVoiceResources()
-            try {
-                val result = transcriber.transcribe(inputSampleRate, pcm.toDirectByteBuffer())
-                currentCoroutineContext().ensureActive()
-                result
-            } finally {
-                unloadTranscriptionModelIfLoaded()
+        var completed = false
+        try {
+            withModelContext {
+                withResources {
+                    currentCoroutineContext().ensureActive()
+                    prepareVoiceResources()
+                    try {
+                        stream.run(transcriber, callback)
+                    } finally {
+                        unloadTranscriptionModelIfLoaded()
+                    }
+                }
             }
+            completed = true
+        } finally {
+            if (!completed) {
+                val reason =
+                    if (currentCoroutineContext().isActive) DictationStopReason.FAILURE
+                    else DictationStopReason.INTERRUPTION
+                runCatching { stream.abandon(reason) }
+            }
+            exited.set(true)
+            cancellation.cancel()
         }
     }
 
     private fun prepareVoiceResources() {
         releaseProjector()
-        if (voiceOwner == null && !canAllocate(LlmMemoryOperation.VOICE)) {
+        if (!canAllocate(LlmMemoryOperation.VOICE)) {
             unloadModel()
             if (!hasRequiredWorkReserve()) throw ModelMemoryUnavailable()
         }
@@ -238,12 +249,7 @@ class LlmProvider(
         val result =
             withResources(retainAfterCooldown = true) {
                 currentCoroutineContext().ensureActive()
-                if (
-                    !chatForeground ||
-                        !appForeground ||
-                        voiceOwner != null ||
-                        !isChatModelReady(selection)
-                )
+                if (!chatForeground || !appForeground || !isChatModelReady(selection))
                     return@withResources ChatWarmupResult.Skipped
                 val cooldown = memoryPressure.remainingCooldownMillis()
                 if (cooldown > 0) return@withResources ChatWarmupResult.RetryAfter(cooldown)
@@ -390,7 +396,6 @@ class LlmProvider(
             if (
                 !chatForeground ||
                     memoryPressure.suppressesOptionalWork() ||
-                    voiceOwner != null ||
                     loadedContextLength(selection) == null
             ) {
                 throw ModelMemoryDeferred()
@@ -506,7 +511,7 @@ class LlmProvider(
                 checkCancellation()
                 deviceCapabilityProvider.chatCapability().requireChatSupported()
                 if (!isEmbeddingModelReady()) throw EmbeddingAssetInvalid()
-                if (maintenance && (voiceOwner != null || memoryPressure.suppressesOptionalWork()))
+                if (maintenance && memoryPressure.suppressesOptionalWork())
                     throw ModelMemoryDeferred()
                 unloadTranscriptionModelIfLoaded()
                 releaseProjector()
@@ -608,7 +613,6 @@ class LlmProvider(
     }
 
     private fun unloadTranscriptionModelIfLoaded() {
-        voiceOwner = null
         runCatching {
             transcriber.unloadModel()
         }

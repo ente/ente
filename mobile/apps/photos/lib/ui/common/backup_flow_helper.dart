@@ -97,7 +97,7 @@ Future<bool?> _handleFirstImportFlow(BuildContext context) async {
 
 Future<PermissionState?> _requestAndStoreGrantedPermissions() async {
   try {
-    final state = await permissionService.requestPhotoMangerPermissions();
+    final state = await permissionService.requestPhotoManagerPermissions();
     if (_hasMinimalPermission(state)) {
       await permissionService.onUpdatePermission(state);
     }

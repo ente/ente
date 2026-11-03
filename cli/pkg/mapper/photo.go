@@ -117,8 +117,8 @@ func MapApiFileToPhotoFile(ctx context.Context, album model.RemoteAlbum, file ap
 			return nil, err
 		}
 	}
-	if file.PubicMagicMetadata != nil {
-		_, encodedJsonBytes, err := eCrypto.DecryptChaChaBase64(file.PubicMagicMetadata.Data, fileKey, file.PubicMagicMetadata.Header)
+	if file.PublicMagicMetadata != nil {
+		_, encodedJsonBytes, err := eCrypto.DecryptChaChaBase64(file.PublicMagicMetadata.Data, fileKey, file.PublicMagicMetadata.Header)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt public magic metadata for file %d: %w", file.ID, err)
 		}

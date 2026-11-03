@@ -1124,6 +1124,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                           selectedTabIndex,
                           AlbumsTab(
                             selectedAlbums: _selectedAlbums,
+                            isActive: selectedTabIndex == 1,
                             isSearchActiveNotifier:
                                 _isAlbumsSearchActiveNotifier,
                             shouldConsumeBackNotifier:

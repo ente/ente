@@ -568,8 +568,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
                       ),
                     ),
                     actions: [
-                      if (flagService.enableMemoryShareLink &&
-                          !isLocalGalleryMode)
+                      if (!isLocalGalleryMode)
                         // TODO: Replace with an Ente component when it supports this pressed overlay.
                         SizedBox.square(
                           dimension: 48,
@@ -813,8 +812,7 @@ class _MemoryLanePageV2State extends State<MemoryLanePageV2> {
   Future<void> _onShareTap() async {
     final timeline = _timeline;
     final person = widget.person;
-    if (!flagService.enableMemoryShareLink ||
-        isLocalGalleryMode ||
+    if (isLocalGalleryMode ||
         timeline == null ||
         !timeline.isEligible ||
         timeline.entries.isEmpty) {

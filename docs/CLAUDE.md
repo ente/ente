@@ -16,6 +16,10 @@ Use `npm install` only when intentionally adding or updating dependencies, or if
 
 Keep commit messages brief — one-liners unless asked otherwise. No emojis, no promotional text or links, no Co-Authored-By lines.
 
+## Pull requests
+
+Enable auto-merge on every PR and request a review from `setalp`.
+
 ## Sidebar
 
 New pages must be added by hand to `docs/.vitepress/sidebar.ts` — VitePress does not auto-generate the sidebar.

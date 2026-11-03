@@ -1,25 +1,13 @@
-import { deriveKey } from "ente-base/crypto";
-import {
-    authenticatedPublicAlbumsDeviceLimitRequestHeaders,
-    authenticatedPublicAlbumsInfoRequestHeaders,
-    authenticatedPublicAlbumsRequestHeaders,
-    ensureOk,
-    linkDeviceTokenFromResponse,
-    type PublicAlbumsCredentials,
-} from "ente-base/http";
-import { apiURL } from "ente-base/origins";
+import type { PublicAlbumsCredentials } from "ente-base/http";
 import {
     decryptRemoteCollection,
-    RemoteCollection,
     type Collection,
-    type PublicURL,
 } from "ente-media/collection";
+import { decryptRemoteFile, type EnteFile } from "ente-media/file";
 import {
-    decryptRemoteFile,
-    FileDiffResponse,
-    type EnteFile,
-} from "ente-media/file";
-import { z } from "zod";
+    getPublicCollectionDiff,
+    getPublicCollectionInfo,
+} from "ente-media/public-albums";
 import {
     removePublicCollectionAccessTokenJWT,
     removePublicCollectionFiles,
@@ -31,31 +19,6 @@ import {
     savePublicCollectionFiles,
     savePublicCollectionLastSyncTime,
 } from "../storage/public-albums-fdb";
-
-export const verifyPublicAlbumPassword = async (
-    publicURL: PublicURL,
-    password: string,
-    accessToken: string,
-) => {
-    const passwordHash = await deriveKey(
-        password,
-        // TODO: Fix the types to not require the bang.
-        publicURL.nonce!,
-        publicURL.opsLimit!,
-        publicURL.memLimit!,
-    );
-
-    const res = await fetch(
-        await apiURL("/public-collection/verify-password"),
-        {
-            method: "POST",
-            headers: authenticatedPublicAlbumsRequestHeaders({ accessToken }),
-            body: JSON.stringify({ passHash: passwordHash }),
-        },
-    );
-    ensureOk(res);
-    return z.object({ jwtToken: z.string() }).parse(await res.json()).jwtToken;
-};
 
 export const pullCollection = async (
     credentials: PublicAlbumsCredentials,
@@ -81,22 +44,6 @@ export const pullCollection = async (
     await saveLastPublicCollectionReferralCode(referralCode);
 
     return { collection, referralCode, linkDeviceToken };
-};
-
-const PublicCollectionInfo = z.object({
-    collection: RemoteCollection,
-    referralCode: z.string(),
-});
-
-const getPublicCollectionInfo = async (
-    credentials: PublicAlbumsCredentials,
-) => {
-    const res = await fetch(await apiURL("/public-collection/info"), {
-        headers: authenticatedPublicAlbumsInfoRequestHeaders(credentials),
-    });
-    ensureOk(res);
-    const info = PublicCollectionInfo.parse(await res.json());
-    return { ...info, linkDeviceToken: linkDeviceTokenFromResponse(res) };
 };
 
 export const pullPublicCollectionFiles = async (
@@ -148,21 +95,6 @@ export const pullPublicCollectionFiles = async (
 
         if (!hasMore) break;
     }
-};
-
-const getPublicCollectionDiff = async (
-    credentials: PublicAlbumsCredentials,
-    sinceTime: number,
-) => {
-    const res = await fetch(
-        await apiURL("/public-collection/diff", { sinceTime }),
-        {
-            headers:
-                authenticatedPublicAlbumsDeviceLimitRequestHeaders(credentials),
-        },
-    );
-    ensureOk(res);
-    return FileDiffResponse.parse(await res.json());
 };
 
 export const removePublicCollectionFileData = async (accessToken: string) => {

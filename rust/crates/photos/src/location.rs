@@ -3,7 +3,7 @@ use std::path::Path;
 use ente_assets::download::CancellationToken;
 use ente_assets::{Asset, AssetFile, AssetStore};
 use ente_location::{
-    CityIndex, CityMatch, Coordinate, CountryIndex, CountryView, UrbanCenterIndex,
+    CityIndex, CityMatch, Coordinate, CountryCode, CountryIndex, CountryView, UrbanCenterIndex,
 };
 
 const ASSET_URL: &str = "https://assets.ente.com/location/v2";
@@ -46,6 +46,10 @@ impl LocationIndex {
         })
     }
 
+    pub fn is_downloaded(asset_root: impl AsRef<Path>) -> bool {
+        asset().is_ok_and(|asset| AssetStore::new(asset_root.as_ref()).is_downloaded(&asset))
+    }
+
     pub fn cities(&self) -> Vec<ente_location::City> {
         self.cities.search("", usize::MAX)
     }
@@ -65,6 +69,14 @@ impl LocationIndex {
             None => CountryView::SourceDefault,
         };
         Ok(self.countries.group(coordinates, view)?.countries)
+    }
+
+    pub fn country_names(&self) -> impl Iterator<Item = (CountryCode, &str)> {
+        self.cities.country_names()
+    }
+
+    pub fn country_name(&self, code: CountryCode) -> Option<&str> {
+        self.cities.country_name(code)
     }
 }
 

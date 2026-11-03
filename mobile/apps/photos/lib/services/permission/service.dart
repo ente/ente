@@ -11,7 +11,7 @@ class PermissionService {
   final SharedPreferences _prefs;
   PermissionService(this._prefs);
 
-  Future<PermissionState> requestPhotoMangerPermissions() {
+  Future<PermissionState> requestPhotoManagerPermissions() {
     return PhotoManager.requestPermissionExtend(
       requestOption: const PermissionRequestOption(
         androidPermission: AndroidPermission(

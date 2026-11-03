@@ -1,18 +1,9 @@
 import type { Remote } from "comlink";
 import { inWorker } from "ente-base/env";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
-import type { DerivedKey } from "./kdf";
 import * as kdf from "./kdf";
 import type { KDFWorker } from "./kdf.worker";
-export {
-    boxSealOpenBytes,
-    decryptBox,
-    encryptBox,
-    generateKey,
-    generateKeyPair,
-    recoveryKeyFromMnemonicOrHex,
-} from "ente-prelogin-wasm";
-export type { DerivedKey } from "./kdf";
+export { decryptBox } from "ente-prelogin-wasm";
 
 const b64ToBinary = (b64: string) => atob(b64);
 
@@ -24,15 +15,6 @@ const fromB64 = (b64String: string): Promise<Uint8Array> => {
     }
     return Promise.resolve(bytes);
 };
-
-const toB64 = (bytes: Uint8Array): Promise<string> => {
-    let binary = "";
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    return Promise.resolve(btoa(binary));
-};
-
-export const toB64URLSafe = async (bytes: Uint8Array): Promise<string> =>
-    (await toB64(bytes)).replace(/\+/g, "-").replace(/\//g, "_");
 
 export const fromB64URLSafeNoPadding = async (b64String: string) => {
     let normalized = b64String.replace(/-/g, "+").replace(/_/g, "/");
@@ -66,12 +48,24 @@ export const deriveKey = (
               worker.deriveKey(password, saltB64, opsLimit, memLimit),
           );
 
-export const deriveSensitiveKey = (password: string): Promise<DerivedKey> =>
+export const generateSignupKeys = (password: string, srpUserID: string) =>
     inWorker()
-        ? kdf.deriveSensitiveKey(password)
-        : withKDFWorker((worker) => worker.deriveSensitiveKey(password));
+        ? kdf.generateSignupKeys(password, srpUserID)
+        : withKDFWorker((worker) =>
+              worker.generateSignupKeys(password, srpUserID),
+          );
 
-export const deriveInteractiveKey = (password: string): Promise<DerivedKey> =>
+export const generateInteractiveKeyAttributes = (
+    password: string,
+    attributes: unknown,
+    masterKey: string,
+): Promise<unknown> =>
     inWorker()
-        ? kdf.deriveInteractiveKey(password)
-        : withKDFWorker((worker) => worker.deriveInteractiveKey(password));
+        ? kdf.generateInteractiveKeyAttributes(password, attributes, masterKey)
+        : withKDFWorker((worker) =>
+              worker.generateInteractiveKeyAttributes(
+                  password,
+                  attributes,
+                  masterKey,
+              ),
+          );

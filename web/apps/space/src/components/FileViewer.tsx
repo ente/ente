@@ -1541,8 +1541,10 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 event.preventDefault();
                 videos.get(event.content)?.destroy();
                 const item = viewerPhotosRef.current[event.content.index]!;
-                const video = createSpaceVideoContent(item, (asset) =>
-                    videoLoaderRef.current!(asset),
+                const video = createSpaceVideoContent(
+                    item,
+                    (asset) => videoLoaderRef.current!(asset),
+                    { showDuration: isDraftPost },
                 );
                 event.content.element = video.element;
                 event.content.onLoaded();

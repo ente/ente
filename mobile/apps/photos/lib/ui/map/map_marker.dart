@@ -23,7 +23,7 @@ Marker mapMarker(
           children: [
             MarkerImage(
               file: imageMarker.imageFile,
-              seperator:
+              separator:
                   (MapView.defaultMarkerSize.height + 10) -
                   (MapView.defaultMarkerSize.height - markerSize.height),
             ),

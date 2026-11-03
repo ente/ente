@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.2 - Oct 2026
+
+- The macOS and Windows downloads are now signed, and macOS downloads are notarized.
+- macOS archive names now use `macos` instead of `darwin`.
+- Fixed CLI authenticator (TOTP) setup to support recovery in web and mobile apps.
+
 ## v0.4.1 - Oct 2026
 
 - Fixed saved logins becoming unreadable when using KeePassXC for system secret storage on Linux.

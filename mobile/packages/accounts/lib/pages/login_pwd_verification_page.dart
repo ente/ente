@@ -1,9 +1,7 @@
-import "package:dio/dio.dart";
 import "package:ente_accounts/ente_accounts.dart";
 import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import "package:ente_components/ente_components.dart";
 import "package:ente_configuration/base_configuration.dart";
-import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/alert_bottom_sheet.dart";
 import "package:ente_ui/components/buttons/dynamic_fab.dart";
@@ -109,53 +107,13 @@ class _LoginPasswordVerificationPageState
         password,
         dialog,
       );
-    } on DioException catch (e, s) {
+    } on AccountsError catch (e, s) {
       await dialog.hide();
       if (!context.mounted) {
         return;
       }
 
-      if (e.response != null && e.response!.statusCode == 401) {
-        _logger.severe('server reject, failed verify SRP login', e, s);
-        await _showContactSupportDialog(
-          context,
-          title: context.strings.incorrectPasswordTitle,
-          message: context.strings.pleaseTryAgain,
-        );
-      } else {
-        _logger.severe('API failure during SRP login', e, s);
-        if (e.type == DioExceptionType.connectionError) {
-          await _showContactSupportDialog(
-            context,
-            title: context.strings.noInternetConnection,
-            message:
-                context.strings.pleaseCheckYourInternetConnectionAndTryAgain,
-          );
-        } else {
-          await _showContactSupportDialog(
-            context,
-            title: context.strings.oops,
-            message: context.strings.verificationFailedPleaseTryAgain,
-          );
-        }
-      }
-    } catch (e, s) {
-      _logger.info('error during loginViaPassword', e);
-      await dialog.hide();
-      if (e is LoginKeyDerivationError) {
-        _logger.severe('loginKey derivation error', e, s);
-        // Fall back to OTT when login-key derivation fails.
-        await UserService.instance.sendOtt(
-          context.mounted ? context : null,
-          email!,
-          isCreateAccountScreen: true,
-        );
-        return;
-      } else if (e is KeyDerivationError) {
-        if (!context.mounted) {
-          return;
-        }
-        // This device cannot derive the key; offer recovery instead.
+      if (e == const AccountsError.keyDerivation()) {
         final result = await showAlertBottomSheet<bool>(
           context,
           title: context.strings.recreatePasswordTitle,
@@ -179,15 +137,41 @@ class _LoginPasswordVerificationPageState
           );
         }
         return;
+      } else if (e == const AccountsError.incorrectPassword()) {
+        _logger.info("Incorrect password");
+        await _showContactSupportDialog(
+          context,
+          title: context.strings.incorrectPasswordTitle,
+          message: context.strings.pleaseTryAgain,
+        );
       } else {
-        _logger.severe('unexpected error while verifying password', e, s);
-        if (context.mounted) {
+        _logger.severe('API failure during SRP login', e, s);
+        if (e is AccountsError_Network) {
+          await _showContactSupportDialog(
+            context,
+            title: context.strings.noInternetConnection,
+            message:
+                context.strings.pleaseCheckYourInternetConnectionAndTryAgain,
+          );
+        } else {
           await _showContactSupportDialog(
             context,
             title: context.strings.oops,
             message: context.strings.verificationFailedPleaseTryAgain,
           );
         }
+      }
+    } catch (e, s) {
+      _logger.info('error during loginViaPassword', e);
+      await dialog.hide();
+
+      _logger.severe('unexpected error while verifying password', e, s);
+      if (context.mounted) {
+        await _showContactSupportDialog(
+          context,
+          title: context.strings.oops,
+          message: context.strings.verificationFailedPleaseTryAgain,
+        );
       }
     }
   }
