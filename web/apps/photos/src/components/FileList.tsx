@@ -151,6 +151,8 @@ export interface FileListProps {
     suppressSelectionUI?: boolean;
 }
 
+const emptyTimeline = createTimeline([]);
+
 export const FileList: React.FC<FileListProps> = ({
     height,
     width,
@@ -187,25 +189,19 @@ export const FileList: React.FC<FileListProps> = ({
     const desktop = useMediaQuery(theme.breakpoints.up("md"));
     const scrubberEnabled = enableDateScrubber && desktop;
     const [scrollOffset, setScrollOffset] = useState(0);
-    const timeline = useMemo(
-        () =>
-            createTimeline(
-                items.map((item) => ({
-                    height: item.height,
-                    dates:
-                        scrubberEnabled && item.type === "file"
-                            ? item.groups.map((group) =>
-                                  fileCreationPhotoDate(
-                                      group.annotatedFiles[0]!.file,
-                                  ),
-                              )
-                            : undefined,
-                })),
-            ),
-        [items, scrubberEnabled],
-    );
+    const timeline = useMemo(() => {
+        if (!scrubberEnabled) return emptyTimeline;
+        return createTimeline(
+            items.map((item) => {
+                if (item.type !== "file") return item;
+                const dates = item.groups.map(({ annotatedFiles }) =>
+                    fileCreationPhotoDate(annotatedFiles[0]!.file),
+                );
+                return { height: item.height, dates };
+            }),
+        );
+    }, [items, scrubberEnabled]);
     const showScrubber =
-        scrubberEnabled &&
         timeline.months.length > 0 &&
         timeline.totalHeight > height &&
         height > 64;

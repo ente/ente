@@ -115,11 +115,12 @@ const headerSummary = (
     state: GalleryState,
     collectionID = 10,
     overlay?: GallerySectionProps["navigation"]["overlay"],
+    isFirstLoad = false,
 ) => {
     const props: GallerySectionProps = {
         library: {
             ...state,
-            isFirstLoad: false,
+            isFirstLoad,
             searchIndexRevision: 0,
             remotePullRevision: 0,
         },
@@ -192,6 +193,10 @@ const headerSummary = (
 
 test("enables the date scrubber only for the normal All grid", () => {
     const state = openAlbum(ItemVisibility.visible, files);
+    headerSummary(state, PseudoCollectionID.all, undefined, true);
+    expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+        enableDateScrubber: false,
+    });
     headerSummary(state, PseudoCollectionID.all);
     expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
         enableDateScrubber: true,

@@ -50,26 +50,26 @@ export const wheelScrollDelta = (
     return event.deltaY * unit;
 };
 
-/** Last entry at or before the offset; shared rows use their first month. */
-export const indexAtOffset = (offsets: number[], offset: number) => {
+/** Find the first offset that is outside a sorted prefix. */
+const firstOffsetOutside = (
+    offsets: number[],
+    inPrefix: (offset: number) => boolean,
+) => {
     let low = 0;
     let high = offsets.length;
     while (low < high) {
         const middle = (low + high) >>> 1;
-        if (offsets[middle]! <= offset) low = middle + 1;
-        else high = middle;
-    }
-    const index = Math.max(0, low - 1);
-    // Resolve identical offsets deterministically without a linear scan.
-    const value = offsets[index];
-    high = index;
-    low = 0;
-    while (low < high) {
-        const middle = (low + high) >>> 1;
-        if (offsets[middle]! < value!) low = middle + 1;
+        if (inPrefix(offsets[middle]!)) low = middle + 1;
         else high = middle;
     }
     return low;
+};
+
+/** Last entry at or before the offset; shared rows use their first month. */
+export const indexAtOffset = (offsets: number[], offset: number) => {
+    const end = firstOffsetOutside(offsets, (value) => value <= offset);
+    if (end === 0) return 0;
+    return firstOffsetOutside(offsets, (value) => value < offsets[end - 1]!);
 };
 
 /** Step between populated months, skipping duplicate targets on shared rows. */
@@ -79,13 +79,15 @@ export const adjacentMonthOffset = (
     direction: "older" | "newer",
 ) => {
     // Browsers round scrollTop while thumbnail rows have fractional heights.
-    const current = indexAtOffset(offsets, offset + 1);
-    const currentOffset = offsets[current] ?? 0;
-    if (direction === "older")
-        return offsets.find(
-            (value) => value > Math.max(offset + 1, currentOffset),
-        );
-    const previous = indexAtOffset(offsets, currentOffset - 1);
+    const roundedOffset = offset + 1;
+    if (direction === "older") {
+        const boundary = Math.max(roundedOffset, offsets[0] ?? 0);
+        return offsets[
+            firstOffsetOutside(offsets, (value) => value <= boundary)
+        ];
+    }
+    const current = indexAtOffset(offsets, roundedOffset);
+    const previous = indexAtOffset(offsets, (offsets[current] ?? 0) - 1);
     return previous === current ? 0 : offsets[previous];
 };
 

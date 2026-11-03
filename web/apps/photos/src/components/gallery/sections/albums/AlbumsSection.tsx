@@ -337,6 +337,7 @@ export const AlbumsSection = ({
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
                     enableDateScrubber={
+                        !library.isFirstLoad &&
                         barMode === "albums" &&
                         activeCollectionID === PseudoCollectionID.all &&
                         !isInSearchMode

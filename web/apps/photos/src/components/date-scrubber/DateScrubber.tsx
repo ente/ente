@@ -35,8 +35,8 @@ export const DateScrubber = ({
     const maxOffset = Math.max(0, timeline.totalHeight - height);
     const trackHeight = Math.max(1, height - 2 * inset);
     const clamp = (offset: number) => Math.max(0, Math.min(maxOffset, offset));
-    const position = (offset: number) =>
-        inset + (clamp(offset) / Math.max(1, maxOffset)) * trackHeight;
+    const fraction = (offset: number) => clamp(offset) / Math.max(1, maxOffset);
+    const position = (offset: number) => inset + fraction(offset) * trackHeight;
     const { months } = timeline;
     const monthOffsets = useMemo(
         () => months.map(({ offset }) => offset),
@@ -121,10 +121,6 @@ export const DateScrubber = ({
                 if (pointer.current === event.pointerId) seek(offset);
             }}
             onPointerLeave={() => setHoverOffset(undefined)}
-            onPointerUp={(event) => {
-                if (event.currentTarget.hasPointerCapture(event.pointerId))
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
             onPointerCancel={stopDragging}
             onLostPointerCapture={stopDragging}
             sx={{
@@ -235,9 +231,7 @@ export const DateScrubber = ({
                 aria-orientation="vertical"
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={Math.round(
-                    (clamp(scrollOffset) / Math.max(1, maxOffset)) * 100,
-                )}
+                aria-valuenow={Math.round(fraction(scrollOffset) * 100)}
                 aria-valuetext={formatter.format(monthAt(scrollOffset).date)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
