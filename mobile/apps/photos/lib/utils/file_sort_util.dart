@@ -38,9 +38,35 @@ void sortFilesByName(
 }) {
   assert(order.isFilename);
   if (files.length < 2) return;
-  final collator = _filenameCollator(localeTag);
   final entries = files.map(_FilenameSortEntry.new).toList();
-  entries.sort((first, second) {
+  entries.sort(_filenameComparator(order, localeTag));
+  for (var index = 0; index < entries.length; index++) {
+    files[index] = entries[index].file;
+  }
+}
+
+EnteFile? firstFileByName(
+  List<EnteFile> files,
+  FileSortOrder order, {
+  String? localeTag,
+}) {
+  assert(order.isFilename);
+  if (files.length < 2) return files.firstOrNull;
+  final compare = _filenameComparator(order, localeTag);
+  var first = _FilenameSortEntry(files.first);
+  for (var index = 1; index < files.length; index++) {
+    final candidate = _FilenameSortEntry(files[index]);
+    if (compare(candidate, first) < 0) first = candidate;
+  }
+  return first.file;
+}
+
+Comparator<_FilenameSortEntry> _filenameComparator(
+  FileSortOrder order,
+  String? localeTag,
+) {
+  final collator = _filenameCollator(localeTag);
+  return (first, second) {
     final firstNumber = first.number;
     final secondNumber = second.number;
     int result;
@@ -55,10 +81,7 @@ void sortFilesByName(
     }
     if (result != 0) return order.ascending ? result : -result;
     return _compareFileIDs(first.file, second.file);
-  });
-  for (var index = 0; index < entries.length; index++) {
-    files[index] = entries[index].file;
-  }
+  };
 }
 
 final _singleNumber = RegExp(r"^([^0-9]*)([0-9]+)([^0-9]*)$");

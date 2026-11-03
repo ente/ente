@@ -527,8 +527,7 @@ class CollectionsService {
           file.uploadedFileID == null &&
           IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, file),
     );
-    sortFilesByName(result.files, order);
-    return result.files.firstOrNull;
+    return firstFileByName(result.files, order);
   }
 
   Future<int> getFileCount(Collection c, {bool useCache = true}) async {

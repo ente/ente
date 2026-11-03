@@ -119,6 +119,56 @@ void main() {
     }
   });
 
+  test("selects the same first file as sorting without reordering input", () {
+    final local = EnteFile()
+      ..title = "a.heic"
+      ..generatedID = 3;
+    final renamed = _file(2, "z.jpg")
+      ..pubMagicMetadata = PubMagicMetadata(editedName: "a.jpg");
+    final samples = <List<EnteFile>>[
+      [],
+      [_file(1, "only.jpg")],
+      [
+        _file(30, "IMG10.jpg"),
+        _file(20, "img02.JPG"),
+        _file(10, "IMG2.jpg"),
+        _file(5, "IMG010.jpg"),
+      ],
+      [
+        _file(20, "café.jpg"),
+        _file(10, "CAFE.jpg"),
+        _file(30, "cafe\u0301.jpg"),
+      ],
+      [
+        _file(1, "z.jpg"),
+        _file(2, "ä.jpg"),
+        _file(3, "a.jpg"),
+        _file(4, "ı.jpg"),
+      ],
+      [renamed, local, _file(1, "a.jpg")],
+    ];
+    for (final tag in ["en-US", "de-DE", "sv-SE", "tr-TR"]) {
+      for (final order in [
+        FileSortOrder.filenameAscending,
+        FileSortOrder.filenameDescending,
+      ]) {
+        for (final sample in samples) {
+          for (final files in [sample, sample.reversed.toList()]) {
+            final original = List<EnteFile>.of(files);
+            final sorted = List<EnteFile>.of(files);
+            sortFilesByName(sorted, order, localeTag: tag);
+            expect(
+              firstFileByName(files, order, localeTag: tag),
+              same(sorted.firstOrNull),
+              reason: "$tag, ${order.name}",
+            );
+            expect(files, orderedEquals(original));
+          }
+        }
+      }
+    }
+  });
+
   test("album metadata round-trips every sort and defaults to date", () {
     for (final order in FileSortOrder.values) {
       final metadata = CollectionPubMagicMetadata.fromMap(order.metadata);

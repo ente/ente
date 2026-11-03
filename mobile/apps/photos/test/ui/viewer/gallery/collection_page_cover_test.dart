@@ -565,39 +565,43 @@ void main() {
   testWidgets(
     "filename-sorted covers follow the gallery unless a cover is set",
     (tester) async {
-      final files = [
-        _file(1)..title = "IMG10.jpg",
-        _file(2)..title = "IMG1.jpg",
-        _file(3)..title = "IMG2.jpg",
-      ];
+      final firstByName = _file(2)..title = "IMG1.jpg";
+      final lastByName = _file(1)..title = "IMG10.jpg";
+      final customCover = _file(3)..title = "IMG2.jpg";
+      final files = [lastByName, firstByName, customCover];
       await tester.runAsync(() => FilesDB.instance.insertMultiple(files));
 
-      for (final coverID in <int?>[null, 3]) {
+      for (final explicitCover in <EnteFile?>[null, customCover]) {
+        final initialCover = explicitCover ?? firstByName;
         final collection = _collection()
           ..pubMagicMetadata = CollectionPubMagicMetadata(
             asc: true,
             sortBy: "fileName",
-            coverID: coverID,
+            coverID: explicitCover?.uploadedFileID,
           );
         await tester.runAsync(() async {
           expect(
             await CollectionsService.instance.getCover(collection),
-            files[coverID == null ? 1 : 2],
+            initialCover,
           );
         });
         await _pumpAlbum(tester, collection);
         await _expectCover(
           tester,
-          files[coverID == null ? 1 : 2],
+          initialCover,
           count: 3,
-          firstFile: files[1],
+          firstFile: firstByName,
         );
 
-        for (final asc in [false, true]) {
+        for (final (ascending, firstInGallery) in [
+          (false, lastByName),
+          (true, firstByName),
+        ]) {
+          final expectedCover = explicitCover ?? firstInGallery;
           collection.pubMagicMetadata = CollectionPubMagicMetadata(
-            asc: asc,
+            asc: ascending,
             sortBy: "fileName",
-            coverID: coverID,
+            coverID: explicitCover?.uploadedFileID,
           );
           Bus.instance.fire(
             CollectionMetaEvent(
@@ -605,20 +609,15 @@ void main() {
               CollectionMetaEventType.sortChanged,
             ),
           );
-          final first = files[asc ? 1 : 0];
           await tester.runAsync(() async {
             expect(
               await CollectionsService.instance.getCover(collection),
-              coverID == null ? first : files[2],
+              expectedCover,
             );
           });
-          await _expectCover(
-            tester,
-            coverID == null ? first : files[2],
-            firstFile: first,
-          );
+          await _expectCover(tester, expectedCover, firstFile: firstInGallery);
         }
-        if (coverID != null) {
+        if (explicitCover != null) {
           collection.pubMagicMetadata = CollectionPubMagicMetadata(
             asc: true,
             sortBy: "fileName",
@@ -627,7 +626,7 @@ void main() {
           Bus.instance.fire(
             CollectionUpdatedEvent(collection.id, [], "cover_change"),
           );
-          await _expectCover(tester, files[1]);
+          await _expectCover(tester, firstByName);
         }
         await _disposeAlbum(tester);
       }
@@ -637,11 +636,10 @@ void main() {
   testWidgets("cover editor previews filename defaults before saving", (
     tester,
   ) async {
-    final files = [
-      _file(1)..title = "IMG10.jpg",
-      _file(2)..title = "IMG1.jpg",
-      _file(3)..title = "IMG2.jpg",
-    ];
+    final firstByName = _file(2)..title = "IMG1.jpg";
+    final lastByName = _file(1)..title = "IMG10.jpg";
+    final customCover = _file(3)..title = "IMG2.jpg";
+    final files = [lastByName, firstByName, customCover];
     final collection = _collection()
       ..pubMagicMetadata = CollectionPubMagicMetadata(
         asc: true,
@@ -649,7 +647,7 @@ void main() {
       );
     await tester.runAsync(() => FilesDB.instance.insertMultiple(files));
     await _pumpAlbum(tester, collection);
-    await _expectCover(tester, files[1], count: 3);
+    await _expectCover(tester, firstByName, count: 3);
 
     int? savedCoverID;
     void openEditor() => unawaited(
@@ -660,26 +658,26 @@ void main() {
       ),
     );
     openEditor();
-    await _expectEditorCover(tester, files[1]);
+    await _expectEditorCover(tester, firstByName);
     await tester.tap(find.byTooltip("Close"));
     await tester.pumpAndSettle();
 
     collection.pubMagicMetadata = CollectionPubMagicMetadata(
       asc: true,
       sortBy: "fileName",
-      coverID: 3,
+      coverID: customCover.uploadedFileID,
     );
     Bus.instance.fire(
       CollectionUpdatedEvent(collection.id, [], "cover_change"),
     );
-    await _expectCover(tester, files[2]);
+    await _expectCover(tester, customCover);
     openEditor();
-    await _expectEditorCover(tester, files[2]);
+    await _expectEditorCover(tester, customCover);
     await tester.tap(find.byKey(const ValueKey("edit_album_cover")));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     await tester.tap(find.text("Reset to default"));
-    await _expectEditorCover(tester, files[1]);
+    await _expectEditorCover(tester, firstByName);
     expect(savedCoverID, isNull);
     await tester.tap(find.byKey(const ValueKey("save_album_details")));
     await tester.pumpAndSettle();
