@@ -1550,12 +1550,22 @@ export class FileViewerPhotoSwipe<
                         cb = handleDelete;
                         break;
                     case "ArrowLeft":
-                        cb = handleSeekBackOrPreviousSlide;
                         pswpEvent.preventDefault();
+                        if (
+                            document.activeElement?.tagName ===
+                            "MEDIA-VOLUME-RANGE"
+                        )
+                            return;
+                        cb = handleSeekBackOrPreviousSlide;
                         break;
                     case "ArrowRight":
-                        cb = handleSeekForwardOrNextSlide;
                         pswpEvent.preventDefault();
+                        if (
+                            document.activeElement?.tagName ===
+                            "MEDIA-VOLUME-RANGE"
+                        )
+                            return;
+                        cb = handleSeekForwardOrNextSlide;
                         break;
                     case "?":
                         cb = handleHelp;
@@ -1599,6 +1609,7 @@ export class FileViewerPhotoSwipe<
             const target = e.target;
             if (target instanceof HTMLElement) {
                 switch (target.tagName) {
+                    case "MEDIA-VOLUME-RANGE":
                     case "MEDIA-TIME-RANGE":
                     case "MEDIA-PLAY-BUTTON":
                     case "MEDIA-MUTE-BUTTON":
@@ -1714,6 +1725,7 @@ const hlsVideoControlsHTML = () => `
   <media-control-bar>
     <media-play-button notooltip></media-play-button>
     <media-mute-button notooltip></media-mute-button>
+    <media-volume-range></media-volume-range>
     <media-time-display showduration notoggle></media-time-display>
     <media-text-display></media-text-display>
     <media-settings-menu-button id="ente-settings-menu-btn" invoketarget="ente-settings-menu" notooltip>
