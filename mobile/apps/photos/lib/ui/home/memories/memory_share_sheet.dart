@@ -7,6 +7,7 @@ import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
@@ -195,16 +196,18 @@ class _MemoryShareSelectionSheetState
               ),
               const SizedBox(height: Spacing.md),
             ],
-            _buildAction(
-              l10n.shareAsVideo,
-              MemoryShareSheetAction.shareVideo,
-              variant: ButtonComponentVariant.secondary,
-              leading: const HugeIcon(
-                icon: HugeIcons.strokeRoundedVideo01,
-                size: IconSizes.small,
+            if (flagService.internalUser) ...[
+              _buildAction(
+                l10n.shareAsVideo,
+                MemoryShareSheetAction.shareVideo,
+                variant: ButtonComponentVariant.secondary,
+                leading: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedVideo01,
+                  size: IconSizes.small,
+                ),
               ),
-            ),
-            const SizedBox(height: Spacing.md),
+              const SizedBox(height: Spacing.md),
+            ],
             _buildAction(
               l10n.shareItemCount(count: _selectedFiles.files.length),
               MemoryShareSheetAction.shareItems,
