@@ -149,7 +149,11 @@ test("a standalone video stream delivers authenticated bytes before network EOF"
     body.enqueue(encrypted.encryptedData.slice(0, encryptedChunkSize + 1));
     const first = await reader.read();
     expect(first.done).toBe(false);
-    expect(first.value).toEqual(original.slice(0, streamEncryptionChunkSize));
+    expect(
+        Buffer.from(first.value!).equals(
+            Buffer.from(original.subarray(0, streamEncryptionChunkSize)),
+        ),
+    ).toBe(true);
     expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
     await reader.cancel("save cancelled");
     expect(cancel).toHaveBeenCalledWith("save cancelled");

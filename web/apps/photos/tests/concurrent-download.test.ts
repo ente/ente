@@ -222,8 +222,8 @@ test.each(["network", "decryption"])(
         const manager = managerWith(transport);
         const results = await Promise.allSettled([
             manager.fileBlob(file),
-            manager.renderableSourceURLs(file),
             manager.fileBlob(file),
+            manager.renderableSourceURLs(file),
         ]);
         expect(transport).toHaveBeenCalledTimes(1);
         expect(results.every((r) => r.status === "rejected")).toBe(true);
@@ -240,6 +240,58 @@ test.each(["network", "decryption"])(
         expect(hash(await retried.arrayBuffer())).toBe(hash(original));
         expect(transport).toHaveBeenCalledTimes(2);
         if (source.type === "image") URL.revokeObjectURL(source.imageURL);
+    },
+);
+
+test.each([
+    [false, "network"],
+    [true, "network"],
+    [false, "decryption"],
+    [true, "decryption"],
+] as const)(
+    "waiting saves automatically retry a failed viewer: background %s, %s failure",
+    async (background, failure) => {
+        const { file, encrypted, original } = await fixture();
+        const transport = vi.fn(() =>
+            Promise.resolve(new Response(encrypted.encryptedData)),
+        );
+        if (failure === "network")
+            transport.mockRejectedValueOnce(new Error("offline"));
+        else
+            transport.mockResolvedValueOnce(
+                new Response(new Uint8Array([1, 2, 3])),
+            );
+        const manager = managerWith(transport);
+        const viewer = manager.renderableSourceURLs(file);
+        const viewerFailure = expect(viewer).rejects.toBeInstanceOf(Error);
+        const saves = [manager.fileBlob(file, { background })];
+        // Foreground saves share the fallback job; background jobs stay separate.
+        if (!background) saves.push(manager.fileBlob(file));
+        const blobs = await Promise.all(saves);
+        await viewerFailure;
+        for (const blob of blobs)
+            expect(hash(await blob.arrayBuffer())).toBe(hash(original));
+        expect(transport).toHaveBeenCalledTimes(2);
+        expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
+    },
+);
+
+test.each([false, true])(
+    "a waiting save surfaces a failed fallback without retrying indefinitely: background %s",
+    async (background) => {
+        const { file } = await fixture();
+        const transport = vi.fn<() => Promise<Response>>();
+        transport.mockRejectedValue(new Error("offline"));
+        const manager = managerWith(transport);
+        const viewerFailure = expect(
+            manager.renderableSourceURLs(file),
+        ).rejects.toThrow("offline");
+        await expect(manager.fileBlob(file, { background })).rejects.toThrow(
+            "offline",
+        );
+        await viewerFailure;
+        expect(transport).toHaveBeenCalledTimes(2);
+        expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
     },
 );
 

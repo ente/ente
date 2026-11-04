@@ -204,14 +204,14 @@ class DownloadManagerCore {
     async fileBlob(file: EnteFile, opts?: FileDownloadOpts) {
         const cachedURL = this.fileURLPromises.get(file.id);
         if (cachedURL) {
-            // A pending viewer job's failure belongs to all of its consumers.
-            const url = await cachedURL;
             try {
+                const url = await cachedURL;
                 return await this.blobWithInferredType(
                     file,
                     (await fetch(url)).body,
                 );
             } catch {
+                // Retry a failed viewer job or unusable cached URL below.
                 if (this.fileURLPromises.get(file.id) === cachedURL)
                     this.fileURLPromises.delete(file.id);
             }
