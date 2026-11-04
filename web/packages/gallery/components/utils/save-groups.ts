@@ -16,10 +16,18 @@ export interface SaveGroup {
     includeZipNumber?: boolean;
     isDownloadingZip?: boolean;
     currentPart?: number;
+    /** Fraction of source bytes downloaded, or undefined while sizes are unknown. */
+    downloadProgress?: number;
+    /** Keep the group active until the browser has been handed the final ZIP. */
+    isFinalizing?: boolean;
 }
 
-export const isSaveComplete = ({ total, success, failed }: SaveGroup) =>
-    total == success + failed;
+export const isSaveComplete = ({
+    total,
+    success,
+    failed,
+    isFinalizing,
+}: SaveGroup) => !isFinalizing && total == success + failed;
 
 export const isSaveCompleteWithErrors = (group: SaveGroup) =>
     group.failed > 0 && isSaveComplete(group);

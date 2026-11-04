@@ -230,6 +230,12 @@ export const DownloadStatusNotifications: React.FC<
                                 ? () => group.retry?.()
                                 : undefined,
                             endIconLabel: t("retry"),
+                            progress:
+                                isComplete && !hasErrors
+                                    ? 1
+                                    : group.downloadProgress === undefined
+                                      ? undefined
+                                      : Math.min(group.downloadProgress, 0.99),
                         }}
                     />
                 );

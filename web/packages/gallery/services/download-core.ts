@@ -35,6 +35,7 @@ export interface FileDownloadProgress {
 
 export interface FileDownloadOpts {
     background?: boolean;
+    onProgress?: (progress: FileDownloadProgress) => void;
 }
 
 export interface DownloadManagerTransport {
@@ -202,10 +203,42 @@ class DownloadManagerCore {
     };
 
     async fileBlob(file: EnteFile, opts?: FileDownloadOpts) {
+        const onProgress = opts?.onProgress;
+        if (!onProgress) return this.downloadBlob(file, opts);
+
+        let latest: FileDownloadProgress | undefined;
+        const report = (progress: FileDownloadProgress) => {
+            latest = progress;
+            try {
+                onProgress(progress);
+            } catch (e) {
+                log.error("Failed to notify save progress listener", e);
+            }
+        };
+        const unsubscribe = this.fileDownloadProgressSubscribe(() => {
+            const progress = this.fileDownloadProgress.get(file.id);
+            if (progress && progress !== latest) report(progress);
+        });
+        try {
+            const current = this.fileDownloadProgress.get(file.id);
+            if (current) report(current);
+            const blob = await this.downloadBlob(file, {
+                ...opts,
+                onProgress: report,
+            });
+            // Cached files do not emit network progress.
+            if (!latest) report({ loaded: blob.size, total: blob.size });
+            return blob;
+        } finally {
+            unsubscribe();
+        }
+    }
+
+    private async downloadBlob(file: EnteFile, opts?: FileDownloadOpts) {
         const download = () =>
             opts?.background
-                ? this.downloadFile(file, opts).then((stream) =>
-                      this.blobWithInferredType(file, stream),
+                ? this.downloadFile(file, opts, opts.onProgress).then(
+                      (stream) => this.blobWithInferredType(file, stream),
                   )
                 : this.sharedFileBlob(file, opts);
         const cachedURL = this.fileURLPromises.get(file.id);
@@ -263,6 +296,8 @@ class DownloadManagerCore {
             try {
                 const url = await cachedURL;
                 const res = await fetch(url);
+                const size = Number(res.headers.get("Content-Length"));
+                if (size > 0) opts?.onProgress?.({ loaded: size, total: size });
                 return res.body;
             } catch (e) {
                 log.warn("Failed to use cached object URL", e);
@@ -271,7 +306,7 @@ class DownloadManagerCore {
             }
         }
 
-        return this.downloadFile(file, opts);
+        return this.downloadFile(file, opts, opts?.onProgress);
     }
 
     private async fileURLDownloadAndCacheIfNeeded(file: EnteFile) {

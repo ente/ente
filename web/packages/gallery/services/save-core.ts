@@ -12,9 +12,11 @@ import type {
     AddSaveGroup,
     UpdateSaveGroup,
 } from "../components/utils/save-groups";
+import type { FileDownloadOpts } from "./download-core";
+import { createSaveProgress } from "./save-progress";
 
 interface BrowserSaveDownloader {
-    fileBlob(file: EnteFile): Promise<Blob>;
+    fileBlob(file: EnteFile, opts?: FileDownloadOpts): Promise<Blob>;
 }
 
 export interface DownloadAndSaveFilesWebOpts {
@@ -111,6 +113,15 @@ export const downloadAndSaveFilesWeb = async ({
     const failedFiles: EnteFile[] = [];
     let isDownloading = false;
     let updateSaveGroup: UpdateSaveGroup = () => undefined;
+    const progress = createSaveProgress(files, (tx) => updateSaveGroup(tx));
+    const progressDownloader: BrowserSaveDownloader = {
+        fileBlob: (file) => {
+            progress.start(file);
+            return downloader.fileBlob(file, {
+                onProgress: (next) => progress.update(file, next),
+            });
+        },
+    };
     // Retries continue part numbering instead of overwriting earlier ZIPs.
     let nextZipBatchIndex = 1;
 
@@ -143,6 +154,7 @@ export const downloadAndSaveFilesWeb = async ({
         }
 
         isDownloading = true;
+        updateSaveGroup((g) => ({ ...g, isFinalizing: true }));
         if (!resetFailedCount) {
             failedFiles.length = 0;
         }
@@ -155,7 +167,8 @@ export const downloadAndSaveFilesWeb = async ({
                 singleFile.metadata.fileType !== FileType.livePhoto
             ) {
                 try {
-                    const fileBlob = await downloader.fileBlob(singleFile);
+                    const fileBlob =
+                        await progressDownloader.fileBlob(singleFile);
                     const fileName = fileFileName(singleFile);
                     const url = URL.createObjectURL(fileBlob);
                     saveAsFileAndRevokeObjectURL(url, fileName);
@@ -173,7 +186,7 @@ export const downloadAndSaveFilesWeb = async ({
                 }
             } else {
                 nextZipBatchIndex = await saveAsZip(
-                    downloader,
+                    progressDownloader,
                     filesToDownload,
                     title,
                     () =>
@@ -200,6 +213,7 @@ export const downloadAndSaveFilesWeb = async ({
             }
         } finally {
             isDownloading = false;
+            updateSaveGroup((g) => ({ ...g, isFinalizing: false }));
         }
     };
 

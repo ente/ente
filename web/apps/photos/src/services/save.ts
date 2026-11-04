@@ -9,7 +9,9 @@ import type {
     UpdateSaveGroup,
 } from "ente-gallery/components/utils/save-groups";
 import { downloadManager } from "ente-gallery/services/download";
+import type { FileDownloadProgress } from "ente-gallery/services/download-core";
 import { downloadAndSaveFilesWeb } from "ente-gallery/services/save-core";
+import { createSaveProgress } from "ente-gallery/services/save-progress";
 import { writeStream } from "ente-gallery/utils/native-stream";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
@@ -81,6 +83,7 @@ const downloadAndSave = async (
     const failedFiles: EnteFile[] = [];
     let isDownloading = false;
     let updateSaveGroup: UpdateSaveGroup = () => undefined;
+    const progress = createSaveProgress(files, (tx) => updateSaveGroup(tx));
 
     const downloadFilesDesktop = async (
         filesToDownload: EnteFile[],
@@ -98,7 +101,13 @@ const downloadAndSave = async (
             for (const file of filesToDownload) {
                 if (canceller.signal.aborted) break;
                 try {
-                    await saveFileDesktop(electron, file, downloadDirPath);
+                    progress.start(file);
+                    await saveFileDesktop(
+                        electron,
+                        file,
+                        downloadDirPath,
+                        (next) => progress.update(file, next),
+                    );
                     updateSaveGroup((g) => ({ ...g, success: g.success + 1 }));
                 } catch (e) {
                     log.error("File download failed", e);
@@ -157,6 +166,7 @@ const saveFileDesktop = async (
     electron: Electron,
     file: EnteFile,
     directoryPath: string,
+    onProgress: (progress: FileDownloadProgress) => void,
 ) => {
     const fs = electron.fs;
 
@@ -168,7 +178,7 @@ const saveFileDesktop = async (
         stream: ReadableStream<Uint8Array> | null,
     ) => writeStream(electron, joinPath(directoryPath, exportName), stream);
 
-    const stream = await downloadManager.fileStream(file);
+    const stream = await downloadManager.fileStream(file, { onProgress });
     const fileName = fileFileName(file);
 
     if (file.metadata.fileType == FileType.livePhoto) {
