@@ -28,7 +28,7 @@ func (r *RateLimitMiddleware) adminLimiter(reqPath string, reqMethod string) *li
 		return r.limit10ReqPerHour
 	}
 	if reqMethod == http.MethodGet || reqMethod == http.MethodHead {
-		return r.limit30ReqPerHour
+		return r.limit60ReqPerHour
 	}
 	return r.limit10ReqPerHour
 }

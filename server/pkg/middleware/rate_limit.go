@@ -55,7 +55,7 @@ type RateLimitMiddleware struct {
 	limit500ReqPerMin  *limiter.Limiter
 	limit700ReqPerSec  *limiter.Limiter
 	limit10ReqPerHour  *limiter.Limiter
-	limit30ReqPerHour  *limiter.Limiter
+	limit60ReqPerHour  *limiter.Limiter
 	discordCtrl        *discord.DiscordController
 }
 
@@ -70,7 +70,7 @@ func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumb
 		limit500ReqPerMin:  util.NewRateLimiter("500-M"),
 		limit700ReqPerSec:  util.NewRateLimiter("700-S"),
 		limit10ReqPerHour:  util.NewRateLimiter("10-H"),
-		limit30ReqPerHour:  util.NewRateLimiter("30-H"),
+		limit60ReqPerHour:  util.NewRateLimiter("60-H"),
 		discordCtrl:        discordCtrl,
 		limit:              limit,
 		thumbnailLimit:     thumbnailLimit,

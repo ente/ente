@@ -48,7 +48,7 @@ func TestAdminRateLimits(t *testing.T) {
 		method, path string
 		limit        int
 	}{
-		{http.MethodGet, "/admin/user", 30},
+		{http.MethodGet, "/admin/user", 60},
 		{http.MethodGet, "/admin/users", 10},
 		{http.MethodGet, "/admin/email-hash", 10},
 		{http.MethodPost, "/admin/emails-from-hashes", 10},
