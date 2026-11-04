@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use serde::Serialize;
+
 use super::{Error, Result};
 
 const HEADER: &[u8; 8] = b"bplist00";
@@ -9,7 +11,8 @@ pub(super) const EXPANSION_ERROR: &str = "OTP Auth archive expansion limit excee
 
 pub(super) type Dictionary = BTreeMap<String, Value>;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(untagged)]
 pub(super) enum Value {
     Null,
     Boolean(bool),

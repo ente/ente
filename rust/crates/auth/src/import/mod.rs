@@ -101,7 +101,7 @@ impl Error {
         }
     }
 
-    fn entry(entry: &Value, error: impl fmt::Display) -> Self {
+    fn entry(entry: &(impl serde::Serialize + ?Sized), error: impl fmt::Display) -> Self {
         Self {
             kind: ErrorKind::Invalid,
             message: error.to_string(),

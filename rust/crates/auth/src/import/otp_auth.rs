@@ -4,7 +4,6 @@ use aes::Aes256;
 use cbc::cipher::{BlockModeDecrypt, KeyIvInit, block_padding::Pkcs7};
 use hmac::{Hmac, Mac};
 use pbkdf2::pbkdf2_hmac;
-use serde_json::{Map, Number, Value};
 use sha1::{Digest, Sha1};
 use sha2::Sha256;
 use zeroize::Zeroizing;
@@ -42,15 +41,16 @@ pub fn import_otp_auth(input: &[u8], password: &str) -> Result<Batch> {
                         .get("IV")
                         .ok_or_else(|| Error::invalid("Invalid OTP Auth IV"))?,
                 )?
+                .to_vec()
             };
             let salt = text(outer.get("Salt"))?;
             let key = Sha256::digest(format!("{salt}-{password}").as_bytes());
             let digest = Sha1::digest(iv_source);
-            decrypt_cbc(&encrypted, key.as_slice(), &digest[..16])
+            decrypt_cbc(encrypted, key.as_slice(), &digest[..16])
         })();
         result.map_err(|_| Error::incorrect_password())?
     } else if (is_backup && version == Some(1.1)) || (!is_backup && version == Some(1.2)) {
-        decrypt_rnc_cryptor(&encrypted, password)?
+        decrypt_rnc_cryptor(encrypted, password)?
     } else {
         return Err(Error::invalid(format!(
             "Unsupported OTP Auth export version: {}",
@@ -77,7 +77,7 @@ pub fn import_otp_auth(input: &[u8], password: &str) -> Result<Batch> {
     Ok(Batch { codes, skipped: 0 })
 }
 
-fn decrypt_outer_archive(input: &[u8]) -> Result<Value> {
+fn decrypt_outer_archive(input: &[u8]) -> Result<PlistValue> {
     for magic in [b"Authenticator".as_slice(), b"OTPAuth".as_slice()] {
         let key = Sha256::digest(magic);
         let Ok(plaintext) = decrypt_cbc(input, key.as_slice(), &[0; 16]) else {
@@ -137,7 +137,7 @@ fn decrypt_cbc(input: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>> {
         .map_err(|_| Error::invalid("Invalid encrypted data"))
 }
 
-fn unarchive(input: &[u8]) -> Result<Value> {
+fn unarchive(input: &[u8]) -> Result<PlistValue> {
     let capacity = input
         .len()
         .checked_mul(16)
@@ -146,21 +146,20 @@ fn unarchive(input: &[u8]) -> Result<Value> {
     KeyedArchive::new(archive, remaining)?.root()
 }
 
-fn backup_accounts(root: &Value) -> Result<Vec<Value>> {
-    let folders = object(root)?
-        .get("Folders")
-        .and_then(Value::as_array)
-        .ok_or_else(|| Error::invalid("Invalid OTP Auth backup"))?;
+fn backup_accounts(root: &PlistValue) -> Result<Vec<PlistValue>> {
+    let Some(PlistValue::Array(folders)) = object(root)?.get("Folders") else {
+        return Err(Error::invalid("Invalid OTP Auth backup"));
+    };
     let mut accounts = Vec::new();
     for folder in folders {
-        if let Some(values) = object(folder)?.get("accounts").and_then(Value::as_array) {
+        if let Some(PlistValue::Array(values)) = object(folder)?.get("accounts") {
             accounts.extend(values.iter().cloned());
         }
     }
     Ok(accounts)
 }
 
-fn account_to_code(account: &Value) -> Result<ImportedCode> {
+fn account_to_code(account: &PlistValue) -> Result<ImportedCode> {
     let account = object(account)?;
     let kind = match integer(account.get("type")) {
         Some(1) => "hotp",
@@ -175,10 +174,10 @@ fn account_to_code(account: &Value) -> Result<ImportedCode> {
     };
     let issuer = account
         .get("issuer")
-        .and_then(Value::as_str)
+        .and_then(plist_string)
         .unwrap_or_default();
     let label = text(account.get("label"))?;
-    let secret = base32(&bytes(
+    let secret = base32(bytes(
         account
             .get("secret")
             .ok_or_else(|| Error::invalid("Missing OTP secret"))?,
@@ -246,7 +245,7 @@ impl KeyedArchive {
         })
     }
 
-    fn root(mut self) -> Result<Value> {
+    fn root(mut self) -> Result<PlistValue> {
         let root = self
             .top
             .remove("root")
@@ -254,7 +253,7 @@ impl KeyedArchive {
         self.resolve(&root)
     }
 
-    fn resolve(&mut self, value: &PlistValue) -> Result<Value> {
+    fn resolve(&mut self, value: &PlistValue) -> Result<PlistValue> {
         if self.depth >= MAX_ARCHIVE_NESTING {
             return Err(Error::invalid("OTP Auth archive nesting limit exceeded"));
         }
@@ -264,52 +263,49 @@ impl KeyedArchive {
         result
     }
 
-    fn resolve_value(&mut self, value: &PlistValue) -> Result<Value> {
+    fn resolve_value(&mut self, value: &PlistValue) -> Result<PlistValue> {
         self.budget.consume(1)?;
         match value {
             PlistValue::String(value) => {
                 self.budget.consume(value.len())?;
-                Ok(Value::String(value.clone()))
+                Ok(PlistValue::String(value.clone()))
             }
             PlistValue::Data(value) => {
                 self.budget.consume(value.len())?;
-                Ok(Value::Array(
-                    value.iter().copied().map(Value::from).collect(),
-                ))
+                Ok(PlistValue::Data(value.clone()))
             }
             PlistValue::Uid(value) => self.resolve_uid(*value),
             PlistValue::Array(values) => values
                 .iter()
                 .map(|value| self.resolve(value))
                 .collect::<Result<Vec<_>>>()
-                .map(Value::Array),
+                .map(PlistValue::Array),
             PlistValue::Dictionary(values) => self.resolve_entries(values.iter()),
-            PlistValue::Boolean(value) => Ok(Value::Bool(*value)),
-            PlistValue::Integer(value) => Ok(Value::Number((*value).into())),
-            PlistValue::Real(value) => Number::from_f64(*value)
-                .map(Value::Number)
-                .ok_or_else(|| Error::invalid("Invalid archive number")),
+            PlistValue::Boolean(value) => Ok(PlistValue::Boolean(*value)),
+            PlistValue::Integer(value) => Ok(PlistValue::Integer(*value)),
+            PlistValue::Real(value) if value.is_finite() => Ok(PlistValue::Real(*value)),
+            PlistValue::Real(_) => Err(Error::invalid("Invalid archive number")),
             PlistValue::Date(_) => Err(Error::invalid("Unsupported archive date")),
-            PlistValue::Null => Ok(Value::Null),
+            PlistValue::Null => Ok(PlistValue::Null),
         }
     }
 
     fn resolve_entries<'a>(
         &mut self,
         entries: impl Iterator<Item = (&'a String, &'a PlistValue)>,
-    ) -> Result<Value> {
+    ) -> Result<PlistValue> {
         entries
             .map(|(key, value)| {
                 self.budget.consume(key.len())?;
                 Ok((key.clone(), self.resolve(value)?))
             })
-            .collect::<Result<Map<_, _>>>()
-            .map(Value::Object)
+            .collect::<Result<Dictionary>>()
+            .map(PlistValue::Dictionary)
     }
 
-    fn resolve_uid(&mut self, uid: u64) -> Result<Value> {
+    fn resolve_uid(&mut self, uid: u64) -> Result<PlistValue> {
         if uid == 0 {
-            return Ok(Value::Null);
+            return Ok(PlistValue::Null);
         }
         let index = usize::try_from(uid)
             .ok()
@@ -323,7 +319,7 @@ impl KeyedArchive {
         result
     }
 
-    fn resolve_object(&mut self, index: usize) -> Result<Value> {
+    fn resolve_object(&mut self, index: usize) -> Result<PlistValue> {
         let raw = self.objects[index].clone();
         let PlistValue::Dictionary(object) = raw else {
             return self.resolve(&raw);
@@ -374,8 +370,8 @@ impl KeyedArchive {
         }
     }
 
-    fn resolve_dictionary(&mut self, object: &Dictionary) -> Result<Value> {
-        let Value::Array(keys) = self.resolve(
+    fn resolve_dictionary(&mut self, object: &Dictionary) -> Result<PlistValue> {
+        let PlistValue::Array(keys) = self.resolve(
             object
                 .get("NS.keys")
                 .ok_or_else(|| Error::invalid("Invalid keyed archive dictionary"))?,
@@ -383,7 +379,7 @@ impl KeyedArchive {
         else {
             return Err(Error::invalid("Invalid keyed archive dictionary"));
         };
-        let Value::Array(values) = self.resolve(
+        let PlistValue::Array(values) = self.resolve(
             object
                 .get("NS.objects")
                 .ok_or_else(|| Error::invalid("Invalid keyed archive dictionary"))?,
@@ -397,12 +393,13 @@ impl KeyedArchive {
         keys.into_iter()
             .zip(values)
             .map(|(key, value)| {
-                key.as_str()
-                    .map(|key| (key.to_owned(), value))
-                    .ok_or_else(|| Error::invalid("Invalid keyed archive dictionary key"))
+                let PlistValue::String(key) = key else {
+                    return Err(Error::invalid("Invalid keyed archive dictionary key"));
+                };
+                Ok((key, value))
             })
-            .collect::<Result<Map<_, _>>>()
-            .map(Value::Object)
+            .collect::<Result<Dictionary>>()
+            .map(PlistValue::Dictionary)
     }
 }
 
@@ -413,38 +410,39 @@ fn plist_string(value: &PlistValue) -> Option<&str> {
     }
 }
 
-fn object(value: &Value) -> Result<&Map<String, Value>> {
-    value
-        .as_object()
-        .ok_or_else(|| Error::invalid("Expected a dictionary"))
+fn object(value: &PlistValue) -> Result<&Dictionary> {
+    match value {
+        PlistValue::Dictionary(value) => Ok(value),
+        _ => Err(Error::invalid("Expected a dictionary")),
+    }
 }
 
-fn bytes(value: &Value) -> Result<Vec<u8>> {
-    value
-        .as_array()
-        .ok_or_else(|| Error::invalid("Expected binary data"))?
-        .iter()
-        .map(|value| {
-            value
-                .as_u64()
-                .and_then(|value| u8::try_from(value).ok())
-                .ok_or_else(|| Error::invalid("Expected binary data"))
-        })
-        .collect()
+fn bytes(value: &PlistValue) -> Result<&[u8]> {
+    match value {
+        PlistValue::Data(value) => Ok(value),
+        _ => Err(Error::invalid("Expected binary data")),
+    }
 }
 
-fn text(value: Option<&Value>) -> Result<&str> {
+fn text(value: Option<&PlistValue>) -> Result<&str> {
     value
-        .and_then(Value::as_str)
+        .and_then(plist_string)
         .ok_or_else(|| Error::invalid("Expected text"))
 }
 
-fn integer(value: Option<&Value>) -> Option<i64> {
-    value.and_then(Value::as_i64)
+fn integer(value: Option<&PlistValue>) -> Option<i64> {
+    let Some(PlistValue::Integer(value)) = value else {
+        return None;
+    };
+    i64::try_from(*value).ok()
 }
 
-fn number(value: Option<&Value>) -> Option<f64> {
-    value.and_then(Value::as_f64)
+fn number(value: Option<&PlistValue>) -> Option<f64> {
+    match value {
+        Some(PlistValue::Integer(value)) => Some(*value as f64),
+        Some(PlistValue::Real(value)) => Some(*value),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -524,6 +522,17 @@ mod tests {
             .root()
             .unwrap_err();
         assert_eq!(error.message(), EXPANSION_ERROR);
+    }
+
+    #[test]
+    fn keeps_resolved_data_compact() {
+        let data = vec![0; 4];
+        let archive = keyed_archive(PlistValue::Data(data.clone()), vec![PlistValue::Null]);
+        let resolved = KeyedArchive::new(archive, data.len() + 1)
+            .unwrap()
+            .root()
+            .unwrap();
+        assert_eq!(resolved, PlistValue::Data(data));
     }
 
     fn keyed_archive(root: PlistValue, objects: Vec<PlistValue>) -> PlistValue {
