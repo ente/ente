@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use aes::Aes256;
 use cbc::cipher::{BlockModeDecrypt, KeyIvInit, block_padding::Pkcs7};
@@ -218,7 +218,6 @@ impl Budget {
 struct KeyedArchive {
     objects: Vec<PlistValue>,
     top: Dictionary,
-    cache: HashMap<usize, (Value, usize)>,
     resolving: HashSet<usize>,
     depth: usize,
     budget: Budget,
@@ -241,7 +240,6 @@ impl KeyedArchive {
         Ok(Self {
             objects,
             top,
-            cache: HashMap::new(),
             resolving: HashSet::new(),
             depth: 0,
             budget: Budget::new(capacity),
@@ -285,11 +283,7 @@ impl KeyedArchive {
                 .map(|value| self.resolve(value))
                 .collect::<Result<Vec<_>>>()
                 .map(Value::Array),
-            PlistValue::Dictionary(values) => values
-                .iter()
-                .map(|(key, value)| Ok((key.clone(), self.resolve(value)?)))
-                .collect::<Result<Map<_, _>>>()
-                .map(Value::Object),
+            PlistValue::Dictionary(values) => self.resolve_entries(values.iter()),
             PlistValue::Boolean(value) => Ok(Value::Bool(*value)),
             PlistValue::Integer(value) => Ok(Value::Number((*value).into())),
             PlistValue::Real(value) => Number::from_f64(*value)
@@ -300,6 +294,19 @@ impl KeyedArchive {
         }
     }
 
+    fn resolve_entries<'a>(
+        &mut self,
+        entries: impl Iterator<Item = (&'a String, &'a PlistValue)>,
+    ) -> Result<Value> {
+        entries
+            .map(|(key, value)| {
+                self.budget.consume(key.len())?;
+                Ok((key.clone(), self.resolve(value)?))
+            })
+            .collect::<Result<Map<_, _>>>()
+            .map(Value::Object)
+    }
+
     fn resolve_uid(&mut self, uid: u64) -> Result<Value> {
         if uid == 0 {
             return Ok(Value::Null);
@@ -308,20 +315,12 @@ impl KeyedArchive {
             .ok()
             .filter(|index| *index < self.objects.len())
             .ok_or_else(|| Error::invalid("Invalid keyed archive reference"))?;
-        if let Some((value, cost)) = self.cache.get(&index).cloned() {
-            self.budget.consume(cost)?;
-            return Ok(value);
-        }
         if !self.resolving.insert(index) {
             return Err(Error::invalid("Invalid keyed archive reference"));
         }
-        let remaining = self.budget.remaining;
         let result = self.resolve_object(index);
         self.resolving.remove(&index);
-        let result = result?;
-        let cost = remaining - self.budget.remaining;
-        self.cache.insert(index, (result.clone(), cost));
-        Ok(result)
+        result
     }
 
     fn resolve_object(&mut self, index: usize) -> Result<Value> {
@@ -366,12 +365,9 @@ impl KeyedArchive {
                     .get("NS.time")
                     .ok_or_else(|| Error::invalid("Invalid keyed archive date"))?,
             ),
-            "ACOTPAccount" | "ACOTPFolder" => object
-                .iter()
-                .filter(|(key, _)| key.as_str() != "$class")
-                .map(|(key, value)| Ok((key.clone(), self.resolve(value)?)))
-                .collect::<Result<Map<_, _>>>()
-                .map(Value::Object),
+            "ACOTPAccount" | "ACOTPFolder" => {
+                self.resolve_entries(object.iter().filter(|(key, _)| key.as_str() != "$class"))
+            }
             _ => Err(Error::invalid(format!(
                 "Unsupported keyed archive class: {class}"
             ))),
@@ -490,6 +486,58 @@ mod tests {
         ] {
             assert!(import_otp_auth(&fixture(name), "abc123").is_err());
         }
+    }
+
+    #[test]
+    fn charges_dictionary_keys_against_expansion_limit() {
+        let property = "property-name";
+
+        let inline = keyed_archive(
+            PlistValue::Dictionary(Dictionary::from([(
+                property.to_owned(),
+                PlistValue::Integer(1),
+            )])),
+            vec![PlistValue::Null],
+        );
+        let error = KeyedArchive::new(inline, property.len() + 1)
+            .unwrap()
+            .root()
+            .unwrap_err();
+        assert_eq!(error.message(), EXPANSION_ERROR);
+
+        let repeated = keyed_archive(
+            PlistValue::Array(vec![PlistValue::Uid(1), PlistValue::Uid(1)]),
+            vec![
+                PlistValue::Null,
+                PlistValue::Dictionary(Dictionary::from([
+                    ("$class".to_owned(), PlistValue::Uid(2)),
+                    (property.to_owned(), PlistValue::Integer(1)),
+                ])),
+                PlistValue::Dictionary(Dictionary::from([(
+                    "$classname".to_owned(),
+                    PlistValue::String("ACOTPAccount".to_owned()),
+                )])),
+            ],
+        );
+        let error = KeyedArchive::new(repeated, property.len() + 4)
+            .unwrap()
+            .root()
+            .unwrap_err();
+        assert_eq!(error.message(), EXPANSION_ERROR);
+    }
+
+    fn keyed_archive(root: PlistValue, objects: Vec<PlistValue>) -> PlistValue {
+        PlistValue::Dictionary(Dictionary::from([
+            (
+                "$archiver".to_owned(),
+                PlistValue::String("NSKeyedArchiver".to_owned()),
+            ),
+            ("$objects".to_owned(), PlistValue::Array(objects)),
+            (
+                "$top".to_owned(),
+                PlistValue::Dictionary(Dictionary::from([("root".to_owned(), root)])),
+            ),
+        ]))
     }
 
     fn fixture(name: &str) -> Vec<u8> {

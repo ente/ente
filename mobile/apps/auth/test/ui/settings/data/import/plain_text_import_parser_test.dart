@@ -21,9 +21,10 @@ void main() {
     const validUri = 'otpauth://totp/Example:valid?secret=$secret';
     const invalidUri = 'otpauth://totp:invalid/Example?secret=$secret';
     final imports = {
-      'OTP URLs': '$invalidUri\n$validUri',
+      'OTP URLs': '$invalidUri\n$invalidUri\n$validUri',
       'export JSON': jsonEncode({
         'items': [
+          {'rawData': invalidUri},
           {'rawData': invalidUri},
           {'rawData': validUri},
         ],
@@ -31,7 +32,7 @@ void main() {
     };
 
     for (final input in imports.entries) {
-      test('logs a safe warning for a skipped entry in ${input.key}', () {
+      test('logs one warning for skipped entries in ${input.key}', () {
         final records = <LogRecord>[];
         final subscription = Logger.root.onRecord.listen(records.add);
         addTearDown(subscription.cancel);
@@ -41,12 +42,9 @@ void main() {
         expect(codes.map((code) => code.rawData), [validUri]);
         final record = records.single;
         expect(record.level, Level.WARNING);
-        expect(
-          record.message,
-          'Skipping malformed import entry (FormatException)',
-        );
+        expect(record.message, 'Skipped 2 malformed plain text import entries');
         expect(record.error, isNull);
-        expect(record.stackTrace, isNotNull);
+        expect(record.stackTrace, isNull);
       });
     }
 

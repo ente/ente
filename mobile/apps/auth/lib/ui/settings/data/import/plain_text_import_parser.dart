@@ -7,14 +7,10 @@ final _logger = Logger('PlainTextImportParser');
 
 List<Code> parsePlainTextImport(String content) {
   return runRustImport(() {
-    final batch = rust.parsePlainText(content: content);
-    for (var index = 0; index < batch.skipped; index++) {
-      _logger.warning(
-        'Skipping malformed import entry (FormatException)',
-        null,
-        StackTrace.current,
-      );
-    }
-    return importCodes(batch);
+    return importCodes(
+      rust.parsePlainText(content: content),
+      logger: _logger,
+      source: 'plain text import',
+    );
   });
 }

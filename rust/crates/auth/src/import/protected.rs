@@ -22,6 +22,7 @@ const AEGIS_SCRYPT_LOG_N: u8 = 15;
 const AEGIS_SCRYPT_N: u64 = 1 << AEGIS_SCRYPT_LOG_N;
 const AEGIS_SCRYPT_R: u32 = 8;
 const AEGIS_SCRYPT_P: u32 = 1;
+const ANDOTP_MAX_ITERATIONS: u32 = 160_000;
 
 pub fn import_aegis(input: &str, password: Option<&str>) -> Result<Batch> {
     let root: Value =
@@ -88,7 +89,7 @@ pub fn import_andotp(input: &[u8], password: Option<&str>) -> Result<Batch> {
             .try_into()
             .map_err(|_| Error::invalid("Invalid andOTP encrypted file"))?,
     );
-    if iterations == 0 {
+    if iterations == 0 || iterations > ANDOTP_MAX_ITERATIONS {
         return Err(Error::invalid("Invalid andOTP iteration count"));
     }
     let salt = &input[4..16];
@@ -526,6 +527,17 @@ mod tests {
             1
         );
         assert_password_errors(|password| import_andotp(&input, password));
+    }
+
+    #[test]
+    fn rejects_excessive_andotp_iterations() {
+        for iterations in [ANDOTP_MAX_ITERATIONS + 1, u32::MAX] {
+            let mut input = iterations.to_be_bytes().to_vec();
+            input.resize(28, 0);
+            let error = import_andotp(&input, Some("password")).err().unwrap();
+            assert_eq!(error.kind(), ErrorKind::Invalid);
+            assert_eq!(error.message(), "Invalid andOTP iteration count");
+        }
     }
 
     #[test]
