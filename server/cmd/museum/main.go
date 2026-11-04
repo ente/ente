@@ -550,7 +550,11 @@ func main() {
 	storageAPI.Use(middleware.RejectAuthApp())
 
 	adminAPI := server.Group("/admin")
-	adminAPI.Use(authMiddleware.TokenAuthMiddleware(nil), authMiddleware.AdminAuthMiddleware())
+	adminAPI.Use(
+		authMiddleware.TokenAuthMiddleware(nil),
+		authMiddleware.AdminAuthMiddleware(),
+		rateLimiter.AdminRateLimitMiddleware(urlSanitizer),
+	)
 	paymentJwtAuthAPI := server.Group("/")
 	paymentJwtAuthAPI.Use(authMiddleware.TokenAuthMiddleware(jwt.PAYMENT.Ptr()))
 
@@ -983,7 +987,6 @@ func main() {
 	adminAPI.POST("/mail/subscribe", adminHandler.SubscribeMail)
 	adminAPI.POST("/mail/unsubscribe", adminHandler.UnsubscribeMail)
 	adminAPI.GET("/listmonk/missing-subscribers/count", adminHandler.GetListmonkMissingSubscribersCount)
-	adminAPI.GET("/users", adminHandler.GetUsers)
 	adminAPI.GET("/user", adminHandler.GetUser)
 	adminAPI.GET("/user/scheduled-deletions", adminHandler.GetScheduledDeletions)
 	adminAPI.POST("/user/disable-2fa", adminHandler.DisableTwoFactor)
@@ -998,13 +1001,20 @@ func main() {
 	adminAPI.DELETE("/user/delete", adminHandler.DeleteUser)
 	adminAPI.POST("/user/recover", adminHandler.RecoverAccount)
 	adminAPI.POST("/user/update-flag", adminHandler.UpdateFeatureFlag)
-	adminAPI.GET("/email-hash", adminHandler.GetEmailHash)
-	adminAPI.POST("/emails-from-hashes", adminHandler.GetEmailsFromHashes)
 	adminAPI.PUT("/user/subscription", adminHandler.UpdateSubscription)
 	adminAPI.POST("/queue/re-queue", adminHandler.ReQueueItem)
 	adminAPI.POST("/collection/repair-deleted-share", adminHandler.RepairDeletedCollectionShare)
 	adminAPI.POST("/user/init-file-counts", adminHandler.InitializeFileCounts)
 	adminAPI.POST("/user/bonus", adminHandler.UpdateBonus)
+	// Bulk and reverse lookups of user data. Ente's hosted instance doesn't
+	// serve them. Self-hosters use list users from the CLI.
+	if userRepo.IsLikelySelfHosted() {
+		adminAPI.GET("/users", adminHandler.GetUsers)
+		adminAPI.GET("/email-hash", adminHandler.GetEmailHash)
+		adminAPI.POST("/emails-from-hashes", adminHandler.GetEmailsFromHashes)
+	} else {
+		log.Info("Not serving admin bulk user and email hash endpoints on the hosted instance")
+	}
 
 	userEntityController := &userEntityCtrl.Controller{Repo: userEntityRepo}
 	userEntityHandler := &api.UserEntityHandler{Controller: userEntityController}
