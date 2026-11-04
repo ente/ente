@@ -1,7 +1,8 @@
 use std::{
     borrow::Cow,
     fmt,
-    io::{BufReader, Read, Seek, SeekFrom},
+    io::{self, BufReader, Read, Seek, SeekFrom},
+    sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
 };
 
@@ -20,11 +21,15 @@ use image::{
 };
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
+use crate::memory_budget::MemoryBudget;
+
 pub(crate) const CODESTREAM_SIGNATURE: [u8; 2] = [0xFF, 0x0A];
 pub(crate) const CONTAINER_SIGNATURE: [u8; 12] = [
     0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
 ];
 const MAX_DECODE_DURATION: Duration = Duration::from_secs(60);
+const MAX_DECODE_MEMORY_BYTES: usize = 512 * 1024 * 1024;
+const MAX_DECODE_THREADS: usize = 8;
 const MAX_SAMPLES_PER_PIXEL: u64 = 4;
 const MIN_8_BIT_OUTPUT_GAMMA: f32 = 0.3;
 const MAX_8_BIT_OUTPUT_GAMMA: f32 = 0.6;
@@ -96,7 +101,7 @@ where
     let sample_limit = guardrails.max_pixels.map(|max_pixels| {
         usize::try_from(max_pixels.saturating_mul(MAX_SAMPLES_PER_PIXEL)).unwrap_or(usize::MAX)
     });
-    let decoder = JxlImageDecoder::new(input, sample_limit)?;
+    let decoder = JxlImageDecoder::new(input, sample_limit, MAX_DECODE_MEMORY_BYTES)?;
 
     if let Some(max_pixels) = guardrails.max_pixels {
         let (width, height) = decoder.dimensions();
@@ -111,18 +116,23 @@ where
 struct JxlImageDecoder<R: Read + Seek> {
     input: BufReader<BoundedReader<R>>,
     decoder: JxlDecoder,
+    budget: MemoryBudget,
     dimensions: (u32, u32),
     color_type: ColorType,
-    icc_profile: Option<Vec<u8>>,
 }
 
 impl<R: Read + Seek> JxlImageDecoder<R> {
-    fn new(reader: BoundedReader<R>, sample_limit: Option<usize>) -> ImageResult<Self> {
+    fn new(
+        reader: BoundedReader<R>,
+        sample_limit: Option<usize>,
+        memory_limit: usize,
+    ) -> ImageResult<Self> {
         let mut input = BufReader::new(reader);
         let mut options = JxlDecoderOptions::default();
         options.sample_limit = sample_limit;
         let mut decoder = JxlDecoder::new(options);
-        if process(&mut decoder, &mut input, None)? != Event::BasicInfo {
+        let budget = MemoryBudget::new(memory_limit);
+        if process(&mut decoder, &mut input, None, &budget)? != Event::BasicInfo {
             return Err(truncated());
         }
 
@@ -159,31 +169,24 @@ impl<R: Read + Seek> JxlImageDecoder<R> {
             color_data_format: Some(output_data_format(sixteen_bit)),
             extra_channel_format: vec![None; num_extra_channels],
         };
-        decoder
-            .set_pixel_format(pixel_format(false))
+        within_budget(&budget, || decoder.set_pixel_format(pixel_format(false)))?
             .map_err(jxl_error)?;
         let sixteen_bit = finer_than_u8
             && decoder
                 .output_color_profile()
                 .is_none_or(needs_sixteen_bit_output);
         if sixteen_bit {
-            decoder
-                .set_pixel_format(pixel_format(true))
+            within_budget(&budget, || decoder.set_pixel_format(pixel_format(true)))?
                 .map_err(jxl_error)?;
         }
         let color_type = output_color_type(sixteen_bit, grayscale, alpha);
-        let icc_profile = decoder
-            .output_color_profile()
-            .filter(|profile| !uses_hdr_transfer(profile))
-            .map(with_dci_as_pure_gamma)
-            .and_then(|profile| profile.try_as_icc().map(Cow::into_owned));
 
         Ok(Self {
             input,
             decoder,
+            budget,
             dimensions: (width, height),
             color_type,
-            icc_profile,
         })
     }
 
@@ -205,6 +208,7 @@ impl<R: Read + Seek> JxlImageDecoder<R> {
                 &mut self.decoder,
                 &mut self.input,
                 Some(std::slice::from_mut(&mut output)),
+                &self.budget,
             )? {
                 Event::FrameHeader => {}
                 Event::FrameComplete { .. } => return Ok(()),
@@ -224,7 +228,13 @@ impl<R: Read + Seek> ImageDecoder for JxlImageDecoder<R> {
     }
 
     fn icc_profile(&mut self) -> ImageResult<Option<Vec<u8>>> {
-        Ok(self.icc_profile.clone())
+        within_budget(&self.budget, || {
+            self.decoder
+                .output_color_profile()
+                .filter(|profile| !uses_hdr_transfer(profile))
+                .map(with_dci_as_pure_gamma)
+                .and_then(|profile| profile.try_as_icc().map(Cow::into_owned))
+        })
     }
 
     fn read_image(self, buf: &mut [u8]) -> ImageResult<()> {
@@ -240,10 +250,20 @@ fn process<R: Read + Seek>(
     decoder: &mut JxlDecoder,
     input: &mut BufReader<BoundedReader<R>>,
     output: Option<&mut [JxlOutputBuffer]>,
+    budget: &MemoryBudget,
 ) -> ImageResult<Event> {
-    decoder
-        .process(input, output, Some(&mut RayonRunner))
-        .map_err(jxl_error)
+    within_budget(budget, || {
+        decoder.process(input, output, Some(&mut RayonRunner { budget }))
+    })?
+    .map_err(jxl_error)
+}
+
+fn within_budget<T>(budget: &MemoryBudget, work: impl FnOnce() -> T) -> ImageResult<T> {
+    let result = budget.enter(work);
+    if budget.is_exceeded() {
+        return Err(too_large());
+    }
+    Ok(result)
 }
 
 fn output_data_format(sixteen_bit: bool) -> JxlDataFormat {
@@ -333,15 +353,51 @@ fn jxl_color_type(grayscale: bool, alpha: bool) -> JxlColorType {
     }
 }
 
-struct RayonRunner;
+struct RayonRunner<'a> {
+    budget: &'a MemoryBudget,
+}
 
-impl JxlParallelRunner for RayonRunner {
+impl JxlParallelRunner for RayonRunner<'_> {
     fn run(&mut self, num: usize, fun: &JxlParallelRunnerFun<'_>) -> ::jxl::error::Result<()> {
-        (0..num).into_par_iter().try_for_each(fun)
+        self.run_ordered(num, None, fun)
     }
 
     fn num_threads(&self) -> usize {
-        rayon::current_num_threads()
+        rayon::current_num_threads().min(MAX_DECODE_THREADS)
+    }
+
+    fn run_ordered(
+        &mut self,
+        num: usize,
+        max_threads: Option<usize>,
+        fun: &JxlParallelRunnerFun<'_>,
+    ) -> ::jxl::error::Result<()> {
+        let budget = self.budget;
+        let workers = max_threads
+            .unwrap_or(usize::MAX)
+            .min(self.num_threads())
+            .min(num);
+        let next_index = AtomicUsize::new(0);
+        let work = || {
+            loop {
+                if budget.is_exceeded() {
+                    return Err(io::Error::from(io::ErrorKind::OutOfMemory).into());
+                }
+                let index = next_index.fetch_add(1, Ordering::Relaxed);
+                if index >= num {
+                    return Ok(());
+                }
+                fun(index)?;
+            }
+        };
+        if workers <= 1 {
+            return work();
+        }
+        MemoryBudget::suspend(|| {
+            (0..workers)
+                .into_par_iter()
+                .try_for_each(|_| budget.enter(work))
+        })
     }
 }
 
@@ -429,17 +485,23 @@ fn format_hint() -> ImageFormatHint {
 mod tests {
     use std::{
         io::{BufReader, Cursor, Read, Seek, SeekFrom},
+        sync::{
+            Mutex,
+            atomic::{AtomicUsize, Ordering},
+        },
         time::{Duration, Instant},
     };
 
-    use ::jxl::api::JxlBitstreamInput;
+    use ::jxl::api::{JxlBitstreamInput, JxlParallelRunner};
     use ente_heic::DecodeGuardrails;
-    use image::{ColorType, ImageDecoder, ImageError};
+    use image::{ColorType, ImageDecoder, ImageError, ImageResult};
 
     use super::{
-        BoundedReader, JxlImageDecoder, RGB_2X2_CODESTREAM, RGB_F8_LINEAR_2X1_CODESTREAM,
-        RGB_F32_LINEAR_2X1_CODESTREAM, RGB16_SRGB_2X1_CODESTREAM, decoder_from_reader,
+        BoundedReader, JxlImageDecoder, MAX_DECODE_MEMORY_BYTES, MAX_DECODE_THREADS,
+        RGB_2X2_CODESTREAM, RGB_F8_LINEAR_2X1_CODESTREAM, RGB_F32_LINEAR_2X1_CODESTREAM,
+        RGB16_SRGB_2X1_CODESTREAM, RayonRunner, decoder_from_reader,
     };
+    use crate::memory_budget::MemoryBudget;
 
     fn guardrails(max_input_bytes: Option<u64>, max_pixels: Option<u64>) -> DecodeGuardrails {
         DecodeGuardrails {
@@ -581,9 +643,91 @@ mod tests {
         };
 
         assert!(matches!(
-            JxlImageDecoder::new(reader, Some(12)).err(),
+            JxlImageDecoder::new(reader, Some(12), MAX_DECODE_MEMORY_BYTES).err(),
             Some(ImageError::Limits(_))
         ));
+    }
+
+    const SOLID_256X256_CODESTREAM: [u8; 84] = [
+        0xFF, 0x0A, 0x7F, 0x40, 0x40, 0x71, 0x21, 0x08, 0x02, 0x01, 0x00, 0x1C, 0x01, 0x4B, 0x18,
+        0x8B, 0x15, 0x00, 0xD4, 0x88, 0x31, 0xEE, 0xEE, 0xC6, 0x3D, 0x80, 0x03, 0x38, 0xC3, 0x99,
+        0x00, 0x9A, 0x0F, 0xBD, 0x15, 0x5E, 0xCC, 0xFB, 0x36, 0xA1, 0xD4, 0x48, 0x74, 0x04, 0x47,
+        0x60, 0x22, 0x00, 0x88, 0x6E, 0xD6, 0x89, 0xD2, 0x5B, 0xE1, 0xC5, 0xBC, 0x6F, 0x13, 0x4A,
+        0x8D, 0x44, 0x47, 0x70, 0x84, 0x0A, 0x69, 0x5A, 0x3A, 0xD0, 0xC7, 0x0B, 0x06, 0x18, 0x51,
+        0x69, 0x92, 0xC5, 0x4F, 0xAF, 0x7D, 0x25, 0xC9, 0x3C,
+    ];
+
+    fn decode_solid_rgb(memory_limit: usize) -> ImageResult<Vec<u8>> {
+        let reader = BoundedReader {
+            inner: Cursor::new(SOLID_256X256_CODESTREAM),
+            position: 0,
+            max_position: u64::MAX,
+            deadline: later(),
+        };
+        let decoder = JxlImageDecoder::new(reader, None, memory_limit)?;
+        Ok(image::DynamicImage::from_decoder(decoder)?
+            .into_rgb8()
+            .into_raw())
+    }
+
+    #[test]
+    fn decodes_images_within_the_memory_budget() {
+        assert_eq!(
+            decode_solid_rgb(MAX_DECODE_MEMORY_BYTES).unwrap(),
+            [40, 90, 200].repeat(256 * 256)
+        );
+    }
+
+    #[test]
+    fn rejects_decodes_exceeding_the_memory_budget() {
+        assert!(matches!(decode_solid_rgb(0), Err(ImageError::Limits(_))));
+    }
+
+    #[test]
+    fn stops_parallel_tasks_once_their_allocations_exceed_the_budget() {
+        let budget = MemoryBudget::new(4 << 20);
+        let held = Mutex::new(Vec::new());
+        let started = AtomicUsize::new(0);
+        let result = budget.enter(|| {
+            RayonRunner { budget: &budget }.run_ordered(64, Some(2), &|_| {
+                started.fetch_add(1, Ordering::Relaxed);
+                held.lock().unwrap().push(vec![0u8; 1 << 20]);
+                Ok(())
+            })
+        });
+
+        assert!(result.is_err());
+        assert!((4..=5).contains(&started.into_inner()));
+    }
+
+    #[test]
+    fn rejects_icc_profile_copies_exceeding_the_memory_budget() {
+        let reader = BoundedReader {
+            inner: Cursor::new(RGB_2X2_CODESTREAM),
+            position: 0,
+            max_position: u64::MAX,
+            deadline: later(),
+        };
+        let mut decoder = JxlImageDecoder::new(reader, None, MAX_DECODE_MEMORY_BYTES).unwrap();
+        assert!(decoder.icc_profile().unwrap().is_some());
+
+        decoder.budget = MemoryBudget::new(0);
+
+        assert!(matches!(decoder.icc_profile(), Err(ImageError::Limits(_))));
+    }
+
+    #[test]
+    fn caps_parallel_decoding_at_the_thread_limit() {
+        let budget = MemoryBudget::new(MAX_DECODE_MEMORY_BYTES);
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(2 * MAX_DECODE_THREADS)
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            pool.install(|| RayonRunner { budget: &budget }.num_threads()),
+            MAX_DECODE_THREADS
+        );
     }
 
     #[test]

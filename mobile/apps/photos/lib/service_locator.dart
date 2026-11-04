@@ -49,8 +49,6 @@ import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
 import "package:photos/services/update_service.dart";
 import "package:photos/services/wake_lock_service.dart";
-import "package:photos/services/wrapped/wrapped_cache_service.dart";
-import "package:photos/services/wrapped/wrapped_service.dart";
 import "package:photos/settings/backup_settings.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -315,18 +313,6 @@ LibrarySharingService get librarySharingService {
     store: LibrarySharingEntityStore(entityService),
   );
   return _librarySharingService!;
-}
-
-WrappedService? _wrappedService;
-WrappedService get wrappedService {
-  _wrappedService ??= WrappedService.instance;
-  return _wrappedService!;
-}
-
-WrappedCacheService? _wrappedCacheService;
-WrappedCacheService get wrappedCacheService {
-  _wrappedCacheService ??= WrappedCacheService.instance;
-  return _wrappedCacheService!;
 }
 
 InstallSourceService? _installSourceService;

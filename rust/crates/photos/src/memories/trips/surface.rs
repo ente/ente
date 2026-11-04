@@ -6,7 +6,7 @@ use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
 use crate::memories::geo::distance_km;
 use crate::memories::input::{CachedTrip, MemoriesRequest, Period, ShownTrip};
-use crate::memories::output::{BaseMemory, Memory, MemoryKind, TripMemory};
+use crate::memories::output::{BaseMemory, Memory, MemoryBoundary, MemoryKind, TripMemory};
 use crate::memories::photo::Photo;
 use crate::memories::places::Places;
 use crate::memories::selector::Selector;
@@ -41,11 +41,19 @@ impl<'r> TripHistory<'r> {
 
     pub(in crate::memories) fn record(&mut self, memories: &[Memory]) {
         for memory in memories {
-            if let MemoryKind::Trip(trip) = &memory.kind {
+            if let (
+                MemoryKind::Trip(trip),
+                MemoryBoundary::Timestamp(first_date_to_show),
+                MemoryBoundary::Timestamp(last_date_to_show),
+            ) = (
+                &memory.kind,
+                memory.first_date_to_show,
+                memory.last_date_to_show,
+            ) {
                 self.cached.push(CachedTrip {
                     identity_key: identity_key(&trip.key),
-                    first_date_to_show: memory.first_date_to_show,
-                    last_date_to_show: memory.last_date_to_show,
+                    first_date_to_show,
+                    last_date_to_show,
                 });
             }
         }

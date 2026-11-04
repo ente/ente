@@ -1,7 +1,10 @@
+use std::cmp::Ordering;
+
 use ente_location::Coordinate;
 
 use super::MAX_MEMORY_ITEMS;
-use super::calendar::LocalDate;
+use super::calendar::{LocalDate, MICROS_PER_DAY};
+use super::input::Period;
 use super::photo::Photo;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -21,8 +24,37 @@ pub struct BaseLocation {
 pub struct Memory {
     pub kind: MemoryKind,
     pub file_ids: Vec<i64>,
-    pub first_date_to_show: i64,
-    pub last_date_to_show: i64,
+    pub first_date_to_show: MemoryBoundary,
+    pub last_date_to_show: MemoryBoundary,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MemoryBoundary {
+    Timestamp(i64),
+    CalendarDate(LocalDate),
+}
+
+impl From<i64> for MemoryBoundary {
+    fn from(timestamp: i64) -> Self {
+        Self::Timestamp(timestamp)
+    }
+}
+
+impl From<LocalDate> for MemoryBoundary {
+    fn from(date: LocalDate) -> Self {
+        Self::CalendarDate(date)
+    }
+}
+
+impl MemoryBoundary {
+    fn compare_to(self, period: Period) -> Ordering {
+        match self {
+            Self::Timestamp(timestamp) => timestamp.cmp(&period.now),
+            Self::CalendarDate(date) => {
+                (date.days_since_epoch() * MICROS_PER_DAY).cmp(&period.local_now())
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -230,8 +262,8 @@ impl Memory {
     pub(super) fn new(
         kind: MemoryKind,
         photos: &[&Photo],
-        first_date_to_show: i64,
-        last_date_to_show: i64,
+        first_date_to_show: impl Into<MemoryBoundary>,
+        last_date_to_show: impl Into<MemoryBoundary>,
     ) -> Self {
         Self {
             kind,
@@ -240,12 +272,70 @@ impl Memory {
                 .take(MAX_MEMORY_ITEMS)
                 .map(|photo| photo.id)
                 .collect(),
-            first_date_to_show,
-            last_date_to_show,
+            first_date_to_show: first_date_to_show.into(),
+            last_date_to_show: last_date_to_show.into(),
         }
     }
 
-    pub(super) fn is_shown_at(&self, time: i64) -> bool {
-        (self.first_date_to_show..=self.last_date_to_show).contains(&time)
+    pub(super) fn is_shown_at(&self, period: Period) -> bool {
+        self.first_date_to_show.compare_to(period).is_le()
+            && self.last_date_to_show.compare_to(period).is_ge()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{LocalDate, Memory, MemoryKind, Period};
+    use crate::memories::tests::micros;
+
+    #[test]
+    fn calendar_window_visibility_uses_the_offsets_at_the_observed_instants() {
+        let memory = Memory::new(
+            MemoryKind::OnThisDay,
+            &[],
+            LocalDate::new(2026, 11, 1),
+            LocalDate::new(2026, 11, 2),
+        );
+        for (now, offset, visible) in [
+            ("2026-11-01T03:59:59", -14_400, false),
+            ("2026-11-01T04:00:00", -14_400, true),
+            ("2026-11-02T04:30:00", -18_000, true),
+            ("2026-11-02T05:00:00", -18_000, true),
+            ("2026-11-02T05:00:01", -18_000, false),
+        ] {
+            assert_eq!(
+                memory.is_shown_at(Period {
+                    now: micros(now),
+                    utc_offset_seconds: offset,
+                }),
+                visible,
+                "{now}"
+            );
+        }
+    }
+
+    #[test]
+    fn mixed_windows_preserve_the_timestamp_start_and_local_date_end() {
+        let memory = Memory::new(
+            MemoryKind::OnThisDay,
+            &[],
+            micros("2026-10-15T12:34:56"),
+            LocalDate::new(2026, 11, 1),
+        );
+        for (now, visible) in [
+            ("2026-10-15T12:34:55", false),
+            ("2026-10-15T12:34:56", true),
+            ("2026-11-01T04:00:00", true),
+            ("2026-11-01T04:00:01", false),
+        ] {
+            assert_eq!(
+                memory.is_shown_at(Period {
+                    now: micros(now),
+                    utc_offset_seconds: -14_400,
+                }),
+                visible,
+                "{now}"
+            );
+        }
     }
 }

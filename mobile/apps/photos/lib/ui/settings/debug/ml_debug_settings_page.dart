@@ -587,17 +587,6 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   Widget _buildResetActionsCard(BuildContext context) {
     return SettingsGroupedCard(
       children: [
-        if (wrappedService.isEnabled)
-          MenuItemWidgetNew(
-            title: "Recompute Ente Rewind",
-            leadingIconWidget: _buildIconWidget(
-              context,
-              HugeIcons.strokeRoundedReload,
-            ),
-            trailingIcon: Icons.chevron_right_outlined,
-            trailingIconIsMuted: true,
-            onTap: () async => _onRecomputeWrapped(context),
-          ),
         MenuItemWidgetNew(
           title: "Clear memories cache",
           leadingIconWidget: _buildIconWidget(
@@ -904,19 +893,6 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       showShortToast(context, "Done");
     } catch (e, s) {
       logger.warning('sync person mappings failed ', e, s);
-      if (!context.mounted) return;
-      await showGenericErrorDialog(context: context, error: e);
-    }
-  }
-
-  Future<void> _onRecomputeWrapped(BuildContext context) async {
-    try {
-      await wrappedService.forceRecompute();
-      await localSettings.resetWrapped2025Complete();
-      if (!context.mounted) return;
-      showShortToast(context, "Ente Rewind recomputed");
-    } catch (e, s) {
-      logger.severe('Wrapped recompute failed ', e, s);
       if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
