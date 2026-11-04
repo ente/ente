@@ -486,39 +486,41 @@ All of this said, if you would still like to pay without sharing your card detai
 
 ### What happens when my subscription expires? {#subscription-expires}
 
-When your subscription expires, you enter a **30-day grace period** before your data is deleted.
+When your paid plan expires, your photos and files are not deleted straight away. You have time to renew or export them.
 
-**Timeline after expiration:**
+**After your plan expires:**
 
-**Day 0 (Expiration day):**
+- ✅ Your existing photos and files stay in your account
+- ✅ You can still view and download them
+- ❌ New backups to Ente Photos and Ente Locker are blocked
+- 📧 We email you that your plan has expired, with the date your data will be deleted
 
-- ✅ Your data remains accessible
-- ✅ You can still view and download your photos
-- ❌ New uploads are blocked
-- 📧 You receive an email notification
+**Before the deletion date:**
 
-**Days 1-30 (Grace period):**
-
-- ✅ Your data remains accessible and downloadable
-- ❌ New uploads are blocked
-- 📧 You receive multiple reminder emails
-- ✅ You can renew your subscription at any time to restore full access
+- 📧 You receive several reminder emails, the last one the day before the deletion date
+- ✅ You can renew at any time to restore full access
 - ✅ You can export your data using the desktop app or CLI
 
-**Day 30+ (After grace period):**
+The deletion date is shown in these emails. It is several months after your plan expires.
 
-- ❌ All your uploaded data is permanently deleted from our servers
-- ❌ Recovery is not possible after deletion
-- 📧 Final notification email sent
+**After the deletion date:**
+
+- ❌ Your Ente Photos and Ente Locker data is scheduled for deletion
+- ❌ Signing in to Ente Photos and Ente Locker is restricted
+- ❌ Recovery is not possible once the data is deleted
+
+If you need more time or are having trouble paying, reply to any of these emails or contact [support@ente.com](mailto:support@ente.com) before the deletion date.
+
+If you are on a family plan, the family members' data and access are affected too.
 
 **To avoid losing your data:**
 
-1. **Renew your subscription** before the grace period ends:
+1. **Renew your subscription** before the deletion date:
     - All your data will be immediately accessible again
     - Uploads will resume automatically
     - No data loss
 
-2. **Export your data** during the grace period:
+2. **Export your data** before the deletion date:
     - Use the desktop app's export feature
     - Or use the [CLI tool](/cli/photos) for automated export
     - Download all photos to your computer or NAS
@@ -536,7 +538,7 @@ If you purchased through iOS App Store or Google Play Store:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
-- The same 30-day grace period applies after expiration
+- The same timeline applies after expiration
 
 ### What happens when I upgrade my plan? {#upgrade-plan}
 
@@ -669,7 +671,7 @@ For a subscription purchased through Apple or Google Play, cancel renewal in tha
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 
-Cancelling renewal does not delete your Ente account. Your paid plan continues until its expiry date. See [What happens when my subscription expires?](#subscription-expires) for what happens next. Make sure to export your photos before the grace period ends if you want to keep them.
+Cancelling renewal does not delete your Ente account. Your paid plan continues until its expiry date. See [What happens when my subscription expires?](#subscription-expires) for what happens next. Make sure to export your photos before the deletion date shown in our emails if you want to keep them.
 
 If support helps move your account back to the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 
