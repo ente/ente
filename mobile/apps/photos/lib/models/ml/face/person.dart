@@ -36,9 +36,9 @@ class PersonData {
   final bool hideFromMemories;
 
   String? avatarFaceID;
-  List<ClusterInfo> assigned = List<ClusterInfo>.empty();
-  List<String> rejectedFaceIDs = List<String>.empty();
-  List<int> manuallyAssigned = List<int>.empty();
+  List<ClusterInfo> assigned;
+  List<String> rejectedFaceIDs;
+  List<int> manuallyAssigned;
 
   // Formatted as yyyy-MM-dd.
   final String? birthDate;
@@ -54,9 +54,9 @@ class PersonData {
 
   PersonData({
     required this.name,
-    this.assigned = const <ClusterInfo>[],
-    this.rejectedFaceIDs = const <String>[],
-    this.manuallyAssigned = const <int>[],
+    List<ClusterInfo>? assigned,
+    List<String>? rejectedFaceIDs,
+    List<int>? manuallyAssigned,
     this.avatarFaceID,
     this.isHidden = false,
     this.isPinned = false,
@@ -64,7 +64,9 @@ class PersonData {
     this.birthDate,
     this.email,
     this.userID,
-  });
+  }) : assigned = assigned ?? <ClusterInfo>[],
+       rejectedFaceIDs = rejectedFaceIDs ?? <String>[],
+       manuallyAssigned = manuallyAssigned ?? <int>[];
   PersonData copyWith({
     String? name,
     List<ClusterInfo>? assigned,
