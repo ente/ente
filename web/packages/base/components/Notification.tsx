@@ -12,6 +12,7 @@ import {
     Stack,
     Tooltip,
     Typography,
+    keyframes,
     type ButtonProps,
     type SxProps,
     type Theme,
@@ -26,12 +27,14 @@ import React from "react";
 export interface NotificationAttributes {
     color: ButtonProps["color"];
     startIcon?: IconSvgElement | null;
+    spinStartIcon?: boolean;
     title: React.ReactNode;
     caption?: React.ReactNode;
     onClick?: () => void;
     endIcon?: IconSvgElement;
     endIconLabel?: string;
     onEndIconClick?: () => void;
+    progress?: number;
 }
 
 type NotificationProps = ModalVisibilityProps & {
@@ -43,6 +46,11 @@ type NotificationProps = ModalVisibilityProps & {
     autoHideDuration?: number | null;
     sx?: SxProps<Theme>;
 };
+
+const spin = keyframes({
+    from: { transform: "rotate(0deg)" },
+    to: { transform: "rotate(360deg)" },
+});
 
 const actionButtonSx = {
     width: 38,
@@ -75,12 +83,14 @@ export const Notification: React.FC<NotificationProps> = ({
     const {
         color,
         startIcon,
+        spinStartIcon,
         title,
         caption,
         endIcon,
         endIconLabel,
         onClick,
         onEndIconClick,
+        progress,
     } = attributes;
     const resolvedAutoHideDuration =
         autoHideDuration === undefined
@@ -130,7 +140,17 @@ export const Notification: React.FC<NotificationProps> = ({
                 <Stack
                     sx={{
                         flexShrink: 0,
-                        svg: { width: 24, height: 24, fontSize: 24 },
+                        svg: {
+                            width: 24,
+                            height: 24,
+                            fontSize: 24,
+                            ...(spinStartIcon && {
+                                animation: `${spin} 1s linear infinite`,
+                                "@media (prefers-reduced-motion: reduce)": {
+                                    animation: "none",
+                                },
+                            }),
+                        },
                     }}
                 >
                     <HugeiconsIcon
@@ -216,6 +236,8 @@ export const Notification: React.FC<NotificationProps> = ({
                     color: "inherit",
                     boxShadow: "none",
                     fontFamily: '"Outfit Variable", sans-serif',
+                    position: "relative",
+                    overflow: "hidden",
                 }}
             >
                 {isClickable ? (
@@ -279,6 +301,34 @@ export const Notification: React.FC<NotificationProps> = ({
                         />
                     </IconButton>
                 </Stack>
+                {progress !== undefined && (
+                    <Box
+                        role="progressbar"
+                        aria-label={t("downloading")}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(progress * 100)}
+                        sx={{
+                            position: "absolute",
+                            insetInline: 0,
+                            bottom: 0,
+                            height: 4,
+                            bgcolor: "fill.faint",
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                height: "100%",
+                                width: `${progress * 100}%`,
+                                bgcolor: "success.main",
+                                transition: "width 100ms linear",
+                                "@media (prefers-reduced-motion: reduce)": {
+                                    transition: "none",
+                                },
+                            }}
+                        />
+                    </Box>
+                )}
             </Paper>
         </Snackbar>
     );

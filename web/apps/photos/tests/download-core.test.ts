@@ -47,6 +47,74 @@ const managerFor = (response: Response) =>
     });
 
 describe("download progress and stream cancellation", () => {
+    test("cached saves report complete bytes without another network transfer", async () => {
+        const transport = vi.fn(() =>
+            Promise.resolve(new Response(new Uint8Array([1, 2, 3, 4, 5]))),
+        );
+        const manager = createDownloadManager({
+            downloadFile: transport,
+            downloadThumbnail: vi.fn(),
+            renderableImageBlob: (blob) => Promise.resolve(blob),
+            playableVideoURL: vi.fn(),
+        });
+        vi.mocked(decryptStreamBytes).mockImplementationOnce(
+            ({ encryptedData }) => Promise.resolve(encryptedData),
+        );
+        const source = await manager.renderableSourceURLs(file);
+        const onProgress = vi.fn();
+        try {
+            await manager.fileBlob(file, { onProgress });
+            expect(transport).toHaveBeenCalledTimes(1);
+            expect(onProgress).toHaveBeenCalledExactlyOnceWith({
+                loaded: 5,
+                total: 5,
+            });
+        } finally {
+            if (source.type === "image") URL.revokeObjectURL(source.imageURL);
+        }
+    });
+
+    test("save consumers share a transfer and each receive byte progress", async () => {
+        const transport = vi.fn(() =>
+            Promise.resolve(new Response(new Uint8Array([1, 2, 3, 4, 5]))),
+        );
+        const manager = createDownloadManager({
+            downloadFile: transport,
+            downloadThumbnail: vi.fn(),
+            renderableImageBlob: vi.fn(),
+            playableVideoURL: vi.fn(),
+        });
+        vi.mocked(decryptStreamBytes).mockImplementationOnce(
+            ({ encryptedData }) => Promise.resolve(encryptedData),
+        );
+        const first = vi.fn();
+        const second = vi.fn();
+        const [a, b] = await Promise.all([
+            manager.fileBlob(file, { onProgress: first }),
+            manager.fileBlob(file, { onProgress: second }),
+        ]);
+        expect(transport).toHaveBeenCalledTimes(1);
+        expect(a).toBe(b);
+        expect(first).toHaveBeenLastCalledWith({ loaded: 5, total: 5 });
+        expect(second).toHaveBeenLastCalledWith({ loaded: 5, total: 5 });
+    });
+
+    test("stream saves report bytes as the encrypted response is consumed", async () => {
+        const manager = managerFor(
+            new Response(new Uint8Array([1, 2, 3, 4, 5])),
+        );
+        const onProgress = vi.fn();
+        const stream = await manager.fileStream(
+            {
+                ...file,
+                metadata: { ...file.metadata, fileType: FileType.video },
+            },
+            { onProgress },
+        );
+        await new Response(stream).arrayBuffer();
+        expect(onProgress).toHaveBeenLastCalledWith({ loaded: 5, total: 5 });
+    });
+
     test("a throwing observer cannot interrupt image bytes or other observers", async () => {
         const bytes = new Uint8Array([3, 1, 4, 1, 5]);
         const manager = managerFor(

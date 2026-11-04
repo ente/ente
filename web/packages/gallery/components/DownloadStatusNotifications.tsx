@@ -222,6 +222,7 @@ export const DownloadStatusNotifications: React.FC<
                         attributes={{
                             color: hasErrors ? "critical" : "secondary",
                             startIcon,
+                            spinStartIcon: startIcon === Loading03Icon,
                             title: truncatedName,
                             caption,
                             onClick: createOnClick(group),
@@ -230,6 +231,12 @@ export const DownloadStatusNotifications: React.FC<
                                 ? () => group.retry?.()
                                 : undefined,
                             endIconLabel: t("retry"),
+                            progress:
+                                isComplete && !hasErrors
+                                    ? 1
+                                    : group.downloadProgress === undefined
+                                      ? undefined
+                                      : Math.min(group.downloadProgress, 0.99),
                         }}
                     />
                 );
