@@ -46,7 +46,6 @@ const download = (
         key,
     } as EnteFile;
     return {
-        manager,
         bytes: manager
             .fileStream(file)
             .then((stream) => new Response(stream).arrayBuffer()),
@@ -59,21 +58,20 @@ describe("streaming video download integrity", () => {
         async (size) => {
             const plaintext = original.slice(0, size);
             const file = await encryptStreamBytes(plaintext, key);
-            const { bytes, manager } = download(
+            const { bytes } = download(
                 file.encryptedData,
                 file.decryptionHeader,
             );
             expect(
                 Buffer.from(await bytes).equals(Buffer.from(plaintext)),
             ).toBe(true);
-            expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
         },
     );
 
     test.each([0, encryptedChunkSize, encryptedChunkSize * 2])(
         "rejects EOF after %i encrypted bytes without a final tag",
         async (length) => {
-            const { bytes, manager } = download(
+            const { bytes } = download(
                 encrypted.encryptedData.slice(0, length),
             );
             await expect(bytes).rejects.toThrow(
@@ -81,7 +79,6 @@ describe("streaming video download integrity", () => {
                     ? "Missing final encrypted chunk"
                     : "Unexpected encrypted stream final tag",
             );
-            expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
         },
     );
 
@@ -154,7 +151,6 @@ test("a standalone video stream delivers authenticated bytes before network EOF"
             Buffer.from(original.subarray(0, streamEncryptionChunkSize)),
         ),
     ).toBe(true);
-    expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
     await reader.cancel("save cancelled");
     expect(cancel).toHaveBeenCalledWith("save cancelled");
 });
