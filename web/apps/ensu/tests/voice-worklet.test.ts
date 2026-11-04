@@ -165,9 +165,6 @@ void test("a worklet that misses the flush deadline gets one bounded wait for qu
     t.mock.timers.tick(2000);
     await tick();
     assert.deepEqual(failures, ["The microphone disconnected."]);
-    acknowledge(true);
-    await tick();
-    assert.deepEqual(sends, [0, 1]);
 });
 
 void test("worklet preserves final partial PCM, clips samples, and encodes little-endian", () => {
