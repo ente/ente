@@ -1414,6 +1414,10 @@
       "color": "00CC00"
     },
     {
+      "title": "KRAFTON",
+      "slug": "krafton"
+    },
+    {
       "title": "Kraken"
     },
     {
@@ -1782,6 +1786,10 @@
     {
       "title": "Netim",
       "slug": "netim"
+    },
+    {
+      "title": "Netlen",
+      "slug": "netlen"
     },
     {
       "title": "Newgrounds",
