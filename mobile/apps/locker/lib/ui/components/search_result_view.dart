@@ -1,5 +1,6 @@
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:locker/models/selected_files.dart';
 import 'package:locker/services/collections/models/collection.dart';
@@ -16,6 +17,7 @@ class SearchResultView extends StatelessWidget {
   final VoidCallback? onSearchEverywhere;
   final bool showCollections;
   final SelectedFiles? selectedFiles;
+  final ValueListenable<double> selectionBarHeight;
   final bool selectionEnabled;
   final SearchScope searchScope;
   final ValueChanged<SearchScope>? onScopeChanged;
@@ -30,6 +32,7 @@ class SearchResultView extends StatelessWidget {
     this.onSearchEverywhere,
     this.showCollections = true,
     this.selectedFiles,
+    required this.selectionBarHeight,
     this.selectionEnabled = true,
     this.searchScope = SearchScope.all,
     this.onScopeChanged,
@@ -40,11 +43,7 @@ class SearchResultView extends StatelessWidget {
     final displayCollections = showCollections ? collections : <Collection>[];
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 24 + MediaQuery.of(context).padding.bottom,
-      ),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: Spacing.xxl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -72,7 +71,7 @@ class SearchResultView extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: Spacing.lg),
           ],
           ItemListView(
             files: files,
@@ -99,10 +98,15 @@ class SearchResultView extends StatelessWidget {
             ),
           if (selectedFiles != null && selectionEnabled)
             ListenableBuilder(
-              listenable: selectedFiles!,
-              builder: (context, _) =>
-                  SizedBox(height: selectedFiles!.hasSelections ? 300 : 0),
-            ),
+              listenable: Listenable.merge([selectedFiles, selectionBarHeight]),
+              builder: (context, _) => SizedBox(
+                height: selectedFiles!.hasSelections
+                    ? selectionBarHeight.value
+                    : MediaQuery.paddingOf(context).bottom,
+              ),
+            )
+          else
+            SizedBox(height: MediaQuery.paddingOf(context).bottom),
         ],
       ),
     );

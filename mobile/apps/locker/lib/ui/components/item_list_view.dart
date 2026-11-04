@@ -147,7 +147,12 @@ class _ItemListViewState extends State<ItemListView> {
               container: true,
               header: true,
               child: Padding(
-                padding: EdgeInsets.only(top: index == 0 ? 0 : 16, bottom: 12),
+                padding: EdgeInsets.fromLTRB(
+                  Spacing.md,
+                  index == 0 ? 0 : Spacing.lg,
+                  Spacing.md,
+                  Spacing.md,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

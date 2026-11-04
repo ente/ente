@@ -43,7 +43,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   }
 
   void _deactivateSearch() {
-    onSearchFilterChanged();
     setState(() {
       _isSearchActive = false;
       _searchQuery = '';

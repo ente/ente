@@ -53,6 +53,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   bool isFavorite = false;
 
   final _selectedFiles = SelectedFiles();
+  final _selectionBarHeight = ValueNotifier<double>(0);
   final _scrollController = ScrollController();
   final _keyboardFocusNode = FocusNode();
 
@@ -109,6 +110,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
     _keyboardFocusNode.dispose();
     _scrollController.dispose();
     _selectedFiles.dispose();
+    _selectionBarHeight.dispose();
     super.dispose();
   }
 
@@ -218,6 +220,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
               selectedFiles: _selectedFiles,
               collectionViewType: collectionViewType,
               scrollController: _scrollController,
+              onHeightChanged: (height) => _selectionBarHeight.value = height,
             ),
           ],
         ),
@@ -267,6 +270,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
             searchQuery: searchQuery,
             isHomePage: false,
             selectedFiles: _selectedFiles,
+            selectionBarHeight: _selectionBarHeight,
             selectionEnabled: _isSelectionEnabled,
             onSearchEverywhere: _searchEverywhere,
           ),

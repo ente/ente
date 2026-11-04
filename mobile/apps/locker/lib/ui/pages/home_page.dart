@@ -160,6 +160,7 @@ class _HomePageState extends UploaderPageState<HomePage>
   );
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final _selectedFiles = SelectedFiles();
+  final _selectionBarHeight = ValueNotifier<double>(0);
   final _scrollController = ScrollController();
   final _keyboardFocusNode = FocusNode();
   bool _isLoading = true;
@@ -318,6 +319,7 @@ class _HomePageState extends UploaderPageState<HomePage>
     _scrollController.dispose();
     _displayedFilesNotifier.dispose();
     _selectedFiles.dispose();
+    _selectionBarHeight.dispose();
     _deepLinkSubscription?.cancel();
     _triggerLogoutSubscription?.cancel();
     _collectionsUpdatedSubscription?.cancel();
@@ -710,6 +712,8 @@ class _HomePageState extends UploaderPageState<HomePage>
                               ? displayedFiles
                               : _recentFiles,
                           scrollController: _scrollController,
+                          onHeightChanged: (height) =>
+                              _selectionBarHeight.value = height,
                         );
                       },
                     ),
@@ -782,13 +786,13 @@ class _HomePageState extends UploaderPageState<HomePage>
       return SingleChildScrollView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 24),
         child: SearchResultView(
           collections: _filteredCollections,
           files: _filteredFiles,
           searchQuery: searchQuery,
           isHomePage: true,
           selectedFiles: _selectedFiles,
+          selectionBarHeight: _selectionBarHeight,
           searchScope: searchScope,
           onScopeChanged: updateSearchScope,
         ),
@@ -875,11 +879,11 @@ class _HomePageState extends UploaderPageState<HomePage>
         isSearchActive || searchController.text.trim().isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.only(
+      padding: EdgeInsets.only(
         left: Spacing.lg,
         top: Spacing.lg,
         right: Spacing.lg,
-        bottom: Spacing.xl,
+        bottom: isSearchActive ? Spacing.xxl : Spacing.xl,
       ),
       child: Listener(
         behavior: HitTestBehavior.translucent,

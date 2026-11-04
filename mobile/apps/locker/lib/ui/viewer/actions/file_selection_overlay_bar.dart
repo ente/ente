@@ -4,6 +4,7 @@ import "package:ente_icons/ente_icons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart" show ScrollDirection;
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/events/collections_updated_event.dart";
@@ -34,6 +35,7 @@ class FileSelectionOverlayBar extends StatefulWidget {
   final CollectionViewType? collectionViewType;
   final ScrollController? scrollController;
   final bool isTrashMode;
+  final ValueChanged<double>? onHeightChanged;
 
   const FileSelectionOverlayBar({
     required this.selectedFiles,
@@ -41,6 +43,7 @@ class FileSelectionOverlayBar extends StatefulWidget {
     this.collectionViewType,
     this.scrollController,
     this.isTrashMode = false,
+    this.onHeightChanged,
     super.key,
   });
 
@@ -57,6 +60,8 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
   bool _isExpanded = true;
   double _lastScrollPosition = 0;
   int _previousSelectionCount = 0;
+  final _barSizeKey = GlobalKey();
+  bool _heightMeasurementScheduled = false;
 
   bool get hasSelection => widget.selectedFiles.files.isNotEmpty;
 
@@ -122,21 +127,40 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
 
     if (current < 0 || current > position.maxScrollExtent) return;
 
+    final direction = position.userScrollDirection;
+    if (direction == ScrollDirection.idle) {
+      _lastScrollPosition = current;
+      return;
+    }
+
     final delta = current - _lastScrollPosition;
     if (delta.abs() < _scrollThreshold) return;
 
     _lastScrollPosition = current;
 
-    final shouldCollapse = delta > 0 && _isExpanded;
-    final shouldExpand = delta < 0 && !_isExpanded;
+    // Resizing the footer can correct the offset without reversing the gesture.
+    final shouldCollapse = direction == ScrollDirection.reverse && _isExpanded;
+    final shouldExpand = direction == ScrollDirection.forward && !_isExpanded;
 
     if (shouldCollapse || shouldExpand) {
       setState(() => _isExpanded = !_isExpanded);
     }
   }
 
+  void _reportHeight() {
+    if (widget.onHeightChanged == null || _heightMeasurementScheduled) return;
+    _heightMeasurementScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _heightMeasurementScheduled = false;
+      if (!mounted) return;
+      final height = _barSizeKey.currentContext?.size?.height;
+      if (height != null) widget.onHeightChanged!(height);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    _reportHeight();
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final colors = context.componentColors;
 
@@ -152,146 +176,161 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
             duration: const Duration(milliseconds: 250),
             opacity: hasSelection ? 1.0 : 0.0,
             curve: Curves.easeInOut,
-            child: hasSelection
-                ? GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onVerticalDragUpdate: (details) {
-                      if (details.primaryDelta != null) {
-                        if (details.primaryDelta! < -5 && !_isExpanded) {
-                          setState(() => _isExpanded = true);
-                        } else if (details.primaryDelta! > 5 && _isExpanded) {
-                          setState(() => _isExpanded = false);
-                        }
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: colors.backgroundBase,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                        border: Border(
-                          top: BorderSide(color: colors.strokeDark),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
+            child: NotificationListener<SizeChangedLayoutNotification>(
+              onNotification: (_) {
+                _reportHeight();
+                return true;
+              },
+              child: SizeChangedLayoutNotifier(
+                key: _barSizeKey,
+                child: hasSelection
+                    ? GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onVerticalDragUpdate: (details) {
+                          if (details.primaryDelta != null) {
+                            if (details.primaryDelta! < -5 && !_isExpanded) {
+                              setState(() => _isExpanded = true);
+                            } else if (details.primaryDelta! > 5 &&
+                                _isExpanded) {
+                              setState(() => _isExpanded = false);
+                            }
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colors.backgroundBase,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
+                            ),
+                            border: Border(
+                              top: BorderSide(color: colors.strokeDark),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              16,
+                              16,
+                              bottomPadding,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                ListenableBuilder(
-                                  listenable: widget.selectedFiles,
-                                  builder: (context, child) {
-                                    final selectedSet =
-                                        widget.selectedFiles.files;
-                                    final isAllSelected =
-                                        widget.files.isNotEmpty &&
-                                        widget.files.every(
-                                          selectedSet.contains,
+                                Row(
+                                  children: [
+                                    ListenableBuilder(
+                                      listenable: widget.selectedFiles,
+                                      builder: (context, child) {
+                                        final selectedSet =
+                                            widget.selectedFiles.files;
+                                        final isAllSelected =
+                                            widget.files.isNotEmpty &&
+                                            widget.files.every(
+                                              selectedSet.contains,
+                                            );
+                                        final buttonText = isAllSelected
+                                            ? context.strings.deselectAll
+                                            : context.strings.selectAll;
+                                        final iconData = isAllSelected
+                                            ? Icons.remove_circle_outline
+                                            : Icons
+                                                  .check_circle_outline_outlined;
+
+                                        return InkWell(
+                                          onTap: () {
+                                            if (isAllSelected) {
+                                              widget.selectedFiles.clearAll();
+                                            } else {
+                                              widget.selectedFiles.selectAll(
+                                                widget.files.toSet(),
+                                              );
+                                            }
+                                          },
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: colors.fillLight,
+                                              borderRadius:
+                                                  BorderRadius.circular(50),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12.0,
+                                              vertical: 10.0,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  buttonText,
+                                                  style: TextStyles.body,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Icon(
+                                                  iconData,
+                                                  color: colors.textBase,
+                                                  size: 20,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         );
-                                    final buttonText = isAllSelected
-                                        ? context.strings.deselectAll
-                                        : context.strings.selectAll;
-                                    final iconData = isAllSelected
-                                        ? Icons.remove_circle_outline
-                                        : Icons.check_circle_outline_outlined;
-
-                                    return InkWell(
-                                      onTap: () {
-                                        if (isAllSelected) {
-                                          widget.selectedFiles.clearAll();
-                                        } else {
-                                          widget.selectedFiles.selectAll(
-                                            widget.files.toSet(),
-                                          );
-                                        }
                                       },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: colors.fillLight,
-                                          borderRadius: BorderRadius.circular(
-                                            50,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12.0,
-                                          vertical: 10.0,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              buttonText,
-                                              style: TextStyles.body,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Icon(
-                                              iconData,
-                                              color: colors.textBase,
-                                              size: 20,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const Spacer(),
-                                ListenableBuilder(
-                                  listenable: widget.selectedFiles,
-                                  builder: (context, child) {
-                                    final count = widget.selectedFiles.count;
-                                    final countText = context.strings
-                                        .selectedCount(count: count);
+                                    ),
+                                    const Spacer(),
+                                    ListenableBuilder(
+                                      listenable: widget.selectedFiles,
+                                      builder: (context, child) {
+                                        final count =
+                                            widget.selectedFiles.count;
+                                        final countText = context.strings
+                                            .selectedCount(count: count);
 
-                                    return InkWell(
-                                      onTap: () {
-                                        widget.selectedFiles.clearAll();
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: colors.fillLight,
-                                          borderRadius: BorderRadius.circular(
-                                            50,
+                                        return InkWell(
+                                          onTap: () {
+                                            widget.selectedFiles.clearAll();
+                                          },
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: colors.fillLight,
+                                              borderRadius:
+                                                  BorderRadius.circular(50),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12.0,
+                                              vertical: 10.0,
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  countText,
+                                                  style: TextStyles.body,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Icon(
+                                                  Icons.close,
+                                                  color: colors.textBase,
+                                                  semanticLabel: "close",
+                                                  size: 20,
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12.0,
-                                          vertical: 10.0,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              countText,
-                                              style: TextStyles.body,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Icon(
-                                              Icons.close,
-                                              color: colors.textBase,
-                                              semanticLabel: "close",
-                                              size: 20,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
+                                const SizedBox(height: 12),
+                                _buildActionButtons(),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            _buildActionButtons(),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
           ),
         ),
       ),
