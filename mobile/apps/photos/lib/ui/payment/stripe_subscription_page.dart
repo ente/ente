@@ -91,7 +91,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
       return _filterStripeForUI().then((value) {
         if (!mounted) return;
-        _syncOnboardingSelection();
+        _syncSelection();
         _hasLoadedData = true;
         setState(() {});
       });
@@ -109,7 +109,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       final isYearlyPlan = plan.period == 'year';
       return isYearlyPlan == _showYearlyPlan;
     }).toList();
-    _syncOnboardingSelection();
+    _syncSelection();
     if (mounted) {
       setState(() {});
     }
@@ -162,16 +162,29 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
                 : const EnteLoadingWidget())
           : _getBody(),
       actions: [
-        if (widget.isOnboarding && _hasLoadedData)
+        if (_hasLoadedData)
           SubscriptionContinueButton(
             label: _continueLabel(),
-            isDisabled: _selectedPlanProductID == null,
-            onTap: _selectedPlanProductID == null
-                ? null
-                : _onOnboardingContinueTap,
+            isDisabled: !_canContinue,
+            onTap: _canContinue ? _onContinueTap : null,
           ),
       ],
     );
+  }
+
+  bool get _canContinue {
+    final selected = _selectedPlanProductID;
+    if (selected == null) {
+      return false;
+    }
+    if (widget.isOnboarding) {
+      return true;
+    }
+    if (selected == freeProductID) {
+      return false;
+    }
+    return !_hasActiveSubscription ||
+        selected != _currentSubscription?.productID;
   }
 
   String _continueLabel() {
@@ -487,9 +500,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       planWidgets.add(
         GestureDetector(
           onTap: () {
-            if (!widget.isOnboarding) {
-              return;
-            }
             setState(() {
               _selectedPlanProductID = freeProductID;
             });
@@ -498,9 +508,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
             storage: _freePlan.storage,
             price: "",
             period: context.strings.freeTrial,
-            isActive: widget.isOnboarding
-                ? _selectedPlanProductID == freeProductID
-                : _isFreePlanUser(),
+            isActive: _selectedPlanProductID == freeProductID,
             isCurrentPlan: _isFreePlanUser(),
           ),
         ),
@@ -517,79 +525,16 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           _currentSubscription!.productID == productID;
       planWidgets.add(
         GestureDetector(
-          onTap: () async {
-            if (widget.isOnboarding) {
-              setState(() {
-                _selectedPlanProductID = productID;
-              });
-              return;
-            }
-            if (isActive) {
-              return;
-            }
-            if (!_isStripeSubscriber &&
-                _hasActiveSubscription &&
-                _currentSubscription!.productID != freeProductID) {
-              await showErrorDialog(
-                context,
-                context.strings.sorry,
-                context.strings.cancelOtherSubscription(
-                  paymentProvider: _currentSubscription!.paymentProvider,
-                ),
-              );
-              return;
-            }
-            final int addOnBonus =
-                _userDetails.bonusData?.totalAddOnBonus() ?? 0;
-            if (_userDetails.getFamilyOrPersonalUsage() >
-                (plan.storage + addOnBonus)) {
-              logger.warning(
-                " familyUsage ${convertBytesToReadableFormat(_userDetails.getFamilyOrPersonalUsage())}"
-                " plan storage ${convertBytesToReadableFormat(plan.storage)} "
-                "addOnBonus ${convertBytesToReadableFormat(addOnBonus)},"
-                "overshooting by ${convertBytesToReadableFormat(_userDetails.getFamilyOrPersonalUsage() - (plan.storage + addOnBonus))}",
-              );
-              await showErrorDialog(
-                context,
-                context.strings.sorry,
-                context.strings.youCannotDowngradeToThisPlan,
-              );
-              return;
-            }
-            String stripPurChaseAction = 'buy';
-            if (_isStripeSubscriber && _hasActiveSubscription) {
-              final result = await showChoiceDialog(
-                context,
-                title: context.strings.confirmPlanChange,
-                body: context.strings.areYouSureYouWantToChangeYourPlan,
-                firstButtonLabel: context.strings.yes,
-              );
-              if (result?.action == ButtonAction.first) {
-                stripPurChaseAction = 'update';
-              } else {
-                return;
-              }
-            }
-            if (!mounted) return;
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return PaymentWebPage(
-                    planId: plan.stripeID,
-                    actionType: stripPurChaseAction,
-                  );
-                },
-              ),
-            ).then((value) => onWebPaymentGoBack(value));
+          onTap: () {
+            setState(() {
+              _selectedPlanProductID = productID;
+            });
           },
           child: SubscriptionPlanWidget(
             storage: plan.storage,
             price: plan.price,
             period: plan.period,
-            isActive: widget.isOnboarding
-                ? _selectedPlanProductID == productID
-                : isActive && !_hideCurrentPlanSelection,
+            isActive: _selectedPlanProductID == productID,
             isCurrentPlan: isActive && !_hideCurrentPlanSelection,
             isPopular: _isPopularPlan(plan),
             monthlyPrice: _monthlyPriceFor(plan),
@@ -613,10 +558,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     return widget.isOnboarding || _isFreePlanUser();
   }
 
-  void _syncOnboardingSelection() {
-    if (!widget.isOnboarding) {
-      return;
-    }
+  void _syncSelection() {
     final visibleProductIDs = _plans
         .map((plan) => plan.stripeID)
         .where((id) => id.isNotEmpty)
@@ -645,9 +587,9 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
         : null;
   }
 
-  Future<void> _onOnboardingContinueTap() async {
+  Future<void> _onContinueTap() async {
     final selectedPlanProductID = _selectedPlanProductID;
-    if (selectedPlanProductID == null) {
+    if (!_canContinue || selectedPlanProductID == null) {
       return;
     }
 
@@ -716,7 +658,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
         body: context.strings.areYouSureYouWantToChangeYourPlan,
         firstButtonLabel: context.strings.yes,
       );
-      if (result!.action == ButtonAction.first) {
+      if (result?.action == ButtonAction.first) {
         stripPurChaseAction = 'update';
       } else {
         return;
