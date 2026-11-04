@@ -66,7 +66,7 @@ You can use our CLI tool or our desktop app to set up exports of your data to yo
 
 **Desktop app**:
 
-Open `Settings > Export data`, choose a destination folder, and enable "Continuous export" to automatically export new items.
+Open **Export data** in the sidebar, choose a destination folder, and enable **Continuous export** to automatically export new items.
 
 **CLI**: Use [Ente CLI](/cli/automation) to export your data in a cron job to a location of your choice. The exports are incremental, and will also gracefully handle interruptions.
 
@@ -132,7 +132,7 @@ Learn more about [Export to NAS](/photos/features/backup-and-sync/export#network
 
 **On desktop:**
 
-Open `Settings > Export data`, choose your export folder, and enable "Continuous export".
+Open **Export data** in the sidebar, choose your export folder, and enable **Continuous export**.
 
 With continuous export enabled, the app will automatically export new items in the background without you needing to run any manual exports or cron jobs.
 

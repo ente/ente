@@ -11,7 +11,7 @@ Please follow the following simple steps to keep a local copy of the photos and 
 
     ![Ente - Sign in to export data](sign-in.png)
 
-2. Open the side bar, and select the option to **Export Data**.
+2. Open the sidebar and select **Export data**.
 
     ![Ente - Export data](export-1.png)
 
@@ -43,7 +43,7 @@ Please follow the following simple steps to keep a local copy of the photos and 
 
 </div>
 
-6. In case your download gets interrupted, Ente will resume from where it left off. Simply select **Export Data** again and click on **Resync**.
+6. In case your download gets interrupted, Ente will resume from where it left off. Select **Export data** again and click **Resync**.
 
 <div align="center">
 
@@ -51,11 +51,11 @@ Please follow the following simple steps to keep a local copy of the photos and 
 
 </div>
 
-### Sync continuously
+### Continuous export
 
-You can switch on the toggle to **Sync continuously** to eliminate manual exports each time new photos are added to Ente. This feature automatically detects new files and runs exports accordingly. It also ensures that exported data reflects the latest album states with new files, moves, and deletions.
+Enable **Continuous export** to eliminate manual exports each time new photos are added to Ente. This feature automatically detects new files and runs exports accordingly. It also ensures that exported data reflects the latest album states with new files, moves, and deletions.
 
-![Ente - Continuous sync](continuous-sync.webp)
+![Continuous export in Export data](continuous-sync.webp)
 
 ---
 
