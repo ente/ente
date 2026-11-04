@@ -140,13 +140,14 @@ struct SlideshowTimeline: Sendable {
     }
 
     private static func orientation(for transform: CGAffineTransform) -> CGImagePropertyOrientation {
+        let mirrored = transform.a * transform.d - transform.b * transform.c < 0
         if transform.a == 0 && transform.d == 0 {
-            if transform.b > 0 && transform.c < 0 { return .right }
-            if transform.b < 0 && transform.c > 0 { return .left }
+            if transform.b > 0 { return mirrored ? .leftMirrored : .right }
+            if transform.b < 0 { return mirrored ? .rightMirrored : .left }
             return .up
         }
-        if transform.a < 0 && transform.d < 0 { return .down }
-        return .up
+        if transform.a < 0 { return mirrored ? .upMirrored : .down }
+        return mirrored ? .downMirrored : .up
     }
 }
 
