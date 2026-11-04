@@ -394,9 +394,9 @@ test("save-only blobs are shared while pending and released after completion", a
 });
 
 test.each(["stream", "background"])(
-    "a separate %s cannot overwrite shared progress",
+    "a separate %s completes independently and both downloads preserve bytes",
     async (consumer) => {
-        const { file, encrypted } = await fixture(FileType.video);
+        const { file, encrypted, original } = await fixture(FileType.video);
         const bodies: ReadableStreamDefaultController<Uint8Array>[] = [];
         const transport = vi.fn(() =>
             Promise.resolve(
@@ -413,8 +413,6 @@ test.each(["stream", "background"])(
         const shared = manager.fileBlob(file);
         while (!bodies.length) await tick();
         bodies[0]!.enqueue(encrypted.encryptedData.slice(0, 1024));
-        await tick();
-        const snapshot = manager.fileDownloadProgressSnapshot();
         const other =
             consumer === "stream"
                 ? manager.fileStream(file).then((s) => new Response(s).blob())
@@ -422,12 +420,13 @@ test.each(["stream", "background"])(
         while (bodies.length < 2) await tick();
         bodies[1]!.enqueue(encrypted.encryptedData);
         bodies[1]!.close();
-        await other;
-        expect(manager.fileDownloadProgressSnapshot()).toBe(snapshot);
-        expect(snapshot.get(file.id)?.loaded).toBe(1024);
+        // The separate consumer must finish while the shared response is still open.
+        const otherBlob = await other;
+        expect(hash(await otherBlob.arrayBuffer())).toBe(hash(original));
+        expect(transport).toHaveBeenCalledTimes(2);
         bodies[0]!.enqueue(encrypted.encryptedData.slice(1024));
         bodies[0]!.close();
-        await shared;
-        expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
+        const sharedBlob = await shared;
+        expect(hash(await sharedBlob.arrayBuffer())).toBe(hash(original));
     },
 );
