@@ -2,10 +2,37 @@
 name = "ente-auth"
 edition.workspace = true
 
+[features]
+default = []
+import = [
+    "dep:aes",
+    "dep:aes-gcm",
+    "dep:argon2",
+    "dep:cbc",
+    "dep:hex",
+    "dep:hmac",
+    "dep:pbkdf2",
+    "dep:scrypt",
+    "dep:sha1",
+    "dep:sha2",
+    "dep:subtle",
+]
+
 [dependencies]
+aes = { version = "0.9.4", optional = true }
+aes-gcm = { version = "0.11.1", default-features = false, features = ["aes", "alloc", "zeroize"], optional = true }
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc"], optional = true }
+cbc = { version = "0.2.1", features = ["alloc", "zeroize"], optional = true }
 ente-core.workspace = true
+hex = { workspace = true, optional = true }
+hmac = { workspace = true, optional = true }
+pbkdf2 = { version = "0.13.0", optional = true }
+scrypt = { version = "0.12.0", default-features = false, optional = true }
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
+sha1 = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+subtle = { workspace = true, optional = true }
 thiserror.workspace = true
 url.workspace = true
 urlencoding.workspace = true

@@ -6,7 +6,16 @@ import 'package:ente_auth/ui/settings/data/import/plain_text_import_parser.dart'
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
 
+import '../../../../helpers/rust.dart';
+
 void main() {
+  final skipReason = rustTestSkipReason;
+  if (skipReason != null) {
+    test('Rust import tests', () {}, skip: skipReason);
+    return;
+  }
+  setUpAll(initializeTestRust);
+
   group('plain text import parser', () {
     const secret = 'JBSWY3DPEHPK3PXP';
     const validUri = 'otpauth://totp/Example:valid?secret=$secret';
@@ -96,6 +105,52 @@ otpauth://totp/bob@example.com?secret=GEZDGNBVGY3TQOJQ&issuer=Example
       final codes = parsePlainTextImport(content);
 
       expect(codes, hasLength(2));
+    });
+
+    test('preserves historical raw URI compatibility', () {
+      const legacyDisplay = '%7B%22note%22%3A%22legacy%22%7D#suffix';
+      const uris = [
+        'otpauth://totp/algorithm?secret=$secret&algorithm=SHA224',
+        'otpauth://totp/secret?secret=not!',
+        'otpauth://totp/digits?secret=$secret&digits=0',
+        'otpauth://totp/period?secret=$secret&period=0',
+        'otpauth://totp/display?secret=$secret&codeDisplay=$legacyDisplay',
+      ];
+      const afterMalformed = 'otpauth://totp/after?secret=$secret';
+
+      final codes = parsePlainTextImport(
+        [
+          ...uris,
+          'otpauth://totp/bad?secret=$secret&codeDisplay=not-json}#suffix',
+          afterMalformed,
+        ].join('\r'),
+      );
+
+      expect(codes.map((code) => code.rawData), [...uris, afterMalformed]);
+      expect(codes[0].algorithm, Algorithm.sha1);
+      expect(codes[1].secret, 'NOT!');
+      expect(codes[2].digits, 0);
+      expect(codes[3].period, 0);
+      expect(codes[4].display.note, 'legacy');
+    });
+
+    test('separate rich display overrides legacy embedded metadata', () {
+      const uri =
+          'otpauth://totp/alice?secret=$secret&codeDisplay='
+          '%7B%22note%22%3A%22legacy%22%7D#suffix';
+      final codes = parsePlainTextImport(
+        jsonEncode({
+          'items': [
+            {
+              'rawData': uri,
+              'display': {'note': 'separate'},
+            },
+          ],
+        }),
+      );
+
+      expect(codes.single.rawData, uri);
+      expect(codes.single.display.note, 'separate');
     });
 
     test('preserves display properties from the rich fixture', () async {
