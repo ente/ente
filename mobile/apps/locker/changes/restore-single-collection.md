@@ -1,1 +1,0 @@
-- Limited restore selection to one collection.

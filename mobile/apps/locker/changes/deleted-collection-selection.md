@@ -1,1 +1,0 @@
-- Fixed deleted collections remaining selected.

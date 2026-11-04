@@ -1,1 +1,0 @@
-- Fixed an app launch failure on iOS 27.
