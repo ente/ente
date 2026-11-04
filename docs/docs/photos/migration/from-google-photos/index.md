@@ -99,11 +99,11 @@ Ente reads the Google Takeout metadata it can match with your photos and videos,
 
 Keep the Google Photos library until you have checked the copy in Ente.
 
-- Compare item counts. Google's count and the export's count should be close.
+- Compare what Ente imports with the count in Google Photos. Takeout copies a photo that is in several albums into each album folder, so the number of extracted files is often much larger than Google's library count. Allow for those copies, and for items Ente skips or fails.
 - Spot-check old photos, scanned photos, and screenshots. These are the ones most likely to get a wrong date.
 - Review anything the import reports as failed or skipped.
 
-Google Photos keeps deleted items in Trash for 30 days ([Google Photos Trash](https://support.google.com/photos/answer/6128858)). In Ente, deleted items stay in [Trash](/photos/features/albums-and-organization/deleting) for 30 days before they are permanently removed.
+Google Photos keeps backed-up photos and videos in Trash for 60 days. Items that were not backed up stay in Trash for 30 days ([Delete photos and videos](https://support.google.com/photos/answer/6128858)). In Ente, deleted items stay in [Trash](/photos/features/albums-and-organization/deleting) for 30 days before they are permanently removed.
 
 ## Resume an import or correct imported dates {#resume-or-correct-import}
 

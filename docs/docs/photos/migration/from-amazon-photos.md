@@ -79,7 +79,7 @@ Amazon Photos albums are not preserved automatically. Download each album into i
 
 Leave the Amazon Photos library in place until you have checked Ente.
 
-Cancelling Prime or an Amazon storage plan drops the account back to 5 GB. If the library is over that limit, Amazon says you can still view and download it, but the account is over quota and items must be removed to get back under the limit ([Amazon Photos storage limits](https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=GC4942XQ5M2T7HGF)). Download first, then cancel.
+The account drops to 5 GB of free storage when the last qualifying plan or membership is cancelled. Prime, an Alexa+ standalone subscription, and a paid Amazon Photos storage plan each keep their own entitlement, so cancelling only one of them does not drop the account to 5 GB while another remains ([Amazon Photos features](https://www.amazon.com/gp/help/customer/display.html?nodeId=GLSS4222BAQWWB3S), [Amazon Photos storage limits](https://www.amazon.com/gp/help/customer/display.html?nodeId=GC4942XQ5M2T7HGF)). If the library is over the limit that remains, Amazon says you can still view and download it, but the account is over quota and items must be removed to get back under the limit. Download first, then cancel.
 
 ## After Migration
 

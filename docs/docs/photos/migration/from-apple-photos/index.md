@@ -25,9 +25,9 @@ If **Optimize iPhone Storage** is on, the phone keeps smaller previews locally, 
 
 ## Importing iCloud Shared Albums
 
-On iOS 26 and earlier, iCloud Shared Albums do not hold your originals. Apple shrinks shared photos and strips some metadata: photos are downscaled to 2,048 pixels on the long edge, videos are capped at 720p and 15 minutes, and location data, captions, and original dates are removed.
+On iOS 26, iPadOS 26, and earlier, iCloud Shared Albums do not hold your originals. Apple stores a reduced copy: photos are downscaled to 2,048 pixels on the long edge, videos are capped at 720p and 15 minutes, and location data, captions, and original dates can be missing. An album created on those versions stays reduced until it is upgraded.
 
-Starting in iOS 27, Shared Albums share at full resolution ([Apple Support: iCloud Shared Albums](https://support.apple.com/en-us/108314)) and accept guest web uploads. Check which version the album was shared from. Importing the originals from the person who took the photos is still the safest route.
+Starting in iOS 27, iPadOS 27, and macOS 27, a new Shared Album stores photos and videos at full resolution in their original formats, and guests can add photos on the web ([Apple Support: iCloud Shared Albums](https://support.apple.com/en-us/108314)). After an album is upgraded, photos and videos added from then on are full resolution. Check which version the album was shared from. Importing the originals from the person who took the photos is still the safest route.
 
 ### If you (or the album owner) still have the originals
 
@@ -81,11 +81,15 @@ If you want to stop using Apple's Shared Library after your Ente backup is compl
 You can also migrate a Shared Library from a Mac:
 
 1. Open the Photos app.
-2. Open `Settings > iCloud` and select **Download Originals to this Mac**. Wait until the download finishes.
-3. Switch the library view to **Shared Library** or **Both Libraries**.
-4. Select the items you want.
-5. Choose **File > Export > Export Unmodified Originals**.
+2. Switch the library view to **Shared Library** or **Both Libraries**.
+3. Select the items to export. Press `Command + A` to select everything in the current view. **Export Unmodified Originals** is unavailable until something is selected.
+4. Choose **File > Export > Export Unmodified Originals**.
+5. In the export dialog, set **File Name** to **Sequential** and enter a prefix. Ente uses that naming to pair each Live Photo's still image with its video.
 6. Import those files into Ente from the desktop or web app.
+
+**Download Originals to this Mac** is optional. If the Mac has room for the library, open `Photos > Settings > iCloud`, select **Download Originals to this Mac**, and wait until the download finishes before you export. Skip it when **Optimize Mac Storage** is on and the Mac does not have room for every original. Select a smaller set and export it to a drive that has enough space. If the export does not finish, export a smaller selection, or turn on **Download Originals to this Mac** when the Mac has space.
+
+Export Unmodified Originals keeps the original files. The desktop importer does not read XMP sidecars. Dates and locations that Photos stores only in the library, or writes to an XMP sidecar, are not imported from this export. Use the iPhone app when those dates and locations need to be preserved. Learn more in [Can I import Apple Photos via desktop?](/photos/faq/migration#can-i-import-apple-photos-via-desktop).
 
 > [!NOTE]
 >
@@ -98,11 +102,16 @@ Use this to copy originals from a Mac or from iCloud.com. These steps copy the l
 **On a Mac:**
 
 1. Open the Photos app.
-2. Open `Settings > iCloud` and select **Download Originals to this Mac**. Wait until the download finishes.
-3. Choose **File > Export > Export Unmodified Originals** so the export keeps the files and their metadata.
-4. Import the exported folder into Ente.
+2. Select the photos to export. To export the whole library, press `Command + A`. **Export Unmodified Originals** is unavailable until something is selected.
+3. Choose **File > Export > Export Unmodified Originals**.
+4. In the export dialog, set **File Name** to **Sequential** and enter a prefix. Ente uses that naming to pair each Live Photo's still image with its video.
+5. Import the exported folder into Ente.
 
-For a Shared Library, switch the library view before you export. Follow the [Mac alternative](#mac-alternative) above. Learn more about [importing from Apple Photos on desktop](/photos/faq/migration#importing-from-apple-photos).
+**Download Originals to this Mac** is optional. If the Mac has room for the library, open `Photos > Settings > iCloud`, select **Download Originals to this Mac**, and wait until the download finishes before you export. Skip it when **Optimize Mac Storage** is on and the Mac does not have room for every original. Export the selection to a drive that has enough space. If the export does not finish, export a smaller selection, or turn on **Download Originals to this Mac** when the Mac has space.
+
+Export Unmodified Originals keeps the original files. The desktop importer does not read XMP sidecars. Dates and locations that Photos stores only in the library, or writes to an XMP sidecar, are not imported from this export. Use the iPhone app when those dates and locations need to be preserved. Learn more in [Can I import Apple Photos via desktop?](/photos/faq/migration#can-i-import-apple-photos-via-desktop).
+
+For a Shared Library, switch the library view before you export. Follow the [Mac alternative](#mac-alternative) above.
 
 **On iCloud.com:**
 
