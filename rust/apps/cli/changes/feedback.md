@@ -1,0 +1,1 @@
+- Added `ente feedback` to send feedback from the CLI.

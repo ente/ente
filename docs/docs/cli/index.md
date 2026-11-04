@@ -21,17 +21,18 @@ Run the same command again whenever you want to pick up new photos. Learn more i
 
 ## Find your task
 
-| I want to…                                                            | Page                                    |
-| --------------------------------------------------------------------- | --------------------------------------- |
-| Download the CLI, verify it, add it to my PATH, enable completion     | [Install Ente CLI](./install.md)        |
-| Log in, use a self-hosted server, keep several accounts, run headless | [Accounts](./accounts.md)               |
-| Export my library, keep the export updated, find and download a file  | [Photos](./photos.md)                   |
-| Back up my Auth codes or show a current code                          | [Auth](./auth.md)                       |
-| Share text through a one-time link                                    | [Paste](./paste.md)                     |
-| Manage users on my own server                                         | [Administration](./admin.md)            |
-| Schedule exports and read results from a script or an agent           | [Automation](./automation.md)           |
-| Switch from the previous CLI                                          | [Migration](./migration.md)             |
-| Fix an error                                                          | [Troubleshooting](./troubleshooting.md) |
+| I want to…                                                            | Page                                              |
+| --------------------------------------------------------------------- | ------------------------------------------------- |
+| Download the CLI, verify it, add it to my PATH, enable completion     | [Install Ente CLI](./install.md)                  |
+| Log in, use a self-hosted server, keep several accounts, run headless | [Accounts](./accounts.md)                         |
+| Export my library, keep the export updated, find and download a file  | [Photos](./photos.md)                             |
+| Back up my Auth codes or show a current code                          | [Auth](./auth.md)                                 |
+| Share text through a one-time link                                    | [Paste](./paste.md)                               |
+| Manage users on my own server                                         | [Administration](./admin.md)                      |
+| Schedule exports and read results from a script or an agent           | [Automation](./automation.md)                     |
+| Switch from the previous CLI                                          | [Migration](./migration.md)                       |
+| Fix an error                                                          | [Troubleshooting](./troubleshooting.md)           |
+| Send feedback about the CLI                                           | [Feedback](./troubleshooting.md#report-a-problem) |
 
 ## Help and output
 

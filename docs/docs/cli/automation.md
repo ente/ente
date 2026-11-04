@@ -124,3 +124,5 @@ The CLI adds your token and sends the request to the account's server. The respo
 ## For agents
 
 Run `ente help --all` once to learn every command and flag, then call commands with `--json --no-input` and read stdout only after checking the exit status. Supply credentials through `--input PATH` rather than on the command line, and use `--offline` for repeated reads of data that was synced moments ago. The CLI never asks a question when `--no-input` is set; it fails with a message on stderr instead.
+
+Use `ente feedback` to share bugs, friction and ideas for improving the CLI, including problems you worked around. Ask the user before sending. Describe what you tried and what would have helped. Leave out credentials and personal data.

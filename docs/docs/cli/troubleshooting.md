@@ -82,4 +82,15 @@ Your data in Ente and exported files are untouched. If you have an existing Phot
 
 ## Report a problem
 
-Open an issue at [github.com/ente/ente/issues](https://github.com/ente/ente/issues) with the output of `ente --version`, your operating system, the command with secrets removed, and the error line.
+Send feedback directly from the CLI:
+
+```sh
+ente feedback "I needed to export only photos added this week."
+ente feedback --input feedback.txt --json
+```
+
+Send a message of up to 2,000 characters as an argument, with `--input PATH`, or on stdin.
+
+Feedback goes to Ente's private GitHub inbox with the CLI version and operating system, even when your account uses a self-hosted server. You can submit without logging in. A successful submission prints a receipt ID; `--json` returns `{"id":"..."}`.
+
+For a public discussion, open an issue at [github.com/ente/ente/issues](https://github.com/ente/ente/issues) with the output of `ente --version`, your operating system, the command with secrets removed, and the error line.

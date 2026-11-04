@@ -1,0 +1,17 @@
+name = "feedback"
+main = "src/index.ts"
+compatibility_date = "2026-10-23"
+
+routes = [
+    { pattern = "feedback.ente.com", custom_domain = true }
+]
+
+tail_consumers = [{ service = "tail" }]
+
+[vars]
+GITHUB_REPOSITORY = "ente/cli-feedback"
+
+[[ratelimits]]
+name = "SUBMISSIONS"
+namespace_id = "2026110401"
+simple = { limit = 6, period = 60 }

@@ -127,6 +127,21 @@ pub enum Command {
         #[command(subcommand)]
         command: PasteCommand,
     },
+    #[command(
+        about = "Send feedback about the CLI to Ente",
+        after_long_help = "Send MESSAGE, read it from --input PATH, or pipe feedback on stdin.
+--input - explicitly reads stdin. Messages must be nonblank and at most
+2,000 characters.
+
+Sends your message, CLI version and OS to Ente's private feedback inbox.
+Requires network access; no login needed.
+Prints a receipt ID. With --json: {\"id\": \"...\"}.
+
+Examples:
+  ente feedback \"Export restarted after reconnecting\"
+  ente feedback --input feedback.txt --json"
+    )]
+    Feedback(FeedbackArgs),
     #[command(about = "Manage Ente accounts", alias = "accounts")]
     Account {
         #[command(subcommand)]
@@ -246,6 +261,28 @@ With --json: {\"text\": \"...\"}. --raw affects plain terminal output only. Requ
         #[arg(long, help = "Ente API server; defaults to api.ente.com")]
         host: Option<String>,
     },
+}
+
+#[derive(Args)]
+pub struct FeedbackArgs {
+    #[arg(
+        conflicts_with = "input",
+        help = "Feedback text; defaults to piped stdin"
+    )]
+    pub message: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH|-",
+        help = "Read plain UTF-8 text from a file, or stdin with -"
+    )]
+    pub input: Option<PathBuf>,
+    #[arg(
+        long,
+        hide = true,
+        default_value = "https://feedback.ente.com",
+        help = "Feedback server"
+    )]
+    pub host: String,
 }
 
 #[derive(Subcommand)]
