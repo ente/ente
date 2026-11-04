@@ -22,6 +22,7 @@ If your photos are currently stored in another cloud service, we have detailed g
 - **[From Google Photos](/photos/migration/from-google-photos/)** - Import your Google Photos library using Google Takeout
 - **[From Apple Photos](/photos/migration/from-apple-photos/)** - Import from iCloud Photos or your Mac's Photos app
 - **[From Amazon Photos](/photos/migration/from-amazon-photos)** - Import your Amazon Photos library
+- **[From Proton Drive](/photos/migration/from-proton-drive)** - Download your Proton Drive library, then import it
 
 ### Migrating from local storage
 

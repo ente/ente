@@ -27,6 +27,10 @@ export const sidebar = [
                         text: "Daily use",
                         link: "/photos/getting-started/daily-use",
                     },
+                    {
+                        text: "Backup on Linux",
+                        link: "/photos/getting-started/backup-on-linux",
+                    },
                 ],
             },
             {
@@ -48,6 +52,10 @@ export const sidebar = [
                     {
                         text: "From Amazon Photos",
                         link: "/photos/migration/from-amazon-photos",
+                    },
+                    {
+                        text: "From Proton Drive",
+                        link: "/photos/migration/from-proton-drive",
                     },
                     {
                         text: "From your hard disk",
@@ -158,6 +166,10 @@ export const sidebar = [
                                 link: "/photos/features/sharing-and-collaboration/share",
                             },
                             {
+                                text: "Family sharing",
+                                link: "/photos/features/sharing-and-collaboration/family-sharing",
+                            },
+                            {
                                 text: "Library sharing",
                                 link: "/photos/features/sharing-and-collaboration/library-sharing",
                             },
@@ -172,6 +184,10 @@ export const sidebar = [
                             {
                                 text: "Public links",
                                 link: "/photos/features/sharing-and-collaboration/public-links",
+                            },
+                            {
+                                text: "Collect event photos",
+                                link: "/photos/features/sharing-and-collaboration/collect-event-photos",
                             },
                             {
                                 text: "Custom domains",

@@ -221,6 +221,7 @@ When someone adds a photo via a collect link:
 ## Related topics
 
 - [Public links](/photos/features/sharing-and-collaboration/public-links) - Share albums via links
+- [Collect event photos](/photos/features/sharing-and-collaboration/collect-event-photos) - Collect wedding and event photos with a link
 - [Sharing overview](/photos/features/sharing-and-collaboration/share) - All sharing methods explained
 - [Custom domains](/photos/features/sharing-and-collaboration/custom-domains/) - Use your own domain for links
 

@@ -13,7 +13,7 @@ This guide will walk you through everything you need to get started, from instal
 
 Download and install Ente Photos on your mobile and desktop devices. Available for iOS, Android, Windows, macOS, and Linux.
 
-Learn more in the [Installation guide](/photos/getting-started/installation).
+Learn more in the [Installation guide](/photos/getting-started/installation). To compare ways of backing up photos on Linux, see [Back up photos on Linux](/photos/getting-started/backup-on-linux).
 
 ## 2. Create account and log in
 
