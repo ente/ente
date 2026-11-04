@@ -31,6 +31,7 @@
 
 ## CLI
 
-- When adding functionality to the CLI, document it in the CLI help and in the documentation website (`docs/docs/cli/` at the repository root, published at https://ente.com/help/cli/). Follow their existing tone and conventions.
+- The CLI assembles shared product operations. It owns argument parsing, prompts, presentation, account selection, platform storage and process lifecycle. Product algorithms, format rules and reusable workflows belong in product crates, even when the CLI is their first consumer.
+- When adding functionality to the CLI, document it in the CLI help and in the documentation website (`docs/docs/cli/` at the repository root, published at https://ente.com/help/cli/). Follow their existing tone and conventions. Record user-facing changes in `apps/cli/changes/`.
 - Released storage formats and CLI interfaces are commitments to users. This includes the vault, account and export databases, keyring entries, export layout and metadata, JSON output, and environment variables. Discuss changes that require migration or break existing workflows with the developer before implementing them.
 - The export folder belongs to the user. Keep operational bookkeeping in the CLI database. Ente-specific metadata belongs in `export.json` and the `ente` sections of the metadata files; do not add extra bookkeeping files to the export.

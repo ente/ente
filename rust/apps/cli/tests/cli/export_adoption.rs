@@ -1,7 +1,8 @@
 use super::engine::{Catalog, Engine};
 use super::*;
 use ente_photos::files;
-use std::{collections::BTreeMap, path::PathBuf};
+use ente_photos_export::Report;
+use std::{collections::BTreeMap, path::PathBuf, sync::Mutex};
 
 const USER: i64 = 1580559962386471;
 const FAMILY: i64 = 1580559962386473;
@@ -361,6 +362,34 @@ fn adoption_preflight_refuses_corrupt_media_scope_and_metadata_blockers_without_
         let (mut engine, _) = new_engine(&server, producer);
         let root = engine.root();
         let before = snapshot(&root);
+        let name = engine.catalog.albums.remove(&FAMILY).unwrap();
+        let mut options = engine.options(true, &[]);
+        options.exclude_shared = true;
+        options.exclude_hidden = true;
+        let unknown = Mutex::new(Vec::new());
+        let error = engine
+            .prepare_with_report(options, &|report| {
+                if let Report::UnknownAlbum {
+                    id,
+                    shared_unknown,
+                    hidden_unknown,
+                } = report
+                {
+                    unknown
+                        .lock()
+                        .unwrap()
+                        .push((id, shared_unknown, hidden_unknown));
+                }
+            })
+            .err()
+            .unwrap();
+        assert!(error.to_string().contains("exactly"));
+        assert_eq!(
+            unknown.into_inner().unwrap(),
+            [(FAMILY, producer == "desktop", true)]
+        );
+        assert_eq!(snapshot(&root), before);
+        engine.catalog.albums.insert(FAMILY, name);
         assert!(
             engine
                 .run(true, &["Family"])

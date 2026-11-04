@@ -14,8 +14,8 @@ node checks/cli-test-sleeps/check.mjs ..
 node checks/cli-test-sleeps/test.mjs
 node checks/dependency-boundaries/check.mjs ..
 node checks/dependency-boundaries/test.mjs
-node checks/library-prints/check.mjs ..
-node checks/library-prints/test.mjs
+node checks/library-leaks/check.mjs ..
+node checks/library-leaks/test.mjs
 node checks/lint-exceptions/check.mjs ..
 node checks/lint-exceptions/test.mjs
 cargo fmt --check

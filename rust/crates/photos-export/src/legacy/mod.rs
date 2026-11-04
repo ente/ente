@@ -2,7 +2,7 @@ pub mod read;
 mod verify;
 
 use crate::{
-    Options, Source,
+    Options, Report, Source,
     adopt::{self, AlbumRecord, Index, Item},
     fs, names,
     snapshot::FileSnapshot,
@@ -66,7 +66,7 @@ pub fn scope(
     store: &Store,
     options: &Options,
     index: Option<&Index>,
-    report: &(dyn Fn(&str) + Sync),
+    report: &(dyn Fn(Report<'_>) + Sync),
 ) -> Result<()> {
     let explicit = !options.albums.is_empty()
         || !options.exclude_albums.is_empty()
