@@ -58,6 +58,8 @@ class DownloadManagerCore {
         Promise<string | undefined>
     >();
     private fileURLPromises = new Map<number, Promise<string>>();
+    private fileBlobPromises = new Map<number, Promise<Blob>>();
+    private generation = 0;
     private renderableSourceURLPromises = new Map<
         number,
         Promise<RenderableSourceURLs>
@@ -83,10 +85,12 @@ class DownloadManagerCore {
     }
 
     logout() {
+        this.generation++;
+        this.fileBlobPromises.clear();
         this.thumbnailURLPromises.clear();
         this.fileURLPromises.clear();
         this.renderableSourceURLPromises.clear();
-        this.fileDownloadProgress.clear();
+        this.fileDownloadProgress = new Map();
         this.fileDownloadProgressListeners = [];
     }
 
@@ -193,29 +197,60 @@ class DownloadManagerCore {
             return await promise;
         } catch (e) {
             log.error("Failed to obtain renderableSourceURLs", e);
-            this.renderableSourceURLPromises.delete(file.id);
+            if (this.renderableSourceURLPromises.get(file.id) === promise)
+                this.renderableSourceURLPromises.delete(file.id);
             throw e;
         }
     };
 
     async fileBlob(file: EnteFile, opts?: FileDownloadOpts) {
-        const _fileBlob = () =>
-            this.fileStream(file, opts).then((stream) =>
-                this.blobWithInferredType(file, stream),
-            );
-
         const cachedURL = this.fileURLPromises.get(file.id);
-        try {
-            return await _fileBlob();
-        } catch (e) {
-            // Retry without the cached object URL before surfacing the failure.
-            if (cachedURL) {
-                this.fileURLPromises.delete(file.id);
-                return _fileBlob();
-            } else {
-                throw e;
+        if (cachedURL) {
+            // A pending viewer job's failure belongs to all of its consumers.
+            const url = await cachedURL;
+            try {
+                return await this.blobWithInferredType(
+                    file,
+                    (await fetch(url)).body,
+                );
+            } catch {
+                if (this.fileURLPromises.get(file.id) === cachedURL)
+                    this.fileURLPromises.delete(file.id);
             }
         }
+        if (opts?.background) {
+            return this.downloadFile(file, opts).then((stream) =>
+                this.blobWithInferredType(file, stream),
+            );
+        }
+        return this.sharedFileBlob(file, opts);
+    }
+
+    private sharedFileBlob(file: EnteFile, opts?: FileDownloadOpts) {
+        const existing = this.fileBlobPromises.get(file.id);
+        if (existing) return existing;
+
+        const generation = this.generation;
+        const isCurrent = () =>
+            this.generation === generation &&
+            this.fileBlobPromises.get(file.id) === promise;
+        // Defer starting work until the promise is registered for other consumers.
+        const promise = Promise.resolve()
+            .then(() =>
+                this.downloadFile(file, opts, (progress) => {
+                    if (progress && isCurrent())
+                        this.setFileDownloadProgress(file.id, progress);
+                }),
+            )
+            .then((stream) => this.blobWithInferredType(file, stream))
+            .finally(() => {
+                if (isCurrent()) {
+                    this.fileBlobPromises.delete(file.id);
+                    this.setFileDownloadProgress(file.id, undefined);
+                }
+            });
+        this.fileBlobPromises.set(file.id, promise);
+        return promise;
     }
 
     async fileStream(
@@ -230,7 +265,8 @@ class DownloadManagerCore {
                 return res.body;
             } catch (e) {
                 log.warn("Failed to use cached object URL", e);
-                this.fileURLPromises.delete(file.id);
+                if (this.fileURLPromises.get(file.id) === cachedURL)
+                    this.fileURLPromises.delete(file.id);
             }
         }
 
@@ -241,15 +277,16 @@ class DownloadManagerCore {
         const cachedURL = this.fileURLPromises.get(file.id);
         if (cachedURL) return cachedURL;
 
-        const url = this.downloadFile(file)
-            .then((stream) => this.blobWithInferredType(file, stream))
-            .then((blob) => URL.createObjectURL(blob));
+        const url = this.sharedFileBlob(file).then((blob) =>
+            URL.createObjectURL(blob),
+        );
         this.fileURLPromises.set(file.id, url);
 
         try {
             return await url;
         } catch (e) {
-            this.fileURLPromises.delete(file.id);
+            if (this.fileURLPromises.get(file.id) === url)
+                this.fileURLPromises.delete(file.id);
             throw e;
         }
     }
@@ -257,6 +294,8 @@ class DownloadManagerCore {
     private async downloadFile(
         file: EnteFile,
         opts?: FileDownloadOpts,
+        onProgress: (progress: FileDownloadProgress | undefined) => void = () =>
+            undefined,
     ): Promise<ReadableStream<Uint8Array> | null> {
         log.info(`download attempted for file id ${file.id}`);
 
@@ -281,10 +320,7 @@ class DownloadManagerCore {
                         new TransformStream<Uint8Array, Uint8Array>({
                             transform: (chunk, controller) => {
                                 loaded += chunk.byteLength;
-                                this.setFileDownloadProgress(file.id, {
-                                    loaded,
-                                    total,
-                                });
+                                onProgress({ loaded, total });
                                 controller.enqueue(chunk);
                             },
                         }),
@@ -292,10 +328,7 @@ class DownloadManagerCore {
                     const data = new Uint8Array(
                         await new Response(body).arrayBuffer(),
                     );
-                    this.setFileDownloadProgress(file.id, {
-                        loaded,
-                        total: loaded,
-                    });
+                    onProgress({ loaded, total: loaded });
                     return data;
                 });
                 const decrypted = await decryptStreamBytes(
@@ -305,7 +338,7 @@ class DownloadManagerCore {
                     },
                     file.key,
                 );
-                this.setFileDownloadProgress(file.id, undefined);
+                onProgress(undefined);
                 return new Response(decrypted).body;
             }
 
@@ -331,17 +364,11 @@ class DownloadManagerCore {
 
                             let data: Uint8Array;
                             if (done) {
-                                this.setFileDownloadProgress(file.id, {
-                                    loaded,
-                                    total: loaded,
-                                });
+                                onProgress({ loaded, total: loaded });
                                 data = leftoverBytes;
                             } else {
                                 loaded += value.length;
-                                this.setFileDownloadProgress(file.id, {
-                                    loaded,
-                                    total,
-                                });
+                                onProgress({ loaded, total });
 
                                 data = new Uint8Array(
                                     leftoverBytes.length + value.length,
@@ -381,27 +408,24 @@ class DownloadManagerCore {
                                 controller.enqueue(decryptedData);
                                 didEnqueue = true;
                                 controller.close();
-                                this.setFileDownloadProgress(
-                                    file.id,
-                                    undefined,
-                                );
+                                onProgress(undefined);
                             } else {
                                 leftoverBytes = data;
                             }
                         } while (!didEnqueue);
                     } catch (e) {
-                        this.setFileDownloadProgress(file.id, undefined);
+                        onProgress(undefined);
                         throw e;
                     }
                 },
                 cancel: (reason: unknown) => {
                     cancelled = true;
-                    this.setFileDownloadProgress(file.id, undefined);
+                    onProgress(undefined);
                     return reader.cancel(reason);
                 },
             });
         } catch (e) {
-            this.setFileDownloadProgress(file.id, undefined);
+            onProgress(undefined);
             throw e;
         }
     }

@@ -32,7 +32,7 @@ vi.mock("ente-base/log", () => ({
 
 const file = {
     id: 42,
-    metadata: { fileType: FileType.image },
+    metadata: { fileType: FileType.image, title: "test.jpg" },
     file: { decryptionHeader: "header" },
     key: "key",
     info: { fileSize: 5 },
@@ -73,7 +73,7 @@ describe("download byte progress", () => {
                 return Promise.resolve(encryptedData);
             },
         );
-        const stream = await manager.fileStream({ ...file, info: undefined });
+        const stream = await manager.fileBlob({ ...file, info: undefined });
         expect(
             new Uint8Array(await new Response(stream).arrayBuffer()),
         ).toEqual(bytes);
@@ -136,7 +136,7 @@ describe("download byte progress", () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(cancel).toHaveBeenCalledWith("viewer closed");
         expect(decryptStreamChunk).toHaveBeenCalledTimes(1);
-        expect(updates).toEqual([{ loaded: 4, total: 5 }, undefined]);
+        expect(updates).toEqual([]);
         expect(manager.fileDownloadProgressSnapshot().has(file.id)).toBe(false);
     });
 
@@ -165,7 +165,7 @@ describe("download byte progress", () => {
             decrypting.resolve(undefined);
             return decrypted.promise;
         });
-        const download = manager.fileStream(file);
+        const download = manager.fileBlob(file);
         await decrypting.promise;
         expect(updates).toEqual(
             expect.arrayContaining([
@@ -215,7 +215,7 @@ describe("download byte progress", () => {
         manager.fileDownloadProgressSubscribe(() => {
             updates.push(manager.fileDownloadProgressSnapshot().get(file.id));
         });
-        const stream = await manager.fileStream({
+        const stream = await manager.fileBlob({
             ...file,
             metadata: { ...file.metadata, fileType: FileType.video },
         });
@@ -250,10 +250,7 @@ describe("download byte progress", () => {
                 );
             });
             const download = manager
-                .fileStream({
-                    ...file,
-                    metadata: { ...file.metadata, fileType },
-                })
+                .fileBlob({ ...file, metadata: { ...file.metadata, fileType } })
                 .then((stream) => new Response(stream).arrayBuffer());
             await expect(download).rejects.toBeInstanceOf(NetworkDownloadError);
             expect(updates).toEqual([{ loaded: 2, total: 5 }, undefined]);

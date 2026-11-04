@@ -118,3 +118,39 @@ describe("streaming video download integrity", () => {
         );
     });
 });
+
+test("a standalone video stream delivers authenticated bytes before network EOF", async () => {
+    let body!: ReadableStreamDefaultController<Uint8Array>;
+    const cancel = vi.fn();
+    const manager = createDownloadManager({
+        downloadFile: () =>
+            Promise.resolve(
+                new Response(
+                    new ReadableStream<Uint8Array>({
+                        start(c) {
+                            body = c;
+                        },
+                        cancel,
+                    }),
+                ),
+            ),
+        downloadThumbnail: vi.fn(),
+        renderableImageBlob: vi.fn(),
+        playableVideoURL: vi.fn(),
+    });
+    const file = {
+        id: 42,
+        metadata: { fileType: FileType.video },
+        file: { decryptionHeader: encrypted.decryptionHeader },
+        key,
+    } as EnteFile;
+    const stream = await manager.fileStream(file);
+    const reader = stream!.getReader();
+    body.enqueue(encrypted.encryptedData.slice(0, encryptedChunkSize + 1));
+    const first = await reader.read();
+    expect(first.done).toBe(false);
+    expect(first.value).toEqual(original.slice(0, streamEncryptionChunkSize));
+    expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
+    await reader.cancel("save cancelled");
+    expect(cancel).toHaveBeenCalledWith("save cancelled");
+});
