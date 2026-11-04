@@ -1,6 +1,5 @@
 import "dart:async";
 import "dart:io";
-import "dart:math" as math;
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
@@ -451,7 +450,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     );
     final Widget body;
     if (landscape) {
-      final bottom = math.max(padding.bottom, Spacing.xl);
+      final bottom = padding.bottom + Spacing.xl;
       body = Stack(
         children: [
           Padding(
@@ -461,7 +460,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           Positioned(
             top: Spacing.sm,
             bottom: bottom,
-            right: math.max(padding.right, Spacing.xl),
+            right: padding.right + Spacing.xl,
             width: _actionButtonSize,
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -494,7 +493,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
               ],
             ],
           ),
-          SizedBox(height: math.max(padding.bottom, _bottomActionInset)),
+          SizedBox(height: padding.bottom + _bottomActionInset),
         ],
       );
     }
@@ -798,48 +797,57 @@ class _QueuedTile extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: Semantics(
-            button: true,
-            label: file.displayName,
-            child: GestureDetector(
-              onTap: onTap,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(Radii.button),
-                child: ThumbnailWidget(
-                  file,
-                  key: Key("review_queue_${file.tag}"),
-                  shouldShowSyncStatus: false,
-                  placeholderColor: colors.fillDark,
+          child: Padding(
+            padding: const EdgeInsets.only(top: Spacing.sm, right: Spacing.sm),
+            child: Semantics(
+              button: true,
+              label: file.displayName,
+              child: GestureDetector(
+                onTap: onTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.button),
+                  child: ThumbnailWidget(
+                    file,
+                    key: Key("review_queue_${file.tag}"),
+                    shouldShowSyncStatus: false,
+                    placeholderColor: colors.fillDark,
+                  ),
                 ),
               ),
             ),
           ),
         ),
         Positioned(
-          top: -5 - Spacing.sm,
-          right: -6 - Spacing.sm,
+          top: 0,
+          right: 0,
           child: Semantics(
             button: true,
             label: context.strings.reviewAgain,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onRemove,
-              child: Padding(
-                padding: const EdgeInsets.all(Spacing.sm),
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: colors.warning,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colors.specialWhite, width: 1.5),
-                  ),
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedCancel01,
-                    size: 12,
-                    strokeWidth: 3,
-                    color: colors.specialWhite,
+              child: SizedBox.square(
+                dimension: kMinInteractiveDimension,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.warning,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colors.specialWhite,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      size: 12,
+                      strokeWidth: 3,
+                      color: colors.specialWhite,
+                    ),
                   ),
                 ),
               ),
