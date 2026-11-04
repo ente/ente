@@ -1,1 +1,0 @@
-- Fixed crashes during on-device photo processing.
