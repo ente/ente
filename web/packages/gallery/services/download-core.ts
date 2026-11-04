@@ -59,7 +59,6 @@ class DownloadManagerCore {
     >();
     private fileURLPromises = new Map<number, Promise<string>>();
     private fileBlobPromises = new Map<number, Promise<Blob>>();
-    private generation = 0;
     private renderableSourceURLPromises = new Map<
         number,
         Promise<RenderableSourceURLs>
@@ -85,7 +84,6 @@ class DownloadManagerCore {
     }
 
     logout() {
-        this.generation++;
         this.fileBlobPromises.clear();
         this.thumbnailURLPromises.clear();
         this.fileURLPromises.clear();
@@ -230,15 +228,12 @@ class DownloadManagerCore {
         const existing = this.fileBlobPromises.get(file.id);
         if (existing) return existing;
 
-        const generation = this.generation;
-        const isCurrent = () =>
-            this.generation === generation &&
-            this.fileBlobPromises.get(file.id) === promise;
+        const isCurrent = () => this.fileBlobPromises.get(file.id) === promise;
         // Defer starting work until the promise is registered for other consumers.
         const promise = Promise.resolve()
             .then(() =>
                 this.downloadFile(file, opts, (progress) => {
-                    if (progress && isCurrent())
+                    if (isCurrent())
                         this.setFileDownloadProgress(file.id, progress);
                 }),
             )
@@ -294,140 +289,119 @@ class DownloadManagerCore {
     private async downloadFile(
         file: EnteFile,
         opts?: FileDownloadOpts,
-        onProgress: (progress: FileDownloadProgress | undefined) => void = () =>
-            undefined,
+        onProgress: (progress: FileDownloadProgress) => void = () => undefined,
     ): Promise<ReadableStream<Uint8Array> | null> {
         log.info(`download attempted for file id ${file.id}`);
 
-        try {
-            const res = await wrapErrors(() =>
-                this.transport.downloadFile(file, opts),
-            );
-            const total =
-                parseInt(res.headers.get("Content-Length") ?? "") ||
-                file.info?.fileSize ||
-                undefined;
-            let loaded = 0;
+        const res = await wrapErrors(() =>
+            this.transport.downloadFile(file, opts),
+        );
+        const total =
+            parseInt(res.headers.get("Content-Length") ?? "") ||
+            file.info?.fileSize ||
+            undefined;
+        let loaded = 0;
 
-            if (
-                file.metadata.fileType == FileType.image ||
-                file.metadata.fileType == FileType.livePhoto
-            ) {
-                const encryptedData = await wrapErrors(async () => {
-                    if (!res.body)
-                        return new Uint8Array(await res.arrayBuffer());
-                    const body = res.body.pipeThrough(
-                        new TransformStream<Uint8Array, Uint8Array>({
-                            transform: (chunk, controller) => {
-                                loaded += chunk.byteLength;
-                                onProgress({ loaded, total });
-                                controller.enqueue(chunk);
-                            },
-                        }),
-                    );
-                    const data = new Uint8Array(
-                        await new Response(body).arrayBuffer(),
-                    );
-                    onProgress({ loaded, total: loaded });
-                    return data;
-                });
-                const decrypted = await decryptStreamBytes(
-                    {
-                        encryptedData,
-                        decryptionHeader: file.file.decryptionHeader,
-                    },
-                    file.key,
+        if (
+            file.metadata.fileType == FileType.image ||
+            file.metadata.fileType == FileType.livePhoto
+        ) {
+            const encryptedData = await wrapErrors(async () => {
+                if (!res.body) return new Uint8Array(await res.arrayBuffer());
+                const body = res.body.pipeThrough(
+                    new TransformStream<Uint8Array, Uint8Array>({
+                        transform: (chunk, controller) => {
+                            loaded += chunk.byteLength;
+                            onProgress({ loaded, total });
+                            controller.enqueue(chunk);
+                        },
+                    }),
                 );
-                onProgress(undefined);
-                return new Response(decrypted).body;
-            }
-
-            const body = res.body;
-            if (!body) throw new Error("Missing final encrypted chunk");
-            const reader = body.getReader();
-            const { pullState, decryptionChunkSize } =
-                await initChunkDecryption(file.file.decryptionHeader, file.key);
-            let leftoverBytes: Uint8Array = new Uint8Array();
-            let cancelled = false;
-            const isCancelled = () => cancelled;
-
-            return new ReadableStream({
-                pull: async (controller) => {
-                    try {
-                        // Each pull must enqueue or close before returning.
-                        let didEnqueue = false;
-                        do {
-                            const { done, value } = await wrapErrors(() =>
-                                reader.read(),
-                            );
-                            if (isCancelled()) return;
-
-                            let data: Uint8Array;
-                            if (done) {
-                                onProgress({ loaded, total: loaded });
-                                data = leftoverBytes;
-                            } else {
-                                loaded += value.length;
-                                onProgress({ loaded, total });
-
-                                data = new Uint8Array(
-                                    leftoverBytes.length + value.length,
-                                );
-                                data.set(new Uint8Array(leftoverBytes), 0);
-                                data.set(
-                                    new Uint8Array(value),
-                                    leftoverBytes.length,
-                                );
-                            }
-
-                            // A network read can contain several encrypted chunks.
-                            while (data.length > decryptionChunkSize) {
-                                const decryptedData = await decryptStreamChunk(
-                                    data.slice(0, decryptionChunkSize),
-                                    pullState,
-                                    false,
-                                );
-                                if (isCancelled()) return;
-                                controller.enqueue(decryptedData);
-                                didEnqueue = true;
-                                data = data.slice(decryptionChunkSize);
-                            }
-
-                            if (done) {
-                                // Only EOF proves that a short remainder is the final chunk.
-                                if (!data.length)
-                                    throw new Error(
-                                        "Missing final encrypted chunk",
-                                    );
-                                const decryptedData = await decryptStreamChunk(
-                                    data,
-                                    pullState,
-                                    true,
-                                );
-                                if (isCancelled()) return;
-                                controller.enqueue(decryptedData);
-                                didEnqueue = true;
-                                controller.close();
-                                onProgress(undefined);
-                            } else {
-                                leftoverBytes = data;
-                            }
-                        } while (!didEnqueue);
-                    } catch (e) {
-                        onProgress(undefined);
-                        throw e;
-                    }
-                },
-                cancel: (reason: unknown) => {
-                    cancelled = true;
-                    onProgress(undefined);
-                    return reader.cancel(reason);
-                },
+                const data = new Uint8Array(
+                    await new Response(body).arrayBuffer(),
+                );
+                onProgress({ loaded, total: loaded });
+                return data;
             });
-        } catch (e) {
-            onProgress(undefined);
-            throw e;
+            const decrypted = await decryptStreamBytes(
+                { encryptedData, decryptionHeader: file.file.decryptionHeader },
+                file.key,
+            );
+            return new Response(decrypted).body;
         }
+
+        const body = res.body;
+        if (!body) throw new Error("Missing final encrypted chunk");
+        const reader = body.getReader();
+        const { pullState, decryptionChunkSize } = await initChunkDecryption(
+            file.file.decryptionHeader,
+            file.key,
+        );
+        let leftoverBytes: Uint8Array = new Uint8Array();
+        let cancelled = false;
+        const isCancelled = () => cancelled;
+
+        return new ReadableStream({
+            pull: async (controller) => {
+                // Each pull must enqueue or close before returning.
+                let didEnqueue = false;
+                do {
+                    const { done, value } = await wrapErrors(() =>
+                        reader.read(),
+                    );
+                    if (isCancelled()) return;
+
+                    let data: Uint8Array;
+                    if (done) {
+                        onProgress({ loaded, total: loaded });
+                        data = leftoverBytes;
+                    } else {
+                        loaded += value.length;
+                        onProgress({ loaded, total });
+
+                        data = new Uint8Array(
+                            leftoverBytes.length + value.length,
+                        );
+                        data.set(new Uint8Array(leftoverBytes), 0);
+                        data.set(new Uint8Array(value), leftoverBytes.length);
+                    }
+
+                    // A network read can contain several encrypted chunks.
+                    while (data.length > decryptionChunkSize) {
+                        const decryptedData = await decryptStreamChunk(
+                            data.slice(0, decryptionChunkSize),
+                            pullState,
+                            false,
+                        );
+                        if (isCancelled()) return;
+                        controller.enqueue(decryptedData);
+                        didEnqueue = true;
+                        data = data.slice(decryptionChunkSize);
+                    }
+
+                    if (done) {
+                        // Only EOF proves that a short remainder is the final chunk.
+                        if (!data.length)
+                            throw new Error("Missing final encrypted chunk");
+                        const decryptedData = await decryptStreamChunk(
+                            data,
+                            pullState,
+                            true,
+                        );
+                        if (isCancelled()) return;
+                        controller.enqueue(decryptedData);
+                        didEnqueue = true;
+                        controller.close();
+                    } else {
+                        leftoverBytes = data;
+                    }
+                } while (!didEnqueue);
+            },
+            cancel: (reason: unknown) => {
+                cancelled = true;
+                return reader.cancel(reason);
+            },
+        });
     }
 
     private async blobWithInferredType(
