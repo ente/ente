@@ -75,9 +75,6 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   List<EnteFile> get allFiles => _files;
 
   @override
-  Map<int, List<EnteFile>> get filesByCollection => const {};
-
-  @override
   Collection get selectedCollection => _collection;
 
   @override
@@ -88,15 +85,22 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
     setState(() {
       _filteredFiles = files;
     });
+    _selectedFiles.retainSelection(files);
   }
 
   @override
   void onSearchStateChanged(bool isActive) {
+    onSearchFilterChanged();
     if (!isActive) {
       setState(() {
         _filteredFiles = _files;
       });
     }
+  }
+
+  @override
+  void onSearchFilterChanged() {
+    if (_selectedFiles.hasSelections) _selectedFiles.clearAll();
   }
 
   @override
@@ -262,6 +266,8 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
             files: _filteredFiles,
             searchQuery: searchQuery,
             isHomePage: false,
+            selectedFiles: _selectedFiles,
+            selectionEnabled: _isSelectionEnabled,
             onSearchEverywhere: _searchEverywhere,
           ),
         ),

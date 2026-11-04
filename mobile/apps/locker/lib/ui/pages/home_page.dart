@@ -171,7 +171,6 @@ class _HomePageState extends UploaderPageState<HomePage>
   List<Collection> _collections = [];
   List<Collection> _filteredCollections = [];
   List<EnteFile> _recentFiles = [];
-  Map<int, List<EnteFile>> _filesByCollection = {};
   List<EnteFile> _filteredFiles = [];
   final ValueNotifier<List<EnteFile>> _displayedFilesNotifier = ValueNotifier(
     [],
@@ -200,9 +199,6 @@ class _HomePageState extends UploaderPageState<HomePage>
   List<EnteFile> get allFiles => _recentFiles;
 
   @override
-  Map<int, List<EnteFile>> get filesByCollection => _filesByCollection;
-
-  @override
   void onSearchResultsChanged(
     List<Collection> collections,
     List<EnteFile> files,
@@ -212,17 +208,24 @@ class _HomePageState extends UploaderPageState<HomePage>
         _filteredCollections = _filterOutUncategorized(collections);
         _filteredFiles = files;
       });
+      _selectedFiles.retainSelection(files);
     }
   }
 
   @override
   void onSearchStateChanged(bool isActive) {
+    onSearchFilterChanged();
     if (!isActive && mounted) {
       setState(() {
         _filteredCollections = _filterOutUncategorized(_collections);
         _filteredFiles = _recentFiles;
       });
     }
+  }
+
+  @override
+  void onSearchFilterChanged() {
+    if (_selectedFiles.hasSelections) _selectedFiles.clearAll();
   }
 
   List<Collection> _filterOutUncategorized(List<Collection> collections) {
@@ -584,13 +587,11 @@ class _HomePageState extends UploaderPageState<HomePage>
 
   Future<void> _loadRecentFiles(List<Collection> collections) async {
     final allFiles = <EnteFile>[];
-    final filesByCollection = <int, List<EnteFile>>{};
 
     for (final collection in collections) {
       final files = await CollectionService.instance.getFilesInCollection(
         collection,
       );
-      filesByCollection[collection.id] = files;
       allFiles.addAll(files);
     }
 
@@ -622,7 +623,6 @@ class _HomePageState extends UploaderPageState<HomePage>
     });
 
     _recentFiles = uniqueFiles;
-    _filesByCollection = filesByCollection;
   }
 
   void _handleSearchChange(String query) {
@@ -704,7 +704,9 @@ class _HomePageState extends UploaderPageState<HomePage>
                       builder: (context, displayedFiles, _) {
                         return FileSelectionOverlayBar(
                           selectedFiles: _selectedFiles,
-                          files: displayedFiles.isNotEmpty
+                          files: isSearchActive
+                              ? _filteredFiles
+                              : displayedFiles.isNotEmpty
                               ? displayedFiles
                               : _recentFiles,
                           scrollController: _scrollController,
@@ -778,13 +780,17 @@ class _HomePageState extends UploaderPageState<HomePage>
 
     if (isSearchActive) {
       return SingleChildScrollView(
+        controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        padding: const EdgeInsets.only(top: 24),
         child: SearchResultView(
           collections: _filteredCollections,
           files: _filteredFiles,
           searchQuery: searchQuery,
           isHomePage: true,
+          selectedFiles: _selectedFiles,
+          searchScope: searchScope,
+          onScopeChanged: updateSearchScope,
         ),
       );
     }

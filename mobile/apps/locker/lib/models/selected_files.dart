@@ -22,6 +22,17 @@ class SelectedFiles extends ChangeNotifier {
     notifyListeners();
   }
 
+  void retainSelection(Iterable<EnteFile> visibleFiles) {
+    if (files.isEmpty) return;
+    final selected = visibleFiles
+        .where((file) => file.uploadedFileID != null && files.contains(file))
+        .toSet();
+    files
+      ..clear()
+      ..addAll(selected);
+    notifyListeners();
+  }
+
   bool isFileSelected(EnteFile file) {
     final EnteFile? alreadySelected = files.firstWhereOrNull(
       (element) => _isMatch(file, element),

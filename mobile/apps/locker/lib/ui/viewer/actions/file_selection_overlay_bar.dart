@@ -60,6 +60,12 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
 
   bool get hasSelection => widget.selectedFiles.files.isNotEmpty;
 
+  bool get _canManageSelectedFiles {
+    final userID = Configuration.instance.getUserID();
+    return userID != null &&
+        widget.selectedFiles.files.every((file) => file.ownerID == userID);
+  }
+
   List<EnteFile> _getOwnedFiles(List<EnteFile> files) {
     final currentUserID = Configuration.instance.getUserID();
     final ownedFiles = files
@@ -98,6 +104,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     final isFirstSelection = _previousSelectionCount == 0 && currentCount > 0;
 
     if (isFirstSelection) {
+      FocusManager.instance.primaryFocus?.unfocus();
       setState(() => _isExpanded = true);
     } else {
       setState(() {});
@@ -183,7 +190,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
                                     final isAllSelected =
                                         widget.files.isNotEmpty &&
                                         widget.files.every(
-                                          (file) => selectedSet.contains(file),
+                                          selectedSet.contains,
                                         );
                                     final buttonText = isAllSelected
                                         ? context.strings.deselectAll
@@ -300,6 +307,12 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
           return const SizedBox.shrink();
         }
 
+        if (!widget.isTrashMode &&
+            (!_canManageSelectedFiles ||
+                (widget.collectionViewType?.isIncomingShare ?? false))) {
+          return _buildSecondaryActionRow(selectedFiles);
+        }
+
         return AnimatedSize(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
@@ -344,13 +357,16 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
         file != null &&
         FavoritesService.instance.isFavoriteCache(file);
 
-    final showImportant = viewType?.showMarkImportantOption ?? true;
-    final showDelete = viewType?.showDeleteOption ?? true;
+    final showImportant =
+        _canManageSelectedFiles && (viewType?.showMarkImportantOption ?? true);
+    final showDelete =
+        _canManageSelectedFiles && (viewType?.showDeleteOption ?? true);
 
     final eligibleOfflineFiles = OfflineFilesService.instance.getEligibleFiles(
       files,
     );
-    final showOffline = viewType?.showOfflineOption ?? true;
+    final showOffline =
+        _canManageSelectedFiles && (viewType?.showOfflineOption ?? true);
     final actions = <Widget>[];
 
     if (showOffline && eligibleOfflineFiles.isNotEmpty) {
@@ -483,9 +499,13 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     final viewType = widget.collectionViewType;
     final actions = <Widget>[];
 
-    final showEdit = viewType?.showEditOption ?? true;
-    final showShare = viewType?.showShareOption ?? true;
-    final showAddTo = viewType?.showAddToCollectionOption ?? true;
+    final showEdit =
+        _canManageSelectedFiles && (viewType?.showEditOption ?? true);
+    final showShare =
+        _canManageSelectedFiles && (viewType?.showShareOption ?? true);
+    final showAddTo =
+        _canManageSelectedFiles &&
+        (viewType?.showAddToCollectionOption ?? true);
 
     if (isSingleSelection && showEdit) {
       actions.add(

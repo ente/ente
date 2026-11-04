@@ -1,0 +1,1 @@
+- Added Items and Collections filters and multi-selection, with matching items first and collections matched by name.

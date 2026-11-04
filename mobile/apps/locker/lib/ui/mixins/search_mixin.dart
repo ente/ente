@@ -4,27 +4,17 @@ import 'package:locker/extensions/collection_extension.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 
-class CollectionSearchResult {
-  final bool matches;
-  final bool nameMatches;
-  final List<EnteFile> files;
-
-  CollectionSearchResult({
-    required this.matches,
-    required this.nameMatches,
-    required this.files,
-  });
-}
+enum SearchScope { all, items, collections }
 
 mixin SearchMixin<T extends StatefulWidget> on State<T> {
   String _searchQuery = '';
   bool _isSearchActive = false;
+  SearchScope _searchScope = SearchScope.all;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
   List<Collection> get allCollections;
   List<EnteFile> get allFiles;
-  Map<int, List<EnteFile>> get filesByCollection;
 
   void onSearchResultsChanged(
     List<Collection> collections,
@@ -32,6 +22,8 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   );
 
   void onSearchStateChanged(bool isActive) {}
+
+  void onSearchFilterChanged() {}
 
   @override
   void dispose() {
@@ -51,9 +43,11 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   }
 
   void _deactivateSearch() {
+    onSearchFilterChanged();
     setState(() {
       _isSearchActive = false;
       _searchQuery = '';
+      _searchScope = SearchScope.all;
     });
     _searchController.clear();
     onSearchStateChanged(false);
@@ -67,6 +61,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   void _onSearchChanged(String query) {
     if (!mounted) return;
+    if (query != _searchQuery) onSearchFilterChanged();
     setState(() {
       _searchQuery = query;
     });
@@ -78,92 +73,46 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
     try {
       final normalizedQuery = query.trim().toLowerCase();
-      if (normalizedQuery.isEmpty) {
-        if (mounted) {
-          onSearchResultsChanged(allCollections, allFiles);
-        }
-        return;
-      }
-
-      final List<Collection> filteredCollections = [];
-      final List<EnteFile> collectionFiles = [];
-      final Set<String> addedFileIds = {};
-
-      for (final collection in allCollections) {
-        if (!mounted) return;
-        final searchResult = _searchInCollection(collection, normalizedQuery);
-        if (searchResult.matches) {
-          filteredCollections.add(collection);
-          if (searchResult.nameMatches) {
-            collectionFiles.addAll(
-              searchResult.files.where(
-                (file) => addedFileIds.add(file.uploadedFileID.toString()),
-              ),
-            );
-          }
-        }
-      }
-
-      final filteredFiles = allFiles.where((file) {
-        if (addedFileIds.contains(file.uploadedFileID.toString())) {
-          return false;
-        }
-        return _searchInFile(file, normalizedQuery);
-      }).toList();
-
-      final List<EnteFile> allFilteredFiles = [
-        ...collectionFiles,
-        ...filteredFiles,
-      ];
-
-      if (mounted) {
-        onSearchResultsChanged(filteredCollections, allFilteredFiles);
-      }
+      final collections = _searchScope == SearchScope.items
+          ? <Collection>[]
+          : normalizedQuery.isEmpty
+          ? allCollections
+          : allCollections
+                .where(
+                  (collection) => _containsQuery(
+                    collection.displayName ?? '',
+                    normalizedQuery,
+                  ),
+                )
+                .toList();
+      final files = _searchScope == SearchScope.collections
+          ? <EnteFile>[]
+          : normalizedQuery.isEmpty
+          ? allFiles
+          : allFiles
+                .where((file) => _searchInFile(file, normalizedQuery))
+                .toList();
+      onSearchResultsChanged(collections, files);
     } catch (e) {
       debugPrint('Search error: $e');
       if (mounted) {
-        onSearchResultsChanged(allCollections, allFiles);
+        onSearchResultsChanged(const [], const []);
       }
-    }
-  }
-
-  CollectionSearchResult _searchInCollection(
-    Collection collection,
-    String query,
-  ) {
-    try {
-      final files = filesByCollection[collection.id] ?? const <EnteFile>[];
-      final collectionNameMatches = _containsQuery(
-        collection.displayName ?? '',
-        query,
-      );
-      final fileMatches = files.any((file) => _searchInFile(file, query));
-
-      return CollectionSearchResult(
-        matches: collectionNameMatches || fileMatches,
-        nameMatches: collectionNameMatches,
-        files: collectionNameMatches ? files : [],
-      );
-    } catch (e) {
-      debugPrint('Error searching in collection (ID: ${collection.id}): $e');
-      final collectionNameMatches = _containsQuery(
-        collection.displayName ?? '',
-        query,
-      );
-      return CollectionSearchResult(
-        matches: collectionNameMatches,
-        nameMatches: collectionNameMatches,
-        files: [],
-      );
     }
   }
 
   bool _searchInFile(EnteFile file, String query) {
-    return _containsQuery(file.displayName, query) ||
-        _containsQuery(file.title ?? '', query) ||
-        _containsQuery(file.caption ?? '', query) ||
-        _containsQuery(file.pubMagicMetadata.editedName ?? '', query) ||
-        _containsQuery(file.pubMagicMetadata.uploaderName ?? '', query);
+    try {
+      return _containsQuery(file.displayName, query) ||
+          _containsQuery(file.title ?? '', query) ||
+          _containsQuery(file.caption ?? '', query) ||
+          _containsQuery(file.pubMagicMetadata.editedName ?? '', query) ||
+          _containsQuery(file.pubMagicMetadata.uploaderName ?? '', query);
+    } catch (_) {
+      // One unreadable record must not hide other matching items.
+      debugPrint('Could not search file ${file.uploadedFileID}');
+      return false;
+    }
   }
 
   bool _containsQuery(String text, String query) =>
@@ -194,6 +143,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   String get searchQuery => _searchQuery;
   bool get isSearchActive => _isSearchActive;
+  SearchScope get searchScope => _searchScope;
   TextEditingController get searchController => _searchController;
   FocusNode get searchFocusNode => _searchFocusNode;
 
@@ -201,7 +151,15 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   void refreshSearch() => _performSearch(_searchQuery);
 
+  void updateSearchScope(SearchScope scope) {
+    if (scope == _searchScope) return;
+    onSearchFilterChanged();
+    _searchScope = scope;
+    refreshSearch();
+  }
+
   void activateSearchWithQuery(String query) {
+    if (query != _searchQuery) onSearchFilterChanged();
     setState(() {
       _isSearchActive = true;
       _searchQuery = query;
