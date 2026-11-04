@@ -8,8 +8,10 @@ routes = [
 
 tail_consumers = [{ service = "tail" }]
 
-[vars]
-GITHUB_REPOSITORY = "ente/cli-feedback"
+[[d1_databases]]
+binding = "DB"
+database_name = "feedback"
+database_id = "475a08a9-71ea-48e3-8264-a372c3902bfb"
 
 [[ratelimits]]
 name = "SUBMISSIONS"

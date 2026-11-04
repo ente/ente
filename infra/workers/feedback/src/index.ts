@@ -1,6 +1,5 @@
 interface Env {
-    GITHUB_REPOSITORY: string;
-    GITHUB_TOKEN: string;
+    DB: D1Database;
     SUBMISSIONS: RateLimit;
 }
 
@@ -17,6 +16,9 @@ export default {
                 status: 405,
                 headers: { Allow: "POST" },
             });
+        const contentType = request.headers.get("Content-Type") ?? "";
+        if (!/^application\/json(?:\s*;|$)/i.test(contentType))
+            return error("Expected application/json", 415);
         const { success } = await env.SUBMISSIONS.limit({
             key: request.headers.get("CF-Connecting-IP") ?? "local",
         });
@@ -48,45 +50,17 @@ export default {
         if (!isFeedback(value)) return error("Invalid feedback", 400);
 
         const id = crypto.randomUUID();
-        const context = [
-            `CLI version: ${value.version}`,
-            `OS: ${value.os}`,
-            `Receipt: ${id}`,
-        ].join("\n");
         try {
-            const response = await fetch(
-                `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-                        Accept: "application/vnd.github+json",
-                        "Content-Type": "application/json",
-                        "User-Agent": "ente-feedback",
-                        "X-GitHub-Api-Version": "2026-03-10",
-                    },
-                    body: JSON.stringify({
-                        title: Array.from(
-                            value.message.trim().replace(/\s+/gu, " "),
-                        )
-                            .slice(0, 100)
-                            .join(""),
-                        body: `${codeBlock(context)}\n\n${codeBlock(value.message)}`,
-                    }),
-                    redirect: "manual",
-                    signal: AbortSignal.timeout(15_000),
-                },
-            );
-            await response.body?.cancel();
-            if (response.status === 201)
-                return Response.json({ id }, { status: 201 });
-            console.error(
-                `GitHub feedback submission returned ${response.status}`,
-            );
+            await env.DB.prepare(
+                "INSERT INTO feedback (id, message, version, os) VALUES (?, ?, ?, ?)",
+            )
+                .bind(id, value.message, value.version, value.os)
+                .run();
+            return Response.json({ id }, { status: 201 });
         } catch {
-            console.error("Could not confirm GitHub feedback submission");
+            console.error("Could not confirm feedback submission");
+            return error("Could not confirm feedback submission", 500);
         }
-        return error("Could not confirm feedback submission", 502);
     },
 } satisfies ExportedHandler<Env>;
 
@@ -111,10 +85,3 @@ const isFeedback = (value: unknown): value is Feedback =>
     isLine(value.version, 64) &&
     "os" in value &&
     isLine(value.os, 32);
-
-const codeBlock = (text: string) =>
-    text
-        .replace(/\r\n?/g, "\n")
-        .split("\n")
-        .map((line) => `    ${line}`)
-        .join("\n");

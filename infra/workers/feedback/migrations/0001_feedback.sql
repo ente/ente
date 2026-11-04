@@ -1,0 +1,7 @@
+CREATE TABLE feedback (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version TEXT NOT NULL,
+    os TEXT NOT NULL,
+    message TEXT NOT NULL
+) STRICT;
