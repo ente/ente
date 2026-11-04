@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ente_exif::DateTime;
 
 use super::input::{RewindFile, RewindFileType, RewindRequest};
@@ -16,10 +18,12 @@ impl<'r> Library<'r> {
         let start = start_of_year(request.year)?;
         let end = start_of_year(request.year + 1)?;
         let local_now = request.now + i64::from(request.utc_offset_seconds) * MICROS_PER_SECOND;
+        let mut seen = HashSet::new();
         Ok(Self {
             files: request
                 .files
                 .iter()
+                .filter(|file| seen.insert(file.id))
                 .filter(|file| (start..end).contains(&local_time(file)))
                 .collect(),
             year_has_ended: local_now >= end,

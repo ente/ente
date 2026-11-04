@@ -235,6 +235,20 @@ mod tests {
     }
 
     #[test]
+    fn a_file_listed_more_than_once_counts_once() {
+        let mut files = photos(10);
+        files.push(file(1, "2026-06-01T12:00:00"));
+        files.push(file(11, "2026-06-01T12:00:00"));
+        files.push(file(11, "2026-06-01T12:00:00"));
+
+        let (_directory, store) = indexed_store(1..=10);
+        let state = compute_rewind(&request(BEFORE_NEW_YEAR, files), Some(&store), None).unwrap();
+
+        assert_eq!(totals(&state), Some(Totals { files: 11 }));
+        assert_eq!(state.ml_coverage, Some(10.0 / 11.0));
+    }
+
+    #[test]
     fn a_year_without_photos_has_no_totals() {
         let (_directory, store) = indexed_store([]);
         let state =
