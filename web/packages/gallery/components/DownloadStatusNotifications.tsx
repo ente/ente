@@ -222,6 +222,7 @@ export const DownloadStatusNotifications: React.FC<
                         attributes={{
                             color: hasErrors ? "critical" : "secondary",
                             startIcon,
+                            spinStartIcon: startIcon === Loading03Icon,
                             title: truncatedName,
                             caption,
                             onClick: createOnClick(group),
