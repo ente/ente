@@ -165,7 +165,6 @@ class ClusterFeedbackService<T> {
     PersonEntity p,
   ) async {
     try {
-      Future<void>? manualAssignmentUpdate;
       final fileIDsToRemove = files
           .map((file) => file.uploadedFileID)
           .whereType<int>()
@@ -178,12 +177,10 @@ class ClusterFeedbackService<T> {
           'Removing ${manualToRemove.length} manually assigned files from person ${p.remoteID}',
         );
         final updatedManual = manualFileIDs.difference(manualToRemove).toList();
-        final updatedPerson = p.copyWith(
-          data: p.data.copyWith(manuallyAssigned: updatedManual),
+        await PersonService.instance.updatePerson(
+          p.copyWith(data: p.data.copyWith(manuallyAssigned: updatedManual)),
         );
-        manualAssignmentUpdate = PersonService.instance.updatePerson(
-          updatedPerson,
-        );
+        p.data.manuallyAssigned = updatedManual;
       }
 
       final faceIDs = await mlDataDB
@@ -195,9 +192,6 @@ class ClusterFeedbackService<T> {
       });
 
       if (faceIDs.isEmpty) {
-        if (manualAssignmentUpdate != null) {
-          await manualAssignmentUpdate;
-        }
         if (manualToRemove.isNotEmpty) {
           Bus.instance.fire(PeopleChangedEvent());
         } else {
@@ -234,10 +228,6 @@ class ClusterFeedbackService<T> {
         person: p,
         faceIDs: faceIDs.toSet(),
       );
-
-      if (manualAssignmentUpdate != null) {
-        await manualAssignmentUpdate;
-      }
 
       Bus.instance.fire(PeopleChangedEvent());
       return;
