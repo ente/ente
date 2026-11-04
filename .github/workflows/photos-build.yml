@@ -267,9 +267,7 @@ jobs:
                   ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
               run: |
-                  umask 077
                   key_path="${RUNNER_TEMP}/AuthKey_${ASC_KEY_ID}.p8"
-                  trap 'rm -f "${key_path}"' EXIT
                   printf '%s' "${ASC_API_KEY_BASE64}" | base64 --decode > "${key_path}"
 
                   xcodebuild archive \
@@ -303,9 +301,6 @@ jobs:
                       -authenticationKeyID "${ASC_KEY_ID}" \
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
-            - name: Lock the temporary signing keychain
-              run: security lock-keychain signing_temp.keychain
-
             - name: Package Photos IPA
               run: |
                   payload="${RUNNER_TEMP}/photos-qa/Payload"
@@ -318,7 +313,6 @@ jobs:
               with:
                   name: photos-ipa
                   path: mobile/apps/photos/build/ios/${{ needs.build-metadata.outputs.artifact_stem }}.ipa
-                  if-no-files-found: error
                   compression-level: 0
                   overwrite: true
 
