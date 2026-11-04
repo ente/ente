@@ -1,5 +1,7 @@
 import {
+    Album02Icon,
     ArrowLeft01Icon,
+    ArrowRight01Icon,
     Calendar04Icon,
     Camera01Icon,
     CameraLensIcon,
@@ -258,12 +260,12 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     return (
         <FileInfoSidebar open={open} onClose={handleClose}>
             <FileInfoHeader>
-                <IconButton
-                    aria-label={t("go_back")}
-                    onClick={handleClose}
-                    sx={{ width: 24, height: 40, flexShrink: 0, p: 0 }}
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
+                <IconButton aria-label={t("go_back")} onClick={handleClose}>
+                    <HugeiconsIcon
+                        icon={ArrowLeft01Icon}
+                        size={20}
+                        strokeWidth={1.8}
+                    />
                 </IconButton>
                 <Typography
                     component="h2"
@@ -280,7 +282,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                     <HugeiconsIcon icon={Cancel01Icon} size={18} />
                 </IconButton>
             </FileInfoHeader>
-            <Stack sx={{ pb: 2.5, gap: 2.5 }}>
+            <Stack sx={{ pb: 3, gap: 2 }}>
                 <Caption
                     {...{
                         file,
@@ -517,7 +519,8 @@ const FileInfoNavigationHint: React.FC = () => (
             pb: 3,
             px: 0,
             color: "text.muted",
-            opacity: 0.24,
+            fontSize: 12,
+            lineHeight: "20px",
         }}
     >
         <Trans
@@ -659,33 +662,71 @@ const FileInfoSidebar = styled(
         },
     }),
     ".MuiDrawer-paper": {
+        // Scope the island palette to this portalled drawer and its EXIF view.
+        "--mui-palette-background-paper": "#FFFFFF",
+        "--mui-palette-text-muted": "#666666",
+        "--mui-palette-stroke-faint": "#EBEBEB",
+        "--file-info-control": "#F4F4F4",
+        ...theme.applyStyles("dark", {
+            "--mui-palette-background-paper": "#212121",
+            "--mui-palette-text-muted": "#999999",
+            "--mui-palette-stroke-faint": "#2A2A2A",
+            "--file-info-control": "#2B2B2B",
+        }),
+        backgroundColor: theme.vars.palette.background.paper,
+        backgroundImage: "none",
+        boxShadow: "none",
+        border: 0,
+        fontFamily: '"Inter Variable", Inter, sans-serif',
+        fontSize: 14,
+        fontWeight: 500,
+        letterSpacing: 0,
+        "& .MuiTypography-root, & .MuiButton-root, & .MuiInputBase-root": {
+            fontFamily: "inherit",
+            letterSpacing: 0,
+        },
+        "& h2.MuiTypography-root": {
+            fontFamily: '"Outfit Variable", Outfit, sans-serif',
+        },
+        "& .MuiIconButton-root": {
+            width: 38,
+            height: 38,
+            padding: 9,
+            flexShrink: 0,
+            borderRadius: 12,
+            "& > svg": { width: 20, height: 20 },
+            "&:hover": {
+                backgroundColor: `color-mix(in srgb, ${theme.vars.palette.text.base} 8%, ${theme.vars.palette.background.paper})`,
+            },
+        },
+        "& .MuiIconButton-root.Mui-focusVisible": {
+            outline: "1px solid #08C225",
+            outlineOffset: 2,
+        },
         display: "flex",
         flexDirection: "column",
-        top: "calc(env(titlebar-area-height, 0px) + 12px)",
-        right: "calc(env(safe-area-inset-right, 0px) + 12px)",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
-        width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px)",
+        top: "calc(env(titlebar-area-height, 0px) + 11px)",
+        right: "calc(env(safe-area-inset-right, 0px) + 11px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 11px)",
+        width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 22px)",
         height: "auto",
         borderRadius: 20,
+        [theme.breakpoints.down("sm")]: {
+            top: "calc(env(titlebar-area-height, 0px) + 8px)",
+            right: "calc(env(safe-area-inset-right, 0px) + 8px)",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+            width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px)",
+        },
     },
     ".MuiDrawer-paper > .MuiBox-root": {
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        padding: "0 clamp(28px, 6vw, 30px)",
+        padding: "0 20px",
         minWidth: 0,
         [theme.breakpoints.down("sm")]: {
-            paddingInline: "20px",
+            paddingInline: "16px",
             paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        },
-    },
-    [theme.breakpoints.down("sm")]: {
-        "& .MuiIconButton-root": {
-            width: 44,
-            height: 44,
-            flexShrink: 0,
-            padding: 12,
-            "& > svg": { width: 20, height: 20 },
         },
     },
 }));
@@ -704,15 +745,9 @@ const FileInfoHeader = styled(Stack)(({ theme }) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    minHeight: 92,
-    paddingTop: 18,
-    [theme.breakpoints.down("sm")]: {
-        minHeight: 64,
-        paddingTop: 0,
-        gap: 4,
-        "& .MuiIconButton-root:first-of-type": { marginLeft: -12 },
-        "& .MuiIconButton-root:last-of-type": { marginRight: -12 },
-    },
+    minHeight: 76,
+    paddingBlock: 16,
+    [theme.breakpoints.down("sm")]: { minHeight: 68, paddingBlock: 12 },
     flexShrink: 0,
     backgroundColor: theme.vars.palette.background.paper,
     "& .MuiIconButton-root": { color: theme.vars.palette.text.base },
@@ -722,16 +757,13 @@ const FileInfoDivider = styled("hr")(({ theme }) => ({
     margin: 0,
     border: 0,
     borderTop: `1px solid ${theme.vars.palette.stroke.faint}`,
-    ...theme.applyStyles("dark", {
-        borderColor: `color-mix(in srgb, ${theme.vars.palette.stroke.faint} 55%, transparent)`,
-    }),
 }));
 const FileInfoSection: React.FC<React.PropsWithChildren<{ title: string }>> = ({
     title,
     children,
 }) => (
-    <Stack component="section" sx={{ gap: 1.75 }}>
-        <FileInfoDivider sx={{ mb: 0.75 }} />
+    <Stack component="section" sx={{ gap: 2, minWidth: 0 }}>
+        <FileInfoDivider />
         <Typography
             component="h3"
             sx={{ fontSize: 18, lineHeight: "24px", fontWeight: 600 }}
@@ -774,8 +806,8 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
         sx={{
             alignItems: "center",
             minHeight: 56,
-            gap: { xs: "8px", sm: "10px" },
-            p: { xs: "8px 0", sm: "8px 10px" },
+            gap: "12px",
+            p: "8px 0",
             minWidth: 0,
         }}
     >
@@ -790,6 +822,7 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
                             overflowWrap: "anywhere",
                             fontSize: 14,
                             lineHeight: "20px",
+                            fontWeight: 500,
                         }}
                     >
                         {title}
@@ -802,6 +835,7 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
                         color: "text.muted",
                         fontSize: 12,
                         lineHeight: "16px",
+                        fontWeight: 500,
                     }}
                 >
                     {caption}
@@ -812,18 +846,14 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
     </Stack>
 );
 const InfoItemIconContainer = styled("div")(({ theme }) => ({
-    width: 34,
-    height: 34,
+    width: 38,
+    height: 38,
     flexShrink: 0,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     color: theme.vars.palette.text.muted,
-    "& > svg": { width: 18, height: 18 },
-    [theme.breakpoints.down("sm")]: {
-        width: 32,
-        "& > svg": { width: 20, height: 20 },
-    },
+    "& > svg": { width: 20, height: 20, strokeWidth: 1.8 },
 }));
 type EditButtonProps = ButtonishProps & { loading?: boolean };
 const EditButton: React.FC<EditButtonProps> = ({ onClick, loading }) => (
@@ -896,7 +926,7 @@ const Caption: React.FC<CaptionProps> = ({
     }, [onEditStateChange, editState]);
 
     if (!caption.length && !allowEdits) {
-        return <Box sx={{ minHeight: 2 }}></Box>;
+        return null;
     }
 
     return (
@@ -1173,9 +1203,18 @@ const MapBox: React.FC<MapBoxProps> = ({ location, mapEnabled }) => {
         <MapBoxContainer ref={mapBoxContainerRef} />
     ) : (
         <MapBoxEnableContainer>
-            <ChipButton onClick={() => updateMapEnabled(true)}>
+            <Button
+                color="secondary"
+                onClick={() => updateMapEnabled(true)}
+                sx={{
+                    minHeight: 38,
+                    px: 2,
+                    borderRadius: "20px",
+                    bgcolor: "var(--file-info-control)",
+                }}
+            >
                 {t("enable_map")}
-            </ChipButton>
+            </Button>
         </MapBoxEnableContainer>
     );
 };
@@ -1241,18 +1280,7 @@ const RawExif: React.FC<RawExifProps> = ({ open, onClose, tags }) => {
     return (
         <FileInfoSidebar open={open} onClose={onClose}>
             <FileInfoHeader>
-                <IconButton
-                    aria-label={t("go_back")}
-                    onClick={onClose}
-                    sx={{
-                        width: 40,
-                        height: 40,
-                        flexShrink: 0,
-                        p: 0,
-                        ml: -1.25,
-                        borderRadius: "50%",
-                    }}
-                >
+                <IconButton aria-label={t("go_back")} onClick={onClose}>
                     <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
                 </IconButton>
                 <Typography
@@ -1351,34 +1379,91 @@ const Albums: React.FC<AlbumsProps> = ({
                     const isHiddenCollection =
                         hiddenCollectionIDs?.has(collectionID);
                     return (
-                        <ChipButton
+                        <AlbumButton
                             key={collectionID}
+                            title={
+                                isHiddenCollection
+                                    ? t("section_hidden")
+                                    : collectionNameByID.get(collectionID)
+                            }
+                            startIcon={
+                                <HugeiconsIcon
+                                    icon={Album02Icon}
+                                    size={20}
+                                    strokeWidth={1.8}
+                                />
+                            }
+                            endIcon={
+                                !isHiddenCollection && (
+                                    <HugeiconsIcon
+                                        icon={ArrowRight01Icon}
+                                        size={20}
+                                        strokeWidth={1.8}
+                                    />
+                                )
+                            }
+                            disabled={isHiddenCollection}
                             onClick={() => {
                                 if (!isHiddenCollection) {
                                     onSelectCollection(collectionID);
                                 }
                             }}
                         >
-                            {isHiddenCollection
-                                ? t("section_hidden")
-                                : collectionNameByID.get(collectionID)}
-                        </ChipButton>
+                            <Box
+                                component="span"
+                                sx={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {isHiddenCollection
+                                    ? t("section_hidden")
+                                    : collectionNameByID.get(collectionID)}
+                            </Box>
+                        </AlbumButton>
                     );
                 })}
         </Stack>
     </FileInfoSection>
 );
 
-const ChipButton = styled((props: ButtonProps) => (
+const AlbumButton = styled((props: ButtonProps) => (
     <Button color="secondary" {...props} />
 ))(({ theme }) => ({
-    ...theme.typography.mini,
-    minHeight: 38,
-    padding: "10px 16px",
-    borderRadius: 24,
-    color: theme.vars.palette.text.muted,
-    backgroundColor: theme.vars.palette.fill.fainter,
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 500,
+    minHeight: 48,
+    width: "100%",
+    minWidth: 0,
+    justifyContent: "flex-start",
+    textAlign: "left",
+    padding: "12px 16px",
+    borderRadius: 12,
+    color: theme.vars.palette.text.base,
+    backgroundColor: "var(--file-info-control)",
+    boxShadow: "none",
+    "& .MuiButton-startIcon": {
+        marginLeft: 0,
+        marginRight: 12,
+        color: theme.vars.palette.text.muted,
+    },
+    "& .MuiButton-endIcon": {
+        marginLeft: 8,
+        marginRight: 0,
+        color: theme.vars.palette.text.muted,
+    },
+    "&:hover": {
+        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.text.base} 8%, var(--file-info-control))`,
+        boxShadow: "none",
+    },
+    "&.Mui-focusVisible": {
+        outline: `2px solid ${theme.vars.palette.text.base}`,
+        outlineOffset: -2,
+    },
     textTransform: "none",
-    overflowWrap: "anywhere",
     maxWidth: "100%",
 }));
