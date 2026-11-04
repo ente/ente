@@ -659,7 +659,6 @@ const FileInfoSidebar = styled(
         },
     }),
     ".MuiDrawer-paper": {
-        // Scope the island palette to this portalled drawer and its EXIF view.
         "--mui-palette-background-paper": "#FFFFFF",
         "--mui-palette-text-muted": "#666666",
         "--mui-palette-stroke-faint": "#EBEBEB",
