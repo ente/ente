@@ -12,6 +12,7 @@ import {
     Stack,
     Tooltip,
     Typography,
+    keyframes,
     type ButtonProps,
     type SxProps,
     type Theme,
@@ -26,6 +27,7 @@ import React from "react";
 export interface NotificationAttributes {
     color: ButtonProps["color"];
     startIcon?: IconSvgElement | null;
+    spinStartIcon?: boolean;
     title: React.ReactNode;
     caption?: React.ReactNode;
     onClick?: () => void;
@@ -45,6 +47,11 @@ type NotificationProps = ModalVisibilityProps & {
     autoHideDuration?: number | null;
     sx?: SxProps<Theme>;
 };
+
+const spin = keyframes({
+    from: { transform: "rotate(0deg)" },
+    to: { transform: "rotate(360deg)" },
+});
 
 const actionButtonSx = {
     width: 38,
@@ -77,6 +84,7 @@ export const Notification: React.FC<NotificationProps> = ({
     const {
         color,
         startIcon,
+        spinStartIcon,
         title,
         caption,
         endIcon,
@@ -133,7 +141,17 @@ export const Notification: React.FC<NotificationProps> = ({
                 <Stack
                     sx={{
                         flexShrink: 0,
-                        svg: { width: 24, height: 24, fontSize: 24 },
+                        svg: {
+                            width: 24,
+                            height: 24,
+                            fontSize: 24,
+                            ...(spinStartIcon && {
+                                animation: `${spin} 1s linear infinite`,
+                                "@media (prefers-reduced-motion: reduce)": {
+                                    animation: "none",
+                                },
+                            }),
+                        },
                     }}
                 >
                     <HugeiconsIcon
