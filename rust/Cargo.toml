@@ -36,6 +36,7 @@ members = [
     "crates/exif",
     "crates/image",
     "crates/legacy",
+    "crates/live-photo",
     "crates/location",
     "crates/locker",
     "crates/ml",
@@ -74,6 +75,7 @@ ente-frb-lib = { path = "bindings/frb/lib" }
 ente-frb-log = { path = "bindings/frb/log" }
 ente-image = { path = "crates/image" }
 ente-legacy = { path = "crates/legacy" }
+ente-live-photo = { path = "crates/live-photo" }
 ente-location = { path = "crates/location" }
 ente-locker = { path = "crates/locker" }
 ente-ml = { path = "crates/ml" }

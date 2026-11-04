@@ -1,7 +1,6 @@
 mod adopt;
 mod fs;
 mod legacy;
-mod live_photo;
 mod metadata;
 mod names;
 mod reconcile;
@@ -860,11 +859,11 @@ fn fatal_cause(cause: &(dyn std::error::Error + 'static)) -> bool {
     if let Some(ente_collections::Error::Http(error)) = cause.downcast_ref() {
         return fatal_cause(error);
     }
-    if let Some(error) = cause.downcast_ref::<crate::live_photo::Error>() {
+    if let Some(error) = cause.downcast_ref::<ente_live_photo::Error>() {
         match error {
-            crate::live_photo::Error::Io(error) => return fatal_cause(error),
-            crate::live_photo::Error::Zip(error) => return fatal_cause(error),
-            crate::live_photo::Error::Components | crate::live_photo::Error::ExpansionLimit => {}
+            ente_live_photo::Error::Io(error) => return fatal_cause(error),
+            ente_live_photo::Error::Zip(error) => return fatal_cause(error),
+            ente_live_photo::Error::Components | ente_live_photo::Error::ExpansionLimit => {}
         }
     }
     cause.source().is_some_and(fatal_cause)
@@ -955,11 +954,11 @@ mod tests {
                 format!("download failed: HTTP {status} at /files")
             );
         }
-        let cancelled = crate::live_photo::Error::Io(std::io::Error::other(Cancelled));
+        let cancelled = ente_live_photo::Error::Io(std::io::Error::other(Cancelled));
         assert!(fatal(&anyhow::Error::new(cancelled)));
-        let full = crate::live_photo::Error::Io(std::io::ErrorKind::StorageFull.into());
+        let full = ente_live_photo::Error::Io(std::io::ErrorKind::StorageFull.into());
         assert!(fatal(&anyhow::Error::new(full)));
-        let zip = crate::live_photo::Error::Zip(zip::result::ZipError::Io(
+        let zip = ente_live_photo::Error::Zip(zip::result::ZipError::Io(
             std::io::ErrorKind::StorageFull.into(),
         ));
         assert!(fatal(&anyhow::Error::new(zip)));

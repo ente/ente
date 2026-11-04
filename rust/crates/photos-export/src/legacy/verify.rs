@@ -9,6 +9,7 @@ use crate::{
 };
 use anyhow::{Context, Result, ensure};
 use ente_core::{Session, b64, crypto::hash::HashState};
+use ente_live_photo as live_photo;
 use ente_photos::files;
 use std::{
     io::{self, Seek, SeekFrom, Write},
@@ -250,11 +251,16 @@ async fn hashes(
             Ok(file)
         });
         let archive = tokio::select! { result=download=>result?, _=receiver.changed()=>return Err(crate::Cancelled.into()) };
-        crate::live_photo::extract(archive, |_, _| {
+        live_photo::extract(archive, |_, _| {
             Digest::new(cancel).map_err(io::Error::other)
         })?
         .into_iter()
-        .map(|(role, _, writer)| (role, writer.finish()))
+        .map(|part| {
+            (
+                transfer::live_photo_role(part.component),
+                part.writer.finish(),
+            )
+        })
         .collect()
     } else {
         let download = files::download(session, file.id, &file.key, &file.header, || {
