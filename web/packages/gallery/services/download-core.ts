@@ -226,7 +226,6 @@ class DownloadManagerCore {
                 ...opts,
                 onProgress: report,
             });
-            // Cached files do not emit network progress.
             if (!latest) report({ loaded: blob.size, total: blob.size });
             return blob;
         } finally {

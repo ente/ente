@@ -2,7 +2,6 @@ import type { EnteFile } from "ente-media/file";
 import type { UpdateSaveGroup } from "../components/utils/save-groups";
 import type { FileDownloadProgress } from "./download-core";
 
-// Aggregate concurrent transfers by byte size, keeping successful files on retry.
 export const createSaveProgress = (
     files: EnteFile[],
     updateSaveGroup: UpdateSaveGroup,

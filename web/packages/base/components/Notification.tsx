@@ -34,7 +34,6 @@ export interface NotificationAttributes {
     endIcon?: IconSvgElement;
     endIconLabel?: string;
     onEndIconClick?: () => void;
-    // Determinate progress as a fraction between zero and one.
     progress?: number;
 }
 
