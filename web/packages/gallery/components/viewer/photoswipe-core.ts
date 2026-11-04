@@ -207,11 +207,15 @@ export class FileViewerPhotoSwipe<
                     "media-control-bar:has(media-loading-indicator)",
                 );
                 if (buffering) {
-                    buffering.classList.add("pswp__status-buffering");
+                    const statusBuffering = buffering.cloneNode(
+                        true,
+                    ) as HTMLElement;
+                    statusBuffering.classList.add("pswp__status-buffering");
                     const label = document.createElement("span");
                     label.textContent = t("buffering");
                     buffering.append(label);
-                    counter.after(buffering);
+                    statusBuffering.append(label.cloneNode(true));
+                    counter.after(statusBuffering);
                 }
             });
         }
@@ -1413,7 +1417,7 @@ export class FileViewerPhotoSwipe<
                             moreLink.addEventListener("click", handleViewInfo);
                             captionP.appendChild(moreLink);
                         }
-                        captionEl.style.display = captionText
+                        captionEl.style.display = captionText?.trim()
                             ? "block"
                             : "none";
                         captionEl.classList.toggle(
@@ -1797,7 +1801,7 @@ const livePhotoVideoHTML = (videoURL: string) => `
 `;
 
 const bottomRightControlsHTML = () => `
-<div class="pswp__caption"><p></p></div>
+<div class="pswp__caption" style="display: none"><p></p></div>
 <div class="pswp__action-buttons">
   <button class="pswp__action-button" aria-label="Like">
     <svg viewBox="0 0 30 26" fill="none">${heartSVGPath} id="pswp__icn-heart" />${heartFillSVGPath} id="pswp__icn-heart-fill" /></svg>
