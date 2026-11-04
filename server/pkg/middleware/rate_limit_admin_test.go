@@ -17,7 +17,6 @@ func newAdminRateLimitTestRouter(rl *RateLimitMiddleware) *gin.Engine {
 	router := gin.New()
 	admin := router.Group("/admin")
 	admin.Use(func(c *gin.Context) {
-		// Stands in for TokenAuthMiddleware, which sets this header.
 		c.Request.Header.Set("X-Auth-User-ID", c.GetHeader("Test-Admin"))
 	}, rl.AdminRateLimitMiddleware(func(c *gin.Context) string { return c.FullPath() }))
 	ok := func(c *gin.Context) { c.Status(http.StatusNoContent) }
@@ -41,7 +40,6 @@ func adminRateLimitTestRequest(router *gin.Engine, adminID int, method, path str
 }
 
 func TestAdminRateLimits(t *testing.T) {
-	// No bot tokens are configured, so breach alerts are only logged.
 	rl := NewRateLimitMiddleware(discord.NewDiscordController(nil, "test", "test"), 1_000_000, 1_000_000, time.Hour)
 	t.Cleanup(rl.Stop)
 	router := newAdminRateLimitTestRouter(rl)
@@ -64,10 +62,8 @@ func TestAdminRateLimits(t *testing.T) {
 				require.Equal(t, http.StatusNoContent, adminRateLimitTestRequest(router, 1, tt.method, tt.path), "request %d", i+1)
 			}
 			require.Equal(t, http.StatusTooManyRequests, adminRateLimitTestRequest(router, 1, tt.method, tt.path))
-			// Another admin has their own budget.
 			require.Equal(t, http.StatusNoContent, adminRateLimitTestRequest(router, 2, tt.method, tt.path))
 		})
 	}
-	// Each route has its own budget.
 	require.Equal(t, http.StatusNoContent, adminRateLimitTestRequest(router, 1, http.MethodPut, "/admin/user/subscription"))
 }

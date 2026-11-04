@@ -9,11 +9,6 @@ import (
 	"github.com/ulule/limiter/v3"
 )
 
-// AdminRateLimitMiddleware applies per-admin, per-route limits to the admin
-// API. It must run after AdminAuthMiddleware, so the admin's user ID is set.
-//
-// The limits assume a person doing support, and cap how much a stolen admin
-// token can read or change in an hour.
 func (r *RateLimitMiddleware) AdminRateLimitMiddleware(urlSanitizer func(_ *gin.Context) string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestPath := urlSanitizer(c)
@@ -27,17 +22,12 @@ func (r *RateLimitMiddleware) AdminRateLimitMiddleware(urlSanitizer func(_ *gin.
 	}
 }
 
-// adminLimiter returns the limit for one admin route. Each admin has a
-// separate budget per route.
 func (r *RateLimitMiddleware) adminLimiter(reqPath string, reqMethod string) *limiter.Limiter {
 	switch reqPath {
 	case "/admin/users", "/admin/email-hash", "/admin/emails-from-hashes":
-		// Bulk or reverse lookups of user data. Only self-hosted instances
-		// serve these.
 		return r.limit10ReqPerHour
 	}
 	if reqMethod == http.MethodGet || reqMethod == http.MethodHead {
-		// Single-user lookups.
 		return r.limit30ReqPerHour
 	}
 	return r.limit10ReqPerHour
