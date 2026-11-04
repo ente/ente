@@ -8,6 +8,7 @@ import "package:logging/logging.dart";
 import 'package:photos/core/configuration.dart';
 import "package:photos/services/account/user_service.dart";
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
+import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget.dart"
     show ButtonAction;
 import "package:photos/utils/dialog_util.dart";
@@ -194,6 +195,14 @@ class _LoginPasswordVerificationPageState
         setState(() {
           _isPasswordIncorrect = true;
         });
+      } else if (e == const AccountsError.sessionExpired()) {
+        if (!context.mounted) return;
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.loginSessionExpired,
+          message: context.strings.loginSessionExpiredDetails,
+          assetPath: 'assets/warning-grey.png',
+        );
       } else {
         _logger.severe('API failure during SRP login', e, s);
         if (e is AccountsError_Network) {

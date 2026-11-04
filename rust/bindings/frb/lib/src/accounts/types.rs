@@ -39,6 +39,7 @@ impl From<Error> for AccountsError {
             Error::EmailAlreadyInUse => Self::EmailAlreadyInUse,
             Error::SrpNotConfigured => Self::SrpNotConfigured,
             Error::IncorrectPassword => Self::IncorrectPassword,
+            Error::SrpSessionExpired => Self::SessionExpired,
             Error::IncorrectRecoveryKey => Self::IncorrectRecoveryKey,
             Error::MalformedRecoveryKey => Self::MalformedRecoveryKey,
             Error::IncorrectEmailVerificationCode => Self::IncorrectEmailCode,
