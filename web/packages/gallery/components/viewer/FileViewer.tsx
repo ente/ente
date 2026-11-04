@@ -23,7 +23,7 @@ import {
     type ModalProps,
 } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
-import { isDesktop } from "ente-base/app";
+import { appName, isDesktop } from "ente-base/app";
 import { SpacedRow } from "ente-base/components/containers";
 import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";
@@ -1857,6 +1857,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 id={moreMenuID}
                 disableAutoFocusItem
                 slotProps={{ list: { "aria-labelledby": moreButtonID } }}
+                sx={appName == "photos" ? islandMoreMenuSx : undefined}
             >
                 {activeAnnotatedFile.annotation.showDownload == "menu" && (
                     <ContextMenuItem onClick={handleDownloadMenuAction}>
@@ -2160,3 +2161,23 @@ const createImagePNGBlob = async (imageURL: string): Promise<Blob> =>
         image.onerror = reject;
         image.src = imageURL;
     });
+
+/**
+ * The photos app's island layout (see `useIslandLayout` in photoswipe-core.ts)
+ * shows the More menu as a floating island with the gallery's 20px corners.
+ */
+const islandMoreMenuSx = {
+    "& .MuiPaper-root": {
+        borderRadius: "20px",
+        minWidth: 260,
+        marginTop: "4px",
+        boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25)",
+    },
+    "& .MuiList-root": { padding: "6px" },
+    "& .MuiMenuItem-root": {
+        minHeight: 44,
+        borderRadius: "14px",
+        fontSize: 14,
+        fontWeight: 500,
+    },
+} as const;

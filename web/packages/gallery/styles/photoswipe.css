@@ -780,3 +780,501 @@ body:has(
         animation: none;
     }
 }
+
+/*
+ * Island layout (photos app only, see `useIslandLayout` in photoswipe-core.ts).
+ *
+ * The viewer keeps its dark palette but adopts the gallery's island shell: a
+ * #161616 ground, the slide inside a #212121 panel with 20px corners, 38px
+ * rounded-square top bar buttons, and controls on blurred pills inside the
+ * panel. The panel insets here must match `islandLayoutPadding`.
+ */
+.pswp-ente-island {
+    --ente-island-ground: #161616;
+    --pswp-bg: var(--ente-island-ground);
+    --pswp-icon-color: var(--ente-island-text);
+    --pswp-icon-color-secondary: var(--ente-island-control);
+    --ente-island-top: 76px;
+    --ente-island-inset: 11px;
+    --ente-island-surface: #212121;
+    --ente-island-control: #2b2b2b;
+    --ente-island-control-hover: #373737;
+    --ente-island-scrim: rgb(0 0 0 / 0.55);
+    --ente-island-text-muted: #999;
+    --ente-island-text: #fff;
+    --ente-island-status-text: #b8b8b8;
+    --ente-island-media-gradient: rgb(0 0 0 / 0.8);
+    --ente-island-stroke: #3e3e3e;
+    --ente-island-accent: #08c225;
+    --ente-island-radius-control: 12px;
+    --ente-island-easing: cubic-bezier(0.22, 1, 0.36, 1);
+    font-family: "Inter Variable", Inter, sans-serif;
+    letter-spacing: -0.011em;
+    color: var(--ente-island-text);
+    color-scheme: dark;
+}
+
+@media (width < 450px) {
+    .pswp-ente-island {
+        --ente-island-top: 60px;
+        --ente-island-inset: 8px;
+    }
+}
+
+.pswp-ente-island .pswp__bg::after {
+    content: "";
+    position: absolute;
+    top: calc(var(--ente-island-inset) + env(titlebar-area-height, 0px) * 0.4);
+    left: var(--ente-island-inset);
+    right: var(--ente-island-inset);
+    bottom: var(--ente-island-inset);
+    border-radius: 20px;
+    background: var(--ente-island-surface);
+}
+
+/* Controls have their own contrasting surfaces. */
+.pswp-ente-island .pswp__top-bar::before,
+.pswp-ente-island .pswp__bottom-right-controls::before {
+    display: none;
+}
+
+/* Overlay the toolbar without reserving space above the image. */
+.pswp-ente-island .pswp__top-bar {
+    top: calc(
+        var(--ente-island-inset) + 1px + env(titlebar-area-height, 0px) * 0.4
+    );
+    left: calc(var(--ente-island-inset) + 12px);
+    right: calc(var(--ente-island-inset) + 12px);
+    width: auto;
+    padding: 0;
+}
+
+.pswp-ente-island .pswp__top-bar .pswp__button {
+    margin-left: 0;
+}
+
+.pswp-ente-island .pswp__top-bar .pswp__button--close {
+    margin-right: -6px;
+}
+
+.pswp-ente-island .pswp__counter {
+    margin-inline-start: 4px;
+}
+
+.pswp-ente-island .pswp__status-island {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 38px;
+    min-width: 0;
+    margin: 11px 6px 0 0;
+    padding-inline: 12px;
+    border-radius: 12px;
+    background: var(--ente-island-control);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ente-island-status-text);
+    line-height: 20px;
+    font-variant-numeric: tabular-nums;
+}
+
+.pswp-ente-island .pswp__status-island .pswp__counter {
+    margin: 0;
+    height: 20px;
+    flex-shrink: 0;
+    font: inherit;
+    text-shadow: none;
+}
+
+.pswp-ente-island .pswp__status-island .pswp__ente-progress-text {
+    margin: 0;
+    font: inherit;
+    text-shadow: none;
+    gap: 6px;
+    border-inline-start: 1px solid var(--ente-island-stroke);
+    padding-inline-start: 12px;
+}
+
+.pswp-ente-island .pswp__status-island .pswp__ente-progress-text::before {
+    content: "↓";
+    flex-shrink: 0;
+}
+
+.pswp-ente-island
+    .pswp__status-island
+    .pswp__ente-progress-text--downloading::before {
+    background: linear-gradient(
+        to top,
+        #08c225 0%,
+        #08c225 50%,
+        var(--ente-island-status-text) 50%,
+        var(--ente-island-status-text) 100%
+    );
+    background-size: 100% 200%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: ente-download-arrow-fill 1.6s linear infinite;
+}
+
+@keyframes ente-download-arrow-fill {
+    0% {
+        background-position: 0 0;
+    }
+    85%,
+    100% {
+        background-position: 0 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pswp-ente-island
+        .pswp__status-island
+        .pswp__ente-progress-text--downloading::before {
+        animation: none;
+        color: #08c225;
+    }
+}
+
+.pswp-ente-island .pswp__status-island .pswp__ente-progress-status {
+    display: block;
+}
+
+.pswp-ente-island
+    .pswp__status-island
+    .pswp__ente-progress-text
+    .pswp__ente-progress-status::after {
+    content: none;
+    display: none;
+    animation: none;
+}
+
+.pswp-ente-island .pswp__status-island .pswp__ente-progress-size {
+    color: inherit;
+}
+
+.pswp-ente-island
+    .pswp__status-island
+    :is(.pswp__counter, .pswp__status-buffering, .pswp__ente-progress-text) {
+    color: inherit;
+    opacity: 1;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+}
+
+.pswp-ente-island .pswp__status-island .pswp__status-buffering {
+    --media-font-family: "Inter Variable", Inter, sans-serif;
+    --media-font-size: 14px;
+    --media-font-weight: 500;
+}
+
+.pswp-ente-island .pswp__preloader {
+    margin-inline-end: 0;
+}
+
+.pswp-ente-island
+    .pswp__top-bar
+    :is(.pswp__button--favorite, .pswp__button--download) {
+    margin-inline-start: auto;
+}
+
+.pswp-ente-island
+    .pswp__status-island
+    .pswp__ente-progress-text:not(.pswp__ente-progress-text--active),
+.pswp-ente-island.pswp--one-slide
+    .pswp__status-island:not(:has(.pswp__ente-progress-text--active)) {
+    display: none;
+}
+
+/*
+ * Draw the 38px rounded-square button surface behind each top bar icon,
+ * centered on the button's hit area.
+ */
+.pswp-ente-island .pswp__top-bar button.pswp__button::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--ente-island-radius-control);
+    background: var(--ente-island-control);
+    transition:
+        background-color 160ms ease,
+        transform 180ms var(--ente-island-easing);
+}
+
+.pswp-ente-island .pswp__top-bar button.pswp__button:hover::before {
+    background: var(--ente-island-control-hover);
+}
+
+.pswp-ente-island .pswp__top-bar button.pswp__button:active::before {
+    transform: translate(-50%, -50%) scale(0.985);
+}
+
+.pswp-ente-island .pswp__top-bar button.pswp__button:focus-visible {
+    outline: none;
+}
+
+.pswp-ente-island .pswp__top-bar button.pswp__button:focus-visible::before {
+    outline: 1px solid #08c225;
+    outline-offset: 2px;
+}
+
+.pswp-ente-island .pswp__top-bar button.pswp__button .pswp__icn {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+}
+
+/* Center the 24px icon paths within PhotoSwipe's 32px SVG canvas. */
+.pswp-ente-island
+    .pswp__top-bar
+    :is(
+        #pswp__icn-info,
+        #pswp__icn-more,
+        #pswp__icn-download,
+        #pswp__icn-fullscreen,
+        #pswp__icn-fullscreen-exit
+    ) {
+    transform: translate(4px, 4px);
+}
+
+.pswp-ente-island .pswp__top-bar button.pswp__button--zoom .pswp__icn {
+    transform: translate(-50%, -50%) scale(0.85);
+}
+
+.pswp-ente-island .pswp__top-bar :is(#pswp__icn-live, #pswp__icn-vol) {
+    transform: translate(7px, 7px) scale(0.75);
+}
+
+/* Navigation uses the same rounded surfaces as the toolbar. */
+.pswp-ente-island .pswp__button--arrow {
+    width: 44px;
+    height: 44px;
+    margin-top: -22px;
+    border-radius: 12px;
+    background: var(--ente-island-control);
+}
+
+.pswp-ente-island.pswp--ui-visible .pswp__hide-on-close.pswp__button--arrow {
+    opacity: 1;
+}
+
+.pswp-ente-island .pswp__button--arrow:hover {
+    background: var(--ente-island-control-hover);
+}
+
+.pswp-ente-island .pswp__button--arrow--prev {
+    left: calc(var(--ente-island-inset) + 12px);
+}
+
+.pswp-ente-island .pswp__button--arrow--next {
+    right: calc(var(--ente-island-inset) + 12px);
+}
+
+/* Hugeicons chevrons share the same centered 20px canvas. */
+.pswp-ente-island .pswp__button--arrow .pswp__icn {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    transform: none;
+    fill: none;
+    color: var(--ente-island-text);
+}
+
+/* Keep the bottom controls inside the panel. */
+.pswp-ente-island .pswp__bottom-right-controls {
+    bottom: calc(var(--ente-island-inset) + 12px);
+    left: calc(var(--ente-island-inset) + 12px);
+    right: calc(var(--ente-island-inset) + 12px);
+}
+
+@media (width >= 450px) {
+    .pswp-ente-island .pswp__bottom-right-controls {
+        bottom: calc(var(--ente-island-inset) + 24px);
+        gap: 16px;
+    }
+}
+
+.pswp-ente-island .pswp__caption,
+.pswp-ente-island .pswp__caption.ente-video {
+    border-radius: 20px;
+    background-color: var(--ente-island-control);
+    color: var(--ente-island-text);
+}
+
+.pswp-ente-island .pswp__caption p {
+    margin: 10px 14px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.pswp-ente-island .pswp__action-buttons {
+    gap: 8px;
+}
+
+.pswp-ente-island .pswp__action-button {
+    border: 0;
+    border-radius: 20px;
+    background-color: var(--ente-island-control);
+    transition:
+        background-color 160ms ease,
+        transform 180ms var(--ente-island-easing);
+}
+
+.pswp-ente-island .pswp__action-button:hover {
+    background-color: var(--ente-island-control-hover);
+}
+
+.pswp-ente-island .pswp__action-button svg {
+    fill: var(--ente-island-text);
+}
+
+.pswp-ente-island .pswp__action-button svg path[stroke="white"],
+.pswp-ente-island #pswp__icn-favorite {
+    stroke: var(--ente-island-text);
+}
+
+.pswp-ente-island .pswp__comment-count {
+    border: 1px solid var(--ente-island-stroke);
+}
+
+.pswp-ente-island .pswp__ente-progress-overlay {
+    background: var(--ente-island-control);
+    border-color: var(--ente-island-stroke);
+}
+
+.pswp-ente-island .pswp__ente-progress-pct {
+    color: var(--ente-island-text);
+}
+
+.pswp-ente-island .pswp__media-controls {
+    background: linear-gradient(transparent, var(--ente-island-media-gradient));
+    --media-icon-color: var(--ente-island-text);
+    --media-primary-color: var(--ente-island-text);
+    --media-text-color: var(--ente-island-text);
+    --media-control-hover-background: var(--ente-island-control-hover);
+}
+
+.pswp-ente-island
+    :is(.pswp__button--arrow, .pswp__action-button):focus-visible {
+    outline: 1px solid #08c225;
+    outline-offset: 2px;
+}
+
+/* Keep buffering beside the count without reserving an empty slot. */
+.pswp-ente-island .pswp__status-buffering {
+    display: none;
+    flex-shrink: 0;
+    padding: 0;
+    pointer-events: none;
+    align-items: center;
+    gap: 4px;
+    color: var(--ente-island-status-text);
+    border-inline-start: 1px solid var(--ente-island-stroke);
+    padding-inline-start: 8px;
+}
+
+.pswp-ente-island
+    .pswp__status-buffering:has(
+        media-loading-indicator[medialoading]:not([mediapaused])
+    ) {
+    display: flex;
+}
+
+.pswp-ente-island .pswp__status-buffering media-loading-indicator {
+    --media-icon-color: var(--ente-island-status-text);
+    --media-loading-indicator-icon-width: 28px;
+    --media-loading-indicator-icon-height: 28px;
+}
+
+/* Fullscreen media fills the viewer; the toolbar overlays it. */
+:fullscreen .pswp-ente-island,
+.pswp-ente-island.pswp--video-fullscreen {
+    --pswp-bg: var(--ente-island-ground);
+}
+
+:fullscreen .pswp-ente-island .pswp__bg::after,
+.pswp-ente-island.pswp--video-fullscreen .pswp__bg::after {
+    display: none;
+}
+
+/* Keep hover motion on fine pointers and preserve the controls' hit areas. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .pswp-ente-island
+        .pswp__top-bar
+        button.pswp__button:hover:not(:active)::before {
+        transform: translate(-50%, calc(-50% - 2px));
+    }
+
+    .pswp-ente-island
+        .pswp__top-bar
+        button.pswp__button:hover:not(:active)
+        .pswp__icn {
+        margin-top: -2px;
+    }
+
+    .pswp-ente-island :is(.pswp__button--arrow, .pswp__action-button):hover {
+        transform: translateY(-2px);
+    }
+}
+
+.pswp-ente-island :is(.pswp__button--arrow, .pswp__action-button):active {
+    transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pswp-ente-island :is(.pswp__button--arrow, .pswp__action-button):active {
+        transform: none;
+    }
+}
+
+@media (width < 700px) {
+    .pswp-ente-island .pswp__status-island {
+        position: absolute;
+        top: 60px;
+        left: 0;
+        margin: 0;
+        max-width: 100%;
+        gap: 8px;
+        padding-inline: 8px;
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    .pswp-ente-island .pswp__status-island .pswp__counter {
+        height: 16px;
+    }
+
+    .pswp-ente-island .pswp__status-island .pswp__ente-progress-text {
+        padding-inline-start: 8px;
+        gap: 4px;
+    }
+}
+
+@media (width < 450px) {
+    .pswp-ente-island .pswp__top-bar .pswp__button--close {
+        margin-right: -3px;
+    }
+
+    .pswp-ente-island .pswp__status-buffering {
+        padding-inline-start: 4px;
+        gap: 0;
+    }
+
+    .pswp-ente-island .pswp__status-buffering media-loading-indicator {
+        --media-loading-indicator-icon-width: 20px;
+        --media-loading-indicator-icon-height: 20px;
+    }
+}

@@ -1,3 +1,4 @@
+import { appName } from "ente-base/app";
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import type { FileDownloadProgress } from "ente-gallery/services/download-core";
@@ -22,6 +23,8 @@ import {
     heartFillSVGPath,
     heartSVGPath,
     settingsSVGPath,
+    slideArrowNextSVG,
+    slideArrowPrevSVG,
 } from "./icons";
 
 export interface FileViewerPhotoSwipeAnnotatedFile {
@@ -103,6 +106,20 @@ export const moreMenuID = "ente-pswp-more-menu";
 
 const fullscreenControlsAutoHideDelayMS = 3000;
 
+/**
+ * Padding around the slide in the photos app's island layout.
+ *
+ * Keep in sync with the `.pswp-ente-island` rules in photoswipe.css: the
+ * island is inset 11px from every edge (8px on small screens), and the slide gets a further gutter
+ * inside it, wide enough on large screens for the prev / next buttons.
+ */
+const islandLayoutPadding = ({ x }: { x: number }) =>
+    document.fullscreenElement
+        ? { top: 0, bottom: 0, left: 0, right: 0 }
+        : x < 450
+          ? { top: 8, bottom: 8, left: 8, right: 8 }
+          : { top: 11 + 24, bottom: 11 + 24, left: 11 + 80, right: 11 + 80 };
+
 export class FileViewerPhotoSwipe<
     T extends FileViewerPhotoSwipeAnnotatedFile =
         FileViewerPhotoSwipeAnnotatedFile,
@@ -131,6 +148,7 @@ export class FileViewerPhotoSwipe<
         onDownload,
         onMore,
     }: FileViewerPhotoSwipeCoreOptions<T>) {
+        const useIslandLayout = appName == "photos" && !isPublicAlbum;
         const pswp = new PhotoSwipe({
             bgOpacity: 1,
             showHideAnimationType: "fade",
@@ -164,7 +182,15 @@ export class FileViewerPhotoSwipe<
             index: initialIndex,
             mainClass: isPublicAlbum
                 ? "pswp-ente pswp-ente-public-album"
-                : "pswp-ente",
+                : useIslandLayout
+                  ? "pswp-ente pswp-ente-island"
+                  : "pswp-ente",
+            // Match the rounded panel's insets; the toolbar overlays the slide.
+            ...(useIslandLayout && {
+                paddingFn: islandLayoutPadding,
+                arrowPrevSVG: slideArrowPrevSVG,
+                arrowNextSVG: slideArrowNextSVG,
+            }),
             closeTitle: t("close"),
             zoomTitle: t("zoom"),
             arrowPrevTitle: t("previous"),
@@ -173,6 +199,30 @@ export class FileViewerPhotoSwipe<
         });
 
         this.pswp = pswp;
+
+        if (useIslandLayout) {
+            pswp.on("afterInit", () => {
+                const counter = pswp.element?.querySelector(".pswp__counter");
+                const progress = pswp.element?.querySelector(
+                    ".pswp__ente-progress-text",
+                );
+                if (!counter || !progress) return;
+                const island = document.createElement("div");
+                island.className = "pswp__status-island";
+                counter.before(island);
+                island.append(counter, progress);
+                const buffering = pswp.element?.querySelector(
+                    "media-control-bar:has(media-loading-indicator)",
+                );
+                if (buffering) {
+                    buffering.classList.add("pswp__status-buffering");
+                    const label = document.createElement("span");
+                    label.textContent = t("buffering");
+                    buffering.append(label);
+                    counter.after(buffering);
+                }
+            });
+        }
 
         let _currentAnnotatedFile: T | undefined;
 
@@ -496,6 +546,7 @@ export class FileViewerPhotoSwipe<
         };
 
         const handleFullscreenChange = () => {
+            if (useIslandLayout) pswp.updateSize(true);
             if (document.fullscreenElement) {
                 document.addEventListener(
                     "mousemove",
@@ -557,7 +608,7 @@ export class FileViewerPhotoSwipe<
             );
 
             const controls =
-                container?.querySelectorAll(
+                pswp.element?.querySelectorAll(
                     "media-control-bar, media-playback-rate-menu",
                 ) ?? [];
             for (const control of controls) {
@@ -972,10 +1023,20 @@ export class FileViewerPhotoSwipe<
                         : "";
                 setText(percentageEl, percentageText);
                 setText(status, statusText);
-                setText(size, sizeText);
+                progressText.classList.toggle(
+                    "pswp__ente-progress-text--downloading",
+                    state?.phase == "downloading",
+                );
+                const compactSize = useIslandLayout ? percentageText : sizeText;
+                setText(size, compactSize);
+                progressText.title = [statusText, sizeText]
+                    .filter(Boolean)
+                    .join(" · ");
                 setText(retry, t("retry"));
-                size.hidden = !sizeText;
-                separator.hidden = !(sizeText || failed);
+                size.hidden = !compactSize;
+                separator.hidden = useIslandLayout
+                    ? !failed
+                    : !(sizeText || failed);
                 retry.hidden = !failed;
                 fill.style.width = `${Math.max(state?.percentage ?? 0, 1)}%`;
                 progressRing.style.strokeDashoffset = `${100 - (state?.percentage ?? 0)}`;
