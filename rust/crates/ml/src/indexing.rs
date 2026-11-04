@@ -64,6 +64,10 @@ pub fn set_ml_execution_config(enable_webgpu: bool) {
     onnx::set_webgpu_enabled(enable_webgpu);
 }
 
+pub fn set_kleidiai_enabled(enabled: bool) {
+    onnx::set_kleidiai_enabled(enabled);
+}
+
 pub fn init_ml_runtime(model_paths: ModelPaths) {
     runtime::prepare_runtime(&model_paths);
 }

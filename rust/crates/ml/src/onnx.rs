@@ -14,6 +14,10 @@ pub(crate) fn set_webgpu_enabled(enabled: bool) {
     webgpu::set_enabled(enabled);
 }
 
+pub(crate) fn set_kleidiai_enabled(enabled: bool) {
+    providers::set_kleidiai_enabled(enabled);
+}
+
 pub(crate) use ort::session::Session as SessionHandle;
 pub(crate) use providers::ExecutionMode;
 use tensor::run_golden_tensor;
