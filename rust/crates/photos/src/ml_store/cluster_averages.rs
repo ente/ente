@@ -599,14 +599,15 @@ mod tests {
         store.db().bulk_insert_faces(&faces).unwrap();
         let assignments: Vec<_> = (1..=10003).map(|id| (id, "large")).collect();
         assign(&store, &assignments);
-        let stored = store
+        let mut valid = Vec::new();
+        store
             .db()
-            .get_face_embeddings_for_clusters(&ids(&["large"]), None)
+            .for_each_face_embedding_for_clusters(&ids(&["large"]), |_, embedding| {
+                valid.extend(crate::ml_store::clustering::clusterable_embedding(
+                    &embedding,
+                ));
+            })
             .unwrap();
-        let valid: Vec<_> = stored["large"]
-            .iter()
-            .filter_map(|embedding| crate::ml_store::clustering::clusterable_embedding(embedding))
-            .collect();
         let expected = crate::face_clustering::normalized_mean(&valid).unwrap();
 
         assert_eq!(refresh(&store, &[], 1), id_set(&["large"]));

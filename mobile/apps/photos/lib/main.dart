@@ -57,6 +57,7 @@ import "package:photos/services/notification_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/process_activity.dart";
 import 'package:photos/services/push_service.dart';
+import "package:photos/services/rewind/rewind_2025_leftovers.dart";
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/social_notification_coordinator.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
@@ -590,7 +591,7 @@ Future<void> _init(
     if (!isBackground) {
       unawaited(_warmContactsCacheInBackground());
     }
-    wrappedService.scheduleInitialLoad();
+    unawaited(removeRewind2025Leftovers(preferences));
     logLocalSettings();
     initComplete = true;
     _stopHearBeat = true;

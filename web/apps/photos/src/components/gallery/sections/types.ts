@@ -39,8 +39,10 @@ export type GallerySectionOperations = Pick<
     onToggleFavorite: (file: EnteFile) => Promise<void>;
     onSendLink: (file: EnteFile) => Promise<void>;
     setBlockingLoad: Dispatch<SetStateAction<boolean>>;
-    onUpload: (intent?: UploadTypeSelectorIntent) => void;
-    onCreateAlbum: () => void;
+    onUpload: (
+        intent?: UploadTypeSelectorIntent,
+        uploadTargetCollection?: Collection,
+    ) => void;
     saveGroups: ReturnType<typeof useSaveGroups>["saveGroups"];
     setSectionActivity: Dispatch<
         SetStateAction<{ selection: boolean; drop: boolean }>

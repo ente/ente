@@ -17,7 +17,3 @@ fn unique_in_order(ids: &[String]) -> Vec<&str> {
         .filter(|id| seen.insert(*id))
         .collect()
 }
-
-fn limit_clause(limit: Option<i64>) -> &'static str {
-    if limit.is_some() { " LIMIT ?" } else { "" }
-}

@@ -23,7 +23,7 @@ import {
     useMediaQuery,
 } from "@mui/material";
 import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BookHeader from "./BookHeader";
 import BookViewer, { type BookViewerHandle } from "./BookViewer";
 import {
@@ -35,9 +35,14 @@ import {
 import { DownloadIcon, EditIcon } from "./icons";
 import ResetBookButton from "./ResetBookButton";
 
-export default function ResultsPage() {
+function ResultsPage() {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
-    const { book, photos, setAppView, waitForEnteOriginals } = useBook();
+    const { book, photos, setAppView, waitForEnteOriginals } = useBook(
+        "book",
+        "photos",
+        "setAppView",
+        "waitForEnteOriginals",
+    );
     const viewerRef = useRef<BookViewerHandle>(null);
     const [spreadIndex, setSpreadIndex] = useState(0);
     const [downloadPhase, setDownloadPhase] = useState<
@@ -208,7 +213,7 @@ export default function ResultsPage() {
                 bgcolor: uiColors.background,
             }}
         >
-            <BookHeader titleDisabled={busy}>
+            <BookHeader showBindingSelect titleDisabled={busy}>
                 {mobile ? (
                     <ResetBookButton disabled={busy} />
                 ) : (
@@ -435,3 +440,5 @@ export default function ResultsPage() {
         </Box>
     );
 }
+
+export default memo(ResultsPage);

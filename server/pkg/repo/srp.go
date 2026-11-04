@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/stacktrace"
@@ -12,6 +13,8 @@ import (
 )
 
 type PasswordUpdateAuthorization func(context.Context, *sql.Tx) error
+
+const srpSessionValidity = 30 * time.Minute
 
 func (repo *UserAuthRepository) AddSRPSession(srpUserID uuid.UUID, serverKey string, srpA string) (uuid.UUID, error) {
 	id := uuid.New()
@@ -193,8 +196,10 @@ func (repo *UserAuthRepository) InsertOrUpdateSRPAuthAndKeyAttr(ctx context.Cont
 
 func (repo *UserAuthRepository) GetSrpSessionEntity(ctx context.Context, sessionID uuid.UUID) (*ente.SRPSessionEntity, error) {
 	result := ente.SRPSessionEntity{}
-	row := repo.DB.QueryRowContext(ctx, `SELECT id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false) FROM srp_sessions WHERE id = $1`, sessionID)
-	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake)
+	row := repo.DB.QueryRowContext(ctx, `SELECT id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false),
+		created_at <= now_utc_micro_seconds() - $2
+		FROM srp_sessions WHERE id = $1`, sessionID, srpSessionValidity.Microseconds())
+	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake, &result.IsExpired)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -205,7 +210,8 @@ func (repo *UserAuthRepository) ReserveSrpSessionAttempt(ctx context.Context, se
 	result := ente.SRPSessionEntity{}
 	row := repo.DB.QueryRowContext(ctx, `UPDATE srp_sessions SET attempt_count = attempt_count + 1
 		WHERE id = $1 AND has_verified = false AND attempt_count < $2
-		RETURNING id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false)`, sessionID, limit)
+			AND created_at > now_utc_micro_seconds() - $3
+		RETURNING id, srp_user_id, server_key, srp_a, has_verified, attempt_count, COALESCE(is_fake, false)`, sessionID, limit, srpSessionValidity.Microseconds())
 	err := row.Scan(&result.ID, &result.SRPUserID, &result.ServerKey, &result.SRP_A, &result.IsVerified, &result.AttemptCount, &result.IsFake)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -214,7 +220,8 @@ func (repo *UserAuthRepository) ReserveSrpSessionAttempt(ctx context.Context, se
 }
 
 func (repo *UserAuthRepository) TrySetSrpSessionVerified(ctx context.Context, sessionID uuid.UUID) (bool, error) {
-	result, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET has_verified = true WHERE id = $1 AND has_verified = false`, sessionID)
+	result, err := repo.DB.ExecContext(ctx, `UPDATE srp_sessions SET has_verified = true
+		WHERE id = $1 AND has_verified = false AND created_at > now_utc_micro_seconds() - $2`, sessionID, srpSessionValidity.Microseconds())
 	if err != nil {
 		return false, stacktrace.Propagate(err, "")
 	}

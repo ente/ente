@@ -22,6 +22,7 @@ pub struct MemoriesRequest {
     pub files: Vec<MemoryFile>,
     pub excluded_collection_ids: Vec<i64>,
     pub people: Vec<MemoryPerson>,
+    pub people_hidden_from_memories: Vec<String>,
     pub me_person_id: Option<String>,
     pub shows_unnamed_people: bool,
     pub shown_people: Vec<ShownPerson>,

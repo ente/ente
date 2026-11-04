@@ -54,8 +54,8 @@ pub(super) fn memories(
             Memory::new(
                 MemoryKind::OnThisDay,
                 &selector.sample_across_years(photos, MAXIMUM_PHOTOS),
-                period.start_of(day),
-                period.start_of(day.plus_days(1)),
+                day,
+                day.plus_days(1),
             )
         })
         .collect()
@@ -70,7 +70,8 @@ mod tests {
     use crate::memories::output::{Memory, MemoryKind};
     use crate::memories::photo::prepare;
     use crate::memories::selector::Selector;
-    use crate::memories::tests::{files_on, micros, period};
+    use crate::memories::tests::{files_on, period};
+    use crate::memories::{LocalDate, MemoryBoundary};
 
     fn on_this_day(files: &[MemoryFile], now: &str, excluded: &[i64]) -> Vec<Memory> {
         let photos = prepare(files);
@@ -98,9 +99,12 @@ mod tests {
         assert_eq!(memories[0].file_ids, [10, 11, 1, 2, 3]);
         assert_eq!(
             memories[0].first_date_to_show,
-            micros("2026-10-30T00:00:00")
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 10, 30))
         );
-        assert_eq!(memories[0].last_date_to_show, micros("2026-10-31T00:00:00"));
+        assert_eq!(
+            memories[0].last_date_to_show,
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 10, 31))
+        );
     }
 
     #[test]
@@ -112,6 +116,37 @@ mod tests {
         }
 
         assert!(on_this_day(&files, "2026-10-29T08:00:00", &[]).is_empty());
+    }
+
+    #[test]
+    fn display_boundaries_keep_calendar_dates_across_offset_changes() {
+        for (now, offset, month, day) in [
+            ("2026-10-31T16:00:00", -14_400, 11, 2),
+            ("2026-03-07T17:00:00", -18_000, 3, 9),
+            ("2026-10-31T06:30:00", 19_800, 11, 2),
+        ] {
+            let mut files = files_on(1, &format!("2021-{month:02}-{day:02}"), 3);
+            files.extend(files_on(10, &format!("2023-{month:02}-{day:02}"), 2));
+            let mut period = period(now);
+            period.utc_offset_seconds = offset;
+
+            let memories = memories(
+                &prepare(&files),
+                period,
+                &HashSet::new(),
+                &mut Selector::new(None, 1),
+            );
+
+            assert_eq!(memories.len(), 1);
+            assert_eq!(
+                memories[0].first_date_to_show,
+                MemoryBoundary::CalendarDate(LocalDate::new(2026, month, day))
+            );
+            assert_eq!(
+                memories[0].last_date_to_show,
+                MemoryBoundary::CalendarDate(LocalDate::new(2026, month, day + 1))
+            );
+        }
     }
 
     #[test]

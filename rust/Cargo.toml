@@ -36,6 +36,7 @@ members = [
     "crates/exif",
     "crates/image",
     "crates/legacy",
+    "crates/live-photo",
     "crates/location",
     "crates/locker",
     "crates/ml",
@@ -74,6 +75,7 @@ ente-frb-lib = { path = "bindings/frb/lib" }
 ente-frb-log = { path = "bindings/frb/log" }
 ente-image = { path = "crates/image" }
 ente-legacy = { path = "crates/legacy" }
+ente-live-photo = { path = "crates/live-photo" }
 ente-location = { path = "crates/location" }
 ente-locker = { path = "crates/locker" }
 ente-ml = { path = "crates/ml" }
@@ -109,6 +111,7 @@ open = "5.4.4"
 ort = { version = "=2.0.0-rc.15", default-features = false }
 ort-sys = { version = "=2.0.0-rc.15", default-features = false }
 quick-xml = "0.42.0"
+rayon = "1.12.0"
 regex = "1.13.1"
 reqwest = { version = "0.12.28", default-features = false }
 rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }

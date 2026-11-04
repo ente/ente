@@ -6,6 +6,7 @@ import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/core/network/endpoint_config.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/gateways/billing/billing_gateway.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
@@ -37,6 +38,7 @@ import "package:photos/services/machine_learning/ml_decryption_record_store.dart
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/memories/dart_memories_computer.dart";
 import "package:photos/services/memories/memories_computer.dart";
+import "package:photos/services/memories/rust_memories_computer.dart";
 import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
@@ -47,8 +49,6 @@ import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
 import "package:photos/services/update_service.dart";
 import "package:photos/services/wake_lock_service.dart";
-import "package:photos/services/wrapped/wrapped_cache_service.dart";
-import "package:photos/services/wrapped/wrapped_service.dart";
 import "package:photos/settings/backup_settings.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -235,10 +235,13 @@ SmartMemoriesService get smartMemoriesService {
   return _smartMemoriesService!;
 }
 
-MemoriesComputer? _memoriesComputer;
+DartMemoriesComputer? _dartMemoriesComputer;
+RustMemoriesComputer? _rustMemoriesComputer;
 MemoriesComputer get memoriesComputer {
-  _memoriesComputer ??= DartMemoriesComputer();
-  return _memoriesComputer!;
+  if (flagService.rustMemories && MLDataDB.isRustBackend) {
+    return _rustMemoriesComputer ??= RustMemoriesComputer();
+  }
+  return _dartMemoriesComputer ??= DartMemoriesComputer();
 }
 
 TextEmbeddingsCacheService? _textEmbeddingsCacheService;
@@ -310,18 +313,6 @@ LibrarySharingService get librarySharingService {
     store: LibrarySharingEntityStore(entityService),
   );
   return _librarySharingService!;
-}
-
-WrappedService? _wrappedService;
-WrappedService get wrappedService {
-  _wrappedService ??= WrappedService.instance;
-  return _wrappedService!;
-}
-
-WrappedCacheService? _wrappedCacheService;
-WrappedCacheService get wrappedCacheService {
-  _wrappedCacheService ??= WrappedCacheService.instance;
-  return _wrappedCacheService!;
 }
 
 InstallSourceService? _installSourceService;

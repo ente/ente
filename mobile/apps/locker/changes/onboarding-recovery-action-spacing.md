@@ -1,0 +1,1 @@
+- Improved spacing between onboarding and recovery-key actions.

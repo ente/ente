@@ -5,6 +5,7 @@ mod args;
 mod auth;
 mod core_db;
 mod db;
+mod feedback;
 mod home;
 mod login;
 mod migration;
@@ -127,6 +128,7 @@ async fn run(cli: Cli) -> Result<()> {
             auth::run(command, selector.account.as_deref(), &options).await
         }
         Command::Paste { command } => paste::run(command, &options).await,
+        Command::Feedback(args) => feedback::run(args, &options).await,
         Command::Account { command } => account_command(command, &options).await,
         Command::Vault {
             command:

@@ -11,6 +11,7 @@ mod places;
 mod rng;
 mod selector;
 mod signals;
+mod store;
 mod text_embeddings;
 mod time;
 mod trips;
@@ -24,10 +25,12 @@ pub use input::{
     PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownTrip, UnnamedCluster,
 };
 pub use output::{
-    BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryKind, PeopleActivity,
-    PeopleMemory, PeopleMemoryType, SmartMemories, TimeMemory, TripMemory,
+    BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryBoundary, MemoryKind,
+    PeopleActivity, PeopleMemory, PeopleMemoryType, SmartMemories, TimeMemory, TripMemory,
 };
+pub use store::compute_smart_memories_from_store;
 
+use clip::ClipHistory;
 use input::PhotoSignals;
 use people::People;
 use photo::Photo;
@@ -57,6 +60,7 @@ pub fn compute_smart_memories(
         .first()
         .map(|period| trips::analyze(&located, period.now, &places));
     let mut trip_history = TripHistory::new(&request.shown_trips, &request.cached_trips);
+    let mut clip_history = ClipHistory::new(&request.shown_clip_memories);
     let signals = ml.map(Signals::load).transpose()?;
     let people = ml
         .zip(signals.as_ref())
@@ -86,7 +90,15 @@ pub fn compute_smart_memories(
             memories.extend(trip_memories);
         }
         if let Some(signals) = &signals {
-            let clip_memories = clip::memories(&photos, period, request, signals, &mut selector)?;
+            let clip_memories = clip::memories(
+                &photos,
+                period,
+                request,
+                &clip_history,
+                signals,
+                &mut selector,
+            )?;
+            clip_history.record(&clip_memories);
             memories.extend(clip_memories);
         }
         let time_memories = time::memories(
@@ -120,6 +132,11 @@ pub fn compute_smart_memories(
 }
 
 pub fn compute_simple_memories(request: &MemoriesRequest, period: Period) -> Vec<Memory> {
+    log::info!(
+        "computing simple memories for {} files with seed {}",
+        request.files.len(),
+        request.seed
+    );
     let photos = photo::prepare(&request.files);
     let excluded_collection_ids: HashSet<i64> =
         request.excluded_collection_ids.iter().copied().collect();
@@ -128,7 +145,7 @@ pub fn compute_simple_memories(request: &MemoriesRequest, period: Period) -> Vec
         on_this_day::memories(&photos, period, &excluded_collection_ids, &mut selector)
             .into_iter()
             .take(1)
-            .filter(|memory| memory.is_shown_at(period.now))
+            .filter(|memory| memory.is_shown_at(period))
             .collect();
     let filler_memories = filler::memories(&unused_photos(&photos, &memories), period);
     memories.extend(filler_memories);
@@ -272,8 +289,14 @@ mod tests {
                 }),
             ]
         );
-        assert_eq!(next[0].first_date_to_show, micros("2026-11-01T00:00:00"));
-        assert_eq!(next[0].last_date_to_show, micros("2026-12-01T00:00:00"));
+        assert_eq!(
+            next[0].first_date_to_show,
+            super::LocalDate::new(2026, 11, 1).into()
+        );
+        assert_eq!(
+            next[0].last_date_to_show,
+            super::LocalDate::new(2026, 12, 1).into()
+        );
     }
 
     #[test]

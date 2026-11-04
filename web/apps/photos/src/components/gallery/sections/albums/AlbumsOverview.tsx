@@ -33,7 +33,7 @@ interface AlbumsOverviewProps {
     filter: AlbumFilter | "links";
     searchQuery: string;
     sortBy: CollectionsSortBy;
-    onCreateAlbum: () => void;
+    onCreateAlbum?: () => void;
     onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
 }
 
@@ -71,7 +71,8 @@ export const AlbumsOverview = ({
         filter == "empty-albums" &&
         hasEnoughEmptyAlbums &&
         !normalizedSearchQuery;
-    const showCreate = filter == "ente" && !normalizedSearchQuery;
+    const showCreate =
+        filter == "ente" && !normalizedSearchQuery && !!onCreateAlbum;
     const tileWidth = compact ? 104 : 140;
     const columnGap = compact ? 12 : 22;
     const rowGap = compact ? 16 : 24;
@@ -230,7 +231,7 @@ interface AlbumRowData {
     tileWidth: number;
     showCreate: boolean;
     onSelectAlbum: (id: number) => void;
-    onCreateAlbum: () => void;
+    onCreateAlbum?: () => void;
 }
 
 const AlbumsRow = ({

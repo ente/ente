@@ -12,6 +12,7 @@ ente-core.workspace = true
 ente-frb-lib = { workspace = true, features = ["contacts", "legacy"] }
 ente-frb-log.workspace = true
 ente-image.workspace = true
+ente-live-photo.workspace = true
 ente-location.workspace = true
 ente-ml = { workspace = true, features = ["usearch"] }
 ente-photos.workspace = true
@@ -21,6 +22,10 @@ log.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+zip.workspace = true
 
 [features]
 default = []

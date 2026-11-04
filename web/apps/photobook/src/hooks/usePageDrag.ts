@@ -2,7 +2,7 @@ import { useBook } from "@/context/book";
 import { useCallback, useRef, useState } from "react";
 
 export function usePageDrag() {
-    const { book, reorderPages } = useBook();
+    const { book, reorderPages } = useBook("book", "reorderPages");
     const pageCount = book.pages.length;
 
     const [pageDragSource, setPageDragSource] = useState<number | null>(null);

@@ -1,0 +1,13 @@
+[package]
+name = "ente-live-photo"
+edition.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

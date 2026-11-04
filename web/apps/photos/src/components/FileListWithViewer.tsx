@@ -47,8 +47,10 @@ export type FileListWithViewerProps = {
     | "modePlus"
     | "header"
     | "footer"
+    | "onAddPhotos"
     | "disableGrouping"
     | "enableSelect"
+    | "enableDateScrubber"
     | "selected"
     | "setSelected"
     | "activeCollectionID"
@@ -87,12 +89,14 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     modePlus,
     header,
     footer,
+    onAddPhotos,
     user,
     files,
     enableDownload,
     enableImageEditing = true,
     disableGrouping,
     enableSelect,
+    enableDateScrubber,
     selected,
     setSelected,
     activeCollectionID,
@@ -219,9 +223,11 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                             modePlus,
                             header,
                             footer,
+                            onAddPhotos,
                             user,
                             disableGrouping,
                             enableSelect,
+                            enableDateScrubber,
                             selected,
                             setSelected,
                             activeCollectionID,

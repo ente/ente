@@ -31,7 +31,15 @@ function usePhotoImportSession() {
         processingMessage,
         setAppView,
         loading,
-    } = useBook();
+    } = useBook(
+        "addPhotos",
+        "addEntePhotos",
+        "processingPhotos",
+        "processingProgress",
+        "processingMessage",
+        "setAppView",
+        "loading",
+    );
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [dragOver, setDragOver] = useState(false);
     const [importError, setImportError] = useState<string | null>(null);

@@ -1094,6 +1094,7 @@ class FilesDB with SqlDbBase {
         DELETE FROM $filesTable
         WHERE $columnLocalID IN ($localIdPlaceholder)
         AND ($columnUploadedFileID IS NULL OR $columnUploadedFileID = -1)
+        RETURNING $columnLocalID
       ''', alreadyUploadedLocalIDs);
 
         final removedCount = deleteResult.length;
@@ -1131,18 +1132,32 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
-  Future<void> setCollectionIDForUnMappedLocalFiles(
+  Future<Set<String>> setCollectionIDForUnMappedLocalFiles(
     int collectionID,
-    Set<String> localIDs,
-  ) async {
+    Set<String> localIDs, {
+    int? trackClaimsForOwner,
+  }) async {
     final db = await instance.sqliteAsyncDB;
     final inParam = localIDs.map((id) => "'$id'").join(',');
-    await db.execute('''
+    final returning = trackClaimsForOwner == null
+        ? ''
+        : 'RETURNING $columnLocalID, $columnOwnerID';
+    final rows = await db.execute('''
       UPDATE $filesTable
       SET $columnCollectionID = $collectionID
       WHERE $columnLocalID IN ($inParam) AND ($columnCollectionID IS NULL OR 
-      $columnCollectionID = -1);
+      $columnCollectionID = -1)
+      $returning;
     ''');
+    if (trackClaimsForOwner == null || collectionID == -1) {
+      return const {};
+    }
+    return {
+      for (final row in rows)
+        if (row[columnOwnerID] == null ||
+            row[columnOwnerID] == trackClaimsForOwner)
+          row[columnLocalID] as String,
+    };
   }
 
   Future<void> markFilesForReUpload(

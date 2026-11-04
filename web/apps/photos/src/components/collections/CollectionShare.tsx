@@ -133,8 +133,10 @@ const RowButtonGroup: React.FC<React.PropsWithChildren> = ({ children }) => {
                               py: "16px",
                               gap: "12px",
                           },
-                          "& > .MuiStack-root > .MuiTypography-root": {
-                              py: "16px",
+                          "& > label.MuiStack-root": {
+                              minHeight: 52,
+                              boxSizing: "border-box",
+                              py: "12px",
                           },
                           "& .MuiSvgIcon-root": { fontSize: 20 },
                       }
@@ -222,6 +224,18 @@ const ShareTitlebar: React.FC<
     );
 };
 
+const shareDrawerIslandSx = {
+    "& .MuiDrawer-paper": {
+        top: "calc(env(titlebar-area-height, 0px) + 12px)",
+        right: "calc(env(safe-area-inset-right, 0px) + 12px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px)",
+        height: "auto",
+        borderRadius: "20px",
+        bgcolor: "background.paper2",
+    },
+};
+
 const ShareNestedDrawer: React.FC<
     React.ComponentProps<typeof TitledNestedSidebarDrawer>
 > = ({ open, onClose, onRootClose, anchor, maxWidth, children, ...rest }) => {
@@ -238,7 +252,7 @@ const ShareNestedDrawer: React.FC<
     return (
         <NestedSidebarDrawer
             {...{ open, onClose, onRootClose, anchor, maxWidth }}
-            sx={{ "& .MuiDrawer-paper": { bgcolor: "background.paper2" } }}
+            sx={shareDrawerIslandSx}
         >
             <Stack
                 sx={{
@@ -394,11 +408,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
         <SidebarDrawer
             anchor="right"
             {...{ open, onClose }}
-            sx={
-                inPanel
-                    ? undefined
-                    : { "& .MuiDrawer-paper": { bgcolor: "background.paper2" } }
-            }
+            sx={inPanel ? undefined : shareDrawerIslandSx}
         >
             <Stack sx={{ gap: "4px", py: "12px" }}>
                 <ShareTitlebar

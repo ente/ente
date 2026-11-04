@@ -550,7 +550,11 @@ func main() {
 	storageAPI.Use(middleware.RejectAuthApp())
 
 	adminAPI := server.Group("/admin")
-	adminAPI.Use(authMiddleware.TokenAuthMiddleware(nil), authMiddleware.AdminAuthMiddleware())
+	adminAPI.Use(
+		authMiddleware.TokenAuthMiddleware(nil),
+		authMiddleware.AdminAuthMiddleware(),
+		rateLimiter.AdminRateLimitMiddleware(urlSanitizer),
+	)
 	paymentJwtAuthAPI := server.Group("/")
 	paymentJwtAuthAPI.Use(authMiddleware.TokenAuthMiddleware(jwt.PAYMENT.Ptr()))
 

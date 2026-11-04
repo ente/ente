@@ -12,7 +12,7 @@ on:
         - cron: "15 22 * * 0-4"
 
 permissions:
-    contents: write
+    contents: read
 
 concurrency:
     group: auth-build
@@ -39,7 +39,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ github.ref_name }}
+                  ref: ${{ github.sha }}
 
             - name: Prepare release
               id: prepare
@@ -83,6 +83,8 @@ jobs:
                   node .github/scripts/release-notes.mjs mobile/apps/auth/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
 
     build-android:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
@@ -115,7 +117,7 @@ jobs:
                   java-version: "17"
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -213,6 +215,8 @@ jobs:
                   mappingFile: mobile/apps/auth/build/app/outputs/mapping/playstoreRelease/mapping.txt
 
     build-linux:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-22.04
@@ -238,7 +242,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -366,6 +370,8 @@ jobs:
                   updateOnlyUnreleased: true
 
     build-windows:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         # VS2022 is required until local_auth_windows builds cleanly on VS2026.
@@ -392,7 +398,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               shell: bash
@@ -452,7 +458,7 @@ jobs:
                     -AllowlistPath "windows/signing/allowed-pe-files.txt"
 
             - name: Sign Windows payload with Trusted Signing
-              uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+              uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
               with:
                   azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -481,7 +487,7 @@ jobs:
                     -CompilerPath $env:INNO_SETUP_COMPILER
 
             - name: Sign Windows installer with Trusted Signing
-              uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+              uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
               with:
                   azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -561,6 +567,8 @@ jobs:
                   updateOnlyUnreleased: true
 
     build-macos:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: macos-15
@@ -586,7 +594,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -732,7 +740,7 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -787,6 +795,8 @@ jobs:
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
     finish-build:
+        permissions:
+            contents: write
         needs: [build-metadata, build-android, build-linux, build-windows, build-macos, build-ios]
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest

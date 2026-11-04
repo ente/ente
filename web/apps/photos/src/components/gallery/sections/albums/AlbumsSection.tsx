@@ -18,6 +18,7 @@ import {
 } from "ente-gallery/components/utils/save-groups";
 import { ItemVisibility } from "ente-media/file-metadata";
 import {
+    canAddFilesToCollection,
     renameCollection,
     updateCollectionDetails,
 } from "ente-new/photos/services/collection";
@@ -106,6 +107,17 @@ export const AlbumsSection = ({
         view.type == "archive-albums"
             ? view.activeCollectionSummary
             : undefined;
+    const { onUpload } = operations;
+    const handleAddPhotos = useCallback(
+        () => onUpload("upload", activeCollection),
+        [onUpload, activeCollection],
+    );
+    const canAddPhotos =
+        !library.isFirstLoad &&
+        user &&
+        (activeCollection?.type == "album" ||
+            activeCollection?.type == "folder") &&
+        canAddFilesToCollection(activeCollection, user.id);
     const [fileListHeader, setFileListHeader] =
         useState<FileListHeaderOrFooter>();
     const {
@@ -113,7 +125,9 @@ export const AlbumsSection = ({
         props: editAlbumDetailsVisibilityProps,
     } = useModalVisibility();
     const createAlbum = useModalVisibility();
-    const { selectCollection, showAlbumOverview } = usePhotosNavigation();
+    const [createFromOverview, setCreateFromOverview] = useState(false);
+    const { selectCollection, showAlbumOverview, openOverviewAlbum } =
+        usePhotosNavigation();
     const barCollectionSummaries =
         barMode == "hidden-albums"
             ? library.hiddenCollectionSummaries
@@ -295,7 +309,10 @@ export const AlbumsSection = ({
                         library.uncategorizedCollectionSummaryID
                     }
                     activeCollectionID={activeCollectionID}
-                    onCreateAlbum={createAlbum.show}
+                    onCreateAlbum={() => {
+                        setCreateFromOverview(false);
+                        createAlbum.show();
+                    }}
                     collectionsSortBy={collectionsSortBy}
                     onChangeCollectionsSortBy={onChangeCollectionsSortBy}
                 />
@@ -322,12 +339,22 @@ export const AlbumsSection = ({
                     filter={overviewFilter!}
                     searchQuery={albumSearchQuery}
                     sortBy={collectionsSortBy}
-                    onCreateAlbum={operations.onCreateAlbum}
+                    onCreateAlbum={() => {
+                        setCreateFromOverview(true);
+                        createAlbum.show();
+                    }}
                 />
             ) : (
                 <GalleryMedia
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
+                    enableDateScrubber={
+                        !library.isFirstLoad &&
+                        barMode === "albums" &&
+                        activeCollectionID === PseudoCollectionID.all &&
+                        !isInSearchMode
+                    }
+                    onAddPhotos={canAddPhotos ? handleAddPhotos : undefined}
                     source={{
                         mode: barMode,
                         modePlus: barMode,
@@ -373,9 +400,10 @@ export const AlbumsSection = ({
             <CreateAlbumDialog
                 {...createAlbum.props}
                 isHidden={barMode == "hidden-albums"}
-                onRemotePull={remotePull}
+                onRemoteFilesPull={remoteFilesPull}
                 onSelectCollectionID={(id) => {
-                    selectCollection(id);
+                    if (createFromOverview) openOverviewAlbum(id);
+                    else selectCollection(id);
                     presentation.mobileDrawerProps.onClose();
                 }}
             />

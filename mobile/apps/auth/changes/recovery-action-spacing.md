@@ -1,0 +1,1 @@
+- Improved spacing between Save key and Continue on the recovery-key screen.

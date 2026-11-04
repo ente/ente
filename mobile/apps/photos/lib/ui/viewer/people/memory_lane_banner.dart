@@ -7,7 +7,7 @@ import "package:logging/logging.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
@@ -312,7 +312,7 @@ class _MemoryLaneBannerSectionState extends State<MemoryLaneBannerSection> {
       return null;
     }
     final faces = await MLDataDB.instance.getFacesForGivenFileID(entry.fileId);
-    final Face? face = faces?.firstWhereOrNull(
+    final FaceWithoutEmbedding? face = faces?.firstWhereOrNull(
       (candidate) => candidate.faceID == entry.faceId,
     );
     if (face == null) {

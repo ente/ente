@@ -149,9 +149,7 @@ impl<'s> Selector<'s> {
         } else if year_count <= 1 {
             Spread::None
         } else {
-            if (preferred_size.is_none() || self.signals.is_none())
-                && year_count * 2 > DEFAULT_SELECTION_SIZE
-            {
+            if preferred_size.is_none() && year_count * 2 > DEFAULT_SELECTION_SIZE {
                 size = year_count * 3;
                 if photos.len() < size {
                     return Ok(photos);
@@ -615,15 +613,19 @@ mod tests {
         let photos = prepare(&six_years_of_four_photos());
         let signals = Signals::default();
 
-        let selected = Selector::new(Some(&signals), 0)
+        let ranked = Selector::new(Some(&signals), 0)
+            .best(photos.iter().collect(), None)
+            .unwrap();
+        let random = Selector::new(None, 0)
             .best(photos.iter().collect(), None)
             .unwrap();
 
-        assert_three_per_year(&selected);
+        assert_three_per_year(&ranked);
+        assert_three_per_year(&random);
     }
 
     #[test]
-    fn random_picks_take_three_per_year_even_when_a_size_is_preferred() {
+    fn a_preferred_size_holds_across_many_years_with_or_without_signals() {
         let photos = prepare(&six_years_of_four_photos());
         let signals = Signals::default();
 
@@ -634,7 +636,7 @@ mod tests {
             .best(photos.iter().collect(), Some(20))
             .unwrap();
 
-        assert_three_per_year(&random);
+        assert_eq!(random.len(), 20);
         assert_eq!(ranked.len(), 20);
     }
 

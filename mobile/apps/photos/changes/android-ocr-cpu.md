@@ -1,0 +1,1 @@
+- Switched Android text recognition to the CPU.

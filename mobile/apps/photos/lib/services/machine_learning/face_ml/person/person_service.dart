@@ -15,7 +15,7 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/local_entity_data.dart";
-import 'package:photos/models/ml/face/face.dart';
+import 'package:photos/models/ml/face/face_with_embedding.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/entity_service.dart";
@@ -742,7 +742,7 @@ class PersonService {
     PersonEntity p,
     EnteFile file,
   ) async {
-    final Face? face = await faceMLDataDB.getCoverFaceForPerson(
+    final FaceWithoutEmbedding? face = await faceMLDataDB.getCoverFaceForPerson(
       recentFileID: file.uploadedFileID!,
       personID: p.remoteID,
     );
@@ -774,7 +774,7 @@ class PersonService {
   Future<void> _updateLinkedContactAvatarBeforePerson(
     PersonEntity person,
     EnteFile file,
-    Face face,
+    FaceWithoutEmbedding face,
   ) async {
     final contact = await _getLinkedContact(person);
     if (contact == null) {

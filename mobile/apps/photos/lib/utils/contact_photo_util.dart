@@ -3,7 +3,7 @@ import "dart:typed_data";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
@@ -12,7 +12,7 @@ import "package:photos/utils/face/face_thumbnail_cache.dart";
 
 Future<Uint8List?> buildContactPhotoAttachmentBytesFromFace({
   required EnteFile file,
-  required Face face,
+  required FaceWithoutEmbedding face,
 }) async {
   final crops = await getCachedFaceCrops(
     file,

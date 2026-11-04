@@ -30,13 +30,22 @@ end
 
 stdout, stderr, status = run(approval => <<~YAML)
   on: [pull_request_target, workflow_run]
-  jobs:
-    approve:
-      steps:
-        - uses: actions/github-script@v9
 YAML
 raise "#{stdout}#{stderr}" unless status.exitstatus == 1
-["workflow_run", "actions/github-script@v9"].each do |violation|
-  raise stdout unless stdout.include?("#{approval}: #{violation}")
-end
+raise stdout unless stdout.include?("#{approval}: workflow_run")
 raise stdout if stdout.include?("#{approval}: pull_request_target")
+
+{
+  "owner/repo/.github/workflows/build.yml@v1" => false,
+  "owner/repo/.github/workflows/build.yml@#{'a' * 40}" => true,
+  "./.github/workflows/build.yml" => true,
+}.each do |uses, allowed|
+  stdout, stderr, status = run(".github/workflows/ci.yml" => <<~YAML)
+    on: pull_request
+    jobs:
+      build:
+        uses: #{uses}
+  YAML
+  raise "#{stdout}#{stderr}" unless status.success? == allowed
+  raise stdout unless allowed || stdout.include?(uses)
+end

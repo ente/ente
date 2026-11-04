@@ -23,7 +23,7 @@ impl From<ente_photos::location::Error> for LocationError {
 }
 
 #[frb(opaque)]
-pub struct LocationIndex(ente_photos::location::LocationIndex);
+pub struct LocationIndex(pub(crate) ente_photos::location::LocationIndex);
 
 #[derive(Clone, Debug)]
 pub struct LocationCoordinate {

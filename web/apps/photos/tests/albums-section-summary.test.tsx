@@ -6,6 +6,7 @@ import { PseudoCollectionID } from "ente-new/photos/services/collection-summary"
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
+import { GalleryMedia } from "../src/components/gallery/media/GalleryMedia";
 import {
     galleryReducer,
     initialGalleryState,
@@ -51,11 +52,10 @@ vi.mock("../src/components/gallery/sections/albums/AlbumsNavigation", () => ({
     AlbumsNavigation: () => null,
 }));
 vi.mock("../src/components/gallery/media/GalleryMedia", () => ({
-    GalleryMedia: ({
-        children,
-    }: {
-        children?: (hasSelection: boolean) => ReactNode;
-    }) => children?.(false),
+    GalleryMedia: vi.fn(
+        ({ children }: { children?: (hasSelection: boolean) => ReactNode }) =>
+            children?.(false),
+    ),
 }));
 vi.mock("../src/components/gallery/navigation/GallerySectionLayout", () => ({
     GallerySectionLayout: ({ children }: { children: ReactNode }) => children,
@@ -111,11 +111,16 @@ const openAlbum = (
     return state;
 };
 
-const headerSummary = (state: GalleryState, collectionID = 10) => {
+const headerSummary = (
+    state: GalleryState,
+    collectionID = 10,
+    overlay?: GallerySectionProps["navigation"]["overlay"],
+    isFirstLoad = false,
+) => {
     const props: GallerySectionProps = {
         library: {
             ...state,
-            isFirstLoad: false,
+            isFirstLoad,
             searchIndexRevision: 0,
             remotePullRevision: 0,
         },
@@ -140,11 +145,11 @@ const headerSummary = (state: GalleryState, collectionID = 10) => {
             onAddFileToCollection: vi.fn(),
             setBlockingLoad: vi.fn(),
             onUpload: vi.fn(),
-            onCreateAlbum: vi.fn(),
             saveGroups: [],
             setSectionActivity: vi.fn(),
         },
         navigation: {
+            overlay,
             destination: {
                 section: "albums",
                 collectionID,
@@ -185,6 +190,36 @@ const headerSummary = (state: GalleryState, collectionID = 10) => {
     renderToStaticMarkup(<AlbumsSection {...props} />);
     return vi.mocked(AlbumContentHeader).mock.lastCall![0].collectionSummary;
 };
+
+test("enables the date scrubber only for the normal All grid", () => {
+    const state = openAlbum(ItemVisibility.visible, files);
+    headerSummary(state, PseudoCollectionID.all, undefined, true);
+    expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+        enableDateScrubber: false,
+    });
+    headerSummary(state, PseudoCollectionID.all);
+    expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+        enableDateScrubber: true,
+    });
+    for (const id of [10, PseudoCollectionID.trash]) {
+        headerSummary(state, id);
+        expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+            enableDateScrubber: false,
+        });
+    }
+    headerSummary(state, PseudoCollectionID.all, { section: "search" });
+    expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+        enableDateScrubber: false,
+    });
+    headerSummary(openAlbum(ItemVisibility.hidden, files));
+    expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+        enableDateScrubber: false,
+    });
+    headerSummary(openAlbum(ItemVisibility.archived, files));
+    expect(vi.mocked(GalleryMedia).mock.lastCall![0]).toMatchObject({
+        enableDateScrubber: false,
+    });
+});
 
 test.each([
     ["normal", ItemVisibility.visible],

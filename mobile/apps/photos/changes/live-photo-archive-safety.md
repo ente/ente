@@ -1,0 +1,1 @@
+- Improved reliability when opening malformed Live Photos.

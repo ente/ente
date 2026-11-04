@@ -19,9 +19,7 @@ class _NoResultWidgetState extends State<NoResultWidget> {
   void initState() {
     super.initState();
     searchTypes = SectionType.values.toList(growable: true);
-    searchTypes.removeWhere(
-      (type) => type == SectionType.magic || type == SectionType.wrapped,
-    );
+    searchTypes.removeWhere((type) => type == SectionType.magic);
   }
 
   @override

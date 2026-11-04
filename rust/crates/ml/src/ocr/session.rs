@@ -26,8 +26,13 @@ impl OcrSession {
             #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
             prefer_nhwc: matches!(model, OcrModel::Detection),
         };
+        let execution = if cfg!(target_os = "android") {
+            ExecutionMode::CpuOnly
+        } else {
+            ExecutionMode::GpuPreferred
+        };
         Self {
-            session: OnnxSession::new(model_path, namespace, ExecutionMode::GpuPreferred)
+            session: OnnxSession::new(model_path, namespace, execution)
                 .with_gpu_options(options)
                 .with_unvalidated_acceleration(),
         }

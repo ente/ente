@@ -82,11 +82,7 @@ impl<'a> People<'a> {
             id,
             file_ids: inputs.person_file_ids.get(id).unwrap_or(&no_file_ids),
         });
-        let mut important: Vec<&MemoryPerson> = request
-            .people
-            .iter()
-            .filter(|person| !request.local_gallery_mode && !person.is_ignored)
-            .collect();
+        let mut important: Vec<&MemoryPerson> = important_people(request).collect();
         important.sort_by_key(|&person| &person.id);
         let activity_file_ids = match me {
             Some(me) if important.iter().any(|person| person.id != me.id) => {
@@ -94,15 +90,11 @@ impl<'a> People<'a> {
             }
             _ => Vec::new(),
         };
-        let uses_unnamed_fallback = request.shows_unnamed_people
-            && (request.local_gallery_mode
-                || important.len() < NAMED_PEOPLE_DISABLING_UNNAMED_FALLBACK);
-        let unnamed_people =
-            if uses_unnamed_fallback || (request.shows_unnamed_people && request.surface_all) {
-                unnamed_people(inputs, &photos_by_id, me)
-            } else {
-                Vec::new()
-            };
+        let unnamed_people = if shows_unnamed_clusters(request) {
+            unnamed_people(inputs, &photos_by_id, me)
+        } else {
+            Vec::new()
+        };
         Ok(Self {
             show_timeout_days: PERSON_SHOW_TIMEOUT_DAYS
                 .min(important.len().max(1) as i64 * UPDATE_FREQUENCY_DAYS),
@@ -111,7 +103,7 @@ impl<'a> People<'a> {
                 .map(|person| Person::new(person, inputs, &photos_by_id, me, &activity_file_ids))
                 .collect(),
             unnamed_people,
-            uses_unnamed_fallback,
+            uses_unnamed_fallback: uses_unnamed_fallback(request),
             surface_all: request.surface_all,
             shown: &request.shown_people,
             face_counts: &inputs.face_counts,
@@ -151,6 +143,7 @@ impl<'a> People<'a> {
             .flatten()
             .chain(self.unnamed_people.iter().map(UnnamedPerson::candidate))
             .map(|candidate| self.memory(candidate, period))
+            .filter_map(Result::transpose)
             .collect()
     }
 
@@ -160,7 +153,7 @@ impl<'a> People<'a> {
         if let Some(last_seen) = person.last_seen(today)
             && is_last_met_anniversary_near(last_seen, today)
         {
-            memories.push(self.memory(last_seen, period)?);
+            memories.extend(self.memory(last_seen, period)?);
         }
         let birthday = person
             .birth_date
@@ -197,7 +190,7 @@ impl<'a> People<'a> {
                         Some(candidate.memory_type),
                     );
                 if !type_is_cooling_down {
-                    memories.push(self.memory(candidate, period)?);
+                    memories.extend(self.memory(candidate, period)?);
                 }
                 if memories.len() == ROTATION_MEMORIES_PER_PERSON {
                     break;
@@ -211,25 +204,28 @@ impl<'a> People<'a> {
     }
 
     fn unnamed_memory(&self, period: Period, selector: &mut Selector) -> Result<Option<Memory>> {
-        let eligible: Vec<&UnnamedPerson> = self
+        let mut eligible: Vec<(&UnnamedPerson, i64)> = self
             .unnamed_people
             .iter()
             .filter(|person| {
                 !self.was_shown_within(self.show_timeout_days, period, &person.id, None)
             })
+            .map(|person| (person, self.unnamed_weight(person, period)))
             .collect();
-        let weights: Vec<i64> = eligible
-            .iter()
-            .map(|person| self.unnamed_weight(person, period))
-            .collect();
-        let mut remaining = selector.below(weights.iter().sum::<i64>() as usize) as i64;
-        let chosen = weights.iter().position(|weight| {
-            remaining -= weight;
-            remaining < 0
-        });
-        chosen
-            .map(|index| self.memory(eligible[index].candidate(), period))
-            .transpose()
+        loop {
+            let total_weight: i64 = eligible.iter().map(|&(_, weight)| weight).sum();
+            let mut remaining = selector.below(total_weight as usize) as i64;
+            let Some(index) = eligible.iter().position(|&(_, weight)| {
+                remaining -= weight;
+                remaining < 0
+            }) else {
+                return Ok(None);
+            };
+            if let Some(memory) = self.memory(eligible[index].0.candidate(), period)? {
+                return Ok(Some(memory));
+            }
+            eligible.remove(index);
+        }
     }
 
     fn unnamed_weight(&self, person: &UnnamedPerson, period: Period) -> i64 {
@@ -258,13 +254,20 @@ impl<'a> People<'a> {
             .any(|shown| shown.last_time_shown > cutoff)
     }
 
-    fn memory(&self, candidate: Candidate, period: Period) -> Result<Memory> {
-        Ok(Memory::new(
-            candidate.kind(None),
-            &self.photos(candidate)?,
-            period.now,
-            period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY,
-        ))
+    fn memory(&self, candidate: Candidate, period: Period) -> Result<Option<Memory>> {
+        let photos = self.photos(candidate)?;
+        let thinned_too_far = matches!(
+            candidate.memory_type,
+            PeopleMemoryType::Spotlight | PeopleMemoryType::DoingSomethingTogether
+        ) && photos.len() < MINIMUM_MEMORY_LENGTH;
+        Ok((!thinned_too_far).then(|| {
+            Memory::new(
+                candidate.kind(None),
+                &photos,
+                period.now,
+                period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY,
+            )
+        }))
     }
 
     fn birthday_memories(
@@ -274,7 +277,7 @@ impl<'a> People<'a> {
         period: Period,
     ) -> Result<[Memory; 2]> {
         let date = period.today().plus_days(birthday.days_from_today);
-        let starts_at = period.start_of(date);
+        let starts_at = date;
         let photos = self.photos(candidate)?;
         let memory = |is_upcoming, first_date_to_show, last_date_to_show| {
             let birthday = Birthday {
@@ -291,10 +294,10 @@ impl<'a> People<'a> {
         Ok([
             memory(
                 true,
-                period.start_of(date.plus_days(-UPCOMING_BIRTHDAY_LEAD_DAYS)),
+                date.plus_days(-UPCOMING_BIRTHDAY_LEAD_DAYS),
                 starts_at,
             ),
-            memory(false, starts_at, period.start_of(date.plus_days(1))),
+            memory(false, starts_at, date.plus_days(1)),
         ])
     }
 
@@ -479,10 +482,26 @@ fn activity_file_ids(signals: &Signals) -> Result<Vec<(PeopleActivity, HashSet<i
         .collect()
 }
 
+pub(super) fn shows_unnamed_clusters(request: &MemoriesRequest) -> bool {
+    uses_unnamed_fallback(request) || (request.shows_unnamed_people && request.surface_all)
+}
+
+fn uses_unnamed_fallback(request: &MemoriesRequest) -> bool {
+    request.shows_unnamed_people
+        && (request.local_gallery_mode
+            || important_people(request).count() < NAMED_PEOPLE_DISABLING_UNNAMED_FALLBACK)
+}
+
+fn important_people(request: &MemoriesRequest) -> impl Iterator<Item = &MemoryPerson> {
+    request
+        .people
+        .iter()
+        .filter(|person| !request.local_gallery_mode && !person.is_ignored)
+}
+
 fn is_last_met_anniversary_near(last_seen: Candidate, today: LocalDate) -> bool {
     last_seen.photos.last().is_some_and(|photo| {
-        let anniversary = LocalDate::new(today.year, photo.date.month, photo.date.day);
-        (0..LAST_MET_WINDOW_DAYS).contains(&today.days_until(anniversary))
+        upcoming_anniversary(photo.date, today, LAST_MET_WINDOW_DAYS).is_some()
     })
 }
 
@@ -555,11 +574,11 @@ mod tests {
     use std::collections::{HashMap, HashSet};
 
     use crate::memories::calendar::MICROS_PER_DAY;
-    use crate::memories::tests::{files_on, micros, period};
+    use crate::memories::tests::{file, files_on, micros, period};
     use crate::memories::{
-        Birthday, ClipVectors, LocalDate, MemoriesRequest, Memory, MemoryKind, MemoryPerson,
-        MlInputs, PeopleActivity, PeopleInputs, PeopleMemory, PeopleMemoryType, ShownPerson,
-        UnnamedCluster, compute_smart_memories,
+        Birthday, ClipVectors, LocalDate, MemoriesRequest, Memory, MemoryFile, MemoryKind,
+        MemoryPerson, MlInputs, PeopleActivity, PeopleInputs, PeopleMemory, PeopleMemoryType,
+        ShownPerson, UnnamedCluster, compute_smart_memories,
     };
     use crate::ml_store::Result;
 
@@ -630,33 +649,59 @@ mod tests {
             count: i64,
             faces: u32,
         ) {
-            self.request.files.extend(files_on(first_id, date, count));
-            for file_id in first_id..first_id + count {
-                self.inputs.face_counts.insert(file_id, faces);
+            self.add_files(person_ids, files_on(first_id, date, count), faces);
+        }
+
+        fn add_burst(
+            &mut self,
+            person_ids: &[&str],
+            first_id: i64,
+            date: &str,
+            count: i64,
+            faces: u32,
+        ) {
+            let files = (0..count)
+                .map(|index| file(first_id + index, &format!("{date}T08:00:{:02}", index * 5)))
+                .collect();
+            self.add_files(person_ids, files, faces);
+        }
+
+        fn add_files(&mut self, person_ids: &[&str], files: Vec<MemoryFile>, faces: u32) {
+            for file in &files {
+                self.inputs.face_counts.insert(file.id, faces);
                 for person_id in person_ids {
                     self.inputs
                         .person_file_ids
                         .entry((*person_id).to_owned())
                         .or_default()
-                        .insert(file_id);
+                        .insert(file.id);
                 }
             }
+            self.request.files.extend(files);
         }
 
         fn memories(&self) -> Vec<Memory> {
+            self.memories_at(NOW)
+        }
+
+        fn memories_at(&self, now: &str) -> Vec<Memory> {
             let ml = MlInputs {
                 clip: self,
                 face_weights: HashMap::new(),
                 people: self.inputs.clone(),
             };
-            compute_smart_memories(&self.request, &[period(NOW)], Some(&ml), None)
+            compute_smart_memories(&self.request, &[period(now)], Some(&ml), None)
                 .unwrap()
                 .periods
                 .remove(0)
         }
 
         fn people_memories(&self) -> Vec<(PeopleMemory, Memory)> {
-            self.memories()
+            self.people_memories_at(NOW)
+        }
+
+        fn people_memories_at(&self, now: &str) -> Vec<(PeopleMemory, Memory)> {
+            self.memories_at(now)
                 .into_iter()
                 .filter_map(|memory| match &memory.kind {
                     MemoryKind::People(people) => Some((people.clone(), memory)),
@@ -768,8 +813,29 @@ mod tests {
         assert_eq!(memory.file_ids, [11, 12, 13]);
         assert_eq!(
             (memory.first_date_to_show, memory.last_date_to_show),
-            (micros(NOW), micros(NOW) + 3 * MICROS_PER_DAY)
+            (
+                micros(NOW).into(),
+                (micros(NOW) + 3 * MICROS_PER_DAY).into()
+            )
         );
+    }
+
+    #[test]
+    fn last_days_early_in_the_year_come_round_in_the_last_week_of_the_one_before() {
+        let mut library = Library::new(&["alice"]);
+        library.add_photos(&["alice"], 1, "2025-01-02", 3, 1);
+        library.request.shown_people = vec![ShownPerson {
+            person_id: "alice".to_owned(),
+            memory_type: PeopleMemoryType::Spotlight,
+            last_time_shown: micros("2026-12-28T09:00:00"),
+        }];
+
+        let memories = library.people_memories_at("2026-12-29T09:00:00");
+
+        assert_eq!(memories.len(), 1);
+        let (people, memory) = &memories[0];
+        assert_eq!(people.memory_type, PeopleMemoryType::LastTimeYouSawThem);
+        assert_eq!(memory.file_ids, [1, 2, 3]);
     }
 
     #[test]
@@ -803,9 +869,9 @@ mod tests {
             .collect();
 
         let (lead_up, day_of, day_after) = (
-            micros("2026-10-28T00:00:00"),
-            micros("2026-11-02T00:00:00"),
-            micros("2026-11-03T00:00:00"),
+            LocalDate::new(2026, 10, 28).into(),
+            LocalDate::new(2026, 11, 2).into(),
+            LocalDate::new(2026, 11, 3).into(),
         );
         let entry = |memory_type, is_upcoming, first, last| {
             let birthday = Birthday {
@@ -821,6 +887,42 @@ mod tests {
                 entry(PeopleMemoryType::Spotlight, false, day_of, day_after),
                 entry(PeopleMemoryType::YouAndThem, true, lead_up, day_of),
                 entry(PeopleMemoryType::YouAndThem, false, day_of, day_after),
+            ]
+        );
+    }
+
+    #[test]
+    fn birthdays_keep_spotlights_that_otherwise_thin_out_too_far() {
+        let mut library = Library::with_me(&["me", "alice"]);
+        library.add_burst(&["alice"], 1, "2026-05-01", 12, 1);
+        library.add_burst(&["me", "alice"], 21, "2026-05-02", 12, 2);
+        let memories = |library: &Library| -> Vec<(PeopleMemoryType, Option<bool>, usize)> {
+            library
+                .people_memories()
+                .into_iter()
+                .map(|(people, memory)| {
+                    let is_upcoming = people.birthday.map(|birthday| birthday.is_upcoming);
+                    (people.memory_type, is_upcoming, memory.file_ids.len())
+                })
+                .collect()
+        };
+        assert_eq!(
+            memories(&library),
+            [(PeopleMemoryType::YouAndThem, None, 1)]
+        );
+
+        library.request.people[1].birth_date = Some(LocalDate {
+            year: 1990,
+            month: 11,
+            day: 2,
+        });
+        assert_eq!(
+            memories(&library),
+            [
+                (PeopleMemoryType::Spotlight, Some(true), 1),
+                (PeopleMemoryType::Spotlight, Some(false), 1),
+                (PeopleMemoryType::YouAndThem, Some(true), 1),
+                (PeopleMemoryType::YouAndThem, Some(false), 1),
             ]
         );
     }
@@ -869,6 +971,43 @@ mod tests {
             chosen_people,
             HashSet::from(["alice".to_owned(), "bob".to_owned()])
         );
+    }
+
+    #[test]
+    fn spotlight_and_activity_memories_need_five_photos_once_bursts_thin_out() {
+        let mut library = Library::with_me(&["me", "alice"]);
+        library.request.surface_all = true;
+        library.add_burst(&["alice"], 1, "2026-05-01", 12, 1);
+        library.add_photos(&["alice"], 21, "2026-05-02", 3, 1);
+        library.activities = HashMap::from([(PeopleActivity::Party, (1..=30).collect())]);
+        assert!(library.summaries().is_empty());
+
+        library.add_photos(&["alice"], 24, "2026-05-03", 1, 1);
+        assert_eq!(
+            library.summaries(),
+            [
+                summary("alice", PeopleMemoryType::Spotlight, None),
+                summary(
+                    "alice",
+                    PeopleMemoryType::DoingSomethingTogether,
+                    Some(PeopleActivity::Party)
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn rotation_passes_over_people_whose_photos_thin_out_to_a_single_burst() {
+        let mut library = Library::new(&["alice", "bob"]);
+        library.add_burst(&["alice"], 1, "2026-05-01", 12, 1);
+        library.add_photos(&["bob"], 21, "2026-05-02", 6, 1);
+
+        for seed in 0..20 {
+            assert_eq!(
+                library.summaries_for_seed(seed),
+                [summary("bob", PeopleMemoryType::Spotlight, None)]
+            );
+        }
     }
 
     fn unnamed_library(person_ids: &[&str]) -> Library {
@@ -961,6 +1100,32 @@ mod tests {
             .person_file_ids
             .insert("me".to_owned(), (1..=5).collect());
         assert_eq!(library.people_memories().len(), 1);
+    }
+
+    #[test]
+    fn the_unnamed_fallback_moves_on_from_a_cluster_whose_photos_thin_out() {
+        let mut library = unnamed_library(&[]);
+        for (index, date) in ["2025-03-01", "2025-03-03", "2025-03-05", "2025-03-07"]
+            .into_iter()
+            .enumerate()
+        {
+            library.add_burst(&[], 31 + 3 * index as i64, date, 3, 1);
+        }
+        library
+            .inputs
+            .unnamed_clusters
+            .push(cluster("bursts", 12, 31..=42));
+
+        for seed in 0..20 {
+            assert_eq!(
+                library.summaries_for_seed(seed),
+                [summary(
+                    "cluster:spread_out",
+                    PeopleMemoryType::Spotlight,
+                    None
+                )]
+            );
+        }
     }
 
     #[test]

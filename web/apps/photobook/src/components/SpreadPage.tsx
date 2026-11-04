@@ -1,10 +1,12 @@
 import { useBook } from "@/context/book";
+import { useDragDraft } from "@/hooks/useDragDraft";
 import type { DragInfo } from "@/hooks/usePhotoDrag";
-import { isRequiredBlankPage } from "@/lib/bookPages";
+import { usePreviews } from "@/hooks/usePreviews";
 import {
     CAPTION_FONT_WEIGHT,
     CAPTION_TEXT_COLOR,
     CENTER_TEXT_FONT_WEIGHT,
+    constrainTextBlock,
     getCaptionLayout,
     getCenterTextLayout,
     getTextBlockLayout,
@@ -13,7 +15,7 @@ import {
 import type { BookPage, TextBlock } from "@/lib/types";
 import { bookPageShadow, uiColors } from "@/theme/colors";
 import { Box, Button, Typography } from "@mui/material";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Stage } from "react-konva";
 import { AddPhotosIcon, DeleteIcon, ZoomInIcon, ZoomOutIcon } from "./icons";
 import LayoutPicker from "./LayoutPicker";
@@ -41,7 +43,7 @@ function SlotControls({
     pageWidth: number;
     pageHeight: number;
 }) {
-    const { updateSlot, removeSlot } = useBook();
+    const { updateSlot, removeSlot } = useBook("updateSlot", "removeSlot");
 
     const handleZoomIn = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -64,7 +66,7 @@ function SlotControls({
 
     const btnSize = Math.max(22, Math.min(28, pageWidth * 0.06));
     const iconSize = btnSize * 0.58;
-    const padding = Math.max(4, pageWidth * 0.012);
+    const padding = Math.max(4, Math.min(6, pageWidth * 0.012));
 
     return (
         <div
@@ -189,6 +191,7 @@ interface SpreadPageProps {
     pageWidth: number;
     pageHeight: number;
     totalPages: number;
+    requiredBlank: boolean;
     selectedSlotId: string | null;
     selectedPageId: string | null;
     selectedTextId: string | null;
@@ -233,13 +236,14 @@ interface SpreadPageProps {
     onPageDragEndCleanup: () => void;
 }
 
-export default function SpreadPage({
-    page,
+function SpreadPage({
+    page: savedPage,
     pageIndex,
     pickerSide,
     pageWidth,
     pageHeight,
     totalPages,
+    requiredBlank,
     selectedSlotId,
     selectedPageId,
     selectedTextId,
@@ -270,29 +274,33 @@ export default function SpreadPage({
     onPageDropOnPage,
     onPageDragEndCleanup,
 }: SpreadPageProps) {
+    const { draft, startDrag } = useDragDraft<BookPage>();
+    const page = draft ?? savedPage;
     const {
-        book,
         thumbnailUrls,
-        photoUrls,
-        loadPreviews,
+
         removePage,
         setPageLayout,
         updatePage,
         updateSlot,
-        photos,
+        getPhoto,
         processingPhotos,
-    } = useBook();
+    } = useBook(
+        "thumbnailUrls",
+
+        "removePage",
+        "setPageLayout",
+        "updatePage",
+        "updateSlot",
+        "getPhoto",
+        "processingPhotos",
+    );
 
     const pagePhotoIds = useMemo(
         () => page.slots.filter((s) => s.photoId).map((s) => s.photoId!),
         [page.slots],
     );
-    useEffect(() => {
-        if (pagePhotoIds.length > 0)
-            void loadPreviews(pagePhotoIds).catch((error: unknown) =>
-                console.error("Failed to load previews", error),
-            );
-    }, [pagePhotoIds, loadPreviews]);
+    usePreviews(pagePhotoIds);
 
     const [editingCaption, setEditingCaption] =
         useState<CaptionPosition | null>(null);
@@ -390,7 +398,7 @@ export default function SpreadPage({
                             page={page}
                             pageWidth={pageWidth}
                             pageHeight={pageHeight}
-                            photoUrls={photoUrls}
+                            preview
                             isBackCover={isBackCover}
                             isFrontCover={isFrontCover}
                             selectedSlotId={
@@ -522,9 +530,7 @@ export default function SpreadPage({
                                 canPanCrop
                                     ? (e) => {
                                           if (e.button !== 0) return;
-                                          const photo = photos.find(
-                                              (p) => p.id === slot.photoId,
-                                          );
+                                          const photo = getPhoto(slot.photoId!);
                                           if (!photo) return;
                                           e.preventDefault();
                                           e.stopPropagation();
@@ -549,58 +555,73 @@ export default function SpreadPage({
                                           }
                                           const slackX = sw - drawW;
                                           const slackY = sh - drawH;
-                                          const onMove = (ev: MouseEvent) => {
-                                              const dx = ev.clientX - startX;
-                                              const dy = ev.clientY - startY;
-                                              const newCropX =
-                                                  slackX !== 0
-                                                      ? Math.max(
-                                                            0,
-                                                            Math.min(
-                                                                1,
-                                                                origCropX +
-                                                                    dx / slackX,
-                                                            ),
-                                                        )
-                                                      : origCropX;
-                                              const newCropY =
-                                                  slackY !== 0
-                                                      ? Math.max(
-                                                            0,
-                                                            Math.min(
-                                                                1,
-                                                                origCropY +
-                                                                    dy / slackY,
-                                                            ),
-                                                        )
-                                                      : origCropY;
-                                              if (
-                                                  newCropX !== slot.cropX ||
-                                                  newCropY !== slot.cropY
-                                              ) {
-                                                  updateSlot(page.id, slot.id, {
-                                                      cropX: newCropX,
-                                                      cropY: newCropY,
-                                                  });
-                                              }
-                                          };
-                                          const onUp = () => {
-                                              document.removeEventListener(
-                                                  "mousemove",
-                                                  onMove,
-                                              );
-                                              document.removeEventListener(
-                                                  "mouseup",
-                                                  onUp,
-                                              );
-                                          };
-                                          document.addEventListener(
-                                              "mousemove",
-                                              onMove,
-                                          );
-                                          document.addEventListener(
-                                              "mouseup",
-                                              onUp,
+                                          startDrag(
+                                              (ev) => {
+                                                  const dx =
+                                                      ev.clientX - startX;
+                                                  const dy =
+                                                      ev.clientY - startY;
+                                                  const newCropX =
+                                                      slackX !== 0
+                                                          ? Math.max(
+                                                                0,
+                                                                Math.min(
+                                                                    1,
+                                                                    origCropX +
+                                                                        dx /
+                                                                            slackX,
+                                                                ),
+                                                            )
+                                                          : origCropX;
+                                                  const newCropY =
+                                                      slackY !== 0
+                                                          ? Math.max(
+                                                                0,
+                                                                Math.min(
+                                                                    1,
+                                                                    origCropY +
+                                                                        dy /
+                                                                            slackY,
+                                                                ),
+                                                            )
+                                                          : origCropY;
+                                                  return {
+                                                      ...page,
+                                                      slots: page.slots.map(
+                                                          (current) =>
+                                                              current.id ===
+                                                              slot.id
+                                                                  ? {
+                                                                        ...current,
+                                                                        cropX: newCropX,
+                                                                        cropY: newCropY,
+                                                                    }
+                                                                  : current,
+                                                      ),
+                                                  };
+                                              },
+                                              (next) => {
+                                                  const cropped =
+                                                      next.slots.find(
+                                                          (current) =>
+                                                              current.id ===
+                                                              slot.id,
+                                                      )!;
+                                                  if (
+                                                      cropped.cropX !==
+                                                          origCropX ||
+                                                      cropped.cropY !==
+                                                          origCropY
+                                                  )
+                                                      updateSlot(
+                                                          page.id,
+                                                          slot.id,
+                                                          {
+                                                              cropX: cropped.cropX,
+                                                              cropY: cropped.cropY,
+                                                          },
+                                                      );
+                                              },
                                           );
                                       }
                                     : undefined
@@ -657,37 +678,58 @@ export default function SpreadPage({
                                           const startY = e.clientY;
                                           const origX = layout.x;
                                           const origY = layout.y;
-                                          const onMove = (ev: MouseEvent) => {
-                                              const dx =
-                                                  ((ev.clientX - startX) /
-                                                      pageWidth) *
-                                                  100;
-                                              const dy =
-                                                  ((ev.clientY - startY) /
-                                                      pageHeight) *
-                                                  100;
-                                              onTextUpdate(page.id, block.id, {
-                                                  x: origX + dx,
-                                                  y: origY + dy,
-                                              });
-                                          };
-                                          const onUp = () => {
-                                              document.removeEventListener(
-                                                  "mousemove",
-                                                  onMove,
-                                              );
-                                              document.removeEventListener(
-                                                  "mouseup",
-                                                  onUp,
-                                              );
-                                          };
-                                          document.addEventListener(
-                                              "mousemove",
-                                              onMove,
-                                          );
-                                          document.addEventListener(
-                                              "mouseup",
-                                              onUp,
+                                          startDrag(
+                                              (ev) => {
+                                                  const dx =
+                                                      ((ev.clientX - startX) /
+                                                          pageWidth) *
+                                                      100;
+                                                  const dy =
+                                                      ((ev.clientY - startY) /
+                                                          pageHeight) *
+                                                      100;
+                                                  return {
+                                                      ...page,
+                                                      textBlocks:
+                                                          page.textBlocks.map(
+                                                              (current) =>
+                                                                  current.id ===
+                                                                  block.id
+                                                                      ? constrainTextBlock(
+                                                                            {
+                                                                                ...current,
+                                                                                x:
+                                                                                    origX +
+                                                                                    dx,
+                                                                                y:
+                                                                                    origY +
+                                                                                    dy,
+                                                                            },
+                                                                        )
+                                                                      : current,
+                                                          ),
+                                                  };
+                                              },
+                                              (next) => {
+                                                  const moved =
+                                                      next.textBlocks.find(
+                                                          (current) =>
+                                                              current.id ===
+                                                              block.id,
+                                                      )!;
+                                                  if (
+                                                      moved.x !== block.x ||
+                                                      moved.y !== block.y
+                                                  )
+                                                      onTextUpdate(
+                                                          page.id,
+                                                          block.id,
+                                                          {
+                                                              x: moved.x,
+                                                              y: moved.y,
+                                                          },
+                                                      );
+                                              },
                                           );
                                       }
                                     : undefined
@@ -1083,7 +1125,7 @@ export default function SpreadPage({
                     color: uiColors.muted,
                     fontWeight: 600,
                     textAlign: "center",
-                    mt: 0.5,
+                    mt: 1.5,
                 }}
             >
                 {pageIndex === 0
@@ -1139,7 +1181,7 @@ export default function SpreadPage({
                 totalPages={totalPages}
                 side={pickerSide}
                 photoCount={photoCount}
-                requiredBlank={isRequiredBlankPage(book.pages, page.id)}
+                requiredBlank={requiredBlank}
                 onAddPhotos={() => onAddPhotos(page.id)}
                 onInsert={(position) => onInsertPage(pageIndex, position)}
                 onDelete={() => {
@@ -1180,3 +1222,5 @@ export default function SpreadPage({
         </Box>
     );
 }
+
+export default memo(SpreadPage);

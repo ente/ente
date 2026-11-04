@@ -12,7 +12,11 @@ export default function BookBindingSelect({
 }: {
     disabled?: boolean;
 }) {
-    const { book, setBook, processingPhotos } = useBook();
+    const { book, setBook, processingPhotos } = useBook(
+        "book",
+        "setBook",
+        "processingPhotos",
+    );
     const binding = getPrintBinding(book.printSelection);
     return (
         <Select

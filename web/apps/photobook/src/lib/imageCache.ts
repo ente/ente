@@ -1,83 +1,58 @@
-const MAX_ENTRIES = 250;
+const MAX_BYTES = 64 * 1024 * 1024;
 
-interface CacheEntry {
-    img: HTMLImageElement;
-    url: string;
-}
+const cache = new Map<string, HTMLImageElement>();
+const pending = new Map<string, Promise<HTMLImageElement>>();
+let bytes = 0;
 
-const cache = new Map<string, CacheEntry>();
-
-interface PendingEntry {
-    url: string;
-    promise: Promise<HTMLImageElement>;
-}
-
-const pending = new Map<string, PendingEntry>();
-
-function isUsable(img: HTMLImageElement): boolean {
-    return img.complete && img.naturalWidth > 0;
-}
-
-function touch(photoId: string, entry: CacheEntry): void {
-    cache.delete(photoId);
-    cache.set(photoId, entry);
-}
-
-function insert(photoId: string, entry: CacheEntry): void {
-    cache.delete(photoId);
-    cache.set(photoId, entry);
-    while (cache.size > MAX_ENTRIES) {
-        const oldest = cache.keys().next();
-        if (oldest.done) break;
-        cache.delete(oldest.value);
+export function evictCachedImage(url: string): void {
+    const image = cache.get(url);
+    if (image) {
+        bytes -= image.naturalWidth * image.naturalHeight * 4;
+        cache.delete(url);
     }
+    pending.delete(url);
 }
 
-export function getCachedImage(photoId: string): HTMLImageElement | null {
-    const entry = cache.get(photoId);
-    if (entry && isUsable(entry.img)) {
-        touch(photoId, entry);
-        return entry.img;
-    }
-    return null;
+export function getCachedImage(url: string): HTMLImageElement | null {
+    const image = cache.get(url);
+    if (!image) return null;
+    cache.delete(url);
+    cache.set(url, image);
+    return image;
 }
 
-export function getCachedUrl(photoId: string): string | null {
-    const entry = cache.get(photoId);
-    return entry ? entry.url : null;
-}
-
-export function loadImageCached(
-    photoId: string,
-    url: string,
-): Promise<HTMLImageElement> {
-    const existing = cache.get(photoId);
-    if (existing?.url === url && isUsable(existing.img)) {
-        touch(photoId, existing);
-        return Promise.resolve(existing.img);
-    }
-
-    const inflight = pending.get(photoId);
-    if (inflight?.url === url) return inflight.promise;
+export function loadImageCached(url: string): Promise<HTMLImageElement> {
+    const existing = getCachedImage(url);
+    if (existing) return Promise.resolve(existing);
+    const inflight = pending.get(url);
+    if (inflight) return inflight;
 
     const promise = new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new window.Image();
-        img.onload = () => {
-            insert(photoId, { img, url });
-            pending.delete(photoId);
-            resolve(img);
+        const image = new window.Image();
+        image.decoding = "async";
+        image.onload = () => {
+            if (pending.get(url) === promise) {
+                pending.delete(url);
+                cache.set(url, image);
+                bytes += image.naturalWidth * image.naturalHeight * 4;
+                while (bytes > MAX_BYTES && cache.size > 0) {
+                    evictCachedImage(cache.keys().next().value!);
+                }
+            }
+            resolve(image);
         };
-        img.onerror = (e) => {
-            pending.delete(photoId);
-            reject(new Error("Failed to load photo", { cause: e }));
+        image.onerror = (cause) => {
+            if (pending.get(url) === promise) pending.delete(url);
+            reject(new Error("Failed to load photo", { cause }));
         };
-        img.src = url;
+        image.src = url;
     });
-    pending.set(photoId, { url, promise });
+    pending.set(url, promise);
     return promise;
 }
 
 export function clearImageCache(): void {
     cache.clear();
     pending.clear();
+    bytes = 0;
 }

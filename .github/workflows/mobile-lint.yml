@@ -55,7 +55,7 @@ jobs:
               working-directory: mobile/apps/auth
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache
@@ -67,7 +67,7 @@ jobs:
                   save-if: false
 
             - name: Restore Rust target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   shared-key: rust-flutter
 

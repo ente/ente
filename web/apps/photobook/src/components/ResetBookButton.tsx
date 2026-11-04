@@ -19,7 +19,11 @@ export default function ResetBookButton({
 }: {
     disabled?: boolean;
 }) {
-    const { startOver, processingPhotos, book } = useBook();
+    const { startOver, processingPhotos, book } = useBook(
+        "startOver",
+        "processingPhotos",
+        "book",
+    );
     const [open, setOpen] = useState(false);
     const [resetting, setResetting] = useState(false);
     const [error, setError] = useState<string | null>(null);

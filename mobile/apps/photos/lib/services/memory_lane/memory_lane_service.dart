@@ -14,7 +14,7 @@ import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/memory_lane/memory_lane_models.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
@@ -734,7 +734,7 @@ class MemoryLaneService {
         .toSet();
 
     final faces = <_TimelineFaceData>[];
-    final facesByFileId = <int, Map<String, Face>>{};
+    final facesByFileId = <int, Map<String, FaceWithoutEmbedding>>{};
     for (final faceId in faceIds) {
       final fileId = getFileIdFromFaceId<int>(faceId);
       if (hiddenFileIds.contains(fileId)) {
@@ -748,7 +748,7 @@ class MemoryLaneService {
       if (creationTime == null || creationTime <= 0) {
         continue;
       }
-      Map<String, Face>? facesForFile = facesByFileId[fileId];
+      Map<String, FaceWithoutEmbedding>? facesForFile = facesByFileId[fileId];
       if (facesForFile == null) {
         final fetchedFaces = await _mlDataDB.getFacesForGivenFileID(fileId);
         if (fetchedFaces == null) {
@@ -874,7 +874,7 @@ class MemoryLaneService {
             (entry) =>
                 faces.firstWhereOrNull((face) => face.faceID == entry.faceId),
           )
-          .whereType<Face>()
+          .whereType<FaceWithoutEmbedding>()
           .toList();
       if (selectedFaces.length != group.value.length) {
         allCropsReady = false;
@@ -924,7 +924,7 @@ class MemoryLaneService {
           .toSet()
           .toList();
       final filesById = await getTimelineFiles(uniqueFileIds);
-      final Map<int, Future<List<Face>?>> facesFutures = {};
+      final Map<int, Future<List<FaceWithoutEmbedding>?>> facesFutures = {};
       for (final entry in entries) {
         final file = filesById[entry.fileId];
         if (file == null) {

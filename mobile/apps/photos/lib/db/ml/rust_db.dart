@@ -20,7 +20,6 @@ import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/filedata/model/file_data.dart";
-import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 import "package:photos/utils/ml_util.dart";
@@ -208,25 +207,7 @@ class RustMLDataDB implements IMLDataDB<int> {
       (await store).getPersonsClusterIds(personIds: personID);
 
   @override
-  Future<Iterable<Uint8List>> getFaceEmbeddingsForCluster(
-    String clusterID, {
-    int? limit,
-  }) async => (await store).getFaceEmbeddingsForCluster(
-    clusterId: clusterID,
-    limit: limit,
-  );
-
-  @override
-  Future<Map<String, Iterable<Uint8List>>> getFaceEmbeddingsForClusters(
-    Iterable<String> clusterIDs, {
-    int? limit,
-  }) async => (await store).getFaceEmbeddingsForClusters(
-    clusterIds: clusterIDs.toList(),
-    limit: limit,
-  );
-
-  @override
-  Future<Face?> getCoverFaceForPerson({
+  Future<FaceWithoutEmbedding?> getCoverFaceForPerson({
     required int recentFileID,
     String? personID,
     String? avatarFaceId,
@@ -239,14 +220,18 @@ class RustMLDataDB implements IMLDataDB<int> {
       avatarFaceId: avatarFaceId,
       clusterId: clusterID,
     );
-    return row == null ? null : mappers.toFace(row);
+    return row == null ? null : mappers.toFaceWithoutEmbedding(row);
   }
 
   @override
-  Future<List<Face>?> getFacesForGivenFileID(int fileUploadID) async {
+  Future<List<FaceWithoutEmbedding>?> getFacesForGivenFileID(
+    int fileUploadID,
+  ) async {
     final db = await store;
     final rows = await db.getFacesForGivenFileId(fileUploadId: fileUploadID);
-    return rows.isEmpty ? null : rows.map(mappers.toFace).toList();
+    return rows.isEmpty
+        ? null
+        : rows.map(mappers.toFaceWithoutEmbedding).toList();
   }
 
   @override
@@ -320,10 +305,6 @@ class RustMLDataDB implements IMLDataDB<int> {
   );
 
   @override
-  Future<Iterable<double>> getBlurValuesForCluster(String clusterID) async =>
-      (await store).getBlurValuesForCluster(clusterId: clusterID);
-
-  @override
   Future<Map<String, String?>> getFaceIdsToClusterIds(
     Iterable<String> faceIds,
   ) async => (await store).getFaceIdsToClusterIds(faceIds: faceIds.toList());
@@ -348,32 +329,6 @@ class RustMLDataDB implements IMLDataDB<int> {
   @override
   Future<void> removePerson(String personID) async =>
       (await store).removePerson(personId: personID);
-
-  @override
-  Future<List<FaceDbInfoForClustering>> getFaceInfoForClustering({
-    int maxFaces = 20000,
-    int offset = 0,
-    int batchSize = 10000,
-  }) async {
-    final db = await store;
-    final rows = await db.getFaceInfoForClustering(
-      maxFaces: maxFaces,
-      offset: offset,
-      batchSize: batchSize,
-    );
-    return rows.map(mappers.toFaceDbInfoForClustering).toList();
-  }
-
-  @override
-  Future<Map<String, Uint8List>> getFaceEmbeddingMapForFaces(
-    Iterable<String> faceIDs,
-  ) async {
-    final db = await store;
-    final rows = await db.getFaceEmbeddingRowsForFaces(
-      faceIds: faceIDs.toList(),
-    );
-    return {for (final (faceID, embedding) in rows) faceID: embedding};
-  }
 
   @override
   Future<int> getTotalFaceCount() async => (await store).getTotalFaceCount();
@@ -526,32 +481,6 @@ class RustMLDataDB implements IMLDataDB<int> {
       "ClusterCentroidVectorDB write failed during `$operation`. The index is marked stale and refills on the next fill check.",
       error,
       stackTrace,
-    );
-  }
-
-  @override
-  Future<Map<String, (Uint8List, int)>> getAllClusterSummary([
-    int? minClusterSize,
-  ]) async {
-    final db = await store;
-    final rows = await db.getAllClusterSummary(minClusterSize: minClusterSize);
-    return rows.map(
-      (clusterID, summary) =>
-          MapEntry(clusterID, mappers.toClusterSummaryRecord(summary)),
-    );
-  }
-
-  @override
-  Future<Map<String, (Uint8List, int)>> getClusterToClusterSummary(
-    Iterable<String> clusterIDs,
-  ) async {
-    final db = await store;
-    final rows = await db.getClusterToClusterSummary(
-      clusterIds: clusterIDs.toList(),
-    );
-    return rows.map(
-      (clusterID, summary) =>
-          MapEntry(clusterID, mappers.toClusterSummaryRecord(summary)),
     );
   }
 
