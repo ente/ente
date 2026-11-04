@@ -7,6 +7,7 @@ import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:ente_ui/components/subscription/plan_card.dart';
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:logging/logging.dart';
 import "package:photos/core/constants.dart";
@@ -24,7 +25,6 @@ import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/common/progress_dialog.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/dialog_widget.dart';
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
@@ -256,7 +256,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
             isYearly: showYearlyPlan,
             onToggle: _onToggleBillingPeriod,
           ),
-          const SizedBox(height: Spacing.lg),
+          const SizedBox(height: Spacing.md),
         ],
         SubscriptionPlanList(
           children: _isActiveStripeSubscriber
@@ -367,7 +367,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     if (hasYearlyPlans) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: Spacing.lg),
+          padding: const EdgeInsets.only(bottom: Spacing.md),
           child: SubscriptionToggle(
             isYearly: showYearlyPlan,
             onToggle: _onToggleBillingPeriod,
@@ -414,13 +414,12 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         widgets.add(
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
-            child: MenuItemWidgetNew(
+            child: NavigationCardComponent(
               title: context.strings.managePaymentMethod,
-              menuItemColor: colorScheme.fillFaint,
-              pressedColor: colorScheme.fillFaintPressed,
-              trailingWidget: Icon(
-                Icons.chevron_right_outlined,
-                color: colorScheme.strokeBase,
+              leading: HugeIcon(
+                icon: HugeIcons.strokeRoundedCreditCard,
+                size: NavigationCardComponent.leadingSize,
+                color: context.componentColors.textLight,
               ),
               onTap: () async {
                 _onPlatformRestrictedPaymentDetailsClick();

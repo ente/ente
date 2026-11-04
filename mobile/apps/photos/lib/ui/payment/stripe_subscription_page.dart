@@ -6,6 +6,7 @@ import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:ente_ui/components/subscription/plan_card.dart';
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/subscription_purchased_event.dart";
@@ -14,13 +15,10 @@ import 'package:photos/gateways/billing/models/subscription.dart';
 import 'package:photos/models/user_details.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import 'package:photos/theme/ente_theme.dart';
 import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/common/progress_dialog.dart';
 import 'package:photos/ui/common/web_page.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/payment_web_page.dart';
@@ -57,7 +55,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
   bool _isLoading = false;
   bool _isStripeSubscriber = false;
   bool _showYearlyPlan = false;
-  EnteColorScheme colorScheme = darkScheme;
   final Logger logger = Logger("StripeSubscriptionPage");
   String? _selectedPlanProductID;
 
@@ -139,7 +136,6 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
-    colorScheme = getEnteColorScheme(context);
     if (!_isLoading) {
       _isLoading = true;
       _dialog = createProgressDialog(context, context.strings.pleaseWait);
@@ -202,7 +198,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           isYearly: _showYearlyPlan,
           onToggle: _onToggleBillingPeriod,
         ),
-        const SizedBox(height: Spacing.lg),
+        const SizedBox(height: Spacing.md),
         SubscriptionPlanList(children: _getStripePlanWidgets()),
         const SizedBox(height: Spacing.lg),
         const SubFaqWidget(),
@@ -231,7 +227,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
 
     widgets.add(
       Padding(
-        padding: const EdgeInsets.only(bottom: Spacing.lg),
+        padding: const EdgeInsets.only(bottom: Spacing.md),
         child: SubscriptionToggle(
           isYearly: _showYearlyPlan,
           onToggle: _onToggleBillingPeriod,
@@ -314,13 +310,12 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
-          child: MenuItemWidgetNew(
-            title: "Manage payment method",
-            menuItemColor: colorScheme.fillFaint,
-            pressedColor: colorScheme.fillFaintPressed,
-            trailingWidget: Icon(
-              Icons.chevron_right_outlined,
-              color: colorScheme.strokeBase,
+          child: NavigationCardComponent(
+            title: context.strings.managePaymentMethod,
+            leading: HugeIcon(
+              icon: HugeIcons.strokeRoundedCreditCard,
+              size: NavigationCardComponent.leadingSize,
+              color: context.componentColors.textLight,
             ),
             onTap: () async {
               _redirectToPaymentPortal();
@@ -410,15 +405,14 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     final String title = isRenewCancelled
         ? context.strings.renewSubscription
         : context.strings.cancelSubscription;
-    return MenuItemWidgetNew(
+    return NavigationCardComponent(
       title: title,
-      alwaysShowSuccessState: false,
-      surfaceExecutionStates: false,
-      menuItemColor: colorScheme.fillFaint,
-      pressedColor: colorScheme.fillFaintPressed,
-      trailingWidget: Icon(
-        Icons.chevron_right_outlined,
-        color: colorScheme.strokeBase,
+      leading: HugeIcon(
+        icon: isRenewCancelled
+            ? HugeIcons.strokeRoundedRefresh
+            : HugeIcons.strokeRoundedCancelCircle,
+        size: NavigationCardComponent.leadingSize,
+        color: context.componentColors.textLight,
       ),
       onTap: () async {
         bool confirmAction = false;
