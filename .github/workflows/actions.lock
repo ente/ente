@@ -44,6 +44,10 @@ workflows:
     '.github/workflows/codeql.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'github/codeql-action@9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
+    '.github/workflows/codex-review.yml':
+        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
+        - 'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675'
     '.github/workflows/copycat-db-release.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/dependabot-follow-up.yml':
