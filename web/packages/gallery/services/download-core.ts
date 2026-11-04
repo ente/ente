@@ -202,26 +202,32 @@ class DownloadManagerCore {
     };
 
     async fileBlob(file: EnteFile, opts?: FileDownloadOpts) {
+        const download = () =>
+            opts?.background
+                ? this.downloadFile(file, opts).then((stream) =>
+                      this.blobWithInferredType(file, stream),
+                  )
+                : this.sharedFileBlob(file, opts);
         const cachedURL = this.fileURLPromises.get(file.id);
         if (cachedURL) {
             try {
-                const url = await cachedURL;
-                return await this.blobWithInferredType(
-                    file,
-                    (await fetch(url)).body,
-                );
+                let response: Response;
+                try {
+                    response = await fetch(await cachedURL);
+                } catch {
+                    if (this.fileURLPromises.get(file.id) === cachedURL)
+                        this.fileURLPromises.delete(file.id);
+                    // Match fileStream's cache fallback, before the blob retry below.
+                    return await download();
+                }
+                return await this.blobWithInferredType(file, response.body);
             } catch {
-                // Retry a failed viewer job or unusable cached URL below.
+                // Preserve fileBlob's existing retry after a failed cache fallback.
                 if (this.fileURLPromises.get(file.id) === cachedURL)
                     this.fileURLPromises.delete(file.id);
             }
         }
-        if (opts?.background) {
-            return this.downloadFile(file, opts).then((stream) =>
-                this.blobWithInferredType(file, stream),
-            );
-        }
-        return this.sharedFileBlob(file, opts);
+        return download();
     }
 
     private sharedFileBlob(file: EnteFile, opts?: FileDownloadOpts) {

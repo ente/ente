@@ -290,7 +290,31 @@ test.each([false, true])(
             "offline",
         );
         await viewerFailure;
-        expect(transport).toHaveBeenCalledTimes(2);
+        expect(transport).toHaveBeenCalledTimes(3);
+        expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
+    },
+);
+
+test.each([false, true])(
+    "waiting saves recover after the viewer and first fallback both fail: background %s",
+    async (background) => {
+        const { file, encrypted, original } = await fixture();
+        const transport = vi.fn(() =>
+            Promise.resolve(new Response(encrypted.encryptedData)),
+        );
+        transport.mockRejectedValueOnce(new Error("viewer failed"));
+        transport.mockRejectedValueOnce(new Error("first fallback failed"));
+        const manager = managerWith(transport);
+        const viewerFailure = expect(
+            manager.renderableSourceURLs(file),
+        ).rejects.toThrow("viewer failed");
+        const saves = [manager.fileBlob(file, { background })];
+        if (!background) saves.push(manager.fileBlob(file));
+        const blobs = await Promise.all(saves);
+        await viewerFailure;
+        for (const blob of blobs)
+            expect(hash(await blob.arrayBuffer())).toBe(hash(original));
+        expect(transport).toHaveBeenCalledTimes(3);
         expect(manager.fileDownloadProgressSnapshot().size).toBe(0);
     },
 );
