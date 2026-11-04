@@ -29,6 +29,7 @@ pub(crate) const CONTAINER_SIGNATURE: [u8; 12] = [
 ];
 const MAX_DECODE_DURATION: Duration = Duration::from_secs(60);
 const MAX_DECODE_MEMORY_BYTES: usize = 512 * 1024 * 1024;
+const MAX_DECODE_THREADS: usize = 8;
 const MAX_SAMPLES_PER_PIXEL: u64 = 4;
 
 #[cfg(test)]
@@ -318,7 +319,7 @@ impl JxlParallelRunner for RayonRunner<'_> {
     }
 
     fn num_threads(&self) -> usize {
-        rayon::current_num_threads()
+        rayon::current_num_threads().min(MAX_DECODE_THREADS)
     }
 
     fn run_ordered(
@@ -452,8 +453,8 @@ mod tests {
     use image::{ImageDecoder, ImageError, ImageResult};
 
     use super::{
-        BoundedReader, JxlImageDecoder, MAX_DECODE_MEMORY_BYTES, RGB_2X2_CODESTREAM, RayonRunner,
-        decoder_from_reader,
+        BoundedReader, JxlImageDecoder, MAX_DECODE_MEMORY_BYTES, MAX_DECODE_THREADS,
+        RGB_2X2_CODESTREAM, RayonRunner, decoder_from_reader,
     };
     use crate::memory_budget::MemoryBudget;
 
@@ -615,6 +616,20 @@ mod tests {
 
         assert!(result.is_err());
         assert!((4..=5).contains(&started.into_inner()));
+    }
+
+    #[test]
+    fn caps_parallel_decoding_at_the_thread_limit() {
+        let budget = MemoryBudget::new(MAX_DECODE_MEMORY_BYTES);
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(2 * MAX_DECODE_THREADS)
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            pool.install(|| RayonRunner { budget: &budget }.num_threads()),
+            MAX_DECODE_THREADS
+        );
     }
 
     #[test]
