@@ -16,7 +16,7 @@ jobs:
         # Keep author IDs in sync with the rules below.
         if: >-
             github.repository == 'ente/ente' &&
-            contains(fromJSON('[24503581,231175576,239996999,64626875,293300083,77285023,2698932,281837475,113718372]'), github.event.pull_request.user.id) &&
+            contains(fromJSON('[24503581,231175576,239996999,64626875,293300083,77285023,2698932,281837475,113718372,290690209]'), github.event.pull_request.user.id) &&
             (
                 github.event.sender.id == github.event.pull_request.user.id ||
                 (
@@ -92,6 +92,15 @@ jobs:
                                   "docs/docs/",
                               ],
                           },
+                          // ente-ci[bot]
+                          290690209: {
+                              allowPrefixes: [
+                                  "rust/apps/cli/Cargo.toml",
+                                  "rust/Cargo.lock",
+                                  "rust/apps/cli/changes/",
+                                  "docs/docs/cli/changelog.md",
+                              ],
+                          },
                       };
                       const { pull_request: pr } = context.payload;
                       const rule = rules[pr.user.id];
@@ -119,11 +128,26 @@ jobs:
                                   !path.includes("/") ||
                                   excludePrefixes.some((prefix) => path.startsWith(prefix)) ||
                                   (rule.allowPrefixes &&
-                                      !rule.allowPrefixes.some((prefix) => path.startsWith(prefix))),
+                                      !rule.allowPrefixes.some((prefix) =>
+                                          prefix.endsWith("/") ? path.startsWith(prefix) : path === prefix)),
                           )
                       ) {
                           core.info("These paths require human approval.");
                           return false;
+                      }
+
+                      if (pr.user.id === 290690209 && paths.includes("rust/apps/cli/Cargo.toml")) {
+                          const manifests = await Promise.all([data.merge_base_commit.sha, pr.head.sha].map(async (ref) => {
+                              const { data } = await github.rest.repos.getContent({
+                                  ...context.repo, path: "rust/apps/cli/Cargo.toml", ref,
+                              });
+                              return Buffer.from(data.content, "base64").toString("utf8")
+                                  .replace(/^version = "\d+\.\d+\.\d+"$/m, "version = \"\"");
+                          }));
+                          if (manifests[0] !== manifests[1]) {
+                              core.info("Manifest changes beyond the CLI version require human approval.");
+                              return false;
+                          }
                       }
 
                       core.setOutput("base", data.merge_base_commit.sha);
