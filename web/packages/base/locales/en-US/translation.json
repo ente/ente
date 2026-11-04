@@ -1026,6 +1026,7 @@
     "downloading_album": "Downloading {{name}}",
     "creating_zip": "Creating ZIP for {{name}}",
     "downloading": "Downloading",
+    "buffering": "Buffering",
     "size_downloaded": "{{size}} downloaded",
     "preparing_download": "Preparing download",
     "decrypting": "Decrypting",
