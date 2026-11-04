@@ -25,6 +25,7 @@ impl Error {
             Error::IncorrectRecoveryKey => Some("incorrect_recovery_key"),
             Error::MalformedRecoveryKey => Some("malformed_recovery_key"),
             Error::IncorrectPassword => Some("incorrect_password"),
+            Error::SrpSessionExpired => Some("session_expired"),
             Error::NotRegistered => Some("not_registered"),
             Error::AlreadyRegistered => Some("already_registered"),
             Error::SignupIncomplete => Some("signup_incomplete"),

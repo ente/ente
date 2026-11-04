@@ -190,8 +190,13 @@ impl AccountsClient {
             .await?
             .error_for_code()
             .await
-            .map_err(|error| match error.status_code() {
-                Some(401) => Error::IncorrectPassword,
+            .map_err(|error| match error {
+                http::Error::Api {
+                    status: 410,
+                    ref code,
+                    ..
+                } if code == "SESSION_EXPIRED" => Error::SrpSessionExpired,
+                _ if error.status_code() == Some(401) => Error::IncorrectPassword,
                 _ => error.into(),
             })?
             .json()
@@ -715,6 +720,28 @@ mod tests {
             .unwrap_err();
 
         assert!(matches!(&error, Error::Http(e) if e.status_code() == Some(500)));
+        verify.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn verify_srp_session_maps_expired_session() {
+        let mut server = Server::new_async().await;
+        let verify = server
+            .mock("POST", "/users/srp/verify-session")
+            .with_status(410)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"code":"SESSION_EXPIRED"}"#)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let client = make_client(server.url());
+        let error = client
+            .verify_srp_session(&uuid::Uuid::new_v4(), &uuid::Uuid::new_v4(), &[1u8; 32])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, Error::SrpSessionExpired));
         verify.assert_async().await;
     }
 

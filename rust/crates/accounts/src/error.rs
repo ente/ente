@@ -23,6 +23,9 @@ pub enum Error {
     #[error("Incorrect password")]
     IncorrectPassword,
 
+    #[error("SRP session expired. Please restart login.")]
+    SrpSessionExpired,
+
     #[error("Incorrect recovery key")]
     IncorrectRecoveryKey,
 

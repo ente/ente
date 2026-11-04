@@ -144,6 +144,13 @@ class _LoginPasswordVerificationPageState
           title: context.strings.incorrectPasswordTitle,
           message: context.strings.pleaseTryAgain,
         );
+      } else if (e == const AccountsError.sessionExpired()) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.loginSessionExpired,
+          message: context.strings.loginSessionExpiredDetails,
+          assetPath: 'assets/warning-grey.png',
+        );
       } else {
         _logger.severe('API failure during SRP login', e, s);
         if (e is AccountsError_Network) {
