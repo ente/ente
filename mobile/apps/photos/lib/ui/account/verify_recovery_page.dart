@@ -72,11 +72,20 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
         Bus.instance.fire(NotificationEvent());
         await dialog.hide();
         if (!mounted) return;
+        final colors = context.componentColors;
         await showAlertBottomSheet(
           context,
           title: context.strings.recoveryKeyVerified,
           message: context.strings.recoveryKeySuccessBody,
-          assetPath: 'assets/warning-grey.png',
+          illustration: Container(
+            width: 71,
+            height: 62,
+            decoration: BoxDecoration(
+              color: colors.primary,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.check, color: colors.specialWhite, size: 40),
+          ),
         );
         if (!mounted) return;
         Navigator.of(context).pop();
