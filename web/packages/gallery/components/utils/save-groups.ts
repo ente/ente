@@ -16,9 +16,9 @@ export interface SaveGroup {
     includeZipNumber?: boolean;
     isDownloadingZip?: boolean;
     currentPart?: number;
-    /** Fraction of source bytes downloaded, or undefined while sizes are unknown. */
+    // Fraction of source bytes downloaded, or undefined while sizes are unknown.
     downloadProgress?: number;
-    /** Keep the group active until the browser has been handed the final ZIP. */
+    // Keep the group active until the browser has been handed the final ZIP.
     isFinalizing?: boolean;
 }
 
