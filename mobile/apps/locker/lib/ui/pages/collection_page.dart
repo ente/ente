@@ -75,6 +75,9 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   List<EnteFile> get allFiles => _files;
 
   @override
+  Map<int, List<EnteFile>> get filesByCollection => const {};
+
+  @override
   Collection get selectedCollection => _collection;
 
   @override
