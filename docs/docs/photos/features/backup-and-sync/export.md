@@ -24,9 +24,9 @@ The desktop app offers continuous export, which automatically exports new items 
 
 **How to set up:**
 
-1. Open **Export data** in the sidebar
+1. Open `Settings > Export data`
 2. Choose a destination folder on your computer
-3. Enable **Continuous export**
+3. Enable "Continuous export"
 4. The app will automatically export new items in the background
 
 **Important notes:**

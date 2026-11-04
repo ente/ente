@@ -12,7 +12,6 @@ Choose the guide that matches where your photos are currently stored:
 - **[Import from Google Photos](from-google-photos/)** - Use Google Takeout to export and import your library
 - **[Import from Apple Photos](from-apple-photos/)** - Import from iCloud Photos or your Mac's Photos app
 - **[Import from Amazon Photos](from-amazon-photos)** - Migrate your Amazon Photos library
-- **[Import from Proton Drive](from-proton-drive)** - Download from Proton Drive on the web, then upload with the desktop app
 - **[Import from local hard disk](from-local-hard-disk)** - Upload photos from folders on your computer
 
 All imports preserve your original quality photos and metadata. Learn more in the [migration overview in Getting Started](/photos/getting-started/migration).

@@ -85,11 +85,9 @@ Peer-to-peer sharing between Ente users and creating public links are available 
 
 ## Related topics
 
-- [Family sharing](/photos/features/sharing-and-collaboration/family-sharing) - Share with family across iPhone and Android
 - [Library sharing](/photos/features/sharing-and-collaboration/library-sharing) - Share current and future albums with family
 - [Collaboration](/photos/features/sharing-and-collaboration/collaboration) - Collaborate with Ente users or collect photos from anyone
 - [Public links](/photos/features/sharing-and-collaboration/public-links) - Share via links (includes quick links and collect mode)
-- [Collect event photos](/photos/features/sharing-and-collaboration/collect-event-photos) - Collect wedding and event photos with a link
 - [Custom domains](/photos/features/sharing-and-collaboration/custom-domains/) - Use your own domain for public links
 
 ## Related FAQs

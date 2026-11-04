@@ -324,7 +324,6 @@ If you use a free account, visitors viewing your public albums do not keep your 
 ## Related topics
 
 - [Collaboration](/photos/features/sharing-and-collaboration/collaboration) - Collaborate with Ente users or collect photos from anyone
-- [Collect event photos](/photos/features/sharing-and-collaboration/collect-event-photos) - Collect wedding and event photos with a link
 - [Custom domains](/photos/features/sharing-and-collaboration/custom-domains/) - Use your own domain for public links
 - [Sharing overview](/photos/features/sharing-and-collaboration/share) - All sharing methods explained
 
