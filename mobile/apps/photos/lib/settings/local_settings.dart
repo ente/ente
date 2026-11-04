@@ -98,8 +98,6 @@ class LocalSettings {
       "ls.bg_debug_notifications_enabled";
   static const _kCFUploadProxyEnabled = "ls.cf_upload_proxy_enabled";
   static const _kSharedPhotoFeedCutoffTime = "ls.shared_photo_feed_cutoff_time";
-  static const _kWrapped2025ResumeIndex = "ls.wrapped_2025_resume_index";
-  static const _kWrapped2025Complete = "ls.wrapped_2025_complete";
   static const _memoryLaneSeenKey = "faces_timeline_seen_person_ids";
   static const _kChristmasBannerEnabled = "ls.christmas_banner_enabled";
   static const _kPetRecognitionEnabled = "ls.pet_recognition_enabled";
@@ -610,26 +608,6 @@ class LocalSettings {
     final cutoff = DateTime.now().microsecondsSinceEpoch;
     _prefs.setInt(_kSharedPhotoFeedCutoffTime, cutoff).ignore();
     return cutoff;
-  }
-
-  int wrapped2025ResumeIndex() {
-    return _prefs.getInt(_kWrapped2025ResumeIndex) ?? 0;
-  }
-
-  Future<void> setWrapped2025ResumeIndex(int index) async {
-    await _prefs.setInt(_kWrapped2025ResumeIndex, index);
-  }
-
-  bool wrapped2025Complete() {
-    return _prefs.getBool(_kWrapped2025Complete) ?? false;
-  }
-
-  Future<void> setWrapped2025Complete() async {
-    await _prefs.setBool(_kWrapped2025Complete, true);
-  }
-
-  Future<void> resetWrapped2025Complete() async {
-    await _prefs.setBool(_kWrapped2025Complete, false);
   }
 
   bool get isChristmasBannerEnabled =>
