@@ -26,6 +26,13 @@ pub enum RewindStatus {
 }
 
 impl RewindState {
+    pub(super) fn is_final_for(&self, request: &RewindRequest) -> bool {
+        self.is_final
+            && self.version == REWIND_VERSION
+            && self.year == request.year
+            && self.local_gallery_mode == request.local_gallery_mode
+    }
+
     pub(super) fn evaluate(
         request: &RewindRequest,
         library: &Library<'_>,

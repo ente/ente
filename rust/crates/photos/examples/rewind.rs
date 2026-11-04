@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let request: RewindRequest = serde_json::from_slice(&fs::read(snapshot.join("request.json"))?)?;
     let ml_db = snapshot.join("ml.db");
     let store = ml_db.exists().then(|| MlStore::open(&ml_db)).transpose()?;
-    let state = compute_rewind(&request, store.as_ref())?;
+    let state = compute_rewind(&request, store.as_ref(), None)?;
     println!("{}", serde_json::to_string_pretty(&state)?);
     Ok(())
 }

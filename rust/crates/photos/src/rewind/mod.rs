@@ -1,12 +1,8 @@
-mod cache;
 mod chapters;
 mod input;
 mod library;
 mod report;
 mod state;
-
-use std::fs;
-use std::path::Path;
 
 pub use input::{RewindFile, RewindFileType, RewindRequest};
 pub use report::{RewindReport, Totals};
@@ -21,8 +17,6 @@ pub enum Error {
     #[error(transparent)]
     Database(#[from] crate::ml_db::Error),
     #[error(transparent)]
-    Io(#[from] std::io::Error),
-    #[error(transparent)]
     Json(#[from] serde_json::Error),
     #[error("year {0} is not supported")]
     UnsupportedYear(i32),
@@ -30,54 +24,53 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn compute_rewind(request: &RewindRequest, store: Option<&MlStore>) -> Result<RewindState> {
+pub fn compute_rewind(
+    request: &RewindRequest,
+    store: Option<&MlStore>,
+    previous: Option<&RewindState>,
+) -> Result<RewindState> {
+    if let Some(previous) = previous.filter(|previous| previous.is_final_for(request)) {
+        return Ok(previous.clone());
+    }
     let library = Library::of_year(request)?;
     let ml_coverage = store.map(|store| library.ml_coverage(store)).transpose()?;
     Ok(RewindState::evaluate(request, &library, ml_coverage))
 }
 
-pub fn refresh_rewind(
-    request: &RewindRequest,
-    store: Option<&MlStore>,
-    cache_directory: &Path,
-) -> Result<RewindState> {
-    let clear_count_before = cache::clear_count(cache_directory);
-    if let Some(state) =
-        cache::read_final(cache_directory, request.year, request.local_gallery_mode)
-    {
-        return Ok(state);
-    }
-    let state = compute_rewind(request, store)?;
-    cache::publish(cache_directory, state, clear_count_before)
+pub fn encode_rewind_state(state: &RewindState) -> Result<Vec<u8>> {
+    Ok(serde_json::to_vec(state)?)
 }
 
-pub fn load_rewind(
-    cache_directory: &Path,
+pub fn decode_rewind_state(
+    bytes: &[u8],
     year: i32,
     local_gallery_mode: bool,
 ) -> Option<RewindState> {
-    cache::read(cache_directory, year, local_gallery_mode)
+    match serde_json::from_slice::<RewindState>(bytes) {
+        Ok(state) => (state.version == REWIND_VERSION
+            && state.year == year
+            && state.local_gallery_mode == local_gallery_mode)
+            .then_some(state),
+        Err(error) => {
+            log::warn!("ignoring an unreadable rewind state: {error}");
+            None
+        }
+    }
 }
 
-pub fn clear_rewind(cache_directory: &Path) -> Result<()> {
-    cache::clear(cache_directory)
-}
-
-pub fn export_rewind_request(request: &RewindRequest, path: &Path) -> Result<()> {
-    fs::write(path, serde_json::to_vec_pretty(request)?)?;
-    Ok(())
+pub fn encode_rewind_request(request: &RewindRequest) -> Result<Vec<u8>> {
+    Ok(serde_json::to_vec_pretty(request)?)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use ente_exif::DateTime;
     use tempfile::TempDir;
 
     use super::{
         REWIND_VERSION, RewindFile, RewindFileType, RewindReport, RewindRequest, RewindState,
-        RewindStatus, Totals, cache, clear_rewind, compute_rewind, load_rewind, refresh_rewind,
+        RewindStatus, Totals, compute_rewind, decode_rewind_state, encode_rewind_request,
+        encode_rewind_state,
     };
     use crate::ml_db::{
         CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
@@ -174,23 +167,27 @@ mod tests {
             file(5, "2027-01-01T00:00:00"),
         ];
 
-        let state = compute_rewind(&request(BEFORE_NEW_YEAR, files), None).unwrap();
+        let state = compute_rewind(&request(BEFORE_NEW_YEAR, files), None, None).unwrap();
 
         assert_eq!(totals(&state), Some(Totals { files: 2 }));
     }
 
     #[test]
     fn without_ml_the_rewind_is_ready_and_freezes_once_the_year_has_ended() {
-        let before = compute_rewind(&request(BEFORE_NEW_YEAR, photos(3)), None).unwrap();
+        let before = compute_rewind(&request(BEFORE_NEW_YEAR, photos(3)), None, None).unwrap();
         assert_eq!(totals(&before), Some(Totals { files: 3 }));
         assert_eq!(before.ml_coverage, None);
         assert!(!before.is_final);
 
         let mut late_in_new_york = request("2027-01-01T04:00:00", photos(3));
         late_in_new_york.utc_offset_seconds = -5 * 3600;
-        assert!(!compute_rewind(&late_in_new_york, None).unwrap().is_final);
+        assert!(
+            !compute_rewind(&late_in_new_york, None, None)
+                .unwrap()
+                .is_final
+        );
 
-        let after = compute_rewind(&request(AFTER_NEW_YEAR, photos(3)), None).unwrap();
+        let after = compute_rewind(&request(AFTER_NEW_YEAR, photos(3)), None, None).unwrap();
         assert!(after.is_final);
     }
 
@@ -204,18 +201,19 @@ mod tests {
 
         let (_directory, store) = indexed_store(1..=8);
         let waiting =
-            compute_rewind(&request(BEFORE_NEW_YEAR, files.clone()), Some(&store)).unwrap();
+            compute_rewind(&request(BEFORE_NEW_YEAR, files.clone()), Some(&store), None).unwrap();
         assert_eq!(waiting.status, RewindStatus::WaitingForMl);
         assert_eq!(waiting.ml_coverage, Some(0.8));
         assert!(!waiting.is_final);
 
         let (_directory, store) = indexed_store(1..=9);
-        let ready = compute_rewind(&request(BEFORE_NEW_YEAR, files.clone()), Some(&store)).unwrap();
+        let ready =
+            compute_rewind(&request(BEFORE_NEW_YEAR, files.clone()), Some(&store), None).unwrap();
         assert_eq!(totals(&ready), Some(Totals { files: 11 }));
         assert_eq!(ready.ml_coverage, Some(0.9));
         assert!(!ready.is_final);
 
-        let frozen = compute_rewind(&request(AFTER_NEW_YEAR, files), Some(&store)).unwrap();
+        let frozen = compute_rewind(&request(AFTER_NEW_YEAR, files), Some(&store), None).unwrap();
         assert!(frozen.is_final);
     }
 
@@ -223,14 +221,15 @@ mod tests {
     fn after_new_year_unfinished_indexing_shows_the_rewind_unless_installed_this_season() {
         let (_directory, store) = indexed_store(1..=5);
 
-        let fallback = compute_rewind(&request(AFTER_NEW_YEAR, photos(10)), Some(&store)).unwrap();
+        let fallback =
+            compute_rewind(&request(AFTER_NEW_YEAR, photos(10)), Some(&store), None).unwrap();
         assert_eq!(totals(&fallback), Some(Totals { files: 10 }));
         assert_eq!(fallback.ml_coverage, Some(0.5));
         assert!(!fallback.is_final);
 
         let mut new_install = request(AFTER_NEW_YEAR, photos(10));
         new_install.installed_at = new_install.season_start;
-        let waiting = compute_rewind(&new_install, Some(&store)).unwrap();
+        let waiting = compute_rewind(&new_install, Some(&store), None).unwrap();
         assert_eq!(waiting.status, RewindStatus::WaitingForMl);
         assert!(!waiting.is_final);
     }
@@ -238,7 +237,8 @@ mod tests {
     #[test]
     fn a_year_without_photos_has_no_totals() {
         let (_directory, store) = indexed_store([]);
-        let state = compute_rewind(&request(BEFORE_NEW_YEAR, Vec::new()), Some(&store)).unwrap();
+        let state =
+            compute_rewind(&request(BEFORE_NEW_YEAR, Vec::new()), Some(&store), None).unwrap();
         assert_eq!(state.ml_coverage, Some(1.0));
         assert_eq!(
             state.status,
@@ -249,103 +249,62 @@ mod tests {
     }
 
     #[test]
-    fn the_cache_keeps_the_latest_state_until_it_is_final() {
-        let directory = tempfile::tempdir().unwrap();
-        let cache = directory.path().join("rewind");
-
-        let first = refresh_rewind(&request(BEFORE_NEW_YEAR, photos(2)), None, &cache).unwrap();
-        assert_eq!(load_rewind(&cache, 2026, false), Some(first));
-
-        let second = refresh_rewind(&request(BEFORE_NEW_YEAR, photos(3)), None, &cache).unwrap();
-        assert_eq!(totals(&second), Some(Totals { files: 3 }));
-        assert_eq!(load_rewind(&cache, 2026, false), Some(second));
-
-        let frozen = refresh_rewind(&request(AFTER_NEW_YEAR, photos(4)), None, &cache).unwrap();
-        assert!(frozen.is_final);
-        let later =
-            refresh_rewind(&request("2027-01-10T10:00:00", photos(5)), None, &cache).unwrap();
-        assert_eq!(later, frozen);
-        assert_eq!(load_rewind(&cache, 2026, false), Some(frozen));
-    }
-
-    #[test]
-    fn the_cache_ignores_other_modes_versions_and_unreadable_files() {
-        let directory = tempfile::tempdir().unwrap();
-        let cache = directory.path().join("rewind");
-        let frozen = refresh_rewind(&request(AFTER_NEW_YEAR, photos(2)), None, &cache).unwrap();
-
-        assert_eq!(load_rewind(&cache, 2026, true), None);
-        assert_eq!(load_rewind(&cache, 2025, false), None);
-
-        let mut offline = request(AFTER_NEW_YEAR, photos(3));
-        offline.local_gallery_mode = true;
-        let replaced = refresh_rewind(&offline, None, &cache).unwrap();
-        assert_ne!(replaced, frozen);
-        assert_eq!(load_rewind(&cache, 2026, false), None);
-
-        let mut outdated = replaced;
-        outdated.version = REWIND_VERSION + 1;
-        fs::write(
-            cache.join("2026.json"),
-            serde_json::to_vec(&outdated).unwrap(),
+    fn a_final_previous_result_is_kept_and_anything_else_is_recomputed() {
+        let provisional = compute_rewind(&request(BEFORE_NEW_YEAR, photos(2)), None, None).unwrap();
+        let next = compute_rewind(
+            &request(BEFORE_NEW_YEAR, photos(3)),
+            None,
+            Some(&provisional),
         )
         .unwrap();
-        assert_eq!(load_rewind(&cache, 2026, true), None);
+        assert_eq!(totals(&next), Some(Totals { files: 3 }));
 
-        fs::write(cache.join("2026.json"), b"{").unwrap();
-        assert_eq!(load_rewind(&cache, 2026, true), None);
-        assert!(refresh_rewind(&offline, None, &cache).unwrap().is_final);
+        let frozen = compute_rewind(&request(AFTER_NEW_YEAR, photos(4)), None, None).unwrap();
+        assert!(frozen.is_final);
+        let later = request("2027-01-10T10:00:00", photos(5));
+        assert_eq!(compute_rewind(&later, None, Some(&frozen)).unwrap(), frozen);
 
-        clear_rewind(&cache).unwrap();
-        assert!(!cache.exists());
-        clear_rewind(&cache).unwrap();
+        let mut offline = later.clone();
+        offline.local_gallery_mode = true;
+        let mut outdated = frozen.clone();
+        outdated.version = REWIND_VERSION + 1;
+        let mut last_year = frozen.clone();
+        last_year.year = 2025;
+        for (request, previous) in [
+            (&offline, &frozen),
+            (&later, &outdated),
+            (&later, &last_year),
+        ] {
+            let recomputed = compute_rewind(request, None, Some(previous)).unwrap();
+            assert_eq!(totals(&recomputed), Some(Totals { files: 5 }));
+        }
     }
 
     #[test]
-    fn a_refresh_that_overlaps_a_clear_leaves_the_cache_cleared() {
-        let directory = tempfile::tempdir().unwrap();
-        let cache_directory = directory.path().join("rewind");
-        refresh_rewind(&request(BEFORE_NEW_YEAR, photos(1)), None, &cache_directory).unwrap();
+    fn states_decode_only_for_their_year_mode_and_version() {
+        let state = compute_rewind(&request(BEFORE_NEW_YEAR, photos(2)), None, None).unwrap();
+        let bytes = encode_rewind_state(&state).unwrap();
+        assert_eq!(
+            decode_rewind_state(&bytes, 2026, false),
+            Some(state.clone())
+        );
+        assert_eq!(decode_rewind_state(&bytes, 2025, false), None);
+        assert_eq!(decode_rewind_state(&bytes, 2026, true), None);
 
-        let clear_count_before = cache::clear_count(&cache_directory);
-        let state = compute_rewind(&request(BEFORE_NEW_YEAR, photos(2)), None).unwrap();
-        clear_rewind(&cache_directory).unwrap();
-
-        let published =
-            cache::publish(&cache_directory, state.clone(), clear_count_before).unwrap();
-        assert_eq!(published, state);
-        assert!(!cache_directory.exists());
+        let mut outdated = state;
+        outdated.version = REWIND_VERSION + 1;
+        let outdated = encode_rewind_state(&outdated).unwrap();
+        assert_eq!(decode_rewind_state(&outdated, 2026, false), None);
+        assert_eq!(decode_rewind_state(b"{", 2026, false), None);
     }
 
     #[test]
-    fn clearing_a_parent_directory_cancels_a_refresh_into_a_child_directory() {
-        let directory = tempfile::tempdir().unwrap();
-        let root = directory.path().join("rewind");
-        let account = root.join("1");
-        refresh_rewind(&request(BEFORE_NEW_YEAR, photos(1)), None, &account).unwrap();
-
-        let clear_count_before = cache::clear_count(&account);
-        let state = compute_rewind(&request(BEFORE_NEW_YEAR, photos(2)), None).unwrap();
-        clear_rewind(&root).unwrap();
-
-        let published = cache::publish(&account, state.clone(), clear_count_before).unwrap();
-        assert_eq!(published, state);
-        assert!(!root.exists());
-    }
-
-    #[test]
-    fn clearing_a_sibling_directory_does_not_cancel_a_refresh() {
-        let directory = tempfile::tempdir().unwrap();
-        let root = directory.path().join("rewind");
-        let account = root.join("1");
-        let sibling = root.join("2");
-        refresh_rewind(&request(BEFORE_NEW_YEAR, photos(1)), None, &sibling).unwrap();
-
-        let clear_count_before = cache::clear_count(&account);
-        let state = compute_rewind(&request(BEFORE_NEW_YEAR, photos(2)), None).unwrap();
-        clear_rewind(&sibling).unwrap();
-
-        cache::publish(&account, state.clone(), clear_count_before).unwrap();
-        assert_eq!(load_rewind(&account, 2026, false), Some(state));
+    fn requests_encode_as_the_harness_reads_them() {
+        let request = request(BEFORE_NEW_YEAR, photos(2));
+        let bytes = encode_rewind_request(&request).unwrap();
+        assert_eq!(
+            serde_json::from_slice::<RewindRequest>(&bytes).unwrap(),
+            request
+        );
     }
 }

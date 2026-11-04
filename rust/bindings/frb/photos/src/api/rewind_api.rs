@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use ente_photos::rewind;
 pub use ente_photos::rewind::{
     RewindFile, RewindFileType, RewindReport, RewindRequest, RewindState, RewindStatus, Totals,
@@ -77,31 +75,31 @@ pub struct _Totals {
     pub files: u32,
 }
 
-pub fn refresh_rewind(
+pub fn compute_rewind(
     request: RewindRequest,
     store: Option<RustAutoOpaque<MlStore>>,
-    cache_directory: String,
+    previous: Option<RewindState>,
 ) -> Result<RewindState, RewindError> {
     let store = store.as_ref().map(RustAutoOpaque::blocking_read);
-    Ok(rewind::refresh_rewind(
+    Ok(rewind::compute_rewind(
         &request,
         store.as_deref().map(|store| &store.inner),
-        Path::new(&cache_directory),
+        previous.as_ref(),
     )?)
 }
 
-pub fn load_rewind(
-    cache_directory: String,
+pub fn encode_rewind_state(state: RewindState) -> Result<Vec<u8>, RewindError> {
+    Ok(rewind::encode_rewind_state(&state)?)
+}
+
+pub fn decode_rewind_state(
+    bytes: Vec<u8>,
     year: i32,
     local_gallery_mode: bool,
 ) -> Option<RewindState> {
-    rewind::load_rewind(Path::new(&cache_directory), year, local_gallery_mode)
+    rewind::decode_rewind_state(&bytes, year, local_gallery_mode)
 }
 
-pub fn clear_rewind(cache_directory: String) -> Result<(), RewindError> {
-    Ok(rewind::clear_rewind(Path::new(&cache_directory))?)
-}
-
-pub fn export_rewind_request(request: RewindRequest, path: String) -> Result<(), RewindError> {
-    Ok(rewind::export_rewind_request(&request, Path::new(&path))?)
+pub fn encode_rewind_request(request: RewindRequest) -> Result<Vec<u8>, RewindError> {
+    Ok(rewind::encode_rewind_request(&request)?)
 }
