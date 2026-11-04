@@ -150,14 +150,14 @@ The privacy of your account is a function of the strength of your password, plea
 
 ### Why did I get a "New login to your Ente account" email? {#new-login-email}
 
-We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows the time (in UTC), and the app, device and IP address used. It can be sent before the sign-in finishes in the app, for example if the wrong password is entered after the verification code.
+We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app, for example if the wrong password is entered after the verification code.
 
 If it was you, there's nothing to do.
 
 If you don't recognise it:
 
 1. Change your password from `Settings > Account > Change password`.
-2. Open `Settings > Security > Active sessions` on mobile, or `Settings > Account > Active sessions` on web and desktop, and terminate any session you don't recognise.
+2. If the alert concerns Ente Photos, open `Settings > Security > Active sessions` on mobile, or `Settings > Account > Active sessions` on web and desktop, and terminate any Photos session you don't recognise. This list does not show Ente Auth or Locker sessions. If the email does not identify the app, or it concerns Auth or Locker, contact Ente support for help reviewing the sign-in.
 3. Turn on two-factor authentication from `Settings > Security > Two-factor`.
 
 Replying to this email reaches Ente support. If you need help signing in, include what you see on screen.
