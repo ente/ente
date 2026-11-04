@@ -13,6 +13,8 @@ export type MicrophoneFactory = (
     failed: (error: Error) => void,
 ) => MicrophoneCapture;
 
+const FLUSH_TIMEOUT_MS = 2000;
+
 const timeout = async <T>(operation: Promise<T>, ms: number): Promise<T> => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -212,11 +214,13 @@ class WebviewMicrophone implements MicrophoneCapture {
                             this.flushed = resolve;
                             this.node!.port.postMessage("finish");
                         }),
-                        2000,
+                        FLUSH_TIMEOUT_MS,
                     );
-                } finally {
-                    await this.pending;
+                } catch (error) {
+                    await timeout(this.pending, FLUSH_TIMEOUT_MS);
+                    throw error;
                 }
+                await this.pending;
             }
             if (this.failure) throw this.failure;
         } finally {

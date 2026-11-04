@@ -151,22 +151,23 @@ export function useVoiceInput(
                                     },
                             );
                         } else if (event.type === "snapshot") {
-                            setView(
-                                (previous) =>
-                                    previous && {
-                                        ...previous,
-                                        phase: event.phase,
-                                        status:
-                                            event.phase === "finishing" ||
-                                            event.phase === "ready"
-                                                ? "Finishing…"
-                                                : "Listening…",
-                                        levels: [
-                                            ...previous.levels.slice(-31),
-                                            event.level,
-                                        ],
-                                    },
-                            );
+                            setView((previous) => {
+                                if (!previous || previous.phase === "finishing")
+                                    return previous;
+                                return {
+                                    ...previous,
+                                    phase: event.phase,
+                                    status:
+                                        event.phase === "finishing" ||
+                                        event.phase === "ready"
+                                            ? "Finishing…"
+                                            : "Listening…",
+                                    levels: [
+                                        ...previous.levels.slice(-31),
+                                        event.level,
+                                    ],
+                                };
+                            });
                             const text = event.text + event.hypothesis;
                             if (text !== previewText) {
                                 previewText = text;

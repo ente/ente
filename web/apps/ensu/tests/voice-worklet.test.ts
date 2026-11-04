@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { test } from "node:test";
+import { test, type TestContext } from "node:test";
 import vm from "node:vm";
 import { createMicrophone } from "../src/services/voice-microphone.ts";
 
@@ -44,7 +44,7 @@ function worklet(deliver?: (message: WorkletMessage) => void) {
     };
 }
 
-void test("microphone disconnect reports immediately during preparation and drains captured samples while recording", async (t) => {
+function mockAudioInput(t: TestContext, respondsToFinish = true) {
     const track = { onended: () => assert.fail(), stop: () => undefined };
     const getTracks = () => [track];
     let receive!: (event: { data: WorkletMessage }) => void;
@@ -72,7 +72,10 @@ void test("microphone disconnect reports immediately during preparation and drai
                 set onmessage(listener: typeof receive) {
                     receive = listener;
                 },
-                postMessage: w.command,
+                postMessage: (command: string) => {
+                    if (command !== "finish" || respondsToFinish)
+                        w.command(command);
+                },
                 close: () => undefined,
             };
         },
@@ -85,7 +88,11 @@ void test("microphone disconnect reports immediately during preparation and drai
             else Reflect.deleteProperty(globalThis, key);
         });
     }
+    return { track, feed: w.feed };
+}
 
+void test("microphone disconnect reports immediately during preparation and drains captured samples while recording", async (t) => {
+    const { track, feed } = mockAudioInput(t);
     const failure = "The microphone disconnected.";
     const failures: string[] = [];
     const failed = (error: Error) => failures.push(error.message);
@@ -118,7 +125,7 @@ void test("microphone disconnect reports immediately during preparation and drai
     );
     await recording.prepare(signal);
     await recording.start();
-    w.feed(new Float32Array(20 * 4800 + 1200));
+    feed(new Float32Array(20 * 4800 + 1200));
     await new Promise<void>((resolve) => setImmediate(resolve));
     track.onended();
     assert.deepEqual(failures, [failure]);
@@ -126,6 +133,41 @@ void test("microphone disconnect reports immediately during preparation and drai
     assert.equal((await reported).message, failure);
     assert.deepEqual(received, [...Array<number>(20).fill(4800), 1200]);
     assert.deepEqual(failures, [failure, failure]);
+});
+
+void test("a worklet that misses the flush deadline gets one bounded wait for queued sends", async (t) => {
+    const { track, feed } = mockAudioInput(t, false);
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+    const sends: number[] = [];
+    const failures: string[] = [];
+    let acknowledge!: (accepted: boolean) => void;
+    const capture = createMicrophone(
+        (sequence) => {
+            sends.push(sequence);
+            return new Promise((resolve) => {
+                acknowledge = resolve;
+            });
+        },
+        (error) => failures.push(error.message),
+    );
+    await capture.prepare(new AbortController().signal);
+    await capture.start();
+    feed(new Float32Array(3 * 4800));
+    track.onended();
+    await tick();
+    t.mock.timers.tick(2000);
+    await tick();
+    acknowledge(true);
+    await tick();
+    assert.deepEqual(sends, [0, 1]);
+
+    t.mock.timers.tick(2000);
+    await tick();
+    assert.deepEqual(failures, ["The microphone disconnected."]);
+    acknowledge(true);
+    await tick();
+    assert.deepEqual(sends, [0, 1]);
 });
 
 void test("worklet preserves final partial PCM, clips samples, and encodes little-endian", () => {
