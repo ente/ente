@@ -322,9 +322,7 @@ Future<void> _runMinimally(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
-    MLDataDB.initialize(
-      preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
-    );
+    MLDataDB.initialize(preferRust: flagService.rustMlDb);
     NotificationService.instance.init(prefs);
 
     _logger.info("(for debugging) Configuration init $tlog");
@@ -496,9 +494,7 @@ Future<void> _init(
     if (!isBackground) {
       await localSettings.migrateGalleryLayoutPreferences();
     }
-    MLDataDB.initialize(
-      preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
-    );
+    MLDataDB.initialize(preferRust: flagService.rustMlDb);
 
     _logger.info("Configuration init $tlog");
     await Configuration.instance.init(preferences);
