@@ -1,5 +1,6 @@
 use super::engine::{Catalog, Engine};
 use super::*;
+use ente_photos_export::Report;
 use std::collections::BTreeMap;
 
 fn new_engine(server: &mockito::ServerGuard, key: Key, record: Value) -> Engine {
@@ -986,9 +987,14 @@ fn engine_rechecks_link_source_before_completion() {
     let blocked = root.join("Third/metadata/Photo.jpg.json");
     fs::remove_file(&blocked).unwrap();
     fs::create_dir(&blocked).unwrap();
-    let result = engine.execute_with_report(export, &|line| {
-        eprintln!("{line}");
-        if line.starts_with("file:3:10:") && line.contains("expected a regular file") {
+    let result = engine.execute_with_report(export, &|report| {
+        eprintln!("{report:?}");
+        if let Report::Failure {
+            unit: "file:3:10",
+            error,
+        } = report
+            && format!("{error:#}").contains("expected a regular file")
+        {
             assert!(linked(&root, "First/Photo.jpg", "Second/Photo.jpg"));
             assert_eq!(fs::metadata(&first).unwrap().modified().unwrap(), modified);
             fs::write(&first, b"modified").unwrap();

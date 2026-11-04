@@ -335,7 +335,7 @@ impl Store {
         if let Some(existing) = existing {
             ensure!(
                 existing == destination.as_os_str().as_encoded_bytes(),
-                AdoptionRequired("destination association does not match; use --adopt")
+                AdoptionRequired::Destination
             );
         } else {
             connection.execute(
