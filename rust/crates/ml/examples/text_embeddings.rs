@@ -8,7 +8,9 @@ use ente_ml::assets::ensure_clip_text;
 use ente_ml::indexing::{RunClipTextRequest, run_clip_text};
 
 const ASSET_CACHE: &str = "../../.cache/assets";
-const OUTPUT: &str = "../photos/src/memories/text_embeddings.rs";
+const MEMORIES_OUTPUT: &str = "../photos/src/memories/text_embeddings.rs";
+const DISCOVER_PROMPTS: &str = "../../../mobile/apps/photos/assets/discover.json";
+const DISCOVER_OUTPUT: &str = "../photos/src/discover/text_embeddings.rs";
 const DIMENSIONS: usize = 512;
 const I8_LIMIT: f32 = 127.0;
 const NOSTALGIA: &str = "Photo of a precious and nostalgic memory radiating warmth, vibrant energy, or quiet beauty — alive with color, light, or emotion";
@@ -229,13 +231,47 @@ async fn main() -> Result<()> {
     };
     let clip_memory_types = embed_all(&CLIP_MEMORY_TYPES)?;
     let people_activities = embed_all(&PEOPLE_ACTIVITIES)?;
+    let discover_queries = discover_queries(&manifest_dir.join(DISCOVER_PROMPTS))?
+        .into_iter()
+        .map(|query| {
+            let embedding = embed(&query)?;
+            Ok((query, embedding))
+        })
+        .collect::<Result<Vec<_>>>()?;
 
-    let path = manifest_dir.join(OUTPUT);
-    let source = render(&nostalgia, &clip_memory_types, &people_activities)?;
-    std::fs::write(&path, source).with_context(|| format!("write {}", path.display()))?;
+    write_source(
+        &manifest_dir.join(MEMORIES_OUTPUT),
+        render(&nostalgia, &clip_memory_types, &people_activities)?,
+    )?;
+    write_source(
+        &manifest_dir.join(DISCOVER_OUTPUT),
+        render_discover(&discover_queries),
+    )
+}
+
+fn discover_queries(path: &Path) -> Result<Vec<String>> {
+    let contents =
+        std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let prompts: serde_json::Value =
+        serde_json::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
+    prompts["prompts"]
+        .as_array()
+        .context("discover prompts are not a list")?
+        .iter()
+        .map(|prompt| {
+            prompt["query"]
+                .as_str()
+                .map(str::to_owned)
+                .context("discover prompt has no query")
+        })
+        .collect()
+}
+
+fn write_source(path: &Path, source: String) -> Result<()> {
+    std::fs::write(path, source).with_context(|| format!("write {}", path.display()))?;
     let rustfmt = Command::new("rustfmt")
         .args(["--edition", "2024"])
-        .arg(&path)
+        .arg(path)
         .status()
         .with_context(|| format!("run rustfmt on {}", path.display()))?;
     if !rustfmt.success() {
@@ -289,6 +325,20 @@ fn render(
         )?;
     }
     Ok(source)
+}
+
+fn render_discover(queries: &[(String, Vec<i8>)]) -> String {
+    let entries: Vec<String> = queries
+        .iter()
+        .map(|(query, embedding)| format!("({query:?}, {})", array(embedding)))
+        .collect();
+    format!(
+        "use crate::ml_db::CLIP_EMBEDDING_DIMENSIONS;\n\n\
+         pub(super) type TextEmbedding = [i8; CLIP_EMBEDDING_DIMENSIONS];\n\n\
+         pub(super) static QUERY_EMBEDDINGS: [(&str, TextEmbedding); {}] = [{}];\n",
+        queries.len(),
+        entries.join(", ")
+    )
 }
 
 fn render_embedding_lookup(

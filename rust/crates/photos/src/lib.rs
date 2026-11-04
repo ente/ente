@@ -2,6 +2,8 @@ pub mod collections;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod db;
 pub mod dedup;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod discover;
 pub mod face_clustering;
 pub mod files;
 #[cfg(not(target_arch = "wasm32"))]

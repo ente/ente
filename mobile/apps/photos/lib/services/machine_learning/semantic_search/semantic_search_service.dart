@@ -7,6 +7,7 @@ import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/rust_db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/clip.dart";
@@ -18,6 +19,7 @@ import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/semantic_search/clip_similarity_scan.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/search_service.dart";
+import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 import "package:shared_preferences/shared_preferences.dart";
 
 class SemanticSearchService {
@@ -257,6 +259,9 @@ class SemanticSearchService {
   Future<Map<String, List<int>>> getMatchingFileIDsForCommonQueries(
     Map<String, double> queryToScore,
   ) async {
+    if (MLDataDB.isRustBackend) {
+      return _getStoreMatchingFileIDsForCommonQueries(queryToScore);
+    }
     final textEmbeddings = <String, List<double>>{};
     final minimumSimilarityMap = <String, double>{};
 
@@ -287,6 +292,28 @@ class SemanticSearchService {
       result[query] = fileIDs;
     }
     return result;
+  }
+
+  Future<Map<String, List<int>>> _getStoreMatchingFileIDsForCommonQueries(
+    Map<String, double> queryToScore,
+  ) async {
+    final mlDataDB = isLocalGalleryMode
+        ? RustMLDataDB.localGalleryInstance
+        : RustMLDataDB.instance;
+    final queries = queryToScore.keys.toList(growable: false);
+    final matches = await (await mlDataDB.store).discoverMatches(
+      queries: [
+        for (final query in queries)
+          rust.DiscoverQuery(
+            query: query,
+            minimumSimilarity: queryToScore[query]!,
+          ),
+      ],
+    );
+    return {
+      for (final (index, query) in queries.indexed)
+        query: matches[index].inner.toList(),
+    };
   }
 
   Future<void> _loadTextModel({bool delay = false}) async {
