@@ -266,7 +266,7 @@ impl<'a> People<'a> {
         period: Period,
     ) -> Result<[Memory; 2]> {
         let date = period.today().plus_days(birthday.days_from_today);
-        let starts_at = period.start_of(date);
+        let starts_at = date;
         let photos = self.photos(candidate)?;
         let memory = |is_upcoming, first_date_to_show, last_date_to_show| {
             let birthday = Birthday {
@@ -283,10 +283,10 @@ impl<'a> People<'a> {
         Ok([
             memory(
                 true,
-                period.start_of(date.plus_days(-UPCOMING_BIRTHDAY_LEAD_DAYS)),
+                date.plus_days(-UPCOMING_BIRTHDAY_LEAD_DAYS),
                 starts_at,
             ),
-            memory(false, starts_at, period.start_of(date.plus_days(1))),
+            memory(false, starts_at, date.plus_days(1)),
         ])
     }
 
@@ -777,7 +777,10 @@ mod tests {
         assert_eq!(memory.file_ids, [11, 12, 13]);
         assert_eq!(
             (memory.first_date_to_show, memory.last_date_to_show),
-            (micros(NOW), micros(NOW) + 3 * MICROS_PER_DAY)
+            (
+                micros(NOW).into(),
+                (micros(NOW) + 3 * MICROS_PER_DAY).into()
+            )
         );
     }
 
@@ -812,9 +815,9 @@ mod tests {
             .collect();
 
         let (lead_up, day_of, day_after) = (
-            micros("2026-10-28T00:00:00"),
-            micros("2026-11-02T00:00:00"),
-            micros("2026-11-03T00:00:00"),
+            LocalDate::new(2026, 10, 28).into(),
+            LocalDate::new(2026, 11, 2).into(),
+            LocalDate::new(2026, 11, 3).into(),
         );
         let entry = |memory_type, is_upcoming, first, last| {
             let birthday = Birthday {

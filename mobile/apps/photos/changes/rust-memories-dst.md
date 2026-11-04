@@ -1,0 +1,1 @@
+- Keep calendar memories and their notifications on the correct local date across daylight-saving changes when using Rust Memories.

@@ -213,7 +213,10 @@ mod tests {
         assert!(memory.file_ids.is_sorted_by(|a, b| a > b));
         assert_eq!(
             (memory.first_date_to_show, memory.last_date_to_show),
-            (micros(NOW), micros(NOW) + 3 * MICROS_PER_DAY)
+            (
+                micros(NOW).into(),
+                (micros(NOW) + 3 * MICROS_PER_DAY).into()
+            )
         );
     }
 

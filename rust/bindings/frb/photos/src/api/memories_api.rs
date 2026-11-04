@@ -3,8 +3,9 @@ use ente_photos::memories;
 use ente_photos::memories::CityLookup;
 pub use ente_photos::memories::{
     BaseLocation, BaseMemory, Birthday, CachedTrip, ClipMemoryType, LocalDate, MemoriesRequest,
-    Memory, MemoryFile, MemoryKind, MemoryPerson, PeopleActivity, PeopleMemory, PeopleMemoryType,
-    Period, ShownClipMemory, ShownPerson, ShownTrip, SmartMemories, TimeMemory, TripMemory,
+    Memory, MemoryBoundary, MemoryFile, MemoryKind, MemoryPerson, PeopleActivity, PeopleMemory,
+    PeopleMemoryType, Period, ShownClipMemory, ShownPerson, ShownTrip, SmartMemories, TimeMemory,
+    TripMemory,
 };
 use flutter_rust_bridge::frb;
 
@@ -109,8 +110,14 @@ pub struct _BaseLocation {
 pub struct _Memory {
     pub kind: MemoryKind,
     pub file_ids: Vec<i64>,
-    pub first_date_to_show: i64,
-    pub last_date_to_show: i64,
+    pub first_date_to_show: MemoryBoundary,
+    pub last_date_to_show: MemoryBoundary,
+}
+
+#[frb(mirror(MemoryBoundary))]
+pub enum _MemoryBoundary {
+    Timestamp(i64),
+    CalendarDate(LocalDate),
 }
 
 #[frb(mirror(MemoryKind))]

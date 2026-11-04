@@ -378,10 +378,10 @@ mod tests {
             .iter()
             .find(|memory| matches!(&memory.kind, MemoryKind::Trip(trip) if trip.key == ROME_KEY))
             .unwrap();
-        assert_eq!(rome_memory.first_date_to_show, micros(NOW));
+        assert_eq!(rome_memory.first_date_to_show, micros(NOW).into());
         assert_eq!(
             rome_memory.last_date_to_show,
-            micros(NOW) + 10 * MICROS_PER_DAY
+            (micros(NOW) + 10 * MICROS_PER_DAY).into()
         );
         assert_eq!(rome_memory.file_ids.len(), 10);
 

@@ -76,8 +76,11 @@ mod tests {
         );
         assert_eq!(
             memories[0].first_date_to_show,
-            micros("2026-10-29T18:00:00")
+            micros("2026-10-29T18:00:00").into()
         );
-        assert_eq!(memories[0].last_date_to_show, micros("2026-11-01T18:00:00"));
+        assert_eq!(
+            memories[0].last_date_to_show,
+            micros("2026-11-01T18:00:00").into()
+        );
     }
 }
