@@ -212,14 +212,11 @@ class PhotoReviewService {
     ReviewMonthKey after,
   ) {
     final months = overview.months.toList()
-      ..sort((a, b) => b.key.compareTo(a.key));
+      ..sort((a, b) => a.key.compareTo(b.key));
     for (final month in months) {
-      if (month.key.compareTo(after) < 0 && !month.isCompleted) {
+      if (month.key.compareTo(after) > 0 && !month.isCompleted) {
         return month.key;
       }
-    }
-    for (final month in months) {
-      if (month.key != after && !month.isCompleted) return month.key;
     }
     return null;
   }
