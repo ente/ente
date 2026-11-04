@@ -2,11 +2,14 @@ import "package:flutter/material.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/base_bottom_sheet.dart";
 
+// Pass only one of illustration and assetPath. If both are provided,
+// illustration takes precedence over assetPath.
 Future<T?> showAlertBottomSheet<T>(
   BuildContext context, {
   required String title,
   required String message,
   String? assetPath,
+  Widget? illustration,
   List<Widget>? buttons,
   bool isDismissible = true,
   bool showCloseButton = true,
@@ -22,6 +25,7 @@ Future<T?> showAlertBottomSheet<T>(
       title: title,
       message: message,
       assetPath: assetPath,
+      illustration: illustration,
       buttons: buttons,
       showCloseButton: showCloseButton,
       onClose: onClose,
@@ -33,6 +37,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
   final String title;
   final String message;
   final String? assetPath;
+  final Widget? illustration;
   final List<Widget>? buttons;
   final bool showCloseButton;
   final VoidCallback? onClose;
@@ -41,6 +46,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
     required this.title,
     required this.message,
     this.assetPath,
+    this.illustration,
     this.buttons,
     this.showCloseButton = true,
     this.onClose,
@@ -80,12 +86,12 @@ class AlertBottomSheet<T> extends StatelessWidget {
                   ],
                 ),
               if (showCloseButton) const SizedBox(height: 4),
-              if (assetPath != null) ...[
+              if (illustration != null || assetPath != null) ...[
                 Center(
                   child: FittedBox(
                     alignment: Alignment.bottomCenter,
                     fit: BoxFit.scaleDown,
-                    child: Image.asset(assetPath!),
+                    child: illustration ?? Image.asset(assetPath!),
                   ),
                 ),
                 const SizedBox(height: 16),
