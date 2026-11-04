@@ -97,7 +97,6 @@ struct JxlImageDecoder<R: Read + Seek> {
     budget: MemoryBudget,
     dimensions: (u32, u32),
     color_type: ColorType,
-    icc_profile: Option<Vec<u8>>,
 }
 
 impl<R: Read + Seek> JxlImageDecoder<R> {
@@ -143,18 +142,12 @@ impl<R: Read + Seek> JxlImageDecoder<R> {
             .is_grayscale();
 
         let (color_type, data_format) = output_format(&bit_depth, grayscale, alpha);
-        decoder
-            .set_pixel_format(JxlPixelFormat {
-                color_type: jxl_color_type(grayscale, alpha),
-                color_data_format: Some(data_format),
-                extra_channel_format: vec![None; num_extra_channels],
-            })
-            .map_err(jxl_error)?;
-        let icc_profile = decoder
-            .output_color_profile()
-            .filter(|profile| !uses_hdr_transfer(profile))
-            .map(with_dci_as_pure_gamma)
-            .and_then(|profile| profile.try_as_icc().map(Cow::into_owned));
+        let pixel_format = JxlPixelFormat {
+            color_type: jxl_color_type(grayscale, alpha),
+            color_data_format: Some(data_format),
+            extra_channel_format: vec![None; num_extra_channels],
+        };
+        within_budget(&budget, || decoder.set_pixel_format(pixel_format))?.map_err(jxl_error)?;
 
         Ok(Self {
             input,
@@ -162,7 +155,6 @@ impl<R: Read + Seek> JxlImageDecoder<R> {
             budget,
             dimensions: (width, height),
             color_type,
-            icc_profile,
         })
     }
 
@@ -204,7 +196,13 @@ impl<R: Read + Seek> ImageDecoder for JxlImageDecoder<R> {
     }
 
     fn icc_profile(&mut self) -> ImageResult<Option<Vec<u8>>> {
-        Ok(self.icc_profile.clone())
+        within_budget(&self.budget, || {
+            self.decoder
+                .output_color_profile()
+                .filter(|profile| !uses_hdr_transfer(profile))
+                .map(with_dci_as_pure_gamma)
+                .and_then(|profile| profile.try_as_icc().map(Cow::into_owned))
+        })
     }
 
     fn read_image(self, buf: &mut [u8]) -> ImageResult<()> {
@@ -222,11 +220,18 @@ fn process<R: Read + Seek>(
     output: Option<&mut [JxlOutputBuffer]>,
     budget: &MemoryBudget,
 ) -> ImageResult<Event> {
-    let result = budget.enter(|| decoder.process(input, output, Some(&mut RayonRunner { budget })));
+    within_budget(budget, || {
+        decoder.process(input, output, Some(&mut RayonRunner { budget }))
+    })?
+    .map_err(jxl_error)
+}
+
+fn within_budget<T>(budget: &MemoryBudget, work: impl FnOnce() -> T) -> ImageResult<T> {
+    let result = budget.enter(work);
     if budget.is_exceeded() {
         return Err(too_large());
     }
-    result.map_err(jxl_error)
+    Ok(result)
 }
 
 fn output_format(
@@ -616,6 +621,22 @@ mod tests {
 
         assert!(result.is_err());
         assert!((4..=5).contains(&started.into_inner()));
+    }
+
+    #[test]
+    fn rejects_icc_profile_copies_exceeding_the_memory_budget() {
+        let reader = BoundedReader {
+            inner: Cursor::new(RGB_2X2_CODESTREAM),
+            position: 0,
+            max_position: u64::MAX,
+            deadline: later(),
+        };
+        let mut decoder = JxlImageDecoder::new(reader, None, MAX_DECODE_MEMORY_BYTES).unwrap();
+        assert!(decoder.icc_profile().unwrap().is_some());
+
+        decoder.budget = MemoryBudget::new(0);
+
+        assert!(matches!(decoder.icc_profile(), Err(ImageError::Limits(_))));
     }
 
     #[test]
