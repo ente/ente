@@ -297,8 +297,9 @@ class GalleryState extends State<Gallery> with WidgetsBindingObserver {
               _sortOrder =
                   widget.sortOrderFn?.call() ?? FileSortOrder.newestFirst;
               _setGroupType();
-              groupHeaderExtent = await _measureGroupHeaderExtent();
+              final measuredHeaderExtent = await _measureGroupHeaderExtent();
               if (!mounted) return;
+              groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
               final result = await _loadFiles();
               _setFilesAndReload(result.files);
             });
