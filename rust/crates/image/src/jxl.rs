@@ -31,11 +31,33 @@ const MAX_DECODE_DURATION: Duration = Duration::from_secs(60);
 const MAX_DECODE_MEMORY_BYTES: usize = 512 * 1024 * 1024;
 const MAX_DECODE_THREADS: usize = 8;
 const MAX_SAMPLES_PER_PIXEL: u64 = 4;
+const MIN_8_BIT_OUTPUT_GAMMA: f32 = 0.3;
+const MAX_8_BIT_OUTPUT_GAMMA: f32 = 0.6;
 
 #[cfg(test)]
 pub(crate) const RGB_2X2_CODESTREAM: [u8; 27] = [
     0xFF, 0x0A, 0x08, 0x10, 0x10, 0x09, 0x08, 0x00, 0x01, 0x00, 0x3C, 0x00, 0x4B, 0x18, 0x8B, 0x15,
     0xC2, 0x41, 0x19, 0x5E, 0x20, 0x00, 0x80, 0x08, 0x20, 0x08, 0x06,
+];
+
+#[cfg(test)]
+pub(crate) const RGB16_SRGB_2X1_CODESTREAM: [u8; 34] = [
+    0xFF, 0x0A, 0x00, 0x70, 0xFC, 0x40, 0x02, 0x08, 0x00, 0x01, 0x00, 0x54, 0x00, 0x4B, 0x18, 0x8B,
+    0x15, 0x42, 0x8A, 0x06, 0xE9, 0x45, 0x07, 0x50, 0xF6, 0xFF, 0x7F, 0xBB, 0x5B, 0x01, 0x03, 0xC8,
+    0xCC, 0x04,
+];
+
+#[cfg(test)]
+pub(crate) const RGB_F32_LINEAR_2X1_CODESTREAM: [u8; 35] = [
+    0xFF, 0x0A, 0x00, 0x70, 0x72, 0x00, 0x45, 0x8B, 0x08, 0x00, 0x01, 0x00, 0x54, 0x00, 0x4B, 0x18,
+    0x8B, 0x15, 0x01, 0x12, 0x5E, 0xB8, 0x01, 0x34, 0x3E, 0xC2, 0x4D, 0x00, 0x01, 0x00, 0xB3, 0xCC,
+    0xFF, 0xA3, 0x07,
+];
+
+#[cfg(test)]
+pub(crate) const RGB_F8_LINEAR_2X1_CODESTREAM: [u8; 32] = [
+    0xFF, 0x0A, 0x00, 0x70, 0x7E, 0x50, 0x40, 0xD1, 0x22, 0x08, 0x00, 0x01, 0x00, 0x44, 0x00, 0x4B,
+    0x18, 0x8B, 0x15, 0x42, 0x09, 0x6E, 0x4C, 0xFC, 0x05, 0x42, 0x00, 0x38, 0x0E, 0x0D, 0x89, 0x00,
 ];
 
 pub(crate) fn register_decoding_hook(guardrails: DecodeGuardrails) -> bool {
@@ -134,20 +156,30 @@ impl<R: Read + Seek> JxlImageDecoder<R> {
             .iter()
             .any(|channel| channel.ec_type == ExtraChannel::Alpha);
         let num_extra_channels = info.extra_channels.len();
-        let bit_depth = info.bit_depth.clone();
+        let finer_than_u8 = matches!(info.bit_depth, JxlBitDepth::Float { .. })
+            || info.bit_depth.bits_per_sample() > 8;
         let grayscale = decoder
             .current_pixel_format()
             .ok_or_else(truncated)?
             .color_type
             .is_grayscale();
 
-        let (color_type, data_format) = output_format(&bit_depth, grayscale, alpha);
-        let pixel_format = JxlPixelFormat {
+        let pixel_format = |sixteen_bit| JxlPixelFormat {
             color_type: jxl_color_type(grayscale, alpha),
-            color_data_format: Some(data_format),
+            color_data_format: Some(output_data_format(sixteen_bit)),
             extra_channel_format: vec![None; num_extra_channels],
         };
-        within_budget(&budget, || decoder.set_pixel_format(pixel_format))?.map_err(jxl_error)?;
+        within_budget(&budget, || decoder.set_pixel_format(pixel_format(false)))?
+            .map_err(jxl_error)?;
+        let sixteen_bit = finer_than_u8
+            && decoder
+                .output_color_profile()
+                .is_none_or(needs_sixteen_bit_output);
+        if sixteen_bit {
+            within_budget(&budget, || decoder.set_pixel_format(pixel_format(true)))?
+                .map_err(jxl_error)?;
+        }
+        let color_type = output_color_type(sixteen_bit, grayscale, alpha);
 
         Ok(Self {
             input,
@@ -234,40 +266,47 @@ fn within_budget<T>(budget: &MemoryBudget, work: impl FnOnce() -> T) -> ImageRes
     Ok(result)
 }
 
-fn output_format(
-    bit_depth: &JxlBitDepth,
-    grayscale: bool,
-    alpha: bool,
-) -> (ColorType, JxlDataFormat) {
-    let endianness = Endianness::native();
-    match (bit_depth, grayscale, alpha) {
-        (JxlBitDepth::Float { .. }, false, false) => {
-            (ColorType::Rgb32F, JxlDataFormat::F32 { endianness })
+fn output_data_format(sixteen_bit: bool) -> JxlDataFormat {
+    if sixteen_bit {
+        JxlDataFormat::U16 {
+            endianness: Endianness::native(),
+            bit_depth: 16,
         }
-        (JxlBitDepth::Float { .. }, false, true) => {
-            (ColorType::Rgba32F, JxlDataFormat::F32 { endianness })
-        }
-        _ if bit_depth.bits_per_sample() > 8 => (
-            match (grayscale, alpha) {
-                (true, false) => ColorType::L16,
-                (true, true) => ColorType::La16,
-                (false, false) => ColorType::Rgb16,
-                (false, true) => ColorType::Rgba16,
+    } else {
+        JxlDataFormat::U8 { bit_depth: 8 }
+    }
+}
+
+fn output_color_type(sixteen_bit: bool, grayscale: bool, alpha: bool) -> ColorType {
+    match (sixteen_bit, grayscale, alpha) {
+        (false, true, false) => ColorType::L8,
+        (false, true, true) => ColorType::La8,
+        (false, false, false) => ColorType::Rgb8,
+        (false, false, true) => ColorType::Rgba8,
+        (true, true, false) => ColorType::L16,
+        (true, true, true) => ColorType::La16,
+        (true, false, false) => ColorType::Rgb16,
+        (true, false, true) => ColorType::Rgba16,
+    }
+}
+
+fn needs_sixteen_bit_output(profile: &JxlColorProfile) -> bool {
+    match profile {
+        JxlColorProfile::Simple(
+            JxlColorEncoding::RgbColorSpace {
+                transfer_function, ..
+            }
+            | JxlColorEncoding::GrayscaleColorSpace {
+                transfer_function, ..
             },
-            JxlDataFormat::U16 {
-                endianness,
-                bit_depth: 16,
-            },
-        ),
-        _ => (
-            match (grayscale, alpha) {
-                (true, false) => ColorType::L8,
-                (true, true) => ColorType::La8,
-                (false, false) => ColorType::Rgb8,
-                (false, true) => ColorType::Rgba8,
-            },
-            JxlDataFormat::U8 { bit_depth: 8 },
-        ),
+        ) => match transfer_function {
+            JxlTransferFunction::Linear | JxlTransferFunction::BT709 => true,
+            JxlTransferFunction::Gamma(gamma) => {
+                !(MIN_8_BIT_OUTPUT_GAMMA..=MAX_8_BIT_OUTPUT_GAMMA).contains(gamma)
+            }
+            _ => false,
+        },
+        _ => true,
     }
 }
 
@@ -455,11 +494,12 @@ mod tests {
 
     use ::jxl::api::{JxlBitstreamInput, JxlParallelRunner};
     use ente_heic::DecodeGuardrails;
-    use image::{ImageDecoder, ImageError, ImageResult};
+    use image::{ColorType, ImageDecoder, ImageError, ImageResult};
 
     use super::{
         BoundedReader, JxlImageDecoder, MAX_DECODE_MEMORY_BYTES, MAX_DECODE_THREADS,
-        RGB_2X2_CODESTREAM, RayonRunner, decoder_from_reader,
+        RGB_2X2_CODESTREAM, RGB_F8_LINEAR_2X1_CODESTREAM, RGB_F32_LINEAR_2X1_CODESTREAM,
+        RGB16_SRGB_2X1_CODESTREAM, RayonRunner, decoder_from_reader,
     };
     use crate::memory_budget::MemoryBudget;
 
@@ -497,6 +537,43 @@ mod tests {
             decode_rgb(decoder),
             [255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255]
         );
+    }
+
+    #[test]
+    fn decodes_high_bit_depth_images_to_8_bit_samples_only_for_perceptual_transfers() {
+        const RGB16_GAMMA_0_556_2X1_CODESTREAM: [u8; 36] = [
+            0xFF, 0x0A, 0x00, 0x70, 0xFC, 0x00, 0x54, 0xC8, 0x62, 0xAA, 0x08, 0x08, 0x00, 0x01,
+            0x00, 0x4C, 0x00, 0x4B, 0x18, 0x8B, 0x15, 0x42, 0x19, 0x36, 0x2E, 0xCB, 0x5D, 0x20,
+            0x04, 0x80, 0xB4, 0x9C, 0x0A, 0xA5, 0x6E, 0x18,
+        ];
+        const RGB16_XYB_ICC_2X1_CODESTREAM: [u8; 160] = [
+            0xFF, 0x0A, 0x00, 0x70, 0xFC, 0xA4, 0x50, 0xDF, 0x01, 0x09, 0xF3, 0x00, 0xE8, 0x70,
+            0x66, 0x1C, 0x4A, 0xB4, 0x95, 0xB8, 0xCB, 0x2B, 0x03, 0x8D, 0x2D, 0xC4, 0xBE, 0xBA,
+            0x82, 0xA8, 0x42, 0xEB, 0x98, 0x7A, 0x4D, 0x38, 0x0E, 0xFD, 0x03, 0xFC, 0x34, 0xDA,
+            0xB5, 0xF2, 0x38, 0x9C, 0xA6, 0xC1, 0xBE, 0x92, 0x20, 0x58, 0x3B, 0x54, 0x1F, 0xB0,
+            0xA2, 0x16, 0xF0, 0xE6, 0x01, 0x06, 0xE5, 0x42, 0x88, 0x22, 0xE8, 0x3B, 0x00, 0x6D,
+            0x3E, 0x2F, 0xE8, 0x03, 0x32, 0x82, 0xB6, 0x0E, 0xF4, 0xEF, 0x1F, 0x00, 0x13, 0x88,
+            0x02, 0x00, 0x20, 0x01, 0xB5, 0x9F, 0x20, 0x00, 0x00, 0x15, 0x2A, 0xA3, 0x8C, 0x1B,
+            0xBC, 0x9C, 0xEB, 0xF9, 0xF2, 0x43, 0x87, 0xC5, 0xB4, 0x8D, 0xEB, 0x0C, 0x6D, 0xB5,
+            0x6D, 0x61, 0x09, 0x63, 0xB3, 0xBD, 0x30, 0x48, 0x48, 0x38, 0x82, 0x8D, 0x4B, 0x0E,
+            0x6E, 0x0E, 0xCE, 0xC1, 0x40, 0xBA, 0x51, 0x49, 0x22, 0x25, 0x91, 0xB7, 0x63, 0xAF,
+            0x8A, 0x88, 0x30, 0x8A, 0xC6, 0x27, 0xA0, 0x09, 0xC0, 0x33, 0xC6, 0x01, 0x16, 0x00,
+            0x89, 0x7D, 0x81, 0x09, 0x40, 0x01,
+        ];
+
+        for (codestream, color_type) in [
+            (&RGB16_SRGB_2X1_CODESTREAM[..], ColorType::Rgb8),
+            (&RGB16_GAMMA_0_556_2X1_CODESTREAM[..], ColorType::Rgb8),
+            (&RGB16_XYB_ICC_2X1_CODESTREAM[..], ColorType::Rgb8),
+            (&RGB_F32_LINEAR_2X1_CODESTREAM[..], ColorType::Rgb16),
+            (&RGB_F8_LINEAR_2X1_CODESTREAM[..], ColorType::Rgb16),
+        ] {
+            let decoder =
+                decoder_from_reader(Cursor::new(codestream), &guardrails(None, None), later())
+                    .unwrap();
+
+            assert_eq!(decoder.color_type(), color_type);
+        }
     }
 
     #[test]
