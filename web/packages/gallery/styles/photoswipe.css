@@ -834,7 +834,7 @@ body:has(
     left: calc(var(--ente-island-inset) + 12px);
     right: calc(var(--ente-island-inset) + 12px);
     width: auto;
-    padding: 0;
+    padding: 1rem 1rem 0;
 
     .pswp__button {
         margin-left: 0;
@@ -905,8 +905,8 @@ body:has(
     gap: 12px;
     height: 38px;
     min-width: 0;
-    margin: 11px 6px 0 0;
-    padding-inline: 12px;
+    margin: 11px 0 0;
+    padding-inline: 12px 0;
     border-radius: 12px;
     font-size: 14px;
     font-weight: 500;
@@ -1045,12 +1045,11 @@ body:has(
     bottom: calc(var(--ente-island-inset) + 12px);
     left: calc(var(--ente-island-inset) + 12px);
     right: calc(var(--ente-island-inset) + 12px);
+    padding: 0 1rem 1rem;
 }
 
 @media (width >= 450px) {
     .pswp-ente-island .pswp__bottom-right-controls {
-        bottom: calc(var(--ente-island-inset) + 24px);
-        right: calc(var(--ente-island-inset) + 24px);
         gap: 16px;
     }
 }
@@ -1208,16 +1207,23 @@ body:has(
 }
 
 @media (width < 700px) {
+    .pswp-ente-island
+        .pswp__top-bar
+        button.pswp__button:not(
+            .pswp__button--zoom,
+            .pswp__button--live,
+            .pswp__button--vol
+        )
+        .pswp__icn {
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+
     .pswp-ente-island .pswp__status-island {
-        position: absolute;
-        top: 60px;
-        left: 0;
-        margin: 0;
-        max-width: 100%;
         gap: 8px;
-        padding-inline: 8px;
+        padding-inline: 8px 0;
         font-size: 12px;
         line-height: 16px;
+        white-space: nowrap;
     }
 
     .pswp-ente-island .pswp__status-island .pswp__counter {
@@ -1231,6 +1237,12 @@ body:has(
 }
 
 @media (width < 450px) {
+    .pswp-ente-island .pswp__top-bar {
+        left: var(--ente-island-inset);
+        right: var(--ente-island-inset);
+        padding-inline: 8px;
+    }
+
     .pswp-ente-island .pswp__top-bar .pswp__button--close {
         margin-right: -3px;
     }
