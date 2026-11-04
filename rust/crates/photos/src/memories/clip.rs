@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use super::UPDATE_FREQUENCY_DAYS;
 use super::calendar::MICROS_PER_DAY;
-use super::input::{MemoriesRequest, Period};
-use super::output::{ClipMemoryType, Memory, MemoryKind};
+use super::input::{MemoriesRequest, Period, ShownClipMemory};
+use super::output::{ClipMemoryType, Memory, MemoryBoundary, MemoryKind};
 use super::photo::Photo;
 use super::selector::Selector;
 use super::signals::Signals;
@@ -13,10 +13,43 @@ const MATCH_SIMILARITY: f32 = 0.225;
 const MINIMUM_MATCHES: usize = 10;
 const SHOW_TIMEOUT_DAYS: i64 = 10 * UPDATE_FREQUENCY_DAYS;
 
+pub(super) struct ClipHistory {
+    shown: Vec<ShownClipMemory>,
+}
+
+impl ClipHistory {
+    pub(super) fn new(shown: &[ShownClipMemory]) -> Self {
+        Self {
+            shown: shown.to_vec(),
+        }
+    }
+
+    pub(super) fn record(&mut self, memories: &[Memory]) {
+        for memory in memories {
+            if let (MemoryKind::Clip(kind), MemoryBoundary::Timestamp(first_date_to_show)) =
+                (&memory.kind, memory.first_date_to_show)
+            {
+                self.shown.push(ShownClipMemory {
+                    kind: *kind,
+                    last_time_shown: first_date_to_show,
+                });
+            }
+        }
+    }
+
+    fn was_shown_recently(&self, kind: ClipMemoryType, period: Period) -> bool {
+        let cutoff = period.now - SHOW_TIMEOUT_DAYS * MICROS_PER_DAY;
+        self.shown
+            .iter()
+            .any(|shown| shown.kind == kind && shown.last_time_shown > cutoff)
+    }
+}
+
 pub(super) fn memories(
     photos: &[Photo],
     period: Period,
     request: &MemoriesRequest,
+    history: &ClipHistory,
     signals: &Signals,
     selector: &mut Selector,
 ) -> Result<Vec<Memory>> {
@@ -31,7 +64,7 @@ pub(super) fn memories(
     let mut kinds = ClipMemoryType::ALL;
     selector.shuffle(&mut kinds);
     for kind in kinds {
-        if was_shown_recently(kind, request, period) {
+        if history.was_shown_recently(kind, period) {
             continue;
         }
         if let Some(memory) = memory(kind, &photos_by_id, period, signals, selector)? {
@@ -39,14 +72,6 @@ pub(super) fn memories(
         }
     }
     Ok(Vec::new())
-}
-
-fn was_shown_recently(kind: ClipMemoryType, request: &MemoriesRequest, period: Period) -> bool {
-    let cutoff = period.now - SHOW_TIMEOUT_DAYS * MICROS_PER_DAY;
-    request
-        .shown_clip_memories
-        .iter()
-        .any(|shown| shown.kind == kind && shown.last_time_shown > cutoff)
 }
 
 fn memory(
@@ -133,19 +158,32 @@ mod tests {
     }
 
     fn clip_memories(clip: &Clip, request: &MemoriesRequest) -> Vec<(ClipMemoryType, Memory)> {
+        clip_memories_by_period(clip, request, &[NOW]).remove(0)
+    }
+
+    fn clip_memories_by_period(
+        clip: &Clip,
+        request: &MemoriesRequest,
+        periods: &[&str],
+    ) -> Vec<Vec<(ClipMemoryType, Memory)>> {
         let ml = MlInputs {
             clip,
             face_weights: HashMap::new(),
             people: PeopleInputs::default(),
         };
-        compute_smart_memories(request, &[period(NOW)], Some(&ml), None)
+        let periods: Vec<_> = periods.iter().map(|now| period(now)).collect();
+        compute_smart_memories(request, &periods, Some(&ml), None)
             .unwrap()
             .periods
-            .remove(0)
             .into_iter()
-            .filter_map(|memory| match memory.kind {
-                MemoryKind::Clip(kind) => Some((kind, memory)),
-                _ => None,
+            .map(|memories| {
+                memories
+                    .into_iter()
+                    .filter_map(|memory| match memory.kind {
+                        MemoryKind::Clip(kind) => Some((kind, memory)),
+                        _ => None,
+                    })
+                    .collect()
             })
             .collect()
     }
@@ -218,6 +256,24 @@ mod tests {
                 (micros(NOW) + 3 * MICROS_PER_DAY).into()
             )
         );
+    }
+
+    #[test]
+    fn the_next_period_skips_the_type_chosen_for_the_current_one() {
+        let clip = library();
+
+        for seed in 0..20 {
+            let request = MemoriesRequest { seed, ..request() };
+            let periods = clip_memories_by_period(&clip, &request, &[NOW, "2026-11-02T09:00:00"]);
+
+            let kinds: Vec<Vec<ClipMemoryType>> = periods
+                .iter()
+                .map(|memories| memories.iter().map(|(kind, _)| *kind).collect())
+                .collect();
+            assert_eq!(kinds[0].len(), 1, "{kinds:?}");
+            assert_eq!(kinds[1].len(), 1, "{kinds:?}");
+            assert_ne!(kinds[0], kinds[1]);
+        }
     }
 
     #[test]

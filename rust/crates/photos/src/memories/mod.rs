@@ -30,6 +30,7 @@ pub use output::{
 };
 pub use store::compute_smart_memories_from_store;
 
+use clip::ClipHistory;
 use input::PhotoSignals;
 use people::People;
 use photo::Photo;
@@ -59,6 +60,7 @@ pub fn compute_smart_memories(
         .first()
         .map(|period| trips::analyze(&located, period.now, &places));
     let mut trip_history = TripHistory::new(&request.shown_trips, &request.cached_trips);
+    let mut clip_history = ClipHistory::new(&request.shown_clip_memories);
     let signals = ml.map(Signals::load).transpose()?;
     let people = ml
         .zip(signals.as_ref())
@@ -88,7 +90,15 @@ pub fn compute_smart_memories(
             memories.extend(trip_memories);
         }
         if let Some(signals) = &signals {
-            let clip_memories = clip::memories(&photos, period, request, signals, &mut selector)?;
+            let clip_memories = clip::memories(
+                &photos,
+                period,
+                request,
+                &clip_history,
+                signals,
+                &mut selector,
+            )?;
+            clip_history.record(&clip_memories);
             memories.extend(clip_memories);
         }
         let time_memories = time::memories(
