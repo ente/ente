@@ -54,10 +54,11 @@ func (r *CollectionActionsRepository) CreateBulk(ctx context.Context, userID int
 	return stacktrace.Propagate(err, "")
 }
 
-func (r *CollectionActionsRepository) ListPendingRemoveActions(ctx context.Context, userID int64, updatedAfter int64, limit int) ([]ente.CollectionAction, error) {
+func (r *CollectionActionsRepository) ListPendingRemoveActions(ctx context.Context, userID int64, app ente.App, updatedAfter int64, limit int) ([]ente.CollectionAction, error) {
 	rows, err := r.DB.QueryContext(ctx, `SELECT ca.id, ca.user_id, ca.actor_user_id, ca.collection_id, ca.file_id, ca.data, ca.action, ca.is_pending, ca.created_at, ca.updated_at,
 	        (cf.collection_id IS NOT NULL) AS is_valid
 	    FROM collection_actions ca
+	    JOIN collections c ON c.collection_id = ca.collection_id AND c.app = $5
 	    LEFT JOIN collection_files cf
 	        ON cf.collection_id = ca.collection_id
 	        AND cf.file_id = ca.file_id
@@ -68,7 +69,7 @@ func (r *CollectionActionsRepository) ListPendingRemoveActions(ctx context.Conte
 	        AND ca.is_pending = true
 	        AND ca.updated_at > $3
 	    ORDER BY ca.updated_at
-	    LIMIT $4`, userID, ente.ActionRemove, updatedAfter, limit)
+	    LIMIT $4`, userID, ente.ActionRemove, updatedAfter, limit, app)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -110,11 +111,12 @@ func (r *CollectionActionsRepository) ListPendingRemoveActions(ctx context.Conte
 	return result, nil
 }
 
-func (r *CollectionActionsRepository) ListPendingDeleteSuggestions(ctx context.Context, userID int64, updatedAfter int64, limit int) ([]ente.CollectionAction, error) {
+func (r *CollectionActionsRepository) ListPendingDeleteSuggestions(ctx context.Context, userID int64, app ente.App, updatedAfter int64, limit int) ([]ente.CollectionAction, error) {
 	rows, err := r.DB.QueryContext(ctx, `SELECT ca.id, ca.user_id, ca.actor_user_id, ca.collection_id, ca.file_id, ca.data, ca.action, ca.is_pending, ca.created_at, ca.updated_at,
 	        f.owner_id,
 	        (t.file_id IS NOT NULL) AS is_in_trash
 	    FROM collection_actions ca
+	    JOIN collections c ON c.collection_id = ca.collection_id AND c.app = $5
 	    LEFT JOIN files f
 	        ON f.file_id = ca.file_id
 	    LEFT JOIN trash t
@@ -126,7 +128,7 @@ func (r *CollectionActionsRepository) ListPendingDeleteSuggestions(ctx context.C
 	        AND ca.is_pending = true
 	        AND ca.updated_at > $3
 	    ORDER BY ca.updated_at
-	    LIMIT $4`, userID, ente.ActionDeleteSuggested, updatedAfter, limit)
+	    LIMIT $4`, userID, ente.ActionDeleteSuggested, updatedAfter, limit, app)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -188,7 +190,7 @@ func (r *CollectionActionsRepository) resetPendingForActions(ctx context.Context
 	return stacktrace.Propagate(err, "")
 }
 
-func (r *CollectionActionsRepository) RejectDeleteSuggestions(ctx context.Context, userID int64, fileIDs []int64) (int64, error) {
+func (r *CollectionActionsRepository) RejectDeleteSuggestions(ctx context.Context, userID int64, app ente.App, fileIDs []int64) (int64, error) {
 	if len(fileIDs) == 0 {
 		return 0, nil
 	}
@@ -197,7 +199,8 @@ func (r *CollectionActionsRepository) RejectDeleteSuggestions(ctx context.Contex
 	    WHERE user_id = $1
 	        AND action = $2
 	        AND is_pending = true
-	        AND file_id = ANY($3)`, userID, ente.ActionDeleteSuggested, pq.Array(fileIDs))
+	        AND file_id = ANY($3)
+	        AND collection_id IN (SELECT collection_id FROM collections WHERE app = $4)`, userID, ente.ActionDeleteSuggested, pq.Array(fileIDs), app)
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "")
 	}

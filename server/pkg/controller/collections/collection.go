@@ -114,6 +114,9 @@ func (c *CollectionController) GetFile(ctx *gin.Context, collectionID int64, fil
 	if len(files) == 0 {
 		return nil, stacktrace.Propagate(&ente.ErrFileNotFoundInAlbum, "")
 	}
+	if _, err := c.getCollectionForApp(ctx, collectionID); err != nil {
+		return nil, err
+	}
 
 	file := files[0]
 	if file.OwnerID != userID {
@@ -188,8 +191,8 @@ func (c *CollectionController) TrashV3(ctx *gin.Context, req ente.TrashCollectio
 	return nil
 }
 
-func (c *CollectionController) Rename(userID int64, cID int64, encryptedName string, nameDecryptionNonce string) error {
-	if err := c.verifyOwnership(cID, userID); err != nil {
+func (c *CollectionController) Rename(ctx *gin.Context, userID int64, cID int64, encryptedName string, nameDecryptionNonce string) error {
+	if err := c.verifyOwnership(ctx, cID, userID); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	err := c.CollectionRepo.Rename(cID, encryptedName, nameDecryptionNonce)
@@ -201,7 +204,7 @@ func (c *CollectionController) Rename(userID int64, cID int64, encryptedName str
 
 func (c *CollectionController) UpdateMagicMetadata(ctx *gin.Context, request ente.UpdateCollectionMagicMetadata, isPublicMetadata bool) error {
 	userID := auth.GetUserID(ctx.Request.Header)
-	if err := c.verifyOwnership(request.ID, userID); err != nil {
+	if err := c.verifyOwnership(ctx, request.ID, userID); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	// todo: verify version mismatch later. We are not planning to resync collection on clients,
@@ -242,8 +245,19 @@ func (c *CollectionController) HandleAccountDeletion(ctx context.Context, userID
 	return c.ResetUserSharingAccess(ctx, userID, logger)
 }
 
-func (c *CollectionController) verifyOwnership(cID int64, userID int64) error {
+func (c *CollectionController) getCollectionForApp(ctx *gin.Context, cID int64) (ente.Collection, error) {
 	collection, err := c.CollectionRepo.Get(cID)
+	if err != nil {
+		return ente.Collection{}, stacktrace.Propagate(err, "")
+	}
+	if app, ok := auth.GetAuthenticatedApp(ctx); ok && collection.App != string(app) {
+		return ente.Collection{}, stacktrace.Propagate(ente.ErrPermissionDenied, "collection app mismatch")
+	}
+	return collection, nil
+}
+
+func (c *CollectionController) verifyOwnership(ctx *gin.Context, cID int64, userID int64) error {
+	collection, err := c.getCollectionForApp(ctx, cID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
