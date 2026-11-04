@@ -13,6 +13,32 @@ pub enum CastCryptoError {
     Other { detail: String },
 }
 
+#[derive(Debug, Error, uniffi::Error)]
+pub enum CastMediaError {
+    #[error("{detail}")]
+    Unauthorized { detail: String },
+    #[error("{detail}")]
+    TooLarge { detail: String },
+    #[error("{detail}")]
+    InvalidMedia { detail: String },
+    #[error("{detail}")]
+    Other { detail: String },
+}
+
+impl From<ente_cast::media::Error> for CastMediaError {
+    fn from(error: ente_cast::media::Error) -> Self {
+        let detail = ente_core::error::chain(&error);
+        match error {
+            ente_cast::media::Error::Unauthorized => Self::Unauthorized { detail },
+            ente_cast::media::Error::TooLarge => Self::TooLarge { detail },
+            ente_cast::media::Error::LivePhoto(_)
+            | ente_cast::media::Error::InvalidCache
+            | ente_cast::media::Error::Crypto(_) => Self::InvalidMedia { detail },
+            _ => Self::Other { detail },
+        }
+    }
+}
+
 impl From<crypto::Error> for CastCryptoError {
     fn from(err: crypto::Error) -> Self {
         CastCryptoError::Other {
@@ -43,6 +69,111 @@ impl From<ente_cast::CastPayload> for CastPayload {
             cast_token: payload.cast_token,
             collection_key: payload.collection_key,
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, uniffi::Enum)]
+pub enum CastMediaKind {
+    Image,
+    Video,
+    LivePhoto,
+}
+
+impl From<CastMediaKind> for ente_cast::media::MediaKind {
+    fn from(kind: CastMediaKind) -> Self {
+        match kind {
+            CastMediaKind::Image => Self::Image,
+            CastMediaKind::Video => Self::Video,
+            CastMediaKind::LivePhoto => Self::LivePhoto,
+        }
+    }
+}
+
+#[derive(Clone, Debug, uniffi::Record)]
+pub struct CastMedia {
+    pub image_path: Option<String>,
+    pub video_path: Option<String>,
+    pub byte_count: u64,
+}
+
+impl From<ente_cast::media::Media> for CastMedia {
+    fn from(media: ente_cast::media::Media) -> Self {
+        Self {
+            image_path: media
+                .image_path
+                .map(|path| path.to_string_lossy().into_owned()),
+            video_path: media
+                .video_path
+                .map(|path| path.to_string_lossy().into_owned()),
+            byte_count: media.byte_count,
+        }
+    }
+}
+
+#[derive(uniffi::Object)]
+pub struct CastMediaClient {
+    inner: ente_cast::media::Client,
+}
+
+#[uniffi::export]
+impl CastMediaClient {
+    #[uniffi::constructor]
+    pub fn new(
+        api_origin: String,
+        direct_download_origin: Option<String>,
+        cast_token: String,
+    ) -> Result<Arc<Self>, CastMediaError> {
+        Ok(Arc::new(Self {
+            inner: ente_cast::media::Client::new(api_origin, direct_download_origin, cast_token)?,
+        }))
+    }
+
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "UniFFI exposes the request fields as language-native arguments"
+    )]
+    #[uniffi::method(async_runtime = "tokio")]
+    pub async fn download(
+        &self,
+        file_id: i64,
+        title: String,
+        kind: CastMediaKind,
+        encrypted_key: String,
+        key_decryption_nonce: String,
+        collection_key: String,
+        decryption_header: String,
+        output_directory: String,
+        maximum_bytes: u64,
+    ) -> Result<CastMedia, CastMediaError> {
+        Ok(self
+            .inner
+            .download(ente_cast::media::Download {
+                file_id,
+                title: &title,
+                kind: kind.into(),
+                encrypted_key: &encrypted_key,
+                key_decryption_nonce: &key_decryption_nonce,
+                collection_key: &collection_key,
+                decryption_header: &decryption_header,
+                output_directory: std::path::Path::new(&output_directory),
+                maximum_bytes,
+            })
+            .await?
+            .into())
+    }
+
+    pub fn open_cached(
+        &self,
+        directory: String,
+        kind: CastMediaKind,
+        maximum_bytes: u64,
+    ) -> Result<CastMedia, CastMediaError> {
+        Ok(ente_cast::media::open_cached(
+            std::path::Path::new(&directory),
+            kind.into(),
+            maximum_bytes,
+        )?
+        .into())
     }
 }
 

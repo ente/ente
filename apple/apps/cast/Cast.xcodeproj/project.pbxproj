@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DAF584672E61BB8300F8A08F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DAF584662E61BB8300F8A08F /* ZIPFoundation */; };
 		E17E10012F00000100000001 /* EnteFonts in Frameworks */ = {isa = PBXBuildFile; productRef = E17E10022F00000100000002 /* EnteFonts */; };
 /* End PBXBuildFile section */
 
@@ -60,7 +59,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DAF584672E61BB8300F8A08F /* ZIPFoundation in Frameworks */,
 				E17E10012F00000100000001 /* EnteFonts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -129,7 +127,6 @@
 			);
 			name = Cast;
 			packageProductDependencies = (
-				DAF584662E61BB8300F8A08F /* ZIPFoundation */,
 				E17E10022F00000100000002 /* EnteFonts */,
 			);
 			productName = Cast;
@@ -209,7 +206,6 @@
 			mainGroup = DA72BC582E5F87A000D128FF;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				DAF584652E61BB6300F8A08F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				E17E10032F00000100000003 /* XCLocalSwiftPackageReference "../../packages/EnteFonts" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -625,26 +621,10 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		DAF584652E61BB6300F8A08F /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.20;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
 		E17E10022F00000100000002 /* EnteFonts */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EnteFonts;
-		};
-		DAF584662E61BB8300F8A08F /* ZIPFoundation */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DAF584652E61BB6300F8A08F /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
-			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

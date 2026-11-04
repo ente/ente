@@ -8,5 +8,15 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ente-live-photo.workspace = true
+futures-util.workspace = true
+tempfile.workspace = true
+
+[dev-dependencies]
+mockito.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+zip.workspace = true
+
 [lints]
 workspace = true

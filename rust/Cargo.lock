@@ -2433,9 +2433,15 @@ name = "ente-cast"
 version = "0.0.0"
 dependencies = [
  "ente-core",
+ "ente-live-photo",
+ "futures-util",
+ "mockito",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
+ "tokio",
+ "zip",
 ]
 
 [[package]]
