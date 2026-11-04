@@ -231,11 +231,6 @@ func (m *CollectionLinkMiddleware) validateOwnersSubscription(c *gin.Context, cI
 
 func (m *CollectionLinkMiddleware) isDeviceLimitReached(ctx context.Context,
 	collectionSummary ente.PublicCollectionSummary, ip string, ua string) (bool, error) {
-	// skip deviceLimit check & record keeping for requests via CF worker
-	if network.IsCFWorkerIP(ip) {
-		return false, nil
-	}
-
 	sharedID := collectionSummary.ID
 	hasAccessedInPast, err := m.CollectionLinkRepo.AccessedInPast(ctx, sharedID, ip, ua)
 	if err != nil {
