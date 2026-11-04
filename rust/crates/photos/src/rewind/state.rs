@@ -1,0 +1,54 @@
+use serde::{Deserialize, Serialize};
+
+use super::input::RewindRequest;
+use super::library::Library;
+use super::report::RewindReport;
+
+pub const REWIND_VERSION: u32 = 1;
+
+const REQUIRED_ML_COVERAGE: f32 = 0.9;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RewindState {
+    pub year: i32,
+    pub version: u32,
+    pub computed_at: i64,
+    pub local_gallery_mode: bool,
+    pub ml_coverage: Option<f32>,
+    pub is_final: bool,
+    pub status: RewindStatus,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RewindStatus {
+    WaitingForMl,
+    Ready { report: RewindReport },
+}
+
+impl RewindState {
+    pub(super) fn evaluate(
+        request: &RewindRequest,
+        library: &Library<'_>,
+        ml_coverage: Option<f32>,
+    ) -> Self {
+        let ml_ready = ml_coverage.is_none_or(|coverage| coverage >= REQUIRED_ML_COVERAGE);
+        let shows_without_ml =
+            library.year_has_ended() && request.installed_at < request.season_start;
+        let status = if ml_ready || shows_without_ml {
+            RewindStatus::Ready {
+                report: RewindReport::of(library),
+            }
+        } else {
+            RewindStatus::WaitingForMl
+        };
+        Self {
+            year: request.year,
+            version: REWIND_VERSION,
+            computed_at: request.now,
+            local_gallery_mode: request.local_gallery_mode,
+            ml_coverage,
+            is_final: ml_ready && library.year_has_ended(),
+            status,
+        }
+    }
+}

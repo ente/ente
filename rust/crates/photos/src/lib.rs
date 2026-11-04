@@ -16,6 +16,8 @@ pub mod ml_db;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ml_store;
 pub mod motion_photo;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod rewind;
 pub mod source;
 
 pub use motion_photo::{
