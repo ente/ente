@@ -224,6 +224,7 @@ jobs:
         env:
             BUILD_NUMBER: ${{ needs.build-metadata.outputs.build_number }}
             RELEASE_VERSION: ${{ needs.build-metadata.outputs.release_version }}
+            ARTIFACT_STEM: ${{ needs.build-metadata.outputs.artifact_stem }}
 
         defaults:
             run:
@@ -300,6 +301,21 @@ jobs:
                       -authenticationKeyID "${ASC_KEY_ID}" \
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
+            - name: Package Photos IPA
+              run: |
+                  payload="${RUNNER_TEMP}/photos-qa/Payload"
+                  mkdir -p "${payload}"
+                  ditto build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app "${payload}/Runner.app"
+                  ditto -c -k --norsrc --keepParent "${payload}" "build/ios/${ARTIFACT_STEM}.ipa"
+
+            - name: Upload Photos IPA for release
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: photos-ipa
+                  path: mobile/apps/photos/build/ios/${{ needs.build-metadata.outputs.artifact_stem }}.ipa
+                  compression-level: 0
+                  overwrite: true
+
     finish-build:
         permissions:
             contents: write
@@ -325,6 +341,12 @@ jobs:
             - name: Combine checksums
               run: sort -k2 checksums/SHA256SUMS-* > SHA256SUMS
 
+            - name: Download Photos IPA
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: photos-ipa
+                  path: nightly
+
             - name: Point release tag at the successfully built commit
               env:
                   COMMIT_SHA: ${{ needs.build-metadata.outputs.commit_sha }}
@@ -342,11 +364,16 @@ jobs:
                   repositories: nightly
                   permission-contents: write
 
-            - name: Upload checksum to nightly release
+            - name: Upload IPA and checksums to nightly release
+              working-directory: nightly
               env:
                   GH_TOKEN: ${{ steps.nightly_token.outputs.token }}
                   RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
-              run: gh release upload "${RELEASE_TAG}" SHA256SUMS --clobber --repo ente/nightly
+                  ARTIFACT_STEM: ${{ needs.build-metadata.outputs.artifact_stem }}
+              run: |
+                  sha256sum "${ARTIFACT_STEM}.ipa" > SHA256SUMS-ios
+                  sort -k2 ../SHA256SUMS SHA256SUMS-ios > SHA256SUMS
+                  gh release upload "${RELEASE_TAG}" "${ARTIFACT_STEM}.ipa" SHA256SUMS --clobber --repo ente/nightly
 
             - name: Upload checksum to RC draft
               if: startsWith(github.ref_name, 'release/')
