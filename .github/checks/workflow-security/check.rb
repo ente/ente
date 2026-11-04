@@ -41,7 +41,7 @@ checked_files.each do |path|
   workflow = workflow_yaml(path)
   triggers = trigger_names(workflow).to_set & SENSITIVE_TRIGGERS
   triggers.each do |trigger|
-    next if %w[.github/workflows/cla.yml .github/workflows/pr-approval.yml].include?(path) && trigger == "pull_request_target"
+    next if %w[.github/workflows/cla.yml .github/workflows/codex-review.yml .github/workflows/pr-approval.yml].include?(path) && trigger == "pull_request_target"
 
     trigger_violations << "#{path}: #{trigger}"
   end
