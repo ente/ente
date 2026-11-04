@@ -256,3 +256,4 @@ jobs:
                   git commit -am "Start Ente CLI $next_version"
                   git -c http.https://github.com/.extraheader= push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
                   gh pr create --base main --head "$branch" --title "[rust] Start Ente CLI $next_version" --body ""
+                  gh pr merge "$branch" --auto --squash
