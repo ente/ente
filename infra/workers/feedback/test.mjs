@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import worker from "./src/index.ts";
 
@@ -8,10 +10,28 @@ const feedback = {
     os: "linux",
 };
 
-const env = {
-    GITHUB_REPOSITORY: "test/feedback",
-    GITHUB_TOKEN: "test-token",
-    SUBMISSIONS: { limit: async () => ({ success: true }) },
+const database = (t) => {
+    const db = new DatabaseSync(":memory:");
+    t.after(() => db.close());
+    db.exec(
+        readFileSync(
+            new URL("./migrations/0001_feedback.sql", import.meta.url),
+            "utf8",
+        ),
+    );
+    const env = {
+        DB: {
+            prepare(sql) {
+                return {
+                    bind: (...values) => ({
+                        run: async () => db.prepare(sql).run(...values),
+                    }),
+                };
+            },
+        },
+        SUBMISSIONS: { limit: async () => ({ success: true }) },
+    };
+    return { db, env };
 };
 
 const request = (value) =>
@@ -24,25 +44,31 @@ const request = (value) =>
         body: JSON.stringify(value),
     });
 
-test("creates a plain-text issue before acknowledging the submission", async (t) => {
+test("stores feedback before acknowledging the submission", async (t) => {
+    const { db, env } = database(t);
     let complete;
     let submitted;
-    let issue;
     const posted = new Promise((resolve) => {
         complete = resolve;
     });
     const started = new Promise((resolve) => {
         submitted = resolve;
     });
-    const upstream = t.mock.method(globalThis, "fetch", async (url, init) => {
-        assert.equal(url, "https://api.github.com/repos/test/feedback/issues");
-        assert.equal(init.headers.Authorization, "Bearer test-token");
-        issue = JSON.parse(init.body);
-        submitted();
-        await posted;
-        return new Response("{}", { status: 201 });
-    });
-    const message = "@someone\n```\n<img src=x>\n\n# Heading\r\n\tLast line";
+    const prepare = env.DB.prepare;
+    t.mock.method(env.DB, "prepare", (sql) => ({
+        bind(...values) {
+            const statement = prepare(sql).bind(...values);
+            return {
+                async run() {
+                    submitted();
+                    await posted;
+                    return statement.run();
+                },
+            };
+        },
+    }));
+    const message = "Export couldn't resume.\r\n\t'); DROP TABLE feedback; --";
+    const before = Math.floor(Date.now() / 1_000);
     let finished = false;
     const pending = worker
         .fetch(
@@ -54,27 +80,22 @@ test("creates a plain-text issue before acknowledging the submission", async (t)
             return response;
         });
     await started;
-    assert.equal(upstream.mock.callCount(), 1);
     assert.equal(finished, false);
     complete();
     const response = await pending;
     assert.equal(response.status, 201);
     const { id } = await response.json();
     assert.match(id, /^[0-9a-f-]{36}$/);
-    assert.ok(issue.body.includes(`Receipt: ${id}`));
-    for (const line of issue.body.split("\n"))
-        assert.ok(line === "" || line.startsWith("    "));
-    assert.ok(issue.body.includes("    ```\n    <img src=x>"));
-    assert.ok(!issue.body.includes("must-not-forward"));
-    assert.ok(!issue.body.includes("192.0.2.1"));
+    const rows = db.prepare("SELECT * FROM feedback").all();
+    assert.equal(rows.length, 1);
+    const { created_at, ...row } = rows[0];
+    assert.deepEqual(row, { id, ...feedback, message });
+    const timestamp = Date.parse(`${created_at}Z`) / 1_000;
+    assert.ok(timestamp >= before && timestamp <= Date.now() / 1_000);
 });
 
 test("counts Unicode characters", async (t) => {
-    const upstream = t.mock.method(
-        globalThis,
-        "fetch",
-        async () => new Response(null, { status: 201 }),
-    );
+    const { db, env } = database(t);
     const accepted = await worker.fetch(
         request({ ...feedback, message: "🔐".repeat(2_000) }),
         env,
@@ -85,12 +106,42 @@ test("counts Unicode characters", async (t) => {
         env,
     );
     assert.equal(rejected.status, 400);
-    assert.equal(upstream.mock.callCount(), 1);
+    const rows = db.prepare("SELECT message FROM feedback").all();
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].message, "🔐".repeat(2_000));
 });
 
-test("rejects invalid and oversized submissions before contacting GitHub", async (t) => {
-    const upstream = t.mock.method(globalThis, "fetch", () =>
-        assert.fail("Unexpected GitHub request"),
+test("requires a JSON content type before storing feedback", async (t) => {
+    const { db, env } = database(t);
+    for (const contentType of [
+        "",
+        "text/plain; charset=UTF-8",
+        "application/x-www-form-urlencoded",
+        "multipart/form-data; boundary=test",
+        "application/jsonp",
+    ]) {
+        const submission = request(feedback);
+        if (contentType) submission.headers.set("Content-Type", contentType);
+        else submission.headers.delete("Content-Type");
+        assert.equal((await worker.fetch(submission, env)).status, 415);
+    }
+    assert.equal(
+        db.prepare("SELECT COUNT(*) AS count FROM feedback").get().count,
+        0,
+    );
+    const submission = request(feedback);
+    submission.headers.set("Content-Type", "Application/JSON ; charset=utf-8");
+    assert.equal((await worker.fetch(submission, env)).status, 201);
+    assert.equal(
+        db.prepare("SELECT COUNT(*) AS count FROM feedback").get().count,
+        1,
+    );
+});
+
+test("rejects invalid and oversized submissions before writing", async (t) => {
+    const { env } = database(t);
+    const prepare = t.mock.method(env.DB, "prepare", () =>
+        assert.fail("Unexpected database write"),
     );
     for (const value of [
         null,
@@ -120,12 +171,13 @@ test("rejects invalid and oversized submissions before contacting GitHub", async
         duplex: "half",
     });
     assert.equal((await worker.fetch(oversized, env)).status, 413);
-    assert.equal(upstream.mock.callCount(), 0);
+    assert.equal(prepare.mock.callCount(), 0);
 });
 
-test("a rate-limited request cannot create an issue", async (t) => {
-    const upstream = t.mock.method(globalThis, "fetch", () =>
-        assert.fail("Unexpected GitHub request"),
+test("a rate-limited request cannot store feedback", async (t) => {
+    const { env } = database(t);
+    const prepare = t.mock.method(env.DB, "prepare", () =>
+        assert.fail("Unexpected database write"),
     );
     const response = await worker.fetch(request(feedback), {
         ...env,
@@ -138,24 +190,22 @@ test("a rate-limited request cannot create an issue", async (t) => {
     });
     assert.equal(response.status, 429);
     assert.equal(response.headers.get("Retry-After"), "60");
-    assert.equal(upstream.mock.callCount(), 0);
+    assert.equal(prepare.mock.callCount(), 0);
 });
 
-test("upstream failures do not return a receipt or retry", async (t) => {
-    t.mock.method(console, "error", () => {});
-    const upstream = t.mock.method(globalThis, "fetch");
-    for (const result of [403, 422, 500, new Error("connection lost")]) {
-        upstream.mock.mockImplementation(async () => {
-            if (result instanceof Error) throw result;
-            return new Response("private upstream response", {
-                status: result,
-            });
-        });
-        const response = await worker.fetch(request(feedback), env);
-        assert.equal(response.status, 502);
-        const body = await response.json();
-        assert.equal(body.id, undefined);
-        assert.ok(!JSON.stringify(body).includes("private upstream response"));
-    }
-    assert.equal(upstream.mock.callCount(), 4);
+test("database failures do not return a receipt or retry", async (t) => {
+    const { db, env } = database(t);
+    db.exec("DROP TABLE feedback");
+    const log = t.mock.method(console, "error", () => {});
+    const prepare = t.mock.method(env.DB, "prepare");
+    const response = await worker.fetch(request(feedback), env);
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+        error: "Could not confirm feedback submission",
+    });
+    assert.equal(prepare.mock.callCount(), 1);
+    assert.deepEqual(
+        log.mock.calls.map(({ arguments: args }) => args),
+        [["Could not confirm feedback submission"]],
+    );
 });
