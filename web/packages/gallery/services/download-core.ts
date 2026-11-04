@@ -58,6 +58,7 @@ class DownloadManagerCore {
         Promise<string | undefined>
     >();
     private fileURLPromises = new Map<number, Promise<string>>();
+    private fileBlobPromises = new Map<number, Promise<Blob>>();
     private renderableSourceURLPromises = new Map<
         number,
         Promise<RenderableSourceURLs>
@@ -83,10 +84,11 @@ class DownloadManagerCore {
     }
 
     logout() {
+        this.fileBlobPromises.clear();
         this.thumbnailURLPromises.clear();
         this.fileURLPromises.clear();
         this.renderableSourceURLPromises.clear();
-        this.fileDownloadProgress.clear();
+        this.fileDownloadProgress = new Map();
         this.fileDownloadProgressListeners = [];
     }
 
@@ -193,29 +195,63 @@ class DownloadManagerCore {
             return await promise;
         } catch (e) {
             log.error("Failed to obtain renderableSourceURLs", e);
-            this.renderableSourceURLPromises.delete(file.id);
+            if (this.renderableSourceURLPromises.get(file.id) === promise)
+                this.renderableSourceURLPromises.delete(file.id);
             throw e;
         }
     };
 
     async fileBlob(file: EnteFile, opts?: FileDownloadOpts) {
-        const _fileBlob = () =>
-            this.fileStream(file, opts).then((stream) =>
-                this.blobWithInferredType(file, stream),
-            );
-
+        const download = () =>
+            opts?.background
+                ? this.downloadFile(file, opts).then((stream) =>
+                      this.blobWithInferredType(file, stream),
+                  )
+                : this.sharedFileBlob(file, opts);
         const cachedURL = this.fileURLPromises.get(file.id);
-        try {
-            return await _fileBlob();
-        } catch (e) {
-            // Retry without the cached object URL before surfacing the failure.
-            if (cachedURL) {
-                this.fileURLPromises.delete(file.id);
-                return _fileBlob();
-            } else {
-                throw e;
+        if (cachedURL) {
+            try {
+                let response: Response;
+                try {
+                    response = await fetch(await cachedURL);
+                } catch {
+                    if (this.fileURLPromises.get(file.id) === cachedURL)
+                        this.fileURLPromises.delete(file.id);
+                    // Match fileStream's cache fallback, before the blob retry below.
+                    return await download();
+                }
+                return await this.blobWithInferredType(file, response.body);
+            } catch {
+                // Preserve fileBlob's existing retry after a failed cache fallback.
+                if (this.fileURLPromises.get(file.id) === cachedURL)
+                    this.fileURLPromises.delete(file.id);
             }
         }
+        return download();
+    }
+
+    private sharedFileBlob(file: EnteFile, opts?: FileDownloadOpts) {
+        const existing = this.fileBlobPromises.get(file.id);
+        if (existing) return existing;
+
+        const isCurrent = () => this.fileBlobPromises.get(file.id) === promise;
+        // Defer starting work until the promise is registered for other consumers.
+        const promise = Promise.resolve()
+            .then(() =>
+                this.downloadFile(file, opts, (progress) => {
+                    if (isCurrent())
+                        this.setFileDownloadProgress(file.id, progress);
+                }),
+            )
+            .then((stream) => this.blobWithInferredType(file, stream))
+            .finally(() => {
+                if (isCurrent()) {
+                    this.fileBlobPromises.delete(file.id);
+                    this.setFileDownloadProgress(file.id, undefined);
+                }
+            });
+        this.fileBlobPromises.set(file.id, promise);
+        return promise;
     }
 
     async fileStream(
@@ -230,7 +266,8 @@ class DownloadManagerCore {
                 return res.body;
             } catch (e) {
                 log.warn("Failed to use cached object URL", e);
-                this.fileURLPromises.delete(file.id);
+                if (this.fileURLPromises.get(file.id) === cachedURL)
+                    this.fileURLPromises.delete(file.id);
             }
         }
 
@@ -241,15 +278,16 @@ class DownloadManagerCore {
         const cachedURL = this.fileURLPromises.get(file.id);
         if (cachedURL) return cachedURL;
 
-        const url = this.downloadFile(file)
-            .then((stream) => this.blobWithInferredType(file, stream))
-            .then((blob) => URL.createObjectURL(blob));
+        const url = this.sharedFileBlob(file).then((blob) =>
+            URL.createObjectURL(blob),
+        );
         this.fileURLPromises.set(file.id, url);
 
         try {
             return await url;
         } catch (e) {
-            this.fileURLPromises.delete(file.id);
+            if (this.fileURLPromises.get(file.id) === url)
+                this.fileURLPromises.delete(file.id);
             throw e;
         }
     }
@@ -257,153 +295,119 @@ class DownloadManagerCore {
     private async downloadFile(
         file: EnteFile,
         opts?: FileDownloadOpts,
+        onProgress: (progress: FileDownloadProgress) => void = () => undefined,
     ): Promise<ReadableStream<Uint8Array> | null> {
         log.info(`download attempted for file id ${file.id}`);
 
-        try {
-            const res = await wrapErrors(() =>
-                this.transport.downloadFile(file, opts),
-            );
-            const total =
-                parseInt(res.headers.get("Content-Length") ?? "") ||
-                file.info?.fileSize ||
-                undefined;
-            let loaded = 0;
+        const res = await wrapErrors(() =>
+            this.transport.downloadFile(file, opts),
+        );
+        const total =
+            parseInt(res.headers.get("Content-Length") ?? "") ||
+            file.info?.fileSize ||
+            undefined;
+        let loaded = 0;
 
-            if (
-                file.metadata.fileType == FileType.image ||
-                file.metadata.fileType == FileType.livePhoto
-            ) {
-                const encryptedData = await wrapErrors(async () => {
-                    if (!res.body)
-                        return new Uint8Array(await res.arrayBuffer());
-                    const body = res.body.pipeThrough(
-                        new TransformStream<Uint8Array, Uint8Array>({
-                            transform: (chunk, controller) => {
-                                loaded += chunk.byteLength;
-                                this.setFileDownloadProgress(file.id, {
-                                    loaded,
-                                    total,
-                                });
-                                controller.enqueue(chunk);
-                            },
-                        }),
-                    );
-                    const data = new Uint8Array(
-                        await new Response(body).arrayBuffer(),
-                    );
-                    this.setFileDownloadProgress(file.id, {
-                        loaded,
-                        total: loaded,
-                    });
-                    return data;
-                });
-                const decrypted = await decryptStreamBytes(
-                    {
-                        encryptedData,
-                        decryptionHeader: file.file.decryptionHeader,
-                    },
-                    file.key,
+        if (
+            file.metadata.fileType == FileType.image ||
+            file.metadata.fileType == FileType.livePhoto
+        ) {
+            const encryptedData = await wrapErrors(async () => {
+                if (!res.body) return new Uint8Array(await res.arrayBuffer());
+                const body = res.body.pipeThrough(
+                    new TransformStream<Uint8Array, Uint8Array>({
+                        transform: (chunk, controller) => {
+                            loaded += chunk.byteLength;
+                            onProgress({ loaded, total });
+                            controller.enqueue(chunk);
+                        },
+                    }),
                 );
-                this.setFileDownloadProgress(file.id, undefined);
-                return new Response(decrypted).body;
-            }
-
-            const body = res.body;
-            if (!body) throw new Error("Missing final encrypted chunk");
-            const reader = body.getReader();
-            const { pullState, decryptionChunkSize } =
-                await initChunkDecryption(file.file.decryptionHeader, file.key);
-            let leftoverBytes: Uint8Array = new Uint8Array();
-            let cancelled = false;
-            const isCancelled = () => cancelled;
-
-            return new ReadableStream({
-                pull: async (controller) => {
-                    try {
-                        // Each pull must enqueue or close before returning.
-                        let didEnqueue = false;
-                        do {
-                            const { done, value } = await wrapErrors(() =>
-                                reader.read(),
-                            );
-                            if (isCancelled()) return;
-
-                            let data: Uint8Array;
-                            if (done) {
-                                this.setFileDownloadProgress(file.id, {
-                                    loaded,
-                                    total: loaded,
-                                });
-                                data = leftoverBytes;
-                            } else {
-                                loaded += value.length;
-                                this.setFileDownloadProgress(file.id, {
-                                    loaded,
-                                    total,
-                                });
-
-                                data = new Uint8Array(
-                                    leftoverBytes.length + value.length,
-                                );
-                                data.set(new Uint8Array(leftoverBytes), 0);
-                                data.set(
-                                    new Uint8Array(value),
-                                    leftoverBytes.length,
-                                );
-                            }
-
-                            // A network read can contain several encrypted chunks.
-                            while (data.length > decryptionChunkSize) {
-                                const decryptedData = await decryptStreamChunk(
-                                    data.slice(0, decryptionChunkSize),
-                                    pullState,
-                                    false,
-                                );
-                                if (isCancelled()) return;
-                                controller.enqueue(decryptedData);
-                                didEnqueue = true;
-                                data = data.slice(decryptionChunkSize);
-                            }
-
-                            if (done) {
-                                // Only EOF proves that a short remainder is the final chunk.
-                                if (!data.length)
-                                    throw new Error(
-                                        "Missing final encrypted chunk",
-                                    );
-                                const decryptedData = await decryptStreamChunk(
-                                    data,
-                                    pullState,
-                                    true,
-                                );
-                                if (isCancelled()) return;
-                                controller.enqueue(decryptedData);
-                                didEnqueue = true;
-                                controller.close();
-                                this.setFileDownloadProgress(
-                                    file.id,
-                                    undefined,
-                                );
-                            } else {
-                                leftoverBytes = data;
-                            }
-                        } while (!didEnqueue);
-                    } catch (e) {
-                        this.setFileDownloadProgress(file.id, undefined);
-                        throw e;
-                    }
-                },
-                cancel: (reason: unknown) => {
-                    cancelled = true;
-                    this.setFileDownloadProgress(file.id, undefined);
-                    return reader.cancel(reason);
-                },
+                const data = new Uint8Array(
+                    await new Response(body).arrayBuffer(),
+                );
+                onProgress({ loaded, total: loaded });
+                return data;
             });
-        } catch (e) {
-            this.setFileDownloadProgress(file.id, undefined);
-            throw e;
+            const decrypted = await decryptStreamBytes(
+                { encryptedData, decryptionHeader: file.file.decryptionHeader },
+                file.key,
+            );
+            return new Response(decrypted).body;
         }
+
+        const body = res.body;
+        if (!body) throw new Error("Missing final encrypted chunk");
+        const reader = body.getReader();
+        const { pullState, decryptionChunkSize } = await initChunkDecryption(
+            file.file.decryptionHeader,
+            file.key,
+        );
+        let leftoverBytes: Uint8Array = new Uint8Array();
+        let cancelled = false;
+        const isCancelled = () => cancelled;
+
+        return new ReadableStream({
+            pull: async (controller) => {
+                // Each pull must enqueue or close before returning.
+                let didEnqueue = false;
+                do {
+                    const { done, value } = await wrapErrors(() =>
+                        reader.read(),
+                    );
+                    if (isCancelled()) return;
+
+                    let data: Uint8Array;
+                    if (done) {
+                        onProgress({ loaded, total: loaded });
+                        data = leftoverBytes;
+                    } else {
+                        loaded += value.length;
+                        onProgress({ loaded, total });
+
+                        data = new Uint8Array(
+                            leftoverBytes.length + value.length,
+                        );
+                        data.set(new Uint8Array(leftoverBytes), 0);
+                        data.set(new Uint8Array(value), leftoverBytes.length);
+                    }
+
+                    // A network read can contain several encrypted chunks.
+                    while (data.length > decryptionChunkSize) {
+                        const decryptedData = await decryptStreamChunk(
+                            data.slice(0, decryptionChunkSize),
+                            pullState,
+                            false,
+                        );
+                        if (isCancelled()) return;
+                        controller.enqueue(decryptedData);
+                        didEnqueue = true;
+                        data = data.slice(decryptionChunkSize);
+                    }
+
+                    if (done) {
+                        // Only EOF proves that a short remainder is the final chunk.
+                        if (!data.length)
+                            throw new Error("Missing final encrypted chunk");
+                        const decryptedData = await decryptStreamChunk(
+                            data,
+                            pullState,
+                            true,
+                        );
+                        if (isCancelled()) return;
+                        controller.enqueue(decryptedData);
+                        didEnqueue = true;
+                        controller.close();
+                    } else {
+                        leftoverBytes = data;
+                    }
+                } while (!didEnqueue);
+            },
+            cancel: (reason: unknown) => {
+                cancelled = true;
+                return reader.cancel(reason);
+            },
+        });
     }
 
     private async blobWithInferredType(
