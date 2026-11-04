@@ -565,7 +565,7 @@ class _HomePageState extends UploaderPageState<HomePage>
           _isLoading = false;
           _hasCompletedInitialLoad = hasCompletedFirstSync;
         });
-        if (isSearchActive) updateSearchQuery(searchQuery);
+        if (isSearchActive) refreshSearch();
         if (_recentFiles.isEmpty) {
           unawaited(_evaluateLegacyKit());
         }

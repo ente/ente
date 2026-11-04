@@ -159,8 +159,12 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   Future<void> _initializeData(Collection collection) async {
     _collection = collection;
     _files = await CollectionService.instance.getFilesInCollection(_collection);
-    _filteredFiles = _files;
-    setState(() {});
+    if (!mounted) return;
+    if (isSearchActive) {
+      refreshSearch();
+    } else {
+      setState(() => _filteredFiles = _files);
+    }
   }
 
   Future<void> _shareCollection() async {

@@ -199,6 +199,8 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   void updateSearchQuery(String query) => _onSearchChanged(query);
 
+  void refreshSearch() => _performSearch(_searchQuery);
+
   void activateSearchWithQuery(String query) {
     setState(() {
       _isSearchActive = true;
