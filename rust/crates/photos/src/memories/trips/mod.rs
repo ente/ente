@@ -37,6 +37,7 @@ pub(super) struct TripAnalysis<'p> {
 
 struct Trip<'p> {
     members: Vec<Located<'p>>,
+    capped_members: Vec<Located<'p>>,
     location: Coordinate,
     first: &'p Photo,
     last: &'p Photo,
@@ -45,12 +46,13 @@ struct Trip<'p> {
 
 impl<'p> Trip<'p> {
     fn new(
-        mut members: Vec<Located<'p>>,
+        members: Vec<Located<'p>>,
+        mut capped_members: Vec<Located<'p>>,
         location: Coordinate,
         first: &'p Photo,
         last: &'p Photo,
     ) -> Self {
-        members.truncate(MAX_MEMORY_ITEMS);
+        capped_members.truncate(MAX_MEMORY_ITEMS);
         let key = format!(
             "trip_{}_{}_{}_{}",
             two_decimals(location.latitude),
@@ -60,6 +62,7 @@ impl<'p> Trip<'p> {
         );
         Self {
             members,
+            capped_members,
             location,
             first,
             last,
@@ -108,7 +111,7 @@ fn valid_trip<'p>(cluster: Cluster<'p>, bases: &[Base]) -> Option<Trip<'p>> {
     (members.len() >= MIN_TRIP_PHOTOS
         && span_days >= MIN_TRIP_DAYS
         && !is_near_any_base(location, bases))
-    .then(|| Trip::new(members, location, first, last))
+    .then(|| Trip::new(members.clone(), members, location, first, last))
 }
 
 fn is_near_any_base(location: Coordinate, bases: &[Base]) -> bool {
@@ -212,8 +215,10 @@ fn combined<'p>(other: Trip<'p>, trip: Trip<'p>) -> Trip<'p> {
     });
     let mut members = other.members;
     members.extend(trip.members);
-    let location = mean_location(&members);
-    Trip::new(members, location, first, last)
+    let mut capped_members = other.capped_members;
+    capped_members.extend(trip.capped_members);
+    let location = mean_location(&capped_members);
+    Trip::new(members, capped_members, location, first, last)
 }
 
 fn should_merge(trip: &Trip, other: &Trip) -> bool {
@@ -480,7 +485,7 @@ mod tests {
     }
 
     #[test]
-    fn trips_keep_their_first_hundred_photos_when_merging_and_picking() {
+    fn merged_trip_keys_average_the_first_hundred_photos_but_picks_span_the_whole_trip() {
         let long_stay = stay(1, "2025-03-01T08:00:00", 120, (48.80, 2.30));
         let short_stay = stay(200, "2025-03-21T16:00:00", 20, (48.90, 2.30));
         let mut files = home(AMSTERDAM, &[&long_stay, &short_stay]);
@@ -503,7 +508,11 @@ mod tests {
             .iter()
             .find(|memory| matches!(memory.kind, MemoryKind::Trip(_)))
             .unwrap();
-        assert!(trip.file_ids.iter().all(|id| (1..=100).contains(id)));
+        assert!(
+            trip.file_ids.iter().any(|&id| id > 100),
+            "{:?}",
+            trip.file_ids
+        );
     }
 
     #[test]
@@ -530,6 +539,27 @@ mod tests {
             (5.0, 50.0),
         ));
         assert_eq!(keys(files), ["trip_0.00_30.00_20157_20161"]);
+    }
+
+    #[test]
+    fn long_trips_are_named_after_where_most_of_the_whole_trip_was() {
+        let cities = Cities(vec![("Paris", "France", PARIS), ("Lyon", "France", LYON)]);
+        let paris = stay(1, "2025-03-01T08:00:00", 60, PARIS);
+        let lyon = stay(100, "2025-03-11T08:00:00", 90, LYON);
+        let mut files = home(AMSTERDAM, &[&paris, &lyon]);
+        files.extend(paris);
+        files.extend(lyon);
+        let request = MemoriesRequest {
+            files,
+            surface_all: true,
+            ..MemoriesRequest::default()
+        };
+
+        let result = compute(&request, &[NOW], Some(&cities));
+
+        let trips = trips(&result.periods[0]);
+        assert_eq!(trips.len(), 1);
+        assert_eq!(trips[0].location_name.as_deref(), Some("Lyon"));
     }
 
     #[test]
