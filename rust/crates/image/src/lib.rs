@@ -4,6 +4,7 @@ pub mod decode;
 pub mod error;
 mod heif;
 pub mod image_compression;
+mod jxl;
 mod png;
 mod resample;
 pub mod types;
