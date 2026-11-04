@@ -117,6 +117,15 @@ You can view and manage all devices logged into your Ente account:
 
 This is useful if you've lost a device or want to ensure old devices no longer have access to your account.
 
+### How do I log out of Ente Photos? {#logout}
+
+- **Mobile:** Open Settings, scroll to the bottom and tap **Logout**, then confirm.
+- **Web/Desktop:** Open the sidebar, scroll to the bottom and click **Logout**, then confirm.
+
+Logging out does not delete your account or your backed-up photos. You can log in again at any time with your email and password.
+
+To sign out a device you no longer have, use [Active sessions](#manage-devices) instead.
+
 ### Can I use Ente on both mobile and desktop? {#mobile-and-desktop}
 
 Yes! You can use Ente Photos on as many devices as you want:
@@ -195,7 +204,7 @@ On the login page:
 3. Enter your recovery key
 4. Create a new password
 
-If you don't have your recovery key and are logged out of all devices, we cannot recover your account due to end-to-end encryption.
+If you don't have your recovery key and are logged out of all devices, we cannot recover your account due to end-to-end encryption. You can [start over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
 ### Can I change my password later? {#change-password-later}
 

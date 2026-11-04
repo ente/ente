@@ -626,9 +626,9 @@ Receiving shared albums works on free accounts, so if someone shares with you, y
 An expired paid subscription does not automatically switch your account to the free plan. While the account is in this expired state, you cannot create a new public link, even though active free accounts can.
 
 1. To keep your paid plan, renew your subscription.
-2. To move to the free plan, contact support during the 30-day grace period. If your storage exceeds the free plan's 10 GB limit, you will need to reduce it.
+2. To move to the free plan, contact support before the deletion date shown in your expiration emails. If your storage exceeds the free plan's 10 GB limit, you will need to reduce it.
 
-Once your account has an active plan, try creating the link again. See [What happens when my subscription expires?](/photos/faq/storage-and-plans#subscription-expires) for details about the grace period.
+Once your account has an active plan, try creating the link again. See [What happens when my subscription expires?](/photos/faq/storage-and-plans#subscription-expires) for details about the deletion timeline.
 
 ## Security and Privacy
 

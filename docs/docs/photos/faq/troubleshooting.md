@@ -20,6 +20,8 @@ This page helps you solve common issues with Ente Photos. Jump to the section th
 
 Check whether your Photos subscription has expired, even if your usage is within the free allowance or you can still use Ente Auth. A Photos subscription restriction can sometimes appear as a sign-in or verification failure.
 
+If the app says access to your account has been restricted because its data is scheduled for deletion, your paid plan has expired and the renewal window has ended. Reply to the email we sent you, or contact [support@ente.com](mailto:support@ente.com), to discuss renewing or exporting your data.
+
 Contact [support@ente.com](mailto:support@ente.com) to check your subscription status and discuss renewal or returning to the free plan. Do not delete your account or reset two-factor authentication just to troubleshoot an expired subscription.
 
 See [what happens when a subscription expires](/photos/faq/storage-and-plans#subscription-expires).
@@ -415,6 +417,16 @@ If you purchased a subscription through the iOS App Store but the app shows "Ple
 - Better refund and support options
 
 If you continue experiencing issues after purchasing from the web, contact [support@ente.com](mailto:support@ente.com).
+
+### Why is my iPhone or iPad app stuck on the splash screen? {#ios-splash-freeze}
+
+Try these steps in order:
+
+1. Force close Ente Photos (swipe it away in the app switcher) and open it again.
+2. Check that your device has free space in `Settings > General > iPhone Storage` (or `iPad Storage`). Ente needs some free space to open its local database. Free up space if it's nearly full, then open Ente again.
+3. Restart your device and open Ente before other apps.
+
+Your backed-up photos are safe in your Ente account. If the app still gets stuck, contact [support@ente.com](mailto:support@ente.com) from another device. If you can open Ente later, [send logs](#sharing-logs) from the affected device.
 
 ### Why is my Android app stuck on the splash screen? {#android-splash-freeze}
 

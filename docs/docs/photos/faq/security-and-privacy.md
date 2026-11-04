@@ -55,6 +55,20 @@ If you are logged out of Ente on all your devices and have lost both your passwo
 
 If you wish to delete your account in such scenarios, please reach out to support@ente.com and we will help you out.
 
+### I've lost my password and recovery key. Can I start over with the same email? {#start-fresh-same-email}
+
+Yes. If you are logged out of Ente on all your devices and have lost both your password and recovery key, we can delete your account so you can sign up again with the same email address.
+
+Before you ask for this:
+
+- If Ente is still signed in on any device, including Ente Auth, Ente Locker or [photos.ente.com](https://photos.ente.com), [change your password](#change-password) there instead. You don't need your old password or recovery key to do this.
+- Deleting the account permanently deletes its Ente Photos, Ente Auth and Ente Locker data, since they all use the same account. Ente cannot recover this data, because it is end-to-end encrypted.
+- If you subscribed through the App Store or Google Play, cancel the subscription in that store. We can't cancel store subscriptions for you.
+
+To request deletion, email [support@ente.com](mailto:support@ente.com) from the email address of your Ente account.
+
+Once the account is deleted, sign up again with the same email address. Save the new [recovery key](#recovery-key-importance) somewhere safe.
+
 ### What is my recovery key and why is it critical? {#recovery-key-importance}
 
 Your **recovery key is a 24-word phrase** used to recover your account if you:
@@ -133,6 +147,20 @@ If you've forgotten your password and are logged out everywhere:
 Yes, you can change your password at any time from our apps. Our architecture allows password changes without re-encrypting your entire library.
 
 The privacy of your account is a function of the strength of your password, please choose a strong one.
+
+### Why did I get a "New login to your Ente account" email? {#new-login-email}
+
+We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows the time (in UTC), and the app, device and IP address used. It can be sent before the sign-in finishes in the app, for example if the wrong password is entered after the verification code.
+
+If it was you, there's nothing to do.
+
+If you don't recognise it:
+
+1. Change your password from `Settings > Account > Change password`.
+2. Open `Settings > Security > Active sessions` on mobile, or `Settings > Account > Active sessions` on web and desktop, and terminate any session you don't recognise.
+3. Turn on two-factor authentication from `Settings > Security > Two-factor`.
+
+Replying to this email reaches Ente support. If you need help signing in, include what you see on screen.
 
 ### Do you support two-factor authentication (2FA)? {#two-factor-auth}
 
@@ -235,7 +263,7 @@ Ente's servers cannot see your location tags or where your photos were taken. Al
 
 ### How can I delete my account? {#delete-account}
 
-You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account.
+You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account. If you can't sign in on any device and have lost both your password and recovery key, see [starting over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
 Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
 
