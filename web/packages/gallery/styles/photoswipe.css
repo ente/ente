@@ -899,6 +899,10 @@ body:has(
     }
 }
 
+.pswp-ente-island.pswp--one-slide .pswp__top-bar .pswp__button--zoom {
+    margin-left: 0;
+}
+
 .pswp-ente-island .pswp__status-island {
     display: flex;
     align-items: center;
@@ -980,6 +984,12 @@ body:has(
         line-height: inherit;
         letter-spacing: inherit;
     }
+}
+
+.pswp-ente-island.pswp--one-slide
+    .pswp__status-island
+    .pswp__ente-progress-text:not(.pswp__ente-progress-text--failed) {
+    margin-inline-start: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
