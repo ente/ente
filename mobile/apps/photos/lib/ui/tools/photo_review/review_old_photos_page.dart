@@ -281,6 +281,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
                           for (var i = 0; i < overview.years.length; i++) ...[
                             if (i > 0) const SizedBox(height: 44),
                             ReviewYearSection(
+                              key: ValueKey(overview.years[i].year),
                               year: overview.years[i],
                               selectedMonths: _selected,
                               expanded: _expandedYears.contains(
