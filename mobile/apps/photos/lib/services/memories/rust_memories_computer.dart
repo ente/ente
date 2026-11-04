@@ -291,8 +291,8 @@ class _Inputs {
       for (final fileID in memory.fileIds.inner)
         if (files[fileID] case final file?) Memory.fromFile(file, seenTimes),
     ];
-    final first = memory.firstDateToShow;
-    final last = memory.lastDateToShow;
+    final first = _resolveBoundary(memory.firstDateToShow);
+    final last = _resolveBoundary(memory.lastDateToShow);
     return switch (memory.kind) {
       rust.MemoryKind_OnThisDay() => OnThisDayMemory(memories, first, last),
       rust.MemoryKind_People(field0: final people) => _peopleMemory(
@@ -337,6 +337,16 @@ class _Inputs {
       ),
     };
   }
+
+  static int _resolveBoundary(rust.MemoryBoundary boundary) =>
+      switch (boundary) {
+        rust.MemoryBoundary_Timestamp(field0: final timestamp) => timestamp,
+        rust.MemoryBoundary_CalendarDate(field0: final date) => DateTime(
+          date.year,
+          date.month,
+          date.day,
+        ).microsecondsSinceEpoch,
+      };
 
   PeopleMemory _peopleMemory(
     List<Memory> memories,

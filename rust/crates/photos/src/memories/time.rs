@@ -85,8 +85,8 @@ fn recent_memories(
             memories.push(Memory::new(
                 MemoryKind::Time(kind),
                 &selector.best_over_time(candidates, RECENT_SELECTION_SIZE)?,
-                period.start_of(show_start),
-                period.start_of(show_end),
+                show_start,
+                show_end,
             ));
         }
     }
@@ -125,8 +125,8 @@ fn day_memories(
     for (show_date, (month, day)) in month_days {
         let years = &groups[&(month, day)];
         let significant_years = significant_years(years, significance_threshold);
-        let first_date_to_show = period.start_of(show_date.plus_days(-1));
-        let last_date_to_show = period.start_of(show_date.plus_days(1));
+        let first_date_to_show = show_date.plus_days(-1);
+        let last_date_to_show = show_date.plus_days(1);
         if significant_years.len() >= MINIMUM_SIGNIFICANT_YEARS_FOR_THROUGH_THE_YEARS {
             let kind = TimeMemory::Day {
                 date: LocalDate::new(significant_years[0], month, day),
@@ -213,7 +213,7 @@ fn month_memories(
     years.sort_by_key(|(year, photos)| (Reverse(photos.len()), Reverse(*year)));
 
     let first_date_to_show = period.now;
-    let last_date_to_show = period.start_of(LocalDate::new(today.year, today.month + 1, 1));
+    let last_date_to_show = LocalDate::new(today.year, today.month + 1, 1);
     let mut years = years.into_iter();
     let mut memories = Vec::new();
     for (year, photos) in years.by_ref().take(SINGLE_YEAR_MONTH_MEMORIES) {
@@ -275,12 +275,12 @@ fn significant_years(years: &HashMap<i32, Vec<&Photo>>, threshold: f64) -> Vec<i
 #[cfg(test)]
 mod tests {
     use super::memories;
-    use crate::memories::calendar::LocalDate;
     use crate::memories::input::MemoryFile;
     use crate::memories::output::{Memory, MemoryKind, TimeMemory};
     use crate::memories::photo::prepare;
     use crate::memories::selector::Selector;
     use crate::memories::tests::{files_on, micros, period};
+    use crate::memories::{LocalDate, MemoryBoundary};
 
     fn time_memories(files: &[MemoryFile], now: &str) -> Vec<Memory> {
         let photos = prepare(files);
@@ -316,12 +316,15 @@ mod tests {
         assert_eq!(memories[0].file_ids.len(), 6);
         assert_eq!(
             memories[0].first_date_to_show,
-            micros("2026-10-29T00:00:00")
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 10, 29))
         );
-        assert_eq!(memories[0].last_date_to_show, micros("2026-10-31T00:00:00"));
+        assert_eq!(
+            memories[0].last_date_to_show,
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 10, 31))
+        );
         assert_eq!(
             memories[1].first_date_to_show,
-            micros("2026-10-31T00:00:00")
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 10, 31))
         );
     }
 
@@ -332,9 +335,12 @@ mod tests {
         assert_eq!(memories[0].kind, day(2024, 2, 29, Some(3)));
         assert_eq!(
             memories[0].first_date_to_show,
-            micros("2027-02-27T00:00:00")
+            MemoryBoundary::CalendarDate(LocalDate::new(2027, 2, 27))
         );
-        assert_eq!(memories[0].last_date_to_show, micros("2027-03-01T00:00:00"));
+        assert_eq!(
+            memories[0].last_date_to_show,
+            MemoryBoundary::CalendarDate(LocalDate::new(2027, 3, 1))
+        );
     }
 
     #[test]
@@ -369,9 +375,12 @@ mod tests {
         assert_eq!(memories[3].file_ids, [20170, 20180, 20190, 20200]);
         assert_eq!(
             memories[3].first_date_to_show,
-            micros("2026-10-05T09:00:00")
+            MemoryBoundary::Timestamp(micros("2026-10-05T09:00:00"))
         );
-        assert_eq!(memories[3].last_date_to_show, micros("2026-11-01T00:00:00"));
+        assert_eq!(
+            memories[3].last_date_to_show,
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 11, 1))
+        );
     }
 
     #[test]
@@ -395,8 +404,11 @@ mod tests {
         assert_eq!(memories[0].kind, MemoryKind::Time(TimeMemory::LastWeek));
         assert_eq!(
             memories[0].first_date_to_show,
-            micros("2026-10-26T00:00:00")
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 10, 26))
         );
-        assert_eq!(memories[0].last_date_to_show, micros("2026-11-02T00:00:00"));
+        assert_eq!(
+            memories[0].last_date_to_show,
+            MemoryBoundary::CalendarDate(LocalDate::new(2026, 11, 2))
+        );
     }
 }
