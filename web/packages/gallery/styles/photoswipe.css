@@ -1020,7 +1020,7 @@ body:has(
     height: 44px;
     margin-top: -22px;
     border-radius: 12px;
-    background: var(--ente-island-control);
+    background: rgb(43 43 43 / 0.3);
 }
 
 .pswp-ente-island.pswp--ui-visible .pswp__hide-on-close.pswp__button--arrow {
@@ -1028,7 +1028,7 @@ body:has(
 }
 
 .pswp-ente-island .pswp__button--arrow:hover {
-    background: var(--ente-island-control-hover);
+    background: rgb(55 55 55 / 0.5);
 }
 
 .pswp-ente-island .pswp__button--arrow--prev {
