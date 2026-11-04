@@ -27,6 +27,7 @@ const (
 	rateLimitScopeIP             rateLimitScope = "ip"
 	rateLimitScopeCollection     rateLimitScope = "collection"
 	rateLimitScopeUser           rateLimitScope = "user"
+	rateLimitScopeAdmin          rateLimitScope = "admin"
 	rateLimitScopeRouteGlobal    rateLimitScope = "route_global"
 	rateLimitScopeProcessGlobal  rateLimitScope = "process_global"
 	processGlobalRateLimitURL                   = "all"
@@ -53,6 +54,8 @@ type RateLimitMiddleware struct {
 	limit300ReqPerMin  *limiter.Limiter
 	limit500ReqPerMin  *limiter.Limiter
 	limit700ReqPerSec  *limiter.Limiter
+	limit10ReqPerHour  *limiter.Limiter
+	limit60ReqPerHour  *limiter.Limiter
 	discordCtrl        *discord.DiscordController
 }
 
@@ -66,6 +69,8 @@ func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumb
 		limit300ReqPerMin:  util.NewRateLimiter("300-M"),
 		limit500ReqPerMin:  util.NewRateLimiter("500-M"),
 		limit700ReqPerSec:  util.NewRateLimiter("700-S"),
+		limit10ReqPerHour:  util.NewRateLimiter("10-H"),
+		limit60ReqPerHour:  util.NewRateLimiter("60-H"),
 		discordCtrl:        discordCtrl,
 		limit:              limit,
 		thumbnailLimit:     thumbnailLimit,

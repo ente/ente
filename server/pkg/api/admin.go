@@ -97,6 +97,10 @@ func (h *AdminHandler) UnsubscribeMail(c *gin.Context) {
 }
 
 func (h *AdminHandler) GetUsers(c *gin.Context) {
+	if !h.UserRepo.IsLikelySelfHosted() {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
 	err := h.isFreshAdminToken(c)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
@@ -631,6 +635,10 @@ func (h *AdminHandler) RecoverAccount(c *gin.Context) {
 }
 
 func (h *AdminHandler) GetEmailHash(c *gin.Context) {
+	if !h.UserRepo.IsLikelySelfHosted() {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
 	e := emailUtil.NormalizeEmail(c.Query("email"))
 	hash, err := crypto.GetHash(e, h.HashingKey)
 	if err != nil {
@@ -641,6 +649,10 @@ func (h *AdminHandler) GetEmailHash(c *gin.Context) {
 }
 
 func (h *AdminHandler) GetEmailsFromHashes(c *gin.Context) {
+	if !h.UserRepo.IsLikelySelfHosted() {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
 	var request ente.GetEmailsFromHashesRequest
 	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
