@@ -2,10 +2,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
+import { createMicrophone } from "../src/services/voice-microphone.ts";
 
-function worklet() {
-    const messages: { pcm?: ArrayBuffer; error?: string; flushed?: boolean }[] =
-        [];
+interface WorkletMessage {
+    pcm?: ArrayBuffer;
+    error?: string;
+    flushed?: boolean;
+}
+
+function worklet(deliver?: (message: WorkletMessage) => void) {
+    const messages: WorkletMessage[] = [];
     let Processor!: new () => {
         port: { onmessage: (e: { data: string }) => void };
         process: (inputs: Float32Array[][]) => boolean;
@@ -19,8 +25,10 @@ function worklet() {
             sampleRate: 48000,
             AudioWorkletProcessor: class {
                 port = {
-                    postMessage: (message: (typeof messages)[number]) =>
-                        messages.push(message),
+                    postMessage: (message: WorkletMessage) => {
+                        messages.push(message);
+                        deliver?.(message);
+                    },
                 };
             },
             registerProcessor: (_: string, ctor: typeof Processor) => {
@@ -35,6 +43,90 @@ function worklet() {
         feed: (samples: Float32Array) => processor.process([[samples]]),
     };
 }
+
+void test("microphone disconnect reports immediately during preparation and drains captured samples while recording", async (t) => {
+    const track = { onended: () => assert.fail(), stop: () => undefined };
+    const getTracks = () => [track];
+    let receive!: (event: { data: WorkletMessage }) => void;
+    const w = worklet((data) => receive({ data }));
+    const audioNode = { connect: () => undefined, disconnect: () => undefined };
+    const globals = {
+        navigator: {
+            mediaDevices: {
+                getUserMedia: () =>
+                    Promise.resolve({ getTracks, getAudioTracks: getTracks }),
+            },
+        },
+        AudioContext: class {
+            state = "running";
+            audioWorklet = { addModule: () => Promise.resolve() };
+            suspend = () => Promise.resolve();
+            resume = () => Promise.resolve();
+            close = () => Promise.resolve();
+            createMediaStreamSource = () => audioNode;
+        },
+        AudioWorkletNode: class {
+            connect = audioNode.connect;
+            disconnect = audioNode.disconnect;
+            port = {
+                set onmessage(listener: typeof receive) {
+                    receive = listener;
+                },
+                postMessage: w.command,
+                close: () => undefined,
+            };
+        },
+    };
+    for (const [key, value] of Object.entries(globals)) {
+        const original = Object.getOwnPropertyDescriptor(globalThis, key);
+        Object.defineProperty(globalThis, key, { configurable: true, value });
+        t.after(() => {
+            if (original) Object.defineProperty(globalThis, key, original);
+            else Reflect.deleteProperty(globalThis, key);
+        });
+    }
+
+    const failure = "The microphone disconnected.";
+    const failures: string[] = [];
+    const failed = (error: Error) => failures.push(error.message);
+    const signal = new AbortController().signal;
+    const preparing = createMicrophone(() => assert.fail(), failed);
+    await preparing.prepare(signal);
+    track.onended();
+    assert.deepEqual(failures, [failure]);
+
+    const received: number[] = [];
+    let acknowledge!: () => void;
+    const firstSend = new Promise<void>((resolve) => {
+        acknowledge = resolve;
+    });
+    let report!: (error: Error) => void;
+    const reported = new Promise<Error>((resolve) => {
+        report = resolve;
+    });
+    const recording = createMicrophone(
+        async (sequence, pcm) => {
+            assert.equal(sequence, received.length);
+            if (sequence === 0) await firstSend;
+            received.push(pcm.byteLength / 2);
+            return true;
+        },
+        (error) => {
+            failed(error);
+            report(error);
+        },
+    );
+    await recording.prepare(signal);
+    await recording.start();
+    w.feed(new Float32Array(20 * 4800 + 1200));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    track.onended();
+    assert.deepEqual(failures, [failure]);
+    acknowledge();
+    assert.equal((await reported).message, failure);
+    assert.deepEqual(received, [...Array<number>(20).fill(4800), 1200]);
+    assert.deepEqual(failures, [failure, failure]);
+});
 
 void test("worklet preserves final partial PCM, clips samples, and encodes little-endian", () => {
     const w = worklet();

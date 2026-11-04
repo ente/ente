@@ -117,9 +117,7 @@ class WebviewMicrophone implements MicrophoneCapture {
                         stream.getAudioTracks().forEach((track) => {
                             track.enabled = false;
                             track.onended = () =>
-                                this.fail(
-                                    new Error("The microphone disconnected."),
-                                );
+                                this.endInput("The microphone disconnected.");
                         });
                     }),
                 signal,
@@ -179,7 +177,7 @@ class WebviewMicrophone implements MicrophoneCapture {
             node.connect(context.destination);
             context.onstatechange = () => {
                 if (this.recording && context.state !== "running")
-                    this.fail(new Error("Microphone capture was interrupted."));
+                    this.endInput("Microphone capture was interrupted.");
             };
         } catch (error) {
             this.close();
@@ -208,14 +206,17 @@ class WebviewMicrophone implements MicrophoneCapture {
     private async drain() {
         try {
             if (!this.isClosed() && this.started) {
-                await timeout(
-                    new Promise<void>((resolve) => {
-                        this.flushed = resolve;
-                        this.node!.port.postMessage("finish");
-                    }),
-                    2000,
-                );
-                await this.pending;
+                try {
+                    await timeout(
+                        new Promise<void>((resolve) => {
+                            this.flushed = resolve;
+                            this.node!.port.postMessage("finish");
+                        }),
+                        2000,
+                    );
+                } finally {
+                    await this.pending;
+                }
             }
             if (this.failure) throw this.failure;
         } finally {
@@ -237,13 +238,20 @@ class WebviewMicrophone implements MicrophoneCapture {
         this.node?.disconnect();
         this.source?.disconnect();
         void this.context?.close().catch(() => undefined);
+        if (this.failure) this.failed(this.failure);
+    }
+
+    private endInput(message: string) {
+        if (this.isClosed() || this.failure) return;
+        this.failure = new Error(message);
+        if (this.started) void this.finish().catch(() => undefined);
+        else this.close();
     }
 
     private fail(error: unknown) {
         if (this.isClosed()) return;
-        this.failure =
+        this.failure ??=
             error instanceof Error ? error : new Error(String(error));
         this.close();
-        this.failed(this.failure);
     }
 }

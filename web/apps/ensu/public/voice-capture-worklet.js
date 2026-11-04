@@ -21,7 +21,7 @@ class VoiceCaptureProcessor extends AudioWorkletProcessor {
 
     flush() {
         if (!this.length) return;
-        if (this.outstanding >= 20) {
+        if (this.active && this.outstanding >= 20) {
             this.active = false;
             this.length = 0;
             this.port.postMessage({

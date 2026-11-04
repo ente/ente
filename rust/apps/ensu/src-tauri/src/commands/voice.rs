@@ -52,11 +52,13 @@ impl Session {
     }
 
     fn check(&self) -> Result<(), ApiError> {
-        if self.cancel.is_cancelled() {
-            Err(ApiError::new("cancelled", "Voice input cancelled"))
-        } else {
-            Ok(())
+        if !self.cancel.is_cancelled() {
+            return Ok(());
         }
+        Err(match lock(&self.capture_error).as_deref() {
+            Some(message) => error(message),
+            None => ApiError::new("cancelled", "Voice input cancelled"),
+        })
     }
 
     fn stop(&self, discard: bool) {
@@ -116,6 +118,8 @@ impl Session {
         let _ = state.session.stop(voice::StopReason::Failure);
         if let Some(stream) = lock(&self.stream).as_ref() {
             stream.finish();
+        } else {
+            self.cancel.cancel();
         }
     }
 
@@ -346,7 +350,7 @@ pub async fn voice_run(
         .map_err(error)?,
     );
     let store = downloads.store();
-    store
+    let download = store
         .download(
             &[
                 model::transcription_model_asset(),
@@ -364,9 +368,9 @@ pub async fn voice_run(
             },
             session.cancel.clone(),
         )
-        .await
-        .map_err(|err| ApiError::new(llm::download_code(&err), err.to_string()))?;
+        .await;
     session.check()?;
+    download.map_err(|err| ApiError::new(llm::download_code(&err), err.to_string()))?;
     let _ = window.emit(
         "voice-event",
         Event::Progress {
@@ -642,6 +646,13 @@ mod tests {
     fn failed_or_cancelled_preparation_releases_worker_and_reservation() {
         let transcriber = Transcriber::new("/missing-ensu-model", "/missing-ensu-vad");
         let state = State::default();
+        let session = Session::new("main".into());
+        let download = session.cancel.clone();
+        session.capture_failed("The microphone disconnected.".into());
+        assert!(download.is_cancelled());
+        let failure = session.check().unwrap_err();
+        assert_eq!(failure.name, Some("voice"));
+        assert_eq!(failure.message, "The microphone disconnected.");
         for cancelled in [false, true] {
             let session = Arc::new(Session::new("main".into()));
             *lock(&state.0) = Some(Arc::clone(&session));
@@ -725,17 +736,6 @@ mod tests {
                 expected = outcome.text;
             }
         }
-
-        let session = Arc::new(Session::new("main".into()));
-        session.capture_failed("The microphone disconnected.".into());
-        let failure = run_stream(&session, &capture(16000), &transcriber, |signal| {
-            assert!(!matches!(signal, Signal::Start));
-            Ok(())
-        })
-        .err()
-        .unwrap();
-        assert_eq!(failure.message, "The microphone disconnected.");
-        assert!(!lock(&session.dictation).session.worker_active());
     }
 
     #[test]
