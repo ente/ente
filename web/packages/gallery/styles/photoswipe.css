@@ -788,7 +788,7 @@ body:has(
     --pswp-icon-color-secondary: var(--ente-island-control);
 
     --ente-island-inset: 11px;
-    --ente-island-surface: #212121;
+    --ente-island-surface: #000;
     --ente-island-control: #2b2b2b;
     --ente-island-control-hover: #373737;
 
@@ -857,14 +857,7 @@ body:has(
         width: 38px;
         height: 38px;
         border-radius: var(--ente-island-radius-control);
-        background: var(--ente-island-control);
-        transition:
-            background-color 160ms ease,
-            transform 180ms var(--ente-island-easing);
-    }
-
-    button.pswp__button:hover::before {
-        background: var(--ente-island-control-hover);
+        transition: transform 180ms var(--ente-island-easing);
     }
 
     button.pswp__button:active::before {
@@ -915,7 +908,6 @@ body:has(
     margin: 11px 6px 0 0;
     padding-inline: 12px;
     border-radius: 12px;
-    background: var(--ente-island-control);
     font-size: 14px;
     font-weight: 500;
     color: var(--ente-island-status-text);
@@ -1058,6 +1050,7 @@ body:has(
 @media (width >= 450px) {
     .pswp-ente-island .pswp__bottom-right-controls {
         bottom: calc(var(--ente-island-inset) + 24px);
+        right: calc(var(--ente-island-inset) + 24px);
         gap: 16px;
     }
 }
