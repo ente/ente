@@ -781,14 +781,6 @@ body:has(
     }
 }
 
-/*
- * Island layout (photos app only, see `useIslandLayout` in photoswipe-core.ts).
- *
- * The viewer keeps its dark palette but adopts the gallery's island shell: a
- * #161616 ground, the slide inside a #212121 panel with 20px corners, 38px
- * rounded-square top bar buttons, and controls on blurred pills inside the
- * panel. The panel insets here must match `islandLayoutPadding`.
- */
 .pswp-ente-island {
     --ente-island-ground: #161616;
     --pswp-bg: var(--ente-island-ground);
@@ -832,13 +824,11 @@ body:has(
     background: var(--ente-island-surface);
 }
 
-/* Controls have their own contrasting surfaces. */
 .pswp-ente-island .pswp__top-bar::before,
 .pswp-ente-island .pswp__bottom-right-controls::before {
     display: none;
 }
 
-/* Overlay the toolbar without reserving space above the image. */
 .pswp-ente-island .pswp__top-bar {
     top: calc(
         var(--ente-island-inset) + 1px + env(titlebar-area-height, 0px) * 0.4
@@ -989,10 +979,6 @@ body:has(
     display: none;
 }
 
-/*
- * Draw the 38px rounded-square button surface behind each top bar icon,
- * centered on the button's hit area.
- */
 .pswp-ente-island .pswp__top-bar button.pswp__button::before {
     content: "";
     position: absolute;
@@ -1032,7 +1018,6 @@ body:has(
     z-index: 1;
 }
 
-/* Center the 24px icon paths within PhotoSwipe's 32px SVG canvas. */
 .pswp-ente-island
     .pswp__top-bar
     :is(
@@ -1053,7 +1038,6 @@ body:has(
     transform: translate(7px, 7px) scale(0.75);
 }
 
-/* Navigation uses the same rounded surfaces as the toolbar. */
 .pswp-ente-island .pswp__button--arrow {
     width: 44px;
     height: 44px;
@@ -1078,7 +1062,6 @@ body:has(
     right: calc(var(--ente-island-inset) + 12px);
 }
 
-/* Hugeicons chevrons share the same centered 20px canvas. */
 .pswp-ente-island .pswp__button--arrow .pswp__icn {
     top: 50%;
     left: 50%;
@@ -1091,7 +1074,6 @@ body:has(
     color: var(--ente-island-text);
 }
 
-/* Keep the bottom controls inside the panel. */
 .pswp-ente-island .pswp__bottom-right-controls {
     bottom: calc(var(--ente-island-inset) + 12px);
     left: calc(var(--ente-island-inset) + 12px);
@@ -1173,7 +1155,6 @@ body:has(
     outline-offset: 2px;
 }
 
-/* Keep buffering beside the count without reserving an empty slot. */
 .pswp-ente-island .pswp__status-buffering {
     display: none;
     flex-shrink: 0;
@@ -1199,7 +1180,6 @@ body:has(
     --media-loading-indicator-icon-height: 28px;
 }
 
-/* Fullscreen media fills the viewer; the toolbar overlays it. */
 :fullscreen .pswp-ente-island,
 .pswp-ente-island.pswp--video-fullscreen {
     --pswp-bg: var(--ente-island-ground);
@@ -1210,7 +1190,6 @@ body:has(
     display: none;
 }
 
-/* Keep hover motion on fine pointers and preserve the controls' hit areas. */
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .pswp-ente-island
         .pswp__top-bar

@@ -106,13 +106,6 @@ export const moreMenuID = "ente-pswp-more-menu";
 
 const fullscreenControlsAutoHideDelayMS = 3000;
 
-/**
- * Padding around the slide in the photos app's island layout.
- *
- * Keep in sync with the `.pswp-ente-island` rules in photoswipe.css: the
- * island is inset 11px from every edge (8px on small screens), and the slide gets a further gutter
- * inside it, wide enough on large screens for the prev / next buttons.
- */
 const islandLayoutPadding = ({ x }: { x: number }) =>
     document.fullscreenElement
         ? { top: 0, bottom: 0, left: 0, right: 0 }
@@ -185,7 +178,6 @@ export class FileViewerPhotoSwipe<
                 : useIslandLayout
                   ? "pswp-ente pswp-ente-island"
                   : "pswp-ente",
-            // Match the rounded panel's insets; the toolbar overlays the slide.
             ...(useIslandLayout && {
                 paddingFn: islandLayoutPadding,
                 arrowPrevSVG: slideArrowPrevSVG,

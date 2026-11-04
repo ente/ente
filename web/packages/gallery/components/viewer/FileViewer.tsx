@@ -2162,10 +2162,6 @@ const createImagePNGBlob = async (imageURL: string): Promise<Blob> =>
         image.src = imageURL;
     });
 
-/**
- * The photos app's island layout (see `useIslandLayout` in photoswipe-core.ts)
- * shows the More menu as a floating island with the gallery's 20px corners.
- */
 const islandMoreMenuSx = {
     "& .MuiPaper-root": {
         borderRadius: "20px",
