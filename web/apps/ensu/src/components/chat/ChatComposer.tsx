@@ -1,3 +1,4 @@
+import type { WithVoiceInput } from "@/hooks/use-voice-input";
 import type { ChatMessage } from "@/services/chat/store";
 import type { DownloadProgress } from "@/services/llm/types";
 import {
@@ -44,6 +45,8 @@ type SuggestedModelStatus =
 export type ChatComposerHandle = ChatInputHandle;
 
 export interface ChatComposerProps {
+    destination: string;
+    withVoiceInput: WithVoiceInput;
     showModelGate: boolean;
     showDownloadProgress: boolean;
     downloadStatus: DownloadProgress | null;
@@ -84,6 +87,8 @@ export interface ChatComposerProps {
 export const ChatComposer = memo(
     forwardRef<ChatInputHandle, ChatComposerProps>(function ChatComposer(
         {
+            destination,
+            withVoiceInput,
             showModelGate,
             showDownloadProgress,
             downloadStatus,
@@ -564,6 +569,8 @@ export const ChatComposer = memo(
                                 )}
                                 <ChatInput
                                     ref={inputRef}
+                                    destination={destination}
+                                    withVoiceInput={withVoiceInput}
                                     actionIconProps={actionIconProps}
                                     disableAttachmentButton={
                                         disableAttachmentButton ||
