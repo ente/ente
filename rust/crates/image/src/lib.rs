@@ -1,3 +1,4 @@
+mod allocator;
 mod bounded;
 mod color_management;
 pub mod decode;
@@ -5,6 +6,7 @@ pub mod error;
 mod heif;
 pub mod image_compression;
 mod jxl;
+mod memory_budget;
 mod png;
 mod resample;
 pub mod types;
