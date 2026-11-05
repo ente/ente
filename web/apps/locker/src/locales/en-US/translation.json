@@ -259,10 +259,8 @@
     "add_trusted_contact": "Add trusted contact",
     "trusted_contacts_empty": "Nominate another Ente user as a trusted contact to recover your account",
     "legacy_accounts_empty": "Trusted contacts can initiate account recovery, and if not blocked within 30 days, reset your password and access your account.",
-    "uploadShareTitle_one": "File uploaded",
-    "uploadShareTitle_other": "{{count}} files uploaded",
+    "uploadShareTitle": "File uploaded",
     "uploadShareBody": "{{name}} is safely stored in Locker. Share a link now?",
     "uploadShareSyncing": "Your file is uploaded. Waiting for it to finish syncing before sharing.",
-    "uploadShareChooseFile": "Your files are safely stored in Locker. Choose a file to share.",
     "uploadShareFile": "Share file"
 }

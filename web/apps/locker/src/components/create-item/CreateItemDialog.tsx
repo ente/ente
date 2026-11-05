@@ -101,7 +101,10 @@ interface CreateItemDialogProps {
         onProgress: (progress: LockerUploadProgress) => void,
     ) => Promise<void>;
     onUploadItemComplete?: () => void;
-    onUploadsFinished?: (uploadedCount: number) => Promise<void>;
+    onUploadsFinished?: (
+        uploadedCount: number,
+        selectedFileCount: number,
+    ) => Promise<void>;
     onCreateCollection?: (name: string) => Promise<number>;
     onEnsureCollections?: (
         names: string[],

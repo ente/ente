@@ -57,6 +57,7 @@ const render = (fileIDs = [42], collections = [collection]) =>
     );
 const prompt = () =>
     confirm.mock.calls[0]![0] as {
+        open: boolean;
         confirmDisabled: boolean;
         onConfirm: () => void;
         onClose: () => void;
@@ -88,12 +89,15 @@ test("dismissal does not create a link", () => {
     expect(openLink).not.toHaveBeenCalled();
 });
 
-test("a batch offers only uploaded files owned by the user", () => {
-    render(
-        [42, 99],
-        [{ ...collection, items: [item, { ...item, id: 99, ownerID: 2 }] }],
-    );
-    const html = renderToStaticMarkup(<>{prompt().body}</>);
-    expect(html.match(/Renamed document.pdf/g)).toHaveLength(1);
+test("batch uploads never show the post-upload share prompt", () => {
+    render([42, 99], [{ ...collection, items: [item, { ...item, id: 99 }] }]);
+    expect(prompt().open).toBe(false);
+    expect(openLink).not.toHaveBeenCalled();
+});
+
+test("files owned by another user cannot be shared", () => {
+    render([42], [{ ...collection, items: [{ ...item, ownerID: 2 }] }]);
+    expect(prompt().confirmDisabled).toBe(true);
+    prompt().onConfirm();
     expect(openLink).not.toHaveBeenCalled();
 });

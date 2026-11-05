@@ -3,7 +3,6 @@ import { useFileLink } from "@/components/items/use-file-link";
 import { LockerConfirmDialog } from "@/components/ui/LockerConfirmDialog";
 import type { LockerCollection } from "@/types";
 import { canShareLockerFileLink, getItemTitle } from "@/types";
-import { Button, Stack } from "@mui/material";
 import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import { t } from "i18next";
 import { useMemo } from "react";
@@ -47,13 +46,12 @@ export function UploadShareDialog({
         shareActiveFileLink,
         deleteActiveFileLink,
     } = useFileLink({ allItemsByID, currentUserID, setFeedbackMessage });
-    const uploadedItems = fileIDs.flatMap((id) => {
-        const item = allItemsByID.get(id);
-        return item && canShareLockerFileLink(item, currentUserID)
-            ? [item]
-            : [];
-    });
-    const singleItem = fileIDs.length === 1 ? uploadedItems[0] : undefined;
+    const candidate =
+        fileIDs.length === 1 ? allItemsByID.get(fileIDs[0]!) : undefined;
+    const singleItem =
+        candidate && canShareLockerFileLink(candidate, currentUserID)
+            ? candidate
+            : undefined;
     const handleShare = () => {
         if (singleItem) {
             onClose();
@@ -63,44 +61,24 @@ export function UploadShareDialog({
     return (
         <>
             <LockerConfirmDialog
-                open={open}
+                open={open && fileIDs.length === 1}
                 illustration="/images/onboarding-share.png"
                 illustrationSize={180}
                 compactIllustration
-                title={t("uploadShareTitle", { count: fileIDs.length })}
+                title={t("uploadShareTitle")}
                 body={
-                    singleItem ? (
-                        t("uploadShareBody", { name: getItemTitle(singleItem) })
-                    ) : fileIDs.length === 1 ? (
-                        t("uploadShareSyncing")
-                    ) : (
-                        <>
-                            {t("uploadShareChooseFile")}
-                            <Stack sx={{ mt: 2, gap: 1 }}>
-                                {uploadedItems.map((item) => (
-                                    <Button
-                                        key={item.id}
-                                        fullWidth
-                                        onClick={() => {
-                                            onClose();
-                                            void openFileLinkDialog(item);
-                                        }}
-                                    >
-                                        {getItemTitle(item)}
-                                    </Button>
-                                ))}
-                            </Stack>
-                        </>
-                    )
+                    singleItem
+                        ? t("uploadShareBody", {
+                              name: getItemTitle(singleItem),
+                          })
+                        : t("uploadShareSyncing")
                 }
-                confirmLabel={
-                    fileIDs.length === 1 ? t("uploadShareFile") : t("done")
-                }
-                confirmDisabled={fileIDs.length === 1 && !singleItem}
-                cancelLabel={fileIDs.length === 1 ? t("done") : undefined}
+                confirmLabel={t("uploadShareFile")}
+                confirmDisabled={!singleItem}
+                cancelLabel={t("done")}
                 tone="primary"
                 onClose={onClose}
-                onConfirm={fileIDs.length === 1 ? handleShare : onClose}
+                onConfirm={handleShare}
             />
             <LockerFileLinkDialog
                 open={activeFileLinkItem !== null}

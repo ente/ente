@@ -150,11 +150,9 @@ export const useLockerUploads = ({
     );
 
     const handleUploadsFinished = useCallback(
-        async (uploadedCount: number) => {
+        async (uploadedCount: number, selectedFileCount: number) => {
             const completedIDs = completedUploadIDsRef.current.splice(0);
-            setUploadedFileIDs((current) => [
-                ...new Set([...current, ...completedIDs]),
-            ]);
+            setUploadedFileIDs(selectedFileCount === 1 ? completedIDs : []);
             clearUploadRefreshTimeout();
             clearUploadFollowUpRefreshes();
             await refreshData();

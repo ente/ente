@@ -36,7 +36,10 @@ export interface LockerUploadCallbacks {
         onProgress: (progress: LockerUploadProgress) => void,
     ) => Promise<void>;
     onUploadItemComplete?: () => void;
-    onUploadsFinished?: (uploadedCount: number) => Promise<void>;
+    onUploadsFinished?: (
+        uploadedCount: number,
+        selectedFileCount: number,
+    ) => Promise<void>;
     onEnsureCollections?: (
         names: string[],
     ) => Promise<Map<string, number> | Record<string, number>>;
@@ -341,7 +344,10 @@ export function useUploadQueue({
                 );
 
                 if (uploadedCount > 0) {
-                    await onUploadsFinished?.(uploadedCount);
+                    await onUploadsFinished?.(
+                        uploadedCount,
+                        selectedUploadItems.length,
+                    );
                 }
                 if (
                     completedFileKeys.size + uploadedCount ===
