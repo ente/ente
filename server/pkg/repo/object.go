@@ -285,6 +285,21 @@ func (repo *ObjectRepository) GetDataCentersForObject(objectKey string) ([]strin
 	return datacenters, nil
 }
 
+func (repo *ObjectRepository) GetObjectUploadBucket(ctx context.Context, objectKey string, userID int64) (string, error) {
+	var bucket sql.NullString
+	// The upload bucket is first; replication appends additional locations.
+	err := repo.DB.QueryRowContext(ctx, `SELECT datacenters[1] FROM object_keys
+		JOIN files USING (file_id)
+		WHERE object_key = $1 AND owner_id = $2 AND object_keys.is_deleted = false`, objectKey, userID).Scan(&bucket)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if !bucket.Valid || bucket.String == "" {
+		return "", ente.NewBadRequestWithMessage("object upload bucket not found")
+	}
+	return bucket.String, nil
+}
+
 func (repo *ObjectRepository) RemoveDataCenterFromObject(objectKey string, datacenter string) error {
 	_, err := repo.DB.Exec(`UPDATE object_keys SET datacenters = array_remove(datacenters, $1) WHERE object_key = $2`,
 		datacenter, objectKey)

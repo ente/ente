@@ -9,8 +9,20 @@ import (
 	"github.com/ente/museum/pkg/controller/discord"
 	"github.com/ente/museum/pkg/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
+
+func TestReplicationDisabledByConfig(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set("replication.enabled", false)
+	viper.Set("jobs.cron.skip", true)
+
+	require.NotPanics(t, func() {
+		setupAndStartBackgroundJobs(nil, nil, nil, nil, nil)
+	})
+}
 
 func TestURLSanitizer(t *testing.T) {
 	gin.SetMode(gin.TestMode)

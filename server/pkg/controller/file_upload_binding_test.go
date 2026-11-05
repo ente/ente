@@ -23,6 +23,7 @@ func TestFileRegistrationUploadBinding(t *testing.T) {
 		stagedApp  ente.App
 		stagedUser int64
 		purpose    string
+		bucket     string
 		legacy     bool
 		allowed    bool
 	}{
@@ -32,6 +33,7 @@ func TestFileRegistrationUploadBinding(t *testing.T) {
 		{name: "wrong app", app: ente.Photos, stagedApp: ente.Locker, stagedUser: 1, purpose: "file_upload"},
 		{name: "wrong owner", app: ente.Photos, stagedApp: ente.Photos, stagedUser: 2, purpose: "file_upload"},
 		{name: "attachment", app: ente.Photos, stagedApp: ente.Photos, stagedUser: 1, purpose: "attachment"},
+		{name: "wrong bucket", app: ente.Photos, stagedApp: ente.Photos, stagedUser: 1, purpose: "file_upload", bucket: "wasabi-eu-central-2-v3"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, repository, db := setupObjectCleanupRaceTest(t, "http://127.0.0.1")
@@ -42,8 +44,8 @@ func TestFileRegistrationUploadBinding(t *testing.T) {
 			require.NoError(t, err)
 			file := objectCleanupTestFile(ownerID, collectionID, "1/binding-file", "1/binding-thumbnail")
 			for _, key := range []string{file.File.ObjectKey, file.Thumbnail.ObjectKey} {
-				_, err = db.Exec(`INSERT INTO temp_objects (object_key, expiration_time, user_id, app, purpose)
-					VALUES ($1, 1, $2, $3, 'file_upload')`, key, ownerID, tc.app)
+				_, err = db.Exec(`INSERT INTO temp_objects (object_key, expiration_time, user_id, app, purpose, bucket_id)
+					VALUES ($1, 1, $2, $3, 'file_upload', 'b2-eu-cen')`, key, ownerID, tc.app)
 				require.NoError(t, err)
 			}
 			if tc.legacy {
@@ -53,8 +55,12 @@ func TestFileRegistrationUploadBinding(t *testing.T) {
 					tc.stagedUser, tc.stagedApp, tc.purpose, file.Thumbnail.ObjectKey)
 			}
 			require.NoError(t, err)
+			if tc.bucket != "" {
+				_, err = db.Exec(`UPDATE temp_objects SET bucket_id = $1 WHERE object_key = $2`, tc.bucket, file.Thumbnail.ObjectKey)
+				require.NoError(t, err)
+			}
 
-			_, _, err = repository.Create(file, 100, 10, 110, ownerID, tc.app)
+			_, _, err = repository.Create(file, 100, 10, 110, ownerID, tc.app, repo.FileObjectBuckets{File: "b2-eu-cen", Thumbnail: "b2-eu-cen"})
 			if tc.allowed {
 				require.NoError(t, err)
 			} else {
@@ -108,8 +114,8 @@ func TestFileUpdateUploadBinding(t *testing.T) {
 				}
 				file.File.ObjectKey = "1/new-file"
 				file.Thumbnail.ObjectKey = "1/new-thumbnail"
-				_, err := db.Exec(`INSERT INTO temp_objects (object_key, expiration_time, user_id, app, purpose)
-					VALUES ($1, 1, $3, $4, 'file_upload'), ($2, 1, $3, $4, 'file_upload')`, file.File.ObjectKey, file.Thumbnail.ObjectKey, file.OwnerID, tc.stagedApp)
+				_, err := db.Exec(`INSERT INTO temp_objects (object_key, expiration_time, user_id, app, purpose, bucket_id)
+					VALUES ($1, 1, $3, $4, 'file_upload', 'b2-eu-cen'), ($2, 1, $3, $4, 'file_upload', 'b2-eu-cen')`, file.File.ObjectKey, file.Thumbnail.ObjectKey, file.OwnerID, tc.stagedApp)
 				require.NoError(t, err)
 				if thumbnailOnly {
 					ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -226,14 +232,15 @@ func setupFileUploadBindingTest(t *testing.T, app ente.App) (*FileController, en
 	_, err := db.Exec(`UPDATE collections SET app = $1 WHERE collection_id = $2`, app, collectionID)
 	require.NoError(t, err)
 	file := objectCleanupTestFile(ownerID, collectionID, "1/old-file", "1/old-thumbnail")
-	_, err = db.Exec(`INSERT INTO temp_objects (object_key, expiration_time) VALUES ($1, 1), ($2, 1)`, file.File.ObjectKey, file.Thumbnail.ObjectKey)
+	_, err = db.Exec(`INSERT INTO temp_objects (object_key, expiration_time, bucket_id) VALUES ($1, 1, 'b2-eu-cen'), ($2, 1, 'b2-eu-cen')`, file.File.ObjectKey, file.Thumbnail.ObjectKey)
 	require.NoError(t, err)
-	file, _, err = repository.Create(file, 100, 10, 110, ownerID, app)
+	file, _, err = repository.Create(file, 100, 10, 110, ownerID, app, repo.FileObjectBuckets{File: "b2-eu-cen", Thumbnail: "b2-eu-cen"})
 	require.NoError(t, err)
 	users := &repo.UserRepository{DB: db}
 	return &FileController{
 		FileRepo: repository, ObjectRepo: repository.ObjectRepo, S3Config: repository.S3Config,
-		CollectionRepo: &repo.CollectionRepository{DB: db, CollectionLinkRepo: &public.CollectionLinkRepo{DB: db}},
+		ObjectCleanupRepo: repository.ObjectCleanupRepo,
+		CollectionRepo:    &repo.CollectionRepository{DB: db, CollectionLinkRepo: &public.CollectionLinkRepo{DB: db}},
 		UsageCtrl: &UsageController{UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
 			BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}}},
 	}, file, db

@@ -1,6 +1,7 @@
 import { useBook } from "@/context/book";
 import { usePageDrag } from "@/hooks/usePageDrag";
 import { useSpreads } from "@/hooks/useSpreads";
+import { getSpreadLabel } from "@/lib/spreads";
 import { thumbnailShadow, toolbarColors, uiColors } from "@/theme/colors";
 import { Box, Typography, useMediaQuery } from "@mui/material";
 import {
@@ -16,13 +17,14 @@ import PageCanvas from "./PageCanvas";
 import PrinterBlankPage from "./PrinterBlankPage";
 import { EDITOR_SCROLLBAR_SX } from "./editorLayout";
 
-interface PageStripProps {
+export interface PageStripProps {
     onSpreadClick?: (spreadIdx: number) => void;
+    readOnly?: boolean;
 }
 
-function PageStrip({ onSpreadClick }: PageStripProps) {
+function PageStrip({ onSpreadClick, readOnly = false }: PageStripProps) {
     const { book } = useBook("book");
-    const isCompact = useMediaQuery("(max-width: 599px)");
+    const isCompact = useMediaQuery("(max-width: 899px)");
     const thumbnailWidth = isCompact ? 52 : 136;
     const rowPadding = isCompact ? 8 : 12;
     const labelLineHeight = isCompact ? 16 : 18;
@@ -101,7 +103,7 @@ function PageStrip({ onSpreadClick }: PageStripProps) {
                 width: "100%",
                 display: "flex",
                 flexDirection: "column",
-                px: { xs: 1, sm: 2 },
+                px: isCompact ? 1 : 2,
                 py: 3,
                 flex: 1,
                 minHeight: 0,
@@ -138,7 +140,16 @@ function PageStrip({ onSpreadClick }: PageStripProps) {
                         key={spreadIdx}
                         ref={stripSpreadRefs[spreadIdx]}
                         data-strip-spread-index={spreadIdx}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Go to ${getSpreadLabel(spread, pages.length)}`}
                         onClick={() => onSpreadClick?.(spreadIdx)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSpreadClick?.(spreadIdx);
+                            }
+                        }}
                         sx={{
                             cursor: "pointer",
                             borderRadius: `${rowPadding + 4}px`,
@@ -178,6 +189,7 @@ function PageStrip({ onSpreadClick }: PageStripProps) {
                                         ? pages[pageIndex]
                                         : null;
                                 const canDrag =
+                                    !readOnly &&
                                     pageIndex !== null &&
                                     pageIndex > 0 &&
                                     pageIndex < pages.length - 1;
@@ -214,17 +226,23 @@ function PageStrip({ onSpreadClick }: PageStripProps) {
                                                         pageIndex,
                                                     )
                                                 }
-                                                onDragOver={(e) =>
-                                                    pageDrag.handlePageDragOverPage(
-                                                        e,
-                                                        pageIndex,
-                                                    )
+                                                onDragOver={
+                                                    readOnly
+                                                        ? undefined
+                                                        : (e) =>
+                                                              pageDrag.handlePageDragOverPage(
+                                                                  e,
+                                                                  pageIndex,
+                                                              )
                                                 }
-                                                onDrop={(e) =>
-                                                    pageDrag.handlePageDropOnPage(
-                                                        e,
-                                                        pageIndex,
-                                                    )
+                                                onDrop={
+                                                    readOnly
+                                                        ? undefined
+                                                        : (e) =>
+                                                              pageDrag.handlePageDropOnPage(
+                                                                  e,
+                                                                  pageIndex,
+                                                              )
                                                 }
                                                 onDragEnd={
                                                     pageDrag.handlePageDragEndCleanup

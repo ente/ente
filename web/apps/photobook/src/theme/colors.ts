@@ -36,6 +36,8 @@ export const toolbarColors = {
 export const bookPageShadow =
     "0 2px 4px rgba(0,0,0,0.2), 0 12px 28px -8px rgba(0,0,0,0.35)";
 
+export const toolbarShadow = `inset 0 0 0 1px ${toolbarColors.border}, 0 2px 8px rgba(0,0,0,0.16)`;
+
 export const thumbnailShadow =
     "0 0 0 1px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.2)";
 export const popupShadow =

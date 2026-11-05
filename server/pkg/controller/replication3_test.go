@@ -37,6 +37,7 @@ func TestReplicationHotCopies(t *testing.T) {
 		primary      string
 		copies       []string
 		thumbnail    bool
+		pauseB2      bool
 		failures     []string
 		badDownload  bool
 		badUpload    bool
@@ -54,6 +55,12 @@ func TestReplicationHotCopies(t *testing.T) {
 			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2"}},
 		{name: "b2 file", primary: "b2", copies: []string{"b2"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi", "PUT scw", "HEAD scw"}},
+		{name: "b2 paused with scaleway pending", primary: "wasabi", copies: []string{"wasabi"}, pauseB2: true, wantCopies: []string{"wasabi", "scw"},
+			wantRequests: []string{"GET wasabi", "PUT scw", "HEAD scw"}},
+		{name: "b2 paused for thumbnail", primary: "wasabi", copies: []string{"wasabi"}, thumbnail: true, pauseB2: true, wantCopies: []string{"wasabi"}},
+		{name: "b2 paused with scaleway complete", primary: "wasabi", copies: []string{"wasabi", "scw"}, pauseB2: true, wantCopies: []string{"wasabi", "scw"}},
+		{name: "b2 paused and scaleway unavailable", primary: "wasabi", copies: []string{"wasabi"}, pauseB2: true, failures: []string{"PUT scw"}, wantError: true, wantCopies: []string{"wasabi"},
+			wantRequests: []string{"GET wasabi", "PUT scw"}},
 		{name: "primary missing", primary: "wasabi", copies: []string{"b2"}, thumbnail: true, wantCopies: []string{"b2", "wasabi"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi"}},
 		{name: "backfill after switching to b2", primary: "b2", copies: []string{"wasabi", "scw"}, wantCopies: []string{"b2", "wasabi", "scw"},
@@ -198,7 +205,7 @@ func TestReplicationHotCopies(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			replicated, err := c.tryReplicate()
+			replicated, err := c.tryReplicate(!tc.pauseB2)
 			require.Equal(t, len(tc.wantCopies) > len(tc.copies), replicated)
 			if tc.wantError {
 				require.Error(t, err)
@@ -224,32 +231,33 @@ func TestReplicationHotCopies(t *testing.T) {
 				expectedLocations = append(expectedLocations, replicationTestDCs[provider])
 			}
 			require.ElementsMatch(t, expectedLocations, locations)
-			if !tc.wantError {
+			if !tc.wantError && !tc.pauseB2 {
 				_, err = db.Exec(`UPDATE object_copies SET last_attempt = 0 WHERE object_key = $1`, objectKey)
 				require.NoError(t, err)
 			}
-			replicated, err = c.tryReplicate()
+			replicated, err = c.tryReplicate(!tc.pauseB2)
 			require.ErrorIs(t, err, sql.ErrNoRows)
 			require.False(t, replicated)
 			mu.Lock()
 			actualRequests := slices.Clone(requests)
 			mu.Unlock()
 			require.Equal(t, tc.wantRequests, actualRequests)
-			if len(tc.failures) == 1 && tc.failures[0] == "PUT b2" {
+			if (tc.pauseB2 && !tc.wantError) || (len(tc.failures) == 1 && tc.failures[0] == "PUT b2") {
 				mu.Lock()
 				failures = nil
 				requests = nil
 				mu.Unlock()
-				_, err = db.Exec(`UPDATE object_copies SET last_attempt = 0 WHERE object_key = $1`, objectKey)
+				_, err = db.Exec(`UPDATE object_copies SET last_attempt = now_utc_micro_seconds() - (25::BIGINT * 60 * 60 * 1000 * 1000)
+					WHERE object_key = $1`, objectKey)
 				require.NoError(t, err)
-				replicated, err = c.tryReplicate()
+				replicated, err = c.tryReplicate(true)
 				require.NoError(t, err)
 				require.True(t, replicated)
 				require.NoError(t, db.QueryRow(`SELECT b2 FROM object_copies WHERE object_key = $1`, objectKey).Scan(&b2))
 				require.True(t, b2.Valid)
 				locations, err = c.ObjectRepo.GetDataCentersForObject(objectKey)
 				require.NoError(t, err)
-				require.ElementsMatch(t, []string{replicationTestDCs["b2"], replicationTestDCs["wasabi"], replicationTestDCs["scw"]}, locations)
+				require.ElementsMatch(t, append(expectedLocations, replicationTestDCs["b2"]), locations)
 				mu.Lock()
 				actualRequests = slices.Clone(requests)
 				mu.Unlock()

@@ -63,7 +63,7 @@ import React, {
 import { BookContext, createBookStore } from "./book";
 
 const MAX_PHOTOS = 650;
-const emptyBook: BookState = { pages: [], currentSpreadIndex: 0 };
+const emptyBook: BookState = { title: "", pages: [], currentSpreadIndex: 0 };
 
 function isPendingEnteOriginal(photo: Photo): boolean {
     return photo.source === "ente" && photo.originalStatus === "pending";
@@ -320,7 +320,12 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
 
                     setPhotos(savedPhotos);
                     setThumbnailUrls(thumbUrls);
-                    setBookRaw(normalizeCoverLayout(savedBook));
+                    setBookRaw(
+                        normalizeCoverLayout({
+                            ...savedBook,
+                            title: savedBook.title ?? emptyBook.title,
+                        }),
+                    );
                     setCurrentSpreadIndex(savedBook.currentSpreadIndex);
 
                     if (savedView === "edit" || savedView === "results") {
@@ -509,7 +514,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
                 setThumbnailUrls(newThumbUrls);
 
                 if (replace) {
-                    setBookRaw({ pages: nextPages, currentSpreadIndex: 0 });
+                    setBookRaw({ ...emptyBook, pages: nextPages });
                     undoStackRef.current = [];
                     redoStackRef.current = [];
                     setCanUndo(false);
@@ -874,7 +879,7 @@ export function BookProvider({ children }: { children: React.ReactNode }) {
             const pages = generateAutoLayout(newPhotos);
             setPhotos(newPhotos);
             setThumbnailUrls(newThumbUrls);
-            setBookRaw({ pages, currentSpreadIndex: 0 });
+            setBookRaw({ ...emptyBook, pages });
             undoStackRef.current = [];
             redoStackRef.current = [];
             setCanUndo(false);

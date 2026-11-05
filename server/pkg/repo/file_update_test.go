@@ -73,14 +73,14 @@ func TestUpdateFileReplicaLocations(t *testing.T) {
 				file.Info.ThumbnailSize = 20
 				usageDiff = 110
 				stagedObjects = []string{file.File.ObjectKey, file.Thumbnail.ObjectKey}
-				_, err := db.Exec(`INSERT INTO temp_objects (object_key, expiration_time)
-					SELECT unnest($1::text[]), 1`, pq.Array(stagedObjects))
+				_, err := db.Exec(`INSERT INTO temp_objects (object_key, expiration_time, bucket_id)
+					SELECT unnest($1::text[]), 1, 'b2-eu-cen'`, pq.Array(stagedObjects))
 				require.NoError(t, err)
 				fileLocations = []string{s3Config.GetHotDataCenter()}
 				thumbnailLocations = fileLocations
 			}
 
-			require.NoError(t, repository.Update(file, file.Info.FileSize, file.Info.ThumbnailSize, usageDiff, oldObjects, stagedObjects, ente.Photos))
+			require.NoError(t, repository.Update(file, file.Info.FileSize, file.Info.ThumbnailSize, usageDiff, oldObjects, stagedObjects, ente.Photos, FileObjectBuckets{File: "b2-eu-cen", Thumbnail: "b2-eu-cen"}))
 			for _, object := range []struct {
 				kind      ente.ObjectType
 				key       string

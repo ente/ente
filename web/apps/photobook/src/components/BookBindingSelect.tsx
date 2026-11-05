@@ -1,7 +1,7 @@
 import { useBook } from "@/context/book";
 import { getBindingPrintSelection, getPrintBinding } from "@/lib/printProducts";
 import { accentGreen } from "@/theme/buttons";
-import { pageMenuColors } from "@/theme/colors";
+import { pageMenuColors, toolbarShadow } from "@/theme/colors";
 import { dialogSelectSx } from "@/theme/dialogs";
 import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { MenuItem, Select } from "@mui/material";
@@ -28,6 +28,12 @@ export default function BookBindingSelect({
                 sx: {
                     "& .MuiMenuItem-root": {
                         ...pageMenuItemSx,
+                        borderRadius: "14px",
+                        minHeight: 44,
+                        px: "12px",
+                        py: "8px",
+                        fontSize: 14,
+                        lineHeight: "20px",
                         "&.Mui-selected": { bgcolor: "transparent" },
                         "&.Mui-selected:hover, &.Mui-selected.Mui-focusVisible":
                             { bgcolor: pageMenuColors.hover },
@@ -37,7 +43,14 @@ export default function BookBindingSelect({
                     },
                 },
                 slotProps: {
-                    paper: { sx: pageMenuPaperSx },
+                    paper: {
+                        sx: {
+                            ...pageMenuPaperSx,
+                            borderRadius: "20px",
+                            p: "6px",
+                            boxShadow: toolbarShadow,
+                        },
+                    },
                     list: { sx: { p: 0 } },
                 },
             }}
@@ -54,20 +67,20 @@ export default function BookBindingSelect({
                 bgcolor: "transparent",
                 width: "auto",
                 mr: "14px",
-                height: { xs: 38, sm: 40 },
-                "@media (max-width: 959px)": { height: 44, mr: 0 },
+                height: { xs: 48, sm: 52 },
+                "@media (max-width: 959px)": { mr: 0 },
                 flexShrink: 0,
-                borderRadius: { xs: "12px", sm: "14px" },
-                fontSize: 13,
+                borderRadius: { xs: "16px", sm: "20px" },
+                fontSize: 14,
                 fontWeight: 600,
                 "&& .MuiSelect-select.MuiSelect-outlined": {
-                    pl: "8px",
-                    pr: "28px",
+                    pl: "16px",
+                    pr: "40px",
                 },
                 "& .MuiSelect-icon": {
-                    fontSize: 16,
-                    right: 8,
-                    top: "calc(50% - 8px)",
+                    fontSize: 20,
+                    right: 12,
+                    top: "calc(50% - 10px)",
                 },
                 "& .MuiSelect-select:focus": { bgcolor: "transparent" },
                 "&:hover .MuiOutlinedInput-notchedOutline": {
@@ -86,10 +99,10 @@ export default function BookBindingSelect({
                 },
             }}
         >
-            <MenuItem value="Hardcover" dense disableRipple>
+            <MenuItem value="Hardcover" disableRipple>
                 Hardcover
             </MenuItem>
-            <MenuItem value="Softcover" dense disableRipple>
+            <MenuItem value="Softcover" disableRipple>
                 Softcover
             </MenuItem>
         </Select>

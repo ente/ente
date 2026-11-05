@@ -174,15 +174,17 @@ func (c *ReplicationController3) createDestinations() {
 }
 
 func (c *ReplicationController3) replicate(i int) {
+	// TODO: Resume B2 uploads after the outage.
+	const replicateB2 = false
 	for {
-		replicated, err := c.tryReplicate()
+		replicated, err := c.tryReplicate(replicateB2)
 		if err != nil && !replicated {
 			time.Sleep(time.Duration(i+1) * time.Minute)
 		}
 	}
 }
 
-func (c *ReplicationController3) tryReplicate() (bool, error) {
+func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	copies, err := c.ObjectCopiesRepo.GetAndLockUnreplicatedObject(ctxWithTimeout)
@@ -243,6 +245,16 @@ func (c *ReplicationController3) tryReplicate() (bool, error) {
 		return done(nil)
 	}
 
+	wantB2 := replicateB2 && copies.WantB2 && copies.B2 == nil
+	wantWasabi := copies.WantWasabi && copies.Wasabi == nil
+	wantSCW := copies.WantSCW && copies.SCW == nil
+	if !replicateB2 && copies.WantB2 && copies.B2 == nil {
+		logger.Info("B2 replication paused; deferred for 24 hours")
+	}
+	if !wantB2 && !wantWasabi && !wantSCW {
+		return false, nil
+	}
+
 	err = fileutil.EnsureSufficientSpace(ob.Size)
 	if err != nil {
 		return done(stacktrace.Propagate(err, ""))
@@ -270,14 +282,14 @@ func (c *ReplicationController3) tryReplicate() (bool, error) {
 
 	err = nil
 
-	if copies.WantB2 && copies.B2 == nil {
+	if wantB2 {
 		err = c.replicateFile(in, c.b2Dest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedB2(objectKey)
 		})
 		replicated = err == nil
 	}
 
-	if copies.WantWasabi && copies.Wasabi == nil {
+	if wantWasabi {
 		replicaErr := c.replicateFile(in, c.wasabiDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedWasabi(objectKey)
 		})
@@ -285,7 +297,7 @@ func (c *ReplicationController3) tryReplicate() (bool, error) {
 		err = errors.Join(err, replicaErr)
 	}
 
-	if copies.WantSCW && copies.SCW == nil {
+	if wantSCW {
 		replicaErr := c.replicateFile(in, c.scwDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedScaleway(objectKey)
 		})

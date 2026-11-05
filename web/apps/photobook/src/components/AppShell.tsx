@@ -10,12 +10,18 @@ import {
     Snackbar,
     useMediaQuery,
 } from "@mui/material";
+import { useCallback, useState } from "react";
 import { MOBILE_QUERY } from "./editorLayout";
 import EntePasswordDialog from "./EntePasswordDialog";
 import ImportProgress from "./ImportProgress";
 
 export default function AppShell() {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
+    const [sidebarOpen, setSidebarOpen] = useState(!mobile);
+    const toggleSidebar = useCallback(
+        () => setSidebarOpen((open) => !open),
+        [],
+    );
     const { appView, loading, importNotice, clearImportNotice } = useBook(
         "appView",
         "loading",
@@ -52,7 +58,17 @@ export default function AppShell() {
                 <ImportProgress />
             ) : (
                 <Box data-workspace-view={showPreview ? "results" : "edit"}>
-                    {showPreview ? <ResultsPage /> : <EditPage />}
+                    {showPreview ? (
+                        <ResultsPage
+                            sidebarOpen={sidebarOpen}
+                            onToggleSidebar={toggleSidebar}
+                        />
+                    ) : (
+                        <EditPage
+                            sidebarOpen={sidebarOpen}
+                            onToggleSidebar={toggleSidebar}
+                        />
+                    )}
                 </Box>
             )}
             <EntePasswordDialog
