@@ -65,7 +65,7 @@ export function UploadShareDialog({
                 illustration="/images/onboarding-share.png"
                 illustrationSize={180}
                 compactIllustration
-                title={t("uploadShareTitle")}
+                title={t("uploadComplete")}
                 body={
                     singleItem
                         ? t("uploadShareBody", {
@@ -73,7 +73,7 @@ export function UploadShareDialog({
                           })
                         : t("uploadShareSyncing")
                 }
-                confirmLabel={t("uploadShareFile")}
+                confirmLabel={t("share")}
                 confirmDisabled={!singleItem}
                 cancelLabel={t("done")}
                 tone="primary"
