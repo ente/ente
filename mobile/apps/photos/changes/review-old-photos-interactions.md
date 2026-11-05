@@ -1,1 +1,1 @@
-- Improved month navigation and card interactions when reviewing old photos.
+- Improved navigation, scrolling, and card interactions when reviewing old photos.

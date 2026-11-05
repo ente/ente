@@ -26,7 +26,7 @@ class ReviewBannerCarousel extends StatefulWidget {
     double lineHeight(TextStyle style) =>
         scaler.scale(style.fontSize!) * style.height!;
     final textHeight =
-        math.max(lineHeight(ReviewBanner.captionStyle), 28) +
+        lineHeight(ReviewBanner.captionStyle) +
         lineHeight(ReviewBanner.titleStyle);
     return Spacing.lg * 2 + textHeight + Spacing.md + _barHeight;
   }
@@ -37,7 +37,7 @@ class ReviewBannerCarousel extends StatefulWidget {
 
 class _ReviewBannerCarouselState extends State<ReviewBannerCarousel> {
   static const double _gap = Spacing.md;
-  static const double _nextCardPeek = Spacing.xxl * 2;
+  static const double _nextCardPeek = Spacing.lg * 2;
   static const double _maxCardWidth = 400;
 
   PageController? _controller;
@@ -143,48 +143,66 @@ class ReviewBanner extends StatelessWidget {
             color: colors.fillLight,
             borderRadius: BorderRadius.circular(Radii.lg),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
+            alignment: AlignmentDirectional.centerStart,
             children: [
-              Row(
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      caption,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: captionStyle.copyWith(color: colors.textLighter),
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              caption,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: captionStyle.copyWith(
+                                color: colors.textLighter,
+                              ),
+                            ),
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: titleStyle.copyWith(
+                                color: colors.textBase,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (inProgress) ...[
+                        const SizedBox(width: Spacing.sm),
+                        _PercentLabel(percent: month.progressPercent),
+                      ] else
+                        const SizedBox(width: 28 + Spacing.sm),
+                    ],
                   ),
                   if (inProgress) ...[
-                    const SizedBox(width: Spacing.sm),
-                    Expanded(
-                      child: _PercentLabel(percent: month.progressPercent),
+                    const SizedBox(height: Spacing.md),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(200),
+                      child: LinearProgressIndicator(
+                        value: month.progress,
+                        minHeight: 6,
+                        backgroundColor: colors.fillDark,
+                        valueColor: AlwaysStoppedAnimation(colors.primary),
+                      ),
                     ),
                   ],
-                  const SizedBox(width: Spacing.sm),
-                  _ArrowButton(color: colors.primary),
                 ],
               ),
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: titleStyle.copyWith(color: colors.textBase),
+              Positioned(
+                top: 0,
+                bottom: inProgress ? null : 0,
+                right: 0,
+                child: Center(child: _ArrowButton(color: colors.primary)),
               ),
-              if (inProgress) ...[
-                const SizedBox(height: Spacing.md),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(200),
-                  child: LinearProgressIndicator(
-                    value: month.progress,
-                    minHeight: 6,
-                    backgroundColor: colors.fillDark,
-                    valueColor: AlwaysStoppedAnimation(colors.primary),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -221,8 +239,6 @@ class _PercentLabel extends StatelessWidget {
               ],
             ),
       maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.end,
     );
   }
 }
