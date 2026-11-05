@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"slices"
@@ -155,10 +154,9 @@ func shouldCheckFileLinkDeviceLimit(reqPath string) bool {
 	return reqPath == "/file-link/info"
 }
 
-func (m *FileLinkMiddleware) isDeviceLimitReached(ctx context.Context,
+func (m *FileLinkMiddleware) isDeviceLimitReached(ctx *gin.Context,
 	collectionSummary *ente.FileLinkRow, ip string, ua string) (bool, error) {
-	// skip deviceLimit check & record keeping for requests via CF worker
-	if network.IsCFWorkerIP(ip) {
+	if isTrustedWorker(ctx) {
 		return false, nil
 	}
 

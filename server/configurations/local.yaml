@@ -54,6 +54,11 @@ http:
     # When false and port is not specified, defaults to port 8080.
     # use-tls: true
 
+workers:
+    # Match the MUSEUM_WORKER_SECRET secret on the download Workers.
+    # Empty disables Worker exemptions. Set via ENTE_WORKERS_SHARED_SECRET.
+    shared-secret: ""
+
 # Specify the base endpoints for various apps
 apps:
     # Default is https://albums.ente.com

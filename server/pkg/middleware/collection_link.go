@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"database/sql"
 	"errors"
@@ -229,10 +228,9 @@ func (m *CollectionLinkMiddleware) validateOwnersSubscription(c *gin.Context, cI
 	return isFreeUser, m.validateOrigin(c, userID)
 }
 
-func (m *CollectionLinkMiddleware) isDeviceLimitReached(ctx context.Context,
+func (m *CollectionLinkMiddleware) isDeviceLimitReached(ctx *gin.Context,
 	collectionSummary ente.PublicCollectionSummary, ip string, ua string) (bool, error) {
-	// skip deviceLimit check & record keeping for requests via CF worker
-	if network.IsCFWorkerIP(ip) {
+	if isTrustedWorker(ctx) {
 		return false, nil
 	}
 
