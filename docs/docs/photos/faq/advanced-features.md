@@ -171,9 +171,9 @@ For crashes or upload failures with streaming enabled, see [Troubleshooting](/ph
 
 If a stream can't be created for a video after a few attempts, Ente stops retrying it automatically. That video still counts as not processed, so the percentage stays just below 100%. The video is still backed up and plays from the original file.
 
-To try again, open the video, tap the overflow menu (⋮) in the top-right corner and select **Create stream**. Keep the app open until it finishes.
+To try again on mobile, first make sure video streaming is enabled. Open the video, tap the overflow menu (⋮) in the top-right corner and select **Create stream**. Keep the app open until it finishes. This option is not available in the desktop viewer.
 
-If the same video keeps failing, [send logs](/photos/faq/troubleshooting#sharing-logs) to support.
+If you cannot use the mobile app or the same video keeps failing, [send logs](/photos/faq/troubleshooting#sharing-logs) to support and identify an affected video.
 
 ### How can I check if a video is being streamed? {#check-streaming-detection}
 

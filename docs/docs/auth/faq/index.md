@@ -337,13 +337,15 @@ Try the following:
 
 ### I can't change my app lock PIN. What do I do? {#cant-change-app-lock-pin}
 
-If the option to change the PIN doesn't appear, log out by tapping the back arrow on the app lock screen. Once logged out, the app lock is no longer in effect and you can set it up again from scratch when you sign back in.
+If you are signed in with backups and the option to change the PIN doesn't appear, tap the back arrow on the app lock screen to log out. You can set up app lock again after signing back in. Your backed-up codes remain in your Ente account.
+
+If you chose **Use without backups**, the logout control is unavailable and your codes are stored only on this device. If you can still unlock the app, export your codes before changing the lock or reinstalling. If you cannot unlock it, your local codes may be inaccessible.
 
 ### Ente Auth is asking for a password I don't recognise. Which password is it? {#which-password}
 
 Ente Auth can ask for two different passwords:
 
-- **App lock:** If the screen asks you to unlock the app, it wants the PIN or password you set for app lock under `Settings > Security > App lock`, or your device lock. If you've forgotten it, use the logout control at the top left of the lock screen. This removes the app lock. Your codes stay in your Ente account, so you can sign back in with your Ente email and password.
+- **App lock:** If the screen asks you to unlock the app, it wants the PIN or password you set for app lock under `Settings > Security > App lock`, or your device lock. If you are signed in with backups and have forgotten it, use the logout control at the top left of the lock screen, then sign back in. If you chose **Use without backups**, that control is unavailable and your codes are stored only on this device. See [I can't change my app lock PIN](#cant-change-app-lock-pin).
 - **Ente account password:** If the screen shows your email address and asks for your password, it wants the password of your Ente account. This is the same password you use for Ente Photos or Ente Locker if you use the same account. If you've forgotten it, tap **Forgot password** and enter your [recovery key](/photos/faq/security-and-privacy#use-recovery-key).
 
 If you used Ente Auth without backups, logging out removes the codes from the device. Export them first if you can.

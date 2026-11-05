@@ -158,7 +158,7 @@ If you don't recognise it:
 
 1. Change your password from `Settings > Account > Change password`.
 2. If the alert concerns Ente Photos, open `Settings > Security > Active sessions` on mobile, or `Settings > Account > Active sessions` on web and desktop, and terminate any Photos session you don't recognise. This list does not show Ente Auth or Locker sessions. If the email does not identify the app, or it concerns Auth or Locker, contact Ente support for help reviewing the sign-in.
-3. Turn on two-factor authentication from `Settings > Security > Two-factor`.
+3. Turn on two-factor authentication from `Settings > Security > Two-factor` on mobile, or `Settings > Account` on web and desktop.
 
 Replying to this email reaches Ente support. If you need help signing in, include what you see on screen.
 
