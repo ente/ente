@@ -332,6 +332,7 @@ fn decrypt_open_authenticator_entry(entry: &Value, key: &[u8]) -> Result<Importe
         Some(Value::String(value)) => value,
         Some(_) => return Err(Error::invalid("Invalid OTP algorithm")),
     };
+    let period = optional_int(object.get("validity"), "OTP period")?;
     let uri = build_uri(Otp {
         kind: "totp",
         issuer: &issuer,
@@ -339,7 +340,7 @@ fn decrypt_open_authenticator_entry(entry: &Value, key: &[u8]) -> Result<Importe
         secret: &secret,
         algorithm,
         digits: Some(digits),
-        period: optional_int(object.get("validity"), "OTP period")?,
+        period: period.filter(|period| *period > 0),
         counter: None,
         allow_steam: true,
     })?;
@@ -711,7 +712,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_invalid_open_authenticator_parameters() {
+    fn handles_open_authenticator_parameters() {
         let key = [3u8; 32];
         let nonce = [4u8; 12];
         let mut secret = nonce.to_vec();
@@ -724,16 +725,19 @@ mod tests {
         });
         assert!(decrypt_open_authenticator_entry(&unsupported, &key).is_err());
 
-        let mut secret = nonce.to_vec();
-        secret.extend(encrypt_gcm(&key, &nonce, b"MY", &[]));
-        let zero_period = json!({
-            "secret": secret,
-            "uuid": "alice",
-            "algorithm": "SHA1",
-            "digits": 6,
-            "validity": 0
-        });
-        assert!(decrypt_open_authenticator_entry(&zero_period, &key).is_err());
+        for period in [-30, 0] {
+            let mut secret = nonce.to_vec();
+            secret.extend(encrypt_gcm(&key, &nonce, b"MY", &[]));
+            let entry = json!({
+                "secret": secret,
+                "uuid": "alice",
+                "algorithm": "SHA1",
+                "digits": 6,
+                "validity": period
+            });
+            let code = decrypt_open_authenticator_entry(&entry, &key).unwrap();
+            assert!(code.uri.contains("period=30"));
+        }
     }
 
     fn encrypt_gcm(key: &[u8], nonce: &[u8], plaintext: &[u8], aad: &[u8]) -> Vec<u8> {
