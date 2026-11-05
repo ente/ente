@@ -493,15 +493,17 @@ When your paid plan expires, your photos and files are not deleted straight away
 - ✅ Your existing photos and files stay in your account
 - ✅ You can still view and download them
 - ❌ New backups to Ente Photos and Ente Locker are blocked
-- 📧 We email you that your plan has expired, with the date your data will be deleted
+- 📧 If your data is scheduled for deletion, we send warning emails with the deletion date
 
-**Before the deletion date:**
+Not every expired account receives a deletion-date email. If you have not received one, contact [support@ente.com](mailto:support@ente.com) to check your account's status. Do not wait for an email to renew or export your data.
 
-- 📧 You receive several reminder emails, the last one the day before the deletion date
+**If you receive a deletion-date email:**
+
+- 📧 You receive reminder emails, including one the day before the deletion date
 - ✅ You can renew at any time to restore full access
 - ✅ You can export your data using the desktop app or CLI
 
-The deletion date is shown in these emails. It is several months after your plan expires.
+The date in the email is several months after your plan expires.
 
 **After the deletion date:**
 
@@ -509,18 +511,18 @@ The deletion date is shown in these emails. It is several months after your plan
 - ❌ Signing in to Ente Photos and Ente Locker is restricted
 - ❌ Recovery is not possible once the data is deleted
 
-If you need more time or are having trouble paying, reply to any of these emails or contact [support@ente.com](mailto:support@ente.com) before the deletion date.
+If you need more time or are having trouble paying, reply to a warning email if you received one, or contact [support@ente.com](mailto:support@ente.com) as soon as possible.
 
 If you are on a family plan, the family members' data and access are affected too.
 
 **To avoid losing your data:**
 
-1. **Renew your subscription** before the deletion date:
+1. **Renew your subscription** as soon as possible, and before any deletion date you were given:
     - All your data will be immediately accessible again
     - Uploads will resume automatically
     - No data loss
 
-2. **Export your data** before the deletion date:
+2. **Export your data** as soon as possible, and before any deletion date you were given:
     - Use the desktop app's export feature
     - Or use the [CLI tool](/cli/photos) for automated export
     - Download all photos to your computer or NAS
@@ -671,7 +673,7 @@ For a subscription purchased through Apple or Google Play, cancel renewal in tha
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 
-Cancelling renewal does not delete your Ente account. Your paid plan continues until its expiry date. See [What happens when my subscription expires?](#subscription-expires) for what happens next. Make sure to export your photos before the deletion date shown in our emails if you want to keep them.
+Cancelling renewal does not delete your Ente account. Your paid plan continues until its expiry date. See [What happens when my subscription expires?](#subscription-expires) for what happens next. If you want to keep your photos, export them promptly and before any deletion date in a warning email.
 
 If support helps move your account back to the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 

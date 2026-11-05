@@ -211,8 +211,8 @@ You can change the email address associated with your account at any time in Set
 **Canceling:**
 
 - Your paid plan continues until its expiry date
-- If it expires, the deletion date is shown in reminder emails
-- Renew or export before that date
+- If your data is scheduled for deletion, warning emails show the deletion date
+- Renew or export promptly, before any date in a warning email
 
 Learn more in the [Storage and Plans FAQ](/photos/faq/storage-and-plans#upgrade-plan).
 
