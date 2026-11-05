@@ -345,9 +345,12 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             for (const canvas of canvases) {
                 const blurSizeRatio =
                     Math.min(canvas.width, canvas.height) /
-                    Math.min(
-                        canvasRef.current!.width,
-                        canvasRef.current!.height,
+                    Math.max(
+                        1,
+                        Math.min(
+                            canvasRef.current!.getBoundingClientRect().width,
+                            canvasRef.current!.getBoundingClientRect().height,
+                        ),
                     );
                 const blurRadius = blurSizeRatio * blur;
                 const filterString = `brightness(${brightness}%) contrast(${contrast}%) blur(${blurRadius}px) saturate(${saturation}%) invert(${
@@ -435,14 +438,10 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             await new Promise((resolve, reject) => {
                 img.onload = () => {
                     try {
-                        const scale = Math.min(
-                            parentRef.current!.clientWidth / img.width,
-                            parentRef.current!.clientHeight / img.height,
-                        );
-                        setPreviewCanvasScale(scale);
+                        setPreviewCanvasScale(1);
 
-                        const width = img.width * scale;
-                        const height = img.height * scale;
+                        const width = img.width;
+                        const height = img.height;
                         canvasRef.current!.width = width;
                         canvasRef.current!.height = height;
 
@@ -581,7 +580,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 gap: "11px",
                 gridTemplateColumns: {
                     xs: "minmax(0, 1fr)",
-                    sm: showControls
+                    md: showControls
                         ? "minmax(0, 1fr) minmax(0, 375px)"
                         : "minmax(0, 1fr)",
                 },
@@ -589,7 +588,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     xs: showControls
                         ? "minmax(0, 1fr) minmax(0, 45%)"
                         : "minmax(0, 1fr)",
-                    sm: "minmax(0, 1fr)",
+                    md: "minmax(0, 1fr)",
                 },
                 zIndex: "var(--mui-zIndex-modal)",
             }}
