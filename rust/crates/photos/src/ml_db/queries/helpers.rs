@@ -23,6 +23,15 @@ impl MlDb {
             .map_err(Into::into)
     }
 
+    pub(in crate::ml_db) fn read_each<P: Params>(
+        &self,
+        sql: &str,
+        parameters: P,
+        each: impl FnMut(&Row<'_>) -> db::Result<()>,
+    ) -> Result<()> {
+        self.read_all(sql, parameters, each)
+    }
+
     pub(in crate::ml_db) fn read_column<C: FromIterator<T>, T: FromSql, P: Params>(
         &self,
         sql: &str,
