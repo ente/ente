@@ -443,13 +443,16 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                               ),
                                             ),
                                           if (!collapsed)
-                                            Opacity(
-                                              opacity: const Interval(
-                                                0.35,
-                                                1,
-                                                curve: Curves.easeOutCubic,
-                                              ).transform(progress),
-                                              child: gridView,
+                                            IgnorePointer(
+                                              ignoring: railOpacity > 0,
+                                              child: Opacity(
+                                                opacity: const Interval(
+                                                  0.35,
+                                                  1,
+                                                  curve: Curves.easeOutCubic,
+                                                ).transform(progress),
+                                                child: gridView,
+                                              ),
                                             ),
                                         ],
                                       );

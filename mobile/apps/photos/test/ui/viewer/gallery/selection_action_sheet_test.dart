@@ -51,6 +51,14 @@ void main() {
     expect(controller.size, sheet.minChildSize);
     await tester.tap(find.text("Download"));
     expect(tapped, "Download");
+    final download = tester.getCenter(find.text("Download"));
+    controller.jumpTo(
+      sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.03,
+    );
+    await tester.pump();
+    tapped = "";
+    await tester.tapAt(download);
+    expect(tapped, isEmpty);
     final gesture = await tester.startGesture(
       tester.getCenter(find.bySemanticsLabel("More")),
     );
