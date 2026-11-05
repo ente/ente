@@ -42,6 +42,8 @@ export function UploadCompletion({
         preUploadSkippedFiles,
     );
     const hasReviewableUploads = counts.failed > 0 || counts.skipped > 0;
+    const allUploadsFailed =
+        counts.failed > 0 && counts.completed == 0 && counts.skipped == 0;
     const isSheet = useIsUploadSheet();
 
     const handleClose: DialogProps["onClose"] = (_, reason) => {
@@ -77,19 +79,41 @@ export function UploadCompletion({
                     <Box
                         component="img"
                         alt=""
-                        src="/images/upload-complete-duck.svg"
-                        sx={completionIllustrationSx}
+                        src={
+                            allUploadsFailed
+                                ? "/images/warning-red.png"
+                                : "/images/upload-complete-duck.svg"
+                        }
+                        sx={[
+                            completionIllustrationSx,
+                            allUploadsFailed && {
+                                width: 68,
+                                height: 68,
+                                objectFit: "contain",
+                            },
+                        ]}
                     />
                     <Stack sx={{ gap: "6px", alignItems: "center" }}>
                         <Typography
                             id="upload-completion-title"
                             component="h2"
-                            sx={completionTitleSx}
+                            sx={[
+                                completionTitleSx,
+                                allUploadsFailed && { color: "critical.main" },
+                            ]}
                         >
-                            {t("upload_completion_title")}
+                            {t(
+                                allUploadsFailed
+                                    ? "upload_completion_failed_title"
+                                    : "upload_completion_title",
+                            )}
                         </Typography>
                         <Typography sx={completionSubtitleSx}>
-                            {t("upload_completion_subtitle")}
+                            {t(
+                                allUploadsFailed
+                                    ? "upload_completion_failed_subtitle"
+                                    : "upload_completion_subtitle",
+                            )}
                         </Typography>
                     </Stack>
                 </Stack>
@@ -121,7 +145,11 @@ export function UploadCompletion({
                         <Button
                             fullWidth
                             onClick={onReviewFailed}
-                            sx={primaryButtonSx}
+                            sx={
+                                counts.failed > 0
+                                    ? failedReviewButtonSx
+                                    : primaryButtonSx
+                            }
                         >
                             {t("review_items")}
                         </Button>
@@ -257,6 +285,13 @@ const primaryButtonSx = {
     color: "#fff",
     backgroundColor: uploadStatColors.completed,
     "&:hover": { backgroundColor: "#07ad21", boxShadow: "none" },
+};
+
+const failedReviewButtonSx = {
+    ...baseButtonSx,
+    color: "critical.contrastText",
+    backgroundColor: "critical.main",
+    "&:hover": { backgroundColor: "critical.dark", boxShadow: "none" },
 };
 
 const secondaryButtonSx = (theme: Theme) => ({
