@@ -204,7 +204,9 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
           children: [
             AppBarComponent(
               title: _collection.displayName ?? context.strings.untitled,
-              subtitle: context.strings.items(count: _displayedFiles.length),
+              subtitle: context.strings.itemCount(
+                count: _displayedFiles.length,
+              ),
               actions: _buildActions(),
               controller: _scrollController,
               slivers: _buildSlivers(context),

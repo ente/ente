@@ -131,7 +131,7 @@ class _AllCollectionsPageState extends State<AllCollectionsPage> {
           AppBarComponent(
             title: context.strings.collections,
             subtitle: hasCollections
-                ? context.strings.items(count: _sortedCollections.length)
+                ? context.strings.itemCount(count: _sortedCollections.length)
                 : null,
             actions: hasCollections
                 ? [
