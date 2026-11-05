@@ -18,7 +18,7 @@ Keep commit messages brief — one-liners unless asked otherwise. No emojis, no 
 
 ## Pull requests
 
-Enable auto-merge on every PR and request a review from `setalp`.
+Do not enable auto-merge. Request a review from `setalp` on every PR.
 
 ## Sidebar
 
