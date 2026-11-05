@@ -42,24 +42,12 @@ fn load_ml_inputs<'s>(store: &'s MlStore, request: &MemoriesRequest) -> Result<M
         return Err(Error::NotFilled(Index::Clip));
     }
     let db = store.db();
-    let person_face_ids = person_face_ids(db, request)?;
-    let named_face_ids: HashSet<&String> = person_face_ids.values().flatten().collect();
-    let mut face_counts = HashMap::new();
-    let mut face_weights = HashMap::new();
-    for (file_id, face_ids) in db.get_file_id_to_face_ids()? {
-        let weight = face_ids
-            .iter()
-            .map(|face_id| {
-                if named_face_ids.contains(face_id) {
-                    NAMED_FACE_WEIGHT
-                } else {
-                    OTHER_FACE_WEIGHT
-                }
-            })
-            .sum();
-        face_counts.insert(file_id, face_ids.len() as u32);
-        face_weights.insert(file_id, weight);
-    }
+    let NamedFaces {
+        file_ids_by_person,
+        face_ids,
+    } = named_faces(db, request)?;
+    let (face_counts, face_weights) = face_counts_and_weights(db, &face_ids)?;
+    drop(face_ids);
     let unnamed_clusters = if shows_unnamed_clusters(request) {
         unnamed_clusters(db, request)?
     } else {
@@ -70,27 +58,56 @@ fn load_ml_inputs<'s>(store: &'s MlStore, request: &MemoriesRequest) -> Result<M
         face_weights,
         people: PeopleInputs {
             face_counts,
-            person_file_ids: person_face_ids
-                .iter()
-                .map(|(person_id, face_ids)| (person_id.clone(), file_ids(face_ids)))
-                .collect(),
+            person_file_ids: file_ids_by_person,
             unnamed_clusters,
         },
     })
 }
 
-fn person_face_ids(db: &MlDb, request: &MemoriesRequest) -> Result<HashMap<String, Vec<String>>> {
+struct NamedFaces {
+    file_ids_by_person: HashMap<String, HashSet<i64>>,
+    face_ids: HashSet<String>,
+}
+
+fn named_faces(db: &MlDb, request: &MemoriesRequest) -> Result<NamedFaces> {
     let person_ids: HashSet<&str> = request
         .people
         .iter()
         .map(|person| person.id.as_str())
         .collect();
-    Ok(db
-        .get_person_to_cluster_id_to_face_ids()?
-        .into_iter()
-        .filter(|(person_id, _)| person_ids.contains(person_id.as_str()))
-        .map(|(person_id, clusters)| (person_id, clusters.into_values().flatten().collect()))
-        .collect())
+    let mut faces = NamedFaces {
+        file_ids_by_person: HashMap::new(),
+        face_ids: HashSet::new(),
+    };
+    db.for_each_person_face_id(|person_id, face_id| {
+        if person_ids.contains(person_id.as_str()) {
+            faces
+                .file_ids_by_person
+                .entry(person_id)
+                .or_default()
+                .extend(try_file_id_from_face_id(&face_id));
+            faces.face_ids.insert(face_id);
+        }
+    })?;
+    Ok(faces)
+}
+
+fn face_counts_and_weights(
+    db: &MlDb,
+    named_face_ids: &HashSet<String>,
+) -> Result<(HashMap<i64, u32>, HashMap<i64, u32>)> {
+    let mut face_counts = HashMap::new();
+    let mut face_weights = HashMap::new();
+    db.for_each_face_id(|file_id, face_id| {
+        let weight = if named_face_ids.contains(&face_id) {
+            NAMED_FACE_WEIGHT
+        } else {
+            OTHER_FACE_WEIGHT
+        };
+        *face_counts.entry(file_id).or_insert(0) += 1;
+        *face_weights.entry(file_id).or_insert(0) += weight;
+    })?;
+    Ok((face_counts, face_weights))
 }
 
 fn unnamed_clusters(db: &MlDb, request: &MemoriesRequest) -> Result<Vec<UnnamedCluster>> {
@@ -101,23 +118,22 @@ fn unnamed_clusters(db: &MlDb, request: &MemoriesRequest) -> Result<Vec<UnnamedC
         .chain(request.people_hidden_from_memories.iter().cloned())
         .collect();
     let assigned = db.get_persons_cluster_ids(&person_ids)?;
-    Ok(db
-        .get_all_cluster_id_to_face_ids()?
-        .into_iter()
-        .filter(|(cluster_id, _)| !assigned.contains(cluster_id))
-        .map(|(id, face_ids)| UnnamedCluster {
-            id,
-            face_count: face_ids.len() as u32,
-            file_ids: file_ids(&face_ids),
-        })
-        .collect())
-}
-
-fn file_ids(face_ids: &[String]) -> HashSet<i64> {
-    face_ids
-        .iter()
-        .filter_map(|face_id| try_file_id_from_face_id(face_id))
-        .collect()
+    let mut clusters: HashMap<String, UnnamedCluster> = HashMap::new();
+    db.for_each_cluster_face_id(|cluster_id, face_id| {
+        if assigned.contains(&cluster_id) {
+            return;
+        }
+        let cluster = clusters
+            .entry(cluster_id)
+            .or_insert_with_key(|id| UnnamedCluster {
+                id: id.clone(),
+                face_count: 0,
+                file_ids: HashSet::new(),
+            });
+        cluster.face_count += 1;
+        cluster.file_ids.extend(try_file_id_from_face_id(&face_id));
+    })?;
+    Ok(clusters.into_values().collect())
 }
 
 #[cfg(test)]
@@ -156,12 +172,13 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let store = MlStore::open(directory.path().join("ente.ml.db")).unwrap();
         let db = store.db();
-        db.bulk_insert_faces(&["1_a", "1_c", "2_a", "3_b", "4_c"].map(face))
+        db.bulk_insert_faces(&["1_a", "1_c", "2_a", "3_b", "4_c", "5_d"].map(face))
             .unwrap();
         db.update_face_id_to_cluster_id(&HashMap::from(
             [
                 ("1_a", "named"),
                 ("2_a", "named"),
+                ("6_a", "named"),
                 ("3_b", "hidden"),
                 ("1_c", "unnamed"),
                 ("4_c", "unnamed"),
@@ -170,6 +187,7 @@ mod tests {
         ))
         .unwrap();
         db.assign_cluster_to_person("alice", "named").unwrap();
+        db.assign_cluster_to_person("carol", "named").unwrap();
         db.assign_cluster_to_person("bob", "hidden").unwrap();
         store
             .put_clip(&[ClipEmbedding {
@@ -196,15 +214,15 @@ mod tests {
         assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Filled);
         assert_eq!(
             inputs.face_weights,
-            HashMap::from([(1, 11), (2, 10), (3, 1), (4, 1)])
+            HashMap::from([(1, 11), (2, 10), (3, 1), (4, 1), (5, 1)])
         );
         assert_eq!(
             inputs.people.face_counts,
-            HashMap::from([(1, 2), (2, 1), (3, 1), (4, 1)])
+            HashMap::from([(1, 2), (2, 1), (3, 1), (4, 1), (5, 1)])
         );
         assert_eq!(
             inputs.people.person_file_ids,
-            HashMap::from([("alice".to_string(), HashSet::from([1, 2]))])
+            HashMap::from([("alice".to_string(), HashSet::from([1, 2, 6]))])
         );
         assert_eq!(
             inputs.people.unnamed_clusters,
@@ -230,7 +248,12 @@ mod tests {
         let inputs = load_ml_inputs(&store, &request).unwrap();
 
         assert!(inputs.people.unnamed_clusters.is_empty());
+        assert_eq!(inputs.face_weights[&1], 11);
         assert_eq!(inputs.face_weights[&3], 10);
+        assert_eq!(
+            inputs.people.person_file_ids["carol"],
+            HashSet::from([1, 2, 6])
+        );
     }
 
     #[test]

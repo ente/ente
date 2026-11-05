@@ -228,8 +228,11 @@ impl MlDb {
         ))
     }
 
-    pub fn get_file_id_to_face_ids(&self) -> Result<HashMap<i64, Vec<String>>> {
-        self.read_grouped("SELECT file_id, face_id FROM faces", ())
+    pub(crate) fn for_each_face_id(&self, mut visit: impl FnMut(i64, String)) -> Result<()> {
+        self.read_each("SELECT file_id, face_id FROM faces", (), |row| {
+            visit(row.get(0)?, row.get(1)?);
+            Ok(())
+        })
     }
 
     pub fn get_faces_for_clustering(&self) -> Result<Vec<FaceForClustering>> {
