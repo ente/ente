@@ -396,7 +396,7 @@ Yes! The desktop app supports resumable uploads. You can close the app at any ti
 
 ### How do I stop an upload that's in progress on desktop or web? {#stop-upload}
 
-Click the **X** on the upload progress card in the bottom-right corner, then confirm with **Yes, stop uploads**.
+Click the **X** on the upload progress card in the bottom-right corner, then confirm with **Stop uploads**.
 
 Files that have already uploaded stay in Ente. To continue later, select the same files or folder again. Ente will skip items that are already uploaded.
 
