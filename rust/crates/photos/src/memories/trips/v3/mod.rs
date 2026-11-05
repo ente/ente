@@ -12,6 +12,7 @@ use super::{Base, Trip, TripAnalysis};
 use crate::memories::calendar::MICROS_PER_DAY;
 use crate::memories::geo::{Located, cluster_by_location, distance_km, mean_location};
 use crate::memories::input::{CityLookup, Period};
+use crate::memories::photo::Photo;
 use crate::memories::places::Places;
 
 const AWAY_MIN_KM: f64 = 50.0;
@@ -34,12 +35,16 @@ struct Placed<'p> {
 }
 
 pub(in crate::memories) fn analyze<'p>(
+    photos: &[Photo],
     located: &[Located<'p>],
     period: Period,
     places: &Places,
     lookup: Option<&dyn CityLookup>,
 ) -> TripAnalysis<'p> {
-    let (own, shared) = by_owner(placed(located, places, lookup));
+    let (own, shared) = by_owner(
+        placed(located, places, lookup),
+        photos.iter().any(|photo| !photo.shared),
+    );
     let homes = Homes::detect(&own, lookup);
     let home_countries = homes.countries();
     let today = period.today().days_since_epoch();
@@ -104,15 +109,14 @@ fn placed<'p>(
         .collect()
 }
 
-fn by_owner(points: Vec<Placed>) -> (Vec<Placed>, Vec<Placed>) {
+fn by_owner(points: Vec<Placed>, has_own_photos: bool) -> (Vec<Placed>, Vec<Placed>) {
+    if !has_own_photos {
+        return (points, Vec::new());
+    }
     let (shared, own): (Vec<Placed>, Vec<Placed>) = points
         .into_iter()
         .partition(|point| point.member.photo.shared);
-    if own.is_empty() {
-        (shared, Vec::new())
-    } else {
-        (own, shared)
-    }
+    (own, shared)
 }
 
 fn trips<'p>(own: &[Placed<'p>], shared: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>> {
@@ -305,7 +309,7 @@ mod tests {
 
     use crate::memories::calendar::MICROS_PER_DAY;
     use crate::memories::geo::distance_km;
-    use crate::memories::tests::{located_file, micros, period};
+    use crate::memories::tests::{file, located_file, micros, period};
     use crate::memories::{
         CityLookup, MemoriesRequest, Memory, MemoryFile, MemoryKind, ShownTrip, TripDetection,
         compute_all_trip_memories, compute_smart_memories,
@@ -923,13 +927,14 @@ mod tests {
                 stay(1000, "2024-07-30T09:00:00", 99, 480, ROME),
                 stay(2000, "2025-01-30T09:00:00", 12, 360, PARIS),
                 stay(3000, "2025-03-08T09:00:00", 12, 360, PARIS),
+                stay(4000, "2024-11-15T09:00:00", 12, 360, ROME),
             ],
             &AMSTERDAM_HOME,
         );
 
         assert_eq!(
             trips(files),
-            named(&[(1, "Rome"), (2, "Paris"), (3, "Paris")])
+            named(&[(1, "Rome"), (2, "Paris"), (3, "Paris"), (4, "Rome")])
         );
     }
 
@@ -1050,5 +1055,99 @@ mod tests {
                 .collect();
 
         assert_eq!(surfaced, [zurich]);
+    }
+
+    #[test]
+    fn two_holidays_at_one_spot_months_apart_are_both_trips() {
+        let files = library(
+            vec![
+                stay(1000, "2024-12-27T09:00:00", 24, 480, ZERMATT),
+                stay(2000, "2025-03-29T09:00:00", 24, 480, ZERMATT),
+                stay(3000, "2025-06-06T09:00:00", 12, 360, PARIS),
+                stay(4000, "2025-09-12T09:00:00", 12, 360, PARIS),
+            ],
+            &AMSTERDAM_HOME,
+        );
+
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Zermatt"), (2, "Zermatt"), (3, "Paris"), (4, "Paris")])
+        );
+    }
+
+    #[test]
+    fn day_visits_to_a_regular_place_never_make_its_area_home() {
+        let mut files = library(
+            vec![stay(1000, "2024-06-15T10:00:00", 12, 180, ROTTERDAM)],
+            &[(
+                &[AMSTERDAM],
+                "2023-01-01T12:00:00",
+                "2026-10-25T12:00:00",
+                1,
+            )],
+        );
+        let first_visit = micros("2024-03-06T11:00:00");
+        files.extend((0..30).map(|week| {
+            located_file(
+                700_000 + week,
+                first_visit + week * 7 * MICROS_PER_DAY,
+                UTRECHT,
+            )
+        }));
+        files.push(located_file(700_100, first_visit + MICROS_PER_DAY, UTRECHT));
+
+        assert_eq!(trips(files), named(&[(1, "Rotterdam")]));
+    }
+
+    #[test]
+    fn a_family_stay_holds_across_a_week_without_photos_there() {
+        let visit = |first_id: i64, days: &[&str]| -> Vec<MemoryFile> {
+            days.iter()
+                .enumerate()
+                .map(|(index, day)| {
+                    located_file(
+                        first_id + index as i64,
+                        micros(&format!("{day}T09:00:00")),
+                        FAMILY_HOME,
+                    )
+                })
+                .collect()
+        };
+        let files = library(
+            vec![
+                visit(10_000, &["2024-07-10", "2024-07-11", "2024-07-12"]),
+                visit(11_000, &["2024-12-20", "2024-12-21", "2024-12-22"]),
+                visit(12_000, &["2025-07-05", "2025-07-06", "2025-07-07"]),
+                visit(
+                    13_000,
+                    &[
+                        "2025-12-19",
+                        "2025-12-20",
+                        "2025-12-21",
+                        "2025-12-24",
+                        "2025-12-31",
+                        "2026-01-01",
+                    ],
+                ),
+                stay(1000, "2025-12-28T10:00:00", 20, 20, NIJMEGEN),
+            ],
+            &[(&[BERLIN], "2023-01-01T12:00:00", "2026-10-25T12:00:00", 1)],
+        );
+
+        assert_eq!(trips(files), named(&[]));
+    }
+
+    #[test]
+    fn shared_photos_stay_shared_when_your_own_photos_have_no_location() {
+        let mut files = shared(library(
+            vec![stay(1000, "2024-03-09T10:00:00", 12, 180, PARIS)],
+            &AMSTERDAM_HOME,
+        ));
+        files.push(MemoryFile {
+            location: None,
+            ..file(9_000_000, "2024-01-01T10:00:00")
+        });
+
+        assert_eq!(trips(files), named(&[]));
     }
 }

@@ -17,6 +17,8 @@ const HOME_MARGIN_DAYS: i64 = 60;
 const RESIDENCE_DAY_SHARE: f64 = 0.2;
 const REGULAR_PLACE_RADIUS_KM: f64 = 2.0;
 const STAY_GAP_DAYS: i64 = 7;
+const HOME_MIN_RUNS: usize = 3;
+const HOME_RUN_WINDOW_DAYS: i64 = 365;
 
 type DayRanges = Vec<(i64, i64)>;
 
@@ -63,8 +65,13 @@ impl<'p> Homes<'p> {
         let mut homes: Vec<Home<'p>> = clusters
             .into_iter()
             .map(|cluster| {
-                let (residence, regular) = periods(&cluster.members, &all_days);
-                let stays = stays(&cluster.members, &residence, &regular);
+                let days: Vec<i64> = distinct_days(cluster.members.iter().copied())
+                    .iter()
+                    .map(|day| day.days_since_epoch())
+                    .collect();
+                let runs: DayRanges = runs(&days).collect();
+                let (residence, regular) = periods(&days, &runs, &all_days);
+                let stays = stays(&days, &residence, &regular);
                 Home {
                     members: cluster.members,
                     center: cluster.center,
@@ -191,21 +198,25 @@ fn distinct_days<'p>(members: impl IntoIterator<Item = Located<'p>>) -> Vec<Loca
     days
 }
 
-fn periods(members: &[Located], all_days: &[LocalDate]) -> (DayRanges, DayRanges) {
-    let numbers: Vec<i64> = distinct_days(members.iter().copied())
-        .iter()
-        .map(|day| day.days_since_epoch())
-        .collect();
+fn runs(days: &[i64]) -> impl Iterator<Item = (i64, i64)> {
+    days.chunk_by(|day, next| next - day <= STAY_GAP_DAYS)
+        .map(|run| (run[0], run[run.len() - 1]))
+}
+
+fn periods(days: &[i64], runs: &[(i64, i64)], all_days: &[LocalDate]) -> (DayRanges, DayRanges) {
     let (mut residence, mut regular) = (Vec::new(), Vec::new());
     let (mut start, mut end) = (0, 0);
-    for &day in &numbers {
-        while numbers[start] < day - HOME_WINDOW_DAYS {
+    for &day in days {
+        while days[start] < day - HOME_WINDOW_DAYS {
             start += 1;
         }
-        while end < numbers.len() && numbers[end] <= day + HOME_WINDOW_DAYS {
+        while end < days.len() && days[end] <= day + HOME_WINDOW_DAYS {
             end += 1;
         }
-        if end - start < HOME_MIN_DAYS || numbers[end - 1] - numbers[start] < HOME_MIN_SPAN_DAYS {
+        if end - start < HOME_MIN_DAYS
+            || days[end - 1] - days[start] < HOME_MIN_SPAN_DAYS
+            || !keeps_recurring(runs, day)
+        {
             continue;
         }
         let all = all_days
@@ -221,25 +232,36 @@ fn periods(members: &[Located], all_days: &[LocalDate]) -> (DayRanges, DayRanges
     (residence, regular)
 }
 
-fn stays(members: &[Located], residence: &[(i64, i64)], regular: &[(i64, i64)]) -> DayRanges {
-    let days: Vec<i64> = distinct_days(members.iter().copied())
-        .iter()
-        .map(|day| day.days_since_epoch())
+fn keeps_recurring(runs: &[(i64, i64)], day: i64) -> bool {
+    let nearby = &runs[runs.partition_point(|&(_, last)| last < day - HOME_RUN_WINDOW_DAYS)
+        ..runs.partition_point(|&(first, _)| first <= day + HOME_RUN_WINDOW_DAYS)];
+    nearby.len() >= HOME_MIN_RUNS
+        || nearby
+            .iter()
+            .any(|&(first, last)| last - first >= HOME_MIN_SPAN_DAYS)
+}
+
+fn stays(days: &[i64], residence: &[(i64, i64)], regular: &[(i64, i64)]) -> DayRanges {
+    let nights: Vec<i64> = days
+        .windows(2)
+        .filter(|pair| pair[1] - pair[0] == 1)
+        .flatten()
+        .copied()
         .collect();
-    let mut stays = Vec::new();
-    let mut start = 0;
-    for end in 1..=days.len() {
-        if end == days.len() || days[end] - days[end - 1] > STAY_GAP_DAYS {
-            let (first, last) = (days[start], days[end - 1]);
-            if last > first
-                && (days_outside(residence, first) == 0 || days_outside(regular, first) == 0)
-            {
-                stays.push((first, last));
-            }
-            start = end;
-        }
-    }
-    stays
+    let near_a_night: Vec<i64> = days
+        .iter()
+        .copied()
+        .filter(|&day| {
+            nights
+                .get(nights.partition_point(|&night| night < day - STAY_GAP_DAYS))
+                .is_some_and(|&night| night <= day + STAY_GAP_DAYS)
+        })
+        .collect();
+    runs(&near_a_night)
+        .filter(|&(first, _)| {
+            days_outside(residence, first) == 0 || days_outside(regular, first) == 0
+        })
+        .collect()
 }
 
 fn extend(periods: &mut DayRanges, first: i64, last: i64) {
