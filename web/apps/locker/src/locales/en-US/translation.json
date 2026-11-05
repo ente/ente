@@ -258,5 +258,6 @@
     "legacy_accounts": "Legacy accounts",
     "add_trusted_contact": "Add trusted contact",
     "trusted_contacts_empty": "Nominate another Ente user as a trusted contact to recover your account",
-    "legacy_accounts_empty": "Trusted contacts can initiate account recovery, and if not blocked within 30 days, reset your password and access your account."
+    "legacy_accounts_empty": "Trusted contacts can initiate account recovery, and if not blocked within 30 days, reset your password and access your account.",
+    "uploadShareBody": "{{name}} is safely stored in Locker. Share a link now?"
 }

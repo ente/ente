@@ -432,6 +432,7 @@ export const useCreateItemDialogState = ({
     const handleFileSelect = useCallback(
         (event: ChangeEvent<HTMLInputElement>) => {
             const files = Array.from(event.target.files ?? []);
+            event.target.value = "";
             if (files.length === 0) {
                 return;
             }
