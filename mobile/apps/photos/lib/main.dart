@@ -592,7 +592,12 @@ Future<void> _init(
     }
     unawaited(removeRewind2025Leftovers(preferences));
     if (!isBackground) {
-      unawaited(rewindService.refresh());
+      unawaited(
+        Future.delayed(
+          const Duration(seconds: 5),
+          () => rewindService.refresh(),
+        ),
+      );
     }
     logLocalSettings();
     initComplete = true;
