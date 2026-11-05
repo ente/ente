@@ -1,30 +1,6 @@
 import type { SxProps, Theme } from "@mui/material";
 
 export const editorControlsSx = ((theme: Theme) => ({
-    "--editor-fill": "#eaeaea",
-    "--editor-hover": "#dedede",
-    "--editor-active": "#d2d2d2",
-    "--editor-secondary": "var(--editor-fill)",
-    "--editor-secondary-stroke": "transparent",
-    "--editor-control-hover": theme.vars.palette.secondary.dark,
-    "--editor-disabled": "#d6d6d6",
-    "--editor-control": theme.vars.palette.common.white,
-    "--mui-palette-text-muted": "#666",
-    "--mui-palette-divider": "#ebebeb",
-    "--mui-palette-accent-main": "#08c225",
-    "--mui-palette-accent-dark": "#069d1e",
-    "--mui-palette-success-main": "#08c225",
-    "--mui-palette-primary-main": "#08c225",
-    ...theme.applyStyles("dark", {
-        "--editor-fill": theme.vars.palette.secondary.main,
-        "--editor-hover": theme.vars.palette.secondary.dark,
-        "--editor-active": "#3e3e3e",
-        "--editor-secondary-stroke": "rgba(255,255,255,0.07)",
-        "--editor-disabled": "#4d4d4d",
-        "--editor-control": theme.vars.palette.secondary.main,
-        "--mui-palette-text-muted": "#999",
-        "--mui-palette-divider": "#2a2a2a",
-    }),
     backgroundColor: "background.default",
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
@@ -50,8 +26,8 @@ export const editorIconButtonSx = {
     p: 0,
     borderRadius: "12px",
     color: "text.base",
-    bgcolor: "var(--editor-control)",
-    "&:hover": { bgcolor: "var(--editor-control-hover)" },
+    bgcolor: "secondary.main",
+    "&:hover": { bgcolor: "secondary.dark" },
     "&.Mui-focusVisible": {
         outline: "1px solid var(--mui-palette-accent-main)",
         outlineOffset: 2,
@@ -67,23 +43,21 @@ export const editorActionSx = (primary: boolean): SxProps<Theme> => ({
     fontSize: 14,
     fontWeight: 600,
     color: primary ? "common.white" : "text.base",
-    bgcolor: primary ? "accent.main" : "var(--editor-secondary)",
-    boxShadow: primary
-        ? "inset 0 0 0 1px rgba(255,255,255,0.14)"
-        : "inset 0 0 0 1px var(--editor-secondary-stroke)",
+    bgcolor: primary ? "accent.main" : "secondary.main",
+    boxShadow: "none",
     transition:
         "background-color 160ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
     "&:hover:not(:disabled)": {
-        bgcolor: primary ? "accent.dark" : "var(--editor-hover)",
+        bgcolor: primary ? "accent.dark" : "secondary.dark",
         transform: "translateY(-2px)",
     },
     "&:active:not(:disabled)": {
-        bgcolor: primary ? "#057c18" : "var(--editor-active)",
+        bgcolor: primary ? "accent.dark" : "secondary.dark",
         transform: "scale(0.985)",
     },
     "&.Mui-disabled": {
-        color: "var(--editor-disabled)",
-        bgcolor: "var(--editor-hover)",
+        color: "action.disabled",
+        bgcolor: "action.disabledBackground",
         boxShadow: "none",
     },
     "&.Mui-focusVisible": {

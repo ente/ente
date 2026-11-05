@@ -1009,8 +1009,8 @@ const CropOverlayRegionTemplate = styled("div")({
     pointerEvents: "none",
 });
 
-const RowButtonGroup = styled(BaseRowButtonGroup)({
-    backgroundColor: "var(--editor-fill)",
+const RowButtonGroup = styled(BaseRowButtonGroup)(({ theme }) => ({
+    backgroundColor: theme.vars.palette.secondary.main,
     borderRadius: 20,
     overflow: "hidden",
     "& > button, & > button:not(:last-of-type), & > button:not(:first-of-type)":
@@ -1018,14 +1018,14 @@ const RowButtonGroup = styled(BaseRowButtonGroup)({
             borderRadius: 0,
             minHeight: 58,
             backgroundColor: "transparent",
-            "&:hover": { backgroundColor: "var(--editor-hover)" },
+            "&:hover": { backgroundColor: theme.vars.palette.secondary.dark },
             "&.Mui-focusVisible": {
                 outline: "2px solid",
                 outlineColor: "var(--mui-palette-text-base)",
                 outlineOffset: -2,
             },
         },
-});
+}));
 
 const presetAspectRatios = [
     { width: 1, height: 1 },

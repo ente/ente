@@ -309,16 +309,16 @@ export const RowSlider: React.FC<RowSliderProps> = ({
             min={min}
             max={max}
             step={step}
-            color="success"
             valueLabelDisplay="auto"
             sx={{
                 width: "calc(100% - 16px)",
                 mx: 1,
                 height: 4,
+                color: "accent.main",
                 "& .MuiSlider-thumb": {
                     width: 18,
                     height: 18,
-                    bgcolor: "white",
+                    bgcolor: "common.white",
                 },
             }}
             onChange={(_, next) =>
