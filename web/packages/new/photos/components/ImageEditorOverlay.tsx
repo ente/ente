@@ -726,10 +726,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     overflowY: "auto",
                     p: 2,
                     boxSizing: "border-box",
-                    borderRadius: "36px",
-                    border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "background.paper",
+                    borderRadius: "20px",
+                    bgcolor: "background.default",
                 }}
             >
                 <Stack direction="row" sx={{ justifyContent: "space-between" }}>
