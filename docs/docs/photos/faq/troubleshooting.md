@@ -20,6 +20,8 @@ This page helps you solve common issues with Ente Photos. Jump to the section th
 
 Check whether your Photos subscription has expired, even if your usage is within the free allowance or you can still use Ente Auth. A Photos subscription restriction can sometimes appear as a sign-in or verification failure.
 
+If the app says access to your account has been restricted because its data is scheduled for deletion, the cause may be an expired plan or storage over your active plan's limit. Check your subscription status and any warning email, then contact [support@ente.com](mailto:support@ente.com) to discuss your options for keeping or exporting your data.
+
 Contact [support@ente.com](mailto:support@ente.com) to check your subscription status and discuss renewal or returning to the free plan. Do not delete your account or reset two-factor authentication just to troubleshoot an expired subscription.
 
 See [what happens when a subscription expires](/photos/faq/storage-and-plans#subscription-expires).
