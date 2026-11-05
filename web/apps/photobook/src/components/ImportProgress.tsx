@@ -1,5 +1,10 @@
 import { usePhotoImport } from "@/hooks/usePhotoImport";
-import { editorButtonSx, secondaryButtonSx } from "@/theme/buttons";
+import {
+    accentGreen,
+    accentGreenHover,
+    editorButtonSx,
+    secondaryButtonSx,
+} from "@/theme/buttons";
 import { uiColors } from "@/theme/colors";
 import {
     Alert,
@@ -51,7 +56,14 @@ export default function ImportProgress() {
                         <>
                             <Typography
                                 component="h1"
-                                sx={{ fontSize: 22, fontWeight: 600, mb: 3 }}
+                                sx={{
+                                    fontFamily:
+                                        "var(--font-outfit), sans-serif",
+                                    fontSize: { xs: 22, sm: 28 },
+                                    fontWeight: 500,
+                                    letterSpacing: "-0.4px",
+                                    mb: 3,
+                                }}
                             >
                                 {processingMessage}
                             </Typography>
@@ -60,17 +72,21 @@ export default function ImportProgress() {
                                 value={processingProgress}
                                 aria-label="Import progress"
                                 sx={{
-                                    height: 6,
-                                    borderRadius: 3,
-                                    bgcolor: "#303030",
+                                    height: { xs: 8, sm: 10 },
+                                    borderRadius: "999px",
+                                    bgcolor: "#2B2B2B",
                                     "& .MuiLinearProgress-bar": {
-                                        borderRadius: 3,
+                                        borderRadius: "inherit",
+                                        background: `linear-gradient(90deg, ${accentGreenHover}, ${accentGreen})`,
+                                        transition: "transform 400ms ease-out",
                                     },
                                 }}
                             />
                             <Typography
                                 sx={{
                                     color: uiColors.muted,
+                                    fontFamily:
+                                        "var(--font-outfit), sans-serif",
                                     fontSize: 14,
                                     fontVariantNumeric: "tabular-nums",
                                     mt: 1.5,
