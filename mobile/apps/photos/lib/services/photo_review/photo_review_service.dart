@@ -45,17 +45,9 @@ class PhotoReviewService {
   }
 
   Future<ReviewMonthData> loadMonth(ReviewMonthKey key) async {
-    final files = await _loadFiles(key.startMicros, key.endMicros);
-    final index = await _reconcileDecisions(
-      files,
-      ReviewDecisionIndex(
-        await _db.getDecisionsForFiles(
-          files.map(fileKey).toList(),
-          [for (final file in files) ?file.localID],
-          generatedIDs: [for (final file in files) ?file.generatedID],
-        ),
-      ),
-    );
+    final data = await _loadMonthFilesAndDecisions(key);
+    final files = data.files;
+    final index = data.index;
     final decisions = <String, ReviewDecision>{};
     final undoable = <(EnteFile, ReviewDecisionRecord)>[];
     for (final file in files) {
@@ -75,6 +67,14 @@ class PhotoReviewService {
     );
   }
 
+  Future<ReviewMonthSummary?> loadMonthSummary(ReviewMonthKey key) async {
+    final data = await _loadMonthFilesAndDecisions(key);
+    final record = await _db.getMonthRecord(key.key);
+    return buildOverview(data.files, data.index.records.toList(), {
+      key.key: ?record,
+    }).months.firstOrNull;
+  }
+
   Future<void> recordDecision(
     EnteFile file,
     ReviewMonthKey month,
@@ -86,7 +86,7 @@ class PhotoReviewService {
       month.key,
       now,
     );
-    _notifyUpdated();
+    _notifyUpdated([month]);
   }
 
   Future<void> removeDecision(EnteFile file, ReviewMonthKey month) async {
@@ -97,7 +97,7 @@ class PhotoReviewService {
       generatedID: file.generatedID,
       uploadedFileID: file.uploadedFileID,
     );
-    _notifyUpdated();
+    _notifyUpdated([month]);
   }
 
   Future<void> recordDeletion(
@@ -106,10 +106,9 @@ class PhotoReviewService {
     required List<EnteFile> kept,
   }) async {
     final now = _now();
-    final freedBytes = [
-      ...removed,
-      ...kept,
-    ].fold<int>(0, (sum, file) => sum + (file.fileSize ?? 0));
+    final freedBytes = removed
+        .followedBy(kept)
+        .fold<int>(0, (sum, file) => sum + (file.fileSize ?? 0));
     await _db.recordDeletion(
       [
         for (final file in removed)
@@ -121,25 +120,27 @@ class PhotoReviewService {
       freedBytes,
       now,
     );
-    _notifyUpdated();
+    _notifyUpdated([month]);
   }
 
   Future<void> markMonthsReviewed(Iterable<ReviewMonthKey> months) async {
+    final monthKeys = months.toList();
     await _db.markMonthsReviewed(
-      months.map((month) => month.key).toList(),
+      monthKeys.map((month) => month.key).toList(),
       _now(),
     );
-    _notifyUpdated();
+    _notifyUpdated(monthKeys);
   }
 
   Future<void> unmarkMonthReviewed(ReviewMonthKey month) async {
     await _db.unmarkMonthReviewed(month.key, _now());
-    _notifyUpdated();
+    _notifyUpdated([month]);
   }
 
   Future<void> resetMonths(Iterable<ReviewMonthKey> months) async {
-    await _db.resetMonths(months.map((month) => month.key).toList());
-    _notifyUpdated();
+    final monthKeys = months.toList();
+    await _db.resetMonths(monthKeys.map((month) => month.key).toList());
+    _notifyUpdated(monthKeys);
   }
 
   static ReviewOverview buildOverview(
@@ -148,44 +149,43 @@ class PhotoReviewService {
     Map<String, ReviewMonthRecord> monthRecords,
   ) {
     final index = ReviewDecisionIndex(decisions);
-    final buckets = <ReviewMonthKey, List<EnteFile>>{};
+    final buckets = <ReviewMonthKey, _ReviewMonthAccumulator>{};
     for (final file in files) {
       final creationTime = file.creationTime;
       if (creationTime == null) continue;
-      buckets
-          .putIfAbsent(ReviewMonthKey.fromCreationTime(creationTime), () => [])
-          .add(file);
+      final key = ReviewMonthKey.fromCreationTime(creationTime);
+      final bucket = buckets[key] ??= _ReviewMonthAccumulator(file);
+      bucket.totalCount++;
+      final record = index.lookup(file);
+      if (record == null || record.decision == ReviewDecision.deleted) {
+        continue;
+      }
+      bucket.decidedCount++;
+      if (record.decision == ReviewDecision.queued) bucket.queuedCount++;
     }
     final summaries = <ReviewMonthSummary>[];
     for (final entry in buckets.entries) {
-      var decided = 0;
-      var queued = 0;
-      for (final file in entry.value) {
-        final record = index.lookup(file);
-        if (record == null || record.decision == ReviewDecision.deleted) {
-          continue;
-        }
-        decided++;
-        if (record.decision == ReviewDecision.queued) queued++;
-      }
       final record = monthRecords[entry.key.key];
       summaries.add(
         ReviewMonthSummary(
           key: entry.key,
-          cover: entry.value.first,
-          totalCount: entry.value.length,
-          decidedCount: decided,
-          queuedCount: queued,
+          cover: entry.value.cover,
+          totalCount: entry.value.totalCount,
+          decidedCount: entry.value.decidedCount,
+          queuedCount: entry.value.queuedCount,
           markedReviewed: record?.markedReviewed ?? false,
           lastReviewedAt: record?.updatedAt ?? 0,
         ),
       );
     }
-    summaries.sort((a, b) => a.key.compareTo(b.key));
-    final byYear = <int, List<ReviewMonthSummary>>{};
-    for (final summary in summaries) {
-      byYear.putIfAbsent(summary.key.year, () => []).add(summary);
-    }
+    return buildOverviewFromMonths(summaries);
+  }
+
+  static ReviewOverview buildOverviewFromMonths(
+    Iterable<ReviewMonthSummary> months,
+  ) {
+    final summaries = months.toList()..sort((a, b) => a.key.compareTo(b.key));
+    final byYear = groupBy(summaries, (month) => month.key.year);
     final years = [
       for (final year in byYear.keys.toList()..sort((a, b) => b.compareTo(a)))
         ReviewYearSummary(year: year, months: byYear[year]!),
@@ -219,6 +219,22 @@ class PhotoReviewService {
       }
     }
     return null;
+  }
+
+  Future<({List<EnteFile> files, ReviewDecisionIndex index})>
+  _loadMonthFilesAndDecisions(ReviewMonthKey key) async {
+    final files = await _loadFiles(key.startMicros, key.endMicros);
+    final index = await _reconcileDecisions(
+      files,
+      ReviewDecisionIndex(
+        await _db.getDecisionsForFiles(
+          files.map(fileKey).toList(),
+          [for (final file in files) ?file.localID],
+          generatedIDs: [for (final file in files) ?file.generatedID],
+        ),
+      ),
+    );
+    return (files: files, index: index);
   }
 
   Future<List<EnteFile>> _loadFiles(int startMicros, int endMicros) async {
@@ -295,8 +311,8 @@ class PhotoReviewService {
     );
   }
 
-  void _notifyUpdated() {
-    Bus.instance.fire(PhotoReviewUpdatedEvent());
+  void _notifyUpdated(Iterable<ReviewMonthKey> monthKeys) {
+    Bus.instance.fire(PhotoReviewUpdatedEvent(monthKeys));
   }
 
   ReviewDecisionRecord _recordFor(
@@ -317,6 +333,15 @@ class PhotoReviewService {
   }
 
   static int _now() => DateTime.now().microsecondsSinceEpoch;
+}
+
+class _ReviewMonthAccumulator {
+  _ReviewMonthAccumulator(this.cover);
+
+  final EnteFile cover;
+  int totalCount = 0;
+  int decidedCount = 0;
+  int queuedCount = 0;
 }
 
 class ReviewDecisionIndex {
