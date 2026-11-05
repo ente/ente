@@ -373,7 +373,7 @@ If you have a discount code (e.g., from partnerships like Kagi Friends 25% off),
 
 **Step-by-step process:**
 
-1. **Do NOT purchase through the iOS App Store**, as the App Store doesn't support discount codes
+1. **Do NOT purchase through the Apple App Store or Google Play**, as store purchases do not support Ente discount codes
 2. Go to [photos.ente.com](https://photos.ente.com) on a desktop or laptop computer
 3. Log in to your Ente account
 4. Open `Settings > Account > Manage subscription`
@@ -530,9 +530,9 @@ Contact [support@ente.com](mailto:support@ente.com) if you want to return to the
 
 If your usage is above the free allowance, contact support about your options. Keep a verified export of anything you want to retain before removing files.
 
-**What about subscriptions purchased through the Apple App Store?**
+**What about subscriptions purchased through app stores?**
 
-If you purchased through the Apple App Store:
+If you have a subscription through the Apple App Store or Google Play:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
@@ -661,7 +661,7 @@ You can also access this via Settings > Account > Manage subscription > Manage p
 
 You will be able to see all of your previous invoices, with details regarding their payment status. In case of failed payments, you will also have an option to retry those charges.
 
-If you would like to change your payment method entirely (for example, switch between the Apple App Store, card, PayPal, or crypto), please contact [support@ente.com](mailto:support@ente.com).
+If you would like to change your payment method entirely (for example, switch between an app store, card, PayPal, or crypto), please contact [support@ente.com](mailto:support@ente.com).
 
 **Switching from Apple to direct billing**
 
@@ -677,7 +677,9 @@ We send this email when we try to renew your subscription but the payment doesn'
 
 Your photos and files are safe, but new uploads stop until the renewal is paid.
 
-To fix it:
+If your subscription is through the Apple App Store or Google Play, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+
+If you pay Ente directly:
 
 1. Open `Settings > Account > Manage subscription > Manage payment method` in the app, or on [photos.ente.com](https://photos.ente.com).
 2. Add your new card or update the expired one.
@@ -689,15 +691,11 @@ If you don't see an unpaid invoice, or want to change your plan at the same time
 
 If the renewal isn't paid, your plan expires. See [What happens when my subscription expires?](#subscription-expires).
 
-> [!NOTE]
->
-> For subscriptions through the Apple App Store, renewal payments are handled by Apple. Update your payment details in your Apple subscription settings.
-
 ### How can I cancel my subscription? {#cancel-subscription}
 
 For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-For a subscription purchased through the Apple App Store, cancel renewal in your Apple subscription settings. Check the end date shown by Apple; cancelling renewal does not necessarily end the current paid period immediately.
+For a subscription purchased through the Apple App Store or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 
