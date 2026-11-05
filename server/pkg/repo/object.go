@@ -50,7 +50,8 @@ func (repo *ObjectRepository) GetObjectsMissingInDC(dc string, limit int, random
 }
 
 func (repo *ObjectRepository) MarkObjectReplicated(objectKey string, datacenter string) (int64, error) {
-	result, err := repo.DB.Exec(`UPDATE object_keys SET datacenters = datacenters || $1::s3region WHERE object_key = $2`,
+	result, err := repo.DB.Exec(`UPDATE object_keys SET datacenters = datacenters || $1::s3region
+		WHERE object_key = $2 AND NOT ($1::s3region = ANY(datacenters))`,
 		datacenter, objectKey)
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "")
