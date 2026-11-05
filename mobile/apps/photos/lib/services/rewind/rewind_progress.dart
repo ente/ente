@@ -19,4 +19,7 @@ class RewindProgress {
 
   Future<void> markNotificationScheduled() =>
       _prefs.setBool(_notificationScheduledKey, true);
+
+  Future<void> clearNotificationScheduled() =>
+      _prefs.remove(_notificationScheduledKey);
 }

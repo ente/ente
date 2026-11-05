@@ -591,14 +591,7 @@ Future<void> _init(
       unawaited(_warmContactsCacheInBackground());
     }
     unawaited(removeRewind2025Leftovers(preferences));
-    if (!isBackground) {
-      unawaited(
-        Future.delayed(
-          const Duration(seconds: 5),
-          () => rewindService.refresh(),
-        ),
-      );
-    }
+    if (!isBackground) rewindService.scheduleRefresh();
     logLocalSettings();
     initComplete = true;
     _stopHearBeat = true;

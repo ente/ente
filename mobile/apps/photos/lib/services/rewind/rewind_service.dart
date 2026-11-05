@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 
 import "package:flutter/foundation.dart";
@@ -31,6 +32,7 @@ class RewindService {
   final _lock = Lock();
   final _state = ValueNotifier<rust.RewindState?>(null);
 
+  static const _startupDelay = Duration(seconds: 5);
   static const _refreshInterval = Duration(days: 1);
   static const _notificationId = 20261205;
   static const _notificationPayload = "ente://rewind";
@@ -38,6 +40,8 @@ class RewindService {
   static const _notificationLeadTime = Duration(hours: 1);
 
   ValueListenable<rust.RewindState?> get state => _state;
+
+  void scheduleRefresh() => unawaited(Future.delayed(_startupDelay, refresh));
 
   Future<void> refresh({bool afterMlRun = false}) async {
     if (isIOSBackgroundRefresh) return;
@@ -169,6 +173,7 @@ class RewindService {
       await NotificationService.instance.clearAllScheduledNotifications(
         containingPayload: _notificationPayload,
       );
+      await _progress.clearNotificationScheduled();
       return;
     }
     if (status is! rust.RewindStatus_Ready ||
