@@ -136,6 +136,7 @@ export function LockerConfirmDialog({
                 </Typography>
                 <Typography
                     id={bodyID}
+                    component="div"
                     sx={(theme) => ({
                         ...lockerTextBodySx,
                         textAlign: "center",
