@@ -3,6 +3,9 @@ Documentation=https://grafana.com/docs/grafana/latest/setup-grafana/configure-do
 Requires=docker.service
 After=docker.service
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
 ExecStartPre=docker pull grafana/grafana
 ExecStartPre=-docker stop grafana
