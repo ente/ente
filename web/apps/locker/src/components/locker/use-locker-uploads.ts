@@ -158,9 +158,11 @@ export const useLockerUploads = ({
             await refreshData();
             scheduleUploadFollowUpRefreshes();
             setToast(
-                uploadedCount === 1
-                    ? t("uploadComplete")
-                    : t("uploadMultipleComplete", { count: uploadedCount }),
+                selectedFileCount === 1
+                    ? null
+                    : uploadedCount === 1
+                      ? t("uploadComplete")
+                      : t("uploadMultipleComplete", { count: uploadedCount }),
             );
         },
         [

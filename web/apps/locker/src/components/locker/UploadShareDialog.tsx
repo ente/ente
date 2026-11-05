@@ -5,13 +5,15 @@ import type { LockerCollection } from "@/types";
 import { canShareLockerFileLink, getItemTitle } from "@/types";
 import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import { t } from "i18next";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { retryUploadShareSync } from "./upload-share-sync";
 
 interface UploadShareDialogProps {
     open: boolean;
     fileIDs: number[];
     collections: LockerCollection[];
     onClose: () => void;
+    refreshData: () => Promise<void>;
     setFeedbackMessage: (message: string | null) => void;
 }
 
@@ -20,6 +22,7 @@ export function UploadShareDialog({
     fileIDs,
     collections,
     onClose,
+    refreshData,
     setFeedbackMessage,
 }: UploadShareDialogProps) {
     const currentUserID = savedLocalUser()?.id;
@@ -52,6 +55,11 @@ export function UploadShareDialog({
         candidate && canShareLockerFileLink(candidate, currentUserID)
             ? candidate
             : undefined;
+    const isWaitingForSync = open && fileIDs.length === 1 && !candidate;
+    useEffect(() => {
+        if (!isWaitingForSync) return;
+        return retryUploadShareSync(refreshData);
+    }, [isWaitingForSync, refreshData]);
     const handleShare = () => {
         if (singleItem) {
             onClose();

@@ -362,6 +362,7 @@ export const LockerPage: React.FC = () => {
                 fileIDs={uploadedFileIDs}
                 collections={collections}
                 onClose={dismissUploadSharing}
+                refreshData={refreshData}
                 setFeedbackMessage={setToast}
             />
 

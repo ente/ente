@@ -52,6 +52,7 @@ const render = (fileIDs = [42], collections = [collection]) =>
             fileIDs={fileIDs}
             collections={collections}
             onClose={close}
+            refreshData={() => Promise.resolve()}
             setFeedbackMessage={() => undefined}
         />,
     );
@@ -80,7 +81,13 @@ test("sharing waits for the uploaded file to appear in synced collections", () =
     expect(prompt().body).toBeNull();
     prompt().onConfirm();
     expect(openLink).not.toHaveBeenCalled();
-    prompt().onClose();
+    confirm.mockClear();
+    const syncedItem = { ...item, id: 99 };
+    render([99], [{ ...collection, items: [syncedItem] }]);
+    expect(prompt().confirmDisabled).toBe(false);
+    expect(openLink).not.toHaveBeenCalled();
+    prompt().onConfirm();
+    expect(openLink).toHaveBeenCalledExactlyOnceWith(syncedItem);
     expect(close).toHaveBeenCalledOnce();
 });
 

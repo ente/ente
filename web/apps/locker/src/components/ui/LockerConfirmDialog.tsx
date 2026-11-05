@@ -213,9 +213,12 @@ export function LockerConfirmDialog({
                         },
                         "&.Mui-disabled": {
                             ...lockerColorSx(theme, {
-                                backgroundColor:
-                                    tone === "critical" ? "warning" : "primary",
-                                color: "specialWhite",
+                                backgroundColor: loading
+                                    ? tone === "critical"
+                                        ? "warning"
+                                        : "primary"
+                                    : "fillDark",
+                                color: loading ? "specialWhite" : "textLighter",
                             }),
                         },
                     })}
