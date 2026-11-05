@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import io.ente.ensu.EnsuApplication
 import io.ente.ensu.MainActivity
 import io.ente.ensu.R
+import io.ente.ensu.bindings.stripHiddenPartsText
 import io.ente.ensu.logging.LogLevel
 import java.util.UUID
 
@@ -38,7 +39,6 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     private var deadline: Long? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private val lifecycle = ResponseNotificationLifecycle()
-    private val responseTags = mutableSetOf<String>()
     private var cancel: (() -> Unit)? = null
     var lease: String? = null
         private set
@@ -78,13 +78,14 @@ class BackgroundGeneration(private val app: EnsuApplication) :
 
     fun finish(id: Long) {
         lifecycle.resolve(id)?.let(::interrupted)
-        cancelAttempt(id)
-    }
-
-    fun cancelAttempt(id: Long) {
         if (!lifecycle.clear(id)) return
         cancel = null
         releaseLease()
+    }
+
+    fun cancelAttempt(id: Long) {
+        if (lifecycle.resolve(id) == null) return
+        cancel = null
     }
 
     fun cancelLease(expectedLease: String) {
@@ -102,7 +103,7 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     }
 
     fun completed(id: Long, message: String, text: String) {
-        val preview = responsePreview(text)
+        val preview = responsePreview(stripHiddenPartsText(text))
         if (preview.isBlank()) return
         val attempt = lifecycle.resolve(id) ?: return
         postNotice(
@@ -147,7 +148,6 @@ class BackgroundGeneration(private val app: EnsuApplication) :
                     }
                 }
                 .build()
-        responseTags.add(tag)
         runCatching { manager.notify(tag, 0, notification) }
             .onFailure { error ->
                 app.logRepository.log(
@@ -160,8 +160,6 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     }
 
     private fun clearResponseNotifications() {
-        responseTags.forEach { manager.cancel(it, 0) }
-        responseTags.clear()
         manager.activeNotifications
             .filter {
                 it.tag?.startsWith("ensu.response.") == true ||
@@ -187,7 +185,7 @@ class BackgroundGeneration(private val app: EnsuApplication) :
             .setSmallIcon(R.drawable.ic_response_notification)
             .setContentTitle("Ensu")
             .setContentText("Generating response…")
-            .setContentIntent(openChat(null, null))
+            .setContentIntent(openChat(lifecycle.current?.session, null))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

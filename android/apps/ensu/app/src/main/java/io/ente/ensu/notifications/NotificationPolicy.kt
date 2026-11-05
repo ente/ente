@@ -16,8 +16,6 @@ internal fun canEducate(
 
 internal fun responsePreview(text: String): String =
     text
-        .replace(Regex("<(think|todo_list)>[\\s\\S]*?</\\1>", RegexOption.IGNORE_CASE), "")
-        .replace(Regex("<(think|todo_list)>[\\s\\S]*", RegexOption.IGNORE_CASE), "")
         .replace(Regex("!\\[([^]]*)]\\([^)]*\\)"), "$1")
         .replace(Regex("\\[([^]]+)]\\([^)]*\\)"), "$1")
         .replace(Regex("(?m)^```[^\\n]*$"), "")

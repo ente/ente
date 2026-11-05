@@ -1,6 +1,7 @@
 package io.ente.ensu
 
 import android.app.Application
+import android.content.ComponentCallbacks2
 import android.os.Build
 import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.RustLogLevel
@@ -17,7 +18,8 @@ import io.ente.ensu.notifications.NotificationPermissions
 class EnsuApplication : Application() {
     val backgroundGeneration by lazy { BackgroundGeneration(this) }
     val notificationPermissions by lazy { NotificationPermissions(this) }
-    val runtime by lazy { AppRuntime(this) }
+    private val runtimeDelegate = lazy { AppRuntime(this) }
+    val runtime by runtimeDelegate
     val logRepository by lazy { FileLogRepository(this) }
     val assetStore by lazy { AssetStore(this) }
     val knowledgeProvider by lazy { KnowledgeProvider(assetStore) }
@@ -30,6 +32,13 @@ class EnsuApplication : Application() {
             cacheDir.absolutePath,
             "${Build.FINGERPRINT}|${Build.HARDWARE}|${Build.SUPPORTED_ABIS.joinToString()}",
         )
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN && runtimeDelegate.isInitialized()) {
+            runtime.store.handleMemoryPressure()
+        }
     }
 
     override fun onCreate() {

@@ -13,6 +13,8 @@ use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use super::ExecutionControl;
+use super::execution::ExecutionContext;
 use super::generate::{JobGuard, register_job};
 use super::model::ModelRef;
 use super::worker::Worker;
@@ -24,6 +26,7 @@ use super::{
 pub struct Context {
     worker: Worker<LocalContext>,
     context_size: u32,
+    supports_partial_prompt_reuse: bool,
 }
 
 pub type ContextRef = Arc<Context>;
@@ -33,10 +36,15 @@ impl Context {
         initialize: impl FnOnce() -> Result<LocalContext, Error> + Send + 'static,
     ) -> Result<ContextRef, Error> {
         let worker = Worker::spawn(initialize)?;
-        let context_size = worker.call(|context| Ok(context.context_size()))?;
+        let (context_size, supports_partial_prompt_reuse) = worker.call(|context| {
+            let supports_partial_prompt_reuse =
+                context.with_model(|model| Ok(!model.is_recurrent() && !model.is_hybrid()))?;
+            Ok((context.context_size(), supports_partial_prompt_reuse))
+        })?;
         Ok(Arc::new(Self {
             worker,
             context_size,
+            supports_partial_prompt_reuse,
         }))
     }
 
@@ -73,8 +81,37 @@ impl Context {
         Self::spawn(move || LocalContext::new_knowledge_embedding(&model, n_threads))
     }
 
+    pub fn set_execution_control(&self, control: Arc<ExecutionControl>) -> Result<(), Error> {
+        self.worker.call(move |context| {
+            let mut state = lock(&context.state);
+            if !state.cell.borrow_owner().cpu_resident {
+                return Err(Error::Unsupported(
+                    "Execution switching requires CPU-resident model weights",
+                ));
+            }
+            state
+                .cell
+                .with_dependent_mut(|_, context| context.control = Some(control));
+            Ok(())
+        })
+    }
+
     pub fn context_size(&self) -> u32 {
         self.context_size
+    }
+
+    pub fn supports_partial_prompt_reuse(&self) -> bool {
+        self.supports_partial_prompt_reuse
+    }
+
+    pub fn can_preserve_execution_state(&self) -> bool {
+        self.worker
+            .call(|context| {
+                let state = lock(&context.state);
+                Ok(!state.cached_tokens.is_empty()
+                    && state.cell.borrow_dependent().can_preserve_state())
+            })
+            .unwrap_or(false)
     }
 
     pub fn release_multimodal(&self) {
@@ -198,7 +235,7 @@ self_cell!(
         owner: ModelRef,
 
         #[covariant]
-        dependent: LlamaContext,
+        dependent: ExecutionContext,
     }
 );
 
@@ -240,9 +277,15 @@ impl LocalContext {
     fn try_new(
         owner: ModelRef,
         embedding_params: Option<EmbeddingContextParams>,
+        context_params: LlamaContextParams,
         builder: impl for<'a> FnOnce(&'a ModelRef) -> Result<LlamaContext<'a>, Error>,
     ) -> Result<Self, Error> {
-        ContextCell::try_new(owner, builder).map(|cell| LocalContext {
+        ContextCell::try_new(owner, |model| {
+            builder(model).map(|context| {
+                ExecutionContext::new(context, context_params, embedding_params.is_some())
+            })
+        })
+        .map(|cell| LocalContext {
             state: Mutex::new(ContextState {
                 cell,
                 cached_tokens: Vec::new(),
@@ -252,16 +295,31 @@ impl LocalContext {
         })
     }
 
+    pub(super) fn with_model<R>(
+        &self,
+        func: impl FnOnce(&LlamaModel) -> Result<R, Error>,
+    ) -> Result<R, Error> {
+        func(lock(&self.state).cell.borrow_owner().model())
+    }
+
     pub(super) fn with_context_and_cache_mut<R>(
         &self,
-        func: impl for<'a, 'b> FnOnce(&'b mut LlamaContext<'a>, &'b mut Vec<LlamaToken>) -> R,
-    ) -> R {
+        func: impl for<'a, 'b> FnOnce(
+            &'b mut ExecutionContext<'a>,
+            &'b mut Vec<LlamaToken>,
+        ) -> Result<R, Error>,
+    ) -> Result<R, Error> {
         let mut state = lock(&self.state);
         let ContextState {
             cell,
             cached_tokens,
         } = &mut *state;
-        cell.with_dependent_mut(|_owner, context| func(context, cached_tokens))
+        cell.with_dependent_mut(|_owner, context| {
+            if context.ensure_context()? {
+                cached_tokens.clear();
+            }
+            func(context, cached_tokens)
+        })
     }
 
     pub(super) fn embedding_params(&self) -> Option<&EmbeddingContextParams> {
@@ -367,6 +425,11 @@ fn with_thread_counts(
 impl LocalContext {
     pub fn new(model: &ModelRef, params: ContextParams) -> Result<Self, Error> {
         let mut context_params = LlamaContextParams::default();
+        if cfg!(target_os = "android") && model.cpu_resident {
+            context_params = context_params
+                .with_op_offload(false)
+                .with_offload_kqv(false);
+        }
 
         if let Some(context_size) = params.context_size {
             let context_size = u32::try_from(context_size)
@@ -388,7 +451,7 @@ impl LocalContext {
             context_params = context_params.with_n_batch(n_batch);
         }
 
-        let context = Self::try_new(Arc::clone(model), None, |model| {
+        let context = Self::try_new(Arc::clone(model), None, context_params.clone(), |model| {
             let backend = backend()?;
             model
                 .model()
@@ -439,16 +502,21 @@ impl LocalContext {
                 .with_n_threads_batch(n_threads);
         }
 
-        let context = Self::try_new(Arc::clone(model), Some(params), |model| {
-            let backend = backend()?;
-            model
-                .model()
-                .new_context(backend, context_params)
-                .map_err(|err| Error::Llama {
-                    op: "Failed to create embedding context",
-                    message: err.to_string(),
-                })
-        })?;
+        let context = Self::try_new(
+            Arc::clone(model),
+            Some(params),
+            context_params.clone(),
+            |model| {
+                let backend = backend()?;
+                model
+                    .model()
+                    .new_context(backend, context_params)
+                    .map_err(|err| Error::Llama {
+                        op: "Failed to create embedding context",
+                        message: err.to_string(),
+                    })
+            },
+        )?;
 
         Ok(context)
     }

@@ -15,6 +15,7 @@ pub struct ModelLoadParams {
 
 pub struct Model {
     model: LlamaModel,
+    pub(super) cpu_resident: bool,
 }
 
 pub type ModelRef = Arc<Model>;
@@ -28,6 +29,17 @@ impl Model {
             let layers = u32::try_from(n_gpu_layers)
                 .map_err(|_| Error::InvalidInput("n_gpu_layers must be >= 0".to_string()))?;
             model_params = model_params.with_n_gpu_layers(layers);
+        }
+
+        #[cfg(all(target_os = "ios", target_abi = "sim"))]
+        {
+            model_params = model_params
+                .with_n_gpu_layers(0)
+                .with_devices(&[])
+                .map_err(|err| Error::Llama {
+                    op: "Failed to select CPU inference backend",
+                    message: err.to_string(),
+                })?;
         }
 
         if let Some(use_mmap) = params.use_mmap {
@@ -45,7 +57,10 @@ impl Model {
                     message: err.to_string(),
                 })?;
 
-        Ok(Arc::new(Model { model }))
+        Ok(Arc::new(Model {
+            model,
+            cpu_resident: model_params.n_gpu_layers() == 0,
+        }))
     }
 
     pub(super) fn model(&self) -> &LlamaModel {

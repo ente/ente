@@ -1,14 +1,10 @@
 package io.ente.ensu
 
-import android.app.Application
-import android.content.pm.PackageManager
-import android.os.Build
 import io.ente.ensu.chat.ChatRepository
 import io.ente.ensu.config.loadConfigDefaults
 import io.ente.ensu.coroutines.runCatchingCancellable
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.llm.LlmProvider
-import io.ente.ensu.logging.LogLevel
 import io.ente.ensu.settings.AdvancedSettingsDataStore
 import io.ente.ensu.settings.AdvancedSettingsSnapshot
 import io.ente.ensu.settings.SessionPreferencesDataStore
@@ -36,7 +32,6 @@ class AppRuntime(application: EnsuApplication) {
     private val sessionPreferences = SessionPreferencesDataStore(application)
     val advancedSettingsDataStore = AdvancedSettingsDataStore(application)
     private val credentialStore = CredentialStore(application)
-    val appVersion = runCatching { getAppVersion(application) }.getOrDefault("unknown")
     private val deviceCapabilityProvider = AndroidDeviceCapabilityProvider(application)
     private val transcriber = application.transcriber
     val configDefaults = loadConfigDefaults()
@@ -52,6 +47,7 @@ class AppRuntime(application: EnsuApplication) {
             deviceCapabilityProvider = deviceCapabilityProvider,
             knowledgeEmbedding = configDefaults.knowledgeEmbedding,
             nativeLibraryDir = application.applicationInfo.nativeLibraryDir,
+            applicationScope = applicationScope,
         )
     private val chatRepository = ChatRepository(application, credentialStore)
     private val knowledgeProvider = application.knowledgeProvider
@@ -72,10 +68,6 @@ class AppRuntime(application: EnsuApplication) {
         )
 
     init {
-        val launchMessage =
-            "App launched app=$appVersion device=${Build.MANUFACTURER} ${Build.MODEL} os=${Build.VERSION.RELEASE} (sdk=${Build.VERSION.SDK_INT})"
-        logRepository.log(LogLevel.Info, launchMessage, tag = "App")
-
         applicationScope.launch {
             runCatchingCancellable {
                 advancedSettingsDataStore.migrateLegacyModelSelection { url, mmproj ->
@@ -104,25 +96,5 @@ class AppRuntime(application: EnsuApplication) {
                 )
             }
         }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun getAppVersion(application: Application): String {
-        val packageManager = application.packageManager
-        val packageName = application.packageName
-        val packageInfo =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
-            } else {
-                packageManager.getPackageInfo(packageName, 0)
-            }
-        val versionName = packageInfo.versionName ?: "unknown"
-        val versionCode =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode
-            } else {
-                packageInfo.versionCode.toLong()
-            }
-        return "$versionName+$versionCode"
     }
 }

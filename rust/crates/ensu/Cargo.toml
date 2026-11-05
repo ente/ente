@@ -35,7 +35,7 @@ llama-cpp-2 = { version = "=0.1.158", features = ["mtmd", "vulkan"] }
 
 # Other platforms stay on CPU. Android keeps the shared C++ runtime; Windows
 # avoids Vulkan's VULKAN_SDK requirement.
-[target.'cfg(all(not(target_os = "macos"), not(target_os = "linux"), not(all(target_os = "android", target_arch = "aarch64"))))'.dependencies]
+[target.'cfg(all(not(target_os = "macos"), not(target_os = "linux"), not(target_os = "ios"), not(all(target_os = "android", target_arch = "aarch64"))))'.dependencies]
 llama-cpp-2 = { version = "=0.1.158", features = ["mtmd"] }
 
 [target.'cfg(all(target_os = "android", target_arch = "aarch64"))'.dependencies]
@@ -47,6 +47,7 @@ ort = { workspace = true, features = ["load-dynamic"], optional = true }
 # The iOS app links Ente's custom ONNX Runtime XCFramework via SPM, so ort-sys
 # must not download/link pyke's binaries.
 [target.'cfg(target_os = "ios")'.dependencies]
+llama-cpp-2 = { version = "=0.1.158", default-features = false, features = ["metal", "mtmd"] }
 ort-sys = { workspace = true, features = ["disable-linking"], optional = true }
 
 [features]

@@ -263,6 +263,10 @@ final class ChatViewModel: ObservableObject {
         refreshChatWarmup()
     }
 
+    func setInferenceForeground(_ active: Bool) {
+        provider.setInferenceForeground(active)
+    }
+
     func setAppForeground(_ active: Bool) {
         guard appForeground != active else { return }
         appForeground = active
@@ -466,11 +470,13 @@ final class ChatViewModel: ObservableObject {
     private func selectResponseBranch(for sessionId: UUID) {
         guard let route = pendingResponseRoute, route.session == sessionId else { return }
         pendingResponseRoute = nil
-        var node = messageStore[sessionId]?.first(where: { $0.id == route.message })
+        let byId = Dictionary(
+            uniqueKeysWithValues: (messageStore[sessionId] ?? []).map { ($0.id, $0) })
+        var node = byId[route.message]
         var visited = Set<UUID>()
         while let current = node, visited.insert(current.id).inserted {
             updateSelection(for: sessionId, parentId: current.parentId, childId: current.id)
-            node = messageStore[sessionId]?.first(where: { $0.id == current.parentId })
+            node = current.parentId.flatMap { byId[$0] }
         }
     }
 
@@ -1201,9 +1207,11 @@ final class ChatViewModel: ObservableObject {
         rebuildMessages(for: userNode.sessionId)
 
         let notesScope = notesStore.suspendMaintenance()
+        let responseScope = provider.retainResponseResources()
         generationTask = Task { [self] in
             defer {
                 self.responseBackgroundTask.finish(generationId)
+                responseScope.close()
                 notesScope.close()
                 settleGenerationIfActive(generationId: generationId, sessionId: userNode.sessionId)
                 refreshChatWarmup()
@@ -1274,10 +1282,20 @@ final class ChatViewModel: ObservableObject {
                         try Task.checkCancellation()
                         let query = try embed(queryText)
                         try Task.checkCancellation()
+                        await MainActor.run {
+                            self.responseBackgroundTask.update(
+                                generationId, status: "Finding sources", completed: 1, total: 4)
+                        }
                         let packs = await knowledgeProvider.search(
                             datasets: enabledDatasets, query: query,
                             maxHits: knowledgeEmbedding.maxHits
-                        )
+                        ) { completed, total in
+                            Task { @MainActor in
+                                self.responseBackgroundTask.update(
+                                    generationId, status: "Finding sources",
+                                    completed: Int64(total + completed), total: Int64(total * 4))
+                            }
+                        }
                         let notes = try await notesStore.retrieve(
                             query: query, collectionIDs: enabledCollectionIDs)
                         let candidates = try selectMixedGroundingCandidates(
@@ -1294,16 +1312,17 @@ final class ChatViewModel: ObservableObject {
                     if isCancellation(error) {
                         return
                     }
-                    if error is ModelMemoryUnavailable {
+                    if let message = modelRecoveryMessage(error) {
                         guard !Task.isCancelled, activeGenerationId == generationId else { return }
-                        generationErrorMessage = error.localizedDescription
+                        generationErrorMessage = message
                         return
                     }
                     embeddingAssetInvalid = error is EmbeddingAssetInvalidError
                 }
             }
 
-            self.responseBackgroundTask.update(generationId, status: "Loading model")
+            self.responseBackgroundTask.update(
+                generationId, status: "Loading model", completed: 2, total: 4)
             do {
                 if let turn = followup {
                     let locators = try await Task.detached { [searched = knowledgeHits] in
@@ -1369,7 +1388,8 @@ final class ChatViewModel: ObservableObject {
             }
 
             guard !Task.isCancelled, activeGenerationId == generationId else { return }
-            self.responseBackgroundTask.update(generationId, status: "Reading conversation")
+            self.responseBackgroundTask.update(
+                generationId, status: "Preparing conversation", completed: 3, total: 4)
             let normalSystemPrompt = systemPrompt()
             var activeCitations: [GroundedSource] = []
             var conversationPrepared = false
@@ -1379,7 +1399,7 @@ final class ChatViewModel: ObservableObject {
 
             let onToken: @Sendable (String) -> Void = { token in
                 guard !token.isEmpty else { return }
-                let snapshot = buffer.withLock { state -> String? in
+                let snapshot = buffer.withLock { state -> (text: String, tokens: Int)? in
                     state.text.append(token)
                     state.tokenCount += max(1, token.count / 4)
                     let now = Date()
@@ -1387,7 +1407,7 @@ final class ChatViewModel: ObservableObject {
                         state.lastUiUpdate = now
                         state.updateTask?.cancel()
                         state.updateTask = nil
-                        return state.text
+                        return (state.text, state.tokenCount)
                     }
                     if state.updateTask == nil {
                         state.updateTask = Task { @MainActor [weak self] in
@@ -1396,19 +1416,19 @@ final class ChatViewModel: ObservableObject {
                             } catch {
                                 return
                             }
-                            let snapshot = buffer.withLock { state -> String? in
+                            let snapshot = buffer.withLock {
+                                state -> (text: String, tokens: Int)? in
                                 guard !Task.isCancelled else { return nil }
                                 state.updateTask = nil
                                 state.lastUiUpdate = Date()
-                                return state.text
+                                return (state.text, state.tokenCount)
                             }
                             guard let self, let snapshot,
                                 self.activeGenerationId == generationId
                             else { return }
-                            self.streamingResponse = snapshot
-                            self.responseBackgroundTask.update(
-                                generationId, status: "Writing response",
-                                completed: Int64(snapshot.count))
+                            self.streamingResponse = snapshot.text
+                            self.responseBackgroundTask.responseProgress(
+                                generationId, tokens: snapshot.tokens)
                         }
                     }
                     return nil
@@ -1416,18 +1436,16 @@ final class ChatViewModel: ObservableObject {
                 if let snapshot {
                     Task { @MainActor in
                         guard self.activeGenerationId == generationId else { return }
-                        self.streamingResponse = snapshot
-                        self.responseBackgroundTask.update(
-                            generationId, status: "Writing response",
-                            completed: Int64(snapshot.count))
+                        self.streamingResponse = snapshot.text
+                        self.responseBackgroundTask.responseProgress(
+                            generationId, tokens: snapshot.tokens)
                     }
                 }
             }
             let onPromptProgress: @Sendable (Int32, Int32) -> Void = { processed, total in
                 Task { @MainActor in
-                    self.responseBackgroundTask.update(
-                        generationId, status: "Reading conversation",
-                        completed: Int64(processed), total: Int64(total))
+                    self.responseBackgroundTask.promptProgress(
+                        generationId, completed: processed, total: total)
                 }
             }
             let finish:
@@ -1451,16 +1469,18 @@ final class ChatViewModel: ObservableObject {
                             let details =
                                 "session=\(userNode.sessionId.uuidString) promptLen=\(prompt.text.count) responseLen=\(snapshot.text.count) tokens=\(snapshot.tokenCount)"
                             logger.error("Generation failed", error, details: details)
-                            if case ConversationError.CurrentInputTooLarge = error {
+                            if let message = modelRecoveryMessage(error) {
+                                generationErrorMessage = message
+                            } else if case ConversationError.CurrentInputTooLarge = error {
                                 generationErrorMessage =
                                     "This message is too long for the model, even without earlier messages. Shorten it or split it into smaller messages. Your full text is still available to edit or copy."
                             } else if case let ConversationError.Other(detail) = error {
                                 generationErrorMessage = detail
+                            } else if case let LlmError.Other(detail) = error {
+                                generationErrorMessage = detail
                             } else if case ConversationError.Stale = error {
                                 generationErrorMessage = "Conversation changed. Retry the message."
-                            } else if error is ModelMemoryUnavailable
-                                || error is ModelImagesUnsupported
-                            {
+                            } else if error is ModelImagesUnsupported {
                                 generationErrorMessage = error.localizedDescription
                             } else {
                                 generationErrorMessage = "Response failed. Try again."
@@ -1619,6 +1639,8 @@ final class ChatViewModel: ObservableObject {
             let generate: @MainActor ([LlmMessage]) async throws -> GenerationSummary = {
                 messages in
                 try control.checkCancellation()
+                self.responseBackgroundTask.prepareAnswer(
+                    responseGeneration, maxTokens: UInt32(limits.maxOutput))
                 return try await self.provider.generatePreparedChat(
                     selection,
                     messages: messages.map {
@@ -1682,6 +1704,8 @@ final class ChatViewModel: ObservableObject {
             do {
                 try await Task.detached { try preparation.validate() }.value
                 try control.checkCancellation()
+                self.responseBackgroundTask.prepareAnswer(
+                    responseGeneration, maxTokens: result.maxTokens)
                 let summary = try await self.provider.generatePreparedChat(
                     selection,
                     messages: result.messages,
@@ -2055,7 +2079,14 @@ final class ChatViewModel: ObservableObject {
 
             await MainActor.run {
                 guard self.messageStore[sessionId] != nil else { return }
-                self.messageStore[sessionId] = nodes
+                let interrupted = Dictionary(
+                    uniqueKeysWithValues: self.messageStore[sessionId, default: []]
+                        .filter(\.isInterrupted).map { ($0.id, $0.text) })
+                self.messageStore[sessionId] = nodes.map { node in
+                    var node = node
+                    if interrupted[node.id] == node.text { node.isInterrupted = true }
+                    return node
+                }
                 // Branch selection is computed in-memory.
                 self.branchSelections[sessionId] = [:]
                 self.invalidateChildrenCache(for: sessionId)
@@ -2447,6 +2478,15 @@ final class ChatViewModel: ObservableObject {
         return UInt64(delayMs) * 1_000_000
     }
 
+    private func modelRecoveryMessage(_ error: Error) -> String? {
+        switch error {
+        case is ModelMemoryUnavailable, LlmError.InsufficientMemory:
+            return ModelMemoryUnavailable().errorDescription
+        default:
+            return nil
+        }
+    }
+
     private func userFacingModelReadyError(_ error: Error, wasDownloaded: Bool) -> String {
         if error is UnsupportedDeviceMemoryError {
             return Self.unsupportedDeviceMessage
@@ -2671,7 +2711,7 @@ final class ChatViewModel: ObservableObject {
         let text: String
         let timestamp: Date
         let attachments: [ChatAttachment]
-        let isInterrupted: Bool
+        var isInterrupted: Bool
         let tokensPerSecond: Double?
     }
 
@@ -2762,4 +2802,6 @@ private final class ConversationProgressSink: ConversationProgressCallback {
     func onProgress() {
         handler()
     }
+
+    func preferLargeSummaryChunks() -> Bool { false }
 }

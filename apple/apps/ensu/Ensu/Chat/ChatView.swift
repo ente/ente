@@ -160,6 +160,7 @@ struct ChatView: View {
                 viewModel.modelSelectionChanged()
             }
             .onChange(of: scenePhase) { newValue in
+                viewModel.setInferenceForeground(newValue == .active)
                 viewModel.setAppForeground(newValue != .background)
                 viewModel.notesStore.setForeground(newValue == .active)
                 if newValue == .active {
@@ -173,6 +174,7 @@ struct ChatView: View {
         }
         .environmentObject(viewModel.notesStore)
         .onAppear {
+            viewModel.setInferenceForeground(scenePhase == .active)
             viewModel.setAppForeground(scenePhase != .background)
             viewModel.notesStore.setForeground(scenePhase == .active)
             viewModel.setChatActive(isChatActive)

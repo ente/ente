@@ -170,15 +170,17 @@ final class ResponseNotifications: NSObject, ObservableObject, UNUserNotificatio
 
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
+    ) {
         let info = response.notification.request.content.userInfo
         let session = (info["session"] as? String).flatMap(UUID.init(uuidString:))
         let message = (info["message"] as? String).flatMap(UUID.init(uuidString:))
-        await MainActor.run {
+        Task { @MainActor in
             if let session, let message {
                 self.pendingRoute = Route(session: session, message: message)
             }
+            completionHandler()
         }
     }
 }

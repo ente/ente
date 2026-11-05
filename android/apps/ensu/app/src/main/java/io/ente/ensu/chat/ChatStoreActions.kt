@@ -250,11 +250,13 @@ internal class ChatStoreActions(
         awaitReady: suspend () -> Unit,
     ) = notificationNavigation.open {
         awaitReady()
+        if (messageId == null && state.value.chat.currentSessionId == sessionId) return@open true
         val conversation =
             loadNotificationConversation(
                 initialSessionLoad = initialSessionLoad,
                 sessionId = sessionId,
                 messageId = messageId,
+                cachedSessions = { state.value.chat.sessions },
                 listSessions = chatRepository::listSessions,
                 getMessages = chatRepository::getMessages,
                 onSessionFound = ::resetGenerationState,
@@ -682,7 +684,7 @@ internal class ChatStoreActions(
 
         val notesScope = notesStore.suspendMaintenance()
         var followup: ConversationFollowup? = null
-        val activeJob = scope.launch {
+        val generateResponse: suspend CoroutineScope.() -> Unit = generateResponse@{
             notesStore.awaitMaintenance()
             priorGeneration?.join()
             priorSummary?.join()
@@ -691,10 +693,10 @@ internal class ChatStoreActions(
                 isGenerationActive(generationToken, sessionId) &&
                     (runningJob?.isActive != false || stopRequested)
             }
-            if (!isActive()) return@launch
+            if (!isActive()) return@generateResponse
             awaitKnowledgeReady()
             notesStore.awaitReady()
-            if (!isActive()) return@launch
+            if (!isActive()) return@generateResponse
             val progressTracker = DownloadProgressTracker()
             var embeddingAssetInvalid = false
             val enabledDatasets =
@@ -729,7 +731,7 @@ internal class ChatStoreActions(
                         }
                     if (!isActive() || stopRequested) {
                         closeFollowup(turn)
-                        return@launch
+                        return@generateResponse
                     }
                     followup = turn
                     activeFollowup = turn
@@ -741,11 +743,17 @@ internal class ChatStoreActions(
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (_: ConversationException.Cancelled) {
-                return@launch
+                return@generateResponse
             } catch (error: Throwable) {
-                if (!isActive() || stopRequested) return@launch
-                if (reportFollowupError(error, userMessage.id, "Unable to prepare source search"))
-                    return@launch
+                if (!isActive() || stopRequested) return@generateResponse
+                if (
+                    reportFollowupError(
+                        error,
+                        userMessage.id,
+                        "Unable to prepare source search",
+                    )
+                )
+                    return@generateResponse
             }
             val retrievalQuery = userMessage.text.trim()
             val knowledgeHits =
@@ -776,12 +784,12 @@ internal class ChatStoreActions(
                                     )
                                 )
                             }
-                        if (!isActive()) return@launch
+                        if (!isActive()) return@generateResponse
                         hits
                     } catch (error: kotlinx.coroutines.CancellationException) {
                         throw error
                     } catch (error: ModelMemoryUnavailable) {
-                        if (!isActive() || stopRequested) return@launch
+                        if (!isActive() || stopRequested) return@generateResponse
                         state.update {
                             it.copy(
                                 chat =
@@ -791,17 +799,17 @@ internal class ChatStoreActions(
                                     )
                             )
                         }
-                        return@launch
+                        return@generateResponse
                     } catch (_: LlmProvider.EmbeddingAssetInvalid) {
                         embeddingAssetInvalid = true
                         emptyList()
                     } catch (_: LlmException.Cancelled) {
-                        return@launch
+                        return@generateResponse
                     } catch (_: AssetDownloadException.Cancelled) {
-                        return@launch
+                        return@generateResponse
                     } catch (error: Throwable) {
                         if (!isActive() || stopRequested) {
-                            return@launch
+                            return@generateResponse
                         }
                         logRepository.log(
                             LogLevel.Warning,
@@ -823,7 +831,7 @@ internal class ChatStoreActions(
                                 withContext(Dispatchers.IO) {
                                     turn.searchWithHistory(knowledgeHits)
                                 }
-                            if (!isActive() || stopRequested) return@launch
+                            if (!isActive() || stopRequested) return@generateResponse
                             locators.mapNotNull {
                                 reloadPassage(it, enabledDatasets, enabledFolderIds)
                             }
@@ -832,9 +840,9 @@ internal class ChatStoreActions(
                 } catch (error: kotlinx.coroutines.CancellationException) {
                     throw error
                 } catch (_: ConversationException.Cancelled) {
-                    return@launch
+                    return@generateResponse
                 } catch (error: Throwable) {
-                    if (!isActive() || stopRequested) return@launch
+                    if (!isActive() || stopRequested) return@generateResponse
                     if (
                         reportFollowupError(
                             error,
@@ -842,13 +850,13 @@ internal class ChatStoreActions(
                             "Unable to resolve earlier sources",
                         )
                     )
-                        return@launch
+                        return@generateResponse
                     closeFollowup(followup)
                     followup = null
                     emptyList()
                 }
 
-            if (!isActive()) return@launch
+            if (!isActive()) return@generateResponse
             val onModelProgress: (DownloadProgress) -> Unit = { progress ->
                 if (isActive()) {
                     val resolvedProgress = progressTracker.resolve(progress)
@@ -912,9 +920,9 @@ internal class ChatStoreActions(
                     }
                 }
             }
-            if (!assetsReady) return@launch
+            if (!assetsReady) return@generateResponse
 
-            if (!isActive()) return@launch
+            if (!isActive()) return@generateResponse
 
             if (prompt.imageFiles.isEmpty()) {
                 generateTextConversation(
@@ -944,6 +952,7 @@ internal class ChatStoreActions(
             }
             if (embeddingAssetInvalid) modelSettingsActions.refreshModelDownloadInfo()
         }
+        val activeJob = scope.launch { llmProvider.withChatResources { generateResponse() } }
         generationJob = activeJob
         activeJob.invokeOnCompletion {
             closeFollowup(followup)
@@ -1283,6 +1292,9 @@ internal class ChatStoreActions(
                     if (!isActive() || stopRequested) preparationControl.cancel()
                     val progress =
                         object : ConversationProgressCallback {
+                            override fun preferLargeSummaryChunks(): Boolean =
+                                selection.id == "lfm-350m" && !backgroundGeneration.isForeground
+
                             override fun onProgress() {
                                 if (!isActive() || stopRequested) preparationControl.cancel()
                                 else
@@ -1453,17 +1465,18 @@ internal class ChatStoreActions(
                             tokensPerSecond = tokensPerSecond,
                         )
 
+                    val assistantText = cleanAssistantText(assistantMessage.text)
                     if (!interrupted && !stopRequested)
                         backgroundGeneration.completed(
                             activeGenerationToken,
                             assistantMessage.id,
-                            cleanAssistantText(assistantMessage.text),
+                            assistantText,
                         )
                     messageStore.getOrPut(sessionId) { mutableListOf() }.add(assistantMessage)
                     updateSelectionForParent(sessionId, parentMessage.id, assistantMessage.id)
                     updateCurrentSessionPreview(
                         sessionId,
-                        cleanAssistantText(assistantMessage.text),
+                        assistantText,
                         assistantMessage.timestampMillis,
                     )
                 }
@@ -1688,7 +1701,18 @@ internal class ChatStoreActions(
     }
 
     private fun cacheMessages(sessionId: String, messages: List<ChatMessage>) {
-        messageStore[sessionId] = messages.toMutableList()
+        val interrupted =
+            messageStore[sessionId]
+                .orEmpty()
+                .filter { it.isInterrupted }
+                .associate { it.id to it.text }
+        messageStore[sessionId] =
+            messages
+                .map { message ->
+                    if (interrupted[message.id] == message.text) message.copy(isInterrupted = true)
+                    else message
+                }
+                .toMutableList()
         branchSelections.getOrPut(sessionId) { mutableMapOf() }.clear()
         markSessionAccess(sessionId)
         trimSessionCaches()

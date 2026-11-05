@@ -20,49 +20,56 @@ import org.junit.Test
 class NotificationNavigationTest {
     @Test(timeout = 10000)
     fun coldNotificationLoadsItsConversationAndOlderBranchAfterBootstrap() = runBlocking {
-        val repository = DelayedRepository()
-        val finishBootstrap = CompletableDeferred<Unit>()
-        val bootstrap = launch(start = CoroutineStart.UNDISPATCHED) { finishBootstrap.await() }
-        var generationReset = false
-        val navigation =
-            async(start = CoroutineStart.UNDISPATCHED) {
-                loadNotificationConversation(
-                    bootstrap,
-                    "conversation",
-                    "older-answer",
-                    repository::listSessions,
-                    repository::getMessages,
-                ) {
-                    generationReset = true
+        for (cached in listOf(false, true)) {
+            val repository = DelayedRepository()
+            val finishBootstrap = CompletableDeferred<Unit>()
+            val bootstrap = launch(start = CoroutineStart.UNDISPATCHED) { finishBootstrap.await() }
+            var generationReset = false
+            val navigation =
+                async(start = CoroutineStart.UNDISPATCHED) {
+                    loadNotificationConversation(
+                        bootstrap,
+                        "conversation",
+                        "older-answer",
+                        { if (cached) repository.sessions else emptyList() },
+                        repository::listSessions,
+                        repository::getMessages,
+                    ) {
+                        generationReset = true
+                    }
                 }
-            }
-        try {
-            assertTrue(repository.calls.isEmpty())
-            assertFalse(generationReset)
-            finishBootstrap.complete(Unit)
-            repository.messagesEntered.await()
-            assertEquals(listOf("sessions", "messages:conversation"), repository.calls)
-            assertTrue(generationReset)
-            assertFalse(navigation.isCompleted)
-            repository.releaseMessages.countDown()
+            try {
+                assertTrue(repository.calls.isEmpty())
+                assertFalse(generationReset)
+                finishBootstrap.complete(Unit)
+                repository.messagesEntered.await()
+                assertEquals(
+                    if (cached) listOf("messages:conversation")
+                    else listOf("sessions", "messages:conversation"),
+                    repository.calls,
+                )
+                assertTrue(generationReset)
+                assertFalse(navigation.isCompleted)
+                repository.releaseMessages.countDown()
 
-            val conversation = navigation.await()!!
-            assertEquals(repository.sessions, conversation.sessions)
-            assertEquals(repository.messages, conversation.messages)
-            assertEquals(
-                mapOf(
-                    "question" to "older-answer",
-                    "earlier-answer" to "question",
-                    "root" to "earlier-answer",
-                    "__root__" to "root",
-                ),
-                conversation.branchSelections,
-            )
-        } finally {
-            finishBootstrap.complete(Unit)
-            repository.releaseMessages.countDown()
-            navigation.cancelAndJoin()
-            bootstrap.cancelAndJoin()
+                val conversation = checkNotNull(navigation.await())
+                assertEquals(repository.sessions, conversation.sessions)
+                assertEquals(repository.messages, conversation.messages)
+                assertEquals(
+                    mapOf(
+                        "question" to "older-answer",
+                        "earlier-answer" to "question",
+                        "root" to "earlier-answer",
+                        "__root__" to "root",
+                    ),
+                    conversation.branchSelections,
+                )
+            } finally {
+                finishBootstrap.complete(Unit)
+                repository.releaseMessages.countDown()
+                navigation.cancelAndJoin()
+                bootstrap.cancelAndJoin()
+            }
         }
     }
 
@@ -83,6 +90,7 @@ class NotificationNavigationTest {
                             bootstrap,
                             "conversation",
                             "older-answer",
+                            { emptyList() },
                             repository::listSessions,
                             repository::getMessages,
                         ) {
@@ -107,7 +115,7 @@ class NotificationNavigationTest {
             val repository = DelayedRepository()
             val owner = NotificationNavigation { throw it }
             owner.open { true }
-            val priorToken = owner.opened.value!!
+            val priorToken = checkNotNull(owner.opened.value)
             var selectedAnswer = "earlier-answer"
             val navigation =
                 launch(start = CoroutineStart.UNDISPATCHED) {
@@ -117,6 +125,7 @@ class NotificationNavigationTest {
                                 null,
                                 "conversation",
                                 "older-answer",
+                                { repository.sessions },
                                 repository::listSessions,
                                 repository::getMessages,
                             ) {} ?: return@open false
@@ -155,51 +164,39 @@ class NotificationNavigationTest {
     }
 
     @Test(timeout = 10000)
-    fun deletedConversationDoesNotChangeSelectionOrOpenChat() = runBlocking {
-        val repository = DelayedRepository()
-        val owner = NotificationNavigation { throw it }
-        var generationReset = false
-        owner.open {
-            loadNotificationConversation(
-                null,
-                "deleted",
-                "older-answer",
-                repository::listSessions,
-                repository::getMessages,
-            ) {
-                generationReset = true
-            } != null
-        }
-        assertNull(owner.opened.value)
-        assertFalse(generationReset)
-        assertEquals(listOf("sessions"), repository.calls)
-    }
-
-    @Test(timeout = 10000)
-    fun failedConversationReadsKeepSelectionAndAllowAnotherNotification() = runBlocking {
-        for (failSessions in listOf(true, false)) {
+    fun unavailableConversationKeepsSelectionAndAllowsAnotherNotification() = runBlocking {
+        for (unavailable in listOf("missing", "sessions", "messages")) {
             val repository = DelayedRepository()
             val error = DbException.Other("Database read failed")
             val failures = mutableListOf<DbException>()
             val owner = NotificationNavigation { failures.add(it) }
             var selectedAnswer = "earlier-answer"
+            var generationReset = false
             owner.open { true }
             owner.open {
                 val conversation =
                     loadNotificationConversation(
                         null,
-                        "conversation",
+                        if (unavailable == "missing") "deleted" else "conversation",
                         "older-answer",
+                        { emptyList() },
                         {
-                            if (failSessions) throw error
+                            if (unavailable == "sessions") throw error
                             repository.listSessions()
                         },
                         { throw error },
-                    ) {} ?: return@open false
+                    ) {
+                        generationReset = true
+                    } ?: return@open false
                 selectedAnswer = conversation.branchSelections.getValue("question")
                 true
             }
-            assertEquals(listOf(error), failures)
+            assertEquals(if (unavailable == "missing") emptyList() else listOf(error), failures)
+            assertEquals(unavailable == "messages", generationReset)
+            assertEquals(
+                if (unavailable == "sessions") emptyList() else listOf("sessions"),
+                repository.calls,
+            )
             assertEquals("earlier-answer", selectedAnswer)
             assertNull(owner.opened.value)
 

@@ -165,11 +165,13 @@ fn summary_requires_completion_but_not_exact_headings() {
 }
 
 #[derive(Default)]
-struct Fake {
+pub(super) struct Fake {
+    reuse_prefix: bool,
     calls: usize,
     checkpoints: Vec<ConversationState>,
     incomplete: usize,
-    generation_error: bool,
+    pub(super) generation_error: bool,
+    pub(super) summary_contains_grounding: bool,
     incomplete_finish: Option<FinishReason>,
     cancel_after_generation: bool,
     cancel_during_measure: bool,
@@ -177,8 +179,19 @@ struct Fake {
     stale: bool,
     stale_after_lookup: bool,
     fragments: Vec<(usize, usize)>,
+    large_summary_calls: Option<std::ops::Range<usize>>,
 }
 impl Effects for Fake {
+    fn supports_partial_prompt_reuse(&self) -> bool {
+        self.reuse_prefix
+    }
+
+    fn prefer_large_summary_chunks(&self) -> bool {
+        self.large_summary_calls
+            .as_ref()
+            .is_some_and(|calls| calls.contains(&self.calls))
+    }
+
     fn check_current(&mut self) -> Result<(), PrepareError> {
         if self.cancelled || (self.cancel_after_generation && self.calls > 0) {
             return Err(PrepareError::Cancelled);
@@ -209,6 +222,9 @@ impl Effects for Fake {
         _output: usize,
     ) -> Result<(String, FinishReason), PrepareError> {
         self.calls += 1;
+        self.summary_contains_grounding |= messages
+            .iter()
+            .any(|message| message.content.contains("BEGIN KNOWLEDGE CONTEXT"));
         if self.generation_error {
             return Err(PrepareError::Backend("Summary generation failed".into()));
         }
@@ -232,6 +248,13 @@ impl Effects for Fake {
         self.check_current()?;
         self.checkpoints.push(state.clone());
         Ok(())
+    }
+}
+
+pub(super) fn effects_with_prefix_reuse(reuse_prefix: bool) -> Fake {
+    Fake {
+        reuse_prefix,
+        ..Default::default()
     }
 }
 
@@ -327,6 +350,7 @@ fn fits_without_inference_and_reuses_saved_memory_after_restore() {
     let PreparationResult {
         messages,
         prompt_tokens,
+        ..
     } = reopened.run(&mut fresh).unwrap();
     assert_eq!(fresh.calls, 0);
     assert!(prompt_tokens <= 1280);
@@ -345,6 +369,7 @@ fn fits_without_inference_and_reuses_saved_memory_after_restore() {
     let PreparationResult {
         messages,
         prompt_tokens,
+        ..
     } = expanded.run(&mut fresh).unwrap();
     assert_eq!(
         serde_json::to_value(&messages).unwrap(),
@@ -360,6 +385,37 @@ fn fits_without_inference_and_reuses_saved_memory_after_restore() {
     assert_eq!(expanded.state(), state.as_ref());
     assert_eq!(fresh.calls, 0);
     assert!(fresh.checkpoints.is_empty());
+}
+
+#[test]
+fn larger_summary_chunks_reduce_work_and_preserve_restored_memory() {
+    let history = long_history(16, 400);
+    let mut baseline = work(history.clone(), None);
+    let mut baseline_effects = Fake::default();
+    baseline.run(&mut baseline_effects).unwrap();
+    for large_summary_calls in [0..usize::MAX, 1..3] {
+        let mut preparation = work(history.clone(), None);
+        let mut effects = Fake {
+            large_summary_calls: Some(large_summary_calls),
+            ..Default::default()
+        };
+        let result = preparation.run(&mut effects).unwrap();
+        assert!(effects.calls < baseline_effects.calls);
+        assert!(result.prompt_tokens <= 1280);
+        assert_eq!(result.messages.last().unwrap().content, "What is pending?");
+        let state = preparation.state().cloned().unwrap();
+        assert_eq!(state.coverage(&history), Some(preparation.covered()));
+        let mut restored = work(history.clone(), Some(state));
+        let mut restored_effects = Fake::default();
+        let restored_result = restored.run(&mut restored_effects).unwrap();
+        assert_eq!(restored_effects.calls, 0);
+        assert!(restored_result.prompt_tokens <= 1280);
+        assert!(
+            restored_result.messages[0]
+                .content
+                .contains("Keep data offline")
+        );
+    }
 }
 
 #[test]
@@ -390,6 +446,7 @@ fn rebuilds_context_when_a_branch_extends_a_summarized_unanswered_user() {
         let PreparationResult {
             messages,
             prompt_tokens,
+            ..
         } = alternate.run(&mut effects).unwrap();
         assert!(prompt_tokens <= 1280);
         assert_eq!(messages.last().unwrap().content, "What is pending?");
@@ -455,6 +512,7 @@ fn recovers_omitted_details_without_resummarizing_or_duplicating_tail() {
     let PreparationResult {
         messages,
         prompt_tokens,
+        ..
     } = prep.run(&mut effects).unwrap();
     assert_eq!(effects.calls, 0);
     assert!(effects.checkpoints.is_empty());
@@ -552,11 +610,17 @@ fn snapshot_is_revalidated_after_lightweight_lookup_polls() {
 
 #[test]
 fn incomplete_or_cancelled_summaries_never_advance_saved_coverage() {
-    for finish in [FinishReason::StopSequence, FinishReason::OutputLimit] {
+    for (finish, full_budget) in [
+        (FinishReason::StopSequence, false),
+        (FinishReason::StopSequence, true),
+        (FinishReason::OutputLimit, false),
+        (FinishReason::OutputLimit, true),
+    ] {
         let mut prep = work(long_history(6, 1400), None);
         let mut effects = Fake {
             incomplete: 1,
             incomplete_finish: Some(finish),
+            large_summary_calls: full_budget.then_some(0..usize::MAX),
             ..Default::default()
         };
         prep.run(&mut effects).unwrap();
@@ -567,11 +631,13 @@ fn incomplete_or_cancelled_summaries_never_advance_saved_coverage() {
     let mut prep = work(long_history(6, 800), None);
     let mut effects = Fake {
         incomplete: 2,
+        large_summary_calls: Some(0..usize::MAX),
         ..Default::default()
     };
     let PreparationResult {
         messages,
         prompt_tokens,
+        ..
     } = prep.run(&mut effects).unwrap();
     assert!(prompt_tokens <= input_budget(2048, 512).unwrap());
     assert_eq!(messages.last().unwrap().content, "What is pending?");
@@ -583,6 +649,7 @@ fn incomplete_or_cancelled_summaries_never_advance_saved_coverage() {
     let mut prep = work(long_history(6, 800), None);
     let mut effects = Fake {
         cancel_after_generation: true,
+        large_summary_calls: Some(0..usize::MAX),
         ..Default::default()
     };
     assert!(matches!(
@@ -594,17 +661,28 @@ fn incomplete_or_cancelled_summaries_never_advance_saved_coverage() {
 
 #[test]
 fn large_exchange_is_chunked_without_gaps_or_partial_checkpoints() {
-    let mut prep = work(long_history(1, 14000), None);
-    let mut effects = Fake::default();
-    prep.run(&mut effects).unwrap();
-    assert!(effects.calls > 3);
-    let mut next = 0;
-    for (offset, length) in effects.fragments {
-        assert_eq!(offset, next);
-        next += length;
+    for full_budget in [false, true] {
+        let mut history = long_history(1, 14000);
+        history[0].text = "Plan 🌱\n\"offline\" ".repeat(1000);
+        let payload = serde_json::json!(history_rows(&history)).to_string();
+        let mut prep = work(history, None);
+        let mut effects = Fake {
+            large_summary_calls: full_budget.then_some(0..usize::MAX),
+            ..Default::default()
+        };
+        prep.run(&mut effects).unwrap();
+        assert!(effects.calls > 3);
+        let mut next = 0;
+        for (offset, length) in effects.fragments {
+            assert_eq!(offset, next);
+            assert!(payload.is_char_boundary(offset));
+            next += length;
+            assert!(payload.is_char_boundary(next));
+        }
+        assert_eq!(next, payload.len());
+        assert_eq!(effects.checkpoints.len(), 1);
+        assert_eq!(prep.covered(), 2);
     }
-    assert_eq!(effects.checkpoints.len(), 1);
-    assert_eq!(prep.covered(), 2);
 }
 
 #[test]
@@ -644,6 +722,7 @@ fn failed_summary_uses_fitting_history_without_changing_saved_memory() {
     let PreparationResult {
         messages,
         prompt_tokens,
+        ..
     } = prep.run(&mut effects).unwrap();
     assert!(prompt_tokens <= input_budget(2048, 512).unwrap());
     assert!(
@@ -665,7 +744,7 @@ fn failed_summary_uses_fitting_history_without_changing_saved_memory() {
     ));
 }
 
-fn turn_input(messages: Vec<Message>) -> TurnInput {
+pub(super) fn turn_input(messages: Vec<Message>) -> TurnInput {
     let current = messages.last().unwrap().text.clone();
     TurnInput {
         session: Uuid::from_u128(100),

@@ -29,14 +29,13 @@ final class ResponseNotificationTests: XCTestCase {
                 .isEligible(enabled: true, now: now))
     }
 
-    func testPreviewOmitsPrivateReasoningAndFormatting() {
+    func testPreviewOmitsFormatting() {
         XCTAssertEqual(
             responseNotificationPreview(
-                "<think>private</think>**Hello** *world*. [Read more](https://example.com)."),
+                "**Hello** *world*. [Read more](https://example.com)."),
             "Hello world. Read more.")
-        XCTAssertEqual(responseNotificationPreview("<think>unfinished private reasoning"), "")
         XCTAssertEqual(
-            responseNotificationPreview("<todo_list>internal</todo_list>## Ready"), "Ready")
+            responseNotificationPreview("## Ready"), "Ready")
         XCTAssertEqual(responseNotificationPreview("```python\na = 1\n```"), "a = 1")
     }
 
@@ -53,43 +52,69 @@ final class ResponseNotificationTests: XCTestCase {
     }
 
     @MainActor
-    func testCompletionQueuedBeforeExpirySurvivesDelayedAcknowledgement() async {
+    func testGenerationProgressRemainsDeterminateUntilSaved() async {
         let harness = NotificationDeliveryHarness()
-        addTeardownBlock { await harness.cleanup() }
+        harness.state.isBackground = false
         let id = harness.begin()
-        let submitted = expectation(description: "Completion enqueued")
-        harness.center.onEnqueue = { submitted.fulfill() }
-        let completion = Task { @MainActor in
-            await harness.background.complete(
-                id, message: UUID(), text: "Saved answer")
-        }
-        await fulfillment(of: [submitted], timeout: 1)
-        XCTAssertEqual(harness.center.requests.map(\.content.title), ["response"])
-        XCTAssertEqual(harness.scheduler.expirations.keys.first, id)
-
-        harness.scheduler.expirations[id]?()
-        XCTAssertNil(harness.scheduler.expirations.keys.first)
-        XCTAssertEqual(harness.center.requests.count, 1)
-        harness.center.acknowledgeNext()
-        await completion.value
-        XCTAssertTrue(harness.center.removedPending.isEmpty)
-        XCTAssertTrue(harness.center.removedDelivered.isEmpty)
+        harness.background.downloadProgress(id, completed: 10, total: 100)
+        harness.background.downloadProgress(id, completed: 100, total: 100)
+        harness.background.update(id, status: "Preparing conversation", completed: 3, total: 4)
+        harness.background.advancePreparation(id)
+        harness.background.prepareAnswer(id, maxTokens: 1000)
+        harness.background.promptProgress(id, completed: 0, total: 512)
+        harness.background.promptProgress(id, completed: 256, total: 512)
+        harness.background.promptProgress(id, completed: 512, total: 512)
+        harness.background.responseProgress(id, tokens: 100)
+        harness.background.responseProgress(id, tokens: 2000)
+        let progress = harness.scheduler.updates.map { Double($0.completed) / Double($0.total) }
+        XCTAssertTrue(
+            harness.scheduler.updates.allSatisfy {
+                $0.total > 0 && $0.completed < $0.total
+            })
+        XCTAssertTrue(zip(progress, progress.dropFirst()).allSatisfy { $0 < $1 })
+        await harness.background.complete(id, message: UUID(), text: "Saved answer")
+        XCTAssertEqual(harness.scheduler.updates.last?.completed, 1)
+        XCTAssertEqual(harness.scheduler.updates.last?.total, 1)
+        XCTAssertTrue(harness.scheduler.expirations.isEmpty)
+        XCTAssertTrue(harness.center.requests.isEmpty)
     }
 
     @MainActor
-    func testFailureEnqueuesBeforeReturningAndSurvivesExpiry() async {
-        let harness = NotificationDeliveryHarness()
-        addTeardownBlock { await harness.cleanup() }
-        let id = harness.begin()
-        harness.background.finish(id)
-        XCTAssertEqual(harness.center.requests.map(\.content.title), ["interruption"])
-        harness.scheduler.expirations[id]?()
-        harness.background.finish(id)
-        XCTAssertEqual(harness.center.requests.count, 1)
-        harness.center.acknowledgeNext()
-        await harness.notices.lastDelivery?.value
-        XCTAssertTrue(harness.center.removedPending.isEmpty)
-        XCTAssertTrue(harness.center.removedDelivered.isEmpty)
+    func testCompletionAndFailureSurviveExpiryBeforeAcknowledgement() async {
+        for succeeded in [false, true] {
+            let harness = NotificationDeliveryHarness()
+            addTeardownBlock { await harness.cleanup() }
+            let id = harness.begin()
+            var completion: Task<Void, Never>?
+            if succeeded {
+                let submitted = expectation(description: "Completion enqueued")
+                harness.center.onEnqueue = { submitted.fulfill() }
+                completion = Task { @MainActor in
+                    await harness.background.complete(
+                        id, message: UUID(),
+                        text: "<think>outer<think>inner</think>hidden</think>**Saved answer**")
+                }
+                await fulfillment(of: [submitted], timeout: 1)
+            } else {
+                harness.background.finish(id)
+            }
+            XCTAssertEqual(
+                harness.center.requests.map(\.content.title),
+                [succeeded ? "response" : "interruption"])
+            if succeeded {
+                XCTAssertEqual(harness.center.requests.first?.content.body, "Saved answer")
+            }
+            XCTAssertEqual(harness.scheduler.expirations.keys.first, id)
+            harness.scheduler.expirations[id]?()
+            harness.background.finish(id)
+            XCTAssertNil(harness.scheduler.expirations.keys.first)
+            XCTAssertEqual(harness.center.requests.count, 1)
+            harness.center.acknowledgeNext()
+            await completion?.value
+            await harness.notices.lastDelivery?.value
+            XCTAssertTrue(harness.center.removedPending.isEmpty)
+            XCTAssertTrue(harness.center.removedDelivered.isEmpty)
+        }
     }
 
     @MainActor
@@ -125,20 +150,14 @@ final class ResponseNotificationTests: XCTestCase {
     }
 
     @MainActor
-    func testUserCancellationAndForegroundCompletionNeverEnqueue() async {
+    func testUserCancellationNeverEnqueues() async {
         let harness = NotificationDeliveryHarness()
         addTeardownBlock { await harness.cleanup() }
         let cancelled = harness.begin()
         harness.background.end(cancelled)
         harness.background.finish(cancelled)
         XCTAssertTrue(harness.center.requests.isEmpty)
-
-        let foreground = harness.begin()
-        harness.state.isBackground = false
-        await harness.background.complete(
-            foreground, message: UUID(), text: "Saved answer")
-        XCTAssertTrue(harness.center.requests.isEmpty)
-        XCTAssertNil(harness.scheduler.expirations.keys.first)
+        XCTAssertTrue(harness.scheduler.expirations.isEmpty)
     }
     @MainActor
     func testIndependentDownloadKeepsItsLeaseWhenConcurrentResponseEnds() async throws {
@@ -179,8 +198,6 @@ final class ResponseNotificationTests: XCTestCase {
         responseDownload.reportProgress()
         await fulfillment(of: [routed], timeout: 1)
         XCTAssertEqual(delivery.scheduler.updates.last?.id, response)
-        XCTAssertEqual(delivery.scheduler.updates.last?.completed, 10)
-        XCTAssertEqual(delivery.scheduler.updates.last?.total, 100)
 
         let independent = Task {
             try await independentStore.download(assets: [transcriptionModelAsset()]) { _ in }
@@ -262,8 +279,6 @@ final class ResponseNotificationTests: XCTestCase {
             download.reportProgress()
             await fulfillment(of: [progress], timeout: 1)
             XCTAssertEqual(delivery.scheduler.updates.last?.id, response)
-            XCTAssertEqual(delivery.scheduler.updates.last?.completed, 10)
-            XCTAssertEqual(delivery.scheduler.updates.last?.total, 100)
             task.cancel()
             _ = await task.result
             XCTAssertTrue(background.ended.isEmpty)
@@ -333,7 +348,7 @@ private final class TestResponseNotices: ResponseNotificationPosting {
         id: UUID, session: UUID, message: UUID, query: String, body: String,
         isCurrent: @escaping @MainActor () -> Bool
     ) -> Task<Void, Never>? {
-        post(id: id, title: "response", isCurrent: isCurrent)
+        post(id: id, title: "response", body: body, isCurrent: isCurrent)
     }
 
     func postInterruption(
@@ -343,10 +358,11 @@ private final class TestResponseNotices: ResponseNotificationPosting {
     }
 
     private func post(
-        id: UUID, title: String, isCurrent: @escaping @MainActor () -> Bool
+        id: UUID, title: String, body: String = "", isCurrent: @escaping @MainActor () -> Bool
     ) -> Task<Void, Never>? {
         let content = UNMutableNotificationContent()
         content.title = title
+        content.body = body
         let request = UNNotificationRequest(
             identifier: id.uuidString, content: content, trigger: nil)
         lastDelivery = delivery.post(request, isCurrent: isCurrent)
@@ -455,7 +471,7 @@ private final class ControlledAssetDownload {
     func reportProgress() {
         callback?.onProgress(
             progress: .init(
-                label: "Independent pack", downloadedBytes: 10, totalBytes: 100,
+                label: "Independent pack", queued: false, downloadedBytes: 10, totalBytes: 100,
                 percentage: 10, status: "Downloading", logLine: nil))
     }
 

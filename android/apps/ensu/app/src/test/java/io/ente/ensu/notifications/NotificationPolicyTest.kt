@@ -21,15 +21,12 @@ class NotificationPolicyTest {
     }
 
     @Test
-    fun previewOmitsHiddenReasoningAndFormatting() {
+    fun previewOmitsFormatting() {
         assertEquals(
             "Hello world. Read more.",
-            responsePreview(
-                "<think>private</think>**Hello** *world*. [Read more](https://example.com)."
-            ),
+            responsePreview("**Hello** *world*. [Read more](https://example.com)."),
         )
-        assertEquals("", responsePreview("<think>unfinished private reasoning"))
-        assertEquals("Ready", responsePreview("<todo_list>internal tasks</todo_list>## Ready"))
+        assertEquals("Ready", responsePreview("## Ready"))
         assertEquals("a = 1", responsePreview("```python\na = 1\n```"))
     }
 

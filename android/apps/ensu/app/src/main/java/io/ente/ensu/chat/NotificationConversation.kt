@@ -14,12 +14,16 @@ internal suspend fun loadNotificationConversation(
     initialSessionLoad: Job?,
     sessionId: String,
     messageId: String?,
+    cachedSessions: () -> List<ChatSession>,
     listSessions: () -> List<ChatSession>,
     getMessages: (String) -> List<ChatMessage>,
     onSessionFound: () -> Unit,
 ): NotificationConversation? {
     initialSessionLoad?.join()
-    val sessions = withContext(Dispatchers.IO) { listSessions() }
+    val cached = cachedSessions()
+    val sessions =
+        if (cached.any { it.id == sessionId }) cached
+        else withContext(Dispatchers.IO) { listSessions() }
     if (sessions.none { it.id == sessionId }) return null
     onSessionFound()
     val messages = withContext(Dispatchers.IO) { getMessages(sessionId) }

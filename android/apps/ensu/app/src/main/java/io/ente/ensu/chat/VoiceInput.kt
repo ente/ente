@@ -43,7 +43,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -512,11 +511,6 @@ internal class VoiceTranscriptionController(
         insertionFactory = null
         stream = null
         capture = null
-    }
-
-    fun dispose() {
-        discard()
-        scope.cancel()
     }
 }
 

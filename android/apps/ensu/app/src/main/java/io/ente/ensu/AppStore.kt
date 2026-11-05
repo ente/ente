@@ -179,8 +179,6 @@ class AppStore(
         }
     }
 
-    fun dispose() = voiceController.dispose()
-
     fun bootstrap(scope: CoroutineScope) {
         notesStore.bootstrap(scope)
         chatActions.setScope(scope)

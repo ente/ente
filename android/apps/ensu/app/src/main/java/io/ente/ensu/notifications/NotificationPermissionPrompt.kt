@@ -10,11 +10,16 @@ import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -24,15 +29,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import io.ente.ensu.components.PrimaryButton
+import io.ente.ensu.components.CompactButton
+import io.ente.ensu.components.KnowledgeCard
+import io.ente.ensu.components.TextActionButton
 import io.ente.ensu.designsystem.EnsuColor
+import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationPermissionPrompt(
     activity: ComponentActivity,
@@ -84,33 +96,47 @@ fun NotificationPermissionPrompt(
     if (current != null && ready) {
         val canRequest = permissions.canRequest(activity)
         LaunchedEffect(current) { permissions.didShow(current) }
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = permissions::dismiss,
-            title = {
-                Text(
-                    "Let Ensu notify you",
-                    style = EnsuTypography.h3Bold,
-                    color = EnsuColor.textPrimary(),
-                )
-            },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = EnsuColor.backgroundBase(),
-            tonalElevation = 0.dp,
-            text = {
-                Text(
-                    if (canRequest)
-                        "Switch to another app while Ensu works. We’ll let you know when your response is ready."
-                    else
-                        "Switch to another app while Ensu works. Turn on notifications in Settings, and we’ll let you know when your response is ready.",
-                    style = EnsuTypography.body,
-                    color = EnsuColor.textPrimary(),
-                )
-            },
-            confirmButton = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    PrimaryButton(
-                        text = if (canRequest) "Enable notifications" else "Open settings",
-                        isLoading = false,
-                        isEnabled = true,
+        ) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = EnsuSpacing.pageHorizontal.dp)
+                    .padding(bottom = EnsuSpacing.lg.dp),
+                verticalArrangement = Arrangement.spacedBy(EnsuSpacing.lg.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)) {
+                    Text(
+                        "Let Ensu notify you",
+                        style = EnsuTypography.h3,
+                        color = EnsuColor.textPrimary(),
+                    )
+                    Text(
+                        "Switch to another app while Ensu works.",
+                        style = EnsuTypography.body,
+                        color = EnsuColor.textMuted(),
+                    )
+                }
+                KnowledgeCard(spacing = EnsuSpacing.sm.dp) {
+                    Text(
+                        "Response notifications",
+                        style = EnsuTypography.large,
+                        color = EnsuColor.textPrimary(),
+                    )
+                    Text(
+                        if (canRequest)
+                            "We’ll let you know when your response is ready, with the answer in the notification."
+                        else
+                            "Turn on notifications in Settings to see when your response is ready, with the answer in the notification.",
+                        style = EnsuTypography.small,
+                        color = EnsuColor.textMuted(),
+                    )
+                    CompactButton(
+                        label = if (canRequest) "Enable notifications" else "Open settings",
+                        prominent = true,
                         onClick = {
                             permissions.dismiss()
                             if (canRequest) {
@@ -118,16 +144,27 @@ fun NotificationPermissionPrompt(
                             } else permissions.openSettings(activity)
                         },
                     )
-                    TextButton(onClick = permissions::dismiss, modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            "Not now",
-                            style = EnsuTypography.body,
-                            color = EnsuColor.textPrimary(),
-                        )
-                    }
                 }
-            },
-        )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(EnsuSpacing.xs.dp),
+                ) {
+                    TextActionButton(
+                        text = "Not now",
+                        onTap = permissions::dismiss,
+                        underlined = true,
+                        color = EnsuColor.textPrimary(),
+                    )
+                    Text(
+                        "You can change notification preferences later from Settings.",
+                        style = EnsuTypography.mini.copy(fontWeight = FontWeight.Normal),
+                        color = EnsuColor.textMuted(),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
     }
 }
 

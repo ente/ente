@@ -14,12 +14,6 @@ struct ResponseNotificationCampaign {
 
 func responseNotificationPreview(_ text: String) -> String {
     var visible = text
-    for tag in ["think", "todo_list"] {
-        visible = visible.replacingOccurrences(
-            of: "(?is)<\(tag)>.*?</\(tag)>", with: "", options: .regularExpression)
-        visible = visible.replacingOccurrences(
-            of: "(?is)<\(tag)>.*$", with: "", options: .regularExpression)
-    }
     visible = visible.replacingOccurrences(
         of: #"(?m)^```[^\n]*$"#, with: "", options: .regularExpression)
     if let plain = try? AttributedString(
