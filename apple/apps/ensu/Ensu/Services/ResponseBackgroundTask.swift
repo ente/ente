@@ -97,14 +97,15 @@ final class ResponseBackgroundTask {
     }
 
     func complete(_ id: UUID, message: UUID, text: String) async {
+        guard let attempt = resolve(id) else { return }
         let body = responseNotificationPreview(stripHiddenPartsText(text: text))
-        guard !body.isEmpty, let attempt = resolve(id)
-        else { return }
         scheduler.update(id, status: "Response ready", completed: 1, total: 1, force: true)
-        let delivery = notifications.postResponse(
-            id: id, session: attempt.session, message: message,
-            query: attempt.query, body: body, isCurrent: { self.latestGeneration == id })
-        await delivery?.value
+        if !body.isEmpty {
+            let delivery = notifications.postResponse(
+                id: id, session: attempt.session, message: message,
+                query: attempt.query, body: body, isCurrent: { self.latestGeneration == id })
+            await delivery?.value
+        }
         end(id, success: true)
     }
 

@@ -643,6 +643,7 @@ fn source_context_and_required_history_are_measured_in_final_roles() {
     )
     .unwrap();
     for placement in [GroundingPlacement::System, GroundingPlacement::CurrentTurn] {
+        let mut measured_contents = Vec::new();
         let fitted = fit_grounding_with_history(
             &candidates.select_sources(None).unwrap(),
             Some(&history),
@@ -656,19 +657,27 @@ fn source_context_and_required_history_are_measured_in_final_roles() {
                 assert_eq!(current.role, "user");
                 assert!(current.content.contains("ZX-82Q"));
                 assert!(current.content.ends_with(query));
-                match placement {
+                let evidence_message = match placement {
                     GroundingPlacement::System => {
                         assert!(!current.content.contains("BEGIN KNOWLEDGE CONTEXT"));
+                        &messages[0]
                     }
                     GroundingPlacement::CurrentTurn => {
                         assert_eq!(messages[0].content, "System");
+                        current
                     }
-                }
+                };
+                measured_contents.push(evidence_message.content.clone());
                 measure(messages)
             },
         )
         .unwrap();
         let context = fitted.context.as_ref().unwrap();
+        assert!(
+            measured_contents
+                .iter()
+                .any(|text| text.contains(&context.text))
+        );
         assert!(context.text.contains("The new rule"));
         assert!(
             context

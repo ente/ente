@@ -259,7 +259,7 @@ internal class ChatStoreActions(
                 cachedSessions = { state.value.chat.sessions },
                 listSessions = chatRepository::listSessions,
                 getMessages = chatRepository::getMessages,
-                onSessionFound = ::resetGenerationState,
+                onConversationLoaded = ::resetGenerationState,
             ) ?: return@open false
         state.update {
             it.copy(

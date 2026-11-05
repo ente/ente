@@ -103,9 +103,9 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     }
 
     fun completed(id: Long, message: String, text: String) {
+        val attempt = lifecycle.resolve(id) ?: return
         val preview = responsePreview(stripHiddenPartsText(text))
         if (preview.isBlank()) return
-        val attempt = lifecycle.resolve(id) ?: return
         postNotice(
             tag = "ensu.response.$message",
             title = responseNotificationTitle(attempt.query),

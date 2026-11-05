@@ -54,6 +54,7 @@ final class ResponseNotificationTests: XCTestCase {
     @MainActor
     func testGenerationProgressRemainsDeterminateUntilSaved() async {
         let harness = NotificationDeliveryHarness()
+        addTeardownBlock { await harness.cleanup() }
         harness.state.isBackground = false
         let id = harness.begin()
         harness.background.downloadProgress(id, completed: 10, total: 100)
@@ -77,6 +78,16 @@ final class ResponseNotificationTests: XCTestCase {
         XCTAssertEqual(harness.scheduler.updates.last?.total, 1)
         XCTAssertTrue(harness.scheduler.expirations.isEmpty)
         XCTAssertTrue(harness.center.requests.isEmpty)
+        harness.state.isBackground = true
+        for text in ["", "<think>outer<think>inner</think>hidden</think>"] {
+            let id = harness.begin()
+            await harness.background.complete(id, message: UUID(), text: text)
+            harness.background.finish(id)
+            XCTAssertEqual(harness.scheduler.updates.last?.completed, 1)
+            XCTAssertEqual(harness.scheduler.updates.last?.total, 1)
+            XCTAssertTrue(harness.scheduler.expirations.isEmpty)
+            XCTAssertTrue(harness.center.requests.isEmpty)
+        }
     }
 
     @MainActor

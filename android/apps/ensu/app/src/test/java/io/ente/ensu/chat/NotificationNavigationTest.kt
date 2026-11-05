@@ -48,11 +48,12 @@ class NotificationNavigationTest {
                     else listOf("sessions", "messages:conversation"),
                     repository.calls,
                 )
-                assertTrue(generationReset)
+                assertFalse(generationReset)
                 assertFalse(navigation.isCompleted)
                 repository.releaseMessages.countDown()
 
                 val conversation = checkNotNull(navigation.await())
+                assertTrue(generationReset)
                 assertEquals(repository.sessions, conversation.sessions)
                 assertEquals(repository.messages, conversation.messages)
                 assertEquals(
@@ -117,6 +118,7 @@ class NotificationNavigationTest {
             owner.open { true }
             val priorToken = checkNotNull(owner.opened.value)
             var selectedAnswer = "earlier-answer"
+            var generationReset = false
             val navigation =
                 launch(start = CoroutineStart.UNDISPATCHED) {
                     owner.open {
@@ -128,7 +130,9 @@ class NotificationNavigationTest {
                                 { repository.sessions },
                                 repository::listSessions,
                                 repository::getMessages,
-                            ) {} ?: return@open false
+                            ) {
+                                generationReset = true
+                            } ?: return@open false
                         selectedAnswer = conversation.branchSelections.getValue("question")
                         true
                     }
@@ -151,6 +155,7 @@ class NotificationNavigationTest {
                 repository.releaseMessages.countDown()
                 navigation.join()
                 assertTrue(navigation.isCancelled)
+                assertFalse(generationReset)
                 assertEquals("newer-answer", selectedAnswer)
                 owner.acknowledge(priorToken)
                 assertEquals(latestToken, owner.opened.value)
@@ -192,7 +197,7 @@ class NotificationNavigationTest {
                 true
             }
             assertEquals(if (unavailable == "missing") emptyList() else listOf(error), failures)
-            assertEquals(unavailable == "messages", generationReset)
+            assertFalse(generationReset)
             assertEquals(
                 if (unavailable == "sessions") emptyList() else listOf("sessions"),
                 repository.calls,

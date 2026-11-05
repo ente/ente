@@ -17,7 +17,7 @@ internal suspend fun loadNotificationConversation(
     cachedSessions: () -> List<ChatSession>,
     listSessions: () -> List<ChatSession>,
     getMessages: (String) -> List<ChatMessage>,
-    onSessionFound: () -> Unit,
+    onConversationLoaded: () -> Unit,
 ): NotificationConversation? {
     initialSessionLoad?.join()
     val cached = cachedSessions()
@@ -25,7 +25,6 @@ internal suspend fun loadNotificationConversation(
         if (cached.any { it.id == sessionId }) cached
         else withContext(Dispatchers.IO) { listSessions() }
     if (sessions.none { it.id == sessionId }) return null
-    onSessionFound()
     val messages = withContext(Dispatchers.IO) { getMessages(sessionId) }
     val byId = messages.associateBy { it.id }
     val selections = mutableMapOf<String, String>()
@@ -35,5 +34,6 @@ internal suspend fun loadNotificationConversation(
         selections[node.parentId ?: "__root__"] = node.id
         node = node.parentId?.let(byId::get)
     }
+    onConversationLoaded()
     return NotificationConversation(sessions, messages, selections)
 }
