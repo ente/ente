@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::HashSet;
 
-use super::{Trip, TripAnalysis};
+use super::{Base, Trip, TripAnalysis};
 use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
 use crate::memories::geo::distance_km;
@@ -70,11 +70,11 @@ impl<'r> TripHistory<'r> {
             .collect()
     }
 
-    fn last_shown(&self, trip: &Trip) -> Option<i64> {
+    fn last_shown(&self, trip: &Trip, current: &HashSet<&str>) -> Option<i64> {
         self.shown
             .iter()
             .filter(|shown| match &shown.key {
-                Some(key) => is_same_trip(key, trip),
+                Some(key) => is_same_trip(key, trip, current),
                 None => distance_km(trip.location, shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
             })
             .map(|shown| shown.last_time_shown)
@@ -99,7 +99,18 @@ pub(in crate::memories) fn memories(
     if request.surface_all {
         return surface_all(analysis, &trips, period, places, selector);
     }
-    let selected = scheduled(&trips, history, period, request.local_gallery_mode);
+    let current: HashSet<&str> = analysis
+        .trips
+        .iter()
+        .map(|trip| trip.key.as_str())
+        .collect();
+    let selected = scheduled(
+        &trips,
+        &current,
+        history,
+        period,
+        request.local_gallery_mode,
+    );
     let last_date_to_show = period.now + TRIP_DISPLAY_DAYS * MICROS_PER_DAY;
     selected
         .into_iter()
@@ -116,23 +127,17 @@ pub(in crate::memories) fn all_memories(
     let bases = analysis.bases.iter().map(|base| {
         let mut photos: Vec<&Photo> = base.members.iter().map(|member| member.photo).collect();
         sort_chronologically(&mut photos);
-        let kind = MemoryKind::Base(BaseMemory {
-            location: base.location,
-            location_name: places.base_name(&base.members),
-            is_current: base.is_current,
-        });
-        Memory::uncapped(kind, &photos, period.now, last_date_to_show)
+        Memory::uncapped(
+            base_kind(base, places),
+            &photos,
+            period.now,
+            last_date_to_show,
+        )
     });
     let trips = analysis.trips.iter().rev().map(|trip| {
         let mut photos: Vec<&Photo> = trip.members.iter().map(|member| member.photo).collect();
         sort_chronologically(&mut photos);
-        let kind = MemoryKind::Trip(TripMemory {
-            location: trip.location,
-            location_name: trip.location_name.clone(),
-            year: trip.year(),
-            key: trip.key.clone(),
-        });
-        Memory::uncapped(kind, &photos, period.now, last_date_to_show)
+        Memory::uncapped(trip_kind(trip), &photos, period.now, last_date_to_show)
     });
     bases.chain(trips).collect()
 }
@@ -147,12 +152,12 @@ fn surface_all(
     let last_date_to_show = period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY;
     let bases = analysis.bases.iter().map(|base| {
         let photos: Vec<&Photo> = base.members.iter().map(|member| member.photo).collect();
-        let kind = MemoryKind::Base(BaseMemory {
-            location: base.location,
-            location_name: places.base_name(&base.members),
-            is_current: base.is_current,
-        });
-        Memory::new(kind, &photos, period.now, last_date_to_show)
+        Memory::new(
+            base_kind(base, places),
+            &photos,
+            period.now,
+            last_date_to_show,
+        )
     });
     let mut memories: Vec<Memory> = bases.collect();
     for trip in trips {
@@ -163,6 +168,7 @@ fn surface_all(
 
 fn scheduled<'a, 'p>(
     trips: &[&'a Trip<'p>],
+    current: &HashSet<&str>,
     history: &TripHistory,
     period: Period,
     local_gallery_mode: bool,
@@ -177,10 +183,10 @@ fn scheduled<'a, 'p>(
         .filter(|trip| {
             !active
                 .iter()
-                .any(|identity_key| is_same_trip(trip_key(identity_key), trip))
+                .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
         })
         .map(|&trip| {
-            let last_shown = history.last_shown(trip);
+            let last_shown = history.last_shown(trip, current);
             Candidate {
                 trip,
                 last_shown,
@@ -261,18 +267,29 @@ fn trip_memory(
     last_date_to_show: i64,
 ) -> Result<Memory> {
     let photos: Vec<&Photo> = trip.members.iter().map(|member| member.photo).collect();
-    let kind = MemoryKind::Trip(TripMemory {
-        location: trip.location,
-        location_name: trip.location_name.clone(),
-        year: trip.year(),
-        key: trip.key.clone(),
-    });
     Ok(Memory::new(
-        kind,
+        trip_kind(trip),
         &selector.best(photos, None)?,
         first_date_to_show,
         last_date_to_show,
     ))
+}
+
+fn trip_kind(trip: &Trip) -> MemoryKind {
+    MemoryKind::Trip(TripMemory {
+        location: trip.location,
+        location_name: trip.location_name.clone(),
+        year: trip.year(),
+        key: trip.key.clone(),
+    })
+}
+
+fn base_kind(base: &Base, places: &Places) -> MemoryKind {
+    MemoryKind::Base(BaseMemory {
+        location: base.location,
+        location_name: places.base_name(&base.members),
+        is_current: base.is_current,
+    })
 }
 
 fn anniversary_distance_days(trip: &Trip, period: Period) -> i64 {
@@ -317,13 +334,14 @@ fn trip_key(identity_key: &str) -> &str {
     identity_key.strip_prefix("trip:").unwrap_or(identity_key)
 }
 
-fn is_same_trip(key: &str, trip: &Trip) -> bool {
+fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {
     key == trip.key
-        || matches!(
-            (key_days(key), key_days(&trip.key)),
-            (Some((first, last)), Some((trip_first, trip_last)))
-                if first <= trip_last && trip_first <= last
-        )
+        || (!current.contains(key)
+            && matches!(
+                (key_days(key), key_days(&trip.key)),
+                (Some((first, last)), Some((trip_first, trip_last)))
+                    if first <= trip_last && trip_first <= last
+            ))
 }
 
 fn key_days(key: &str) -> Option<(i64, i64)> {

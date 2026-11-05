@@ -12,7 +12,7 @@ const HOME_RADIUS_KM: f64 = 0.6;
 const HOME_MERGE_RADIUS_KM: f64 = 1.5;
 const HOME_WINDOW_DAYS: i64 = 182;
 const HOME_MIN_DAYS: usize = 6;
-const HOME_MIN_MONTHS: usize = 3;
+const HOME_MIN_SPAN_DAYS: i64 = 90;
 const HOME_MARGIN_DAYS: i64 = 60;
 const RESIDENCE_DAY_SHARE: f64 = 0.2;
 const REGULAR_PLACE_RADIUS_KM: f64 = 2.0;
@@ -43,14 +43,9 @@ impl Home<'_> {
         !self.residence.is_empty()
     }
 
-    fn surrounds(&self, point: &Placed) -> bool {
-        distance_km(self.center, point.member.location) < AWAY_MIN_KM
-            || (self.urban_center.is_some() && self.urban_center == point.urban_center)
-    }
-
-    fn shares_area_with(&self, other: &Home) -> bool {
-        distance_km(self.center, other.center) < AWAY_MIN_KM
-            || (self.urban_center.is_some() && self.urban_center == other.urban_center)
+    fn surrounds(&self, location: Coordinate, urban_center: Option<u32>) -> bool {
+        distance_km(self.center, location) < AWAY_MIN_KM
+            || (self.urban_center.is_some() && self.urban_center == urban_center)
     }
 }
 
@@ -113,7 +108,8 @@ impl<'p> Homes<'p> {
 
     pub(super) fn contains(&self, point: &Placed) -> bool {
         let day = point.member.photo.date.days_since_epoch();
-        self.residences(day).any(|home| home.surrounds(point))
+        self.residences(day)
+            .any(|home| home.surrounds(point.member.location, point.urban_center))
             || self.homes.iter().any(|home| {
                 days_outside(&home.regular, day) == 0
                     && distance_km(home.center, point.member.location) < REGULAR_PLACE_RADIUS_KM
@@ -132,7 +128,10 @@ impl<'p> Homes<'p> {
         largest_first.sort_by_key(|home| Reverse(home.members.len()));
         let mut areas: Vec<Vec<&Home>> = Vec::new();
         for home in largest_first {
-            match areas.iter_mut().find(|area| area[0].shares_area_with(home)) {
+            match areas
+                .iter_mut()
+                .find(|area| area[0].surrounds(home.center, home.urban_center))
+            {
                 Some(area) => area.push(home),
                 None => areas.push(vec![home]),
             }
@@ -149,6 +148,7 @@ impl<'p> Homes<'p> {
     }
 
     fn residences(&self, day: i64) -> impl Iterator<Item = &Home<'p>> {
+        let staying = self.homes.iter().any(|home| home.lived_in(day));
         let nearest = self
             .homes
             .iter()
@@ -156,8 +156,11 @@ impl<'p> Homes<'p> {
             .map(|home| days_outside(&home.residence, day))
             .min();
         self.homes.iter().filter(move |home| {
-            home.lived_in(day)
-                || (home.is_residence() && Some(days_outside(&home.residence, day)) == nearest)
+            if staying {
+                home.lived_in(day)
+            } else {
+                home.is_residence() && Some(days_outside(&home.residence, day)) == nearest
+            }
         })
     }
 }
@@ -189,8 +192,10 @@ fn distinct_days<'p>(members: impl IntoIterator<Item = Located<'p>>) -> Vec<Loca
 }
 
 fn periods(members: &[Located], all_days: &[LocalDate]) -> (DayRanges, DayRanges) {
-    let days = distinct_days(members.iter().copied());
-    let numbers: Vec<i64> = days.iter().map(|day| day.days_since_epoch()).collect();
+    let numbers: Vec<i64> = distinct_days(members.iter().copied())
+        .iter()
+        .map(|day| day.days_since_epoch())
+        .collect();
     let (mut residence, mut regular) = (Vec::new(), Vec::new());
     let (mut start, mut end) = (0, 0);
     for &day in &numbers {
@@ -200,11 +205,7 @@ fn periods(members: &[Located], all_days: &[LocalDate]) -> (DayRanges, DayRanges
         while end < numbers.len() && numbers[end] <= day + HOME_WINDOW_DAYS {
             end += 1;
         }
-        let months: HashSet<(i32, i32)> = days[start..end]
-            .iter()
-            .map(|day| (day.year, day.month))
-            .collect();
-        if end - start < HOME_MIN_DAYS || months.len() < HOME_MIN_MONTHS {
+        if end - start < HOME_MIN_DAYS || numbers[end - 1] - numbers[start] < HOME_MIN_SPAN_DAYS {
             continue;
         }
         let all = all_days

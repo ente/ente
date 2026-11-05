@@ -83,13 +83,7 @@ impl Places {
     }
 
     pub(super) fn city_counts(&self, members: &[Located]) -> Vec<(&str, usize)> {
-        let mut counts: HashMap<usize, usize> = HashMap::new();
-        for member in members {
-            if let Some(&place) = self.place_of_photo.get(&member.photo.id) {
-                *counts.entry(place).or_default() += 1;
-            }
-        }
-        let mut counts: Vec<(usize, usize)> = counts.into_iter().collect();
+        let mut counts: Vec<(usize, usize)> = self.place_counts(members).into_iter().collect();
         counts.sort_by_key(|&(place, count)| (Reverse(count), place));
         counts
             .into_iter()
@@ -97,13 +91,18 @@ impl Places {
             .collect()
     }
 
-    fn tally(&self, members: &[Located]) -> Option<Tally> {
+    fn place_counts(&self, members: &[Located]) -> HashMap<usize, usize> {
         let mut counts: HashMap<usize, usize> = HashMap::new();
         for member in members {
             if let Some(&place) = self.place_of_photo.get(&member.photo.id) {
                 *counts.entry(place).or_default() += 1;
             }
         }
+        counts
+    }
+
+    fn tally(&self, members: &[Located]) -> Option<Tally> {
+        let counts = self.place_counts(members);
         let (&biggest, &biggest_count) = counts
             .iter()
             .max_by_key(|&(&place, &count)| (count, Reverse(place)))?;
