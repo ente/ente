@@ -16,7 +16,7 @@ class GenerationService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var lease: String? = null
-    private var latestStartId = 0
+    private var leaseStartId = 0
     private val coordinator
         get() = (application as EnsuApplication).backgroundGeneration
 
@@ -27,16 +27,24 @@ class GenerationService : Service() {
             if (lease == null) stopSelf(startId)
             return START_NOT_STICKY
         }
-        if (
-            requestedLease == null ||
-                requestedLease != coordinator.lease ||
-                coordinator.isForeground
-        ) {
+        if (requestedLease == null || requestedLease != coordinator.lease) {
             if (lease == null) stopSelf(startId)
             return START_NOT_STICKY
         }
-        latestStartId = startId
-        val notification = coordinator.progressNotification(requestedLease)
+        if (!updateForeground(requestedLease)) {
+            if (lease != requestedLease) stopSelf(startId)
+            return START_NOT_STICKY
+        }
+        if (lease != requestedLease) {
+            lease = requestedLease
+            leaseStartId = startId
+        }
+        return START_NOT_STICKY
+    }
+
+    private fun updateForeground(id: String): Boolean {
+        if (id != coordinator.lease) return false
+        val notification = coordinator.progressNotification(id)
         try {
             if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(
@@ -45,31 +53,30 @@ class GenerationService : Service() {
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE,
                 )
             } else startForeground(BackgroundGeneration.PROGRESS_ID, notification)
+            coordinator.renewLease(id) { updateForeground(id) }
         } catch (error: RuntimeException) {
-            coordinator.serviceUnavailable(requestedLease, error)
-            stopSelf(startId)
-            return START_NOT_STICKY
+            if (lease != id) coordinator.serviceUnavailable(id, error)
+            return false
         }
-        if (lease != requestedLease) {
-            lease = requestedLease
-            handler.removeCallbacksAndMessages(null)
-            handler.postDelayed({ expire() }, BackgroundGeneration.TIMEOUT_MS)
-        }
-        return START_NOT_STICKY
+        handler.removeCallbacksAndMessages(null)
+        handler.postDelayed({ expire() }, BackgroundGeneration.TIMEOUT_MS)
+        return true
     }
 
     private fun expire() {
-        lease?.let(coordinator::expire)
+        val id = lease
+        if (id != null && coordinator.isForeground && updateForeground(id)) return
+        id?.let(coordinator::expire)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     override fun onTimeout(startId: Int) {
-        if (startId == latestStartId) expire()
+        if (startId >= leaseStartId) expire()
     }
 
     override fun onTimeout(startId: Int, fgsType: Int) {
-        if (startId == latestStartId) expire()
+        if (startId >= leaseStartId) expire()
     }
 
     override fun onDestroy() {

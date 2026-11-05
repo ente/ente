@@ -10,7 +10,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
-import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import io.ente.ensu.EnsuApplication
 import io.ente.ensu.MainActivity
@@ -32,11 +31,12 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     }
 
     private val visibleActivities = mutableSetOf<Activity>()
+    private val resumedActivities = mutableSetOf<Activity>()
     @Volatile
     var isForeground = false
         private set
 
-    private var deadline: Long? = null
+    private var refreshLease: (() -> Unit)? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private val lifecycle = ResponseNotificationLifecycle()
     private var cancel: (() -> Unit)? = null
@@ -73,7 +73,7 @@ class BackgroundGeneration(private val app: EnsuApplication) :
         releaseLease()
         lifecycle.begin(ResponseNotificationAttempt(id, session, parent, query))
         cancel = onCancel
-        if (!isForeground) startLease()
+        if (resumedActivities.isEmpty()) startLease()
     }
 
     fun finish(id: Long) {
@@ -97,6 +97,10 @@ class BackgroundGeneration(private val app: EnsuApplication) :
 
     fun expire(expectedLease: String) {
         if (lease != expectedLease) return
+        if (isForeground) {
+            releaseLease()
+            return
+        }
         val cancellation = cancel
         lifecycle.current?.id?.let(::finish)
         cancellation?.invoke()
@@ -211,11 +215,9 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     }
 
     private fun startLease() {
-        if (lifecycle.current == null || lease != null || isForeground) return
+        if (lifecycle.current == null || lease != null) return
         val id = UUID.randomUUID().toString()
         lease = id
-        deadline = SystemClock.elapsedRealtime() + TIMEOUT_MS
-        val intent = Intent(app, GenerationService::class.java).putExtra(LEASE, id)
         try {
             val lock =
                 app.getSystemService(PowerManager::class.java)
@@ -226,11 +228,18 @@ class BackgroundGeneration(private val app: EnsuApplication) :
             lock.setReferenceCounted(false)
             wakeLock = lock
             lock.acquire(TIMEOUT_MS)
+            val intent = Intent(app, GenerationService::class.java).putExtra(LEASE, id)
             if (Build.VERSION.SDK_INT >= 26) app.startForegroundService(intent)
             else app.startService(intent)
         } catch (error: RuntimeException) {
             serviceUnavailable(id, error)
         }
+    }
+
+    fun renewLease(expectedLease: String, refresh: () -> Unit) {
+        if (lease != expectedLease) return
+        wakeLock?.acquire(TIMEOUT_MS)
+        refreshLease = refresh
     }
 
     fun serviceUnavailable(id: String, error: RuntimeException) {
@@ -245,7 +254,7 @@ class BackgroundGeneration(private val app: EnsuApplication) :
 
     private fun releaseLease() {
         lease = null
-        deadline = null
+        refreshLease = null
         val lock = wakeLock
         wakeLock = null
         if (lock?.isHeld == true) lock.release()
@@ -256,10 +265,6 @@ class BackgroundGeneration(private val app: EnsuApplication) :
     override fun onActivityStarted(activity: Activity) {
         visibleActivities.add(activity)
         isForeground = true
-        if (deadline?.let { SystemClock.elapsedRealtime() >= it } == true) {
-            lease?.let(::expire)
-        }
-        releaseLease()
         clearResponseNotifications()
         app.notificationPermissions.refresh()
     }
@@ -268,19 +273,26 @@ class BackgroundGeneration(private val app: EnsuApplication) :
         visibleActivities.remove(activity)
         if (visibleActivities.isEmpty() && !activity.isChangingConfigurations) {
             isForeground = false
-            startLease()
+            if (lease == null) startLease() else refreshLease?.invoke()
         }
     }
 
     override fun onActivityCreated(activity: Activity, state: Bundle?) = Unit
 
-    override fun onActivityResumed(activity: Activity) = Unit
+    override fun onActivityResumed(activity: Activity) {
+        resumedActivities.add(activity)
+        releaseLease()
+    }
 
-    override fun onActivityPaused(activity: Activity) = Unit
+    override fun onActivityPaused(activity: Activity) {
+        resumedActivities.remove(activity)
+        if (resumedActivities.isEmpty() && !activity.isChangingConfigurations) startLease()
+    }
 
     override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = Unit
 
     override fun onActivityDestroyed(activity: Activity) {
         visibleActivities.remove(activity)
+        resumedActivities.remove(activity)
     }
 }
