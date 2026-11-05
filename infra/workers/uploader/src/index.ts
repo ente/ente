@@ -8,6 +8,7 @@ export default {
             case "PUT":
                 return handlePOSTOrPUT(request);
             default:
+                console.log(`Unsupported HTTP method ${request.method}`);
                 return new Response(null, { status: 405 });
         }
     },
@@ -48,9 +49,11 @@ const handlePOSTOrPUT = async (request: Request) => {
 
     const uploadURL = request.headers.get("UPLOAD-URL");
     if (!uploadURL) {
+        console.error("No uploadURL provided");
         return new Response(null, { status: 400 });
     }
     if (!isAllowedUploadURL(uploadURL)) {
+        console.warn("Blocked uploadURL due to allowlist");
         return new Response(JSON.stringify({ error: "host not whitelisted" }), {
             status: 400,
             headers: {
@@ -81,7 +84,7 @@ const handlePOSTOrPUT = async (request: Request) => {
             if (response.ok) {
                 const etag = response.headers.get("etag");
                 if (etag === null) {
-                    console.error("Multipart upload response missing ETag");
+                    console.log("No etag in response");
                     response = new Response(null, { status: 500 });
                 } else {
                     response = new Response(JSON.stringify({ etag }), {
@@ -104,6 +107,8 @@ const handlePOSTOrPUT = async (request: Request) => {
         default:
             return new Response(null, { status: 404 });
     }
+
+    if (!response.ok) console.log("Upstream error", response.status);
 
     response = new Response(response.body, response);
     response.headers.set("Access-Control-Allow-Origin", "*");
