@@ -41,9 +41,9 @@ export function UploadCompletion({
         finishedUploads,
         preUploadSkippedFiles,
     );
-    const hasReviewableUploads = counts.failed > 0 || counts.skipped > 0;
-    const allUploadsFailed =
-        counts.failed > 0 && counts.completed == 0 && counts.skipped == 0;
+    const hasFailedUploads = counts.failed > 0;
+    const hasReviewableUploads = hasFailedUploads || counts.skipped > 0;
+    const hasPartialFailure = hasFailedUploads && counts.completed > 0;
     const isSheet = useIsUploadSheet();
 
     const handleClose: DialogProps["onClose"] = (_, reason) => {
@@ -80,13 +80,13 @@ export function UploadCompletion({
                         component="img"
                         alt=""
                         src={
-                            allUploadsFailed
+                            hasFailedUploads
                                 ? "/images/warning-red.png"
                                 : "/images/upload-complete-duck.svg"
                         }
                         sx={[
                             completionIllustrationSx,
-                            allUploadsFailed && {
+                            hasFailedUploads && {
                                 width: 68,
                                 height: 68,
                                 objectFit: "contain",
@@ -99,19 +99,23 @@ export function UploadCompletion({
                             component="h2"
                             sx={[
                                 completionTitleSx,
-                                allUploadsFailed && { color: "critical.main" },
+                                hasFailedUploads && { color: "critical.main" },
                             ]}
                         >
                             {t(
-                                allUploadsFailed
-                                    ? "upload_completion_failed_title"
+                                hasFailedUploads
+                                    ? hasPartialFailure
+                                        ? "upload_completion_partial_failure_title"
+                                        : "upload_completion_failed_title"
                                     : "upload_completion_title",
                             )}
                         </Typography>
                         <Typography sx={completionSubtitleSx}>
                             {t(
-                                allUploadsFailed
-                                    ? "upload_completion_failed_subtitle"
+                                hasFailedUploads
+                                    ? hasPartialFailure
+                                        ? "upload_completion_partial_failure_subtitle"
+                                        : "upload_completion_failed_subtitle"
                                     : "upload_completion_subtitle",
                             )}
                         </Typography>
@@ -146,7 +150,7 @@ export function UploadCompletion({
                             fullWidth
                             onClick={onReviewFailed}
                             sx={
-                                counts.failed > 0
+                                hasFailedUploads
                                     ? failedReviewButtonSx
                                     : primaryButtonSx
                             }

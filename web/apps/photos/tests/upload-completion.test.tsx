@@ -44,19 +44,27 @@ describe("upload completion", () => {
         );
     });
 
-    test("keeps the success summary for mixed results and makes review red", () => {
-        const html = renderCompletion(
-            new Map([
-                ["uploaded", [1]],
-                ["failed", [2]],
-            ]),
-        );
-        expect(html).toContain("upload_completion_title");
-        expect(html).toContain("/images/upload-complete-duck.svg");
-        expect(html).toContain(
-            "background-color:var(--mui-palette-critical-dark)",
-        );
-    });
+    test.each(["failed", "blocked"] as const)(
+        "shows an error when one upload is %s among successful and skipped uploads",
+        (failureType) => {
+            const html = renderCompletion(
+                new Map([
+                    ["uploaded", [1]],
+                    [failureType, [2]],
+                    ["unsupported", [3]],
+                ]),
+            );
+            expect(html).toContain("upload_completion_partial_failure_title");
+            expect(html).toContain(
+                "upload_completion_partial_failure_subtitle",
+            );
+            expect(html).toContain("/images/warning-red.png");
+            expect(html).not.toContain("/images/upload-complete-duck.svg");
+            expect(html).toContain(
+                "background-color:var(--mui-palette-critical-dark)",
+            );
+        },
+    );
 
     test("keeps skipped-only review neutral to failures", () => {
         const html = renderCompletion(new Map([["unsupported", [1]]]));
