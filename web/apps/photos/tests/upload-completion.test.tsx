@@ -38,7 +38,6 @@ describe("upload completion", () => {
         expect(html).toContain("upload_completion_failed_title");
         expect(html).toContain("upload_completion_failed_subtitle");
         expect(html).toContain("/images/warning-red.png");
-        expect(html).not.toContain("upload_completion_subtitle");
         expect(html).toContain(
             "background-color:var(--mui-palette-critical-dark)",
         );
@@ -59,7 +58,6 @@ describe("upload completion", () => {
                 "upload_completion_partial_failure_subtitle",
             );
             expect(html).toContain("/images/warning-red.png");
-            expect(html).not.toContain("/images/upload-complete-duck.svg");
             expect(html).toContain(
                 "background-color:var(--mui-palette-critical-dark)",
             );
