@@ -31,6 +31,8 @@ class ItemListView extends StatefulWidget {
   final bool filesFirst;
   final bool showSectionHeaders;
   final bool reserveSelectionPadding;
+  final VoidCallback? onFileSelectionStarted;
+  final VoidCallback? onCollectionSelectionStarted;
 
   const ItemListView({
     super.key,
@@ -45,6 +47,8 @@ class ItemListView extends StatefulWidget {
     this.filesFirst = false,
     this.showSectionHeaders = false,
     this.reserveSelectionPadding = true,
+    this.onFileSelectionStarted,
+    this.onCollectionSelectionStarted,
   });
 
   @override
@@ -91,6 +95,7 @@ class _ItemListViewState extends State<ItemListView> {
 
   void _toggleCollectionSelection(Collection collection) {
     HapticFeedback.lightImpact();
+    widget.onCollectionSelectionStarted?.call();
     widget.selectedCollections!.toggleSelection(collection);
   }
 
@@ -100,6 +105,7 @@ class _ItemListViewState extends State<ItemListView> {
       return;
     }
     HapticFeedback.lightImpact();
+    widget.onFileSelectionStarted?.call();
     widget.selectedFiles!.toggleSelection(file);
   }
 

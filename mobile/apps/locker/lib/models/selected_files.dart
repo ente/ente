@@ -27,6 +27,10 @@ class SelectedFiles extends ChangeNotifier {
     final selected = visibleFiles
         .where((file) => file.uploadedFileID != null && files.contains(file))
         .toSet();
+    if (selected.length == files.length &&
+        selected.every((file) => identical(files.lookup(file), file))) {
+      return;
+    }
     files
       ..clear()
       ..addAll(selected);
@@ -48,6 +52,7 @@ class SelectedFiles extends ChangeNotifier {
   }
 
   void clearAll({bool fireEvent = true}) {
+    if (files.isEmpty) return;
     files.clear();
     notifyListeners();
   }

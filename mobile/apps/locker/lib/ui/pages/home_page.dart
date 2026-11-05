@@ -15,6 +15,7 @@ import "package:hugeicons/hugeicons.dart";
 import 'package:listen_sharing_intent/listen_sharing_intent.dart';
 import 'package:locker/events/collections_updated_event.dart';
 import 'package:locker/events/opened_settings_event.dart';
+import 'package:locker/models/selected_collections.dart';
 import 'package:locker/models/selected_files.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
@@ -34,6 +35,7 @@ import 'package:locker/ui/mixins/search_mixin.dart';
 import 'package:locker/ui/pages/save_page.dart';
 import 'package:locker/ui/pages/uploader_page.dart';
 import "package:locker/ui/utils/legacy_utils.dart";
+import 'package:locker/ui/viewer/actions/collection_selection_overlay_bar.dart';
 import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import 'package:locker/utils/collection_sort_util.dart';
@@ -160,6 +162,7 @@ class _HomePageState extends UploaderPageState<HomePage>
   );
   final scaffoldKey = GlobalKey<ScaffoldState>();
   final _selectedFiles = SelectedFiles();
+  final _selectedCollections = SelectedCollections();
   final _selectionBarHeight = ValueNotifier<double>(0);
   final _scrollController = ScrollController();
   final _keyboardFocusNode = FocusNode();
@@ -210,6 +213,7 @@ class _HomePageState extends UploaderPageState<HomePage>
         _filteredFiles = files;
       });
       _selectedFiles.retainSelection(files);
+      _selectedCollections.retainSelection(collections);
     }
   }
 
@@ -227,6 +231,12 @@ class _HomePageState extends UploaderPageState<HomePage>
   @override
   void onSearchFilterChanged() {
     if (_selectedFiles.hasSelections) _selectedFiles.clearAll();
+    _selectedCollections.clearAll();
+  }
+
+  void _startSearchSelection(SearchScope scope) {
+    searchFocusNode.unfocus();
+    updateSearchScope(scope);
   }
 
   List<Collection> _filterOutUncategorized(List<Collection> collections) {
@@ -319,6 +329,7 @@ class _HomePageState extends UploaderPageState<HomePage>
     _scrollController.dispose();
     _displayedFilesNotifier.dispose();
     _selectedFiles.dispose();
+    _selectedCollections.dispose();
     _selectionBarHeight.dispose();
     _deepLinkSubscription?.cancel();
     _triggerLogoutSubscription?.cancel();
@@ -643,9 +654,11 @@ class _HomePageState extends UploaderPageState<HomePage>
     final colors = context.componentColors;
     return UserDetailsStateWidget(
       child: ListenableBuilder(
-        listenable: _selectedFiles,
+        listenable: Listenable.merge([_selectedFiles, _selectedCollections]),
         builder: (context, _) {
-          final hasSelection = _selectedFiles.files.isNotEmpty;
+          final hasSelection =
+              _selectedFiles.hasSelections ||
+              _selectedCollections.hasSelections;
           return PopScope(
             canPop: !isSearchActive && !_isSettingsOpen && !hasSelection,
             onPopInvokedWithResult: (didPop, result) async {
@@ -654,7 +667,7 @@ class _HomePageState extends UploaderPageState<HomePage>
               }
 
               if (hasSelection) {
-                _selectedFiles.clearAll();
+                onSearchFilterChanged();
                 return;
               }
 
@@ -701,22 +714,31 @@ class _HomePageState extends UploaderPageState<HomePage>
                       },
                       child: _buildHomeContent(),
                     ),
-                    ValueListenableBuilder<List<EnteFile>>(
-                      valueListenable: _displayedFilesNotifier,
-                      builder: (context, displayedFiles, _) {
-                        return FileSelectionOverlayBar(
-                          selectedFiles: _selectedFiles,
-                          files: isSearchActive
-                              ? _filteredFiles
-                              : displayedFiles.isNotEmpty
-                              ? displayedFiles
-                              : _recentFiles,
-                          scrollController: _scrollController,
-                          onHeightChanged: (height) =>
-                              _selectionBarHeight.value = height,
-                        );
-                      },
-                    ),
+                    if (isSearchActive &&
+                        searchScope == SearchScope.collections)
+                      CollectionSelectionOverlayBar(
+                        selectedCollections: _selectedCollections,
+                        collections: _filteredCollections,
+                        onHeightChanged: (height) =>
+                            _selectionBarHeight.value = height,
+                      )
+                    else
+                      ValueListenableBuilder<List<EnteFile>>(
+                        valueListenable: _displayedFilesNotifier,
+                        builder: (context, displayedFiles, _) {
+                          return FileSelectionOverlayBar(
+                            selectedFiles: _selectedFiles,
+                            files: isSearchActive
+                                ? _filteredFiles
+                                : displayedFiles.isNotEmpty
+                                ? displayedFiles
+                                : _recentFiles,
+                            scrollController: _scrollController,
+                            onHeightChanged: (height) =>
+                                _selectionBarHeight.value = height,
+                          );
+                        },
+                      ),
                   ],
                 ),
                 floatingActionButton: isSearchActive || _isHomeEmptyState
@@ -792,6 +814,11 @@ class _HomePageState extends UploaderPageState<HomePage>
           searchQuery: searchQuery,
           isHomePage: true,
           selectedFiles: _selectedFiles,
+          selectedCollections: _selectedCollections,
+          onFileSelectionStarted: () =>
+              _startSearchSelection(SearchScope.items),
+          onCollectionSelectionStarted: () =>
+              _startSearchSelection(SearchScope.collections),
           selectionBarHeight: _selectionBarHeight,
           searchScope: searchScope,
           onScopeChanged: updateSearchScope,
