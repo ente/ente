@@ -29,7 +29,6 @@ import {
     styled,
     Tab,
     Tabs,
-    Typography,
 } from "@mui/material";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import {
@@ -53,7 +52,6 @@ import React, {
     forwardRef,
     Fragment,
     useEffect,
-    useId,
     useRef,
     useState,
     type Ref,
@@ -94,7 +92,6 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     onSaveEditedCopy,
 }) => {
     const { showMiniDialog } = useBaseContext();
-    const titleID = useId();
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const originalSizeCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -562,7 +559,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             slotProps={{
                 root: {
                     "aria-hidden": false,
-                    "aria-labelledby": titleID,
+                    "aria-label": t("photo_editor"),
                     "aria-modal": true,
                     role: "dialog",
                 },
@@ -592,6 +589,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         >
             <Box
                 sx={{
+                    position: "relative",
                     padding: "1rem",
                     width: "100%",
                     height: "100%",
@@ -603,32 +601,23 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     flexDirection: "column",
                 }}
             >
-                <Stack
-                    direction="row"
-                    sx={{
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        flexShrink: 0,
-                    }}
-                >
-                    <Typography
-                        id={titleID}
-                        variant="h2"
-                        sx={{ fontWeight: "medium" }}
-                    >
-                        {t("photo_editor")}
-                    </Typography>
+                {!showControls && (
                     <IconButton
                         aria-label={t("toggle_controls")}
-                        aria-expanded={showControls}
-                        sx={{ borderRadius: "12px", bgcolor: "fill.faint" }}
-                        onClick={() => {
-                            setShowControls((shown) => !shown);
+                        aria-expanded={false}
+                        sx={{
+                            position: "absolute",
+                            top: "16px",
+                            right: "16px",
+                            zIndex: 1,
+                            borderRadius: "12px",
+                            bgcolor: "fill.faint",
                         }}
+                        onClick={() => setShowControls(true)}
                     >
                         <MenuIcon />
                     </IconButton>
-                </Stack>
+                )}
                 <Stack
                     direction="row"
                     onMouseUp={handleDragEnd}
