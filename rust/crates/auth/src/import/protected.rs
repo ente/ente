@@ -327,10 +327,16 @@ fn decrypt_open_authenticator_entry(entry: &Value, key: &[u8]) -> Result<Importe
     if !(1..=10).contains(&digits) {
         return Err(Error::invalid(format!("Invalid OTP digits: {digits}")));
     }
-    let algorithm = match object.get("algorithm") {
-        None | Some(Value::Null) => "sha1",
-        Some(Value::String(value)) => value,
-        Some(_) => return Err(Error::invalid("Invalid OTP algorithm")),
+    let algorithm = match object.get("algorithm").and_then(Value::as_str) {
+        Some(value)
+            if matches!(
+                value.to_ascii_lowercase().as_str(),
+                "sha1" | "sha256" | "sha512"
+            ) =>
+        {
+            value
+        }
+        _ => "sha1",
     };
     let period = optional_int(object.get("validity"), "OTP period")?;
     let uri = build_uri(Otp {
@@ -723,7 +729,8 @@ mod tests {
             "algorithm": "SHA224",
             "digits": 6
         });
-        assert!(decrypt_open_authenticator_entry(&unsupported, &key).is_err());
+        let code = decrypt_open_authenticator_entry(&unsupported, &key).unwrap();
+        assert!(code.uri.contains("algorithm=SHA1"));
 
         for period in [-30, 0] {
             let mut secret = nonce.to_vec();

@@ -499,12 +499,17 @@ mod tests {
         assert!(parse_aegis(unsupported_aegis).is_err());
 
         for entry in [
-            r#"[{"type":"TOTP","secret":"MY","period":-30}]"#,
             r#"[{"type":"TOTP","secret":"MY","digits":"invalid"}]"#,
             r#"[{"type":"TOTP","secret":"MY","algorithm":"SHA384"}]"#,
         ] {
             assert!(parse_andotp(entry).is_err());
         }
+
+        let code = &parse_andotp(r#"[{"type":"TOTP","secret":"MY","period":-30}]"#)
+            .unwrap()
+            .codes[0]
+            .uri;
+        assert!(code.contains("period=30"));
 
         let code = &parse_andotp(r#"[{"type":"TOTP","secret":"MY"}]"#)
             .unwrap()
@@ -655,8 +660,14 @@ mod tests {
         assert!(uri.contains("digits=6"));
         assert!(uri.contains("period=30"));
 
-        for parameter in ["digits=invalid", "period=invalid", "digits=0", "period=0"] {
+        for parameter in ["digits=invalid", "period=invalid"] {
             assert!(canonical_totp(&format!("{base}&{parameter}")).is_err());
+        }
+
+        for parameter in ["digits=0", "period=0"] {
+            let uri = canonical_totp(&format!("{base}&{parameter}")).unwrap();
+            assert!(uri.contains("digits=6"));
+            assert!(uri.contains("period=30"));
         }
 
         let uri = canonical_totp("otpauth://totp/whole-label?secret=MY").unwrap();

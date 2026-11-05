@@ -426,7 +426,7 @@ struct Otp<'a> {
 fn build_uri(otp: Otp<'_>) -> Result<String> {
     let kind = otp.kind.to_ascii_lowercase();
     let digits = match otp.digits {
-        None => DEFAULT_DIGITS,
+        None | Some(0) => DEFAULT_DIGITS,
         Some(value @ 1..=MAX_DIGITS) => value,
         Some(value) => return Err(Error::invalid(format!("Invalid OTP digits: {value}"))),
     };
@@ -455,10 +455,7 @@ fn build_uri(otp: Otp<'_>) -> Result<String> {
     match kind.as_str() {
         "totp" | "steam" if kind == "totp" || otp.allow_steam => {
             let period = match otp.period {
-                None => DEFAULT_PERIOD,
-                Some(value @ i64::MIN..=0) => {
-                    return Err(Error::invalid(format!("Invalid OTP period: {value}")));
-                }
+                None | Some(i64::MIN..=0) => DEFAULT_PERIOD,
                 Some(value) => value,
             };
             uri.push_str(&format!("&period={period}"));
@@ -574,23 +571,24 @@ mod tests {
     }
 
     #[test]
-    fn structured_otp_parameters_are_validated() {
-        assert!(
-            build_uri(Otp {
-                kind: "totp",
-                issuer: "Example",
-                account: "a:b +#/%",
-                secret: "MY",
-                algorithm: "sha-1",
-                digits: None,
-                period: None,
-                counter: None,
-                allow_steam: true,
-            })
-            .unwrap()
-            .contains("Example:a%3Ab%20%2B%23%2F%25")
-        );
-        for digits in [-1, 0, 11] {
+    fn structured_otp_parameters_are_normalized_and_validated() {
+        let uri = build_uri(Otp {
+            kind: "totp",
+            issuer: "Example",
+            account: "a:b +#/%",
+            secret: "MY",
+            algorithm: "sha-1",
+            digits: Some(0),
+            period: Some(0),
+            counter: None,
+            allow_steam: true,
+        })
+        .unwrap();
+        assert!(uri.contains("Example:a%3Ab%20%2B%23%2F%25"));
+        assert!(uri.contains("digits=6"));
+        assert!(uri.contains("period=30"));
+
+        for digits in [-1, 11] {
             assert!(
                 build_uri(Otp {
                     kind: "totp",
@@ -607,20 +605,19 @@ mod tests {
             );
         }
         for period in [-1, 0] {
-            assert!(
-                build_uri(Otp {
-                    kind: "totp",
-                    issuer: "",
-                    account: "a",
-                    secret: "MY",
-                    algorithm: "SHA1",
-                    digits: None,
-                    period: Some(period),
-                    counter: None,
-                    allow_steam: true,
-                })
-                .is_err()
-            );
+            let uri = build_uri(Otp {
+                kind: "totp",
+                issuer: "",
+                account: "a",
+                secret: "MY",
+                algorithm: "SHA1",
+                digits: None,
+                period: Some(period),
+                counter: None,
+                allow_steam: true,
+            })
+            .unwrap();
+            assert!(uri.contains("period=30"));
         }
         for algorithm in ["SHA1", "sha-1", "Algorithm.SHA256", "algorithm.sha-512"] {
             let uri = build_uri(Otp {
