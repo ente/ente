@@ -233,9 +233,9 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     };
 
     const resetCropBox = () => {
-        const { offsetX, offsetY, canvasBounds } = getCanvasBoundsOffsets();
-        if (!canvasBounds.width || !canvasBounds.height) return;
         setCropBox((prev) => {
+            const { offsetX, offsetY, canvasBounds } = getCanvasBoundsOffsets();
+
             return {
                 ...prev,
                 x: offsetX,
@@ -289,28 +289,19 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             resizeObserver.disconnect();
             canvasObserver.disconnect();
         };
-    }, [open, canvasLoading, fileURL]);
+    }, [open]);
 
     useEffect(() => {
-        // Loading hides the canvas. Reset only after React has shown it again.
-        if (!open || canvasLoading || !fileURL || currentTab != "crop") return;
+        if (currentTab != "crop") return;
         resetCropBox();
-    }, [open, currentTab, canvasLoading, fileURL]);
+    }, [currentTab]);
 
     // Preserve the crop selection when the panel changes the preview size,
     // without resampling edited pixels or touching the export canvas.
     useEffect(() => {
         const canvas = canvasRef.current;
         const parent = parentRef.current;
-        if (
-            !open ||
-            canvasLoading ||
-            !fileURL ||
-            currentTab != "crop" ||
-            !canvas ||
-            !parent
-        )
-            return;
+        if (!open || currentTab != "crop" || !canvas || !parent) return;
         const bounds = () => {
             const image = canvas.getBoundingClientRect();
             const container = parent.getBoundingClientRect();
@@ -326,11 +317,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             const next = bounds();
             const old = previous;
             previous = next;
-            if (!next.width || !next.height) return;
-            if (!old.width || !old.height) {
-                setCropBox(next);
+            if (!old.width || !old.height || !next.width || !next.height)
                 return;
-            }
             setCropBox((crop) => ({
                 x: next.x + ((crop.x - old.x) / old.width) * next.width,
                 y: next.y + ((crop.y - old.y) / old.height) * next.height,
@@ -341,7 +329,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         observer.observe(parent);
         observer.observe(canvas);
         return () => observer.disconnect();
-    }, [open, currentTab, canvasLoading, fileURL]);
+    }, [open, currentTab]);
 
     const applyFilters = async (canvases: HTMLCanvasElement[]) => {
         try {
@@ -464,6 +452,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
 
                         setCanvasLoading(false);
 
+                        resetCropBox();
                         setStartX(0);
                         setStartY(0);
                         setIsDragging(false);
