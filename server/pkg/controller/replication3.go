@@ -174,7 +174,7 @@ func (c *ReplicationController3) createDestinations() {
 }
 
 func (c *ReplicationController3) replicate(i int) {
-	// TODO: Resume B2 uploads after the outage.
+	// TODO: Restore B2 queue selection and its index before resuming uploads.
 	const replicateB2 = false
 	for {
 		replicated, err := c.tryReplicate(replicateB2)
