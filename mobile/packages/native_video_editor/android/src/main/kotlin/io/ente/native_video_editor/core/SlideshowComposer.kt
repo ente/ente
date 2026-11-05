@@ -7,9 +7,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
-import android.media.ExifInterface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -150,6 +150,7 @@ internal class SlideshowComposer(
         val playsVideoAudio = segments.any { it is Segment.Video && !it.isMuted }
         val hasAudio = musicDurationUs != null || playsVideoAudio
 
+        @Suppress("DEPRECATION")
         val sequences = mutableListOf(
             EditedMediaItemSequence.Builder(videoItems)
                 .experimentalSetForceAudioTrack(hasAudio)
@@ -169,6 +170,7 @@ internal class SlideshowComposer(
         trackDurationUs: Long,
         settings: SlideshowMusic
     ): EditedMediaItemSequence {
+        @Suppress("DEPRECATION")
         val builder = EditedMediaItemSequence.Builder().experimentalSetForceAudioTrack(true)
         var gapUs = 0L
         var positionUs = 0L

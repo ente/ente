@@ -25,6 +25,7 @@ dependencies {
     implementation "androidx.media3:media3-effect:$media3_version"
     implementation "androidx.media3:media3-extractor:$media3_version"
     implementation "androidx.media3:media3-inspector-frame:$media3_version"
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
 
     implementation "com.google.guava:guava:31.1-android"
 }
