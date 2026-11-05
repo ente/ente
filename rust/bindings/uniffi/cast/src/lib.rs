@@ -90,6 +90,19 @@ impl From<CastMediaKind> for ente_cast::media::MediaKind {
 }
 
 #[derive(Clone, Debug, uniffi::Record)]
+pub struct CastMediaDownloadRequest {
+    pub file_id: i64,
+    pub title: String,
+    pub kind: CastMediaKind,
+    pub encrypted_key: String,
+    pub key_decryption_nonce: String,
+    pub collection_key: String,
+    pub decryption_header: String,
+    pub output_directory: String,
+    pub maximum_bytes: u64,
+}
+
+#[derive(Clone, Debug, uniffi::Record)]
 pub struct CastMedia {
     pub image_path: Option<String>,
     pub video_path: Option<String>,
@@ -128,23 +141,22 @@ impl CastMediaClient {
         }))
     }
 
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "UniFFI exposes the request fields as language-native arguments"
-    )]
     #[uniffi::method(async_runtime = "tokio")]
     pub async fn download(
         &self,
-        file_id: i64,
-        title: String,
-        kind: CastMediaKind,
-        encrypted_key: String,
-        key_decryption_nonce: String,
-        collection_key: String,
-        decryption_header: String,
-        output_directory: String,
-        maximum_bytes: u64,
+        request: CastMediaDownloadRequest,
     ) -> Result<CastMedia, CastMediaError> {
+        let CastMediaDownloadRequest {
+            file_id,
+            title,
+            kind,
+            encrypted_key,
+            key_decryption_nonce,
+            collection_key,
+            decryption_header,
+            output_directory,
+            maximum_bytes,
+        } = request;
         Ok(self
             .inner
             .download(ente_cast::media::Download {

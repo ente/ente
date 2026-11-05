@@ -13,6 +13,7 @@
         "rust/crates/ensu/**",
         "rust/crates/ensu-crypto/**",
         "rust/crates/image/**",
+        "rust/crates/live-photo/**",
         "rust/tools/codegen/**"
     ],
     "apple-lint": [
@@ -29,6 +30,7 @@
         "rust/crates/ensu/**",
         "rust/crates/ensu-crypto/**",
         "rust/crates/image/**",
+        "rust/crates/live-photo/**",
         "rust/tools/codegen/**"
     ],
     "dependency-review": [
@@ -159,6 +161,7 @@
         "rust/crates/ensu-crypto/**",
         "rust/crates/exif/**",
         "rust/crates/legacy/**",
+        "rust/crates/live-photo/**",
         "rust/crates/location/**",
         "rust/crates/locker/**",
         "rust/crates/paste/**",

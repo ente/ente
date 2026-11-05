@@ -892,15 +892,17 @@ class RealSlideshowService: ObservableObject {
             )
             do {
                 let media = try await mediaClient.download(
-                    fileId: Int64(file.id),
-                    title: file.title,
-                    kind: kind,
-                    encryptedKey: file.encryptedKey,
-                    keyDecryptionNonce: file.keyDecryptionNonce,
-                    collectionKey: castPayload.collectionKey,
-                    decryptionHeader: file.fileDecryptionHeader,
-                    outputDirectory: reservation.directory.path,
-                    maximumBytes: maximumBytes,
+                    request: CastMediaDownloadRequest(
+                        fileId: Int64(file.id),
+                        title: file.title,
+                        kind: kind,
+                        encryptedKey: file.encryptedKey,
+                        keyDecryptionNonce: file.keyDecryptionNonce,
+                        collectionKey: castPayload.collectionKey,
+                        decryptionHeader: file.fileDecryptionHeader,
+                        outputDirectory: reservation.directory.path,
+                        maximumBytes: maximumBytes,
+                    ),
                 )
                 try Task.checkCancellation()
                 try await fileCache.commit(
