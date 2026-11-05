@@ -172,6 +172,17 @@ When files fail to download, a modal dialog appears showing the failed downloads
 
 If a photo or video fails to load in the desktop viewer, use **Retry** in the viewer to try the download again. The viewer shows download progress while the file loads.
 
+### Why can't I save a video from Ente to my iPhone's Photos app? {#ios-save-unsupported-video}
+
+Apple Photos only accepts formats that iOS supports. If a video was recorded on another device or in an uncommon format, Apple Photos may reject it, and Ente shows "This file could not be saved to Apple Photos. You can still view it in Ente." The original is still safe in Ente.
+
+To keep a copy on your iPhone:
+
+1. Open the video in Ente and tap **Share**.
+2. Choose **Save to Files**.
+
+You can also download the original from [photos.ente.com](https://photos.ente.com) or the desktop app.
+
 ### Why can't the app detect certain file types? {#file-type-detection}
 
 The desktop/web app tries to detect if a particular file is a video or image. If the detection fails, the app skips the upload.
@@ -220,7 +231,9 @@ Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected P
 
 **On Android:**
 
-Open device `Settings > Apps > Ente > Permissions`, enable "Photos and videos" or "Files and media", and ensure permission is set to "Allow" (not "Ask every time").
+Open device `Settings > Apps > Ente > Permissions > Photos and videos` (or "Files and media") and choose **Allow all** (or "Allow"). Don't choose "Allow limited access", "Selected photos only" or "Ask every time".
+
+With limited access, Ente only sees the photos you picked, so folders such as Camera and Screenshots may be missing from `Settings > Backup > Backed up folders`. After changing the permission, reopen Ente and select those folders.
 
 If you've granted permission but Ente still can't access photos, try:
 
@@ -380,6 +393,12 @@ Learn more in [Backup and Sync FAQ](/photos/faq/backup-and-sync#watch-folders).
 ### Can I safely close the desktop app while it's uploading? {#close-during-upload}
 
 Yes! The desktop app supports resumable uploads. You can close the app at any time, and when you open it again, it will automatically resume from where it left off. Your progress is saved and no files will be uploaded twice.
+
+### How do I stop an upload that's in progress on desktop or web? {#stop-upload}
+
+Click the **X** on the upload progress card in the bottom-right corner, then confirm with **Yes, stop uploads**.
+
+Files that have already uploaded stay in Ente. To continue later, select the same files or folder again. Ente will skip items that are already uploaded.
 
 ## Platform-Specific Issues
 

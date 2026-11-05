@@ -387,6 +387,12 @@ This can happen for a couple of reasons:
 
 Open `Settings > Machine learning` on mobile and enable local indexing. This lets your phone index the files itself instead of relying on indexes from a device that skipped them.
 
+### Why does my desktop app show different unnamed people than my phone? {#unnamed-people-differ}
+
+People you name and people you ignore sync across all your devices. Unnamed groupings don't sync. Each device works them out on its own, so the list of unnamed people can look different on desktop and on your phone, even when both show 100% indexed.
+
+To make your People section match across devices, name or ignore people on one device and let the others sync. Named people and ignored groupings will then appear the same everywhere.
+
 ## Magic Search
 
 ### What is magic search? {#what-is-magic-search}

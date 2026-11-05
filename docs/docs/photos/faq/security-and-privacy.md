@@ -252,6 +252,14 @@ If you want to stop using just one app:
 
 Your account and data in the other apps stay available. If you created separate Ente accounts, deleting one does not delete the others.
 
+### I deleted my account by mistake. Can I get it back? {#recover-deleted-account}
+
+Yes, if you act within 7 days. When you delete your account, we send a confirmation email to your registered email address. Open it and click the **recover your account** link to restore your account and its data.
+
+After 7 days, your Ente Photos, Ente Auth and Ente Locker data is permanently deleted and can't be recovered.
+
+If you can't find the email, check your spam folder, or contact [support@ente.com](mailto:support@ente.com) from the same email address.
+
 ## Trust and Reliability
 
 ### Why should I trust Ente for long-term data storage? {#trust}
