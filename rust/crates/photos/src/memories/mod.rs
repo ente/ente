@@ -218,6 +218,7 @@ mod tests {
             utc_offset_seconds: 0,
             collection_id: None,
             location: None,
+            shared: false,
         }
     }
 

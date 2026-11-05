@@ -16,6 +16,7 @@ const HOME_MIN_MONTHS: usize = 3;
 const HOME_MARGIN_DAYS: i64 = 60;
 const RESIDENCE_DAY_SHARE: f64 = 0.2;
 const REGULAR_PLACE_RADIUS_KM: f64 = 2.0;
+const STAY_GAP_DAYS: i64 = 7;
 
 type DayRanges = Vec<(i64, i64)>;
 
@@ -25,12 +26,17 @@ pub(super) struct Home<'p> {
     country: Option<CountryCode>,
     urban_center: Option<u32>,
     residence: DayRanges,
+    stays: DayRanges,
     regular: DayRanges,
 }
 
 impl Home<'_> {
     pub(super) fn covers(&self, day: i64) -> bool {
-        days_outside(&self.residence, day) == 0 || days_outside(&self.regular, day) == 0
+        self.lived_in(day) || days_outside(&self.regular, day) == 0
+    }
+
+    fn lived_in(&self, day: i64) -> bool {
+        days_outside(&self.residence, day) == 0 || days_outside(&self.stays, day) == 0
     }
 
     fn is_residence(&self) -> bool {
@@ -63,12 +69,14 @@ impl<'p> Homes<'p> {
             .into_iter()
             .map(|cluster| {
                 let (residence, regular) = periods(&cluster.members, &all_days);
+                let stays = stays(&cluster.members, &residence, &regular);
                 Home {
                     members: cluster.members,
                     center: cluster.center,
                     country: None,
                     urban_center: None,
                     residence,
+                    stays,
                     regular,
                 }
             })
@@ -135,7 +143,7 @@ impl<'p> Homes<'p> {
     pub(super) fn countries(&self) -> HashSet<CountryCode> {
         self.homes
             .iter()
-            .filter(|home| home.is_residence())
+            .filter(|home| home.is_residence() || !home.stays.is_empty())
             .filter_map(|home| home.country)
             .collect()
     }
@@ -148,7 +156,8 @@ impl<'p> Homes<'p> {
             .map(|home| days_outside(&home.residence, day))
             .min();
         self.homes.iter().filter(move |home| {
-            home.is_residence() && Some(days_outside(&home.residence, day)) == nearest
+            home.lived_in(day)
+                || (home.is_residence() && Some(days_outside(&home.residence, day)) == nearest)
         })
     }
 }
@@ -209,6 +218,27 @@ fn periods(members: &[Located], all_days: &[LocalDate]) -> (DayRanges, DayRanges
         extend(periods, day - HOME_MARGIN_DAYS, day + HOME_MARGIN_DAYS);
     }
     (residence, regular)
+}
+
+fn stays(members: &[Located], residence: &[(i64, i64)], regular: &[(i64, i64)]) -> DayRanges {
+    let days: Vec<i64> = distinct_days(members.iter().copied())
+        .iter()
+        .map(|day| day.days_since_epoch())
+        .collect();
+    let mut stays = Vec::new();
+    let mut start = 0;
+    for end in 1..=days.len() {
+        if end == days.len() || days[end] - days[end - 1] > STAY_GAP_DAYS {
+            let (first, last) = (days[start], days[end - 1]);
+            if last > first
+                && (days_outside(residence, first) == 0 || days_outside(regular, first) == 0)
+            {
+                stays.push((first, last));
+            }
+            start = end;
+        }
+    }
+    stays
 }
 
 fn extend(periods: &mut DayRanges, first: i64, last: i64) {

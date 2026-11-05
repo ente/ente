@@ -16,6 +16,20 @@ pub(super) fn trip_name(
     home_countries: &HashSet<CountryCode>,
     lookup: Option<&dyn CityLookup>,
 ) -> Option<String> {
+    let foreign: Vec<Placed> = points
+        .iter()
+        .copied()
+        .filter(|point| {
+            point
+                .country
+                .is_some_and(|country| !home_countries.contains(&country))
+        })
+        .collect();
+    let points: &[Placed] = if foreign.len() * 2 > points.len() {
+        &foreign
+    } else {
+        points
+    };
     let members: Vec<Located> = points.iter().map(|point| point.member).collect();
     let cities = places.city_counts(&members);
     let foreign_country = dominant_country(points)
@@ -24,22 +38,25 @@ pub(super) fn trip_name(
     let Some(&(top, top_count)) = cities.first() else {
         return foreign_country;
     };
-    let named: usize = cities.iter().map(|&(_, count)| count).sum();
-    if top_count * 2 > named {
+    if top_count * 2 > points.len() {
         return Some(top.to_owned());
     }
+    let is_significant =
+        |count: usize| count as f64 >= points.len() as f64 * SIGNIFICANT_CITY_SHARE;
     let significant = cities
         .iter()
-        .filter(|&&(_, count)| count as f64 >= named as f64 * SIGNIFICANT_CITY_SHARE)
+        .filter(|&&(_, count)| is_significant(count))
         .count();
-    if significant != 2
-        && let Some(country) = foreign_country
-    {
+    let pair_covers_trip = significant == 2
+        && cities
+            .get(1)
+            .is_some_and(|&(_, second_count)| (top_count + second_count) * 2 > points.len());
+    if !pair_covers_trip && let Some(country) = foreign_country {
         return Some(country);
     }
     Some(match cities.get(1) {
-        Some(&(second, _)) => format!("{top} & {second}"),
-        None => top.to_owned(),
+        Some(&(second, count)) if is_significant(count) => format!("{top} & {second}"),
+        _ => top.to_owned(),
     })
 }
 

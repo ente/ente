@@ -181,9 +181,13 @@ class RustMemoriesComputer implements MemoriesComputer {
         : persons.firstWhereOrNull(
             (person) => person.data.email == currentUserEmail,
           );
+    final currentUserID = isLocalGalleryMode
+        ? null
+        : Configuration.instance.getUserID();
     final request = rust.MemoriesRequest(
       files: [
-        for (final entry in files.entries) _memoryFile(entry.key, entry.value),
+        for (final entry in files.entries)
+          _memoryFile(entry.key, entry.value, currentUserID),
       ],
       excludedCollectionIds: Int64List.fromList(
         collectionIDsToExclude.toList(),
@@ -241,7 +245,11 @@ class RustMemoriesComputer implements MemoriesComputer {
     );
   }
 
-  static rust.MemoryFile _memoryFile(int id, EnteFile file) {
+  static rust.MemoryFile _memoryFile(
+    int id,
+    EnteFile file,
+    int? currentUserID,
+  ) {
     final creationTime = file.creationTime!;
     return rust.MemoryFile(
       id: id,
@@ -252,6 +260,10 @@ class RustMemoriesComputer implements MemoriesComputer {
       ).timeZoneOffset.inSeconds,
       collectionId: file.collectionID,
       location: file.hasLocation ? _coordinate(file.location!) : null,
+      shared:
+          currentUserID != null &&
+          file.ownerID != null &&
+          file.ownerID != currentUserID,
     );
   }
 

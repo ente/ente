@@ -10,7 +10,9 @@ use homes::Homes;
 
 use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
-use crate::memories::geo::{Located, cluster_by_location, mean_location, two_decimals};
+use crate::memories::geo::{
+    Located, cluster_by_location, distance_km, mean_location, two_decimals,
+};
 use crate::memories::input::{CityLookup, Period};
 use crate::memories::output::{BaseMemory, Memory, MemoryKind, TripMemory};
 use crate::memories::photo::{Photo, sort_chronologically};
@@ -21,10 +23,12 @@ const DAY_TRIP_MIN_KM: f64 = 50.0;
 const OVERNIGHT_TRIP_MIN_PHOTOS: usize = 10;
 const DAY_TRIP_MIN_PHOTOS: usize = 15;
 const MAX_PHOTO_GAP_DAYS: i64 = 3;
-const LONG_TRIP_DAYS: i64 = 14;
+const MAX_PHOTO_GAP_ABROAD_DAYS: i64 = 7;
+const LONG_TRIP_DAYS: i64 = 30;
 const DESTINATION_RADIUS_KM: f64 = 25.0;
 const FREQUENT_VISITS: usize = 4;
 const FREQUENT_WINDOW_DAYS: i64 = 182;
+const SHARED_PHOTO_MAX_KM: f64 = 50.0;
 
 #[derive(Clone, Copy)]
 struct Placed<'p> {
@@ -39,8 +43,8 @@ pub(in crate::memories) fn all_memories(
     places: &Places,
     lookup: Option<&dyn CityLookup>,
 ) -> Vec<Memory> {
-    let points = placed(located, places, lookup);
-    let homes = Homes::detect(&points, lookup);
+    let (own, shared) = by_owner(placed(located, places, lookup));
+    let homes = Homes::detect(&own, lookup);
     let home_countries = homes.countries();
     let today = period.today().days_since_epoch();
     let last_date_to_show = period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY;
@@ -62,7 +66,7 @@ pub(in crate::memories) fn all_memories(
             Memory::uncapped(kind, &photos, period.now, last_date_to_show)
         })
         .collect();
-    let trips = trips(&points, &homes);
+    let trips = trips(&own, &shared, &homes);
     memories.extend(trips.iter().rev().map(|trip| {
         let photos: Vec<&Photo> = trip.iter().map(|point| point.member.photo).collect();
         let kind = MemoryKind::Trip(trip_memory(
@@ -85,21 +89,40 @@ fn placed<'p>(
     located
         .iter()
         .enumerate()
-        .map(|(index, &member)| Placed {
-            member,
-            urban_center: urban_centers
+        .map(|(index, &member)| {
+            let polygon = countries
                 .as_ref()
-                .and_then(|urban_centers| urban_centers.get(index).copied().flatten()),
-            country: countries
-                .as_ref()
-                .and_then(|countries| countries.get(index).copied().flatten())
-                .or_else(|| places.country_code(member.photo.id)),
+                .and_then(|countries| countries.get(index).copied().flatten());
+            let city = places.country_code(member.photo.id);
+            Placed {
+                member,
+                urban_center: urban_centers
+                    .as_ref()
+                    .and_then(|urban_centers| urban_centers.get(index).copied().flatten()),
+                country: match (polygon, city) {
+                    (Some(polygon), Some(city)) if polygon != city => None,
+                    (polygon, city) => polygon.or(city),
+                },
+            }
         })
         .collect()
 }
 
-fn trips<'p>(points: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>> {
-    let visits = away_visits(points, homes);
+fn by_owner(points: Vec<Placed>) -> (Vec<Placed>, Vec<Placed>) {
+    let (shared, own): (Vec<Placed>, Vec<Placed>) = points
+        .into_iter()
+        .partition(|point| point.member.photo.shared);
+    if own.is_empty() {
+        (shared, Vec::new())
+    } else {
+        (own, shared)
+    }
+}
+
+fn trips<'p>(own: &[Placed<'p>], shared: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>> {
+    let mut visits = away_visits(own, homes);
+    join_shared(&mut visits, shared);
+    visits.retain(|visit| visit.len() >= OVERNIGHT_TRIP_MIN_PHOTOS);
     let frequent = frequent_visits(&visits);
     visits
         .into_iter()
@@ -111,8 +134,10 @@ fn trips<'p>(points: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>> {
 }
 
 fn away_visits<'p>(points: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>> {
+    let home_countries = homes.countries();
     let mut visits = Vec::new();
     let mut visit: Vec<Placed> = Vec::new();
+    let mut country = None;
     for &point in points {
         if homes.contains(&point) {
             if !visit.is_empty() {
@@ -120,18 +145,61 @@ fn away_visits<'p>(points: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>>
             }
             continue;
         }
-        if let Some(last) = visit.last()
-            && point.member.photo.creation_time - last.member.photo.creation_time
-                > MAX_PHOTO_GAP_DAYS * MICROS_PER_DAY
-        {
-            visits.push(mem::take(&mut visit));
+        if let Some(last) = visit.last() {
+            let abroad = point.country.is_some_and(|point_country| {
+                country == Some(point_country) && !home_countries.contains(&point_country)
+            });
+            let max_gap_days = if abroad {
+                MAX_PHOTO_GAP_ABROAD_DAYS
+            } else {
+                MAX_PHOTO_GAP_DAYS
+            };
+            if point.member.photo.creation_time - last.member.photo.creation_time
+                > max_gap_days * MICROS_PER_DAY
+            {
+                visits.push(mem::take(&mut visit));
+            }
         }
+        if visit.is_empty() {
+            country = None;
+        }
+        country = point.country.or(country);
         visit.push(point);
     }
     if !visit.is_empty() {
         visits.push(visit);
     }
     visits
+}
+
+fn join_shared<'p>(visits: &mut [Vec<Placed<'p>>], shared: &[Placed<'p>]) {
+    let mut joined: Vec<Vec<Placed<'p>>> = vec![Vec::new(); visits.len()];
+    for &point in shared {
+        let time = point.member.photo.creation_time;
+        let Some(index) = visits
+            .partition_point(|visit| visit[0].member.photo.creation_time <= time)
+            .checked_sub(1)
+        else {
+            continue;
+        };
+        let visit = &visits[index];
+        if time > visit[visit.len() - 1].member.photo.creation_time {
+            continue;
+        }
+        let next = visit.partition_point(|own| own.member.photo.creation_time < time);
+        let neighbours = &visit[next.saturating_sub(1)..(next + 1).min(visit.len())];
+        if neighbours.iter().any(|own| {
+            distance_km(own.member.location, point.member.location) <= SHARED_PHOTO_MAX_KM
+        }) {
+            joined[index].push(point);
+        }
+    }
+    for (visit, joined) in visits.iter_mut().zip(joined) {
+        if !joined.is_empty() {
+            visit.extend(joined);
+            visit.sort_by_key(|point| (point.member.photo.creation_time, point.member.photo.id));
+        }
+    }
 }
 
 fn frequent_visits(visits: &[Vec<Placed>]) -> Vec<bool> {
@@ -253,7 +321,7 @@ mod tests {
     use crate::memories::geo::distance_km;
     use crate::memories::tests::{located_file, micros, period};
     use crate::memories::{
-        CityLookup, MemoriesRequest, MemoryFile, MemoryKind, TripDetection,
+        CityLookup, MemoriesRequest, Memory, MemoryFile, MemoryKind, TripDetection,
         compute_all_trip_memories,
     };
 
@@ -276,6 +344,12 @@ mod tests {
     const BRUSSELS: (f64, f64) = (50.8503, 4.3517);
     const LUXEMBOURG: (f64, f64) = (49.6116, 6.1319);
     const LANDMANNALAUGAR: (f64, f64) = (63.983, -19.067);
+    const NIJMEGEN: (f64, f64) = (51.842, 5.853);
+    const FAMILY_HOME: (f64, f64) = (51.7317, 5.5394);
+    const HO_CHI_MINH_CITY: (f64, f64) = (10.7769, 106.7009);
+    const MATTERHORN_BORDER: (f64, f64) = (45.976, 7.658);
+    const ROMAN_COUNTRYSIDE: (f64, f64) = (42.25, 12.95);
+    const ARDECHE: (f64, f64) = (44.6, 4.4);
     const FRENCH_TOWNS: [(f64, f64); 6] = [
         (45.764, 4.8357),
         (45.1885, 5.7245),
@@ -300,7 +374,7 @@ mod tests {
 
     struct Atlas;
 
-    const CITIES: [(&str, [u8; 2], (f64, f64)); 22] = [
+    const CITIES: [(&str, [u8; 2], (f64, f64)); 23] = [
         ("Amsterdam", *b"NL", AMSTERDAM),
         ("Berlin", *b"DE", BERLIN),
         ("Los Angeles", *b"US", DOWNTOWN_LOS_ANGELES),
@@ -323,6 +397,7 @@ mod tests {
         ("Marseille", *b"FR", FRENCH_TOWNS[3]),
         ("Nice", *b"FR", FRENCH_TOWNS[4]),
         ("Toulouse", *b"FR", FRENCH_TOWNS[5]),
+        ("Nijmegen", *b"NL", NIJMEGEN),
     ];
 
     fn nearest_city(coordinate: Coordinate) -> usize {
@@ -382,9 +457,18 @@ mod tests {
         }
 
         fn countries(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+            let (latitude, longitude) = MATTERHORN_BORDER;
             coordinates
                 .iter()
-                .map(|&coordinate| CountryCode::from_bytes(CITIES[nearest_city(coordinate)].1).ok())
+                .map(|&coordinate| {
+                    let country =
+                        if distance_km(coordinate, Coordinate::new(latitude, longitude)) < 3.0 {
+                            *b"IT"
+                        } else {
+                            CITIES[nearest_city(coordinate)].1
+                        };
+                    CountryCode::from_bytes(country).ok()
+                })
                 .collect()
         }
 
@@ -415,6 +499,16 @@ mod tests {
                     start + index * every_minutes * 60_000_000,
                     place,
                 )
+            })
+            .collect()
+    }
+
+    fn shared(files: Vec<MemoryFile>) -> Vec<MemoryFile> {
+        files
+            .into_iter()
+            .map(|file| MemoryFile {
+                shared: true,
+                ..file
             })
             .collect()
     }
@@ -452,23 +546,26 @@ mod tests {
         files
     }
 
-    fn trips(files: Vec<MemoryFile>) -> Vec<(i64, Option<String>)> {
+    fn memories(files: Vec<MemoryFile>) -> Vec<Memory> {
         let request = MemoriesRequest {
             files,
             ..MemoriesRequest::default()
         };
-        let mut trips: Vec<(i64, Option<String>)> =
-            compute_all_trip_memories(&request, period(NOW), Some(&Atlas), TripDetection::Improved)
-                .into_iter()
-                .filter_map(|memory| match memory.kind {
-                    MemoryKind::Trip(trip) => {
-                        let ids: Vec<i64> = memory.file_ids.iter().map(|id| id / 1000).collect();
-                        assert!(ids.iter().all(|&id| id == ids[0]), "{ids:?}");
-                        Some((ids[0], trip.location_name))
-                    }
-                    _ => None,
-                })
-                .collect();
+        compute_all_trip_memories(&request, period(NOW), Some(&Atlas), TripDetection::Improved)
+    }
+
+    fn trips(files: Vec<MemoryFile>) -> Vec<(i64, Option<String>)> {
+        let mut trips: Vec<(i64, Option<String>)> = memories(files)
+            .into_iter()
+            .filter_map(|memory| match memory.kind {
+                MemoryKind::Trip(trip) => {
+                    let ids: Vec<i64> = memory.file_ids.iter().map(|id| id / 1000).collect();
+                    assert!(ids.iter().all(|&id| id == ids[0]), "{ids:?}");
+                    Some((ids[0], trip.location_name))
+                }
+                _ => None,
+            })
+            .collect();
         trips.sort();
         trips
     }
@@ -587,7 +684,177 @@ mod tests {
     }
 
     #[test]
-    fn road_trips_stay_whole_long_trips_split_by_country_and_names_follow_the_places() {
+    fn staying_with_family_makes_neighbouring_towns_part_of_home_but_far_cities_are_trips() {
+        let outings = vec![
+            stay(1000, "2024-07-14T10:00:00", 20, 20, NIJMEGEN),
+            stay(2000, "2024-12-27T10:00:00", 20, 20, ROTTERDAM),
+            stay(3000, "2024-12-23T10:00:00", 30, 80, AMSTERDAM),
+        ];
+        let during_outing = |time: i64| {
+            outings.iter().any(|outing| {
+                (outing[0].creation_time..=outing[outing.len() - 1].creation_time).contains(&time)
+            })
+        };
+        let mut away: Vec<Vec<MemoryFile>> = [
+            "2024-07-10T08:00:00",
+            "2024-12-20T08:00:00",
+            "2025-07-05T08:00:00",
+            "2025-12-19T08:00:00",
+        ]
+        .iter()
+        .enumerate()
+        .map(|(index, start)| {
+            let first_id = 10_000 + index as i64 * 1000;
+            let transit = |spot: usize| {
+                let (north, east) = CITY_SPOTS[1 + spot % (CITY_SPOTS.len() - 1)];
+                (AMSTERDAM.0 + north, AMSTERDAM.1 + east)
+            };
+            let mut visit = stay(first_id, start, 1, 0, transit(2 * index));
+            visit.extend(
+                stay(first_id + 1, start, 15, 24 * 60, FAMILY_HOME)
+                    .into_iter()
+                    .filter(|file| !during_outing(file.creation_time)),
+            );
+            let last = visit[visit.len() - 1].creation_time + 10 * HOUR;
+            visit.push(located_file(first_id + 100, last, transit(2 * index + 1)));
+            visit
+        })
+        .collect();
+        away.extend(outings.clone());
+        let files = library(
+            away,
+            &[(&[BERLIN], "2023-01-01T12:00:00", "2026-10-25T12:00:00", 1)],
+        );
+
+        assert_eq!(trips(files), named(&[(2, "Rotterdam"), (3, "Amsterdam")]));
+    }
+
+    #[test]
+    fn shared_photos_join_your_trips_but_never_make_homes_or_trips_of_their_own() {
+        let mut paris = stay(1000, "2024-05-10T10:00:00", 12, 360, PARIS);
+        paris.extend(shared(stay(1500, "2024-05-10T11:00:00", 8, 480, PARIS)));
+        let mut files = library(
+            vec![
+                paris,
+                shared(stay(2000, "2024-09-05T10:00:00", 30, 240, ROME)),
+                stay(3000, "2024-10-10T10:00:00", 12, 360, ZURICH),
+            ],
+            &[(
+                &[AMSTERDAM],
+                "2023-01-01T12:00:00",
+                "2026-10-25T12:00:00",
+                3,
+            )],
+        );
+        let friend_start = micros("2023-06-01T05:00:00");
+        files.extend(shared(
+            (0..1800)
+                .map(|index| {
+                    located_file(
+                        500_000 + index,
+                        friend_start + index * 8 * HOUR,
+                        HO_CHI_MINH_CITY,
+                    )
+                })
+                .collect(),
+        ));
+        let files_in = |memories: &[Memory], first: i64| {
+            memories
+                .iter()
+                .filter(|memory| matches!(memory.kind, MemoryKind::Trip(_)))
+                .find(|memory| memory.file_ids.contains(&first))
+                .map(|memory| memory.file_ids.len())
+        };
+        let all = memories(files.clone());
+
+        assert_eq!(trips(files), named(&[(1, "Paris"), (3, "Zurich")]));
+        assert_eq!(files_in(&all, 1000), Some(20));
+        assert_eq!(
+            all.iter()
+                .filter(|memory| matches!(memory.kind, MemoryKind::Base(_)))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn sparse_trips_abroad_stay_whole_across_photo_gaps_but_trips_at_home_do_not() {
+        let mut america = stay(1000, "2024-04-01T10:00:00", 4, 120, DOWNTOWN_LOS_ANGELES);
+        america.extend(stay(1100, "2024-04-06T10:00:00", 4, 120, LAS_VEGAS));
+        america.extend(stay(
+            1200,
+            "2024-04-11T10:00:00",
+            4,
+            120,
+            DOWNTOWN_LOS_ANGELES,
+        ));
+        let mut rotterdam = stay(2000, "2024-06-01T10:00:00", 6, 60, ROTTERDAM);
+        rotterdam.extend(stay(2100, "2024-06-06T10:00:00", 6, 60, ROTTERDAM));
+        let files = library(
+            vec![america, rotterdam],
+            &[(
+                &[AMSTERDAM],
+                "2023-01-01T12:00:00",
+                "2026-10-25T12:00:00",
+                3,
+            )],
+        );
+
+        assert_eq!(trips(files), named(&[(1, "Los Angeles")]));
+    }
+
+    #[test]
+    fn a_month_abroad_stays_one_trip_when_border_photos_disagree_on_the_country() {
+        let mut switzerland = stay(1000, "2024-08-01T09:00:00", 45, 480, ZURICH);
+        switzerland.extend(stay(
+            1100,
+            "2024-08-16T09:00:00",
+            15,
+            480,
+            MATTERHORN_BORDER,
+        ));
+        switzerland.extend(stay(1200, "2024-08-21T09:00:00", 60, 480, ZURICH));
+        let files = library(
+            vec![switzerland],
+            &[(
+                &[AMSTERDAM],
+                "2023-01-01T12:00:00",
+                "2026-10-25T12:00:00",
+                3,
+            )],
+        );
+
+        assert_eq!(trips(files), named(&[(1, "Zurich")]));
+    }
+
+    #[test]
+    fn trips_mostly_abroad_are_named_after_the_part_abroad() {
+        let mut italy = stay(1000, "2024-02-10T07:00:00", 9, 10, UTRECHT);
+        italy.extend(stay(
+            1100,
+            "2024-02-10T15:00:00",
+            12,
+            480,
+            ROMAN_COUNTRYSIDE,
+        ));
+        let mut france = stay(2000, "2024-06-01T10:00:00", 3, 60, FRENCH_TOWNS[0]);
+        france.extend(stay(2100, "2024-06-02T10:00:00", 3, 60, FRENCH_TOWNS[1]));
+        france.extend(stay(2200, "2024-06-03T10:00:00", 14, 240, ARDECHE));
+        let files = library(
+            vec![italy, france],
+            &[(
+                &[AMSTERDAM],
+                "2023-01-01T12:00:00",
+                "2026-10-25T12:00:00",
+                3,
+            )],
+        );
+
+        assert_eq!(trips(files), named(&[(1, "Italy"), (2, "France")]));
+    }
+
+    #[test]
+    fn road_trips_and_multi_country_holidays_stay_whole_and_only_month_long_trips_split() {
         let road_trip: Vec<MemoryFile> = FRENCH_TOWNS
             .iter()
             .enumerate()
@@ -601,13 +868,16 @@ mod tests {
                 )
             })
             .collect();
-        let mut long_trip = stay(2000, "2024-09-01T09:00:00", 30, 480, ROME);
-        long_trip.extend(stay(3000, "2024-09-11T09:00:00", 30, 480, ZURICH));
+        let mut holiday = stay(2000, "2024-09-01T09:00:00", 30, 480, ROME);
+        holiday.extend(stay(2100, "2024-09-11T09:00:00", 30, 480, ZURICH));
+        let mut long_trip = stay(6000, "2025-09-01T09:00:00", 60, 480, ROME);
+        long_trip.extend(stay(7000, "2025-09-21T09:00:00", 60, 480, ZURICH));
         let mut benelux = stay(4000, "2025-03-01T09:00:00", 15, 240, BRUSSELS);
         benelux.extend(stay(4100, "2025-03-04T09:00:00", 15, 240, LUXEMBOURG));
         let files = library(
             vec![
                 road_trip,
+                holiday,
                 long_trip,
                 benelux,
                 stay(5000, "2025-07-01T09:00:00", 15, 360, LANDMANNALAUGAR),
@@ -624,10 +894,11 @@ mod tests {
             trips(files),
             named(&[
                 (1, "France"),
-                (2, "Rome"),
-                (3, "Zurich"),
+                (2, "Rome & Zurich"),
                 (4, "Brussels & Luxembourg"),
                 (5, "Iceland"),
+                (6, "Rome"),
+                (7, "Zurich"),
             ])
         );
     }

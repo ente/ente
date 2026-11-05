@@ -15,6 +15,7 @@ pub struct MemoryFile {
     pub utc_offset_seconds: i32,
     pub collection_id: Option<i64>,
     pub location: Option<Coordinate>,
+    pub shared: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
