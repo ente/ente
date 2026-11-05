@@ -16,6 +16,7 @@ export default {
 
 const ALLOWED_UPLOAD_HOSTS = new Set<string>([
     "ente-prod-eu.s3.eu-central-003.backblazeb2.com",
+    "ente-prod-v3.s3.eu-central-2.wasabisys.com",
 ]);
 
 const isAllowedUploadURL = (uploadURL: string) => {
@@ -52,7 +53,7 @@ const handlePOSTOrPUT = async (request: Request) => {
         return new Response(null, { status: 400 });
     }
     if (!isAllowedUploadURL(uploadURL)) {
-        console.warn("Blocked uploadURL due to allowlist", uploadURL);
+        console.warn("Blocked uploadURL due to allowlist");
         return new Response(JSON.stringify({ error: "host not whitelisted" }), {
             status: 400,
             headers: {
@@ -83,7 +84,7 @@ const handlePOSTOrPUT = async (request: Request) => {
             if (response.ok) {
                 const etag = response.headers.get("etag");
                 if (etag === null) {
-                    console.log("No etag in response", response);
+                    console.log("No etag in response");
                     response = new Response(null, { status: 500 });
                 } else {
                     response = new Response(JSON.stringify({ etag }), {
