@@ -25,6 +25,8 @@ import React, { useId } from "react";
 interface LockerConfirmDialogProps {
     open: boolean;
     illustration: string;
+    illustrationSize?: number;
+    compactIllustration?: boolean;
     title: string;
     body: React.ReactNode;
     confirmLabel: string;
@@ -44,6 +46,8 @@ interface LockerConfirmDialogProps {
 export function LockerConfirmDialog({
     open,
     illustration,
+    illustrationSize = 80,
+    compactIllustration = false,
     title,
     body,
     confirmLabel,
@@ -110,16 +114,21 @@ export function LockerConfirmDialog({
                     src={illustration}
                     alt=""
                     style={{
-                        width: 80,
-                        height: 80,
+                        width: illustrationSize,
+                        height: compactIllustration ? "auto" : illustrationSize,
+                        maxWidth: "100%",
                         objectFit: "contain",
                         display: "block",
-                        margin: "4px auto 0",
+                        margin: compactIllustration ? "0 auto" : "4px auto 0",
                     }}
                 />
                 <Typography
                     id={titleID}
-                    sx={{ ...lockerTextH2Sx, textAlign: "center", mt: 2.5 }}
+                    sx={{
+                        ...lockerTextH2Sx,
+                        textAlign: "center",
+                        mt: compactIllustration ? 1 : 2.5,
+                    }}
                 >
                     {title}
                 </Typography>
