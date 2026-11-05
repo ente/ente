@@ -396,6 +396,9 @@ Future<void> _runMinimally(
     await _homeWidgetSync(true);
 
     if (shouldStop?.call() ?? false) return;
+    await rewindService.refresh();
+
+    if (shouldStop?.call() ?? false) return;
     if ((isLocalGalleryMode || flagService.enableMLInBackground) &&
         hasGrantedMLConsent) {
       await controller.init();
@@ -588,6 +591,7 @@ Future<void> _init(
       unawaited(_warmContactsCacheInBackground());
     }
     unawaited(removeRewind2025Leftovers(preferences));
+    if (!isBackground) rewindService.scheduleRefresh();
     logLocalSettings();
     initComplete = true;
     _stopHearBeat = true;

@@ -298,6 +298,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
     int lastAppOpenTimeInMicroseconds,
   ) async {
     await ServiceLocator.instance.prefs.reload();
+    unawaited(rewindService.refresh());
 
     final futures = <Future<void>>[];
     if (magicCacheService.lastMagicCacheUpdateTimeInMicroseconds >

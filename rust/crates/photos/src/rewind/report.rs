@@ -19,4 +19,8 @@ impl RewindReport {
             totals: chapters::totals(library),
         }
     }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.totals.is_none()
+    }
 }
