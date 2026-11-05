@@ -1,7 +1,10 @@
 import { useBook } from "@/context/book";
 import { usePreviews } from "@/hooks/usePreviews";
 import { getPrintBinding } from "@/lib/printProducts";
-import { clipSoftcoverInsidePages } from "@/lib/softcoverPreview";
+import {
+    clipSoftcoverInsidePages,
+    setPreviewPageDensity,
+} from "@/lib/softcoverPreview";
 import {
     getFlipPageIndex,
     getFlipPages,
@@ -213,11 +216,12 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                     element.dataset.spineEdge =
                         index % 2 === 0 ? "left" : "right";
                 }
-                element.dataset.density =
-                    binding === "Hardcover" &&
-                    (index < 2 || index >= flipPages.length - 2)
-                        ? "hard"
-                        : "soft";
+                setPreviewPageDensity(
+                    element,
+                    binding,
+                    index,
+                    flipPages.length,
+                );
                 if (pageIndex === null)
                     element.setAttribute("aria-label", "Blank page (required)");
                 root.appendChild(element);
