@@ -63,14 +63,18 @@ struct VideoPlayerView: View {
                 let asset = AVURLAsset(url: videoURL)
                 let isPlayable = try await asset.load(.isPlayable)
                 let tracks = try await asset.loadTracks(withMediaType: .video)
-                guard isPlayable, tracks.count == 1, let track = tracks.first else {
+                guard isPlayable, !tracks.isEmpty else {
                     throw VideoPlayerError.invalidVideo
                 }
-                let naturalSize = try await track.load(.naturalSize)
-                let transform = try await track.load(.preferredTransform)
-                let displaySize = naturalSize.applying(transform)
-                guard validVideoDimensions(naturalSize), validVideoDimensions(displaySize) else {
-                    throw VideoPlayerError.dimensionsTooLarge
+                for track in tracks {
+                    let naturalSize = try await track.load(.naturalSize)
+                    let transform = try await track.load(.preferredTransform)
+                    let displaySize = naturalSize.applying(transform)
+                    guard validVideoDimensions(naturalSize),
+                        validVideoDimensions(displaySize)
+                    else {
+                        throw VideoPlayerError.dimensionsTooLarge
+                    }
                 }
 
                 let playerItem = AVPlayerItem(url: videoURL)

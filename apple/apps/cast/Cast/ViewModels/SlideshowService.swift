@@ -1080,6 +1080,9 @@ class RealSlideshowService: ObservableObject {
     }
 
     private func removeCachedFileContent(fileID: Int) async {
+        if currentFile?.id == fileID {
+            livePhotoVideoURL = nil
+        }
         await fileCache.remove(fileID)
     }
 

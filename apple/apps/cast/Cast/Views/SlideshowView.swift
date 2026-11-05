@@ -157,6 +157,11 @@ struct SlideshowView: View {
                 }
             }
         }
+        .onChange(of: slideshowService.livePhotoVideoURL) { _, newValue in
+            if newValue == nil {
+                isPlayingLivePhotoVideo = false
+            }
+        }
         .onTapGesture { Task { await handlePlayPauseAction() } }
         .onLongPressGesture { handleLongPressGesture() }
         .focusable()
