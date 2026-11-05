@@ -358,7 +358,13 @@ Ente backs up a single primary full-resolution image from the Burst. Additional 
 
 ### Why do I see duplicate files in the iOS app when the same photo is in an iCloud Shared Album? {#icloud-shared-album-duplicates}
 
-iCloud Shared Albums store compressed copies, not the original files. Because of this, Ente sees the shared-album copy as a different file, so it gets backed up separately and appears as a duplicate.
+It depends on the version the album was shared from.
+
+On iOS 26, iPadOS 26, and earlier, Shared Albums store a reduced copy, not the original. Photos are reduced to 2,048 pixels on the long edge, and videos are capped at 720p and 15 minutes. Ente sees that copy as a different file, so it is backed up separately and appears as a duplicate. An album created on those versions stays reduced until it is upgraded.
+
+Starting in iOS 27, iPadOS 27, and macOS 27, a new Shared Album stores photos and videos in their original formats at full resolution, and guests can add photos on the web. After an album is upgraded, photos and videos added from then on are full resolution ([Apple Support: Shared Albums limits](https://support.apple.com/en-us/148868)).
+
+Learn more in [Import from Apple Photos](/photos/migration/from-apple-photos/).
 
 ### Why is my Recents count lower in Ente than in the iOS Photos app? {#ios-recents-count-mismatch}
 
