@@ -6,7 +6,67 @@ import (
 	"testing"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCollectionActionCreationApp(t *testing.T) {
+	db, collectionRepo, ownerID, adminID := setupCollectionShareTest(t)
+	t.Cleanup(func() {
+		_, err := db.Exec(`DELETE FROM collection_actions`)
+		require.NoError(t, err)
+	})
+	controller := &CollectionController{
+		AccessCtrl:            access.NewAccessController(collectionRepo, nil),
+		CollectionRepo:        collectionRepo,
+		FileRepo:              &repo.FileRepository{DB: db},
+		CollectionActionsRepo: &repo.CollectionActionsRepository{DB: db},
+	}
+	for _, app := range []ente.App{ente.Photos, ente.Locker} {
+		for _, action := range []string{ente.ActionRemove, ente.ActionDeleteSuggested} {
+			t.Run(string(app)+"/"+action, func(t *testing.T) {
+				collection, err := collectionRepo.Create(ente.Collection{
+					Owner: ente.CollectionUser{ID: ownerID}, App: string(app), Type: "album",
+					EncryptedKey: "key", KeyDecryptionNonce: "nonce", Name: "collection", UpdationTime: 1,
+				})
+				require.NoError(t, err)
+				addShareTestShare(t, collectionRepo, collection.ID, ownerID, adminID, ente.ADMIN)
+				fileIDs := []int64{
+					addShareTestOwnerFile(t, db, collection.ID, ownerID),
+					addShareTestOwnerFile(t, db, collection.ID, ownerID),
+				}
+				ctx := newBatchShareTestContext(adminID)
+				ctx.Set(auth.AppContextKey, app)
+				if action == ente.ActionRemove {
+					err = controller.RemoveFilesV3(ctx, adminID, ente.RemoveFilesV3Request{CollectionID: collection.ID, FileIDs: fileIDs})
+				} else {
+					err = controller.SuggestDeleteInSharedCollection(ctx, ente.SuggestDeleteRequest{CollectionID: collection.ID, FileIDs: fileIDs})
+				}
+				require.NoError(t, err)
+				rows, err := db.Query(`SELECT app, action, file_id FROM collection_actions
+				    WHERE collection_id = $1 ORDER BY file_id`, collection.ID)
+				require.NoError(t, err)
+				defer rows.Close()
+				actions := make(map[string][]int64)
+				for rows.Next() {
+					var storedApp, storedAction string
+					var fileID int64
+					require.NoError(t, rows.Scan(&storedApp, &storedAction, &fileID))
+					require.Equal(t, string(app), storedApp)
+					actions[storedAction] = append(actions[storedAction], fileID)
+				}
+				require.NoError(t, rows.Err())
+				want := map[string][]int64{ente.ActionRemove: fileIDs}
+				if action == ente.ActionDeleteSuggested {
+					want[ente.ActionDeleteSuggested] = fileIDs
+				}
+				require.Equal(t, want, actions)
+			})
+		}
+	}
+}
 
 func TestMoveFilesRejectsSameCollection(t *testing.T) {
 	const collectionID = int64(1)

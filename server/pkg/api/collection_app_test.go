@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,6 +84,8 @@ func TestCollectionAppIsolation(t *testing.T) {
 			storage := router.Group("/", authMiddleware.TokenAuthMiddleware(nil), middleware.RejectAuthApp())
 			storage.GET("/collections/:collectionID", collectionHandler.GetCollectionByID)
 			storage.DELETE("/collections/v3/:collectionID", collectionHandler.TrashV3)
+			castHandler := &CastHandler{Ctrl: castctrl.NewController(castRepo, accessCtrl)}
+			storage.POST("/cast/cast-data", castHandler.InsertCastData)
 			request := func(method, path string, clientApp ente.App) *httptest.ResponseRecorder {
 				req := httptest.NewRequest(method, path, nil)
 				req.Header.Set("X-Auth-Token", token)
@@ -123,6 +126,36 @@ func TestCollectionAppIsolation(t *testing.T) {
 				var queued bool
 				require.NoError(t, db.QueryRow(`SELECT EXISTS (SELECT 1 FROM queue WHERE queue_name = $1 AND item = $2)`, repo.TrashCollectionQueueV3, strconv.FormatInt(id, 10)).Scan(&queued))
 				require.False(t, queued)
+			})
+			t.Run("cast_pairing", func(t *testing.T) {
+				for _, ids := range []map[ente.App]int64{owned, shared} {
+					for _, targetApp := range []ente.App{app, otherApp} {
+						id := ids[targetApp]
+						code, err := castRepo.AddCode(t.Context(), "key", nil, "127.0.0.1", "device")
+						require.NoError(t, err)
+						castToken := fmt.Sprintf("pairing-%d", id)
+						body := fmt.Sprintf(`{"collectionID":%d,"deviceCode":"%s","castToken":"%s","encPayload":"payload"}`, id, code, castToken)
+						req := httptest.NewRequest(http.MethodPost, "/cast/cast-data", strings.NewReader(body))
+						req.Header.Set("Content-Type", "application/json")
+						req.Header.Set("X-Auth-Token", token)
+						req.Header.Set("X-Client-Package", "io.ente."+string(app))
+						response := httptest.NewRecorder()
+						router.ServeHTTP(response, req)
+						if targetApp == app {
+							require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+							ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+							ctx.Request = httptest.NewRequest(http.MethodGet, "/cast/info", nil)
+							castContext, err := castHandler.Ctrl.GetCollectionAndCasterIDForToken(ctx, castToken)
+							require.NoError(t, err)
+							require.Equal(t, id, castContext.CollectionID)
+						} else {
+							require.Equal(t, http.StatusForbidden, response.Code, response.Body.String())
+							payload, err := castRepo.GetEncCastData(t.Context(), code)
+							require.NoError(t, err)
+							require.Nil(t, payload)
+						}
+					}
+				}
 			})
 			t.Run("same_app_delete", func(t *testing.T) {
 				id := owned[app]
