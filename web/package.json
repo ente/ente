@@ -5,7 +5,8 @@
     "workspaces": [
         "apps/*",
         "packages/*",
-        "packages/wasm/*"
+        "packages/wasm/*",
+        "e2e"
     ],
     "scripts": {
         "build": "npm run build:photos",
@@ -55,7 +56,8 @@
         "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
         "lint": "node scripts/lint.mjs",
         "lint:fix": "node scripts/lint.mjs --fix",
-        "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace ensu && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space && npm run test --workspace photobook"
+        "test": "npm run test --workspace ente-wasm-tests && npm run test --workspace ente-prelogin-wasm && npm run test --workspace ente-locker-wasm && npm run test --workspace ente-paste-wasm && npm run test --workspace ente-contacts && npm run test --workspace ensu && npm run test --workspace locker && npm run test --workspace paste && npm run test --workspace photos && npm run test --workspace space && npm run test --workspace photobook",
+        "test:e2e": "cargo run --locked --manifest-path ../rust/Cargo.toml -p ente-test-support --bin with-museum -- node e2e/run.ts"
     },
     "overrides": {
         "@types/react": "19.3.0",
@@ -72,6 +74,7 @@
         }
     },
     "devDependencies": {
+        "@playwright/test": "1.64.1",
         "concurrently": "10.0.5",
         "eslint": "10.12.0",
         "knip": "6.41.0",
