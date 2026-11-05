@@ -8,18 +8,13 @@ use ente_location::{Coordinate, CountryCode};
 
 use homes::Homes;
 
-use crate::memories::UPDATE_FREQUENCY_DAYS;
-use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
-use crate::memories::geo::{
-    Located, cluster_by_location, distance_km, mean_location, two_decimals,
-};
+use super::{Base, Trip, TripAnalysis};
+use crate::memories::calendar::MICROS_PER_DAY;
+use crate::memories::geo::{Located, cluster_by_location, distance_km, mean_location};
 use crate::memories::input::{CityLookup, Period};
-use crate::memories::output::{BaseMemory, Memory, MemoryKind, TripMemory};
-use crate::memories::photo::{Photo, sort_chronologically};
 use crate::memories::places::Places;
 
-const AWAY_MIN_KM: f64 = 30.0;
-const DAY_TRIP_MIN_KM: f64 = 50.0;
+const AWAY_MIN_KM: f64 = 50.0;
 const OVERNIGHT_TRIP_MIN_PHOTOS: usize = 10;
 const DAY_TRIP_MIN_PHOTOS: usize = 15;
 const MAX_PHOTO_GAP_DAYS: i64 = 3;
@@ -37,45 +32,44 @@ struct Placed<'p> {
     country: Option<CountryCode>,
 }
 
-pub(in crate::memories) fn all_memories(
-    located: &[Located],
+pub(in crate::memories) fn analyze<'p>(
+    located: &[Located<'p>],
     period: Period,
     places: &Places,
     lookup: Option<&dyn CityLookup>,
-) -> Vec<Memory> {
+) -> TripAnalysis<'p> {
     let (own, shared) = by_owner(placed(located, places, lookup));
     let homes = Homes::detect(&own, lookup);
     let home_countries = homes.countries();
     let today = period.today().days_since_epoch();
-    let last_date_to_show = period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY;
-    let mut memories: Vec<Memory> = homes
+    let bases = homes
         .areas()
         .into_iter()
-        .map(|area| {
-            let members: Vec<Located> = area
+        .map(|area| Base {
+            members: area
                 .iter()
                 .flat_map(|home| home.members.iter().copied())
-                .collect();
-            let mut photos: Vec<&Photo> = members.iter().map(|member| member.photo).collect();
-            sort_chronologically(&mut photos);
-            let kind = MemoryKind::Base(BaseMemory {
-                location: area[0].center,
-                location_name: places.base_name(&members),
-                is_current: area.iter().any(|home| home.covers(today)),
-            });
-            Memory::uncapped(kind, &photos, period.now, last_date_to_show)
+                .collect(),
+            location: area[0].center,
+            is_current: area.iter().any(|home| home.covers(today)),
         })
         .collect();
-    let trips = trips(&own, &shared, &homes);
-    memories.extend(trips.iter().rev().map(|trip| {
-        let photos: Vec<&Photo> = trip.iter().map(|point| point.member.photo).collect();
-        let kind = MemoryKind::Trip(trip_memory(
-            trip,
-            naming::trip_name(trip, places, &home_countries, lookup),
-        ));
-        Memory::uncapped(kind, &photos, period.now, last_date_to_show)
-    }));
-    memories
+    let trips = trips(&own, &shared, &homes)
+        .into_iter()
+        .map(|points| {
+            let members: Vec<Located> = points.iter().map(|point| point.member).collect();
+            let mut trip = Trip::new(
+                members.clone(),
+                members,
+                center(&points),
+                points[0].member.photo,
+                points[points.len() - 1].member.photo,
+            );
+            trip.location_name = naming::trip_name(&points, places, &home_countries, lookup);
+            trip
+        })
+        .collect();
+    TripAnalysis { bases, trips }
 }
 
 fn placed<'p>(
@@ -281,36 +275,17 @@ fn is_trip(points: &[Placed], homes: &Homes) -> bool {
         return false;
     };
     let first_day = first.member.photo.date.days_since_epoch();
-    let nights = last.member.photo.date.days_since_epoch() - first_day;
-    let distance_km = homes.distance_km(first_day, center(points));
-    if nights > 0 {
-        points.len() >= OVERNIGHT_TRIP_MIN_PHOTOS && distance_km >= AWAY_MIN_KM
+    let min_photos = if last.member.photo.date.days_since_epoch() > first_day {
+        OVERNIGHT_TRIP_MIN_PHOTOS
     } else {
-        points.len() >= DAY_TRIP_MIN_PHOTOS && distance_km >= DAY_TRIP_MIN_KM
-    }
+        DAY_TRIP_MIN_PHOTOS
+    };
+    points.len() >= min_photos && homes.distance_km(first_day, center(points)) >= AWAY_MIN_KM
 }
 
 fn center(points: &[Placed]) -> Coordinate {
     let members: Vec<Located> = points.iter().map(|point| point.member).collect();
     mean_location(&members)
-}
-
-fn trip_memory(points: &[Placed], location_name: Option<String>) -> TripMemory {
-    let first = points[0].member.photo;
-    let last = points[points.len() - 1].member.photo;
-    let location = center(points);
-    TripMemory {
-        location,
-        location_name,
-        year: LocalDate::of_local_time((first.local_time + last.local_time) / 2).year,
-        key: format!(
-            "trip_{}_{}_{}_{}",
-            two_decimals(location.latitude),
-            two_decimals(location.longitude),
-            first.creation_time / MICROS_PER_DAY,
-            last.creation_time / MICROS_PER_DAY
-        ),
-    }
 }
 
 #[cfg(test)]
@@ -329,8 +304,8 @@ mod tests {
     const BERLIN: (f64, f64) = (52.52, 13.405);
     const PASADENA: (f64, f64) = (34.1478, -118.1445);
     const DOWNTOWN_LOS_ANGELES: (f64, f64) = (34.0522, -118.2437);
-    const LONG_BEACH: (f64, f64) = (33.7701, -118.1937);
-    const GYM_TOWARDS_UTRECHT: (f64, f64) = (52.202, 5.033);
+    const RIVERSIDE: (f64, f64) = (33.9533, -117.3962);
+    const GYM_TOWARDS_ROTTERDAM: (f64, f64) = (52.10, 4.65);
     const LAS_VEGAS: (f64, f64) = (36.1699, -115.1398);
     const PARIS: (f64, f64) = (48.8566, 2.3522);
     const ROTTERDAM: (f64, f64) = (51.9244, 4.4777);
@@ -450,7 +425,7 @@ mod tests {
             coordinates
                 .iter()
                 .map(|&coordinate| {
-                    (distance_km(coordinate, Coordinate::new(latitude, longitude)) < 45.0)
+                    (distance_km(coordinate, Coordinate::new(latitude, longitude)) < 90.0)
                         .then_some(LOS_ANGELES_AREA)
                 })
                 .collect()
@@ -587,6 +562,7 @@ mod tests {
                 stay(4000, "2024-06-08T10:00:00", 12, 180, HAARLEM),
                 stay(5000, "2024-07-13T10:00:00", 12, 180, UTRECHT),
                 stay(6000, "2024-08-10T10:00:00", 8, 240, BRUGES),
+                stay(7000, "2024-09-14T10:00:00", 12, 180, ROTTERDAM),
             ],
             &[
                 (
@@ -596,7 +572,7 @@ mod tests {
                     3,
                 ),
                 (
-                    &[GYM_TOWARDS_UTRECHT],
+                    &[GYM_TOWARDS_ROTTERDAM],
                     "2023-01-02T19:00:00",
                     "2026-10-25T19:00:00",
                     21,
@@ -606,7 +582,7 @@ mod tests {
 
         assert_eq!(
             trips(files),
-            named(&[(1, "Paris"), (2, "Rotterdam"), (5, "Utrecht")])
+            named(&[(1, "Paris"), (2, "Rotterdam"), (7, "Rotterdam")])
         );
     }
 
@@ -829,7 +805,7 @@ mod tests {
 
     #[test]
     fn trips_mostly_abroad_are_named_after_the_part_abroad() {
-        let mut italy = stay(1000, "2024-02-10T07:00:00", 9, 10, UTRECHT);
+        let mut italy = stay(1000, "2024-02-10T07:00:00", 9, 10, ROTTERDAM);
         italy.extend(stay(
             1100,
             "2024-02-10T15:00:00",
@@ -907,7 +883,7 @@ mod tests {
     fn sparse_home_photos_and_weekends_inside_the_home_urban_area_are_not_trips() {
         let files = library(
             vec![
-                stay(1000, "2024-03-08T10:00:00", 15, 240, LONG_BEACH),
+                stay(1000, "2024-03-08T10:00:00", 15, 240, RIVERSIDE),
                 stay(2000, "2024-04-12T10:00:00", 15, 240, LAS_VEGAS),
             ],
             &[(

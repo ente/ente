@@ -32,7 +32,6 @@ const MERGE_MAX_DISTANCE_KM: f64 = 25.0;
 
 pub(super) struct TripAnalysis<'p> {
     pub(super) bases: Vec<Base<'p>>,
-    base_countries: HashSet<String>,
     trips: Vec<Trip<'p>>,
 }
 
@@ -40,6 +39,7 @@ struct Trip<'p> {
     members: Vec<Located<'p>>,
     capped_members: Vec<Located<'p>>,
     location: Coordinate,
+    location_name: Option<String>,
     first: &'p Photo,
     last: &'p Photo,
     key: String,
@@ -65,6 +65,7 @@ impl<'p> Trip<'p> {
             members,
             capped_members,
             location,
+            location_name: None,
             first,
             last,
             key,
@@ -82,7 +83,7 @@ impl<'p> Trip<'p> {
 
 pub(super) fn analyze<'p>(members: &[Located<'p>], now: i64, places: &Places) -> TripAnalysis<'p> {
     let bases = bases::detect(members, now);
-    let base_countries = bases
+    let base_countries: HashSet<String> = bases
         .iter()
         .filter_map(|base| places.normalized_country(&base.members))
         .collect();
@@ -95,11 +96,11 @@ pub(super) fn analyze<'p>(members: &[Located<'p>], now: i64, places: &Places) ->
                 .filter_map(|cluster| valid_trip(cluster, &bases)),
         );
     }
-    TripAnalysis {
-        bases,
-        base_countries,
-        trips: merge_nearby_trips(trips),
+    let mut trips = merge_nearby_trips(trips);
+    for trip in &mut trips {
+        trip.location_name = places.trip_name(&trip.members, &base_countries);
     }
+    TripAnalysis { bases, trips }
 }
 
 fn valid_trip<'p>(cluster: Cluster<'p>, bases: &[Base]) -> Option<Trip<'p>> {
@@ -342,6 +343,15 @@ mod tests {
         .unwrap()
     }
 
+    fn legacy(request: &MemoriesRequest, cities: Option<&Cities>) -> Vec<Memory> {
+        compute_all_trip_memories(
+            request,
+            period(NOW),
+            cities.map(|cities| cities as &dyn CityLookup),
+            TripDetection::Legacy,
+        )
+    }
+
     fn trips(memories: &[Memory]) -> Vec<&TripMemory> {
         memories
             .iter()
@@ -435,6 +445,39 @@ mod tests {
     }
 
     #[test]
+    fn smart_memories_surface_weekends_that_only_the_improved_detection_finds() {
+        let paris = stay(1, "2025-03-08T08:00:00", 12, PARIS);
+        let mut files = home(AMSTERDAM, &[&paris]);
+        files.extend(paris);
+        let request = MemoriesRequest {
+            files,
+            ..MemoriesRequest::default()
+        };
+
+        assert!(trip_keys(&legacy(&request, None)).is_empty());
+        assert_eq!(
+            trip_keys(&compute(&request, &[NOW], None).periods[0]),
+            ["trip_48.86_2.35_20155_20157"]
+        );
+    }
+
+    #[test]
+    fn trips_shown_or_on_screen_under_an_older_key_count_as_the_same_trip() {
+        let mut request = three_trips();
+        request.cached_trips = vec![CachedTrip {
+            identity_key: "trip:trip_41.89_12.48_20023_20024".to_owned(),
+            first_date_to_show: micros(NOW) - 2 * MICROS_PER_DAY,
+            last_date_to_show: micros(NOW) + 8 * MICROS_PER_DAY,
+        }];
+        request.shown_trips = vec![shown(Some("trip_48.80_2.30_20155_20158"), PARIS, 30)];
+
+        assert_eq!(
+            trip_keys(&compute(&request, &[NOW], None).periods[0]),
+            [LISBON_KEY]
+        );
+    }
+
+    #[test]
     fn the_next_period_counts_trips_shown_in_the_current_one() {
         let result = compute(&three_trips(), &[NOW, "2026-11-01T09:00:00"], None);
 
@@ -478,7 +521,7 @@ mod tests {
             surface_all: true,
             ..MemoriesRequest::default()
         };
-        let keys = trip_keys(&compute(&request, &[NOW], None).periods[0])
+        let keys = trip_keys(&legacy(&request, None))
             .into_iter()
             .map(str::to_owned)
             .collect::<Vec<_>>();
@@ -495,7 +538,7 @@ mod tests {
             surface_all: true,
             ..MemoriesRequest::default()
         };
-        assert!(trip_keys(&compute(&request, &[NOW], None).periods[0]).is_empty());
+        assert!(trip_keys(&legacy(&request, None)).is_empty());
     }
 
     #[test]
@@ -512,9 +555,8 @@ mod tests {
             ..MemoriesRequest::default()
         };
 
-        let result = compute(&request, &[NOW], None);
+        let memories = &legacy(&request, None);
 
-        let memories = &result.periods[0];
         let keys = trip_keys(memories);
         assert_eq!(keys.len(), 1);
         assert!(keys[0].starts_with("trip_48.82_2.30_"), "{keys:?}");
@@ -537,7 +579,7 @@ mod tests {
                 surface_all: true,
                 ..MemoriesRequest::default()
             };
-            trip_keys(&compute(&request, &[NOW], None).periods[0])
+            trip_keys(&legacy(&request, None))
                 .into_iter()
                 .map(str::to_owned)
                 .collect::<Vec<_>>()
@@ -569,9 +611,9 @@ mod tests {
             ..MemoriesRequest::default()
         };
 
-        let result = compute(&request, &[NOW], Some(&cities));
+        let memories = legacy(&request, Some(&cities));
 
-        let trips = trips(&result.periods[0]);
+        let trips = trips(&memories);
         assert_eq!(trips.len(), 1);
         assert_eq!(trips[0].location_name.as_deref(), Some("Lyon"));
     }
@@ -600,8 +642,9 @@ mod tests {
             }
         };
         let name = |request: &MemoriesRequest| {
-            let result = compute(request, &[NOW], Some(&cities));
-            trips(&result.periods[0])[0].location_name.clone()
+            trips(&legacy(request, Some(&cities)))[0]
+                .location_name
+                .clone()
         };
 
         assert_eq!(name(&tour(AMSTERDAM)).as_deref(), Some("France"));

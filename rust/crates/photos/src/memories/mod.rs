@@ -59,7 +59,7 @@ pub fn compute_smart_memories(
     let places = Places::new(&located, cities);
     let analysis = periods
         .first()
-        .map(|period| trips::analyze(&located, period.now, &places));
+        .map(|&period| trips::v3::analyze(&located, period, &places, cities));
     let mut trip_history = TripHistory::new(&request.shown_trips, &request.cached_trips);
     let mut clip_history = ClipHistory::new(&request.shown_clip_memories);
     let signals = ml.map(Signals::load).transpose()?;
@@ -163,14 +163,11 @@ pub fn compute_all_trip_memories(
     let photos = photo::prepare(&request.files);
     let located = geo::located(&photos);
     let places = Places::new(&located, cities);
-    let memories = match detection {
-        TripDetection::Legacy => trips::all_memories(
-            &trips::analyze(&located, period.now, &places),
-            &places,
-            period,
-        ),
-        TripDetection::Improved => trips::v3::all_memories(&located, period, &places, cities),
+    let analysis = match detection {
+        TripDetection::Legacy => trips::analyze(&located, period.now, &places),
+        TripDetection::Improved => trips::v3::analyze(&located, period, &places, cities),
     };
+    let memories = trips::all_memories(&analysis, &places, period);
     log::info!(
         "computed {} {detection:?} trip memories for {} files in {} ms",
         memories.len(),
