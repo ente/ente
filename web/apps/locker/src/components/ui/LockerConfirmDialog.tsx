@@ -33,6 +33,7 @@ interface LockerConfirmDialogProps {
     cancelLabel?: string;
     tone?: "critical" | "primary";
     loading?: boolean;
+    confirmDisabled?: boolean;
     error?: string;
     checkbox?: {
         label: string;
@@ -54,6 +55,7 @@ export function LockerConfirmDialog({
     cancelLabel,
     tone = "critical",
     loading,
+    confirmDisabled,
     error,
     checkbox,
     onClose,
@@ -187,6 +189,7 @@ export function LockerConfirmDialog({
                     fullWidth
                     color={tone}
                     loading={loading}
+                    disabled={confirmDisabled}
                     onClick={onConfirm}
                     sx={(theme) => ({
                         ...confirmButtonTypography,
