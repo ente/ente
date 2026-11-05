@@ -1,6 +1,8 @@
 use std::cmp::Reverse;
 use std::collections::HashSet;
 
+use ente_location::Coordinate;
+
 use super::{Base, Trip, TripAnalysis};
 use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
@@ -18,6 +20,7 @@ const TRIP_DISPLAY_DAYS: i64 = 10;
 const SEASONAL_TRIP_BAND_DAYS: i64 = 45;
 const MINIMUM_TRIP_AGE_DAYS: i64 = 365;
 const LEGACY_SHOWN_TRIP_RADIUS_KM: f64 = 10.0;
+const OLDER_KEY_MAX_DISTANCE_KM: f64 = 50.0;
 
 pub(in crate::memories) struct TripHistory<'r> {
     shown: &'r [ShownTrip],
@@ -335,13 +338,28 @@ fn trip_key(identity_key: &str) -> &str {
 }
 
 fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {
-    key == trip.key
-        || (!current.contains(key)
-            && matches!(
-                (key_days(key), key_days(&trip.key)),
-                (Some((first, last)), Some((trip_first, trip_last)))
-                    if first <= trip_last && trip_first <= last
-            ))
+    if key == trip.key {
+        return true;
+    }
+    let (Some((first, last)), Some((trip_first, trip_last))) = (key_days(key), key_days(&trip.key))
+    else {
+        return false;
+    };
+    let contains =
+        (first <= trip_first && trip_last <= last) || (trip_first <= first && last <= trip_last);
+    let overlaps_nearby = first <= trip_last
+        && trip_first <= last
+        && key_location(key).is_some_and(|location| {
+            distance_km(location, trip.location) < OLDER_KEY_MAX_DISTANCE_KM
+        });
+    !current.contains(key) && (contains || overlaps_nearby)
+}
+
+fn key_location(key: &str) -> Option<Coordinate> {
+    let mut parts = key.strip_prefix("trip_")?.split('_');
+    let latitude = parts.next()?.parse().ok()?;
+    let longitude = parts.next()?.parse().ok()?;
+    Some(Coordinate::new(latitude, longitude))
 }
 
 fn key_days(key: &str) -> Option<(i64, i64)> {

@@ -577,6 +577,39 @@ mod tests {
             .collect()
     }
 
+    fn trip_key(files: &[MemoryFile], name: &str) -> String {
+        memories(files.to_vec())
+            .into_iter()
+            .find_map(|memory| match memory.kind {
+                MemoryKind::Trip(trip) if trip.location_name.as_deref() == Some(name) => {
+                    Some(trip.key)
+                }
+                _ => None,
+            })
+            .unwrap()
+    }
+
+    fn surfaced_after_showing(files: &[MemoryFile], key: String) -> Vec<String> {
+        let request = MemoriesRequest {
+            files: files.to_vec(),
+            shown_trips: vec![ShownTrip {
+                key: Some(key),
+                location: Coordinate::new(0.0, 0.0),
+                last_time_shown: micros(NOW) - 30 * MICROS_PER_DAY,
+            }],
+            ..MemoriesRequest::default()
+        };
+        compute_smart_memories(&request, &[period(NOW)], None, Some(&Atlas))
+            .unwrap()
+            .periods[0]
+            .iter()
+            .filter_map(|memory| match &memory.kind {
+                MemoryKind::Trip(trip) => Some(trip.key.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
     #[test]
     fn weekends_far_day_trips_and_light_trips_count_but_nearby_towns_do_not() {
         let files = library(
@@ -1017,45 +1050,48 @@ mod tests {
     }
 
     #[test]
-    fn showing_one_country_leg_does_not_hold_back_the_next_leg() {
+    fn a_shown_country_leg_holds_back_only_itself_but_a_shown_whole_trip_holds_back_every_leg() {
         let mut long_trip = stay(1000, "2024-09-01T09:00:00", 57, 480, ROME);
         long_trip.extend(stay(2000, "2024-09-20T21:00:00", 60, 480, ZURICH));
         let files = library(vec![long_trip], &AMSTERDAM_HOME);
-        let key_of = |name: &str| {
-            memories(files.clone())
-                .into_iter()
-                .find_map(|memory| match memory.kind {
-                    MemoryKind::Trip(trip) if trip.location_name.as_deref() == Some(name) => {
-                        Some(trip.key)
-                    }
-                    _ => None,
-                })
-                .unwrap()
-        };
-        let (rome, zurich) = (key_of("Rome"), key_of("Zurich"));
-        assert_eq!(rome.rsplit('_').next(), zurich.rsplit('_').nth(1));
-        let request = MemoriesRequest {
-            files,
-            shown_trips: vec![ShownTrip {
-                key: Some(rome),
-                location: Coordinate::new(ROME.0, ROME.1),
-                last_time_shown: micros(NOW) - 30 * MICROS_PER_DAY,
-            }],
-            ..MemoriesRequest::default()
-        };
+        let (rome, zurich) = (trip_key(&files, "Rome"), trip_key(&files, "Zurich"));
+        let rome_parts: Vec<&str> = rome.split('_').collect();
+        let zurich_parts: Vec<&str> = zurich.split('_').collect();
+        assert_eq!(rome_parts[4], zurich_parts[3]);
+        let older_rome = format!(
+            "trip_41.91_{}_{}_{}",
+            rome_parts[2], rome_parts[3], rome_parts[4]
+        );
+        let whole_trip = format!("trip_44.60_10.50_{}_{}", rome_parts[3], zurich_parts[4]);
 
-        let surfaced: Vec<String> =
-            compute_smart_memories(&request, &[period(NOW)], None, Some(&Atlas))
-                .unwrap()
-                .periods[0]
-                .iter()
-                .filter_map(|memory| match &memory.kind {
-                    MemoryKind::Trip(trip) => Some(trip.key.clone()),
-                    _ => None,
-                })
-                .collect();
+        assert_eq!(
+            surfaced_after_showing(&files, rome.clone()),
+            [zurich.as_str()]
+        );
+        assert_eq!(
+            surfaced_after_showing(&files, older_rome),
+            [zurich.as_str()]
+        );
+        assert!(surfaced_after_showing(&files, whole_trip).is_empty());
+    }
 
-        assert_eq!(surfaced, [zurich]);
+    #[test]
+    fn a_day_trip_on_the_day_you_come_back_from_another_trip_is_not_held_back_by_it() {
+        let mut files = library(
+            vec![
+                stay(1000, "2024-06-10T09:00:00", 12, 240, PARIS),
+                stay(2000, "2024-06-12T14:00:00", 16, 20, GRONINGEN),
+            ],
+            &AMSTERDAM_HOME,
+        );
+        files.push(located_file(
+            900_000,
+            micros("2024-06-12T10:00:00"),
+            AMSTERDAM,
+        ));
+        let (paris, groningen) = (trip_key(&files, "Paris"), trip_key(&files, "Groningen"));
+
+        assert_eq!(surfaced_after_showing(&files, paris), [groningen.as_str()]);
     }
 
     #[test]
