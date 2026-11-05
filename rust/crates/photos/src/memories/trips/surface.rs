@@ -1,13 +1,15 @@
 use std::cmp::Reverse;
 use std::collections::HashSet;
 
-use super::{Trip, TripAnalysis};
+use ente_location::Coordinate;
+
+use super::{Base, Trip, TripAnalysis};
 use crate::memories::UPDATE_FREQUENCY_DAYS;
 use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
 use crate::memories::geo::distance_km;
 use crate::memories::input::{CachedTrip, MemoriesRequest, Period, ShownTrip};
 use crate::memories::output::{BaseMemory, Memory, MemoryBoundary, MemoryKind, TripMemory};
-use crate::memories::photo::Photo;
+use crate::memories::photo::{Photo, sort_chronologically};
 use crate::memories::places::Places;
 use crate::memories::selector::Selector;
 use crate::ml_store::Result;
@@ -18,6 +20,7 @@ const TRIP_DISPLAY_DAYS: i64 = 10;
 const SEASONAL_TRIP_BAND_DAYS: i64 = 45;
 const MINIMUM_TRIP_AGE_DAYS: i64 = 365;
 const LEGACY_SHOWN_TRIP_RADIUS_KM: f64 = 10.0;
+const OLDER_KEY_MAX_DISTANCE_KM: f64 = 50.0;
 
 pub(in crate::memories) struct TripHistory<'r> {
     shown: &'r [ShownTrip],
@@ -70,11 +73,11 @@ impl<'r> TripHistory<'r> {
             .collect()
     }
 
-    fn last_shown(&self, trip: &Trip) -> Option<i64> {
+    fn last_shown(&self, trip: &Trip, current: &HashSet<&str>) -> Option<i64> {
         self.shown
             .iter()
             .filter(|shown| match &shown.key {
-                Some(key) => *key == trip.key,
+                Some(key) => is_same_trip(key, trip, current),
                 None => distance_km(trip.location, shown.location) < LEGACY_SHOWN_TRIP_RADIUS_KM,
             })
             .map(|shown| shown.last_time_shown)
@@ -99,21 +102,47 @@ pub(in crate::memories) fn memories(
     if request.surface_all {
         return surface_all(analysis, &trips, period, places, selector);
     }
-    let selected = scheduled(&trips, history, period, request.local_gallery_mode);
+    let current: HashSet<&str> = analysis
+        .trips
+        .iter()
+        .map(|trip| trip.key.as_str())
+        .collect();
+    let selected = scheduled(
+        &trips,
+        &current,
+        history,
+        period,
+        request.local_gallery_mode,
+    );
     let last_date_to_show = period.now + TRIP_DISPLAY_DAYS * MICROS_PER_DAY;
     selected
         .into_iter()
-        .map(|trip| {
-            trip_memory(
-                trip,
-                analysis,
-                places,
-                selector,
-                period.now,
-                last_date_to_show,
-            )
-        })
+        .map(|trip| trip_memory(trip, selector, period.now, last_date_to_show))
         .collect()
+}
+
+pub(in crate::memories) fn all_memories(
+    analysis: &TripAnalysis,
+    places: &Places,
+    period: Period,
+) -> Vec<Memory> {
+    let last_date_to_show = period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY;
+    let bases = analysis.bases.iter().map(|base| {
+        let mut photos: Vec<&Photo> = base.members.iter().map(|member| member.photo).collect();
+        sort_chronologically(&mut photos);
+        Memory::uncapped(
+            base_kind(base, places),
+            &photos,
+            period.now,
+            last_date_to_show,
+        )
+    });
+    let trips = analysis.trips.iter().rev().map(|trip| {
+        let mut photos: Vec<&Photo> = trip.members.iter().map(|member| member.photo).collect();
+        sort_chronologically(&mut photos);
+        Memory::uncapped(trip_kind(trip), &photos, period.now, last_date_to_show)
+    });
+    bases.chain(trips).collect()
 }
 
 fn surface_all(
@@ -126,29 +155,23 @@ fn surface_all(
     let last_date_to_show = period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY;
     let bases = analysis.bases.iter().map(|base| {
         let photos: Vec<&Photo> = base.members.iter().map(|member| member.photo).collect();
-        let kind = MemoryKind::Base(BaseMemory {
-            location: base.location,
-            location_name: places.base_name(&base.members),
-            is_current: base.is_current,
-        });
-        Memory::new(kind, &photos, period.now, last_date_to_show)
+        Memory::new(
+            base_kind(base, places),
+            &photos,
+            period.now,
+            last_date_to_show,
+        )
     });
     let mut memories: Vec<Memory> = bases.collect();
     for trip in trips {
-        memories.push(trip_memory(
-            trip,
-            analysis,
-            places,
-            selector,
-            period.now,
-            last_date_to_show,
-        )?);
+        memories.push(trip_memory(trip, selector, period.now, last_date_to_show)?);
     }
     Ok(memories)
 }
 
 fn scheduled<'a, 'p>(
     trips: &[&'a Trip<'p>],
+    current: &HashSet<&str>,
     history: &TripHistory,
     period: Period,
     local_gallery_mode: bool,
@@ -160,9 +183,13 @@ fn scheduled<'a, 'p>(
     }
     let candidates: Vec<Candidate> = trips
         .iter()
-        .filter(|trip| !active.contains(&identity_key(&trip.key).as_str()))
+        .filter(|trip| {
+            !active
+                .iter()
+                .any(|identity_key| is_same_trip(trip_key(identity_key), trip, current))
+        })
         .map(|&trip| {
-            let last_shown = history.last_shown(trip);
+            let last_shown = history.last_shown(trip, current);
             Candidate {
                 trip,
                 last_shown,
@@ -238,25 +265,34 @@ fn evergreen_rank<'c>(candidate: &'c Candidate) -> (bool, Option<i64>, i64, Reve
 
 fn trip_memory(
     trip: &Trip,
-    analysis: &TripAnalysis,
-    places: &Places,
     selector: &mut Selector,
     first_date_to_show: i64,
     last_date_to_show: i64,
 ) -> Result<Memory> {
     let photos: Vec<&Photo> = trip.members.iter().map(|member| member.photo).collect();
-    let kind = MemoryKind::Trip(TripMemory {
-        location: trip.location,
-        location_name: places.trip_name(&trip.members, &analysis.base_countries),
-        year: trip.year(),
-        key: trip.key.clone(),
-    });
     Ok(Memory::new(
-        kind,
+        trip_kind(trip),
         &selector.best(photos, None)?,
         first_date_to_show,
         last_date_to_show,
     ))
+}
+
+fn trip_kind(trip: &Trip) -> MemoryKind {
+    MemoryKind::Trip(TripMemory {
+        location: trip.location,
+        location_name: trip.location_name.clone(),
+        year: trip.year(),
+        key: trip.key.clone(),
+    })
+}
+
+fn base_kind(base: &Base, places: &Places) -> MemoryKind {
+    MemoryKind::Base(BaseMemory {
+        location: base.location,
+        location_name: places.base_name(&base.members),
+        is_current: base.is_current,
+    })
 }
 
 fn anniversary_distance_days(trip: &Trip, period: Period) -> i64 {
@@ -295,4 +331,40 @@ fn moved_to_year(local_time: i64, year: i32) -> i64 {
 
 fn identity_key(trip_key: &str) -> String {
     format!("trip:{trip_key}")
+}
+
+fn trip_key(identity_key: &str) -> &str {
+    identity_key.strip_prefix("trip:").unwrap_or(identity_key)
+}
+
+fn is_same_trip(key: &str, trip: &Trip, current: &HashSet<&str>) -> bool {
+    if key == trip.key {
+        return true;
+    }
+    let (Some((first, last)), Some((trip_first, trip_last))) = (key_days(key), key_days(&trip.key))
+    else {
+        return false;
+    };
+    let contains =
+        (first <= trip_first && trip_last <= last) || (trip_first <= first && last <= trip_last);
+    let overlaps_nearby = first <= trip_last
+        && trip_first <= last
+        && key_location(key).is_some_and(|location| {
+            distance_km(location, trip.location) < OLDER_KEY_MAX_DISTANCE_KM
+        });
+    !current.contains(key) && (contains || overlaps_nearby)
+}
+
+fn key_location(key: &str) -> Option<Coordinate> {
+    let mut parts = key.strip_prefix("trip_")?.split('_');
+    let latitude = parts.next()?.parse().ok()?;
+    let longitude = parts.next()?.parse().ok()?;
+    Some(Coordinate::new(latitude, longitude))
+}
+
+fn key_days(key: &str) -> Option<(i64, i64)> {
+    let mut parts = key.strip_prefix("trip_")?.rsplitn(3, '_');
+    let last = parts.next()?.parse().ok()?;
+    let first = parts.next()?.parse().ok()?;
+    Some((first, last))
 }
