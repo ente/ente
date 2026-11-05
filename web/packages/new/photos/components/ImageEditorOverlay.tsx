@@ -72,7 +72,7 @@ const filterDefaultValues = {
     invert: false,
 };
 
-type OperationTab = "crop" | "transform";
+type OperationTab = "crop" | "transform" | "colors";
 
 interface CropBoxProps {
     x: number;
@@ -243,17 +243,25 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     };
 
     useEffect(() => {
-        setColoursAdjusted(
-            brightness !== filterDefaultValues.brightness ||
-                contrast !== filterDefaultValues.contrast ||
-                blur !== filterDefaultValues.blur ||
-                saturation !== filterDefaultValues.saturation ||
-                invert !== filterDefaultValues.invert,
-        );
-    }, [brightness, contrast, blur, saturation, invert]);
-
-    const imageFilter = (blurRadius: number) =>
-        `brightness(${brightness}%) contrast(${contrast}%) blur(${blurRadius}px) saturate(${saturation}%) invert(${invert ? 1 : 0})`;
+        if (!canvasRef.current) {
+            return;
+        }
+        try {
+            void applyFilters([
+                canvasRef.current,
+                originalSizeCanvasRef.current!,
+            ]).catch((e: unknown) => log.error("Error applying filters", e));
+            setColoursAdjusted(
+                brightness !== filterDefaultValues.brightness ||
+                    contrast !== filterDefaultValues.contrast ||
+                    blur !== filterDefaultValues.blur ||
+                    saturation !== filterDefaultValues.saturation ||
+                    invert !== filterDefaultValues.invert,
+            );
+        } catch (e) {
+            log.error("Error applying filters", e);
+        }
+    }, [brightness, contrast, blur, saturation, invert, canvasRef, fileURL]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -330,6 +338,56 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         observer.observe(canvas);
         return () => observer.disconnect();
     }, [open, currentTab, canvasLoading, fileURL]);
+
+    const applyFilters = async (canvases: HTMLCanvasElement[]) => {
+        try {
+            for (const canvas of canvases) {
+                const blurSizeRatio =
+                    Math.min(canvas.width, canvas.height) /
+                    Math.max(
+                        1,
+                        Math.min(
+                            canvasRef.current!.getBoundingClientRect().width,
+                            canvasRef.current!.getBoundingClientRect().height,
+                        ),
+                    );
+                const blurRadius = blurSizeRatio * blur;
+                const filterString = `brightness(${brightness}%) contrast(${contrast}%) blur(${blurRadius}px) saturate(${saturation}%) invert(${
+                    invert ? 1 : 0
+                })`;
+                const ctx = canvas.getContext("2d")!;
+                ctx.imageSmoothingEnabled = false;
+
+                ctx.filter = filterString;
+
+                const image = new Image();
+                image.src = fileURL!;
+
+                await new Promise((resolve, reject) => {
+                    image.onload = () => {
+                        try {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.save();
+                            ctx.drawImage(
+                                image,
+                                0,
+                                0,
+                                canvas.width,
+                                canvas.height,
+                            );
+                            ctx.restore();
+                            resolve(true);
+                        } catch (e) {
+                            reject(e);
+                        }
+                    };
+                });
+            }
+        } catch (e) {
+            log.error("Error applying filters", e);
+            throw e;
+        }
+    };
 
     useEffect(() => {
         if (currentRotationAngle >= 360 || currentRotationAngle <= -360) {
@@ -445,17 +503,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     const getEditedFile = async () => {
         const originalSizeCanvas = originalSizeCanvasRef.current!;
         const originalFileName = fileFileName(file);
-        const output = document.createElement("canvas");
-        output.width = originalSizeCanvas.width;
-        output.height = originalSizeCanvas.height;
-        const context = output.getContext("2d")!;
-        const preview = canvasRef.current!.getBoundingClientRect();
-        const scale =
-            Math.min(output.width, output.height) /
-            Math.max(1, Math.min(preview.width, preview.height));
-        context.filter = imageFilter(blur * scale);
-        context.drawImage(originalSizeCanvas, 0, 0);
-        return canvasToFile(output, originalFileName, mimeType);
+        return canvasToFile(originalSizeCanvas, originalFileName, mimeType);
     };
 
     const downloadEditedPhoto = async () => {
@@ -597,7 +645,6 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             <canvas
                                 ref={canvasRef}
                                 style={{
-                                    filter: imageFilter(blur),
                                     objectFit: "contain",
                                     maxWidth: "calc(100% - 16px)",
                                     maxHeight: "calc(100% - 16px)",
@@ -634,7 +681,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         height: "100%",
                         minWidth: 0,
                         minHeight: 0,
-                        overflow: "hidden",
+                        overflowX: "hidden",
+                        overflowY: { xs: "auto", md: "hidden" },
                         p: 2.5,
                         boxSizing: "border-box",
                         borderRadius: "20px",
@@ -677,10 +725,22 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         }}
                     >
                         <Tab label={t("crop")} value="crop" />
-                        <Tab label={t("edit_image")} value="transform" />
+                        <Tab label={t("transform")} value="transform" />
+                        <Tab
+                            label={t("colors")}
+                            value="colors"
+                            disabled={transformationPerformed}
+                        />
                     </Tabs>
                 </Stack>
-                <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.5 }}>
+                <Box
+                    sx={{
+                        flex: { xs: "0 0 auto", md: "1 1 auto" },
+                        minHeight: 0,
+                        overflowY: { xs: "visible", md: "auto" },
+                        pr: 0.5,
+                    }}
+                >
                     {currentTab == "crop" && (
                         <CropMenu
                             {...menuProps}
@@ -693,7 +753,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     {currentTab == "transform" && (
                         <TransformMenu {...menuProps} />
                     )}
-                    {currentTab == "transform" && (
+                    {currentTab == "colors" && (
                         <ColoursMenu
                             brightness={brightness}
                             contrast={contrast}
