@@ -58,13 +58,27 @@ func (repo *ObjectRepository) MarkObjectReplicated(objectKey string, datacenter 
 	return result.RowsAffected()
 }
 
-func (repo *ObjectRepository) GetObjectsForFileIDs(fileIDs []int64) ([]ente.S3ObjectKey, error) {
-	rows, err := repo.DB.Query(`SELECT file_id, o_type, object_key, size FROM object_keys 
+type ObjectWithDataCenters struct {
+	ente.S3ObjectKey
+	DataCenters []string
+}
+
+func (repo *ObjectRepository) GetObjectsForFileIDs(fileIDs []int64) ([]ObjectWithDataCenters, error) {
+	rows, err := repo.DB.Query(`SELECT file_id, o_type, object_key, size, datacenters FROM object_keys
 		WHERE file_id = ANY($1) AND is_deleted=false`, pq.Array(fileIDs))
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	return convertRowsToObjectKeys(rows)
+	defer rows.Close()
+	var objects []ObjectWithDataCenters
+	for rows.Next() {
+		var object ObjectWithDataCenters
+		if err := rows.Scan(&object.FileID, &object.Type, &object.ObjectKey, &object.FileSize, pq.Array(&object.DataCenters)); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		objects = append(objects, object)
+	}
+	return objects, stacktrace.Propagate(rows.Err(), "")
 }
 
 func (repo *ObjectRepository) GetObject(fileID int64, objType ente.ObjectType) (ente.S3ObjectKey, error) {
