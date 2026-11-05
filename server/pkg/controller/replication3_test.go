@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/controller/discord"
 	"github.com/ente/museum/pkg/repo"
@@ -37,7 +37,7 @@ func TestReplicationHotCopies(t *testing.T) {
 		primary      string
 		copies       []string
 		thumbnail    bool
-		failure      string
+		failures     []string
 		badDownload  bool
 		badUpload    bool
 		compliance   bool
@@ -62,15 +62,19 @@ func TestReplicationHotCopies(t *testing.T) {
 			wantRequests: []string{"GET wasabi", "PUT scw", "HEAD scw"}},
 		{name: "prefer b2", primary: "b2", copies: []string{"b2", "wasabi"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "PUT scw", "HEAD scw"}},
-		{name: "b2 destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failure: "PUT b2", wantError: true, wantCopies: []string{"wasabi", "scw"},
+		{name: "b2 destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"PUT b2"}, wantError: true, wantCopies: []string{"wasabi", "scw"},
 			wantRequests: []string{"GET wasabi", "PUT b2", "PUT scw", "HEAD scw"}},
-		{name: "scaleway destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failure: "PUT scw", wantError: true, wantCopies: []string{"b2", "wasabi"},
+		{name: "scaleway destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"PUT scw"}, wantError: true, wantCopies: []string{"b2", "wasabi"},
 			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2", "PUT scw"}},
-		{name: "wasabi destination unavailable", primary: "b2", copies: []string{"b2"}, failure: "PUT wasabi", wantError: true, wantCopies: []string{"b2", "scw"},
+		{name: "wasabi destination unavailable", primary: "b2", copies: []string{"b2"}, failures: []string{"PUT wasabi"}, wantError: true, wantCopies: []string{"b2", "scw"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "PUT scw", "HEAD scw"}},
-		{name: "preferred source unavailable", primary: "b2", copies: []string{"b2", "wasabi"}, failure: "GET b2", wantCopies: []string{"b2", "wasabi", "scw"},
+		{name: "all destinations unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"PUT b2", "PUT scw"}, wantError: true, wantCopies: []string{"wasabi"},
+			wantRequests: []string{"GET wasabi", "PUT b2", "PUT scw"}},
+		{name: "only missing b2 unavailable", primary: "wasabi", copies: []string{"wasabi", "scw"}, failures: []string{"PUT b2"}, wantError: true, wantCopies: []string{"wasabi", "scw"},
+			wantRequests: []string{"GET wasabi", "PUT b2"}},
+		{name: "preferred source unavailable", primary: "b2", copies: []string{"b2", "wasabi"}, failures: []string{"GET b2"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "GET wasabi", "PUT scw", "HEAD scw"}},
-		{name: "sole source unavailable", primary: "wasabi", copies: []string{"wasabi"}, failure: "GET wasabi", wantError: true, wantCopies: []string{"wasabi"},
+		{name: "sole source unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"GET wasabi"}, wantError: true, wantCopies: []string{"wasabi"},
 			wantRequests: []string{"GET wasabi"}},
 		{name: "cold copy is not a source", primary: "wasabi", copies: []string{"scw"}, wantError: true, wantCopies: []string{"scw"}},
 		{name: "download size mismatch", primary: "wasabi", copies: []string{"wasabi"}, badDownload: true, wantError: true, wantCopies: []string{"wasabi"},
@@ -90,7 +94,7 @@ func TestReplicationHotCopies(t *testing.T) {
 			const content = "encrypted object"
 			var mu sync.Mutex
 			var requests []string
-			failure := tc.failure
+			failures := slices.Clone(tc.failures)
 			storage := make(map[string]string)
 			for _, provider := range tc.copies {
 				storage[provider] = content
@@ -104,9 +108,14 @@ func TestReplicationHotCopies(t *testing.T) {
 				provider := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")[0]
 				request := r.Method + " " + provider
 				requests = append(requests, request)
-				if request == failure || tc.compliance && request == "PUT wasabi" {
+				if tc.compliance && request == "PUT wasabi" {
 					w.WriteHeader(http.StatusForbidden)
 					_, _ = io.WriteString(w, `<Error><Code>AccessDenied</Code></Error>`)
+					return
+				}
+				if slices.Contains(failures, request) {
+					w.WriteHeader(http.StatusServiceUnavailable)
+					_, _ = io.WriteString(w, `<Error><Code>ServiceUnavailable</Code></Error>`)
 					return
 				}
 				switch r.Method {
@@ -189,7 +198,8 @@ func TestReplicationHotCopies(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			err = c.tryReplicate()
+			replicated, err := c.tryReplicate()
+			require.Equal(t, len(tc.wantCopies) > len(tc.copies), replicated)
 			if tc.wantError {
 				require.Error(t, err)
 			} else {
@@ -204,6 +214,8 @@ func TestReplicationHotCopies(t *testing.T) {
 			}
 			if tc.deleted || tc.deletedUser {
 				require.False(t, wantB2 || wantWasabi || wantSCW)
+			} else {
+				require.True(t, wantB2)
 			}
 			locations, err = c.ObjectRepo.GetDataCentersForObject(objectKey)
 			require.NoError(t, err)
@@ -216,19 +228,23 @@ func TestReplicationHotCopies(t *testing.T) {
 				_, err = db.Exec(`UPDATE object_copies SET last_attempt = 0 WHERE object_key = $1`, objectKey)
 				require.NoError(t, err)
 			}
-			require.ErrorIs(t, c.tryReplicate(), sql.ErrNoRows)
+			replicated, err = c.tryReplicate()
+			require.ErrorIs(t, err, sql.ErrNoRows)
+			require.False(t, replicated)
 			mu.Lock()
 			actualRequests := slices.Clone(requests)
 			mu.Unlock()
 			require.Equal(t, tc.wantRequests, actualRequests)
-			if tc.failure == "PUT b2" {
+			if len(tc.failures) == 1 && tc.failures[0] == "PUT b2" {
 				mu.Lock()
-				failure = ""
+				failures = nil
 				requests = nil
 				mu.Unlock()
 				_, err = db.Exec(`UPDATE object_copies SET last_attempt = 0 WHERE object_key = $1`, objectKey)
 				require.NoError(t, err)
-				require.NoError(t, c.tryReplicate())
+				replicated, err = c.tryReplicate()
+				require.NoError(t, err)
+				require.True(t, replicated)
 				require.NoError(t, db.QueryRow(`SELECT b2 FROM object_copies WHERE object_key = $1`, objectKey).Scan(&b2))
 				require.True(t, b2.Valid)
 				locations, err = c.ObjectRepo.GetDataCentersForObject(objectKey)
@@ -325,7 +341,7 @@ func newReplicationTestController(t *testing.T, endpoint, primary string, local,
 	}
 	c.createDestinations()
 	for _, dest := range []*UploadDestination{c.b2Dest, c.wasabiDest, c.scwDest} {
-		dest.Client.Config.MaxRetries = aws.Int(0)
+		dest.Client.Retryer = client.DefaultRetryer{NumMaxRetries: 0}
 	}
 	return c
 }

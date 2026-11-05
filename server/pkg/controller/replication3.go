@@ -175,14 +175,14 @@ func (c *ReplicationController3) createDestinations() {
 
 func (c *ReplicationController3) replicate(i int) {
 	for {
-		err := c.tryReplicate()
-		if err != nil {
+		replicated, err := c.tryReplicate()
+		if err != nil && !replicated {
 			time.Sleep(time.Duration(i+1) * time.Minute)
 		}
 	}
 }
 
-func (c *ReplicationController3) tryReplicate() error {
+func (c *ReplicationController3) tryReplicate() (bool, error) {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	copies, err := c.ObjectCopiesRepo.GetAndLockUnreplicatedObject(ctxWithTimeout)
@@ -190,7 +190,7 @@ func (c *ReplicationController3) tryReplicate() error {
 		if !errors.Is(err, sql.ErrNoRows) {
 			log.Errorf("Could not fetch an object to replicate: %s", err)
 		}
-		return stacktrace.Propagate(err, "")
+		return false, stacktrace.Propagate(err, "")
 	}
 
 	objectKey := copies.ObjectKey
@@ -200,7 +200,8 @@ func (c *ReplicationController3) tryReplicate() error {
 		"object_key": objectKey,
 	})
 
-	done := func(err error) error {
+	replicated := false
+	done := func(err error) (bool, error) {
 		if err != nil {
 			logger.Error(err)
 			if strings.Contains(err.Error(), "size of the uploaded file") {
@@ -216,7 +217,7 @@ func (c *ReplicationController3) tryReplicate() error {
 		} else {
 			logger.WithError(err).Info("Replication attempt failed")
 		}
-		return err
+		return replicated, err
 	}
 
 	logger.Info("Replication attempt start")
@@ -273,18 +274,23 @@ func (c *ReplicationController3) tryReplicate() error {
 		err = c.replicateFile(in, c.b2Dest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedB2(objectKey)
 		})
+		replicated = err == nil
 	}
 
 	if copies.WantWasabi && copies.Wasabi == nil {
-		err = errors.Join(err, c.replicateFile(in, c.wasabiDest, func() error {
+		replicaErr := c.replicateFile(in, c.wasabiDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedWasabi(objectKey)
-		}))
+		})
+		replicated = replicated || replicaErr == nil
+		err = errors.Join(err, replicaErr)
 	}
 
 	if copies.WantSCW && copies.SCW == nil {
-		err = errors.Join(err, c.replicateFile(in, c.scwDest, func() error {
+		replicaErr := c.replicateFile(in, c.scwDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedScaleway(objectKey)
-		}))
+		})
+		replicated = replicated || replicaErr == nil
+		err = errors.Join(err, replicaErr)
 	}
 	return done(err)
 }
