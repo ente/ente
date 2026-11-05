@@ -4,9 +4,8 @@ import "package:ente_components/components/chip_surface.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:flutter/rendering.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:intl/intl.dart";
+import "package:intl/intl.dart" show DateFormat;
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_month_card.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
@@ -28,10 +27,157 @@ class ReviewYearSection extends StatelessWidget {
   static const double _rowSpacing = 32;
   static const double _minSlotGap = 12;
   static const double _tiltDegrees = 2;
+  static const double _yearToggleSize = 28.182;
+  static const double _completedTickSize = 16;
+  static const double _summaryCardWidth = 134;
+  static const double _summaryMinHeight = 142;
+  static const double _summaryGap = 25;
+  static const double _seeAllMinHeight = 36;
+  static const double _footerMinHeight = 24;
+  static final _summaryTextStyle = TextStyles.display3.copyWith(fontSize: 18);
+  static final _seeAllTextStyle = TextStyles.display3.copyWith(
+    fontSize: 10,
+    height: 28 / 10,
+  );
 
   static int _slotsPerRow(double width) {
     final usable = width - Spacing.sm * 2 + _minSlotGap;
     return math.max(1, (usable / (_slotWidth + _minSlotGap)).floor());
+  }
+
+  static double _slotGap(double width, int perRow) => perRow > 1
+      ? (width - Spacing.sm * 2 - perRow * _slotWidth) / (perRow - 1)
+      : _minSlotGap;
+
+  static double heightFor(
+    BuildContext context, {
+    required ReviewYearSummary year,
+    required bool expanded,
+    required double width,
+  }) {
+    final locale = Localizations.localeOf(context).toString();
+    final yearLabel = DateFormat.y(locale).format(DateTime(year.year));
+    final completed = year.isCompleted;
+    final collapsed = completed && !expanded;
+    final headerHeight = math.max(
+      _textHeight(context, yearLabel, TextStyles.display3),
+      collapsed ? _completedTickSize : _yearToggleSize,
+    );
+    final double bodyHeight;
+    if (collapsed) {
+      bodyHeight = _summaryHeight(
+        context,
+        yearLabel,
+        year.months.length,
+        width,
+      );
+    } else {
+      bodyHeight =
+          _gridHeightFor(year.months.length, width) +
+          (completed
+              ? Spacing.xl +
+                    (year.months.length > 1
+                        ? _animatedFooterHeightFor(context)
+                        : math.max(
+                            _footerMinHeight,
+                            _textHeight(
+                              context,
+                              context.strings.seeLess,
+                              TextStyles.mini,
+                            ),
+                          ))
+              : 0);
+    }
+    return headerHeight + Spacing.xl + bodyHeight;
+  }
+
+  static double _summaryHeight(
+    BuildContext context,
+    String yearLabel,
+    int monthCount,
+    double width,
+  ) {
+    final textWidth = math.max(
+      0.0,
+      width - Spacing.sm * 2 - _summaryCardWidth - _summaryGap,
+    );
+    var height = _textHeight(
+      context,
+      context.strings.reviewYouReviewedYear(year: yearLabel),
+      _summaryTextStyle,
+      maxWidth: textWidth,
+      textAlign: TextAlign.center,
+    );
+    if (monthCount > 1) {
+      height +=
+          Spacing.sm +
+          math.max(
+            _seeAllMinHeight,
+            _textHeight(
+              context,
+              context.strings.seeAll,
+              _seeAllTextStyle,
+              maxWidth: math.max(0.0, textWidth - Spacing.xxl * 2),
+            ),
+          );
+    }
+    return math.max(_summaryMinHeight, height);
+  }
+
+  static double _gridHeightFor(int count, double width) {
+    final rows = (count / _slotsPerRow(width)).ceil();
+    return rows * _slotHeight + (rows - 1) * _rowSpacing;
+  }
+
+  static double _animatedFooterHeightFor(BuildContext context) => math.max(
+    _footerMinHeight,
+    MediaQuery.textScalerOf(context).scale(TextStyles.mini.fontSize!) *
+        TextStyles.mini.height!,
+  );
+
+  static double _textHeight(
+    BuildContext context,
+    String text,
+    TextStyle style, {
+    double maxWidth = double.infinity,
+    TextAlign? textAlign,
+  }) {
+    final defaults = DefaultTextStyle.of(context);
+    var effectiveStyle = defaults.style.merge(style);
+    if (MediaQuery.boldTextOf(context)) {
+      effectiveStyle = effectiveStyle.merge(
+        const TextStyle(fontWeight: FontWeight.bold),
+      );
+    }
+    effectiveStyle = effectiveStyle.merge(
+      TextStyle(
+        height: MediaQuery.maybeLineHeightScaleFactorOverrideOf(context),
+        letterSpacing: MediaQuery.maybeLetterSpacingOverrideOf(context),
+        wordSpacing: MediaQuery.maybeWordSpacingOverrideOf(context),
+      ),
+    );
+    final overflow = effectiveStyle.overflow ?? defaults.overflow;
+    final painter =
+        TextPainter(
+          text: TextSpan(text: text, style: effectiveStyle),
+          textAlign: textAlign ?? defaults.textAlign ?? TextAlign.start,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          locale: Localizations.maybeLocaleOf(context),
+          maxLines: defaults.maxLines,
+          textWidthBasis: defaults.textWidthBasis,
+          textHeightBehavior:
+              defaults.textHeightBehavior ??
+              DefaultTextHeightBehavior.maybeOf(context),
+          ellipsis: overflow == TextOverflow.ellipsis ? "\u2026" : null,
+        )..layout(
+          maxWidth: defaults.softWrap || overflow == TextOverflow.ellipsis
+              ? maxWidth
+              : double.infinity,
+        );
+    final height = painter.height;
+    painter.dispose();
+    return height;
   }
 
   final ReviewYearSummary year;
@@ -67,7 +213,7 @@ class ReviewYearSection extends StatelessWidget {
               const SizedBox(width: Spacing.xs),
               SelectAllStatusIcon(
                 isSelected: true,
-                size: 16,
+                size: _completedTickSize,
                 tickIconSize: 12,
                 tickStrokeWidth: 3.2,
                 selectedFillColor: colors.primary,
@@ -84,8 +230,8 @@ class ReviewYearSection extends StatelessWidget {
                   behavior: HitTestBehavior.opaque,
                   onTap: onYearToggle,
                   child: SizedBox(
-                    width: 28.182,
-                    height: 28.182,
+                    width: _yearToggleSize,
+                    height: _yearToggleSize,
                     child: Center(
                       child: allSelected
                           ? const ReviewSelectedTick()
@@ -106,58 +252,32 @@ class ReviewYearSection extends StatelessWidget {
           _AnimatedCompletedYear(
             year: year,
             yearLabel: yearLabel,
-            selectedMonths: selectedMonths,
             expanded: expanded,
-            onMonthTap: onMonthTap,
-            onMonthLongPress: onMonthLongPress,
+            cardBuilder: (_, index) => _monthCard(year.months[index], locale),
             onExpandedChanged: onExpandedChanged,
           )
         else if (collapsed)
           _CompletedYearRow(
             year: year,
             yearLabel: yearLabel,
-            selected:
-                year.months.length == 1 &&
-                selectedMonths.contains(year.months.single.key),
-            onTap: year.months.length == 1
-                ? () => onMonthTap(year.months.single)
-                : () => onExpandedChanged(true),
-            onLongPress: year.months.length == 1
-                ? () => onMonthLongPress(year.months.single)
-                : null,
+            selected: selectedMonths.contains(year.months.single.key),
+            onTap: () => onMonthTap(year.months.single),
+            onLongPress: () => onMonthLongPress(year.months.single),
           )
         else ...[
           LayoutBuilder(
             builder: (context, constraints) {
               final perRow = _slotsPerRow(constraints.maxWidth);
-              return Column(
-                children: [
-                  for (
-                    var start = 0;
-                    start < year.months.length;
-                    start += perRow
-                  ) ...[
-                    if (start > 0) const SizedBox(height: _rowSpacing),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.sm,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          for (
-                            var index = start;
-                            index < start + perRow;
-                            index++
-                          )
-                            index < year.months.length
-                                ? _monthSlot(context, year.months[index], index)
-                                : const SizedBox(width: _slotWidth),
-                        ],
-                      ),
-                    ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+                child: Wrap(
+                  spacing: _slotGap(constraints.maxWidth, perRow),
+                  runSpacing: _rowSpacing,
+                  children: [
+                    for (var index = 0; index < year.months.length; index++)
+                      _monthSlot(year.months[index], index, locale),
                   ],
-                ],
+                ),
               );
             },
           ),
@@ -170,9 +290,7 @@ class ReviewYearSection extends StatelessWidget {
     );
   }
 
-  Widget _monthSlot(BuildContext context, ReviewMonthSummary month, int index) {
-    final locale = Localizations.localeOf(context).toString();
-    final label = DateFormat.MMM(locale).format(month.key.start);
+  Widget _monthSlot(ReviewMonthSummary month, int index, String locale) {
     final tilt = month.state == ReviewMonthState.completed
         ? 0.0
         : (index.isEven ? _tiltDegrees : -_tiltDegrees) * math.pi / 180;
@@ -180,21 +298,23 @@ class ReviewYearSection extends StatelessWidget {
       width: _slotWidth,
       height: _slotHeight,
       child: Center(
-        child: Transform.rotate(
-          angle: tilt,
-          child: ReviewMonthCard(
-            cover: month.cover,
-            label: label,
-            count: month.totalCount,
-            state: month.state,
-            progress: month.progress,
-            selected: selectedMonths.contains(month.key),
-            semanticLabel: DateFormat.yMMMM(locale).format(month.key.start),
-            onTap: () => onMonthTap(month),
-            onLongPress: () => onMonthLongPress(month),
-          ),
-        ),
+        child: Transform.rotate(angle: tilt, child: _monthCard(month, locale)),
       ),
+    );
+  }
+
+  Widget _monthCard(ReviewMonthSummary month, String locale) {
+    return ReviewMonthCard(
+      key: ValueKey(month.key),
+      cover: month.cover,
+      label: DateFormat.MMM(locale).format(month.key.start),
+      count: month.totalCount,
+      state: month.state,
+      progress: month.progress,
+      selected: selectedMonths.contains(month.key),
+      semanticLabel: DateFormat.yMMMM(locale).format(month.key.start),
+      onTap: () => onMonthTap(month),
+      onLongPress: () => onMonthLongPress(month),
     );
   }
 }
@@ -203,19 +323,15 @@ class _AnimatedCompletedYear extends StatefulWidget {
   const _AnimatedCompletedYear({
     required this.year,
     required this.yearLabel,
-    required this.selectedMonths,
     required this.expanded,
-    required this.onMonthTap,
-    required this.onMonthLongPress,
+    required this.cardBuilder,
     required this.onExpandedChanged,
   });
 
   final ReviewYearSummary year;
   final String yearLabel;
-  final Set<ReviewMonthKey> selectedMonths;
   final bool expanded;
-  final ValueChanged<ReviewMonthSummary> onMonthTap;
-  final ValueChanged<ReviewMonthSummary> onMonthLongPress;
+  final IndexedWidgetBuilder cardBuilder;
   final ValueChanged<bool> onExpandedChanged;
 
   @override
@@ -229,24 +345,26 @@ class _AnimatedCompletedYearState extends State<_AnimatedCompletedYear>
     duration: Motion.slow + Motion.standard,
     value: widget.expanded ? 1 : 0,
   )..addStatusListener(_onAnimationStatus);
-  late final _summaryOpacity = _animation.drive(
-    Tween(
-      begin: 1.0,
-      end: 0.0,
-    ).chain(CurveTween(curve: const Interval(0, 0.3))),
+  late final _summaryOpacity = ReverseAnimation(
+    _animation.drive(CurveTween(curve: const Interval(0, 0.3))),
   );
   late final _footerOpacity = _animation.drive(
     CurveTween(curve: const Interval(0.7, 1)),
   );
-  late bool _showAllCards = widget.expanded;
   bool _reduceMotion = false;
+  ScrollNotificationObserverState? _scrollObserver;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final observer = ScrollNotificationObserver.maybeOf(context);
+    if (!identical(observer, _scrollObserver)) {
+      _scrollObserver?.removeListener(_onScrollNotification);
+      _scrollObserver = observer;
+      _scrollObserver?.addListener(_onScrollNotification);
+    }
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     if (_reduceMotion) {
-      _showAllCards = widget.expanded;
       _animation.value = widget.expanded ? 1 : 0;
     }
   }
@@ -256,10 +374,8 @@ class _AnimatedCompletedYearState extends State<_AnimatedCompletedYear>
     super.didUpdateWidget(oldWidget);
     if (widget.expanded == oldWidget.expanded) return;
     if (_reduceMotion) {
-      _showAllCards = widget.expanded;
       _animation.value = widget.expanded ? 1 : 0;
     } else if (widget.expanded) {
-      _showAllCards = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && widget.expanded && !_reduceMotion) {
           _animation.forward();
@@ -267,7 +383,6 @@ class _AnimatedCompletedYearState extends State<_AnimatedCompletedYear>
       });
     } else {
       _animation.reverse();
-      if (_animation.isDismissed) _showAllCards = false;
     }
   }
 
@@ -277,24 +392,33 @@ class _AnimatedCompletedYearState extends State<_AnimatedCompletedYear>
             status != AnimationStatus.dismissed)) {
       return;
     }
-    setState(() {
-      _showAllCards = widget.expanded || status != AnimationStatus.dismissed;
-    });
+    setState(() {});
+  }
+
+  void _onScrollNotification(ScrollNotification notification) {
+    if (notification is! ScrollStartNotification ||
+        notification.depth != 0 ||
+        notification.metrics.axis != Axis.vertical) {
+      return;
+    }
+    final target = widget.expanded ? 1.0 : 0.0;
+    if (_animation.value != target) _animation.value = target;
   }
 
   @override
   void dispose() {
+    _scrollObserver?.removeListener(_onScrollNotification);
     _animation.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context).toString();
     final months = widget.year.months;
+    final showAllCards = widget.expanded || !_animation.isDismissed;
     final indices = [
       for (var index = 0; index < months.length; index++)
-        if (_showAllCards || index < 2 || index == months.length - 1) index,
+        if (showAllCards || index < 2 || index == months.length - 1) index,
     ];
     final gridInteractive = widget.expanded && _animation.isCompleted;
     final collapsedInteractive = !widget.expanded && _animation.isDismissed;
@@ -331,34 +455,40 @@ class _AnimatedCompletedYearState extends State<_AnimatedCompletedYear>
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final perRow = ReviewYearSection._slotsPerRow(width);
-        final rows = (months.length / perRow).ceil();
-        final gap = perRow > 1
-            ? (width - Spacing.sm * 2 - perRow * ReviewYearSection._slotWidth) /
-                  (perRow - 1)
-            : 0.0;
-        final gridHeight =
-            rows * ReviewYearSection._slotHeight +
-            (rows - 1) * ReviewYearSection._rowSpacing;
-        final footerHeight = math.max(
-          24.0,
-          MediaQuery.textScalerOf(context).scale(TextStyles.mini.fontSize!) *
-              TextStyles.mini.height!,
+        final gap = ReviewYearSection._slotGap(width, perRow);
+        final gridHeight = ReviewYearSection._gridHeightFor(
+          months.length,
+          width,
+        );
+        final footerHeight = ReviewYearSection._animatedFooterHeightFor(
+          context,
         );
         final expandedHeight = gridHeight + Spacing.xl + footerHeight;
 
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            _ReviewYearExtent(
-              animation: _animation,
-              expandedHeight: expandedHeight,
+            CustomSingleChildLayout(
+              delegate: _ReviewYearLayout(
+                _animation,
+                ReviewYearSection._summaryHeight(
+                  context,
+                  widget.yearLabel,
+                  months.length,
+                  width,
+                ),
+                expandedHeight,
+              ),
               child: summary,
             ),
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              height: math.max(142, expandedHeight),
+              height: math.max(
+                ReviewYearSection._summaryMinHeight,
+                expandedHeight,
+              ),
               child: IgnorePointer(
                 ignoring: !gridInteractive,
                 child: ExcludeSemantics(
@@ -371,28 +501,11 @@ class _AnimatedCompletedYearState extends State<_AnimatedCompletedYear>
                       monthCount: months.length,
                       perRow: perRow,
                       gap: gap,
+                      textDirection: Directionality.of(context),
                     ),
                     children: [
                       for (final index in indices)
-                        ReviewMonthCard(
-                          key: ValueKey(months[index].key),
-                          cover: months[index].cover,
-                          label: DateFormat.MMM(
-                            locale,
-                          ).format(months[index].key.start),
-                          count: months[index].totalCount,
-                          state: months[index].state,
-                          progress: months[index].progress,
-                          selected: widget.selectedMonths.contains(
-                            months[index].key,
-                          ),
-                          semanticLabel: DateFormat.yMMMM(
-                            locale,
-                          ).format(months[index].key.start),
-                          onTap: () => widget.onMonthTap(months[index]),
-                          onLongPress: () =>
-                              widget.onMonthLongPress(months[index]),
-                        ),
+                        widget.cardBuilder(context, index),
                     ],
                   ),
                 ),
@@ -418,6 +531,7 @@ class _ReviewMonthFlowDelegate extends FlowDelegate {
     required this.monthCount,
     required this.perRow,
     required this.gap,
+    required this.textDirection,
   }) : super(repaint: animation);
 
   final Animation<double> animation;
@@ -425,6 +539,7 @@ class _ReviewMonthFlowDelegate extends FlowDelegate {
   final int monthCount;
   final int perRow;
   final double gap;
+  final TextDirection textDirection;
 
   @override
   BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) =>
@@ -435,6 +550,10 @@ class _ReviewMonthFlowDelegate extends FlowDelegate {
 
   @override
   void paintChildren(FlowPaintingContext context) {
+    final rtl = textDirection == TextDirection.rtl;
+    final stackLeft = rtl
+        ? context.size.width - Spacing.sm - ReviewYearSection._summaryCardWidth
+        : Spacing.sm;
     for (var childIndex = indices.length - 1; childIndex >= 0; childIndex--) {
       final index = indices[childIndex];
       final delay = 0.2 * index / (monthCount - 1);
@@ -447,10 +566,12 @@ class _ReviewMonthFlowDelegate extends FlowDelegate {
         1 => (const Offset(25.389, 5.44), -7.06),
         _ => (const Offset(1.754, -0.16), -14.19),
       };
+      final gridLeft =
+          Spacing.sm +
+          (index % perRow) * (ReviewYearSection._slotWidth + gap) +
+          (ReviewYearSection._slotWidth - ReviewMonthCard.width) / 2;
       final gridPosition = Offset(
-        Spacing.sm +
-            (index % perRow) * (ReviewYearSection._slotWidth + gap) +
-            (ReviewYearSection._slotWidth - ReviewMonthCard.width) / 2,
+        rtl ? context.size.width - gridLeft - ReviewMonthCard.width : gridLeft,
         (index ~/ perRow) *
                 (ReviewYearSection._slotHeight +
                     ReviewYearSection._rowSpacing) +
@@ -459,7 +580,7 @@ class _ReviewMonthFlowDelegate extends FlowDelegate {
       final shuffle = math.sin(eased * math.pi);
       final position =
           Offset.lerp(
-            stackPosition + const Offset(Spacing.sm, 0),
+            Offset(stackLeft + stackPosition.dx, stackPosition.dy),
             gridPosition,
             eased,
           )! -
@@ -493,92 +614,37 @@ class _ReviewMonthFlowDelegate extends FlowDelegate {
       oldDelegate.monthCount != monthCount ||
       oldDelegate.indices.length != indices.length ||
       oldDelegate.perRow != perRow ||
-      oldDelegate.gap != gap;
+      oldDelegate.gap != gap ||
+      oldDelegate.textDirection != textDirection;
 }
 
-class _ReviewYearExtent extends SingleChildRenderObjectWidget {
-  const _ReviewYearExtent({
-    required this.animation,
-    required this.expandedHeight,
-    required super.child,
-  });
+class _ReviewYearLayout extends SingleChildLayoutDelegate {
+  _ReviewYearLayout(this.animation, this.collapsedHeight, this.expandedHeight)
+    : super(relayout: animation);
 
   final Animation<double> animation;
+  final double collapsedHeight;
   final double expandedHeight;
 
   @override
-  _RenderReviewYearExtent createRenderObject(BuildContext context) =>
-      _RenderReviewYearExtent(animation, expandedHeight);
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    _RenderReviewYearExtent renderObject,
-  ) {
-    renderObject
-      ..animation = animation
-      ..expandedHeight = expandedHeight;
-  }
-}
-
-class _RenderReviewYearExtent extends RenderProxyBox {
-  _RenderReviewYearExtent(this._animation, this._expandedHeight);
-
-  Animation<double> _animation;
-  double _expandedHeight;
-
-  set animation(Animation<double> value) {
-    if (_animation == value) return;
-    if (attached) _animation.removeListener(markNeedsLayout);
-    _animation = value;
-    if (attached) _animation.addListener(markNeedsLayout);
-    markNeedsLayout();
-  }
-
-  set expandedHeight(double value) {
-    if (_expandedHeight == value) return;
-    _expandedHeight = value;
-    markNeedsLayout();
-  }
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    _animation.addListener(markNeedsLayout);
-  }
-
-  @override
-  void detach() {
-    _animation.removeListener(markNeedsLayout);
-    super.detach();
-  }
-
-  BoxConstraints get _summaryConstraints =>
-      constraints.copyWith(minHeight: 0, maxHeight: double.infinity);
-
-  Size _sizeFor(BoxConstraints constraints, Size summarySize) {
-    final progress = Curves.easeInOutCubic.transform(_animation.value);
-    return constraints.constrain(
-      Size(
-        summarySize.width,
-        summarySize.height + (_expandedHeight - summarySize.height) * progress,
-      ),
-    );
-  }
-
-  @override
-  Size computeDryLayout(BoxConstraints constraints) => _sizeFor(
-    constraints,
-    child!.getDryLayout(
-      constraints.copyWith(minHeight: 0, maxHeight: double.infinity),
+  Size getSize(BoxConstraints constraints) => constraints.constrain(
+    Size(
+      constraints.maxWidth,
+      collapsedHeight +
+          (expandedHeight - collapsedHeight) *
+              Curves.easeInOutCubic.transform(animation.value),
     ),
   );
 
   @override
-  void performLayout() {
-    child!.layout(_summaryConstraints, parentUsesSize: true);
-    size = _sizeFor(constraints, child!.size);
-  }
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.copyWith(minHeight: 0, maxHeight: double.infinity);
+
+  @override
+  bool shouldRelayout(_ReviewYearLayout oldDelegate) =>
+      oldDelegate.animation != animation ||
+      oldDelegate.collapsedHeight != collapsedHeight ||
+      oldDelegate.expandedHeight != expandedHeight;
 }
 
 class _ReviewSeeLessButton extends StatelessWidget {
@@ -605,7 +671,7 @@ class _ReviewSeeLessButton extends StatelessWidget {
               const SizedBox(width: Spacing.xs),
               SizedBox(
                 width: 12,
-                height: 24,
+                height: ReviewYearSection._footerMinHeight,
                 child: Center(
                   child: HugeIcon(
                     icon: HugeIcons.strokeRoundedArrowUp01,
@@ -674,8 +740,8 @@ class _CompletedYearRow extends StatelessWidget {
               onTap: onTap,
               onLongPress: onLongPress,
               child: SizedBox(
-                width: 134,
-                height: 142,
+                width: ReviewYearSection._summaryCardWidth,
+                height: ReviewYearSection._summaryMinHeight,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -703,10 +769,12 @@ class _CompletedYearRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 25),
+          const SizedBox(width: ReviewYearSection._summaryGap),
           Expanded(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 142),
+              constraints: const BoxConstraints(
+                minHeight: ReviewYearSection._summaryMinHeight,
+              ),
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -714,9 +782,7 @@ class _CompletedYearRow extends StatelessWidget {
                     Text(
                       l10n.reviewYouReviewedYear(year: yearLabel),
                       textAlign: TextAlign.center,
-                      style: TextStyles.display3.copyWith(
-                        fontSize: 18,
-                        height: null,
+                      style: ReviewYearSection._summaryTextStyle.copyWith(
                         color: colors.textBase,
                       ),
                     ),
@@ -727,7 +793,7 @@ class _CompletedYearRow extends StatelessWidget {
                         enabled: true,
                         selected: false,
                         semanticLabel: l10n.seeAll,
-                        minHeight: 36,
+                        minHeight: ReviewYearSection._seeAllMinHeight,
                         minWidth: 99,
                         padding: const EdgeInsets.symmetric(
                           horizontal: Spacing.xxl,
@@ -737,9 +803,7 @@ class _CompletedYearRow extends StatelessWidget {
                         onTap: onTap,
                         child: Text(
                           l10n.seeAll,
-                          style: TextStyles.display3.copyWith(
-                            fontSize: 10,
-                            height: 28 / 10,
+                          style: ReviewYearSection._seeAllTextStyle.copyWith(
                             color: colors.textBase,
                           ),
                         ),
