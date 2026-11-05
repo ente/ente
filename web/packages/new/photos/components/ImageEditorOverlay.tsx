@@ -274,7 +274,6 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     useEffect(() => {
         if (currentTab != "crop") return;
         resetCropBox();
-        setShowControlsDrawer(false);
     }, [currentTab]);
 
     const applyFilters = async (canvases: HTMLCanvasElement[]) => {
@@ -511,18 +510,33 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 },
             }}
             sx={{
-                backgroundColor: "background.default",
+                backgroundColor: "#161616",
+                padding: { xs: "8px", sm: "11px" },
+                boxSizing: "border-box",
                 width: "100%",
                 zIndex: "var(--mui-zIndex-modal)",
             }}
             open
         >
-            <Box sx={{ padding: "1rem", width: "100%", height: "100%" }}>
+            <Box
+                sx={{
+                    padding: "1rem",
+                    width: "100%",
+                    height: "100%",
+                    boxSizing: "border-box",
+                    borderRadius: "20px",
+                    backgroundColor: "background.default",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                }}
+            >
                 <Stack
                     direction="row"
                     sx={{
                         justifyContent: "space-between",
                         alignItems: "center",
+                        flexShrink: 0,
                     }}
                 >
                     <Typography
@@ -533,6 +547,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         {t("photo_editor")}
                     </Typography>
                     <IconButton
+                        aria-label={t("photo_editor")}
+                        sx={{ borderRadius: "12px", bgcolor: "fill.faint" }}
                         onClick={() => {
                             setShowControlsDrawer(true);
                         }}
@@ -547,7 +563,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     onMouseDown={handleDragStart}
                     sx={{
                         width: "100%",
-                        height: "100%",
+                        flex: 1,
+                        minHeight: 0,
                         overflow: "hidden",
                         boxSizing: "border-box",
                         alignItems: "center",
@@ -620,16 +637,34 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 anchor="right"
                 open={showControlsDrawer}
                 onClose={handleCloseWithConfirmation}
+                sx={{
+                    "& .MuiDrawer-paper": {
+                        top: "calc(16px + env(titlebar-area-height, 0px))",
+                        right: "16px",
+                        height: "calc(100% - 32px - env(titlebar-area-height, 0px))",
+                        maxWidth: "min(375px, calc(100% - 32px))",
+                        boxSizing: "border-box",
+                        borderRadius: "36px",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        boxShadow: "none",
+                        "& > .MuiBox-root": { p: 2 },
+                    },
+                }}
             >
                 <Stack direction="row" sx={{ justifyContent: "space-between" }}>
                     <IconButton
+                        aria-label={t("hide")}
                         onClick={() => {
                             setShowControlsDrawer(false);
                         }}
                     >
                         <ChevronRightIcon />
                     </IconButton>
-                    <IconButton onClick={handleCloseWithConfirmation}>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={handleCloseWithConfirmation}
+                    >
                         <CloseIcon />
                     </IconButton>
                 </Stack>
