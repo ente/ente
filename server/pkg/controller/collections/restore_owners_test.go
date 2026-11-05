@@ -1,7 +1,6 @@
 package collections
 
 import (
-	"database/sql"
 	"errors"
 	"net/http/httptest"
 	"testing"
@@ -35,14 +34,35 @@ func TestRestoreFilesOwnership(t *testing.T) {
 	item := func(id int64) ente.CollectionFileItem {
 		return ente.CollectionFileItem{ID: id, EncryptedKey: b64OfLen(encryptedCollectionKeyLen), KeyDecryptionNonce: b64OfLen(secretboxNonceBytes)}
 	}
+	assertRestoredCount := func(t *testing.T, want int) {
+		t.Helper()
+		var active, restored int
+		if err := db.QueryRow(`SELECT
+			count(*) FILTER (WHERE NOT cf.is_deleted),
+			count(*) FILTER (WHERE t.is_restored)
+			FROM collection_files cf JOIN trash t ON t.file_id = cf.file_id
+			WHERE cf.collection_id = $1 AND cf.file_id IN ($2, $3) AND t.user_id = $4`,
+			collectionID, fileID, secondFileID, ownerID).Scan(&active, &restored); err != nil {
+			t.Fatal(err)
+		}
+		if active != want || restored != want {
+			t.Fatalf("active = %d, restored = %d, want both %d", active, restored, want)
+		}
+	}
 	missingID := otherFileID + 10000
 	for _, tc := range []struct {
 		name string
 		ids  []int64
 		want error
 	}{
-		{"missing first", []int64{missingID, otherFileID}, sql.ErrNoRows},
+		{"empty", nil, ente.ErrBadRequest},
+		{"missing", []int64{missingID}, ente.ErrBadRequest},
+		{"owned and missing", []int64{fileID, missingID}, ente.ErrBadRequest},
+		{"other owner", []int64{otherFileID}, ente.ErrPermissionDenied},
+		{"owned and other owner", []int64{fileID, otherFileID}, ente.ErrPermissionDenied},
+		{"missing first", []int64{missingID, otherFileID}, ente.ErrPermissionDenied},
 		{"other owner first", []int64{otherFileID, missingID}, ente.ErrPermissionDenied},
+		{"duplicate", []int64{fileID, fileID}, ente.ErrBadRequest},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := make([]ente.CollectionFileItem, 0, len(tc.ids))
@@ -52,13 +72,11 @@ func TestRestoreFilesOwnership(t *testing.T) {
 			if err := c.RestoreFiles(ctx, ownerID, collectionID, files); !errors.Is(err, tc.want) {
 				t.Fatalf("RestoreFiles() error = %v, want %v", err, tc.want)
 			}
+			assertRestoredCount(t, 0)
 		})
 	}
 	if err := c.RestoreFiles(ctx, ownerID, collectionID, []ente.CollectionFileItem{item(fileID), item(secondFileID)}); err != nil {
 		t.Fatalf("RestoreFiles() error = %v", err)
 	}
-	var restored int
-	if err := db.QueryRow(`SELECT count(*) FROM trash WHERE file_id IN ($1, $2) AND user_id = $3 AND is_restored`, fileID, secondFileID, ownerID).Scan(&restored); err != nil || restored != 2 {
-		t.Fatalf("restored = %v, error = %v", restored, err)
-	}
+	assertRestoredCount(t, 2)
 }
