@@ -3,6 +3,7 @@ import "dart:math";
 import "dart:typed_data";
 import "dart:ui";
 
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:logging/logging.dart";
 import "package:native_video_editor/native_video_editor.dart";
 import "package:photos/core/configuration.dart";
@@ -94,9 +95,12 @@ class MemoryVideoExporter {
         scratchFiles: scratchFiles,
         onProgress: onProgress,
       );
+    } catch (e, s) {
+      _logger.severe("Failed to export memory video", e, s);
+      rethrow;
     } finally {
       for (final file in scratchFiles) {
-        await file.delete().catchError((_) => file);
+        await deleteFileSystemEntityIfPresent(file);
       }
     }
   }
