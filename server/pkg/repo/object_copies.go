@@ -118,6 +118,13 @@ func (repo *ObjectCopiesRepository) UnmarkFromReplication(objectKey string) erro
 	return stacktrace.Propagate(err, "")
 }
 
+func (repo *ObjectCopiesRepository) MarkObjectReplicatedB2(objectKey string) error {
+	return repo.markObjectReplicated(`
+	UPDATE object_copies SET b2 = now_utc_micro_seconds()
+	WHERE object_key = $1
+	`, objectKey)
+}
+
 func (repo *ObjectCopiesRepository) MarkObjectReplicatedWasabi(objectKey string) error {
 	return repo.markObjectReplicated(`
 	UPDATE object_copies SET wasabi = now_utc_micro_seconds()
