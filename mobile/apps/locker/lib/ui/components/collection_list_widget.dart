@@ -102,7 +102,7 @@ class CollectionListWidget extends StatelessWidget {
                   builder: (context, snapshot) {
                     final fileCount = snapshot.data ?? 0;
                     return Text(
-                      context.strings.items(count: fileCount),
+                      context.strings.itemCount(count: fileCount),
                       style: TextStyles.mini.copyWith(color: colors.textLight),
                     );
                   },

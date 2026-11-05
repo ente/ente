@@ -728,7 +728,7 @@ class _HomePageState extends UploaderPageState<HomePage>
                               _buildScannerFab(colors),
                               const SizedBox(height: 14),
                               FloatingActionButton(
-                                tooltip: 'Add item',
+                                tooltip: context.strings.addItem(count: 1),
                                 onPressed: () =>
                                     _openSavePage(includeScanner: false),
                                 shape: const CircleBorder(),
