@@ -381,7 +381,7 @@ If you have a discount code (e.g., from partnerships like Kagi Friends 25% off),
 
 **Step-by-step process:**
 
-1. **Do NOT purchase through the iOS/Android App Store** - App Stores don't support discount codes
+1. **Do NOT purchase through the Apple App Store or Google Play**, as store purchases do not support Ente discount codes
 2. Go to [photos.ente.com](https://photos.ente.com) on a desktop or laptop computer
 3. Log in to your Ente account
 4. Open `Settings > Account > Manage subscription`
@@ -549,9 +549,9 @@ Contact [support@ente.com](mailto:support@ente.com) if you want to return to the
 
 If your usage is above the free allowance, contact support about your options. Keep a verified export of anything you want to retain before removing files.
 
-**What about subscriptions purchased through App Stores?**
+**What about subscriptions purchased through app stores?**
 
-If you purchased through iOS App Store or Google Play Store:
+If you have a subscription through the Apple App Store or Google Play:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
@@ -563,24 +563,26 @@ Your new plan will go into effect immediately, and you only have to pay the diff
 
 **How prorating works for upgrades:**
 
+Prices may change. See our [website](https://ente.com#pricing) for current plans and prices.
+
 When you upgrade, you receive credit for the unused portion of your current plan, which is applied toward the cost of your new plan.
 
 **Example 1: Mid-year upgrade (yearly plans)**
 
-You're 6 months into a 50 GB yearly plan ($20/year) and upgrade to 200 GB yearly ($48/year):
+You're 6 months into a 50 GB yearly plan ($29.88/year) and upgrade to 200 GB yearly ($59.88/year):
 
-1. **Unused balance from old plan**: $20 ÷ 2 = $10 (6 months remaining)
-2. **New plan cost**: $48/year
-3. **Amount you pay now**: $48 - $10 = **$38**
+1. **Unused balance from old plan**: $29.88 ÷ 2 = $14.94 (6 months remaining)
+2. **New plan cost**: $59.88/year
+3. **Amount you pay now**: $59.88 - $14.94 = **$44.94**
 4. **New plan duration**: 1 full year from today
 
 **Example 2: Mid-month upgrade (monthly plans)**
 
-You're 15 days into a 100 GB monthly plan ($2/month) and upgrade to 500 GB monthly ($5/month):
+You're 15 days into a 50 GB monthly plan ($2.99/month) and upgrade to 200 GB monthly ($5.99/month):
 
-1. **Unused balance from old plan**: $2 × (15/30) = $1 (15 days remaining)
-2. **New plan cost**: $5/month
-3. **Amount you pay now**: $5 - $1 = **$4**
+1. **Unused balance from old plan**: $2.99 × (15/30) = $1.50 (15 days remaining)
+2. **New plan cost**: $5.99/month
+3. **Amount you pay now**: $5.99 - $1.50 = **$4.49**
 4. **New plan duration**: 1 full month from today
 
 **Key points:**
@@ -590,35 +592,43 @@ You're 15 days into a 100 GB monthly plan ($2/month) and upgrade to 500 GB month
 - ✅ Your new renewal date starts from the upgrade date
 - ✅ You pay the difference between plans (minus your credit)
 
+**Subscribed through the Apple App Store?**
+
+Plan changes made through the App Store follow Apple's rules. Some changes, such as switching to a plan with a different billing period, start on your next renewal date instead of immediately. The app shows the new plan with the date it starts. You can check the pending change in your Apple subscription settings.
+
+If you'd rather start the new plan now, see [Switching from Apple to direct billing](#update-payment).
+
 ### What happens when I downgrade my plan? {#downgrade-plan}
 
 Your new plan will go into effect immediately. Any extra amount you have paid will be credited to your account. This credit will be discounted from your future invoices.
 
 **How prorating works for downgrades:**
 
+Prices may change. See our [website](https://ente.com#pricing) for current plans and prices.
+
 When you downgrade, you receive credit for the price difference between what you paid and what you would have paid on the lower plan.
 
 **Example 1: Mid-year downgrade (yearly plans)**
 
-You're 6 months into a 200 GB yearly plan ($48/year) and downgrade to 50 GB yearly ($20/year):
+You're 6 months into a 200 GB yearly plan ($59.88/year) and downgrade to 50 GB yearly ($29.88/year):
 
-1. **What you paid for old plan**: $48
-2. **What you would have paid for 6 months of new plan**: $20 ÷ 2 = $10
-3. **What you paid for 6 months of old plan**: $48 ÷ 2 = $24
-4. **Credit to your account**: $24 - $10 = **$14**
+1. **What you paid for old plan**: $59.88
+2. **What you would have paid for 6 months of new plan**: $29.88 ÷ 2 = $14.94
+3. **What you paid for 6 months of old plan**: $59.88 ÷ 2 = $29.94
+4. **Credit to your account**: $29.94 - $14.94 = **$15.00**
 5. **When credit is used**: Applied to your next renewal in 6 months
-6. **Next invoice (in 6 months)**: $20 - $14 = **$6**
+6. **Next invoice (in 6 months)**: $29.88 - $15.00 = **$14.88**
 
 **Example 2: Mid-month downgrade (monthly plans)**
 
-You're 10 days into a 500 GB monthly plan ($5/month) and downgrade to 100 GB monthly ($2/month):
+You're 10 days into a 200 GB monthly plan ($5.99/month) and downgrade to 50 GB monthly ($2.99/month):
 
-1. **What you paid for old plan**: $5
-2. **What you would have paid for 10 days of new plan**: $2 × (10/30) = $0.67
-3. **What you paid for 10 days of old plan**: $5 × (10/30) = $1.67
-4. **Credit to your account**: $1.67 - $0.67 = **$1**
+1. **What you paid for old plan**: $5.99
+2. **What you would have paid for 10 days of new plan**: $2.99 × (10/30) = $1.00
+3. **What you paid for 10 days of old plan**: $5.99 × (10/30) = $2.00
+4. **Credit to your account**: $2.00 - $1.00 = **$1.00**
 5. **When credit is used**: Applied to your next renewal in 20 days
-6. **Next invoice (in 20 days)**: $2 - $1 = **$1**
+6. **Next invoice (in 20 days)**: $2.99 - $1.00 = **$1.99**
 
 **Key points:**
 
@@ -670,7 +680,7 @@ You can also access this via Settings > Account > Manage subscription > Manage p
 
 You will be able to see all of your previous invoices, with details regarding their payment status. In case of failed payments, you will also have an option to retry those charges.
 
-If you would like to change your payment method entirely (e.g., switch between App Store, Play Store, PayPal, or crypto), please contact [support@ente.com](mailto:support@ente.com).
+If you would like to change your payment method entirely (for example, switch between an app store, card, PayPal, or crypto), please contact [support@ente.com](mailto:support@ente.com).
 
 **Switching from Apple to direct billing**
 
@@ -680,11 +690,31 @@ If you would like to change your payment method entirely (e.g., switch between A
 
 Apple decides requests for refunds of App Store purchases. Contacting Ente or cancelling renewal does not guarantee a refund.
 
+### Why did I get an "Ente account on hold" email? {#account-on-hold}
+
+We send this email when we try to renew your subscription but the payment doesn't go through. This usually happens when a card has expired, has insufficient funds, or your bank has flagged the payment.
+
+Your photos and files are safe, but new uploads stop until the renewal is paid.
+
+If your subscription is through the Apple App Store or Google Play, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+
+If you pay Ente directly:
+
+1. Open `Settings > Account > Manage subscription > Manage payment method` in the app, or on [photos.ente.com](https://photos.ente.com).
+2. Add your new card or update the expired one.
+3. In the invoices list on the same page, open the unpaid invoice and retry the payment.
+
+Updating your card does not retry the failed payment on its own, so make sure to complete step 3.
+
+If you don't see an unpaid invoice, or want to change your plan at the same time, reply to the email or contact [support@ente.com](mailto:support@ente.com) and we'll help you renew.
+
+If the renewal isn't paid, your plan expires. See [What happens when my subscription expires?](#subscription-expires).
+
 ### How can I cancel my subscription? {#cancel-subscription}
 
 For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-For a subscription purchased through Apple or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
+For a subscription purchased through the Apple App Store or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 

@@ -283,6 +283,7 @@ Jump to a category:
 - [Is my face data used to train AI models?](/photos/faq/search-and-discovery#face-data-training)
 - [Why is face recognition faster on desktop?](/photos/faq/search-and-discovery#face-recognition-speed)
 - [Can I name the recognized persons?](/photos/faq/search-and-discovery#name-persons)
+- [Why does my desktop app show different unnamed people than my phone?](/photos/faq/search-and-discovery#unnamed-people-differ)
 
 ### Magic Search
 
@@ -345,6 +346,7 @@ Jump to a category:
 
 - [How can I delete my account?](/photos/faq/security-and-privacy#delete-account)
 - [Will deleting my Ente Auth or Locker account also delete my Photos account?](/photos/faq/security-and-privacy#shared-account-deletion)
+- [I deleted my account by mistake. Can I get it back?](/photos/faq/security-and-privacy#recover-deleted-account)
 
 ### Trust and Reliability
 
@@ -412,6 +414,7 @@ Jump to a category:
 - [What happens when I downgrade my plan?](/photos/faq/storage-and-plans#downgrade-plan)
 - [Can I switch between monthly and yearly plans?](/photos/faq/storage-and-plans#switch-billing-cycle)
 - [How can I update my payment method?](/photos/faq/storage-and-plans#update-payment)
+- [Why did I get an "Ente account on hold" email?](/photos/faq/storage-and-plans#account-on-hold)
 - [How can I cancel my subscription?](/photos/faq/storage-and-plans#cancel-subscription)
 
 ## Troubleshooting
@@ -425,6 +428,7 @@ Jump to a category:
 - [Why aren't my photos uploading?](/photos/faq/troubleshooting#upload-failures)
 - [Why does upload show "Waiting to upload"?](/photos/faq/troubleshooting#waiting-to-upload)
 - [Why are uploads failing on desktop or web?](/photos/faq/troubleshooting#faster-uploads)
+- [Why can't I save a video from Ente to my iPhone's Photos app?](/photos/faq/troubleshooting#ios-save-unsupported-video)
 - [Why can't the app detect certain file types?](/photos/faq/troubleshooting#file-type-detection)
 
 ### Mobile Backup Issues
@@ -440,6 +444,7 @@ Jump to a category:
 - [Why aren't my watch folders syncing?](/photos/faq/troubleshooting#watch-folders-troubleshooting)
 - [Can I upload from a network drive (NAS)?](/photos/faq/troubleshooting#nas)
 - [Can I safely close the desktop app while it's uploading?](/photos/faq/troubleshooting#close-during-upload)
+- [How do I stop an upload that's in progress on desktop or web?](/photos/faq/troubleshooting#stop-upload)
 
 ### Platform-Specific Issues
 
