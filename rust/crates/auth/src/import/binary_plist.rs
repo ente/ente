@@ -228,8 +228,11 @@ impl<'a> Reader<'a> {
         let bytes = self.bytes(start, byte_length)?;
         self.budget.consume(byte_length)?;
         let units = bytes
-            .chunks_exact(2)
-            .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]));
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .copied()
+            .map(u16::from_be_bytes);
         char::decode_utf16(units)
             .collect::<std::result::Result<String, _>>()
             .map_err(|_| Error::invalid("Invalid binary plist UTF-16 string"))

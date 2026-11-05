@@ -319,12 +319,14 @@ fn parse_supported_uri(uri: &str) -> Result<url::Url> {
     Ok(parsed)
 }
 
-fn rebuild_uri(
-    uri: &str,
-    issuer: Option<&str>,
-    account: Option<&str>,
-    secret: Option<&str>,
-) -> Result<String> {
+struct ParsedOtpUri {
+    kind: String,
+    issuer: String,
+    account: String,
+    query: std::collections::HashMap<String, String>,
+}
+
+fn parse_otp_uri(uri: &str) -> Result<ParsedOtpUri> {
     let parsed =
         url::Url::parse(&uri.replace('#', "%23")).map_err(|_| Error::invalid("Invalid OTP URI"))?;
     if parsed.scheme() != "otpauth" {
@@ -345,17 +347,55 @@ fn rebuild_uri(
         .strip_prefix(&format!("{parsed_issuer}:"))
         .or_else(|| label.split_once(':').map(|(_, account)| account))
         .unwrap_or(&label);
+    Ok(ParsedOtpUri {
+        kind: parsed.host_str().unwrap_or_default().to_owned(),
+        issuer: parsed_issuer,
+        account: parsed_account.to_owned(),
+        query,
+    })
+}
+
+fn otp_uri_identity(uri: &str) -> Result<(String, String)> {
+    let parsed = parse_otp_uri(uri)?;
+    Ok((parsed.issuer, parsed.account))
+}
+
+fn display_from_uri(uri: &str) -> Result<Option<Display>> {
+    let parsed = parse_supported_uri(uri)?;
+    let Some((_, value)) = parsed.query_pairs().find(|(name, _)| name == "codeDisplay") else {
+        return Ok(None);
+    };
+    let display = match serde_json::from_str(&value) {
+        Ok(display) => display,
+        Err(_) => {
+            let index = value
+                .rfind("}#")
+                .ok_or_else(|| Error::invalid("Invalid imported display metadata"))?;
+            serde_json::from_str(&value[..=index])
+                .map_err(|_| Error::invalid("Invalid imported display metadata"))?
+        }
+    };
+    Ok(Some(display))
+}
+
+fn rebuild_uri(
+    uri: &str,
+    issuer: Option<&str>,
+    account: Option<&str>,
+    secret: Option<&str>,
+) -> Result<String> {
+    let parsed = parse_otp_uri(uri)?;
     build_uri(Otp {
-        kind: parsed.host_str().unwrap_or_default(),
-        issuer: issuer.unwrap_or(&parsed_issuer),
-        account: account.unwrap_or(parsed_account),
+        kind: &parsed.kind,
+        issuer: issuer.unwrap_or(&parsed.issuer),
+        account: account.unwrap_or(&parsed.account),
         secret: secret
-            .or_else(|| query.get("secret").map(String::as_str))
+            .or_else(|| parsed.query.get("secret").map(String::as_str))
             .ok_or_else(|| Error::invalid("Missing OTP secret"))?,
-        algorithm: query.get("algorithm").map_or("SHA1", String::as_str),
-        digits: query_int(&query, "digits")?,
-        period: query_int(&query, "period")?,
-        counter: query_int(&query, "counter")?,
+        algorithm: parsed.query.get("algorithm").map_or("SHA1", String::as_str),
+        digits: query_int(&parsed.query, "digits")?,
+        period: query_int(&parsed.query, "period")?,
+        counter: query_int(&parsed.query, "counter")?,
         allow_steam: true,
     })
 }

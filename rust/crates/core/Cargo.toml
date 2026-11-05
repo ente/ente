@@ -3,7 +3,7 @@ name = "ente-core"
 edition.workspace = true
 
 [dependencies]
-argon2 = { version = "0.6.0", default-features = false, features = ["alloc"] }
+argon2.workspace = true
 base64 = { version = "0.23.1", default-features = false, features = ["std"] }
 blake2b_simd = "1.0.5"
 crypto_secretbox = { version = "0.1.0", default-features = false, features = ["alloc", "salsa20"] }

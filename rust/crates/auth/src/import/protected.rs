@@ -22,6 +22,9 @@ const AEGIS_SCRYPT_LOG_N: u8 = 15;
 const AEGIS_SCRYPT_N: u64 = 1 << AEGIS_SCRYPT_LOG_N;
 const AEGIS_SCRYPT_R: u32 = 8;
 const AEGIS_SCRYPT_P: u32 = 1;
+const AEGIS_SCRYPT_MAX_MEMORY_BYTES: u64 = 128 * AEGIS_SCRYPT_N * AEGIS_SCRYPT_R as u64 * 2;
+const AEGIS_SCRYPT_MAX_WORK: u64 =
+    AEGIS_SCRYPT_N * AEGIS_SCRYPT_R as u64 * AEGIS_SCRYPT_P as u64 * 2;
 const ANDOTP_MAX_ITERATIONS: u32 = 160_000;
 
 pub fn import_aegis(input: &str, password: Option<&str>) -> Result<Batch> {
@@ -231,14 +234,7 @@ fn decrypt_aegis_slot(slot: &Value, password: &str) -> Result<Option<Zeroizing<V
     ) else {
         return Ok(None);
     };
-    let (Ok(r), Ok(p)) = (u32::try_from(r), u32::try_from(p)) else {
-        return Err(Error::invalid("Unsupported Aegis scrypt parameters"));
-    };
-    if (n, r, p) != (AEGIS_SCRYPT_N, AEGIS_SCRYPT_R, AEGIS_SCRYPT_P) {
-        return Err(Error::invalid("Unsupported Aegis scrypt parameters"));
-    }
-    let params = scrypt::Params::new(AEGIS_SCRYPT_LOG_N, AEGIS_SCRYPT_R, AEGIS_SCRYPT_P)
-        .map_err(|_| Error::invalid("Unsupported Aegis scrypt parameters"))?;
+    let params = aegis_scrypt_params(n, r, p)?;
     let Some(salt) = slot
         .get("salt")
         .and_then(Value::as_str)
@@ -270,6 +266,31 @@ fn decrypt_aegis_slot(slot: &Value, password: &str) -> Result<Option<Zeroizing<V
     Ok(decrypt_gcm(key.as_ref(), &nonce, &encrypted, &[])
         .ok()
         .map(Zeroizing::new))
+}
+
+fn aegis_scrypt_params(n: u64, r: u64, p: u64) -> Result<scrypt::Params> {
+    let (Ok(r), Ok(p)) = (u32::try_from(r), u32::try_from(p)) else {
+        return Err(Error::invalid("Unsupported Aegis scrypt parameters"));
+    };
+    if !n.is_power_of_two() {
+        return Err(Error::invalid("Unsupported Aegis scrypt parameters"));
+    }
+    let n_r = n
+        .checked_mul(u64::from(r))
+        .ok_or_else(|| Error::invalid("Unsupported Aegis scrypt parameters"))?;
+    let n_r_p = n_r
+        .checked_mul(u64::from(p))
+        .ok_or_else(|| Error::invalid("Unsupported Aegis scrypt parameters"))?;
+    let memory_bytes = n_r
+        .checked_mul(128)
+        .ok_or_else(|| Error::invalid("Unsupported Aegis scrypt parameters"))?;
+    if memory_bytes > AEGIS_SCRYPT_MAX_MEMORY_BYTES || n_r_p > AEGIS_SCRYPT_MAX_WORK {
+        return Err(Error::invalid("Unsupported Aegis scrypt parameters"));
+    }
+    let log_n = u8::try_from(n.ilog2())
+        .map_err(|_| Error::invalid("Unsupported Aegis scrypt parameters"))?;
+    scrypt::Params::new(log_n, r, p)
+        .map_err(|_| Error::invalid("Unsupported Aegis scrypt parameters"))
 }
 
 fn decrypt_open_authenticator_entry(entry: &Value, key: &[u8]) -> Result<ImportedCode> {
@@ -421,9 +442,43 @@ mod tests {
     #[test]
     fn decrypts_aegis_export() {
         let password = "password";
+        let input =
+            encrypted_aegis_export(password, AEGIS_SCRYPT_LOG_N, AEGIS_SCRYPT_R, AEGIS_SCRYPT_P);
+        assert_eq!(import_aegis(&input, Some(password)).unwrap().codes.len(), 1);
+        assert_password_errors(|password| import_aegis(&input, password));
+
+        let input = encrypted_aegis_export(
+            password,
+            AEGIS_SCRYPT_LOG_N - 1,
+            AEGIS_SCRYPT_R,
+            AEGIS_SCRYPT_P,
+        );
+        assert_eq!(import_aegis(&input, Some(password)).unwrap().codes.len(), 1);
+    }
+
+    #[test]
+    fn accepts_bounded_future_aegis_scrypt_parameters() {
+        assert!(
+            aegis_scrypt_params(
+                AEGIS_SCRYPT_N * 2,
+                u64::from(AEGIS_SCRYPT_R),
+                u64::from(AEGIS_SCRYPT_P)
+            )
+            .is_ok()
+        );
+        assert!(
+            aegis_scrypt_params(
+                AEGIS_SCRYPT_N,
+                u64::from(AEGIS_SCRYPT_R),
+                u64::from(AEGIS_SCRYPT_P * 2)
+            )
+            .is_ok()
+        );
+    }
+
+    fn encrypted_aegis_export(password: &str, log_n: u8, r: u32, p: u32) -> String {
         let salt = [3u8; 16];
-        let params =
-            scrypt::Params::new(AEGIS_SCRYPT_LOG_N, AEGIS_SCRYPT_R, AEGIS_SCRYPT_P).unwrap();
+        let params = scrypt::Params::new(log_n, r, p).unwrap();
         let mut password_key = [0u8; 32];
         scrypt::scrypt(password.as_bytes(), &salt, &params, &mut password_key).unwrap();
         let master_key = [7u8; 32];
@@ -441,13 +496,13 @@ mod tests {
         let database_nonce = [5u8; 12];
         let encrypted_database =
             encrypt_gcm(&master_key, &database_nonce, database.as_bytes(), &[]);
-        let input = json!({
+        json!({
             "header": {
                 "slots": [{
                     "type": 1,
-                    "n": AEGIS_SCRYPT_N,
-                    "r": AEGIS_SCRYPT_R,
-                    "p": AEGIS_SCRYPT_P,
+                    "n": 1_u64 << log_n,
+                    "r": r,
+                    "p": p,
                     "salt": hex::encode(salt),
                     "key": hex::encode(&slot[..slot.len() - 16]),
                     "key_params": {
@@ -462,17 +517,16 @@ mod tests {
             },
             "db": b64::encode(&encrypted_database[..encrypted_database.len() - 16])
         })
-        .to_string();
-        assert_eq!(import_aegis(&input, Some(password)).unwrap().codes.len(), 1);
-        assert_password_errors(|password| import_aegis(&input, password));
+        .to_string()
     }
 
     #[test]
     fn rejects_unsupported_aegis_scrypt_parameters() {
         for (n, r, p) in [
             (1_u64 << 30, AEGIS_SCRYPT_R, AEGIS_SCRYPT_P),
-            (AEGIS_SCRYPT_N, 9, AEGIS_SCRYPT_P),
-            (AEGIS_SCRYPT_N, AEGIS_SCRYPT_R, 2),
+            (AEGIS_SCRYPT_N * 2, AEGIS_SCRYPT_R + 1, AEGIS_SCRYPT_P),
+            (AEGIS_SCRYPT_N, AEGIS_SCRYPT_R, 3),
+            (AEGIS_SCRYPT_N + 1, AEGIS_SCRYPT_R, AEGIS_SCRYPT_P),
         ] {
             let input = json!({
                 "header": {

@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use serde_json::Value;
 
 use super::{
-    Batch, DEFAULT_DIGITS, Display, Error, ImportedCode, Otp, Result, STEAM_DIGITS, build_uri, int,
-    optional_int, query_int, rebuild_uri, string, uri_with_display,
+    Batch, DEFAULT_DIGITS, Display, Error, ImportedCode, Otp, Result, STEAM_DIGITS, build_uri,
+    display_from_uri, int, optional_int, otp_uri_identity, query_int, rebuild_uri, string,
+    uri_with_display,
 };
 
 pub fn parse_aegis(database: &str) -> Result<Batch> {
@@ -93,14 +94,16 @@ pub fn parse_andotp(entries: &str) -> Result<Batch> {
         let result: Result<ImportedCode> = (|| {
             let issuer = string(entry.get("issuer")).unwrap_or_default();
             let account = string(entry.get("label")).unwrap_or_default();
+            let digits = optional_int(entry.get("digits"), "OTP digits")?;
+            let period = optional_int(entry.get("period"), "OTP period")?;
             let uri = build_uri(Otp {
                 kind: &kind,
                 issuer,
                 account,
                 secret: required_string(entry, "secret")?,
                 algorithm: string(entry.get("algorithm")).unwrap_or("SHA1"),
-                digits: optional_int(entry.get("digits"), "OTP digits")?,
-                period: optional_int(entry.get("period"), "OTP period")?,
+                digits: digits.filter(|digits| *digits != 0),
+                period: period.filter(|period| *period != 0),
                 counter: optional_int(entry.get("counter"), "HOTP counter")?,
                 allow_steam: true,
             })?;
@@ -158,7 +161,9 @@ pub fn parse_bitwarden(export: &str) -> Result<Batch> {
             continue;
         };
         let result: Result<ImportedCode> = (|| {
+            let mut display = None;
             let uri = if totp.contains("otpauth://") {
+                display = display_from_uri(totp)?;
                 rebuild_uri(totp, None, None, None)?
             } else if let Some(index) = totp.find("steam://") {
                 build_uri(Otp {
@@ -187,11 +192,12 @@ pub fn parse_bitwarden(export: &str) -> Result<Batch> {
             };
             let folder = string(item.get("folderId")).and_then(|id| folders.get(id).cloned());
             let note = string(item.get("notes"));
-            let display = (folder.is_some() || note.is_some()).then(|| Display {
-                tags: folder.into_iter().collect(),
-                note: note.unwrap_or_default().to_owned(),
-                ..Display::default()
-            });
+            if let Some(folder) = folder {
+                display.get_or_insert_with(Display::default).tags = vec![folder];
+            }
+            if let Some(note) = note {
+                display.get_or_insert_with(Display::default).note = note.to_owned();
+            }
             Ok(ImportedCode { uri, display })
         })();
         codes.push(result.map_err(|error| Error::entry(item, error))?);
@@ -357,21 +363,26 @@ pub fn parse_two_fas(export: &str, decrypted_services: Option<&str>) -> Result<B
             let link = string(otp.get("link")).filter(|link| !link.is_empty());
             let source_is_link =
                 string(otp.get("source")).is_some_and(|source| source.eq_ignore_ascii_case("link"));
-            let uri = if source_is_link && let Some(link) = link {
-                rebuild_uri(link, issuer, account, Some(secret))?
+            let link_identity = if source_is_link && (issuer.is_none() || account.is_none()) {
+                link.map(otp_uri_identity).transpose()?
             } else {
-                build_uri(Otp {
-                    kind,
-                    issuer: issuer.unwrap_or_default(),
-                    account: account.unwrap_or_default(),
-                    secret,
-                    algorithm: string(otp.get("algorithm")).unwrap_or("SHA1"),
-                    digits: optional_int(otp.get("digits"), "OTP digits")?,
-                    period: optional_int(otp.get("period"), "OTP period")?,
-                    counter: optional_int(otp.get("counter"), "HOTP counter")?,
-                    allow_steam: true,
-                })?
+                None
             };
+            let issuer =
+                issuer.or_else(|| link_identity.as_ref().map(|(issuer, _)| issuer.as_str()));
+            let account =
+                account.or_else(|| link_identity.as_ref().map(|(_, account)| account.as_str()));
+            let uri = build_uri(Otp {
+                kind,
+                issuer: issuer.unwrap_or_default(),
+                account: account.unwrap_or_default(),
+                secret,
+                algorithm: string(otp.get("algorithm")).unwrap_or("SHA1"),
+                digits: optional_int(otp.get("digits"), "OTP digits")?,
+                period: optional_int(otp.get("period"), "OTP period")?,
+                counter: optional_int(otp.get("counter"), "HOTP counter")?,
+                allow_steam: true,
+            })?;
             let group = string(service.get("groupId")).and_then(|id| groups.get(id).cloned());
             Ok(ImportedCode {
                 uri,
@@ -488,8 +499,6 @@ mod tests {
         assert!(parse_aegis(unsupported_aegis).is_err());
 
         for entry in [
-            r#"[{"type":"TOTP","secret":"MY","digits":0}]"#,
-            r#"[{"type":"TOTP","secret":"MY","period":0}]"#,
             r#"[{"type":"TOTP","secret":"MY","period":-30}]"#,
             r#"[{"type":"TOTP","secret":"MY","digits":"invalid"}]"#,
             r#"[{"type":"TOTP","secret":"MY","algorithm":"SHA384"}]"#,
@@ -502,6 +511,13 @@ mod tests {
             .codes[0]
             .uri;
         assert!(code.contains("algorithm=SHA1"));
+        assert!(code.contains("digits=6"));
+        assert!(code.contains("period=30"));
+
+        let code = &parse_andotp(r#"[{"type":"TOTP","secret":"MY","digits":0,"period":0}]"#)
+            .unwrap()
+            .codes[0]
+            .uri;
         assert!(code.contains("digits=6"));
         assert!(code.contains("period=30"));
 
@@ -530,7 +546,44 @@ mod tests {
     }
 
     #[test]
-    fn two_fas_uses_link_parameters_with_edited_labels() {
+    fn bitwarden_preserves_embedded_display_when_adding_folder_and_note() {
+        let embedded = serde_json::json!({
+            "pinned": true,
+            "trashed": true,
+            "tags": ["Old"],
+            "note": "old note",
+            "iconSrc": "custom",
+            "iconID": "icon"
+        })
+        .to_string();
+        let export = serde_json::json!({
+            "folders": [{"id": "f", "name": "Work"}],
+            "items": [{
+                "name": "Example",
+                "folderId": "f",
+                "notes": "new note",
+                "login": {
+                    "totp": format!(
+                        "otpauth://totp/alice?secret=MY&codeDisplay={}#suffix",
+                        urlencoding::encode(&embedded)
+                    )
+                }
+            }]
+        })
+        .to_string();
+
+        let code = &parse_bitwarden(&export).unwrap().codes[0];
+        let display = code.display.as_ref().unwrap();
+        assert!(display.pinned);
+        assert!(display.trashed);
+        assert_eq!(display.tags, ["Work"]);
+        assert_eq!(display.note, "new note");
+        assert_eq!(display.icon_src, "custom");
+        assert_eq!(display.icon_id, "icon");
+    }
+
+    #[test]
+    fn two_fas_uses_current_parameters_with_edited_labels() {
         let export = r#"{
             "schemaVersion": 4,
             "services": [{
@@ -551,9 +604,9 @@ mod tests {
         assert!(uri.starts_with("otpauth://totp/Edited%20Name:edited%40example.com?"));
         assert!(uri.contains("secret=MY"));
         assert!(uri.contains("issuer=Edited%20Name"));
-        assert!(uri.contains("algorithm=SHA256"));
-        assert!(uri.contains("digits=8"));
-        assert!(uri.contains("period=60"));
+        assert!(uri.contains("algorithm=SHA1"));
+        assert!(uri.contains("digits=6"));
+        assert!(uri.contains("period=30"));
     }
 
     #[test]

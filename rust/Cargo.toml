@@ -55,6 +55,7 @@ edition = "2024"
 
 [workspace.dependencies]
 anyhow = "1.0.104"
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4.45", default-features = false }
 clap = "4.6.7"
 clap_complete = "4.6.11"

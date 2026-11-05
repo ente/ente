@@ -21,7 +21,7 @@ import = [
 [dependencies]
 aes = { version = "0.9.4", optional = true }
 aes-gcm = { version = "0.11.1", default-features = false, features = ["aes", "alloc", "zeroize"], optional = true }
-argon2 = { version = "0.6.0", default-features = false, features = ["alloc"], optional = true }
+argon2 = { workspace = true, optional = true }
 cbc = { version = "0.2.1", features = ["alloc", "zeroize"], optional = true }
 ente-core.workspace = true
 hex = { workspace = true, optional = true }
