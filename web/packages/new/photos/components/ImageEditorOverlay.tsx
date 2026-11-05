@@ -727,7 +727,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             }
                             onClick={saveCopyToEnte}
                         >
-                            {t("save_a_copy")}
+                            {t("save_a_copy_to_ente")}
                         </Button>
                     </Stack>
                     <Button

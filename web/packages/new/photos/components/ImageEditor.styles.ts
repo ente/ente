@@ -59,7 +59,7 @@ export const editorIconButtonSx = {
 };
 
 export const editorActionSx = (primary: boolean): SxProps<Theme> => ({
-    flex: 1,
+    flex: primary ? 2 : 1,
     minWidth: 0,
     height: 52,
     px: 2,
