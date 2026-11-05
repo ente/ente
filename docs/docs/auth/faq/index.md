@@ -296,10 +296,12 @@ Google Authenticator splits larger exports across several QR codes.
 
 1. In Google Authenticator, use **Transfer accounts** > **Export accounts** and select the accounts to move.
 2. In Ente Auth, open `Settings > Data > Import codes` and choose **Google Authenticator**.
-3. Scan the first QR code. Ente Auth shows how many codes it has received, for example **Scan a code (1/3)**.
-4. Go to the next QR code in Google Authenticator and scan it. Repeat until you have scanned all of them.
+3. On mobile, scan the first QR code. Ente Auth shows how many codes it has received, for example **Scan a code (1/3)**. On desktop, choose **Select file** and select an image of the first QR code.
+4. Repeat with each remaining QR code from the same export. On mobile, scan the next code. On desktop, select its image file.
 
-Ente Auth imports the accounts after the last QR code. Scan all the codes from the same export. If you start a new export in Google Authenticator, scan its codes from the beginning.
+Ente Auth imports the accounts after the last QR code. Import all the codes from the same export. If you start a new export in Google Authenticator, import its codes from the beginning.
+
+QR images contain your authentication secrets. Keep them private and delete them after verifying the import.
 
 If the import still fails, export your accounts in smaller groups and import each group separately, then [check the imported codes](/auth/migration/import#verify-import).
 

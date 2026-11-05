@@ -47,7 +47,7 @@ Our encryption model goes beyond industry standards. While many services use ser
 
 ### What happens if I forget my password? {#account-recovery}
 
-If you are logged into Ente on any of your existing devices, you can use that device to reset your password and use your new password to log in.
+If you are signed in on a mobile device, you can change your password there and use the new password to sign in elsewhere. On web and desktop, **Change password** may ask for your current password. If that is your only signed-in session and you have forgotten both your password and recovery key, keep the session open and save the data you can access before contacting support about your options.
 
 If you are logged out of Ente on all your devices, you can reset your password using your recovery key that was provided to you during account creation.
 
@@ -61,7 +61,7 @@ Yes. If you are logged out of Ente on all your devices and have lost both your p
 
 Before you ask for this:
 
-- If Ente is still signed in on any device, including Ente Auth, Ente Locker or [photos.ente.com](https://photos.ente.com), [change your password](#change-password) there instead. You don't need your old password or recovery key to do this.
+- If Ente is still signed in on a mobile device, including Ente Auth or Ente Locker, try to [change your password](#change-password) there. If only [photos.ente.com](https://photos.ente.com) or desktop is signed in, keep that session open. **Change password** may require your current password, so save the data you can access and contact support before starting over.
 - Deleting the account permanently deletes its Ente Photos, Ente Auth and Ente Locker data, since they all use the same account. Ente cannot recover this data, because it is end-to-end encrypted.
 - If you subscribed through the App Store or Google Play, cancel the subscription in that store. We can't cancel store subscriptions for you.
 
