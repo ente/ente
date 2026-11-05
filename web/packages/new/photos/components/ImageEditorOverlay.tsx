@@ -55,6 +55,9 @@ import {
     editorIconButtonSx,
 } from "./ImageEditor.styles";
 
+import { applyEditorFilter, editorFilterPresets } from "./ImageEditor.filters";
+import { ImageEditorFilters } from "./ImageEditorFilters";
+
 export type ImageEditorOverlayProps = ModalVisibilityProps & {
     file: EnteFile;
     onSaveEditedCopy: (
@@ -72,7 +75,7 @@ const filterDefaultValues = {
     invert: false,
 };
 
-type OperationTab = "crop" | "transform" | "colors";
+type OperationTab = "crop" | "transform" | "colors" | "filters";
 
 interface CropBoxProps {
     x: number;
@@ -92,6 +95,10 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const originalSizeCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const parentRef = useRef<HTMLDivElement | null>(null);
+
+    const filterRenderRef = useRef<Promise<void>>(Promise.resolve());
+    const filterRevisionRef = useRef(0);
+    const [selectedFilter, setSelectedFilter] = useState("None");
 
     const [fileURL, setFileURL] = useState<string | undefined>(undefined);
     const [mimeType, setMIMEType] = useState<string | undefined>(undefined);
@@ -243,16 +250,22 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     };
 
     useEffect(() => {
-        if (!canvasRef.current) {
+        if (!canvasRef.current || !fileURL) {
             return;
         }
         try {
-            void applyFilters([
-                canvasRef.current,
-                originalSizeCanvasRef.current!,
-            ]).catch((e: unknown) => log.error("Error applying filters", e));
+            const revision = ++filterRevisionRef.current;
+            const rendering = applyFilters(
+                [canvasRef.current, originalSizeCanvasRef.current!],
+                revision,
+            );
+            filterRenderRef.current = rendering;
+            void rendering.catch((e: unknown) =>
+                log.error("Error applying filters", e),
+            );
             setColoursAdjusted(
-                brightness !== filterDefaultValues.brightness ||
+                selectedFilter !== "None" ||
+                    brightness !== filterDefaultValues.brightness ||
                     contrast !== filterDefaultValues.contrast ||
                     blur !== filterDefaultValues.blur ||
                     saturation !== filterDefaultValues.saturation ||
@@ -261,7 +274,16 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         } catch (e) {
             log.error("Error applying filters", e);
         }
-    }, [brightness, contrast, blur, saturation, invert, canvasRef, fileURL]);
+    }, [
+        brightness,
+        contrast,
+        blur,
+        saturation,
+        invert,
+        selectedFilter,
+        canvasRef,
+        fileURL,
+    ]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -339,53 +361,57 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         return () => observer.disconnect();
     }, [open, currentTab, canvasLoading, fileURL]);
 
-    const applyFilters = async (canvases: HTMLCanvasElement[]) => {
-        try {
-            for (const canvas of canvases) {
-                const blurSizeRatio =
-                    Math.min(canvas.width, canvas.height) /
-                    Math.max(
-                        1,
-                        Math.min(
-                            canvasRef.current!.getBoundingClientRect().width,
-                            canvasRef.current!.getBoundingClientRect().height,
-                        ),
+    const applyFilters = async (
+        canvases: HTMLCanvasElement[],
+        revision: number,
+    ) => {
+        const image = new Image();
+        await new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = reject;
+            image.src = fileURL!;
+        });
+        if (revision !== filterRevisionRef.current) return;
+        const preset = editorFilterPresets.find(
+            ({ name }) => name === selectedFilter,
+        )!;
+        for (const canvas of canvases) {
+            const blurSizeRatio =
+                Math.min(canvas.width, canvas.height) /
+                Math.max(
+                    1,
+                    Math.min(
+                        canvasRef.current!.getBoundingClientRect().width,
+                        canvasRef.current!.getBoundingClientRect().height,
+                    ),
+                );
+            const filterString = `brightness(${brightness}%) contrast(${contrast}%) blur(${blurSizeRatio * blur}px) saturate(${saturation}%) invert(${invert ? 1 : 0})`;
+            const context = canvas.getContext("2d")!;
+            context.save();
+            try {
+                context.filter = "none";
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.imageSmoothingEnabled = false;
+                if (selectedFilter !== "None") {
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                    const pixels = context.getImageData(
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height,
                     );
-                const blurRadius = blurSizeRatio * blur;
-                const filterString = `brightness(${brightness}%) contrast(${contrast}%) blur(${blurRadius}px) saturate(${saturation}%) invert(${
-                    invert ? 1 : 0
-                })`;
-                const ctx = canvas.getContext("2d")!;
-                ctx.imageSmoothingEnabled = false;
-
-                ctx.filter = filterString;
-
-                const image = new Image();
-                image.src = fileURL!;
-
-                await new Promise((resolve, reject) => {
-                    image.onload = () => {
-                        try {
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.save();
-                            ctx.drawImage(
-                                image,
-                                0,
-                                0,
-                                canvas.width,
-                                canvas.height,
-                            );
-                            ctx.restore();
-                            resolve(true);
-                        } catch (e) {
-                            reject(e);
-                        }
-                    };
-                });
+                    applyEditorFilter(pixels.data, preset.matrix);
+                    context.putImageData(pixels, 0, 0);
+                    context.filter = filterString;
+                    context.globalCompositeOperation = "copy";
+                    context.drawImage(canvas, 0, 0);
+                } else {
+                    context.filter = filterString;
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                }
+            } finally {
+                context.restore();
             }
-        } catch (e) {
-            log.error("Error applying filters", e);
-            throw e;
         }
     };
 
@@ -396,6 +422,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     }, [currentRotationAngle]);
 
     const resetFilters = () => {
+        filterRevisionRef.current++;
+        setSelectedFilter("None");
         setBrightness(100);
         setContrast(100);
         setBlur(0);
@@ -501,6 +529,11 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     }
 
     const getEditedFile = async () => {
+        let rendering: Promise<void>;
+        do {
+            rendering = filterRenderRef.current;
+            await rendering;
+        } while (rendering !== filterRenderRef.current);
         const originalSizeCanvas = originalSizeCanvasRef.current!;
         const originalFileName = fileFileName(file);
         return canvasToFile(originalSizeCanvas, originalFileName, mimeType);
@@ -716,6 +749,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             width: "100%",
                             "& .MuiTab-root": {
                                 flex: 1,
+                                minWidth: 0,
+                                px: 0.5,
                                 textTransform: "none",
                             },
                         }}
@@ -729,6 +764,11 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         <Tab
                             label={t("colors")}
                             value="colors"
+                            disabled={transformationPerformed}
+                        />
+                        <Tab
+                            label={t("filters")}
+                            value="filters"
                             disabled={transformationPerformed}
                         />
                     </Tabs>
@@ -752,6 +792,14 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     )}
                     {currentTab == "transform" && (
                         <TransformMenu {...menuProps} />
+                    )}
+                    {currentTab == "filters" && (
+                        <ImageEditorFilters
+                            fileURL={fileURL}
+                            selected={selectedFilter}
+                            disabled={canvasLoading}
+                            onSelect={setSelectedFilter}
+                        />
                     )}
                     {currentTab == "colors" && (
                         <ColoursMenu
