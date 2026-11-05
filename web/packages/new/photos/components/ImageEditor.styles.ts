@@ -8,7 +8,7 @@ export const editorControlsSx = ((theme: Theme) => ({
     "--editor-secondary-stroke": "transparent",
     "--editor-control-hover": theme.vars.palette.secondary.dark,
     "--editor-disabled": "#d6d6d6",
-    "--editor-control": theme.vars.palette.fixed.white,
+    "--editor-control": theme.vars.palette.common.white,
     "--mui-palette-text-muted": "#666",
     "--mui-palette-divider": "#ebebeb",
     "--mui-palette-accent-main": "#08c225",
@@ -66,7 +66,7 @@ export const editorActionSx = (primary: boolean): SxProps<Theme> => ({
     borderRadius: "20px",
     fontSize: 14,
     fontWeight: 600,
-    color: primary ? "fixed.white" : "text.base",
+    color: primary ? "common.white" : "text.base",
     bgcolor: primary ? "accent.main" : "var(--editor-secondary)",
     boxShadow: primary
         ? "inset 0 0 0 1px rgba(255,255,255,0.14)"
