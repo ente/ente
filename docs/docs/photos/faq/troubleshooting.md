@@ -179,7 +179,7 @@ Apple Photos only accepts formats that iOS supports. If a video was recorded on 
 To keep a copy on your iPhone:
 
 1. Open the video in Ente and tap **Share**.
-2. Choose **Save to Files**.
+2. Tap **Send a copy**, then choose **Save to Files** from the iOS share sheet.
 
 You can also download the original from [photos.ente.com](https://photos.ente.com) or the desktop app.
 

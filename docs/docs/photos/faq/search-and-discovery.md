@@ -391,7 +391,7 @@ Open `Settings > Machine learning` on mobile and enable local indexing. This let
 
 People you name and people you ignore sync across all your devices. Unnamed groupings don't sync. Each device works them out on its own, so the list of unnamed people can look different on desktop and on your phone, even when both show 100% indexed.
 
-To make your People section match across devices, name or ignore people on one device and let the others sync. Named people and ignored groupings will then appear the same everywhere.
+To keep the people you have named or ignored consistent across devices, make those changes on one device and let the others sync. Unnamed groupings may still differ because each device creates them locally.
 
 ## Magic Search
 
