@@ -509,23 +509,6 @@ func (repo *FileRepository) GetOwnerID(fileID int64) (int64, error) {
 	return ownerID, stacktrace.Propagate(err, "failed to get file owner")
 }
 
-func (repo *FileRepository) GetOwnersByFileID(ctx context.Context, fileIDs []int64) (map[int64]int64, error) {
-	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id, owner_id FROM files WHERE file_id = ANY($1)`, pq.Array(fileIDs))
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to get file owners")
-	}
-	defer rows.Close()
-	owners := make(map[int64]int64, len(fileIDs))
-	for rows.Next() {
-		var fileID, ownerID int64
-		if err := rows.Scan(&fileID, &ownerID); err != nil {
-			return nil, stacktrace.Propagate(err, "failed to scan file owner")
-		}
-		owners[fileID] = ownerID
-	}
-	return owners, stacktrace.Propagate(rows.Err(), "failed to read file owners")
-}
-
 func (repo *FileRepository) GetOwnerAndApp(fileID int64) (int64, ente.App, error) {
 	var ownerID int64
 	var app sql.NullString
@@ -548,7 +531,7 @@ func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs 
 		}
 		result[ownerID] = count
 	}
-	return result, nil
+	return result, stacktrace.Propagate(rows.Err(), "failed to read file owner counts")
 }
 
 func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []int64) (map[int64][]int64, error) {

@@ -1,14 +1,11 @@
 package collections
 
 import (
-	"database/sql"
-
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/controller/access"
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []ente.CollectionFileItem, cID int64) error {
@@ -71,26 +68,12 @@ func (c *CollectionController) RestoreFiles(ctx *gin.Context, userID int64, cID 
 	for _, file := range files {
 		fileIDs = append(fileIDs, file.ID)
 	}
-	owners := make(map[int64]int64)
-	if len(fileIDs) > 0 {
-		owners, err = c.FileRepo.GetOwnersByFileID(ctx.Request.Context(), fileIDs)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-	}
-	for _, file := range files {
-		ownerID, ok := owners[file.ID]
-		if !ok {
-			return stacktrace.Propagate(sql.ErrNoRows, "failed to get file owner")
-		}
-		if ownerID != userID {
-			log.WithFields(log.Fields{
-				"file_id":  file.ID,
-				"owner_id": ownerID,
-				"user_id":  userID,
-			}).Error("invalid ops: can't add file which isn't owned by user")
-			return stacktrace.Propagate(ente.ErrPermissionDenied, "")
-		}
+	err = c.AccessCtrl.VerifyFileOwnership(ctx, &access.VerifyFileOwnershipParams{
+		ActorUserId: userID,
+		FileIDs:     fileIDs,
+	})
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to verify file ownership")
 	}
 	err = c.CollectionRepo.RestoreFiles(ctx.Request.Context(), userID, cID, files)
 	if err != nil {
