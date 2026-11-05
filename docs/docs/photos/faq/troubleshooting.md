@@ -416,6 +416,16 @@ If you purchased a subscription through the iOS App Store but the app shows "Ple
 
 If you continue experiencing issues after purchasing from the web, contact [support@ente.com](mailto:support@ente.com).
 
+### Why is my iPhone or iPad app stuck on the splash screen? {#ios-splash-freeze}
+
+Try these steps in order:
+
+1. Force close Ente Photos (swipe it away in the app switcher) and open it again.
+2. Check that your device has free space in `Settings > General > iPhone Storage` (or `iPad Storage`). Ente needs some free space to open its local database. Free up space if it's nearly full, then open Ente again.
+3. Restart your device and open Ente before other apps.
+
+Your backed-up photos are safe in your Ente account. If the app still gets stuck, contact [support@ente.com](mailto:support@ente.com) from another device. If you can open Ente later, [send logs](#sharing-logs) from the affected device.
+
 ### Why is my Android app stuck on the splash screen? {#android-splash-freeze}
 
 If the Ente app freezes at the splash screen for 15+ seconds on Android, try these solutions in order:

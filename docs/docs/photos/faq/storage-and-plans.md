@@ -122,6 +122,14 @@ No. We keep a single price globally because our infrastructure and payment costs
 
 Yes, we offer 10 GB of storage for free, forever.
 
+### Does Ente offer a lifetime plan? {#lifetime-plan}
+
+We don't offer lifetime plans. Storage, bandwidth and infrastructure all have recurring costs, so a one-time payment model isn't currently sustainable.
+
+Ente offers monthly and annual plans, and annual plans cost less than paying monthly. You also get 10 GB of storage for free, forever.
+
+See our [website](https://ente.com#pricing) for current plans and prices.
+
 ### What happens if my free account becomes inactive? {#inactive-free-account}
 
 If a free account has no active paid subscription and remains inactive for 12 consecutive months, we will notify you at your registered email address multiple times before deleting the account.
@@ -471,6 +479,17 @@ We support **annual** subscriptions over PayPal.
 **Renewing a PayPal plan**
 
 PayPal plans are renewed manually. Before your paid period ends, email [paypal@ente.com](mailto:paypal@ente.com) from your registered Ente email address and mention the annual plan you want to renew. We will send the payment instructions for your renewal.
+
+### Why is my card payment being declined? {#card-declined}
+
+Card payments on web, desktop and Android are processed by Stripe. Most declines come from your bank, not from Ente.
+
+1. Check your bank's app or website for a blocked or pending payment. Approve it, or allow online and international card payments if your bank blocks them.
+2. Wait a little before trying again. Several failed attempts in a row can cause further attempts to be blocked for a while.
+3. Try again from [photos.ente.com](https://photos.ente.com) in a desktop browser.
+4. Try a different card.
+
+If it still fails, you can [pay with PayPal](#paypal-payment) for annual plans, or contact [support@ente.com](mailto:support@ente.com) from your registered email address. Never send your full card number.
 
 ### Does Ente store my card details? {#card-security}
 

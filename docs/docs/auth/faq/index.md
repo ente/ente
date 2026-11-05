@@ -235,7 +235,7 @@ This moves Auth codes only. Photos libraries, subscriptions, account history, an
 >
 > If you have already lost the codes, use each service's backup codes, account-recovery process, or support team. Ente cannot disable another service's MFA or recover that service's account for you.
 
-You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account.
+You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account. If you can't sign in on any device and have lost both your password and recovery key, see [starting over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
 Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
 
@@ -290,6 +290,21 @@ An import may skip entries it cannot read. Check that you selected the [correct 
 
 Keep the original authenticator and export until all the entries you need are present and working. Switching to **Plain text** does not fix every provider-format problem. If entries are still missing, contact [support@ente.com](mailto:support@ente.com) with the app versions, export type, and entry counts. Do not send secret-bearing exports or QR codes.
 
+### How do I import from Google Authenticator if it shows several QR codes? {#google-authenticator-multiple-qr}
+
+Google Authenticator splits larger exports across several QR codes.
+
+1. In Google Authenticator, use **Transfer accounts** > **Export accounts** and select the accounts to move.
+2. In Ente Auth, open `Settings > Data > Import codes` and choose **Google Authenticator**.
+3. On mobile, scan the first QR code. Ente Auth shows how many codes it has received, for example **Scan a code (1/3)**. On desktop, choose **Select file** and select an image of the first QR code.
+4. Repeat with each remaining QR code from the same export. On mobile, scan the next code. On desktop, select its image file.
+
+Ente Auth imports the accounts after the last QR code. Import all the codes from the same export. If you start a new export in Google Authenticator, import its codes from the beginning.
+
+QR images contain your authentication secrets. Keep them private and delete them after verifying the import.
+
+If the import still fails, export your accounts in smaller groups and import each group separately, then [check the imported codes](/auth/migration/import#verify-import).
+
 ### Why do some Google Authenticator codes fail to import? {#google-authenticator-import-failed}
 
 Google Authenticator exports some codes in a format that other authenticator apps may not be able to read correctly. This can happen especially with Google account entries.
@@ -324,7 +339,18 @@ Try the following:
 
 ### I can't change my app lock PIN. What do I do? {#cant-change-app-lock-pin}
 
-If the option to change the PIN doesn't appear, log out by tapping the back arrow on the app lock screen. Once logged out, the app lock is no longer in effect and you can set it up again from scratch when you sign back in.
+If you are signed in with backups and the option to change the PIN doesn't appear, tap the back arrow on the app lock screen to log out. You can set up app lock again after signing back in. Your backed-up codes remain in your Ente account.
+
+If you chose **Use without backups**, the logout control is unavailable and your codes are stored only on this device. If you can still unlock the app, export your codes before changing the lock or reinstalling. If you cannot unlock it, your local codes may be inaccessible.
+
+### Ente Auth is asking for a password I don't recognise. Which password is it? {#which-password}
+
+Ente Auth can ask for two different passwords:
+
+- **App lock:** If the screen asks you to unlock the app, it wants the PIN or password you set for app lock under `Settings > Security > App lock`, or your device lock. If you are signed in with backups and have forgotten it, use the logout control at the top left of the lock screen, then sign back in. If you chose **Use without backups**, that control is unavailable and your codes are stored only on this device. See [I can't change my app lock PIN](#cant-change-app-lock-pin).
+- **Ente account password:** If the screen shows your email address and asks for your password, it wants the password of your Ente account. This is the same password you use for Ente Photos or Ente Locker if you use the same account. If you've forgotten it, tap **Forgot password** and enter your [recovery key](/photos/faq/security-and-privacy#use-recovery-key).
+
+If you used Ente Auth without backups, logging out removes the codes from the device. Export them first if you can.
 
 ### Codes won't sync, password is rejected, or recovery key keeps failing. Where do I start? {#sync-password-recovery-failures}
 
