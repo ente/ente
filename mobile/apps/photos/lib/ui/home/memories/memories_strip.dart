@@ -33,6 +33,8 @@ import "package:photos/ui/home/memories/memory_card_constants.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 import "package:photos/ui/home/memories/memory_lane_card.dart";
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
+import "package:photos/ui/rewind/entry/rewind_entry.dart";
+import "package:photos/ui/rewind/entry/rewind_memory_tile.dart";
 
 class MemoryCardWrapper {
   final String id;
@@ -116,6 +118,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
     MemoryLaneService.instance.readyPersonIds.addListener(
       _onMemoryLaneReadyTimelinesChanged,
     );
+    rewindService.changes.addListener(_onRewindChanged);
   }
 
   @override
@@ -134,6 +137,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
     MemoryLaneService.instance.readyPersonIds.removeListener(
       _onMemoryLaneReadyTimelinesChanged,
     );
+    rewindService.changes.removeListener(_onRewindChanged);
     super.dispose();
   }
 
@@ -166,10 +170,11 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
         if (snapshot.connectionState != ConnectionState.done) {
           return SizedBox(height: cardHeight + 24);
         }
-        if (_memories.isEmpty) {
+        final rewind = RewindEntry.current();
+        if (_memories.isEmpty && rewind == null) {
           return const SizedBox.shrink();
         }
-        final cards = _buildCards(_memories, cardHeight);
+        final cards = _buildCards(_memories, cardHeight, rewind);
         return Padding(
           padding: const EdgeInsets.only(top: 12, bottom: 10),
           child: SizedBox(
@@ -212,6 +217,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
   List<MemoryCardWrapper> _buildCards(
     List<SmartMemory> memories,
     double cardHeight,
+    RewindEntry? rewind,
   ) {
     final memoryLane = _memoryLane;
     final memoryLanePerson = _memoryLanePerson;
@@ -279,7 +285,7 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
         .toList();
     final memoryLaneCard = hasMemoryLane ? cards.first : null;
     final memoryLaneIndex = getMemoryLaneInsertionIndex(memories);
-    return [
+    final strip = [
       if (_shouldShowCraftingMemories && hasContent)
         MemoryCardWrapper(
           id: "craftingMemories",
@@ -301,6 +307,31 @@ class _MemoriesStripWidgetState extends State<MemoriesStripWidget> {
       ...cards.skip((hasMemoryLane ? 1 : 0) + memoryLaneIndex),
       if (memoryLaneCard != null && hasSeenMemoryLane) memoryLaneCard,
     ];
+    if (rewind != null) {
+      final unseenIds = {
+        for (final memory in memories)
+          if (!memory.memories.every((item) => item.isSeen())) memory.id,
+        if (memoryLaneCard != null && !hasSeenMemoryLane) memoryLaneCard.id,
+      };
+      strip.insert(
+        rewind.completed
+            ? strip.lastIndexWhere((card) => unseenIds.contains(card.id)) + 1
+            : 0,
+        MemoryCardWrapper(
+          id: "rewind",
+          widget: () => RewindMemoryTile(
+            entry: rewind,
+            size: Size(_cardWidth, cardHeight),
+            onTap: () => rewind.open(context),
+          ),
+        ),
+      );
+    }
+    return strip;
+  }
+
+  void _onRewindChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _fetchCraftingMemoriesShouldShow() async {

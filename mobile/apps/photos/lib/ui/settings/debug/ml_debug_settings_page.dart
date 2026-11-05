@@ -26,6 +26,7 @@ import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart"
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
 import "package:photos/ui/components/toggle_switch_widget.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/rewind/debug/rewind_gallery_page.dart";
 import "package:photos/ui/settings/debug/memories_debug_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/ml_util.dart";
@@ -571,6 +572,20 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
             trailingIcon: Icons.chevron_right_outlined,
             trailingIconIsMuted: true,
             onTap: () async => _onExportRewindSnapshot(context),
+          ),
+          MenuItemWidgetNew(
+            title: "Open Ente Rewind gallery",
+            leadingIconWidget: _buildIconWidget(
+              context,
+              HugeIcons.strokeRoundedPlay,
+            ),
+            trailingIcon: Icons.chevron_right_outlined,
+            trailingIconIsMuted: true,
+            onTap: () async => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const RewindGalleryPage(),
+              ),
+            ),
           ),
         ],
         MenuItemWidgetNew(
