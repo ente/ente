@@ -25,6 +25,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Layer, Stage } from "react-konva";
+import BookPageNavigation from "./BookPageNavigation";
 import {
     LARGE_DESKTOP_QUERY,
     MAX_DISPLAY_PAGE_SIZE,
@@ -316,6 +317,10 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
             const entry = flipPages[currentPage];
             const page =
                 entry?.pageIndex != null ? pages[entry.pageIndex] : null;
+            const navigationPages = flipPages.map(({ pageIndex }) => ({
+                left: pageIndex ?? ("printer-blank" as const),
+                right: null,
+            }));
             return (
                 <Box
                     ref={containerRef}
@@ -410,27 +415,44 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                             sx={{
                                 display: "flex",
                                 alignItems: "center",
-                                justifyContent: "center",
+                                justifyContent: "space-between",
+                                width: "max-content",
+                                minWidth: "100%",
+                                position: "relative",
+                                left: "50%",
+                                transform: "translateX(-50%)",
                                 gap: 1,
                                 mt: 3,
                             }}
                         >
-                            <IconButton
-                                aria-label="Previous page"
-                                disabled={currentPage === 0}
-                                onClick={flipPrev}
-                                sx={{ width: 44, height: 44 }}
-                            >
-                                <ChevronLeftIcon />
-                            </IconButton>
-                            <IconButton
-                                aria-label="Next page"
-                                disabled={currentPage >= flipPages.length - 1}
-                                onClick={flipNext}
-                                sx={{ width: 44, height: 44 }}
-                            >
-                                <ChevronRightIcon />
-                            </IconButton>
+                            <BookPageNavigation
+                                pageCount={pages.length}
+                                spreads={navigationPages}
+                                spreadIndex={currentPage}
+                                disabled={flipPages.length === 0}
+                                turning={false}
+                                onGoToSpread={showMobilePage}
+                            />
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                                <IconButton
+                                    aria-label="Previous page"
+                                    disabled={currentPage === 0}
+                                    onClick={flipPrev}
+                                    sx={{ width: 44, height: 44 }}
+                                >
+                                    <ChevronLeftIcon />
+                                </IconButton>
+                                <IconButton
+                                    aria-label="Next page"
+                                    disabled={
+                                        currentPage >= flipPages.length - 1
+                                    }
+                                    onClick={flipNext}
+                                    sx={{ width: 44, height: 44 }}
+                                >
+                                    <ChevronRightIcon />
+                                </IconButton>
+                            </Box>
                         </Box>
                     </Box>
                 </Box>
