@@ -292,13 +292,10 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     }, [open, canvasLoading, fileURL]);
 
     useEffect(() => {
-        // Loading hides the canvas. Reset only after React has shown it again.
         if (!open || canvasLoading || !fileURL || currentTab != "crop") return;
         resetCropBox();
     }, [open, currentTab, canvasLoading, fileURL]);
 
-    // Preserve the crop selection when the panel changes the preview size,
-    // without resampling edited pixels or touching the export canvas.
     useEffect(() => {
         const canvas = canvasRef.current;
         const parent = parentRef.current;
