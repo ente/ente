@@ -41,6 +41,10 @@ class RewindService {
 
   ValueListenable<rust.RewindState?> get state => _state;
 
+  RewindProgress get progress => _progress;
+
+  late final Listenable changes = Listenable.merge([_state, _progress]);
+
   void scheduleRefresh() => unawaited(Future.delayed(_startupDelay, refresh));
 
   Future<void> refresh({bool afterMlRun = false}) async {
