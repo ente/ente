@@ -111,6 +111,7 @@ pub(crate) fn llm_api_error(err: llm::Error) -> ApiError {
     let code = match &err {
         llm::Error::Cancelled => "cancelled",
         llm::Error::Panicked => "panicked",
+        llm::Error::InsufficientMemory => "insufficient_memory",
         llm::Error::InvalidInput(_) => "invalid_input",
         llm::Error::NotFound { .. } => "not_found",
         llm::Error::Unsupported(_) => "unsupported",
