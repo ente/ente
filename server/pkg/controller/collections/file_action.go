@@ -181,7 +181,7 @@ func (c *CollectionController) RemoveFilesV3(ctx *gin.Context, actorUserID int64
 			if err := c.CollectionRepo.SuggestAction(ctx, req.CollectionID, actorUserID, filesOwnedByCollectionOwner, ente.ActionRemove); err != nil {
 				return stacktrace.Propagate(err, "failed to set remove action for owner's files")
 			}
-			if err := c.CollectionActionsRepo.CreateBulk(ctx, collectionOwnerID, actorUserID, req.CollectionID, filesOwnedByCollectionOwner, nil, ente.ActionRemove, true); err != nil {
+			if err := c.CollectionActionsRepo.CreateBulk(ctx, collectionOwnerID, actorUserID, req.CollectionID, ente.App(accessResp.Collection.App), filesOwnedByCollectionOwner, nil, ente.ActionRemove, true); err != nil {
 				return stacktrace.Propagate(err, "failed to create collection action REMOVE")
 			}
 		} else {
@@ -232,7 +232,7 @@ func (c *CollectionController) SuggestDeleteInSharedCollection(ctx *gin.Context,
 	}
 
 	for uid, fids := range ownerMap {
-		if err := c.CollectionActionsRepo.CreateBulk(ctx, uid, actorUserID, req.CollectionID, fids, nil, ente.ActionDeleteSuggested, true); err != nil {
+		if err := c.CollectionActionsRepo.CreateBulk(ctx, uid, actorUserID, req.CollectionID, ente.App(accessResp.Collection.App), fids, nil, ente.ActionDeleteSuggested, true); err != nil {
 			return stacktrace.Propagate(err, "failed to create collection actions for owner files")
 		}
 	}

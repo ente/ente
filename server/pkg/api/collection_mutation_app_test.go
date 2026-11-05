@@ -224,7 +224,7 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 				files[targetApp] = fileID
 				for _, action := range []string{ente.ActionRemove, ente.ActionDeleteSuggested} {
 					for _, id := range []int64{fileID, -fileID} {
-						_, err = actionRepo.Create(t.Context(), ownerID, memberID, collection.ID, &id, nil, action, true, 1)
+						_, err = actionRepo.Create(t.Context(), ownerID, memberID, collection.ID, targetApp, &id, nil, action, true, 1)
 						require.NoError(t, err)
 					}
 				}

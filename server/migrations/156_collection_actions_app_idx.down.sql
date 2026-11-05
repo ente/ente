@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY collection_actions_pending_user_app_action_time_idx;
