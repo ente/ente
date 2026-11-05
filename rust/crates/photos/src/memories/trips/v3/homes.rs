@@ -123,13 +123,6 @@ impl<'p> Homes<'p> {
             })
     }
 
-    pub(super) fn distance_km(&self, day: i64, location: Coordinate) -> f64 {
-        self.residences(day)
-            .map(|home| distance_km(home.center, location))
-            .reduce(f64::min)
-            .unwrap_or(f64::INFINITY)
-    }
-
     pub(super) fn areas(&self) -> Vec<Vec<&Home<'p>>> {
         let mut largest_first: Vec<&Home> = self.homes.iter().collect();
         largest_first.sort_by_key(|home| Reverse(home.members.len()));
@@ -146,10 +139,11 @@ impl<'p> Homes<'p> {
         areas
     }
 
-    pub(super) fn countries(&self) -> HashSet<CountryCode> {
+    pub(super) fn countries_on(&self, day: i64) -> HashSet<CountryCode> {
         self.homes
             .iter()
-            .filter(|home| home.is_residence() || !home.stays.is_empty())
+            .filter(|home| (home.is_residence() || !home.stays.is_empty()) && home.covers(day))
+            .chain(self.residences(day))
             .filter_map(|home| home.country)
             .collect()
     }

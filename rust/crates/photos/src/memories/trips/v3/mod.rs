@@ -46,7 +46,6 @@ pub(in crate::memories) fn analyze<'p>(
         photos.iter().any(|photo| !photo.shared),
     );
     let homes = Homes::detect(&own, lookup);
-    let home_countries = homes.countries();
     let today = period.today().days_since_epoch();
     let bases = homes
         .areas()
@@ -71,6 +70,7 @@ pub(in crate::memories) fn analyze<'p>(
                 points[0].member.photo,
                 points[points.len() - 1].member.photo,
             );
+            let home_countries = homes.countries_on(points[0].member.photo.date.days_since_epoch());
             trip.location_name = naming::trip_name(&points, places, &home_countries, lookup);
             trip
         })
@@ -129,12 +129,11 @@ fn trips<'p>(own: &[Placed<'p>], shared: &[Placed<'p>], homes: &Homes) -> Vec<Ve
         .zip(frequent)
         .filter(|(_, frequent)| !frequent)
         .flat_map(|(visit, _)| country_legs(visit))
-        .filter(|leg| is_trip(leg, homes))
+        .filter(|leg| is_trip(leg))
         .collect()
 }
 
 fn away_visits<'p>(points: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>> {
-    let home_countries = homes.countries();
     let mut visits = Vec::new();
     let mut visit: Vec<Placed> = Vec::new();
     let mut country = None;
@@ -147,7 +146,10 @@ fn away_visits<'p>(points: &[Placed<'p>], homes: &Homes) -> Vec<Vec<Placed<'p>>>
         }
         if let Some(last) = visit.last() {
             let abroad = point.country.is_some_and(|point_country| {
-                country == Some(point_country) && !home_countries.contains(&point_country)
+                country == Some(point_country)
+                    && !homes
+                        .countries_on(point.member.photo.date.days_since_epoch())
+                        .contains(&point_country)
             });
             let max_gap_days = if abroad {
                 MAX_PHOTO_GAP_ABROAD_DAYS
@@ -285,17 +287,16 @@ fn country_legs(visit: Vec<Placed>) -> Vec<Vec<Placed>> {
     merged.into_iter().map(|(_, leg)| leg).collect()
 }
 
-fn is_trip(points: &[Placed], homes: &Homes) -> bool {
+fn is_trip(points: &[Placed]) -> bool {
     let (Some(first), Some(last)) = (points.first(), points.last()) else {
         return false;
     };
-    let first_day = first.member.photo.date.days_since_epoch();
-    let min_photos = if last.member.photo.date.days_since_epoch() > first_day {
+    let min_photos = if last.member.photo.date > first.member.photo.date {
         OVERNIGHT_TRIP_MIN_PHOTOS
     } else {
         DAY_TRIP_MIN_PHOTOS
     };
-    points.len() >= min_photos && homes.distance_km(first_day, center(points)) >= AWAY_MIN_KM
+    points.len() >= min_photos
 }
 
 fn center(points: &[Placed]) -> Coordinate {
@@ -1149,5 +1150,34 @@ mod tests {
         });
 
         assert_eq!(trips(files), named(&[]));
+    }
+
+    #[test]
+    fn a_sparse_holiday_in_a_country_you_move_to_later_stays_whole() {
+        let mut holiday = stay(1000, "2023-06-10T09:00:00", 6, 60, LAS_VEGAS);
+        holiday.extend(stay(1100, "2023-06-15T09:00:00", 6, 60, LAS_VEGAS));
+        let files = library(
+            vec![holiday],
+            &[
+                (
+                    &[AMSTERDAM],
+                    "2023-01-01T12:00:00",
+                    "2024-12-31T12:00:00",
+                    1,
+                ),
+                (&[PASADENA], "2025-01-01T12:00:00", "2026-10-25T12:00:00", 1),
+            ],
+        );
+
+        assert_eq!(trips(files), named(&[(1, "Las Vegas")]));
+    }
+
+    #[test]
+    fn a_road_trip_to_both_sides_of_home_is_a_trip() {
+        let mut road_trip = stay(1000, "2024-06-10T09:00:00", 12, 120, GRONINGEN);
+        road_trip.extend(stay(1100, "2024-06-12T09:00:00", 12, 120, BRUGES));
+        let files = library(vec![road_trip], &AMSTERDAM_HOME);
+
+        assert_eq!(trips(files), named(&[(1, "Bruges & Groningen")]));
     }
 }
