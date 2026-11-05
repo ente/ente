@@ -431,7 +431,11 @@ mod tests {
     use super::*;
     use ente_core::crypto::secretbox;
     use mockito::Matcher;
-    use std::io::{Cursor, Read};
+    use std::{
+        io::{Cursor, Read},
+        sync::{Arc, Mutex, mpsc},
+        time::Duration,
+    };
 
     struct Fixture {
         collection_key: Key,
@@ -540,49 +544,96 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rejects_declared_and_chunked_overflow_without_output() {
-        for chunked in [false, true] {
-            let mut server = mockito::Server::new_async().await;
-            let fixture = Fixture::new();
-            let (encrypted, header) = fixture.encrypted_content(&vec![0; 1025]);
-            let mock = server
-                .mock("GET", "/download/")
-                .match_query(Matcher::UrlEncoded("fileID".into(), "42".into()))
-                .match_header("x-cast-access-token", "token")
-                .with_status(200);
-            let _mock = if chunked {
-                mock.with_chunked_body(move |writer| writer.write_all(&encrypted))
-                    .create_async()
-                    .await
-            } else {
-                mock.with_body(encrypted).create_async().await
-            };
-            let parent = tempfile::tempdir().unwrap();
-            let output = parent.path().join("42");
-            let client = Client::new(server.url(), Some(server.url()), "token".into()).unwrap();
-            let result = client
-                .download(Download {
-                    file_id: 42,
-                    title: "photo.jpg",
-                    kind: MediaKind::Image,
-                    encrypted_key: &fixture.encrypted_key,
-                    key_decryption_nonce: &fixture.nonce,
-                    collection_key: &fixture.collection_key(),
-                    decryption_header: &header,
-                    output_directory: &output,
-                    maximum_bytes: 1024,
-                })
-                .await;
-            assert!(matches!(result, Err(Error::TooLarge)), "chunked={chunked}");
-            assert!(!output.exists());
-            assert!(fs::read_dir(parent.path()).unwrap().all(|entry| {
-                !entry
-                    .unwrap()
-                    .file_name()
-                    .to_string_lossy()
-                    .starts_with(".cast-media-")
-            }));
-        }
+    async fn rejects_declared_overflow_without_output() {
+        let mut server = mockito::Server::new_async().await;
+        let fixture = Fixture::new();
+        let (encrypted, header) = fixture.encrypted_content(&vec![0; 1025]);
+        let _mock = server
+            .mock("GET", "/download/")
+            .match_query(Matcher::UrlEncoded("fileID".into(), "42".into()))
+            .match_header("x-cast-access-token", "token")
+            .with_status(200)
+            .with_body(encrypted)
+            .create_async()
+            .await;
+        let parent = tempfile::tempdir().unwrap();
+        let output = parent.path().join("42");
+        let client = Client::new(server.url(), Some(server.url()), "token".into()).unwrap();
+        let result = client
+            .download(Download {
+                file_id: 42,
+                title: "photo.jpg",
+                kind: MediaKind::Image,
+                encrypted_key: &fixture.encrypted_key,
+                key_decryption_nonce: &fixture.nonce,
+                collection_key: &fixture.collection_key(),
+                decryption_header: &header,
+                output_directory: &output,
+                maximum_bytes: 1024,
+            })
+            .await;
+        assert!(matches!(result, Err(Error::TooLarge)));
+        assert!(!output.exists());
+        assert!(fs::read_dir(parent.path()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".cast-media-")
+        }));
+    }
+
+    #[tokio::test]
+    async fn rejects_chunked_overflow_before_response_ends() {
+        let mut server = mockito::Server::new_async().await;
+        let fixture = Fixture::new();
+        let (encrypted, header) = fixture.encrypted_content(&vec![0; 1025]);
+        let maximum_encrypted = crypto::stream::estimate_encrypted_size(1024);
+        assert!(encrypted.len() > maximum_encrypted);
+        let (release, wait_for_release) = mpsc::channel();
+        let wait_for_release = Arc::new(Mutex::new(wait_for_release));
+        let _mock = server
+            .mock("GET", "/download/")
+            .match_query(Matcher::UrlEncoded("fileID".into(), "42".into()))
+            .match_header("x-cast-access-token", "token")
+            .with_status(200)
+            .with_chunked_body(move |writer| {
+                writer.write_all(&encrypted[..maximum_encrypted])?;
+                writer.write_all(&encrypted[maximum_encrypted..])?;
+                wait_for_release.lock().unwrap().recv().unwrap();
+                Ok(())
+            })
+            .create_async()
+            .await;
+        let parent = tempfile::tempdir().unwrap();
+        let output = parent.path().join("42");
+        let client = Client::new(server.url(), Some(server.url()), "token".into()).unwrap();
+        let result = tokio::time::timeout(
+            Duration::from_secs(5),
+            client.download(Download {
+                file_id: 42,
+                title: "photo.jpg",
+                kind: MediaKind::Image,
+                encrypted_key: &fixture.encrypted_key,
+                key_decryption_nonce: &fixture.nonce,
+                collection_key: &fixture.collection_key(),
+                decryption_header: &header,
+                output_directory: &output,
+                maximum_bytes: 1024,
+            }),
+        )
+        .await;
+        release.send(()).unwrap();
+        let result = result.expect("download waited for the complete response");
+        assert!(matches!(result, Err(Error::TooLarge)));
+        assert!(!output.exists());
+        assert!(fs::read_dir(parent.path()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".cast-media-")
+        }));
     }
 
     #[tokio::test]
