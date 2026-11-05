@@ -32,7 +32,6 @@ import {
     Typography,
 } from "@mui/material";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
-import { SidebarDrawer } from "ente-base/components/mui/SidebarDrawer";
 import {
     RowButton,
     RowButtonDivider,
@@ -124,7 +123,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
 
     const [canvasLoading, setCanvasLoading] = useState(false);
 
-    const [showControlsDrawer, setShowControlsDrawer] = useState(true);
+    const [showControls, setShowControls] = useState(true);
 
     const [previewCanvasScale, setPreviewCanvasScale] = useState(0);
 
@@ -147,10 +146,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     const cropBoxRef = useRef<HTMLDivElement>(null);
 
     const getCanvasBoundsOffsets = () => {
-        const canvasBounds = {
-            height: canvasRef.current!.height,
-            width: canvasRef.current!.width,
-        };
+        const canvasBounds = canvasRef.current!.getBoundingClientRect();
         const parentBounds = parentRef.current!.getBoundingClientRect();
 
         const offsetX = (parentBounds.width - canvasBounds.width) / 2;
@@ -272,9 +268,71 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     }, [brightness, contrast, blur, saturation, invert, canvasRef, fileURL]);
 
     useEffect(() => {
+        const canvas = canvasRef.current;
+        const parent = parentRef.current;
+        if (!open || !canvas || !parent) return;
+        const fitPreview = () => {
+            const scale = Math.min(
+                Math.max(0, parent.clientWidth - 16) / canvas.width,
+                Math.max(0, parent.clientHeight - 16) / canvas.height,
+            );
+            if (!Number.isFinite(scale)) return;
+            canvas.style.width = `${canvas.width * scale}px`;
+            canvas.style.height = `${canvas.height * scale}px`;
+        };
+        fitPreview();
+        const resizeObserver = new ResizeObserver(fitPreview);
+        resizeObserver.observe(parent);
+        const canvasObserver = new MutationObserver(fitPreview);
+        canvasObserver.observe(canvas, {
+            attributes: true,
+            attributeFilter: ["width", "height"],
+        });
+        return () => {
+            resizeObserver.disconnect();
+            canvasObserver.disconnect();
+        };
+    }, [open]);
+
+    useEffect(() => {
         if (currentTab != "crop") return;
         resetCropBox();
     }, [currentTab]);
+
+    // Preserve the crop selection when the panel changes the preview size,
+    // without resampling edited pixels or touching the export canvas.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const parent = parentRef.current;
+        if (!open || currentTab != "crop" || !canvas || !parent) return;
+        const bounds = () => {
+            const image = canvas.getBoundingClientRect();
+            const container = parent.getBoundingClientRect();
+            return {
+                x: image.left - container.left,
+                y: image.top - container.top,
+                width: image.width,
+                height: image.height,
+            };
+        };
+        let previous = bounds();
+        const observer = new ResizeObserver(() => {
+            const next = bounds();
+            const old = previous;
+            previous = next;
+            if (!old.width || !old.height || !next.width || !next.height)
+                return;
+            setCropBox((crop) => ({
+                x: next.x + ((crop.x - old.x) / old.width) * next.width,
+                y: next.y + ((crop.y - old.y) / old.height) * next.height,
+                width: (crop.width / old.width) * next.width,
+                height: (crop.height / old.height) * next.height,
+            }));
+        });
+        observer.observe(parent);
+        observer.observe(canvas);
+        return () => observer.disconnect();
+    }, [open, currentTab]);
 
     const applyFilters = async (canvases: HTMLCanvasElement[]) => {
         try {
@@ -514,6 +572,20 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 padding: { xs: "8px", sm: "11px" },
                 boxSizing: "border-box",
                 width: "100%",
+                display: "grid",
+                gap: "11px",
+                gridTemplateColumns: {
+                    xs: "minmax(0, 1fr)",
+                    sm: showControls
+                        ? "minmax(0, 1fr) minmax(0, 375px)"
+                        : "minmax(0, 1fr)",
+                },
+                gridTemplateRows: {
+                    xs: showControls
+                        ? "minmax(0, 1fr) minmax(0, 45%)"
+                        : "minmax(0, 1fr)",
+                    sm: "minmax(0, 1fr)",
+                },
                 zIndex: "var(--mui-zIndex-modal)",
             }}
             open
@@ -547,10 +619,11 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         {t("photo_editor")}
                     </Typography>
                     <IconButton
-                        aria-label={t("photo_editor")}
+                        aria-label={t("toggle_controls")}
+                        aria-expanded={showControls}
                         sx={{ borderRadius: "12px", bgcolor: "fill.faint" }}
                         onClick={() => {
-                            setShowControlsDrawer(true);
+                            setShowControls((shown) => !shown);
                         }}
                     >
                         <MenuIcon />
@@ -577,13 +650,16 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             position: "relative",
                             width: "100%",
                             height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
                         }}
                     >
                         <Stack
                             ref={parentRef}
                             direction="row"
                             sx={{
-                                height: "88%",
+                                flex: 1,
+                                minHeight: 0,
                                 width: "100%",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -598,6 +674,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                 ref={canvasRef}
                                 style={{
                                     objectFit: "contain",
+                                    maxWidth: "calc(100% - 16px)",
+                                    maxHeight: "calc(100% - 16px)",
                                     display:
                                         !fileURL || canvasLoading
                                             ? "none"
@@ -619,7 +697,13 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             )}
                         </Stack>
                         {currentTab == "crop" && (
-                            <Stack sx={{ mt: 2, alignItems: "center" }}>
+                            <Stack
+                                sx={{
+                                    mt: 2,
+                                    alignItems: "center",
+                                    flexShrink: 0,
+                                }}
+                            >
                                 <Button
                                     color="accent"
                                     startIcon={<CropIcon />}
@@ -632,31 +716,27 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     </Box>
                 </Stack>
             </Box>
-            <SidebarDrawer
-                variant="persistent"
-                anchor="right"
-                open={showControlsDrawer}
-                onClose={handleCloseWithConfirmation}
+            <Box
+                component="aside"
                 sx={{
-                    "& .MuiDrawer-paper": {
-                        top: "calc(16px + env(titlebar-area-height, 0px))",
-                        right: "16px",
-                        height: "calc(100% - 32px - env(titlebar-area-height, 0px))",
-                        maxWidth: "min(375px, calc(100% - 32px))",
-                        boxSizing: "border-box",
-                        borderRadius: "36px",
-                        border: "1px solid",
-                        borderColor: "divider",
-                        boxShadow: "none",
-                        "& > .MuiBox-root": { p: 2 },
-                    },
+                    display: showControls ? "block" : "none",
+                    height: "100%",
+                    minWidth: 0,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    p: 2,
+                    boxSizing: "border-box",
+                    borderRadius: "36px",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
                 }}
             >
                 <Stack direction="row" sx={{ justifyContent: "space-between" }}>
                     <IconButton
                         aria-label={t("hide")}
                         onClick={() => {
-                            setShowControlsDrawer(false);
+                            setShowControls(false);
                         }}
                     >
                         <ChevronRightIcon />
@@ -736,7 +816,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         onClick={saveCopyToEnte}
                     />
                 </RowButtonGroup>
-            </SidebarDrawer>
+            </Box>
         </Backdrop>
     );
 };
