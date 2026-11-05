@@ -113,7 +113,9 @@ class RustMemoriesComputer implements MemoriesComputer {
       cities: await locationService.getLocationIndex(),
       detection: detection,
     );
-    return memories.map(inputs.smartMemory).toList();
+    return memories
+        .map((memory) => inputs.smartMemory(memory, capMemories: false))
+        .toList();
   }
 
   Future<List<MemoriesResult>?> _compute(
@@ -307,7 +309,7 @@ class _Inputs {
     required this.persons,
   });
 
-  SmartMemory smartMemory(rust.Memory memory) {
+  SmartMemory smartMemory(rust.Memory memory, {bool capMemories = true}) {
     final memories = [
       for (final fileID in memory.fileIds.inner)
         if (files[fileID] case final file?) Memory.fromFile(file, seenTimes),
@@ -330,6 +332,7 @@ class _Inputs {
         locationName: trip.locationName,
         tripYear: trip.year,
         tripKey: trip.key,
+        capMemories: capMemories,
       ),
       rust.MemoryKind_Base(field0: final base) => TripMemory(
         memories,
@@ -337,6 +340,7 @@ class _Inputs {
         last,
         RustMemoriesComputer._location(base.location),
         locationName: _baseName(base),
+        capMemories: capMemories,
       ),
       rust.MemoryKind_Clip(field0: final clipType) => ClipMemory(
         memories,
