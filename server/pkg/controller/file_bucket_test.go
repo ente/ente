@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"database/sql"
 	"encoding/base64"
@@ -149,7 +150,7 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 		commitAfterLookup bool
 	}{
 		{name: "committed before lookup"},
-		{name: "committed after lookup", commitAfterLookup: true},
+		{name: "committed in separate files after lookup", commitAfterLookup: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			test := newFileBucketTest(t)
@@ -159,12 +160,19 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 				var err error
 				fileObject, err = test.controller.getUploadedObject(t.Context(), file.File.ObjectKey, file.OwnerID, ente.Photos)
 				require.NoError(t, err)
-				require.False(t, fileObject.registered)
 				thumbnailObject, err = test.controller.getUploadedObject(t.Context(), file.Thumbnail.ObjectKey, file.OwnerID, ente.Photos)
 				require.NoError(t, err)
-				require.False(t, thumbnailObject.registered)
 			}
-			existing, err := test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
+			first := file
+			storageUsed := int64(111)
+			if tc.commitAfterLookup {
+				second := test.newFile(t, fileBucketB2, fileBucketWasabi)
+				first.Thumbnail, second.Thumbnail = second.Thumbnail, file.Thumbnail
+				_, err := test.controller.Create(fileBucketContext(http.MethodPost), second.OwnerID, second, "test", ente.Photos)
+				require.NoError(t, err)
+				storageUsed += 110
+			}
+			existing, err := test.controller.Create(fileBucketContext(http.MethodPost), first.OwnerID, first, "test", ente.Photos)
 			require.NoError(t, err)
 			_, err = test.db.Exec(`UPDATE object_copies SET b2 = 1, wasabi = 1, scw = CASE WHEN want_scw THEN 1 END`)
 			require.NoError(t, err)
@@ -172,7 +180,11 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 			test.switchBucket(fileBucketWasabi)
 			if tc.commitAfterLookup {
 				file.File.Size, file.Thumbnail.Size = fileObject.size, thumbnailObject.size
-				_, err = test.controller.onDuplicateObjectDetected(fileBucketContext(http.MethodPost), file, existing, fileObject, thumbnailObject, ente.Photos)
+				ctx := fileBucketContext(http.MethodPost)
+				requestCtx, cancel := context.WithCancel(ctx.Request.Context())
+				ctx.Request = ctx.Request.WithContext(requestCtx)
+				cancel()
+				_, err = test.controller.onDuplicateObjectDetected(ctx, file, existing, ente.Photos)
 			} else {
 				_, err = test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
 			}
@@ -181,7 +193,8 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 				var reset bool
 				err := test.db.QueryRow(`SELECT bool_and(CASE WHEN object_key = $1
 					THEN b2 = 1 AND wasabi IS NULL AND scw IS NULL
-					ELSE b2 IS NULL AND wasabi = 1 END) FROM object_copies`, file.File.ObjectKey).Scan(&reset)
+					ELSE b2 IS NULL AND wasabi = 1 END) FROM object_copies
+					WHERE object_key IN ($1, $2)`, file.File.ObjectKey, file.Thumbnail.ObjectKey).Scan(&reset)
 				return err == nil && reset
 			}, 2*time.Second, 10*time.Millisecond)
 			test.storageMutex.Lock()
@@ -194,7 +207,7 @@ func TestFileRegistrationConflictResetsMixedBucketReplicas(t *testing.T) {
 				"/" + fileBucketB2 + "/" + file.File.ObjectKey:          1,
 				"/" + fileBucketWasabi + "/" + file.Thumbnail.ObjectKey: 1,
 			}, versionLists)
-			test.assertUsageAndStaging(t, 111, 0)
+			test.assertUsageAndStaging(t, storageUsed, 0)
 		})
 	}
 }
@@ -214,13 +227,7 @@ func TestFileRegistrationConflictPreservesStagedPartner(t *testing.T) {
 	test.versionResponses["/"+fileBucketB2+"/"+file.Thumbnail.ObjectKey] = `<ListVersionsResult><Version><VersionId>new-version</VersionId></Version><Version><VersionId>old-version</VersionId></Version></ListVersionsResult>`
 	test.storageMutex.Unlock()
 
-	fileObject, err := test.controller.getUploadedObject(t.Context(), file.File.ObjectKey, file.OwnerID, ente.Photos)
-	require.NoError(t, err)
-	require.True(t, fileObject.registered)
-	thumbnailObject, err := test.controller.getUploadedObject(t.Context(), file.Thumbnail.ObjectKey, file.OwnerID, ente.Photos)
-	require.NoError(t, err)
-	require.False(t, thumbnailObject.registered)
-	test.controller.onExistingObjectsReplaced(fileBucketContext(http.MethodPost), file, fileObject, thumbnailObject)
+	test.controller.onExistingObjectsReplaced(fileBucketContext(http.MethodPost), file)
 	var reset bool
 	require.NoError(t, test.db.QueryRow(`SELECT b2 IS NULL AND wasabi = 1 AND scw IS NULL FROM object_copies WHERE object_key = $1`, file.File.ObjectKey).Scan(&reset))
 	require.True(t, reset)

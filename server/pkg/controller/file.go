@@ -136,9 +136,8 @@ func (c *FileController) validateFileCreateOrUpdateReq(userID int64, file ente.F
 }
 
 type uploadedObject struct {
-	size       int64
-	bucket     string
-	registered bool
+	size   int64
+	bucket string
 }
 
 type sizeResult struct {
@@ -222,7 +221,7 @@ func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, 
 			if err != nil {
 				return file, stacktrace.Propagate(err, "")
 			}
-			return c.onDuplicateObjectDetected(ctx, file, existing, fileObject, thumbnailObject, app)
+			return c.onDuplicateObjectDetected(ctx, file, existing, app)
 		}
 		return file, stacktrace.Propagate(err, "")
 	}
@@ -977,7 +976,6 @@ func (c *FileController) getUploadedObject(ctx context.Context, objectKey string
 	bucketID, err := c.ObjectCleanupRepo.GetFileUploadBucket(ctx, objectKey, userID, app)
 	if errors.Is(err, sql.ErrNoRows) {
 		bucketID, err = c.ObjectRepo.GetObjectUploadBucket(ctx, objectKey, userID)
-		object.registered = err == nil
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return object, ente.NewBadRequestWithMessage("staged upload not found")
@@ -1012,7 +1010,7 @@ func (c *FileController) getUploadedObject(ctx context.Context, objectKey string
 	return object, stacktrace.Propagate(ente.ErrObjSizeFetchFailed, "%v", err)
 }
 
-func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.File, existing ente.File, fileObject, thumbnailObject uploadedObject, app ente.App) (ente.File, error) {
+func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.File, existing ente.File, app ente.App) (ente.File, error) {
 	newJSON, _ := json.Marshal(file)
 	existingJSON, _ := json.Marshal(existing)
 	log.Info("Comparing " + string(newJSON) + " against " + string(existingJSON))
@@ -1035,9 +1033,7 @@ func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.F
 		file.ID = existing.ID
 		return file, nil
 	}
-	fileObject.registered = fileObject.registered || file.File.ObjectKey == existing.File.ObjectKey || file.File.ObjectKey == existing.Thumbnail.ObjectKey
-	thumbnailObject.registered = thumbnailObject.registered || file.Thumbnail.ObjectKey == existing.File.ObjectKey || file.Thumbnail.ObjectKey == existing.Thumbnail.ObjectKey
-	go c.onExistingObjectsReplaced(ctx, file, fileObject, thumbnailObject)
+	go c.onExistingObjectsReplaced(ctx, file)
 	return ente.File{}, ente.ErrFileUploadConflict
 }
 
@@ -1050,7 +1046,7 @@ func (c *FileController) safeAlert(msg string) {
 	c.DiscordController.Notify(msg)
 }
 
-func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.File, fileObject, thumbnailObject uploadedObject) {
+func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.File) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Panic caught: %s, stack: %s", r, string(debug.Stack()))
@@ -1071,21 +1067,26 @@ func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.F
 	})
 
 	for _, item := range []struct {
-		key    string
-		object uploadedObject
-		kind   ente.ObjectType
+		key  string
+		kind ente.ObjectType
 	}{
-		{file.File.ObjectKey, fileObject, ente.FILE},
-		{file.Thumbnail.ObjectKey, thumbnailObject, ente.THUMBNAIL},
+		{file.File.ObjectKey, ente.FILE},
+		{file.Thumbnail.ObjectKey, ente.THUMBNAIL},
 	} {
-		if !item.object.registered {
+		bucketID, err := c.ObjectRepo.GetObjectUploadBucket(context.Background(), item.key, file.OwnerID)
+		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
-		if err := c.rollbackObject(item.key, item.object.bucket); err != nil {
+		if err != nil {
+			logger.WithField("object_key", item.key).WithError(err).Error("Error finding object upload bucket")
+			revertErr = true
+			continue
+		}
+		if err := c.rollbackObject(item.key, bucketID); err != nil {
 			logger.WithField("object_key", item.key).WithError(err).Error("Error rolling back latest object")
 			revertErr = true
 		}
-		if err := c.FileRepo.ResetObjectReplication(item.key, item.object.bucket, item.kind); err != nil {
+		if err := c.FileRepo.ResetObjectReplication(item.key, bucketID, item.kind); err != nil {
 			logger.WithField("object_key", item.key).WithError(err).Error("Error resetting needs replication")
 			revertErr = true
 		}
