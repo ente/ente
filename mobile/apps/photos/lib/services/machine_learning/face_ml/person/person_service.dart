@@ -587,6 +587,7 @@ class PersonService {
     } else {
       await entityService.deleteEntry(personID);
       await faceMLDataDB.removePerson(personID);
+      _invalidatePersonCache();
 
       if (entity != null) {
         if (entity.data.email != null) {
