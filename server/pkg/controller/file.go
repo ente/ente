@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/ente/museum/pkg/controller/access"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -457,119 +458,62 @@ func (c *FileController) GetSignedURLForPublicFile(ctx *gin.Context, fileID int6
 }
 
 func (c *FileController) getSignedURLForType(ctx *gin.Context, fileID int64, objType ente.ObjectType) (string, error) {
-	if isCliRequest(ctx) {
-		return c.getWasabiSignedUrlIfAvailable(fileID, objType)
-	}
-	s3Object, err := c.ObjectRepo.GetObject(fileID, objType)
+	s3Object, dcs, err := c.ObjectRepo.GetObjectWithDCs(fileID, objType)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	return c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
 func (c *FileController) getSignedURLForAccessibleObject(ctx *gin.Context, userID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	var url string
-	var err error
-	if isCliRequest(ctx) {
-		url, err = c.getWasabiSignedUrlForAccessibleObject(ctx, userID, fileID, objType)
-	} else {
-		var s3Object ente.S3ObjectKey
-		s3Object, err = c.ObjectRepo.GetAccessibleObject(ctx, fileID, userID, objType)
-		if err == nil {
-			url, err = c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-		}
-	}
+	s3Object, dcs, err := c.ObjectRepo.GetAccessibleObjectWithDCs(ctx, fileID, userID, objType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			go c.CleanUpStaleCollectionFiles(fileID)
 		}
 		return "", stacktrace.Propagate(err, "")
 	}
-	return url, nil
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
 func (c *FileController) getSignedURLForOwnedObject(ctx *gin.Context, ownerID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	var url string
-	var err error
-	if isCliRequest(ctx) {
-		var s3Object ente.S3ObjectKey
-		var dcs []string
-		s3Object, dcs, err = c.ObjectRepo.GetOwnedObjectWithDCs(ctx, fileID, ownerID, objType)
-		if err == nil {
-			url, err = c.getSignedURLFromObjectAndDCs(s3Object, dcs, objType)
-		}
-	} else {
-		var s3Object ente.S3ObjectKey
-		s3Object, err = c.ObjectRepo.GetOwnedObject(ctx, fileID, ownerID, objType)
-		if err == nil {
-			url, err = c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-		}
-	}
+	s3Object, dcs, err := c.ObjectRepo.GetOwnedObjectWithDCs(ctx, fileID, ownerID, objType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			go c.CleanUpStaleCollectionFiles(fileID)
 		}
 		return "", stacktrace.Propagate(err, "")
 	}
-	return url, nil
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
 func (c *FileController) getSignedURLForCollectionObject(ctx *gin.Context, collectionID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	var url string
-	var err error
-	if isCliRequest(ctx) {
-		var s3Object ente.S3ObjectKey
-		var dcs []string
-		s3Object, dcs, err = c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
-		if err == nil {
-			url, err = c.getSignedURLFromObjectAndDCs(s3Object, dcs, objType)
-		}
-	} else {
-		var s3Object ente.S3ObjectKey
-		s3Object, err = c.ObjectRepo.GetCollectionObject(ctx, collectionID, fileID, objType)
-		if err == nil {
-			url, err = c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-		}
-	}
+	s3Object, dcs, err := c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	return url, nil
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
-func (c *FileController) getSignedURLFromObjectAndDCs(s3Object ente.S3ObjectKey, dcs []string, objType ente.ObjectType) (string, error) {
-	for _, dc := range dcs {
-		if dc == c.S3Config.GetHotWasabiDC() {
+func (c *FileController) getSignedURLFromObjectAndDCs(ctx *gin.Context, s3Object ente.S3ObjectKey, dcs []string, objType ente.ObjectType) (string, error) {
+	primary, secondary := c.S3Config.GetHotDataCenter(), c.S3Config.GetSecondaryHotDataCenter()
+	if isCliRequest(ctx) && secondary == c.S3Config.GetHotWasabiDC() {
+		primary, secondary = secondary, primary
+	}
+	for _, dc := range []string{primary, secondary} {
+		if dc != c.S3Config.GetHotBackblazeDC() && dc != c.S3Config.GetHotWasabiDC() {
+			continue
+		}
+		if slices.Contains(dcs, dc) {
 			return c.getPreSignedURLForDC(s3Object.ObjectKey, dc, objType)
 		}
 	}
-	return c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
+	return "", fmt.Errorf("no recorded hot storage copy for object %q", s3Object.ObjectKey)
 }
 
 func isCliRequest(ctx *gin.Context) bool {
 	userAgent := ctx.Request.Header.Get("User-Agent")
 	return strings.Contains(userAgent, "go-resty")
-}
-
-func (c *FileController) getWasabiSignedUrlIfAvailable(fileID int64, objType ente.ObjectType) (string, error) {
-	s3Object, dcs, err := c.ObjectRepo.GetObjectWithDCs(fileID, objType)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	for _, dc := range dcs {
-		if dc == c.S3Config.GetHotWasabiDC() {
-			return c.getPreSignedURLForDC(s3Object.ObjectKey, dc, objType)
-		}
-	}
-	return c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-}
-
-func (c *FileController) getWasabiSignedUrlForAccessibleObject(ctx *gin.Context, userID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	s3Object, dcs, err := c.ObjectRepo.GetAccessibleObjectWithDCs(ctx, fileID, userID, objType)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	return c.getSignedURLFromObjectAndDCs(s3Object, dcs, objType)
 }
 
 func (c *FileController) Trash(ctx *gin.Context, userID int64, request ente.TrashRequest) error {
@@ -903,20 +847,6 @@ func (c *FileController) cleanupDeletedFile(qItem repo.QueueItem) {
 		return
 	}
 	ctxLogger.Info("Successfully deleted item")
-}
-
-func (c *FileController) getHotDcSignedUrl(objectKey string, objType ente.ObjectType) (string, error) {
-	s3Client := c.S3Config.GetHotS3Client()
-	input := &s3.GetObjectInput{
-		Bucket: c.S3Config.GetHotBucket(),
-		Key:    &objectKey,
-	}
-	input.ResponseContentDisposition = aws.String("attachment")
-	if objType == ente.FILE || objType == ente.THUMBNAIL {
-		input.ResponseContentType = aws.String("application/octet-stream")
-	}
-	r, _ := s3Client.GetObjectRequest(input)
-	return r.Presign(PreSignedRequestValidityDuration)
 }
 
 func (c *FileController) getPreSignedURLForDC(objectKey string, dc string, objType ente.ObjectType) (string, error) {
