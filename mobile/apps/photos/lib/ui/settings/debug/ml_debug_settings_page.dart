@@ -284,6 +284,28 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
           onTap: () async => _onShowAllMemoriesDebug(context),
         ),
         MenuItemWidgetNew(
+          title: "Show all legacy trip memories",
+          leadingIconWidget: Icon(
+            Icons.map_outlined,
+            color: getEnteColorScheme(context).menuItemIconStroke,
+            size: 20,
+          ),
+          trailingIcon: Icons.chevron_right_outlined,
+          trailingIconIsMuted: true,
+          onTap: () async => _onShowAllTripMemories(context, improved: false),
+        ),
+        MenuItemWidgetNew(
+          title: "Show all improved trip memories",
+          leadingIconWidget: Icon(
+            Icons.travel_explore_outlined,
+            color: getEnteColorScheme(context).menuItemIconStroke,
+            size: 20,
+          ),
+          trailingIcon: Icons.chevron_right_outlined,
+          trailingIconIsMuted: true,
+          onTap: () async => _onShowAllTripMemories(context, improved: true),
+        ),
+        MenuItemWidgetNew(
           title: "Sync person mappings",
           leadingIconWidget: _buildIconWidget(
             context,
@@ -821,6 +843,20 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
 
   Future<void> _onShowAllMemoriesDebug(BuildContext context) async {
     await routeToPage(context, const MemoriesDebugPage());
+  }
+
+  Future<void> _onShowAllTripMemories(
+    BuildContext context, {
+    required bool improved,
+  }) async {
+    await routeToPage(
+      context,
+      MemoriesDebugPage(
+        title: improved ? "Improved trip memories" : "Legacy trip memories",
+        loadMemories: (calculationTime) => smartMemoriesService
+            .debugCalcAllTripMemories(calculationTime, improved: improved),
+      ),
+    );
   }
 
   Future<void> _onSyncPersonMappings(BuildContext context) async {

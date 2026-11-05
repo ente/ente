@@ -145,6 +145,23 @@ class SmartMemoriesService {
     return memories;
   }
 
+  Future<List<SmartMemory>> debugCalcAllTripMemories(
+    DateTime now, {
+    required bool improved,
+  }) async {
+    final memories = await rustMemoriesComputer.computeAllTrips(
+      now,
+      improved: improved,
+    );
+    final local = await getLocale();
+    final languageCode = local?.languageCode ?? "en";
+    final s = await LanguageService.locals;
+    for (final memory in memories) {
+      memory.title = memory.createTitle(s, languageCode);
+    }
+    return memories;
+  }
+
   static Future<String> getDateFormattedLocale({
     required int creationTime,
   }) async {

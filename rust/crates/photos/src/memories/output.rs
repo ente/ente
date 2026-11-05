@@ -277,6 +277,20 @@ impl Memory {
         }
     }
 
+    pub(super) fn uncapped(
+        kind: MemoryKind,
+        photos: &[&Photo],
+        first_date_to_show: impl Into<MemoryBoundary>,
+        last_date_to_show: impl Into<MemoryBoundary>,
+    ) -> Self {
+        Self {
+            kind,
+            file_ids: photos.iter().map(|photo| photo.id).collect(),
+            first_date_to_show: first_date_to_show.into(),
+            last_date_to_show: last_date_to_show.into(),
+        }
+    }
+
     pub(super) fn is_shown_at(&self, period: Period) -> bool {
         self.first_date_to_show.compare_to(period).is_le()
             && self.last_date_to_show.compare_to(period).is_ge()

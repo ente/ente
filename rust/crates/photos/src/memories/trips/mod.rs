@@ -1,5 +1,6 @@
 mod bases;
 mod surface;
+pub(super) mod v3;
 
 use std::cmp;
 use std::collections::HashSet;
@@ -16,7 +17,7 @@ use super::photo::Photo;
 use super::places::Places;
 
 pub(super) use bases::Base;
-pub(super) use surface::{TripHistory, memories};
+pub(super) use surface::{TripHistory, all_memories, memories};
 
 const MAX_TEMPORAL_GAP_DAYS: i64 = 15;
 const TRIP_CLUSTER_RADIUS_KM: f64 = 25.0;
@@ -240,7 +241,8 @@ mod tests {
     use crate::memories::tests::{located_file, micros, period};
     use crate::memories::{
         BaseMemory, CachedTrip, CityLookup, MemoriesRequest, Memory, MemoryFile, MemoryKind,
-        ShownTrip, SmartMemories, TripMemory, compute_smart_memories,
+        ShownTrip, SmartMemories, TripDetection, TripMemory, compute_all_trip_memories,
+        compute_smart_memories,
     };
 
     const AMSTERDAM: (f64, f64) = (52.37, 4.90);
@@ -285,6 +287,18 @@ mod tests {
                 )
                 .filter(|group| !group.coordinate_indices.is_empty())
                 .collect()
+        }
+
+        fn urban_centers(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
+            vec![None; coordinates.len()]
+        }
+
+        fn countries(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+            vec![None; coordinates.len()]
+        }
+
+        fn country_name(&self, _country: CountryCode) -> Option<String> {
+            None
         }
     }
 
@@ -602,5 +616,33 @@ mod tests {
             ..MemoriesRequest::default()
         };
         assert_eq!(name(&request).as_deref(), Some("Paris"));
+    }
+
+    #[test]
+    fn listing_all_legacy_trips_includes_recent_trips_and_every_photo() {
+        let rome = stay(1, "2024-04-01T08:00:00", 150, ROME);
+        let lisbon = stay(1000, "2026-08-01T08:00:00", 24, LISBON);
+        let mut files = home(AMSTERDAM, &[&rome, &lisbon]);
+        files.extend(rome);
+        files.extend(lisbon);
+        let request = MemoriesRequest {
+            files,
+            ..MemoriesRequest::default()
+        };
+
+        let memories =
+            compute_all_trip_memories(&request, period(NOW), None, TripDetection::Legacy);
+
+        let trips: Vec<(i64, usize)> = memories
+            .iter()
+            .filter(|memory| matches!(memory.kind, MemoryKind::Trip(_)))
+            .map(|memory| (memory.file_ids[0], memory.file_ids.len()))
+            .collect();
+        assert_eq!(trips, [(1000, 24), (1, 150)]);
+        assert!(
+            memories
+                .iter()
+                .any(|memory| matches!(memory.kind, MemoryKind::Base(_)))
+        );
     }
 }

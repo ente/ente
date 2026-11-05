@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 
-use ente_location::Coordinate;
+use ente_location::{Coordinate, CountryCode};
 
 use super::geo::Located;
 use super::input::CityLookup;
@@ -10,6 +10,7 @@ use super::input::CityLookup;
 struct Place {
     city: String,
     country: String,
+    country_code: CountryCode,
 }
 
 #[derive(Debug, Default)]
@@ -37,6 +38,7 @@ impl Places {
             places.places.push(Place {
                 city: group.city.name,
                 country: group.city.country_name,
+                country_code: group.city.country_code,
             });
             for position in group.coordinate_indices {
                 if let Some(member) = members.get(position as usize) {
@@ -72,6 +74,27 @@ impl Places {
     pub(super) fn normalized_country(&self, members: &[Located]) -> Option<String> {
         let tally = self.tally(members)?;
         Some(normalized(&self.places[tally.biggest].country)).filter(|country| !country.is_empty())
+    }
+
+    pub(super) fn country_code(&self, photo_id: i64) -> Option<CountryCode> {
+        self.place_of_photo
+            .get(&photo_id)
+            .map(|&place| self.places[place].country_code)
+    }
+
+    pub(super) fn city_counts(&self, members: &[Located]) -> Vec<(&str, usize)> {
+        let mut counts: HashMap<usize, usize> = HashMap::new();
+        for member in members {
+            if let Some(&place) = self.place_of_photo.get(&member.photo.id) {
+                *counts.entry(place).or_default() += 1;
+            }
+        }
+        let mut counts: Vec<(usize, usize)> = counts.into_iter().collect();
+        counts.sort_by_key(|&(place, count)| (Reverse(count), place));
+        counts
+            .into_iter()
+            .map(|(place, count)| (self.places[place].city.as_str(), count))
+            .collect()
     }
 
     fn tally(&self, members: &[Located]) -> Option<Tally> {

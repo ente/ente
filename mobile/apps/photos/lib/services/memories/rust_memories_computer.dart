@@ -95,6 +95,27 @@ class RustMemoriesComputer implements MemoriesComputer {
     return memories.map(inputs.smartMemory).toList();
   }
 
+  Future<List<SmartMemory>> computeAllTrips(
+    DateTime now, {
+    required bool improved,
+  }) async {
+    final inputs = await _loadInputs(mlEnabled: false, surfaceAll: true);
+    final detection = improved
+        ? rust.TripDetection.improved
+        : rust.TripDetection.legacy;
+    _logger.info(
+      "Computing all ${detection.name} trip memories over "
+      "${inputs.files.length} files",
+    );
+    final memories = await rust.computeAllTripMemories(
+      request: inputs.request,
+      period: _period(now),
+      cities: await locationService.getLocationIndex(),
+      detection: detection,
+    );
+    return memories.map(inputs.smartMemory).toList();
+  }
+
   Future<List<MemoriesResult>?> _compute(
     List<DateTime> periods,
     MemoriesCache oldCache, {

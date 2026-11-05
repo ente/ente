@@ -18,11 +18,12 @@ mod trips;
 mod vectors;
 
 use std::collections::HashSet;
+use std::time::Instant;
 
 pub use calendar::LocalDate;
 pub use input::{
     CachedTrip, CityLookup, ClipVectors, MemoriesRequest, MemoryFile, MemoryPerson, MlInputs,
-    PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownTrip, UnnamedCluster,
+    PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownTrip, TripDetection, UnnamedCluster,
 };
 pub use output::{
     BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryBoundary, MemoryKind,
@@ -149,6 +150,33 @@ pub fn compute_simple_memories(request: &MemoriesRequest, period: Period) -> Vec
             .collect();
     let filler_memories = filler::memories(&unused_photos(&photos, &memories), period);
     memories.extend(filler_memories);
+    memories
+}
+
+pub fn compute_all_trip_memories(
+    request: &MemoriesRequest,
+    period: Period,
+    cities: Option<&dyn CityLookup>,
+    detection: TripDetection,
+) -> Vec<Memory> {
+    let started = Instant::now();
+    let photos = photo::prepare(&request.files);
+    let located = geo::located(&photos);
+    let places = Places::new(&located, cities);
+    let memories = match detection {
+        TripDetection::Legacy => trips::all_memories(
+            &trips::analyze(&located, period.now, &places),
+            &places,
+            period,
+        ),
+        TripDetection::Improved => trips::v3::all_memories(&located, period, &places, cities),
+    };
+    log::info!(
+        "computed {} {detection:?} trip memories for {} files in {} ms",
+        memories.len(),
+        request.files.len(),
+        started.elapsed().as_millis()
+    );
     memories
 }
 

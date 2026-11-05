@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use ente_location::{CityMatch, Coordinate};
+use ente_location::{CityMatch, Coordinate, CountryCode};
 
 use super::calendar::{LocalDate, MICROS_PER_DAY, MICROS_PER_SECOND};
 use super::output::{ClipMemoryType, PeopleMemoryType};
@@ -69,6 +69,12 @@ pub struct CachedTrip {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TripDetection {
+    Legacy,
+    Improved,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Period {
     pub now: i64,
     pub utc_offset_seconds: i32,
@@ -125,10 +131,25 @@ pub(super) trait PhotoSignals {
 
 pub trait CityLookup {
     fn group_cities(&self, coordinates: &[Coordinate]) -> Vec<CityMatch>;
+    fn urban_centers(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>>;
+    fn countries(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>>;
+    fn country_name(&self, country: CountryCode) -> Option<String>;
 }
 
 impl CityLookup for LocationIndex {
     fn group_cities(&self, coordinates: &[Coordinate]) -> Vec<CityMatch> {
         LocationIndex::group_cities(self, coordinates, "")
+    }
+
+    fn urban_centers(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
+        self.urban_center_ids(coordinates)
+    }
+
+    fn countries(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+        self.country_codes(coordinates)
+    }
+
+    fn country_name(&self, country: CountryCode) -> Option<String> {
+        LocationIndex::country_name(self, country).map(str::to_owned)
     }
 }

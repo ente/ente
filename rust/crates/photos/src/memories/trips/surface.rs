@@ -7,7 +7,7 @@ use crate::memories::calendar::{LocalDate, MICROS_PER_DAY};
 use crate::memories::geo::distance_km;
 use crate::memories::input::{CachedTrip, MemoriesRequest, Period, ShownTrip};
 use crate::memories::output::{BaseMemory, Memory, MemoryBoundary, MemoryKind, TripMemory};
-use crate::memories::photo::Photo;
+use crate::memories::photo::{Photo, sort_chronologically};
 use crate::memories::places::Places;
 use crate::memories::selector::Selector;
 use crate::ml_store::Result;
@@ -114,6 +114,36 @@ pub(in crate::memories) fn memories(
             )
         })
         .collect()
+}
+
+pub(in crate::memories) fn all_memories(
+    analysis: &TripAnalysis,
+    places: &Places,
+    period: Period,
+) -> Vec<Memory> {
+    let last_date_to_show = period.now + UPDATE_FREQUENCY_DAYS * MICROS_PER_DAY;
+    let bases = analysis.bases.iter().map(|base| {
+        let mut photos: Vec<&Photo> = base.members.iter().map(|member| member.photo).collect();
+        sort_chronologically(&mut photos);
+        let kind = MemoryKind::Base(BaseMemory {
+            location: base.location,
+            location_name: places.base_name(&base.members),
+            is_current: base.is_current,
+        });
+        Memory::uncapped(kind, &photos, period.now, last_date_to_show)
+    });
+    let trips = analysis.trips.iter().rev().map(|trip| {
+        let mut photos: Vec<&Photo> = trip.members.iter().map(|member| member.photo).collect();
+        sort_chronologically(&mut photos);
+        let kind = MemoryKind::Trip(TripMemory {
+            location: trip.location,
+            location_name: places.trip_name(&trip.members, &analysis.base_countries),
+            year: trip.year(),
+            key: trip.key.clone(),
+        });
+        Memory::uncapped(kind, &photos, period.now, last_date_to_show)
+    });
+    bases.chain(trips).collect()
 }
 
 fn surface_all(
