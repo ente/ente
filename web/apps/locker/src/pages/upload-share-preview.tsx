@@ -8,7 +8,6 @@ import type { LockerUploadCandidate } from "@/types";
 import { Box, Button, Snackbar, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
-/** Local preview using production dialogs without backend writes. */
 export default function UploadSharePreview() {
     const isI18nReady = useSetupLockerI18n();
     const [stage, setStage] = useState<
