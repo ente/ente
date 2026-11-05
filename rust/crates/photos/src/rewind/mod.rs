@@ -29,12 +29,21 @@ pub fn compute_rewind(
     store: Option<&MlStore>,
     previous: Option<&RewindState>,
 ) -> Result<RewindState> {
-    if let Some(previous) = previous.filter(|previous| previous.is_final_for(request)) {
+    let previous = previous.filter(|previous| previous.applies_to(request));
+    if let Some(previous) = previous.filter(|previous| previous.is_final) {
         return Ok(previous.clone());
     }
     let library = Library::of_year(request)?;
     let ml_coverage = store.map(|store| library.ml_coverage(store)).transpose()?;
-    Ok(RewindState::evaluate(request, &library, ml_coverage))
+    let was_ready = previous.is_some_and(|previous| {
+        previous.ml_coverage.is_some() && matches!(previous.status, RewindStatus::Ready { .. })
+    });
+    Ok(RewindState::evaluate(
+        request,
+        &library,
+        ml_coverage,
+        was_ready,
+    ))
 }
 
 pub fn encode_rewind_state(state: &RewindState) -> Result<Vec<u8>> {
@@ -68,9 +77,8 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        REWIND_VERSION, RewindFile, RewindFileType, RewindReport, RewindRequest, RewindState,
-        RewindStatus, Totals, compute_rewind, decode_rewind_state, encode_rewind_request,
-        encode_rewind_state,
+        REWIND_VERSION, RewindFile, RewindFileType, RewindRequest, RewindState, RewindStatus,
+        Totals, compute_rewind, decode_rewind_state, encode_rewind_request, encode_rewind_state,
     };
     use crate::ml_db::{
         CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
@@ -147,7 +155,7 @@ mod tests {
     fn totals(state: &RewindState) -> Option<Totals> {
         match &state.status {
             RewindStatus::Ready { report } => report.totals,
-            RewindStatus::WaitingForMl => None,
+            RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
         }
     }
 
@@ -249,16 +257,60 @@ mod tests {
     }
 
     #[test]
-    fn a_year_without_photos_has_no_totals() {
+    fn a_year_without_photos_has_nothing_to_show_and_never_freezes() {
         let (_directory, store) = indexed_store([]);
         let state =
             compute_rewind(&request(BEFORE_NEW_YEAR, Vec::new()), Some(&store), None).unwrap();
         assert_eq!(state.ml_coverage, Some(1.0));
+        assert_eq!(state.status, RewindStatus::NothingToShow);
+
+        let after_new_year =
+            compute_rewind(&request(AFTER_NEW_YEAR, Vec::new()), Some(&store), None).unwrap();
+        assert_eq!(after_new_year.status, RewindStatus::NothingToShow);
+        assert!(!after_new_year.is_final);
+    }
+
+    #[test]
+    fn once_ready_with_ml_the_rewind_stays_ready_while_indexing_catches_up() {
+        let (_directory, store) = indexed_store(1..=9);
+        let ready =
+            compute_rewind(&request(BEFORE_NEW_YEAR, photos(10)), Some(&store), None).unwrap();
+        assert_eq!(totals(&ready), Some(Totals { files: 10 }));
+
+        let more_photos = request(BEFORE_NEW_YEAR, photos(15));
         assert_eq!(
-            state.status,
-            RewindStatus::Ready {
-                report: RewindReport { totals: None },
-            }
+            compute_rewind(&more_photos, Some(&store), None)
+                .unwrap()
+                .status,
+            RewindStatus::WaitingForMl
+        );
+        let still_ready = compute_rewind(&more_photos, Some(&store), Some(&ready)).unwrap();
+        assert_eq!(totals(&still_ready), Some(Totals { files: 15 }));
+
+        let after_new_year = compute_rewind(
+            &request(AFTER_NEW_YEAR, photos(15)),
+            Some(&store),
+            Some(&still_ready),
+        )
+        .unwrap();
+        assert!(!after_new_year.is_final);
+
+        let nothing =
+            compute_rewind(&request(BEFORE_NEW_YEAR, Vec::new()), Some(&store), None).unwrap();
+        assert_eq!(
+            compute_rewind(&more_photos, Some(&store), Some(&nothing))
+                .unwrap()
+                .status,
+            RewindStatus::WaitingForMl
+        );
+
+        let without_ml = compute_rewind(&request(BEFORE_NEW_YEAR, photos(10)), None, None).unwrap();
+        assert_eq!(totals(&without_ml), Some(Totals { files: 10 }));
+        assert_eq!(
+            compute_rewind(&more_photos, Some(&store), Some(&without_ml))
+                .unwrap()
+                .status,
+            RewindStatus::WaitingForMl
         );
     }
 

@@ -62,6 +62,7 @@ pub struct _RewindState {
 #[frb(mirror(RewindStatus))]
 pub enum _RewindStatus {
     WaitingForMl,
+    NothingToShow,
     Ready { report: RewindReport },
 }
 

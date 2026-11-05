@@ -42,6 +42,7 @@ import "package:photos/services/memories/rust_memories_computer.dart";
 import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
+import "package:photos/services/rewind/rewind_service.dart";
 import "package:photos/services/rituals/rituals_service.dart";
 import "package:photos/services/smart_albums_service.dart";
 import "package:photos/services/storage_bonus_service.dart";
@@ -227,6 +228,12 @@ MemoriesCacheService? _memoriesCacheService;
 MemoriesCacheService get memoriesCacheService {
   _memoriesCacheService ??= MemoriesCacheService(ServiceLocator.instance.prefs);
   return _memoriesCacheService!;
+}
+
+RewindService? _rewindService;
+RewindService get rewindService {
+  _rewindService ??= RewindService(ServiceLocator.instance.prefs);
+  return _rewindService!;
 }
 
 SmartMemoriesService? _smartMemoriesService;

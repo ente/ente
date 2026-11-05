@@ -309,6 +309,12 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       );
     }
 
+    try {
+      await rewindService.clear();
+    } catch (e) {
+      _logger.info("RewindService failed to clear", e);
+    }
+
     if (!autoLogout) {
       // Auto logout can run before these services are initialized.
       CollectionsService.instance.clearCache();

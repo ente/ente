@@ -22,13 +22,13 @@ pub struct RewindState {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RewindStatus {
     WaitingForMl,
+    NothingToShow,
     Ready { report: RewindReport },
 }
 
 impl RewindState {
-    pub(super) fn is_final_for(&self, request: &RewindRequest) -> bool {
-        self.is_final
-            && self.version == REWIND_VERSION
+    pub(super) fn applies_to(&self, request: &RewindRequest) -> bool {
+        self.version == REWIND_VERSION
             && self.year == request.year
             && self.local_gallery_mode == request.local_gallery_mode
     }
@@ -37,24 +37,30 @@ impl RewindState {
         request: &RewindRequest,
         library: &Library<'_>,
         ml_coverage: Option<f32>,
+        was_ready: bool,
     ) -> Self {
         let ml_ready = ml_coverage.is_none_or(|coverage| coverage >= REQUIRED_ML_COVERAGE);
         let shows_without_ml =
             library.year_has_ended() && request.installed_at < request.season_start;
-        let status = if ml_ready || shows_without_ml {
-            RewindStatus::Ready {
-                report: RewindReport::of(library),
+        let status = if was_ready || ml_ready || shows_without_ml {
+            let report = RewindReport::of(library);
+            if report.is_empty() {
+                RewindStatus::NothingToShow
+            } else {
+                RewindStatus::Ready { report }
             }
         } else {
             RewindStatus::WaitingForMl
         };
+        let is_final =
+            ml_ready && library.year_has_ended() && matches!(status, RewindStatus::Ready { .. });
         Self {
             year: request.year,
             version: REWIND_VERSION,
             computed_at: request.now,
             local_gallery_mode: request.local_gallery_mode,
             ml_coverage,
-            is_final: ml_ready && library.year_has_ended(),
+            is_final,
             status,
         }
     }

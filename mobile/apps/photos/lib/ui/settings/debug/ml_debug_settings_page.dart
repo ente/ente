@@ -18,6 +18,8 @@ import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
+import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/services/rewind/rewind_snapshot.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
@@ -549,6 +551,28 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   Widget _buildResetActionsCard(BuildContext context) {
     return SettingsGroupedCard(
       children: [
+        if (RewindEdition.isAvailable(DateTime.now())) ...[
+          MenuItemWidgetNew(
+            title: "Recompute Ente Rewind",
+            leadingIconWidget: _buildIconWidget(
+              context,
+              HugeIcons.strokeRoundedReload,
+            ),
+            trailingIcon: Icons.chevron_right_outlined,
+            trailingIconIsMuted: true,
+            onTap: () async => _onRecomputeRewind(context),
+          ),
+          MenuItemWidgetNew(
+            title: "Export Ente Rewind request",
+            leadingIconWidget: _buildIconWidget(
+              context,
+              HugeIcons.strokeRoundedFileExport,
+            ),
+            trailingIcon: Icons.chevron_right_outlined,
+            trailingIconIsMuted: true,
+            onTap: () async => _onExportRewindSnapshot(context),
+          ),
+        ],
         MenuItemWidgetNew(
           title: "Clear memories cache",
           leadingIconWidget: _buildIconWidget(
@@ -830,6 +854,36 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       showShortToast(context, "Done");
     } catch (e, s) {
       logger.warning('sync person mappings failed ', e, s);
+      if (!context.mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
+    }
+  }
+
+  Future<void> _onRecomputeRewind(BuildContext context) async {
+    try {
+      await rewindService.recompute();
+      final state = rewindService.state.value;
+      if (!context.mounted) return;
+      showShortToast(
+        context,
+        state == null
+            ? "Ente Rewind not computed"
+            : "Ente Rewind ${state.status.runtimeType}, coverage ${state.mlCoverage}",
+      );
+    } catch (e, s) {
+      logger.warning('Ente Rewind recompute failed', e, s);
+      if (!context.mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
+    }
+  }
+
+  Future<void> _onExportRewindSnapshot(BuildContext context) async {
+    try {
+      final snapshot = await exportRewindSnapshot();
+      if (!context.mounted) return;
+      showShortToast(context, "Ente Rewind request: $snapshot");
+    } catch (e, s) {
+      logger.warning('Ente Rewind snapshot export failed', e, s);
       if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
