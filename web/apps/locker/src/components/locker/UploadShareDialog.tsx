@@ -71,7 +71,7 @@ export function UploadShareDialog({
                         ? t("uploadShareBody", {
                               name: getItemTitle(singleItem),
                           })
-                        : t("uploadShareSyncing")
+                        : null
                 }
                 confirmLabel={t("share")}
                 confirmDisabled={!singleItem}

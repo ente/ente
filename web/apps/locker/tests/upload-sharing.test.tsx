@@ -77,6 +77,7 @@ test("sharing uses the exact uploaded file only after an explicit action", () =>
 test("sharing waits for the uploaded file to appear in synced collections", () => {
     render([99]);
     expect(prompt().confirmDisabled).toBe(true);
+    expect(prompt().body).toBeNull();
     prompt().onConfirm();
     expect(openLink).not.toHaveBeenCalled();
     prompt().onClose();
