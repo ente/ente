@@ -1,7 +1,7 @@
 import type { SxProps, Theme } from "@mui/material";
 
 export const editorControlsSx = ((theme: Theme) => ({
-    backgroundColor: "background.default",
+    backgroundColor: "background.paper",
     fontFamily: theme.typography.fontFamily,
     fontSize: 14,
     fontWeight: 500,
@@ -35,10 +35,9 @@ export const editorIconButtonSx = {
 };
 
 export const editorActionSx = (primary: boolean): SxProps<Theme> => ({
-    flex: primary ? 2 : 1,
-    minWidth: 0,
+    width: "100%",
     height: 52,
-    px: 2,
+    px: 1,
     borderRadius: "20px",
     fontSize: 14,
     fontWeight: 600,
