@@ -1414,6 +1414,11 @@
       "color": "00CC00"
     },
     {
+      "title": "KRAFTON",
+      "slug": "krafton",
+      "hex": "F9423A"
+    },
+    {
       "title": "Kraken"
     },
     {
@@ -1782,6 +1787,10 @@
     {
       "title": "Netim",
       "slug": "netim"
+    },
+    {
+      "title": "Netlen",
+      "slug": "netlen"
     },
     {
       "title": "Newgrounds",
