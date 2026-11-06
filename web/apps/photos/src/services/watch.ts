@@ -30,6 +30,7 @@ class FolderWatcher {
     private upload:
         ((collectionName: string, filePaths: string[]) => void) | undefined;
     private onTriggerRemotePull: (() => void) | undefined;
+    private isUploadInProgress: (() => boolean) | undefined;
 
     private debouncedRunNextEvent: () => void;
 
@@ -41,9 +42,11 @@ class FolderWatcher {
     init(
         upload: (collectionName: string, filePaths: string[]) => void,
         onTriggerRemotePull: () => void,
+        isUploadInProgress: () => boolean,
     ) {
         this.upload = upload;
         this.onTriggerRemotePull = onTriggerRemotePull;
+        this.isUploadInProgress = isUploadInProgress;
         this.registerListeners();
         this.initializeAccessibilityState();
         this.triggerSyncWithDisk();
@@ -70,6 +73,11 @@ class FolderWatcher {
 
     isSyncPaused() {
         return this.isPaused;
+    }
+
+    // Uploads share one uploader, so wait for the current one to finish.
+    private isUploaderBusy() {
+        return this.isUploadInProgress!() || uploadManager.isUploadRunning();
     }
 
     pauseRunningSync() {
@@ -198,6 +206,11 @@ class FolderWatcher {
         if (this.eventQueue.length == 0 || this.activeWatch || this.isPaused)
             return;
 
+        if (this.eventQueue[0]?.action == "upload" && this.isUploaderBusy()) {
+            this.debouncedRunNextEvent();
+            return;
+        }
+
         const event = this.dequeueClubbedEvent();
         if (!event) return;
         log.info(
@@ -226,6 +239,12 @@ class FolderWatcher {
             const paths = pathsToUpload(event.filePaths, watch);
             if (paths.length == 0) {
                 skip("none of the files need uploading");
+                return;
+            }
+
+            // A user upload can start while the watches are being read.
+            if (this.isUploaderBusy()) {
+                this.triggerSyncWithDisk();
                 return;
             }
 
