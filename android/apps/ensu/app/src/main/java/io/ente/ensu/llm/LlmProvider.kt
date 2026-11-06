@@ -13,6 +13,10 @@ import io.ente.ensu.bindings.LlmChatModelMemory
 import io.ente.ensu.bindings.LlmChatRequest
 import io.ente.ensu.bindings.LlmContext
 import io.ente.ensu.bindings.LlmContextParams
+import io.ente.ensu.bindings.LlmException
+import io.ente.ensu.bindings.LlmExecutionControl
+import io.ente.ensu.bindings.LlmExecutionMemory
+import io.ente.ensu.bindings.LlmExecutionParams
 import io.ente.ensu.bindings.LlmGenerationEvent
 import io.ente.ensu.bindings.LlmGenerationEventCallback
 import io.ente.ensu.bindings.LlmGenerationSummary as NativeSummary
@@ -34,11 +38,15 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -46,10 +54,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
+private const val BACKGROUND_CACHE_RETENTION_MILLIS = 60_000L
+
 internal class ModelMemoryDeferred : Exception()
 
-internal class ModelMemoryUnavailable :
-    Exception("Not enough free memory. Close other apps and try again.")
+internal class ModelMemoryUnavailable(cause: Throwable? = null) :
+    Exception("Not enough free memory. Close other apps and try again.", cause)
 
 internal class ModelImagesUnsupported :
     Exception("This model doesn't support images. Send a text-only message.")
@@ -63,8 +73,19 @@ class LlmProvider(
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
     private val knowledgeEmbedding: KnowledgeEmbeddingConfig,
     private val nativeLibraryDir: String,
+    private val applicationScope: CoroutineScope,
     private val ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.IO,
 ) {
+    private class ExecutionMemory(private val capability: AndroidDeviceCapabilityProvider) :
+        LlmExecutionMemory {
+        override fun availableBytes(): ULong =
+            capability.modelMemoryHeadroom(optionalWork = false) ?: 0uL
+    }
+
+    private val executionControl = LlmExecutionControl(ExecutionMemory(deviceCapabilityProvider))
+    private val embeddingExecutionControl =
+        LlmExecutionControl(ExecutionMemory(deviceCapabilityProvider))
+
     private data class LoadedModelKey(
         val id: String,
         val requestedContextLength: Int?,
@@ -78,9 +99,13 @@ class LlmProvider(
     private var backendInitialized = false
     private val modelLoadMutex = Mutex()
     private val activeDownloads = AtomicInteger()
+    private val chatResources = ModelResourceRetention()
+    private var idleCacheUntil = 0L
+    private var idleCacheRelease: Job? = null
     private val embeddingAsset = knowledgeEmbeddingModelAsset()
     private var chatWarmupOwner: String? = null
     @Volatile private var chatForeground = false
+    private val backgroundCpuCapacity = BackgroundCpuCapacity()
     @Volatile private var appForeground = false
     private val memoryPressure = ModelMemoryPressure(SystemClock::elapsedRealtime)
 
@@ -128,7 +153,20 @@ class LlmProvider(
 
     internal suspend fun setAppForeground(active: Boolean) {
         appForeground = active
-        if (!active) releaseIdleResources()
+        updateExecutionPolicy()
+        if (active) {
+            withContext(ioDispatcher) {
+                modelLoadMutex.withLock {
+                    if (idleCacheUntil > 0 && !hasIdleCache() && !chatResources.isActive) {
+                        unloadModel()
+                    } else if (chatForeground || chatResources.isActive) {
+                        clearIdleCacheRetention()
+                    }
+                }
+            }
+        } else {
+            releaseIdleResources()
+        }
     }
 
     internal suspend fun handleMemoryPressure() {
@@ -139,22 +177,71 @@ class LlmProvider(
     private suspend fun releaseIdleResources() =
         withContext(ioDispatcher) { modelLoadMutex.withLock { releaseIdleResourcesLocked() } }
 
-    private fun releaseIdleResourcesLocked(force: Boolean = false) {
+    private fun releaseIdleResourcesLocked(recovering: Boolean = false) {
+        val force =
+            recovering &&
+                (memoryPressure.suppressesOptionalWork() ||
+                    !canAllocate(LlmMemoryOperation.EMBEDDING, 0))
         val eviction = memoryPressure.pendingEviction()
-        if (force || !appForeground || memoryPressure.suppressesOptionalWork()) {
+        if (
+            force ||
+                chatResources.shouldReleaseIdleCache(
+                    appForeground,
+                    chatForeground,
+                    idleCacheUntil,
+                    SystemClock.elapsedRealtime(),
+                ) ||
+                memoryPressure.suppressesOptionalWork()
+        ) {
             unloadTranscriptionModelIfLoaded()
             unloadModel()
             if (eviction != null) memoryPressure.didRelease(eviction)
+        } else if (appForeground && chatForeground) {
+            clearIdleCacheRetention()
         }
     }
 
-    private suspend fun <T> withResources(
-        retainAfterCooldown: Boolean = false,
-        block: suspend () -> T,
-    ): T {
-        var releaseAfterUse = false
-        return withModelResources(modelLoadMutex, { releaseIdleResourcesLocked(releaseAfterUse) }) {
-            releaseAfterUse = !retainAfterCooldown && memoryPressure.suppressesOptionalWork()
+    internal suspend fun <T> withChatResources(block: suspend () -> T): T =
+        chatResources.retain(::releaseIdleResources) {
+            try {
+                block()
+            } finally {
+                withContext(NonCancellable + ioDispatcher) {
+                    modelLoadMutex.withLock {
+                        clearIdleCacheRetention()
+                        if (
+                            !appForeground &&
+                                loadedContext != null &&
+                                !memoryPressure.suppressesOptionalWork() &&
+                                !deviceCapabilityProvider.isLowMemory() &&
+                                canAllocate(LlmMemoryOperation.EMBEDDING, 0) &&
+                                loadedContext?.canPreserveExecutionState() == true
+                        ) {
+                            idleCacheUntil =
+                                SystemClock.elapsedRealtime() + BACKGROUND_CACHE_RETENTION_MILLIS
+                            idleCacheRelease =
+                                applicationScope.launch(ioDispatcher) {
+                                    delay(BACKGROUND_CACHE_RETENTION_MILLIS)
+                                    releaseIdleResources()
+                                }
+                        }
+                    }
+                }
+            }
+        }
+
+    private fun hasIdleCache(): Boolean = SystemClock.elapsedRealtime() < idleCacheUntil
+
+    private fun clearIdleCacheRetention() {
+        idleCacheUntil = 0
+        idleCacheRelease?.cancel()
+        idleCacheRelease = null
+    }
+
+    private suspend fun <T> withResources(block: suspend () -> T): T {
+        var recovering = false
+        return withModelResources(modelLoadMutex, { releaseIdleResourcesLocked(recovering) }) {
+            recovering = memoryPressure.suppressesOptionalWork()
             block()
         }
     }
@@ -211,8 +298,10 @@ class LlmProvider(
     internal var modelMaintenance: ModelMaintenance? = null
 
     private suspend fun <T> withModelContext(block: suspend () -> T): T =
-        modelMaintenance.withMaintenanceSuspended {
-            withContext(ioDispatcher) { block() }
+        try {
+            modelMaintenance.withMaintenanceSuspended { withContext(ioDispatcher) { block() } }
+        } catch (error: LlmException.InsufficientMemory) {
+            throw ModelMemoryUnavailable(error)
         }
 
     class EmbeddingAssetInvalid : Exception("Embedding model asset is invalid")
@@ -246,40 +335,41 @@ class LlmProvider(
         selection: LlmModelSelection,
         owner: String,
     ): ChatWarmupResult = withModelContext {
-        val result =
-            withResources(retainAfterCooldown = true) {
-                currentCoroutineContext().ensureActive()
-                if (!chatForeground || !appForeground || !isChatModelReady(selection))
-                    return@withResources ChatWarmupResult.Skipped
-                val cooldown = memoryPressure.remainingCooldownMillis()
-                if (cooldown > 0) return@withResources ChatWarmupResult.RetryAfter(cooldown)
-                if (
-                    memoryPressure.suppressesOptionalWork() ||
-                        deviceCapabilityProvider.isLowMemory()
-                )
-                    return@withResources ChatWarmupResult.Skipped
-                unloadTranscriptionModelIfLoaded()
-                currentCoroutineContext().ensureActive()
-                if (loadedContextLength(selection) != null) {
-                    if (chatWarmupOwner != null) chatWarmupOwner = owner
-                    return@withResources ChatWarmupResult.Ready
-                }
-                var completed = false
-                try {
-                    ensureModelReadyLocked(
-                        selection,
-                        {},
-                        allowRecovery = false,
-                        shouldDownload = false,
-                    )
-                    currentCoroutineContext().ensureActive()
-                    chatWarmupOwner = owner
-                    completed = true
-                } finally {
-                    if (!completed) unloadModel()
-                }
-                ChatWarmupResult.Ready
+        val result = withResources {
+            currentCoroutineContext().ensureActive()
+            if (!chatForeground || !appForeground || !isChatModelReady(selection))
+                return@withResources ChatWarmupResult.Skipped
+            val cooldown = memoryPressure.remainingCooldownMillis()
+            if (cooldown > 0) return@withResources ChatWarmupResult.RetryAfter(cooldown)
+            if (memoryPressure.suppressesOptionalWork() || deviceCapabilityProvider.isLowMemory())
+                return@withResources ChatWarmupResult.Skipped
+            unloadTranscriptionModelIfLoaded()
+            currentCoroutineContext().ensureActive()
+            if (loadedContextLength(selection) != null) {
+                if (chatWarmupOwner != null) chatWarmupOwner = owner
+                return@withResources ChatWarmupResult.Ready
             }
+            var completed = false
+            try {
+                ensureModelReadyLocked(
+                    selection,
+                    {},
+                    allowRecovery = false,
+                    shouldDownload = false,
+                )
+                currentCoroutineContext().ensureActive()
+                chatWarmupOwner = owner
+                completed = true
+            } finally {
+                if (
+                    !completed &&
+                        (!chatResources.isActive || loadedContextLength(selection) == null)
+                ) {
+                    unloadModel()
+                }
+            }
+            ChatWarmupResult.Ready
+        }
         if (result != ChatWarmupResult.Ready) return@withModelContext result
         val cooldown = memoryPressure.remainingCooldownMillis()
         when {
@@ -298,7 +388,12 @@ class LlmProvider(
 
     internal suspend fun releaseInactiveChatResources(isPickerPending: () -> Boolean) =
         withContext(ioDispatcher) {
-            releaseInactiveChatResources(modelLoadMutex, { chatForeground }, isPickerPending) {
+            chatResources.awaitIdle()
+            releaseInactiveChatResources(
+                modelLoadMutex,
+                { chatForeground || chatResources.isActive || (!appForeground && hasIdleCache()) },
+                isPickerPending,
+            ) {
                 unloadTranscriptionModelIfLoaded()
                 unloadModel()
             }
@@ -445,6 +540,7 @@ class LlmProvider(
             ensureModelReadyLocked(selection, onProgress)
             currentCoroutineContext().ensureActive()
             unloadTranscriptionModelIfLoaded()
+            if (!appForeground) updateExecutionPolicy()
             block(requireNotNull(loadedContext))
         }
     }
@@ -496,7 +592,13 @@ class LlmProvider(
         block: suspend (embed: (String) -> List<Float>) -> T,
     ): T = withModelContext {
         withEmbeddingContext(maintenance = false, queryBytes = queryBytes) { embedding ->
-            block(embedding::embed)
+            block { text ->
+                if (!appForeground) {
+                    updateExecutionPolicy()
+                    embedding.setExecutionControl(embeddingExecutionControl)
+                }
+                embedding.embed(text)
+            }
         }
     }
 
@@ -575,25 +677,6 @@ class LlmProvider(
         }
     }
 
-    suspend fun resetContext() {
-        withModelContext {
-            withResources {
-                val model = loadedModel ?: return@withResources
-                val key = currentModelKey ?: return@withResources
-                val contextParams =
-                    LlmContextParams(
-                        contextSize = currentContextLength,
-                        nThreads = null,
-                        nThreadsGeneration = generationThreads(),
-                        nBatch = LlmModelSelection(key.id, key.requestedContextLength).batchSize,
-                    )
-                loadedContext?.destroy()
-                loadedContext = model.newContext(contextParams)
-                currentContextLength = loadedContext?.contextSize()?.toInt()
-            }
-        }
-    }
-
     private fun LlmMessage.roleString(): String {
         return when (role) {
             LlmMessageRole.User -> "user"
@@ -603,6 +686,7 @@ class LlmProvider(
     }
 
     private fun unloadModel() {
+        clearIdleCacheRetention()
         chatWarmupOwner = null
         loadedContext?.destroy()
         loadedContext = null
@@ -696,6 +780,41 @@ class LlmProvider(
     private fun generationThreads(): Int =
         (Runtime.getRuntime().availableProcessors() - 1).coerceIn(1, 3)
 
+    @Synchronized
+    private fun updateExecutionPolicy() {
+        val foreground = appForeground
+        val gemma = currentModelKey?.id == "gemma-4-e2b-q4km"
+        val lfm = currentModelKey?.id == "lfm-vl-1.6b"
+        val threads = max(1, Runtime.getRuntime().availableProcessors() - 1)
+        val backgroundCpus = backgroundCpuCapacity.update(foreground, threads)
+        val embeddingThreads = if (foreground) threads else minOf(backgroundCpus, 3)
+        embeddingExecutionControl.setParams(
+            LlmExecutionParams(
+                allowGpu = false,
+                nThreads = embeddingThreads,
+                nThreadsGeneration = embeddingThreads,
+                batchSize = 512u,
+            )
+        )
+        executionControl.setParams(
+            LlmExecutionParams(
+                allowGpu = false,
+                nThreads =
+                    if (foreground) threads else minOf(backgroundCpus, if (gemma || lfm) 4 else 3),
+                nThreadsGeneration =
+                    if (foreground) generationThreads()
+                    else minOf(backgroundCpus, generationThreads()),
+                batchSize =
+                    when {
+                        foreground -> 512u
+                        gemma -> 32u
+                        lfm && backgroundCpus > 3 -> 128u
+                        else -> 64u
+                    },
+            )
+        )
+    }
+
     private fun loadWithFallbacks(selection: LlmModelSelection, modelFile: File) {
         val contexts = selection.contextCandidates()
         val threads = max(1, Runtime.getRuntime().availableProcessors() - 1)
@@ -723,8 +842,10 @@ class LlmProvider(
                         nBatch = batch,
                     )
                 loadedContext = model.newContext(contextParams)
+                loadedContext?.setExecutionControl(executionControl)
                 currentModelKey = LoadedModelKey(selection.id, selection.contextLength)
                 currentContextLength = loadedContext?.contextSize()?.toInt()
+                updateExecutionPolicy()
                 return
             } catch (err: Throwable) {
                 lastError = err
@@ -740,10 +861,12 @@ class LlmProvider(
         onToken: (String) -> Unit,
         isCancelled: () -> Boolean = { false },
     ): NativeSummary {
+        if (!appForeground) updateExecutionPolicy()
         val callback =
             object : LlmGenerationEventCallback {
                 override fun onEvent(event: LlmGenerationEvent) {
                     when (event) {
+                        is LlmGenerationEvent.PromptProgress -> Unit
                         is LlmGenerationEvent.Text -> {
                             currentJobId = event.jobId
                             if (isCancelled()) llmCancel(event.jobId)

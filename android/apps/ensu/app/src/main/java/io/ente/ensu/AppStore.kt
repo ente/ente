@@ -23,6 +23,8 @@ import io.ente.ensu.llm.ModelSettingsState
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
 import io.ente.ensu.notes.NotesStore
+import io.ente.ensu.notifications.BackgroundGeneration
+import io.ente.ensu.notifications.NotificationPermissions
 import io.ente.ensu.settings.DeveloperSettingsState
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import java.util.Locale
@@ -36,6 +38,8 @@ import kotlinx.coroutines.launch
 
 class AppStore(
     context: Context,
+    backgroundGeneration: BackgroundGeneration,
+    notificationPermissions: NotificationPermissions,
     private val sessionPreferences: SessionPreferencesDataStore,
     chatRepository: ChatRepository,
     val llmProvider: LlmProvider,
@@ -76,6 +80,8 @@ class AppStore(
     private val chatActions =
         ChatStoreActions(
             state = _state,
+            backgroundGeneration = backgroundGeneration,
+            notificationPermissions = notificationPermissions,
             sessionPreferences = sessionPreferences,
             chatRepository = chatRepository,
             llmProvider = llmProvider,
@@ -172,8 +178,6 @@ class AppStore(
             else DictationInsertion(destination, composerRevision, start.toUInt(), end.toUInt())
         }
     }
-
-    fun dispose() = voiceController.dispose()
 
     fun bootstrap(scope: CoroutineScope) {
         notesStore.bootstrap(scope)
@@ -285,6 +289,19 @@ class AppStore(
         invalidateComposer()
         chatActions.startNewSessionDraft()
     }
+
+    val openedNotification = chatActions.openedNotification
+
+    suspend fun openNotification(
+        sessionId: String,
+        messageId: String?,
+        awaitReady: suspend () -> Unit,
+    ) = chatActions.openNotification(sessionId, messageId, awaitReady)
+
+    fun cancelNotificationNavigation() = chatActions.cancelNotificationNavigation()
+
+    fun acknowledgeOpenedNotification(token: String) =
+        chatActions.acknowledgeOpenedNotification(token)
 
     fun selectSession(sessionId: String) {
         voiceController.discard(keepDownload = true)

@@ -116,6 +116,7 @@ fn cancellation_is_acknowledged_before_another_text_event() {
                 }
             }
             GenerationEvent::Done { .. } => done = true,
+            GenerationEvent::PromptProgress { .. } => {}
         });
         assert!(cancelled && !done);
         assert!(matches!(result, Err(llm::Error::Cancelled)));
@@ -297,4 +298,164 @@ fn default_model_handles_wide_and_tall_images_and_projector_reloads() {
         collect(&context, chat);
         collect(&context, request());
     }
+}
+
+#[test]
+#[ignore = "requires ENSU_TEST_MODEL"]
+fn execution_handoffs_preserve_output_and_followup_cache() {
+    init_test_backend();
+    for allow_gpu in [false, true] {
+        let owner = llm::Model::load(llm::ModelLoadParams {
+            model_path: std::env::var("ENSU_TEST_MODEL").unwrap(),
+            n_gpu_layers: Some(0),
+            use_mmap: None,
+            use_mlock: None,
+        })
+        .unwrap();
+        let params = ContextParams {
+            context_size: Some(512),
+            n_threads: Some(4),
+            n_threads_generation: None,
+            n_batch: Some(128),
+        };
+        let baseline = Context::new(&owner, params.clone()).unwrap();
+        let switching = Context::new(&owner, params).unwrap();
+        let control = Arc::new(llm::ExecutionControl::new(|| u64::MAX));
+        let foreground = llm::ExecutionParams {
+            allow_gpu,
+            n_threads: 4,
+            n_threads_generation: 4,
+            batch_size: 128,
+        };
+        let background = llm::ExecutionParams {
+            allow_gpu: false,
+            n_threads: 2,
+            n_threads_generation: 2,
+            batch_size: 32,
+        };
+        control.set_params(foreground).unwrap();
+        switching.set_execution_control(control.clone()).unwrap();
+        drop(owner);
+        let mut chat = request();
+        for turn in 0..3 {
+            let (expected, _) = collect(&baseline, chat.clone());
+            let mut actual = String::new();
+            let mut changes = 0;
+            let mut cached = None;
+            switching
+                .generate_chat_stream(chat.clone(), &mut |event| {
+                    match event {
+                        GenerationEvent::PromptProgress {
+                            processed_tokens, ..
+                        } => {
+                            cached.get_or_insert(processed_tokens);
+                        }
+                        GenerationEvent::Text { text, .. } => {
+                            if text.is_empty() {
+                                return;
+                            }
+                            actual.push_str(&text);
+                        }
+                        GenerationEvent::Done { .. } => return,
+                    }
+                    control
+                        .set_params(if changes % 2 == 0 {
+                            background
+                        } else {
+                            foreground
+                        })
+                        .unwrap();
+                    changes += 1;
+                })
+                .unwrap();
+            assert_eq!(actual, expected);
+            assert!(changes > 2);
+            if turn > 0 {
+                assert!(cached.unwrap() > 0);
+            }
+            chat.messages.push(ChatMessage {
+                role: "assistant".to_owned(),
+                content: actual,
+            });
+            chat.messages.push(ChatMessage {
+                role: "user".to_owned(),
+                content: "What comes next?".to_owned(),
+            });
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires ENSU_TEST_MODEL"]
+fn memory_denial_preserves_measurement_and_recovers_generation_and_retention() {
+    use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+
+    init_test_backend();
+    let owner = llm::Model::load(llm::ModelLoadParams {
+        model_path: std::env::var("ENSU_TEST_MODEL").unwrap(),
+        n_gpu_layers: Some(0),
+        use_mmap: None,
+        use_mlock: None,
+    })
+    .unwrap();
+    let context = Context::new(
+        &owner,
+        ContextParams {
+            context_size: Some(512),
+            n_threads: Some(4),
+            n_threads_generation: None,
+            n_batch: Some(128),
+        },
+    )
+    .unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let memory_calls = calls.clone();
+    let control = Arc::new(llm::ExecutionControl::new(move || {
+        if memory_calls.fetch_add(1, Ordering::SeqCst) == 0 {
+            u64::MAX
+        } else {
+            0
+        }
+    }));
+    let params = llm::ExecutionParams {
+        allow_gpu: true,
+        n_threads: 4,
+        n_threads_generation: 4,
+        batch_size: 128,
+    };
+    control.set_params(params).unwrap();
+    context.set_execution_control(control).unwrap();
+    let mut chat = request();
+    chat.messages[0].content = "Count from one to ten, writing each number in words. ".repeat(4);
+    let measured = context.measure_text_chat_prompt(&chat).unwrap();
+    assert!(matches!(
+        context.generate_chat_stream(chat.clone(), &mut |_| {}),
+        Err(llm::Error::InsufficientMemory)
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    for _ in 0..2 {
+        let before = calls.load(Ordering::SeqCst);
+        assert_eq!(context.measure_text_chat_prompt(&chat).unwrap(), measured);
+        assert_eq!(calls.load(Ordering::SeqCst), before);
+        assert!(matches!(
+            context.generate_chat_stream(chat.clone(), &mut |_| {}),
+            Err(llm::Error::InsufficientMemory)
+        ));
+        assert_eq!(calls.load(Ordering::SeqCst), before + 1);
+    }
+    let available = Arc::new(AtomicU64::new(u64::MAX));
+    let memory = available.clone();
+    let control = Arc::new(llm::ExecutionControl::new(move || {
+        memory.load(Ordering::SeqCst)
+    }));
+    control.set_params(params).unwrap();
+    context.set_execution_control(control).unwrap();
+    assert!(!context.can_preserve_execution_state());
+    let (_, summary) = collect(&context, chat);
+    assert_eq!(summary.prompt_tokens.unwrap() as usize, measured);
+    assert!(context.can_preserve_execution_state());
+    available.store(0, Ordering::SeqCst);
+    assert!(!context.can_preserve_execution_state());
+    available.store(u64::MAX, Ordering::SeqCst);
+    assert!(context.can_preserve_execution_state());
 }
