@@ -2423,6 +2423,8 @@ fn export_recovers_empty_initial_directories_without_claiming_unrelated_contents
             fetched.assert();
             continue;
         }
+        fs::write(folder.join(".DS_Store"), b"finder").unwrap();
+        fs::write(folder.join("._metadata.json"), b"sidecar").unwrap();
         let notes = folder.join("notes.txt");
         fs::write(&notes, b"unrelated").unwrap();
         let result = run(&home, &root, &[], false);

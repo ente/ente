@@ -846,6 +846,11 @@ fn adoption_preserves_unknown_meta_files_and_records_empty_go_albums() {
     let server = mockito::Server::new();
     let (mut engine, _) = new_engine(&server, "go");
     let root = engine.root();
+    fs::rename(
+        root.join("Family/.meta/Photo.jpg.json"),
+        root.join("Family/.meta/._Photo.jpg.json"),
+    )
+    .unwrap();
     fs::create_dir(root.join("Personal")).unwrap();
     fs::write(root.join("Personal/.meta"), b"keep unrelated file").unwrap();
     fs::create_dir_all(root.join("Empty/.meta")).unwrap();
@@ -858,8 +863,11 @@ fn adoption_preserves_unknown_meta_files_and_records_empty_go_albums() {
     )
     .unwrap();
     fs::write(root.join("Empty/.meta/user.txt"), b"keep").unwrap();
+    let finder_metadata = root.join("Empty/.meta/._album_meta.json");
+    fs::write(&finder_metadata, b"finder").unwrap();
     engine.catalog.albums.insert(77, "Empty".into());
     assert!(engine.run(true, &[]).unwrap().complete);
+    assert_eq!(fs::read(finder_metadata).unwrap(), b"finder");
     assert_eq!(
         read_json(&root.join("Empty/metadata.json"))["ente"]["albumID"],
         "77"
@@ -954,6 +962,8 @@ fn adoption_recovers_native_paths_and_live_ownership_with_an_unchanged_manifest(
     fs::remove_file(root.join("Renamed/metadata/Photo.mov.json")).unwrap();
     let path = root.join("Renamed/metadata/Live.mov.json");
     fs::write(path, b"unfinished legacy common JSON").unwrap();
+    let finder_metadata = root.join("Renamed/metadata/._Photo.jpg.json");
+    fs::write(&finder_metadata, b"finder").unwrap();
     engine.catalog.files.remove(&(FAMILY, 90));
     engine.database = "recovered.db".into();
     assert!(
@@ -969,6 +979,7 @@ fn adoption_recovers_native_paths_and_live_ownership_with_an_unchanged_manifest(
         .collect();
     assert!(engine.run(true, &[]).unwrap().complete);
     assert_eq!(fs::read(root.join("Renamed/Photo.jpg")).unwrap(), original);
+    assert_eq!(fs::read(finder_metadata).unwrap(), b"finder");
     assert_eq!(
         read_json(&root.join("Renamed/metadata/Photo.mov.json"))["ente"]["fileID"],
         PAIR.to_string()

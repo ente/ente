@@ -236,8 +236,14 @@ pub fn scan(
                     .into_string()
                     .map_err(|_| anyhow::anyhow!("legacy sidecar name is not UTF-8"))?;
                 let result = (|| {
-                    names::check(root, &format!("{path}/.meta/{name}"))?;
-                    let value: Value = json(&entry.path())?;
+                    let path = names::check(root, &format!("{path}/.meta/{name}"))?;
+                    Properties::read(&path)?;
+                    let bytes = fs::read(path)?;
+                    let value: Value = match serde_json::from_slice(&bytes) {
+                        Ok(value) => value,
+                        Err(_) if crate::is_finder_metadata_entry(&entry) => return Ok(()),
+                        Err(error) => return Err(error.into()),
+                    };
                     let Some(info) = value.get("info") else {
                         return Ok(());
                     };
