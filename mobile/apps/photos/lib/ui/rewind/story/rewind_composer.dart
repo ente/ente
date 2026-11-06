@@ -66,13 +66,12 @@ const _minimumNewFaces = 3;
 
 RewindChapter? _totals(rust.Totals? totals) {
   if (totals == null) return null;
-  final top = totals.topPercent;
-  final ranked = top != null && top <= 25 ? top : null;
+  final top = totals.topPerMille;
   return RewindChapter(
-    [PhotosCountPage.pageKey, if (ranked != null) TopPercentPage.pageKey],
+    [PhotosCountPage.pageKey, if (top != null) TopPercentPage.pageKey],
     (_) async => [
       PhotosCountPage(totals.files),
-      if (ranked != null) TopPercentPage(percent: ranked, count: totals.files),
+      if (top != null) TopPercentPage(perMille: top, count: totals.files),
     ],
   );
 }

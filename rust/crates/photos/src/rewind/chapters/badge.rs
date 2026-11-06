@@ -118,6 +118,16 @@ struct Candidate {
     value: Option<u32>,
 }
 
+pub(in crate::rewind) fn badge_uses_ml(badge: RewindBadge) -> bool {
+    matches!(
+        badge,
+        RewindBadge::MainCharacter
+            | RewindBadge::HobbyHopper
+            | RewindBadge::IndoorKid
+            | RewindBadge::EventHopper
+    ) || SUBJECT_BADGES.iter().any(|subject| subject.id == badge)
+}
+
 pub(in crate::rewind) fn badge(
     request: &RewindRequest,
     library: &Library<'_>,
@@ -502,7 +512,7 @@ mod tests {
     use crate::rewind::people::People;
     use crate::rewind::report::{Badge, RewindBadge};
 
-    use super::badge;
+    use super::{badge, badge_uses_ml};
 
     const DAY: i64 = 86_400_000_000;
 
@@ -522,6 +532,25 @@ mod tests {
     fn with_history(mut files: Vec<RewindFile>) -> Vec<RewindFile> {
         files.push(photo(0, "2024-05-01T12:00:00"));
         files
+    }
+
+    #[test]
+    fn only_badges_from_faces_or_clip_count_as_ml() {
+        for id in [
+            RewindBadge::MainCharacter,
+            RewindBadge::Foodie,
+            RewindBadge::SunChaser,
+            RewindBadge::IndoorKid,
+        ] {
+            assert!(badge_uses_ml(id), "{id:?}");
+        }
+        for id in [
+            RewindBadge::NightOwl,
+            RewindBadge::OutOfOffice,
+            RewindBadge::MixedBag,
+        ] {
+            assert!(!badge_uses_ml(id), "{id:?}");
+        }
     }
 
     fn badge_of(files: Vec<RewindFile>) -> Option<Badge> {

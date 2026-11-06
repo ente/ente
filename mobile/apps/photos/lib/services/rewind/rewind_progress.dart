@@ -12,6 +12,8 @@ class RewindProgress extends ChangeNotifier {
   static const _notificationScheduledKey = "${_prefix}_notification_scheduled";
   static const _resumePageKey = "${_prefix}_resume_page";
   static const _resumeStopKey = "${_prefix}_resume_stop";
+  static const _resumeIndexKey = "${_prefix}_resume_index";
+  static const _pageCountKey = "${_prefix}_page_count";
   static const _completedKey = "${_prefix}_completed";
 
   bool get opened => _prefs.getBool(_openedKey) ?? false;
@@ -23,6 +25,10 @@ class RewindProgress extends ChangeNotifier {
 
   int get resumeStop => _prefs.getInt(_resumeStopKey) ?? 0;
 
+  int? get resumeIndex => _prefs.getInt(_resumeIndexKey);
+
+  int? get pageCount => _prefs.getInt(_pageCountKey);
+
   bool get completed => _prefs.getBool(_completedKey) ?? false;
 
   Future<void> markOpened() async {
@@ -30,9 +36,16 @@ class RewindProgress extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveResume(String page, int stop) async {
+  Future<void> saveResume(
+    String page,
+    int stop, {
+    required int index,
+    required int pageCount,
+  }) async {
     await _prefs.setString(_resumePageKey, page);
     await _prefs.setInt(_resumeStopKey, stop);
+    await _prefs.setInt(_resumeIndexKey, index);
+    await _prefs.setInt(_pageCountKey, pageCount);
     notifyListeners();
   }
 

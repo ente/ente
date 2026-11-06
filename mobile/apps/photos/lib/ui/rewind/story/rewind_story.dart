@@ -1,5 +1,6 @@
 import "dart:math";
 
+import "package:collection/collection.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
@@ -8,7 +9,7 @@ import "package:photos/ui/rewind/story/rewind_media.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 
 class RewindStory {
-  RewindStory._(this.pages, this._photos);
+  RewindStory._(this.pages, this._photos, this._outline);
 
   static const _lookahead = 3;
 
@@ -29,15 +30,26 @@ class RewindStory {
       pages.addAll(chapterPages);
       photos.addAll([for (final _ in chapterPages) chapterPhotos]);
     }
-    return RewindStory._(pages, photos);
+    return RewindStory._(pages, photos, [
+      for (final chapter in chapters) ...chapter.keys,
+    ]);
   }
 
   final List<RewindPage> pages;
   final List<List<EnteFile>> _photos;
+  final List<String> _outline;
   final _preloaded = Set<List<EnteFile>>.identity();
 
   int indexOf(String? key) =>
       max(0, pages.indexWhere((page) => page.key == key));
+
+  String? resumeAt(String? key) {
+    if (key == null || pages.any((page) => page.key == key)) return key;
+    final position = _outline.indexOf(key);
+    if (position < 0) return null;
+    final later = _outline.skip(position + 1).toSet();
+    return pages.firstWhereOrNull((page) => later.contains(page.key))?.key;
+  }
 
   void preloadFrom(int index) {
     for (var i = index; i < min(pages.length, index + _lookahead); i++) {

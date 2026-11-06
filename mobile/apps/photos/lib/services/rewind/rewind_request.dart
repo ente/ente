@@ -16,6 +16,7 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/utils/contact_string_util.dart";
 
 bool get rewindUsesMl =>
     hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
@@ -28,7 +29,9 @@ Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
   final persons = isLocalGalleryMode || !rewindUsesMl
       ? const <PersonEntity>[]
       : await PersonService.instance.getPersons();
-  final email = isLocalGalleryMode ? null : Configuration.instance.getEmail();
+  final email = isLocalGalleryMode
+      ? null
+      : normalizeContactLinkEmail(Configuration.instance.getEmail());
   return rust.RewindRequest(
     year: RewindEdition.year,
     now: now.microsecondsSinceEpoch,
@@ -48,7 +51,10 @@ Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
     mePersonId: email == null
         ? null
         : persons
-              .firstWhereOrNull((person) => person.data.email == email)
+              .firstWhereOrNull(
+                (person) =>
+                    normalizeContactLinkEmail(person.data.email) == email,
+              )
               ?.remoteID,
   );
 }

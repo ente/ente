@@ -7,7 +7,7 @@ use crate::rewind::people::{Entity, People};
 use crate::rewind::ranking::{Ranking, best_faces};
 use crate::rewind::report::{NewFace, NewFaces};
 
-const NEW_FACE_MINIMUM_PHOTOS: usize = 5;
+const NEW_FACE_MINIMUM_PHOTOS: usize = 10;
 const NEW_FACES_MINIMUM: usize = 3;
 const NEW_FACES_SHOWN: usize = 12;
 const NEW_FACE_FACES: usize = 3;
@@ -74,13 +74,13 @@ mod tests {
         faces_request.people = ["ana", "ben", "old", "me", "hidden"].map(person).to_vec();
         faces_request.people[4].is_hidden_from_memories = true;
         faces_request.me_person_id = Some("me".to_string());
-        appear(&store, "ana", Some("ana"), 1..=5);
-        appear(&store, "ben", Some("ben"), 11..=16);
-        appear(&store, "old", Some("old"), [500].into_iter().chain(21..=30));
+        appear(&store, "ana", Some("ana"), 1..=10);
+        appear(&store, "ben", Some("ben"), 11..=21);
+        appear(&store, "old", Some("old"), [500].into_iter().chain(22..=30));
         appear(&store, "me", Some("me"), 31..=40);
         appear(&store, "hidden", Some("hidden"), 41..=50);
-        appear(&store, "stranger", None, 51..=58);
-        appear(&store, "passer-by", None, 61..=64);
+        appear(&store, "stranger", None, 51..=60);
+        appear(&store, "passer-by", None, 61..=69);
         appear(&store, "deleted-person", Some("gone"), 71..=80);
         let library = Library::of_year(&faces_request).unwrap();
         let people = People::load(&faces_request, &library, &store).unwrap();
@@ -102,7 +102,7 @@ mod tests {
                 (None, Some("stranger"))
             ]
         );
-        assert_eq!(new.faces[1].face_ids, ["1_ana", "2_ana", "3_ana"]);
+        assert_eq!(new.faces[1].face_ids, ["10_ana", "1_ana", "2_ana"]);
 
         let mut fewer = faces_request.clone();
         fewer.people.retain(|person| person.id != "ben");
