@@ -2,6 +2,7 @@ use std::{io::IsTerminal, num::NonZeroUsize, path::PathBuf};
 
 use clap::{Arg, ArgAction, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
+use ente_location::Coordinate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
@@ -748,6 +749,24 @@ pub struct FileQuery {
     pub country: Option<String>,
     #[arg(
         long,
+        value_name = "LAT,LON",
+        requires = "radius",
+        allow_hyphen_values = true,
+        value_parser = parse_coordinate,
+        help = "Include files taken within --radius of this point",
+        long_help = "Include files whose location lies within --radius of LAT,LON, given in decimal degrees such as 48.8566,2.3522. Uses the same check as location tags in the Ente apps. Files without a location are left out."
+    )]
+    pub near: Option<Coordinate>,
+    #[arg(
+        long,
+        value_name = "KM",
+        requires = "near",
+        value_parser = parse_radius,
+        help = "Distance from --near in kilometres, e.g. 10"
+    )]
+    pub radius: Option<f64>,
+    #[arg(
+        long,
         value_name = "SIZE",
         value_parser = min_file_size,
         help = "Include files of at least this size, e.g. 100MB",
@@ -814,6 +833,25 @@ fn nonempty_search(text: &str) -> Result<String, String> {
         Err("supply search text".into())
     } else {
         Ok(text.to_owned())
+    }
+}
+
+fn parse_coordinate(input: &str) -> Result<Coordinate, String> {
+    const HINT: &str = "use LAT,LON in decimal degrees, such as 48.8566,2.3522";
+    let (latitude, longitude) = input.split_once(',').ok_or(HINT)?;
+    let degrees = |part: &str| part.trim().parse::<f64>().map_err(|_| HINT);
+    let coordinate = Coordinate::new(degrees(latitude)?, degrees(longitude)?);
+    if coordinate.is_valid() {
+        Ok(coordinate)
+    } else {
+        Err("latitude must be between -90 and 90 and longitude between -180 and 180".into())
+    }
+}
+
+fn parse_radius(input: &str) -> Result<f64, String> {
+    match input.parse::<f64>() {
+        Ok(radius) if radius.is_finite() && radius > 0.0 => Ok(radius),
+        _ => Err("use a distance in kilometres greater than zero, such as 10".into()),
     }
 }
 

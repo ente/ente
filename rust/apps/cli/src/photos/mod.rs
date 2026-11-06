@@ -346,6 +346,13 @@ fn matches(query: &FileQuery, file: &File) -> bool {
             .is_none_or(|before| file.created_at_micros < before)
         && (!query.no_location || file.location.is_none())
         && query
+            .near
+            .zip(query.radius)
+            .is_none_or(|(center, radius_km)| {
+                places::coordinate(file)
+                    .is_some_and(|point| point.is_within_radius_km(center, radius_km))
+            })
+        && query
             .min_size
             .is_none_or(|min| file.size.is_some_and(|size| size >= min))
         && query
