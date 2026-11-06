@@ -387,6 +387,14 @@ This can happen for a couple of reasons:
 
 Open `Settings > Machine learning` on mobile and enable local indexing. This lets your phone index the files itself instead of relying on indexes from a device that skipped them.
 
+### Why does Machine Learning stay just below 100%? {#ml-stuck-below-100}
+
+A percentage such as 99.9% usually means a small number of files could not be indexed. Common causes are very large images, damaged files, or formats the app cannot process yet. Those files stay in the pending count, so the total never reaches 100%.
+
+Everything else is still indexed. Face search and magic search keep working for the files that succeeded.
+
+You do not need to do anything if search works for you. If you want help identifying the files that failed, please contact [support@ente.com](mailto:support@ente.com) and [share your logs](/photos/faq/troubleshooting#sharing-logs).
+
 ### Why does my desktop app show different unnamed people than my phone? {#unnamed-people-differ}
 
 People you name and people you ignore sync across all your devices. Unnamed groupings don't sync. Each device works them out on its own, so the list of unnamed people can look different on desktop and on your phone, even when both show 100% indexed.
