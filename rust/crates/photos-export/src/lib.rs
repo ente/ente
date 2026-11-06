@@ -120,7 +120,9 @@ impl Export {
             root_lock.is_some()
                 || adopting
                 || !destination.try_exists()?
-                || std::fs::read_dir(&destination)?.next().is_none(),
+                || std::fs::read_dir(&destination)?.all(|entry| {
+                    entry.is_ok_and(|entry| names::is_finder_metadata(&entry.file_name()))
+                }),
             "nonempty destination has no recognized export.json"
         );
         Ok(Self {
@@ -459,8 +461,10 @@ fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<RootLock>
         let mut lock = RootLock(file);
         ensure!(
             legacy
-                || std::fs::read_dir(destination)?
-                    .all(|entry| entry.is_ok_and(|entry| entry.file_name() == "export.json")),
+                || std::fs::read_dir(destination)?.all(|entry| entry.is_ok_and(|entry| {
+                    let name = entry.file_name();
+                    name == "export.json" || names::is_finder_metadata(&name)
+                })),
             "destination became nonempty during initialization"
         );
         serde_json::to_writer_pretty(&mut lock.0, root)?;
@@ -964,6 +968,20 @@ fn canonical_id(selector: &str) -> rusqlite::types::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn initialization_ignores_finder_metadata() {
+        let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        // On volumes without native xattr support (exFAT, FAT32, SMB, NFS),
+        // Finder writes a ._ AppleDouble sidecar per created file and a
+        // .DS_Store into folders it displays.
+        std::fs::write(directory.path().join("._export.json"), b"sidecar").unwrap();
+        std::fs::write(directory.path().join(".DS_Store"), b"finder").unwrap();
+        drop(initialize(directory.path(), &root, false).unwrap());
+        assert!(directory.path().join("export.json").exists());
+        assert!(open_root(directory.path(), &root).unwrap().is_some());
+    }
 
     #[test]
     fn initialization_removes_its_marker_on_failure_and_retries() {

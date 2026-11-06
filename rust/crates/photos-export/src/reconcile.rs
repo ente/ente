@@ -385,7 +385,9 @@ impl Run<'_> {
                 } else {
                     disk::create_dir_all(&destination)?;
                     ensure!(
-                        disk::read_dir(&destination)?.next().is_none(),
+                        disk::read_dir(&destination)?.all(|entry| {
+                            entry.is_ok_and(|entry| names::is_finder_metadata(&entry.file_name()))
+                        }),
                         super::Conflict(format!(
                             "at {}: unrelated directory contents",
                             destination.display()
