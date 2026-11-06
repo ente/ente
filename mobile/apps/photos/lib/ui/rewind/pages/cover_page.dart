@@ -82,8 +82,8 @@ class CoverPage extends RewindPage {
                   preset: RewindPreset.pop,
                   active: isActive,
                   delayMs: 1250,
-                  child: Image.asset(
-                    RewindAssets.cameraSticker,
+                  child: Image.file(
+                    RewindAssets.file(RewindAssets.cameraSticker),
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -236,7 +236,10 @@ class _FlyingLockupState extends State<_FlyingLockup>
 
   @override
   Widget build(BuildContext context) {
-    final lockup = Image.asset(RewindAssets.coverLockup, fit: BoxFit.contain);
+    final lockup = Image.file(
+      RewindAssets.file(RewindAssets.coverLockup),
+      fit: BoxFit.contain,
+    );
     if (MediaQuery.disableAnimationsOf(context)) {
       return Opacity(opacity: widget.active ? 1 : 0, child: lockup);
     }

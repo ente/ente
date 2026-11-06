@@ -291,8 +291,6 @@ flutter:
     - assets/icons/nav_bar/
     - assets/launcher_icon/
     - assets/photo_review/
-    - assets/rewind/images/
-    - assets/rewind/rive/
   fonts:
     # TODO: Migrate legacy Photos text styles to ente_components fonts, then
     # remove this app-local Inter declaration.
@@ -303,19 +301,6 @@ flutter:
         - asset: fonts/Inter-Light.ttf
         - asset: fonts/Inter-SemiBold.ttf
         - asset: fonts/Inter-Bold.ttf
-    - family: Lilita One
-      fonts:
-        - asset: assets/rewind/fonts/LilitaOne-Regular.ttf
-    - family: Nunito
-      fonts:
-        - asset: assets/rewind/fonts/Nunito-Black.ttf
-          weight: 900
-    - family: Bagel Fat One
-      fonts:
-        - asset: assets/rewind/fonts/BagelFatOne-Regular.ttf
-    - family: Courier Prime
-      fonts:
-        - asset: assets/rewind/fonts/CourierPrime-Regular.ttf
   uses-material-design: true
 
   generate: true

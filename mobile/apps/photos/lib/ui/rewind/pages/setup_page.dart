@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -201,7 +202,10 @@ class SetupPage extends RewindPage {
                 rect: art.rect,
                 child: art.animated
                     ? RewindDucky(art.asset)
-                    : Image.asset(art.asset, fit: BoxFit.contain),
+                    : Image.file(
+                        RewindAssets.file(art.asset),
+                        fit: BoxFit.contain,
+                      ),
               ),
               for (final (tick, rect) in art.ticks)
                 Positioned.fromRect(rect: rect, child: RewindTickMark(tick)),

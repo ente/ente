@@ -1,25 +1,18 @@
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
-import "package:photos/service_locator.dart";
+import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:rive/rive.dart" as rive;
 
 final _logger = Logger("RewindRive");
 
 Future<rive.File?> _loadRiveFile(String asset) async {
   try {
-    return await rive.File.asset(asset, riveFactory: rive.Factory.flutter);
+    return await rive.File.path(
+      RewindAssets.file(asset).path,
+      riveFactory: rive.Factory.flutter,
+    );
   } catch (error, stackTrace) {
     _logger.warning("Failed to load $asset", error, stackTrace);
-    return null;
-  }
-}
-
-Future<rive.File?> _loadBadges() async {
-  try {
-    final badges = await rewindService.badges();
-    return await rive.File.path(badges.path, riveFactory: rive.Factory.flutter);
-  } catch (error, stackTrace) {
-    _logger.warning("Failed to load the badges", error, stackTrace);
     return null;
   }
 }
@@ -139,7 +132,7 @@ class _RewindBadgeState extends State<RewindBadge> {
   }
 
   Future<void> _load() async {
-    final file = await _loadBadges();
+    final file = await _loadRiveFile(RewindAssets.badges);
     if (file == null) return;
     if (!mounted) {
       file.dispose();

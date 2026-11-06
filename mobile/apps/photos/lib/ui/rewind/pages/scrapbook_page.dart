@@ -160,8 +160,8 @@ class _ScrapbookState extends State<_Scrapbook> {
                       delayMs: 420,
                       child: Semantics(
                         label: "Rewind 2026",
-                        child: Image.asset(
-                          RewindAssets.compactHeader,
+                        child: Image.file(
+                          RewindAssets.file(RewindAssets.compactHeader),
                           width: 239,
                           height: 45,
                           fit: BoxFit.contain,

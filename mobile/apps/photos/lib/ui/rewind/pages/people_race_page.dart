@@ -526,7 +526,7 @@ class _PeopleRaceState extends State<_PeopleRace>
                     RewindPose(0.55, dy: 4, scale: 1.27, turn: 4),
                     RewindPose(1, turn: 27.6),
                   ],
-                  child: SvgPicture.asset(RewindAssets.crown),
+                  child: SvgPicture.file(RewindAssets.file(RewindAssets.crown)),
                 ),
               ),
           ],

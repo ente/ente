@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
+import "package:photos/service_locator.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/debug/sample_reports.dart";
 import "package:photos/ui/rewind/pages/colour_page.dart";
@@ -40,62 +41,80 @@ RewindChapter _colourChapter(rust.ColourOfTheYear colour) => RewindChapter([
   ColourPage.pageKey,
 ], (media) async => [ColourPage(colour, media.photos(colour.fileIds, 9))]);
 
-class RewindGalleryPage extends StatelessWidget {
+class RewindGalleryPage extends StatefulWidget {
   const RewindGalleryPage({super.key});
 
   @override
+  State<RewindGalleryPage> createState() => _RewindGalleryPageState();
+}
+
+class _RewindGalleryPageState extends State<RewindGalleryPage> {
+  late final _assetsReady = rewindService.assets.prepare();
+
+  @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Ente Rewind gallery")),
+      body: FutureBuilder<bool>(
+        future: _assetsReady,
+        builder: (context, ready) => switch (ready.data) {
+          null => const Center(child: CircularProgressIndicator()),
+          false => const Center(child: Text("Rewind assets are unavailable")),
+          true => _list(context),
+        },
+      ),
+    );
+  }
+
+  Widget _list(BuildContext context) {
     void open(List<RewindPage> pages) =>
         Navigator.of(context).push(RewindViewer(pages: pages).route());
 
     void openStory(Future<RewindStory> story) =>
         Navigator.of(context).push(RewindStoryView(story: story).route());
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Ente Rewind gallery")),
-      body: ListView(
-        children: [
-          ListTile(
-            title: const Text("Design pages"),
-            subtitle: const Text("Cover and every chapter setup"),
-            trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => open(rewindDesignPages),
+    return ListView(
+      children: [
+        ListTile(
+          title: const Text("Design pages"),
+          subtitle: const Text("Cover and every chapter setup"),
+          trailing: const Icon(Icons.chevron_right_outlined),
+          onTap: () => open(rewindDesignPages),
+        ),
+        ListTile(
+          title: const Text("Top % bands"),
+          subtitle: const Text("1%, 10% and 25%"),
+          trailing: const Icon(Icons.chevron_right_outlined),
+          onTap: () => open(rewindTopPercentPages),
+        ),
+        ListTile(
+          title: const Text("Colours of the year"),
+          subtitle: const Text("All ten paint chips, library photos"),
+          trailing: const Icon(Icons.chevron_right_outlined),
+          onTap: () => openStory(
+            RewindMedia.sampled().then(
+              (media) => RewindStory.compose(rewindColourChapters, media),
+            ),
           ),
-          ListTile(
-            title: const Text("Top % bands"),
-            subtitle: const Text("1%, 10% and 25%"),
-            trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => open(rewindTopPercentPages),
+        ),
+        ListTile(
+          title: const Text("Badge"),
+          subtitle: const Text("Fire each Rive badge trigger"),
+          trailing: const Icon(Icons.chevron_right_outlined),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const _BadgePreview()),
           ),
+        ),
+        for (final sample in rewindSampleReports.entries)
           ListTile(
-            title: const Text("Colours of the year"),
-            subtitle: const Text("All ten paint chips, library photos"),
+            title: Text(sample.key),
+            subtitle: const Text("Sample report, library photos and people"),
             trailing: const Icon(Icons.chevron_right_outlined),
             onTap: () => openStory(
-              RewindMedia.sampled().then(
-                (media) => RewindStory.compose(rewindColourChapters, media),
-              ),
+              RewindStory.prepare(sample.value, media: RewindMedia.sampled),
             ),
           ),
-          ListTile(
-            title: const Text("Badge"),
-            subtitle: const Text("Fire each Rive badge trigger"),
-            trailing: const Icon(Icons.chevron_right_outlined),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const _BadgePreview()),
-            ),
-          ),
-          for (final sample in rewindSampleReports.entries)
-            ListTile(
-              title: Text(sample.key),
-              subtitle: const Text("Sample report, library photos and people"),
-              trailing: const Icon(Icons.chevron_right_outlined),
-              onTap: () => openStory(
-                RewindStory.prepare(sample.value, media: RewindMedia.sampled),
-              ),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }

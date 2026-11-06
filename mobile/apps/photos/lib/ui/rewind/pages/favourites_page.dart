@@ -131,8 +131,8 @@ class FavouritesPage extends RewindPage {
                       active: isActive,
                       preset: RewindPreset.pop,
                       delayMs: 1150,
-                      child: Image.asset(
-                        RewindAssets.hundredSticker,
+                      child: Image.file(
+                        RewindAssets.file(RewindAssets.hundredSticker),
                         width: 110,
                         height: 104,
                       ),

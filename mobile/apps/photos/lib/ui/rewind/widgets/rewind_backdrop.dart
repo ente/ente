@@ -165,7 +165,9 @@ class RewindBackdrop extends StatelessWidget {
               DecoratedBox(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage(RewindAssets.coverDoodle),
+                    image: FileImage(
+                      RewindAssets.file(RewindAssets.coverDoodle),
+                    ),
                     fit: BoxFit.fitWidth,
                     alignment: Alignment.topCenter,
                     repeat: ImageRepeat.repeatY,
@@ -177,7 +179,7 @@ class RewindBackdrop extends StatelessWidget {
               DecoratedBox(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage(RewindAssets.grain),
+                    image: FileImage(RewindAssets.file(RewindAssets.grain)),
                     repeat: ImageRepeat.repeat,
                     scale: 2 / scale,
                     opacity: grain,
@@ -265,13 +267,13 @@ class RewindDoodleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: RewindColors.green,
         image: DecorationImage(
-          image: AssetImage(RewindAssets.tileDoodle),
+          image: FileImage(RewindAssets.file(RewindAssets.tileDoodle)),
           fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
+          colorFilter: const ColorFilter.mode(
             RewindColors.doodleGreen,
             BlendMode.srcIn,
           ),

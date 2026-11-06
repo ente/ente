@@ -1,5 +1,6 @@
 import "package:ente_components/theme/text_styles.dart";
 import "package:flutter/painting.dart";
+import "package:photos/services/rewind/rewind_asset_store.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 
 abstract final class RewindTextStyles {
@@ -10,7 +11,7 @@ abstract final class RewindTextStyles {
     double letterSpacing = 0,
   }) => TextStyle(
     inherit: false,
-    fontFamily: "Lilita One",
+    fontFamily: RewindAssetStore.lilitaOne,
     fontSize: size,
     height: height,
     letterSpacing: letterSpacing,
@@ -38,7 +39,7 @@ abstract final class RewindTextStyles {
   static TextStyle numeral(double size, {Color color = RewindColors.cream}) =>
       TextStyle(
         inherit: false,
-        fontFamily: "Nunito",
+        fontFamily: RewindAssetStore.nunito,
         fontWeight: FontWeight.w900,
         fontSize: size,
         height: 0.95,
@@ -49,7 +50,7 @@ abstract final class RewindTextStyles {
   static TextStyle tag(double size, {Color color = RewindColors.ink}) =>
       TextStyle(
         inherit: false,
-        fontFamily: "Bagel Fat One",
+        fontFamily: RewindAssetStore.bagelFatOne,
         fontSize: size,
         height: 1.05,
         color: color,
@@ -59,7 +60,7 @@ abstract final class RewindTextStyles {
   static TextStyle film(double size, {Color color = const Color(0xD9151515)}) =>
       TextStyle(
         inherit: false,
-        fontFamily: "Courier Prime",
+        fontFamily: RewindAssetStore.courierPrime,
         fontSize: size,
         letterSpacing: 1,
         color: color,

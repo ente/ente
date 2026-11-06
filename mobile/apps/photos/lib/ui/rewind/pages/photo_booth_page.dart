@@ -72,7 +72,9 @@ class PhotoBoothPage extends RewindPage {
                   delayMs: _Booth.printedMs,
                   child: Transform.rotate(
                     angle: -7 * pi / 180,
-                    child: SvgPicture.asset(RewindAssets.heartEyesSmiley),
+                    child: SvgPicture.file(
+                      RewindAssets.file(RewindAssets.heartEyesSmiley),
+                    ),
                   ),
                 ),
               ),
@@ -134,7 +136,9 @@ class PhotoBoothPage extends RewindPage {
                                 RewindPose(0.6, scale: 1.2, turn: 8),
                                 RewindPose(1),
                               ],
-                              child: SvgPicture.asset(RewindAssets.pinkHeart),
+                              child: SvgPicture.file(
+                                RewindAssets.file(RewindAssets.pinkHeart),
+                              ),
                             ),
                           ),
                         ],

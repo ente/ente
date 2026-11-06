@@ -81,7 +81,10 @@ class TopPercentPage extends RewindPage {
                   RewindLayer(
                     rect: crowd.back,
                     position: position,
-                    child: Image.asset(crowd.backAsset, fit: BoxFit.fill),
+                    child: Image.file(
+                      RewindAssets.file(crowd.backAsset),
+                      fit: BoxFit.fill,
+                    ),
                   ),
                   for (final (i, (asset, rect)) in heroes.indexed)
                     RewindLayer(
@@ -101,13 +104,19 @@ class TopPercentPage extends RewindPage {
                           RewindPose(0.88, dy: -2),
                           RewindPose(1),
                         ],
-                        child: Image.asset(asset, fit: BoxFit.contain),
+                        child: Image.file(
+                          RewindAssets.file(asset),
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                   RewindLayer(
                     rect: crowd.front,
                     position: position,
-                    child: Image.asset(crowd.frontAsset, fit: BoxFit.fill),
+                    child: Image.file(
+                      RewindAssets.file(crowd.frontAsset),
+                      fit: BoxFit.fill,
+                    ),
                   ),
                   Positioned.fromRect(
                     rect: Rect.fromLTWH(0, crowd.front.bottom - 193, 390, 206),

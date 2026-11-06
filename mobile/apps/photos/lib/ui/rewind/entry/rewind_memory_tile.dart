@@ -59,8 +59,8 @@ class RewindMemoryTile extends StatelessWidget {
                           const Positioned.fill(child: RewindDoodleTile()),
                           Positioned.fromRect(
                             rect: const Rect.fromLTWH(12.73, 18.83, 120, 91),
-                            child: Image.asset(
-                              RewindAssets.tileLockup,
+                            child: Image.file(
+                              RewindAssets.file(RewindAssets.tileLockup),
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -71,8 +71,8 @@ class RewindMemoryTile extends StatelessWidget {
                               106.27,
                               119.4,
                             ),
-                            child: Image.asset(
-                              RewindAssets.tileDucky,
+                            child: Image.file(
+                              RewindAssets.file(RewindAssets.tileDucky),
                               fit: BoxFit.contain,
                             ),
                           ),

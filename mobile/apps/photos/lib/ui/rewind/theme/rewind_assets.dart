@@ -1,6 +1,12 @@
+import "dart:io";
+
+import "package:photos/service_locator.dart";
+
 abstract final class RewindAssets {
-  static const _images = "assets/rewind/images";
-  static const _rive = "assets/rewind/rive";
+  static const _images = "images";
+  static const _rive = "rive";
+
+  static File file(String name) => rewindService.assets.file(name);
 
   static const coverLockup = "$_images/cover-lockup.png";
   static const cameraSticker = "$_images/camera-sticker.png";
@@ -43,4 +49,5 @@ abstract final class RewindAssets {
   static const famDucky = "$_rive/ente-rewind-fam-ducky.riv";
   static const photosDucky = "$_rive/ente-rewind-photos-ducky.riv";
   static const cameraDucky = "$_rive/ente-rewind-camera-ducky.riv";
+  static const badges = "$_rive/ente-rewind-badges.riv";
 }

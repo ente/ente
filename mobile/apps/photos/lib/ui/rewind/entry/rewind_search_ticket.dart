@@ -47,8 +47,8 @@ class RewindSearchTicket extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(18, 8, 16, 8),
                           child: Row(
                             children: [
-                              Image.asset(
-                                RewindAssets.tileLockup,
+                              Image.file(
+                                RewindAssets.file(RewindAssets.tileLockup),
                                 height: 60,
                                 fit: BoxFit.contain,
                               ),

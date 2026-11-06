@@ -557,7 +557,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
             RewindPose(0.6, dy: 4, scale: 1.2, turn: 32),
             RewindPose(1, turn: 25.6),
           ],
-          child: SvgPicture.asset(RewindAssets.crown),
+          child: SvgPicture.file(RewindAssets.file(RewindAssets.crown)),
         ),
       ),
     );

@@ -113,7 +113,7 @@ Future<ui.Image> _brand(
   double pixelRatio,
 ) async {
   final svg = await vg.loadPicture(
-    const SvgAssetLoader(RewindAssets.wordmark),
+    SvgFileLoader(RewindAssets.file(RewindAssets.wordmark)),
     null,
   );
   final recorder = ui.PictureRecorder();

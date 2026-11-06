@@ -77,7 +77,10 @@ class PhotosCountPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
                   active: isActive,
-                  child: Image.asset(RewindAssets.cloudsBack, fit: BoxFit.fill),
+                  child: Image.file(
+                    RewindAssets.file(RewindAssets.cloudsBack),
+                    fit: BoxFit.fill,
+                  ),
                 ),
               ),
               RewindLayer(
@@ -100,8 +103,8 @@ class PhotosCountPage extends RewindPage {
                     RewindPose(0.88, dy: -3, sx: 0.99, sy: 1.01),
                     RewindPose(1),
                   ],
-                  child: Image.asset(
-                    RewindAssets.heroDucky,
+                  child: Image.file(
+                    RewindAssets.file(RewindAssets.heroDucky),
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -113,8 +116,8 @@ class PhotosCountPage extends RewindPage {
                   preset: RewindPreset.cloud,
                   active: isActive,
                   delayMs: 90,
-                  child: Image.asset(
-                    RewindAssets.cloudsFront,
+                  child: Image.file(
+                    RewindAssets.file(RewindAssets.cloudsFront),
                     fit: BoxFit.fill,
                   ),
                 ),
@@ -269,7 +272,9 @@ class PhotosCountPage extends RewindPage {
           delayMs: delayMs + 700,
           child: Transform.rotate(
             angle: turn * pi / 180,
-            child: SvgPicture.asset(RewindAssets.whiteSparkle),
+            child: SvgPicture.file(
+              RewindAssets.file(RewindAssets.whiteSparkle),
+            ),
           ),
         ),
       ),

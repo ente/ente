@@ -137,7 +137,9 @@ class WeeklyHabitPage extends RewindPage {
                       preset: RewindPreset.drop,
                       active: isActive,
                       delayMs: 3550,
-                      child: Image.asset(RewindAssets.cameraOnPole),
+                      child: Image.file(
+                        RewindAssets.file(RewindAssets.cameraOnPole),
+                      ),
                     ),
                   ),
                   _layer(
@@ -381,7 +383,7 @@ class _Fire extends StatelessWidget {
         idle: RewindIdle.flicker,
         active: active,
         delayMs: delayMs + 700,
-        child: Image.asset(RewindAssets.fireSticker),
+        child: Image.file(RewindAssets.file(RewindAssets.fireSticker)),
       ),
     );
   }

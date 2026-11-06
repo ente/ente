@@ -14,8 +14,8 @@ class RewindWordmark extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: "ente",
-      child: SvgPicture.asset(
-        RewindAssets.wordmark,
+      child: SvgPicture.file(
+        RewindAssets.file(RewindAssets.wordmark),
         width: width,
         height: width / aspectRatio,
         colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
