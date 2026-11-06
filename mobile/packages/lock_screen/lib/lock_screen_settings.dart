@@ -1,11 +1,13 @@
+import "dart:async";
 import "dart:convert";
 import "dart:io";
-import "dart:typed_data";
 
 import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:ente_lock_screen/lock_screen_host.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_screen_cover/ente_screen_cover.dart";
+import "package:flutter/foundation.dart";
+import "package:flutter/widgets.dart";
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:local_auth/local_auth.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -278,9 +280,25 @@ class LockScreenSettings {
     return await _secureStorage.containsKey(key: password);
   }
 
-  Future<bool> shouldShowLockScreen() async {
+  Future<bool> shouldShowLockScreen({bool isAppLaunch = false}) async {
+    final waitForForeground =
+        isAppLaunch && defaultTargetPlatform == TargetPlatform.iOS;
+    if (waitForForeground &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      final resumed = Completer<void>();
+      final listener = AppLifecycleListener(onResume: () => resumed.complete());
+      try {
+        await resumed.future;
+      } finally {
+        listener.dispose();
+      }
+    }
     final bool isPin = await isPinSet();
     final bool isPass = await isPasswordSet();
+    if (waitForForeground &&
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return shouldShowLockScreen(isAppLaunch: true);
+    }
     return isPin || isPass || shouldShowSystemLockScreen();
   }
 

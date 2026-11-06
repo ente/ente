@@ -473,11 +473,29 @@ pub struct FittedGrounding {
     pub evidence_tokens: usize,
 }
 
-pub(super) fn grounded_system(system: &str, context: Option<&GroundedPromptContext>) -> String {
-    context.map_or_else(
-        || system.to_owned(),
-        |context| format!("{system}\n\n{}", context.text),
-    )
+#[derive(Clone, Copy)]
+pub(super) enum GroundingPlacement {
+    System,
+    CurrentTurn,
+}
+
+impl GroundingPlacement {
+    pub(super) fn apply(
+        self,
+        system: &str,
+        current: &str,
+        context: Option<&GroundedPromptContext>,
+    ) -> (String, String) {
+        match (self, context) {
+            (Self::System, Some(context)) => {
+                (format!("{system}\n\n{}", context.text), current.into())
+            }
+            (Self::CurrentTurn, Some(context)) => {
+                (system.into(), format!("{}\n\n{current}", context.text))
+            }
+            (_, None) => (system.into(), current.into()),
+        }
+    }
 }
 
 pub(super) fn fit_grounding_with_history(
@@ -486,6 +504,7 @@ pub(super) fn fit_grounding_with_history(
     system: &str,
     current: &str,
     input_budget: usize,
+    placement: GroundingPlacement,
     mut measure: impl FnMut(&[ChatMessage]) -> Result<usize, PrepareError>,
 ) -> Result<FittedGrounding, PrepareError> {
     let recovered = match history.map(|history| history.prepend_required(current)) {
@@ -501,6 +520,7 @@ pub(super) fn fit_grounding_with_history(
         system,
         recovered.as_deref().unwrap_or(current),
         input_budget,
+        placement,
         measure,
     )?;
     fitted.history_included = recovered.is_some();
@@ -512,6 +532,7 @@ fn fit_grounding(
     system: &str,
     current: &str,
     input_budget: usize,
+    placement: GroundingPlacement,
     mut measure: impl FnMut(&[ChatMessage]) -> Result<usize, PrepareError>,
 ) -> Result<FittedGrounding, PrepareError> {
     let base = measure(&answer_messages(system, None, &[], current))?;
@@ -519,12 +540,8 @@ fn fit_grounding(
         .checked_sub(base)
         .ok_or(PrepareError::CurrentInputTooLarge)?;
     let mut count_context = |context: Option<&GroundedPromptContext>| {
-        measure(&answer_messages(
-            &grounded_system(system, context),
-            None,
-            &[],
-            current,
-        ))
+        let (system, current) = placement.apply(system, current, context);
+        measure(&answer_messages(&system, None, &[], &current))
     };
     let mut selected = candidates
         .slots

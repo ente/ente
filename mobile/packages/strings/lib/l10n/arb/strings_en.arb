@@ -4490,6 +4490,19 @@
   "subscriptionCurrentPlan": "Current plan",
   "subscriptionFaqDescription": "Your questions, answered",
   "subscriptionFamilyDescription": "Share your plan with your family",
+  "subscriptionPaidPlansLockerNote": "All paid plans include {count} items on {appName}.",
+  "@subscriptionPaidPlansLockerNote": {
+    "description": "Note below Photos subscription plans. The Locker app name is styled as a link.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
   "subscriptionContinueWithPlan": "Continue with {storage} plan",
   "@subscriptionContinueWithPlan": {
     "description": "Continue button on the Photos plan picker with the selected storage allowance",

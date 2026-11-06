@@ -5,7 +5,7 @@ pub use ente_photos::memories::{
     BaseLocation, BaseMemory, Birthday, CachedTrip, ClipMemoryType, LocalDate, MemoriesRequest,
     Memory, MemoryBoundary, MemoryFile, MemoryKind, MemoryPerson, PeopleActivity, PeopleMemory,
     PeopleMemoryType, Period, ShownClipMemory, ShownPerson, ShownTrip, SmartMemories, TimeMemory,
-    TripMemory,
+    TripDetection, TripMemory,
 };
 use flutter_rust_bridge::frb;
 
@@ -34,6 +34,7 @@ pub struct _MemoryFile {
     pub utc_offset_seconds: i32,
     pub collection_id: Option<i64>,
     pub location: Option<Coordinate>,
+    pub shared: bool,
 }
 
 #[frb(mirror(MemoriesRequest))]
@@ -91,6 +92,12 @@ pub struct _CachedTrip {
 pub struct _Period {
     pub now: i64,
     pub utc_offset_seconds: i32,
+}
+
+#[frb(mirror(TripDetection))]
+pub enum _TripDetection {
+    Legacy,
+    Improved,
 }
 
 #[frb(mirror(SmartMemories))]
@@ -271,4 +278,19 @@ pub fn compute_smart_memories(
 
 pub fn compute_simple_memories(request: MemoriesRequest, period: Period) -> Vec<Memory> {
     memories::compute_simple_memories(&request, period)
+}
+
+pub fn compute_all_trip_memories(
+    request: MemoriesRequest,
+    period: Period,
+    cities: Option<RustAutoOpaque<LocationIndex>>,
+    detection: TripDetection,
+) -> Vec<Memory> {
+    let cities = cities.as_ref().map(RustAutoOpaque::blocking_read);
+    memories::compute_all_trip_memories(
+        &request,
+        period,
+        cities.as_deref().map(|cities| &cities.0 as &dyn CityLookup),
+        detection,
+    )
 }

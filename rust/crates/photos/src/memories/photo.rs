@@ -12,6 +12,7 @@ pub(super) struct Photo {
     pub(super) date: LocalDate,
     pub(super) collection_id: Option<i64>,
     pub(super) location: Option<Coordinate>,
+    pub(super) shared: bool,
 }
 
 pub(super) fn prepare(files: &[MemoryFile]) -> Vec<Photo> {
@@ -40,6 +41,7 @@ impl Photo {
             location: file
                 .location
                 .filter(|location| location.latitude != 0.0 || location.longitude != 0.0),
+            shared: file.shared,
         }
     }
 }

@@ -1,6 +1,7 @@
 mod context;
 mod embed;
 mod event;
+mod execution;
 mod generate;
 mod history;
 pub mod memory;
@@ -10,6 +11,7 @@ mod worker;
 
 pub use context::*;
 pub use event::*;
+pub use execution::{ExecutionControl, ExecutionParams};
 pub use generate::*;
 pub use history::*;
 pub use model::*;
@@ -23,6 +25,8 @@ pub enum Error {
     Cancelled,
     #[error("Generation panicked")]
     Panicked,
+    #[error("Insufficient memory for inference")]
+    InsufficientMemory,
     #[error("{0}")]
     InvalidInput(String),
     #[error("{what} not found at {path}")]

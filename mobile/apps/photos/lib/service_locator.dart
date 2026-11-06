@@ -244,9 +244,11 @@ SmartMemoriesService get smartMemoriesService {
 
 DartMemoriesComputer? _dartMemoriesComputer;
 RustMemoriesComputer? _rustMemoriesComputer;
+RustMemoriesComputer get rustMemoriesComputer =>
+    _rustMemoriesComputer ??= RustMemoriesComputer();
 MemoriesComputer get memoriesComputer {
   if (flagService.rustMemories && MLDataDB.isRustBackend) {
-    return _rustMemoriesComputer ??= RustMemoriesComputer();
+    return rustMemoriesComputer;
   }
   return _dartMemoriesComputer ??= DartMemoriesComputer();
 }

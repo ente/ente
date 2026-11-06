@@ -21,6 +21,7 @@ class TripMemory extends SmartMemory {
     this.tripKey,
     super.firstCreationTime,
     super.lastCreationTime,
+    super.capMemories,
   }) : super(memories, MemoryType.trips, '', firstDateToShow, lastDateToShow);
 
   TripMemory copyWith({

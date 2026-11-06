@@ -309,6 +309,7 @@ mod tests {
             date: LocalDate::of_local_time(id),
             collection_id: None,
             location: Some(location),
+            shared: false,
         }
     }
 

@@ -1,4 +1,4 @@
-use ente_ensu::llm;
+use ente_ensu::{conversation::GroundingCache, llm};
 
 use std::sync::Arc;
 use thiserror::Error;
@@ -7,6 +7,8 @@ use thiserror::Error;
 pub enum LlmError {
     #[error("Generation cancelled")]
     Cancelled,
+    #[error("Insufficient memory for inference")]
+    InsufficientMemory,
     #[error("Prompt length {tokens} exceeds context size {context_size}")]
     PromptTooLong { tokens: u64, context_size: u32 },
     #[error("{detail}")]
@@ -17,6 +19,7 @@ impl From<llm::Error> for LlmError {
     fn from(value: llm::Error) -> Self {
         match value {
             llm::Error::Cancelled => Self::Cancelled,
+            llm::Error::InsufficientMemory => Self::InsufficientMemory,
             llm::Error::PromptTooLong {
                 tokens,
                 context_size,
@@ -45,6 +48,45 @@ pub struct LlmContextParams {
     pub n_threads: Option<i32>,
     pub n_threads_generation: Option<i32>,
     pub n_batch: Option<i32>,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct LlmExecutionParams {
+    pub allow_gpu: bool,
+    pub n_threads: i32,
+    pub n_threads_generation: i32,
+    pub batch_size: u32,
+}
+
+#[uniffi::export(foreign)]
+pub trait LlmExecutionMemory: Send + Sync {
+    fn available_bytes(&self) -> u64;
+}
+
+#[derive(uniffi::Object)]
+pub struct LlmExecutionControl {
+    handle: Arc<llm::ExecutionControl>,
+}
+
+#[uniffi::export]
+impl LlmExecutionControl {
+    #[uniffi::constructor]
+    pub fn new(memory: Arc<dyn LlmExecutionMemory>) -> Arc<Self> {
+        Arc::new(Self {
+            handle: Arc::new(llm::ExecutionControl::new(move || memory.available_bytes())),
+        })
+    }
+
+    pub fn set_params(&self, params: LlmExecutionParams) -> Result<(), LlmError> {
+        self.handle
+            .set_params(llm::ExecutionParams {
+                allow_gpu: params.allow_gpu,
+                n_threads: params.n_threads,
+                n_threads_generation: params.n_threads_generation,
+                batch_size: params.batch_size,
+            })
+            .map_err(Into::into)
+    }
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -83,6 +125,11 @@ pub struct LlmGenerationSummary {
 
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum LlmGenerationEvent {
+    PromptProgress {
+        job_id: i64,
+        processed_tokens: i32,
+        total_tokens: i32,
+    },
     Text {
         job_id: i64,
         text: String,
@@ -108,7 +155,10 @@ impl LlmModel {
 
     pub fn new_context(&self, params: LlmContextParams) -> Result<Arc<LlmContext>, LlmError> {
         let handle = llm::Context::new(&self.handle, params.into()).map_err(LlmError::from)?;
-        Ok(Arc::new(LlmContext { handle }))
+        Ok(Arc::new(LlmContext {
+            handle,
+            grounding: Arc::default(),
+        }))
     }
 
     pub fn new_title_context(
@@ -124,7 +174,10 @@ impl LlmModel {
             n_threads_generation,
         )
         .map_err(LlmError::from)?;
-        Ok(Arc::new(LlmContext { handle }))
+        Ok(Arc::new(LlmContext {
+            handle,
+            grounding: Arc::default(),
+        }))
     }
 
     pub fn new_embedding_context(
@@ -133,17 +186,31 @@ impl LlmModel {
     ) -> Result<Arc<LlmContext>, LlmError> {
         let handle = llm::Context::new_knowledge_embedding(&self.handle, n_threads)
             .map_err(LlmError::from)?;
-        Ok(Arc::new(LlmContext { handle }))
+        Ok(Arc::new(LlmContext {
+            handle,
+            grounding: Arc::default(),
+        }))
     }
 }
 
 #[derive(uniffi::Object)]
 pub struct LlmContext {
     pub(crate) handle: llm::ContextRef,
+    pub(crate) grounding: Arc<GroundingCache>,
 }
 
 #[uniffi::export]
 impl LlmContext {
+    pub fn set_execution_control(&self, control: Arc<LlmExecutionControl>) -> Result<(), LlmError> {
+        self.handle
+            .set_execution_control(control.handle.clone())
+            .map_err(Into::into)
+    }
+
+    pub fn can_preserve_execution_state(&self) -> bool {
+        self.handle.can_preserve_execution_state()
+    }
+
     pub fn release_multimodal(&self) {
         self.handle.release_multimodal();
     }
@@ -323,6 +390,15 @@ impl From<llm::GenerationSummary> for LlmGenerationSummary {
 impl From<llm::GenerationEvent> for LlmGenerationEvent {
     fn from(value: llm::GenerationEvent) -> Self {
         match value {
+            llm::GenerationEvent::PromptProgress {
+                job_id,
+                processed_tokens,
+                total_tokens,
+            } => Self::PromptProgress {
+                job_id,
+                processed_tokens,
+                total_tokens,
+            },
             llm::GenerationEvent::Text {
                 job_id,
                 text,
@@ -347,6 +423,11 @@ impl llm::EventSink for CallbackSink {
     fn add(&mut self, event: llm::GenerationEvent) {
         self.callback.on_event(event.into());
     }
+}
+
+#[uniffi::export]
+pub fn strip_hidden_parts_text(text: String) -> String {
+    llm::strip_hidden_parts_text(&text)
 }
 
 #[uniffi::export]

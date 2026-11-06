@@ -26,6 +26,7 @@ func (repo *ObjectCopiesRepository) GetAndLockUnreplicatedObject(ctx context.Con
 	FROM object_copies
 	WHERE (
 		(
+			(b2 IS NULL AND want_b2 = true) OR
 			(wasabi IS NULL AND want_wasabi = true) OR
 			(scw IS NULL AND want_scw = true)
 		) AND last_attempt < (now_utc_micro_seconds() - (24::BIGINT * 60 * 60 * 1000 * 1000))
@@ -116,6 +117,13 @@ func (repo *ObjectCopiesRepository) UnmarkFromReplication(objectKey string) erro
 	WHERE object_key = $1
 	`, objectKey)
 	return stacktrace.Propagate(err, "")
+}
+
+func (repo *ObjectCopiesRepository) MarkObjectReplicatedB2(objectKey string) error {
+	return repo.markObjectReplicated(`
+	UPDATE object_copies SET b2 = now_utc_micro_seconds()
+	WHERE object_key = $1
+	`, objectKey)
 }
 
 func (repo *ObjectCopiesRepository) MarkObjectReplicatedWasabi(objectKey string) error {
