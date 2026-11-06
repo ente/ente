@@ -13,6 +13,7 @@ import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh;
 import "package:photos/service_locator.dart";
 import "package:photos/services/notification_service.dart";
+import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/services/rewind/rewind_progress.dart";
 import "package:photos/services/rewind/rewind_request.dart";
@@ -38,12 +39,15 @@ class RewindService {
   static const _notificationPayload = "ente://rewind";
   static const _notificationHour = 20;
   static const _notificationLeadTime = Duration(hours: 1);
+  static const _badgesUrl = "https://assets.ente.com/ente-rewind-badges.riv";
 
   ValueListenable<rust.RewindState?> get state => _state;
 
   RewindProgress get progress => _progress;
 
   late final Listenable changes = Listenable.merge([_state, _progress]);
+
+  Future<File> badges() => RemoteAssetsService.instance.getAsset(_badgesUrl);
 
   void scheduleRefresh() => unawaited(Future.delayed(_startupDelay, refresh));
 
@@ -87,7 +91,7 @@ class RewindService {
       return;
     }
     final owner = _owner;
-    if (owner == null || !_hasSyncedLibrary) {
+    if (owner == null || !_hasSyncedLibrary || !await _hasBadges()) {
       _state.value = null;
       return;
     }
@@ -97,6 +101,16 @@ class RewindService {
       _publish(owner, await _compute(owner, stored, now));
     }
     await _updateNotification();
+  }
+
+  Future<bool> _hasBadges() async {
+    try {
+      await badges();
+      return true;
+    } catch (e, s) {
+      _logger.warning("Rewind badges are not available", e, s);
+      return false;
+    }
   }
 
   void _publish(int owner, rust.RewindState? state) {

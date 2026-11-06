@@ -43,5 +43,4 @@ abstract final class RewindAssets {
   static const famDucky = "$_rive/ente-rewind-fam-ducky.riv";
   static const photosDucky = "$_rive/ente-rewind-photos-ducky.riv";
   static const cameraDucky = "$_rive/ente-rewind-camera-ducky.riv";
-  static const badges = "$_rive/ente-rewind-badges.riv";
 }
