@@ -174,17 +174,15 @@ func (c *ReplicationController3) createDestinations() {
 }
 
 func (c *ReplicationController3) replicate(i int) {
-	// TODO: Restore B2 queue selection and its index before resuming uploads.
-	const replicateB2 = false
 	for {
-		replicated, err := c.tryReplicate(replicateB2)
-		if err != nil && !replicated {
+		err := c.tryReplicate()
+		if err != nil {
 			time.Sleep(time.Duration(i+1) * time.Minute)
 		}
 	}
 }
 
-func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
+func (c *ReplicationController3) tryReplicate() error {
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	copies, err := c.ObjectCopiesRepo.GetAndLockUnreplicatedObject(ctxWithTimeout)
@@ -192,7 +190,7 @@ func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
 		if !errors.Is(err, sql.ErrNoRows) {
 			log.Errorf("Could not fetch an object to replicate: %s", err)
 		}
-		return false, stacktrace.Propagate(err, "")
+		return stacktrace.Propagate(err, "")
 	}
 
 	objectKey := copies.ObjectKey
@@ -202,8 +200,7 @@ func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
 		"object_key": objectKey,
 	})
 
-	replicated := false
-	done := func(err error) (bool, error) {
+	done := func(err error) error {
 		if err != nil {
 			logger.Error(err)
 			if strings.Contains(err.Error(), "size of the uploaded file") {
@@ -219,7 +216,7 @@ func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
 		} else {
 			logger.WithError(err).Info("Replication attempt failed")
 		}
-		return replicated, err
+		return err
 	}
 
 	logger.Info("Replication attempt start")
@@ -243,16 +240,6 @@ func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
 		logger.Infof("Skipping replication for deleted object (isFileDeleted = %v, isUserDeleted = %v)",
 			ob.IsFileDeleted, ob.IsUserDeleted)
 		return done(nil)
-	}
-
-	wantB2 := replicateB2 && copies.WantB2 && copies.B2 == nil
-	wantWasabi := copies.WantWasabi && copies.Wasabi == nil
-	wantSCW := copies.WantSCW && copies.SCW == nil
-	if !replicateB2 && copies.WantB2 && copies.B2 == nil {
-		logger.Info("B2 replication paused; deferred for 24 hours")
-	}
-	if !wantB2 && !wantWasabi && !wantSCW {
-		return false, nil
 	}
 
 	err = fileutil.EnsureSufficientSpace(ob.Size)
@@ -282,27 +269,22 @@ func (c *ReplicationController3) tryReplicate(replicateB2 bool) (bool, error) {
 
 	err = nil
 
-	if wantB2 {
+	if copies.WantB2 && copies.B2 == nil {
 		err = c.replicateFile(in, c.b2Dest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedB2(objectKey)
 		})
-		replicated = err == nil
 	}
 
-	if wantWasabi {
-		replicaErr := c.replicateFile(in, c.wasabiDest, func() error {
+	if copies.WantWasabi && copies.Wasabi == nil {
+		err = errors.Join(err, c.replicateFile(in, c.wasabiDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedWasabi(objectKey)
-		})
-		replicated = replicated || replicaErr == nil
-		err = errors.Join(err, replicaErr)
+		}))
 	}
 
-	if wantSCW {
-		replicaErr := c.replicateFile(in, c.scwDest, func() error {
+	if copies.WantSCW && copies.SCW == nil {
+		err = errors.Join(err, c.replicateFile(in, c.scwDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedScaleway(objectKey)
-		})
-		replicated = replicated || replicaErr == nil
-		err = errors.Join(err, replicaErr)
+		}))
 	}
 	return done(err)
 }

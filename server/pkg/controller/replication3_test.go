@@ -37,8 +37,7 @@ func TestReplicationHotCopies(t *testing.T) {
 		primary      string
 		copies       []string
 		thumbnail    bool
-		pauseB2      bool
-		failures     []string
+		failure      string
 		badDownload  bool
 		badUpload    bool
 		compliance   bool
@@ -51,29 +50,27 @@ func TestReplicationHotCopies(t *testing.T) {
 	}{
 		{name: "wasabi file", primary: "wasabi", copies: []string{"wasabi"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2", "PUT scw", "HEAD scw"}},
+		{name: "wasabi thumbnail", primary: "wasabi", copies: []string{"wasabi"}, thumbnail: true, wantCopies: []string{"b2", "wasabi"},
+			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2"}},
 		{name: "b2 file", primary: "b2", copies: []string{"b2"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi", "PUT scw", "HEAD scw"}},
-		{name: "b2 paused with scaleway pending", primary: "wasabi", copies: []string{"wasabi"}, pauseB2: true, wantCopies: []string{"wasabi", "scw"},
-			wantRequests: []string{"GET wasabi", "PUT scw", "HEAD scw"}},
-		{name: "b2 paused and scaleway unavailable", primary: "wasabi", copies: []string{"wasabi"}, pauseB2: true, failures: []string{"PUT scw"}, wantError: true, wantCopies: []string{"wasabi"},
-			wantRequests: []string{"GET wasabi", "PUT scw"}},
 		{name: "primary missing", primary: "wasabi", copies: []string{"b2"}, thumbnail: true, wantCopies: []string{"b2", "wasabi"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi"}},
+		{name: "backfill after switching to b2", primary: "b2", copies: []string{"wasabi", "scw"}, wantCopies: []string{"b2", "wasabi", "scw"},
+			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2"}},
 		{name: "prefer wasabi", primary: "wasabi", copies: []string{"b2", "wasabi"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET wasabi", "PUT scw", "HEAD scw"}},
 		{name: "prefer b2", primary: "b2", copies: []string{"b2", "wasabi"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "PUT scw", "HEAD scw"}},
-		{name: "b2 destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"PUT b2"}, wantError: true, wantCopies: []string{"wasabi", "scw"},
+		{name: "b2 destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failure: "PUT b2", wantError: true, wantCopies: []string{"wasabi", "scw"},
 			wantRequests: []string{"GET wasabi", "PUT b2", "PUT scw", "HEAD scw"}},
-		{name: "scaleway destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"PUT scw"}, wantError: true, wantCopies: []string{"b2", "wasabi"},
+		{name: "scaleway destination unavailable", primary: "wasabi", copies: []string{"wasabi"}, failure: "PUT scw", wantError: true, wantCopies: []string{"b2", "wasabi"},
 			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2", "PUT scw"}},
-		{name: "wasabi destination unavailable", primary: "b2", copies: []string{"b2"}, failures: []string{"PUT wasabi"}, wantError: true, wantCopies: []string{"b2", "scw"},
+		{name: "wasabi destination unavailable", primary: "b2", copies: []string{"b2"}, failure: "PUT wasabi", wantError: true, wantCopies: []string{"b2", "scw"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "PUT scw", "HEAD scw"}},
-		{name: "all destinations unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"PUT b2", "PUT scw"}, wantError: true, wantCopies: []string{"wasabi"},
-			wantRequests: []string{"GET wasabi", "PUT b2", "PUT scw"}},
-		{name: "preferred source unavailable", primary: "b2", copies: []string{"b2", "wasabi"}, failures: []string{"GET b2"}, wantCopies: []string{"b2", "wasabi", "scw"},
+		{name: "preferred source unavailable", primary: "b2", copies: []string{"b2", "wasabi"}, failure: "GET b2", wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "GET wasabi", "PUT scw", "HEAD scw"}},
-		{name: "sole source unavailable", primary: "wasabi", copies: []string{"wasabi"}, failures: []string{"GET wasabi"}, wantError: true, wantCopies: []string{"wasabi"},
+		{name: "sole source unavailable", primary: "wasabi", copies: []string{"wasabi"}, failure: "GET wasabi", wantError: true, wantCopies: []string{"wasabi"},
 			wantRequests: []string{"GET wasabi"}},
 		{name: "cold copy is not a source", primary: "wasabi", copies: []string{"scw"}, wantError: true, wantCopies: []string{"scw"}},
 		{name: "download size mismatch", primary: "wasabi", copies: []string{"wasabi"}, badDownload: true, wantError: true, wantCopies: []string{"wasabi"},
@@ -93,7 +90,7 @@ func TestReplicationHotCopies(t *testing.T) {
 			const content = "encrypted object"
 			var mu sync.Mutex
 			var requests []string
-			failures := slices.Clone(tc.failures)
+			failure := tc.failure
 			storage := make(map[string]string)
 			for _, provider := range tc.copies {
 				storage[provider] = content
@@ -107,14 +104,9 @@ func TestReplicationHotCopies(t *testing.T) {
 				provider := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")[0]
 				request := r.Method + " " + provider
 				requests = append(requests, request)
-				if tc.compliance && request == "PUT wasabi" {
+				if request == failure || tc.compliance && request == "PUT wasabi" {
 					w.WriteHeader(http.StatusForbidden)
 					_, _ = io.WriteString(w, `<Error><Code>AccessDenied</Code></Error>`)
-					return
-				}
-				if slices.Contains(failures, request) {
-					w.WriteHeader(http.StatusServiceUnavailable)
-					_, _ = io.WriteString(w, `<Error><Code>ServiceUnavailable</Code></Error>`)
 					return
 				}
 				switch r.Method {
@@ -197,8 +189,7 @@ func TestReplicationHotCopies(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			replicated, err := c.tryReplicate(!tc.pauseB2)
-			require.Equal(t, len(tc.wantCopies) > len(tc.copies), replicated)
+			err = c.tryReplicate()
 			if tc.wantError {
 				require.Error(t, err)
 			} else {
@@ -213,8 +204,6 @@ func TestReplicationHotCopies(t *testing.T) {
 			}
 			if tc.deleted || tc.deletedUser {
 				require.False(t, wantB2 || wantWasabi || wantSCW)
-			} else {
-				require.True(t, wantB2)
 			}
 			locations, err = c.ObjectRepo.GetDataCentersForObject(objectKey)
 			require.NoError(t, err)
@@ -223,17 +212,33 @@ func TestReplicationHotCopies(t *testing.T) {
 				expectedLocations = append(expectedLocations, replicationTestDCs[provider])
 			}
 			require.ElementsMatch(t, expectedLocations, locations)
-			if !tc.wantError && !tc.pauseB2 {
+			if !tc.wantError {
 				_, err = db.Exec(`UPDATE object_copies SET last_attempt = 0 WHERE object_key = $1`, objectKey)
 				require.NoError(t, err)
 			}
-			replicated, err = c.tryReplicate(!tc.pauseB2)
-			require.ErrorIs(t, err, sql.ErrNoRows)
-			require.False(t, replicated)
+			require.ErrorIs(t, c.tryReplicate(), sql.ErrNoRows)
 			mu.Lock()
 			actualRequests := slices.Clone(requests)
 			mu.Unlock()
 			require.Equal(t, tc.wantRequests, actualRequests)
+			if tc.failure == "PUT b2" {
+				mu.Lock()
+				failure = ""
+				requests = nil
+				mu.Unlock()
+				_, err = db.Exec(`UPDATE object_copies SET last_attempt = 0 WHERE object_key = $1`, objectKey)
+				require.NoError(t, err)
+				require.NoError(t, c.tryReplicate())
+				require.NoError(t, db.QueryRow(`SELECT b2 FROM object_copies WHERE object_key = $1`, objectKey).Scan(&b2))
+				require.True(t, b2.Valid)
+				locations, err = c.ObjectRepo.GetDataCentersForObject(objectKey)
+				require.NoError(t, err)
+				require.ElementsMatch(t, []string{replicationTestDCs["b2"], replicationTestDCs["wasabi"], replicationTestDCs["scw"]}, locations)
+				mu.Lock()
+				actualRequests = slices.Clone(requests)
+				mu.Unlock()
+				require.Equal(t, []string{"GET wasabi", "PUT b2", "HEAD b2"}, actualRequests)
+			}
 			files, err := os.ReadDir(c.tempStorage)
 			require.NoError(t, err)
 			require.Empty(t, files)

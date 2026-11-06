@@ -20,8 +20,7 @@ func TestObjectCopiesReplicationQueue(t *testing.T) {
 		lastAttempt int64
 		selected    bool
 	}{
-		{name: "missing only b2", wasabi: replicationTimestamp(), scw: replicationTimestamp(), wantB2: true},
-		{name: "missing b2 and scaleway", wasabi: replicationTimestamp(), wantB2: true, selected: true},
+		{name: "missing only b2", wasabi: replicationTimestamp(), scw: replicationTimestamp(), wantB2: true, selected: true},
 		{name: "missing wasabi", b2: replicationTimestamp(), scw: replicationTimestamp(), wantB2: true, selected: true},
 		{name: "missing scaleway", b2: replicationTimestamp(), wasabi: replicationTimestamp(), wantB2: true, selected: true},
 		{name: "complete", b2: replicationTimestamp(), wasabi: replicationTimestamp(), scw: replicationTimestamp(), wantB2: true},
