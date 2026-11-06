@@ -40,6 +40,8 @@ class RewindService {
   static const _notificationHour = 20;
   static const _notificationLeadTime = Duration(hours: 1);
   static const _badgesUrl = "https://assets.ente.com/ente-rewind-badges.riv";
+  static const _badgesSha256 =
+      "6655bb1599ae682e475468f381a93c3ea529b496f161b56d1c232e00e58c01fc";
 
   ValueListenable<rust.RewindState?> get state => _state;
 
@@ -47,7 +49,10 @@ class RewindService {
 
   late final Listenable changes = Listenable.merge([_state, _progress]);
 
-  Future<File> badges() => RemoteAssetsService.instance.getAsset(_badgesUrl);
+  Future<File> badges() => RemoteAssetsService.instance.getAsset(
+    _badgesUrl,
+    expectedSha256: _badgesSha256,
+  );
 
   void scheduleRefresh() => unawaited(Future.delayed(_startupDelay, refresh));
 
