@@ -68,7 +68,9 @@ import { ImageEditorFilters } from "./ImageEditorFilters";
 
 import {
     drawEditorText,
+    loadTextFonts,
     newTextLayer,
+    textOutputSize,
     type EditorTextLayer,
 } from "./ImageEditor.text";
 import { EditorTextMenu, EditorTextPreview } from "./ImageEditorText";
@@ -572,12 +574,21 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         const source = originalSizeCanvasRef.current!;
         if (!hasText) return canvasToFile(source, fileFileName(file), mimeType);
         const output = document.createElement("canvas");
-        output.width = source.width;
-        output.height = source.height;
+        const size = textOutputSize(source.width, source.height);
+        output.width = size.width;
+        output.height = size.height;
         try {
-            output.getContext("2d")!.drawImage(source, 0, 0);
+            await loadTextFonts(layers);
+            output
+                .getContext("2d")!
+                .drawImage(source, 0, 0, output.width, output.height);
             drawEditorText(output, layers);
-            return await canvasToFile(output, fileFileName(file), mimeType);
+            return await canvasToFile(
+                output,
+                fileFileName(file),
+                "image/jpeg",
+                0.95,
+            );
         } finally {
             output.width = output.height = 1;
         }
@@ -731,6 +742,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                 !canvasLoading &&
                                 (hasText || currentTab === "text") && (
                                     <EditorTextPreview
+                                        selected={selectedLayer}
                                         base={canvasRef}
                                         layers={layers}
                                         onPlace={
@@ -881,9 +893,10 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             selected={selectedLayer}
                             select={setSelectedLayer}
                             update={updateLayer}
-                            add={() => {
+                            base={canvasRef}
+                            add={(layer) => {
                                 setSelectedLayer(layers.length);
-                                setLayers([...layers, newTextLayer()]);
+                                setLayers([...layers, layer]);
                             }}
                             remove={() => {
                                 const rest = layers.filter(
@@ -976,10 +989,8 @@ const canvasToFile = async (
     canvas: HTMLCanvasElement,
     originalFileName: string,
     originalMIMEType?: string,
+    quality?: number,
 ): Promise<File> => {
-    const image = new Image();
-    image.src = canvas.toDataURL();
-
     // PNG is guaranteed; preserve JPEG or WebP when possible.
     let [mimeType, extension] = ["image/png", "png"];
     switch (originalMIMEType) {
@@ -996,7 +1007,7 @@ const canvasToFile = async (
     }
 
     const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, mimeType),
+        canvas.toBlob(resolve, mimeType, quality),
     );
     if (!blob) throw new Error("Failed to encode edited image");
 
