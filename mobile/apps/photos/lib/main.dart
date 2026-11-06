@@ -178,7 +178,9 @@ Future<void> _runInForeground(
           onLogout: (context) => UserService.instance.logout(context),
         ),
         enabled:
-            await LockScreenSettings.instance.shouldShowLockScreen() ||
+            await LockScreenSettings.instance.shouldShowLockScreen(
+              isAppLaunch: true,
+            ) ||
             localSettings.isOnGuestView(),
         onUnlock: () {
           unawaited(localSettings.setOnGuestView(false));
