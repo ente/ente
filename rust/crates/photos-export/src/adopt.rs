@@ -150,6 +150,7 @@ fn scan_album(
         let bytes = fs::read(path)?;
         let value: Value = match serde_json::from_slice(&bytes) {
             Ok(value) => value,
+            Err(_) if crate::is_finder_metadata_entry(&entry) => continue,
             Err(_) if desktop.is_some_and(|d| d.common_sidecar(album.id, &name)) => continue,
             Err(error) => return Err(error.into()),
         };

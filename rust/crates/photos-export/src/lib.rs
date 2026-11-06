@@ -978,9 +978,6 @@ mod tests {
     fn initialization_ignores_finder_metadata() {
         let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
         let directory = tempfile::tempdir().unwrap();
-        // On volumes without native xattr support (exFAT, FAT32, SMB, NFS),
-        // Finder writes a ._ AppleDouble sidecar per created file and a
-        // .DS_Store into folders it displays.
         std::fs::write(directory.path().join("._export.json"), b"sidecar").unwrap();
         std::fs::write(directory.path().join(".DS_Store"), b"finder").unwrap();
         drop(initialize(directory.path(), &root, false).unwrap());
@@ -1004,8 +1001,8 @@ mod tests {
         #[cfg(unix)]
         {
             let directory = tempfile::tempdir().unwrap();
-            std::fs::write(directory.path().join("target"), b"target").unwrap();
-            std::os::unix::fs::symlink("target", directory.path().join(".DS_Store")).unwrap();
+            let target = tempfile::NamedTempFile::new().unwrap();
+            std::os::unix::fs::symlink(target.path(), directory.path().join(".DS_Store")).unwrap();
             let error = initialize(directory.path(), &root, false).err().unwrap();
             assert!(error.to_string().contains("destination became nonempty"));
             assert!(!directory.path().join("export.json").exists());
