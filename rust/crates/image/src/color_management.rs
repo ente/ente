@@ -848,6 +848,13 @@ pub(crate) mod tests {
         tag
     }
 
+    pub(crate) fn lookup_table_with_inputs(input_channels: u8, samples: u32) -> Vec<u8> {
+        let mut tag = lookup_table(input_channels, samples);
+        tag[..4].copy_from_slice(b"mBA ");
+        tag.swap(8, 9);
+        tag
+    }
+
     fn curve(samples: u32) -> Vec<u8> {
         let mut tag = b"curv\0\0\0\0".to_vec();
         tag.extend_from_slice(&samples.to_be_bytes());
@@ -888,6 +895,7 @@ pub(crate) mod tests {
             profile_with_tag(&[*b"A2B0"], &lookup_table(96, 40_000)),
             profile_with_tag(&lookup_tables, &lookup_table(96, 4_000)),
             profile_with_tag(&[*b"B2A0"], &device_lookup_table),
+            profile_with_tag(&lookup_tables, &lookup_table_with_inputs(96, 4_000)),
             profile_with_tag(&[*b"rTRC", *b"rTRC"], &curve(40_000)),
             profile_with_tag(&vec![*b"rTRC"; 1_000], &curve(40_000)),
             profile_with_tag(&private_signatures(300), b""),

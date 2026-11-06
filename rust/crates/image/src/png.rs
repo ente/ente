@@ -195,7 +195,9 @@ mod tests {
     use crate::{
         ImageInput,
         bounded::tests::options,
-        color_management::tests::{localized_text, lookup_table, profile_with_tag},
+        color_management::tests::{
+            localized_text, lookup_table, lookup_table_with_inputs, profile_with_tag,
+        },
         decode::decode_image_from_bytes,
         decode_bounded,
         memory_budget::MemoryBudget,
@@ -423,6 +425,7 @@ mod tests {
         for profile in [
             profile_with_tag(&[*b"desc"], &localized_text(4096, 65_536)),
             profile_with_tag(&lookup_tables, &lookup_table(96, 4_000)),
+            profile_with_tag(&lookup_tables, &lookup_table_with_inputs(96, 4_000)),
         ] {
             let mut info = rgb_info(64, 64, false);
             info.icc_profile = Some(Cow::Owned(profile));
