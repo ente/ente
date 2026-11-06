@@ -44,18 +44,18 @@ List<String> rewindOutline(rust.RewindReport report) => [
 
 List<RewindChapter> rewindChapters(rust.RewindReport report) => [
   RewindChapter([const CoverPage().key], (_) async => const [CoverPage()]),
-  ?_totals(report.totals),
-  ?_colour(report.colour),
-  ?_places(report.places),
-  ?_spots(report.spots),
-  ?_peopleRace(report.peopleRace),
-  ?_busiestDay(report.busiestDay),
-  ?_newFaces(report.newFaces),
-  ?_favourites(report.favourites),
-  ?_weeklyHabit(report.weeklyHabit),
-  ?_crowdFavourite(report.crowdFavourite),
-  ?_badge(report.badge),
-  ?_scrapbook(report),
+  _totals(report.totals),
+  _colour(report.colour),
+  _places(report.places),
+  _spots(report.spots),
+  _peopleRace(report.peopleRace),
+  _busiestDay(report.busiestDay),
+  _newFaces(report.newFaces),
+  _favourites(report.favourites),
+  _weeklyHabit(report.weeklyHabit),
+  _crowdFavourite(report.crowdFavourite),
+  _badge(report.badge),
+  _scrapbook(report),
 ];
 
 const _quizCities = 6;
@@ -64,31 +64,32 @@ const _boothPhotos = 4;
 const _newFaceBubbles = 6;
 const _minimumNewFaces = 3;
 
-RewindChapter? _totals(rust.Totals? totals) {
-  if (totals == null) return null;
-  final top = totals.topPerMille;
-  return RewindChapter(
-    [PhotosCountPage.pageKey, if (top != null) TopPercentPage.pageKey],
-    (_) async => [
+RewindChapter _totals(rust.Totals? totals) {
+  return RewindChapter([PhotosCountPage.pageKey, TopPercentPage.pageKey], (
+    _,
+  ) async {
+    if (totals == null) return const [];
+    final top = totals.topPerMille;
+    return [
       PhotosCountPage(totals.files),
       if (top != null) TopPercentPage(perMille: top, count: totals.files),
-    ],
-  );
+    ];
+  });
 }
 
-RewindChapter? _colour(rust.ColourOfTheYear? colour) {
-  if (colour == null) return null;
+RewindChapter _colour(rust.ColourOfTheYear? colour) {
   return RewindChapter.revealed(paletteSetupPage, ColourPage.pageKey, (media) {
+    if (colour == null) return null;
     final photos = media.photos(colour.fileIds, 9);
     return photos.isEmpty ? null : ColourPage(colour, photos);
   });
 }
 
-RewindChapter? _places(rust.Places? places) {
-  if (places == null) return null;
+RewindChapter _places(rust.Places? places) {
   return RewindChapter.revealed(placesSetupPage, PlacesQuizPage.pageKey, (
     media,
   ) {
+    if (places == null) return null;
     final stamps = [
       for (final city in places.cities.take(_quizCities))
         (city: city, photo: media.photos(city.fileIds, 1).firstOrNull),
@@ -97,23 +98,23 @@ RewindChapter? _places(rust.Places? places) {
   });
 }
 
-RewindChapter? _spots(rust.Spots? spots) {
-  if (spots == null) return null;
+RewindChapter _spots(rust.Spots? spots) {
   return RewindChapter.revealed(spotsSetupPage, SpotsPage.pageKey, (media) {
+    if (spots == null) return null;
     final photos = media.photos(spots.fileIds, 9);
     return photos.length < _minimumPolaroids ? null : SpotsPage(spots, photos);
   });
 }
 
-RewindChapter? _peopleRace(rust.PeopleRace? race) {
-  if (race == null ||
-      race.people.length < 3 ||
-      race.people.any((person) => person.monthlyCounts.length != 12)) {
-    return null;
-  }
+RewindChapter _peopleRace(rust.PeopleRace? race) {
   return RewindChapter(
     [peopleSetupPage.key, PeopleRacePage.pageKey, PhotoBoothPage.pageKey],
     (media) async {
+      if (race == null ||
+          race.people.length < 3 ||
+          race.people.any((person) => person.monthlyCounts.length != 12)) {
+        return const [];
+      }
       final people = race.people.take(3).toList();
       final faces = await Future.wait([
         for (final person in people)
@@ -142,17 +143,17 @@ RewindChapter? _peopleRace(rust.PeopleRace? race) {
   );
 }
 
-RewindChapter? _busiestDay(rust.BusiestDay? day) {
-  if (day == null) return null;
+RewindChapter _busiestDay(rust.BusiestDay? day) {
   return RewindChapter.revealed(busiestDaySetupPage, "busiest_day", (media) {
+    if (day == null) return null;
     final photos = media.photos(day.fileIds, 8);
     return photos.length < 2 ? null : BusiestDayPage(day, photos);
   });
 }
 
-RewindChapter? _newFaces(rust.NewFaces? newFaces) {
-  if (newFaces == null) return null;
+RewindChapter _newFaces(rust.NewFaces? newFaces) {
   return RewindChapter.revealed(newFacesSetupPage, "new_faces", (media) async {
+    if (newFaces == null) return null;
     final resolved = await Future.wait([
       for (final face in newFaces.faces)
         if (face.personId case final personId?)
@@ -170,27 +171,25 @@ RewindChapter? _newFaces(rust.NewFaces? newFaces) {
   });
 }
 
-RewindChapter? _favourites(rust.Favourites? favourites) {
-  if (favourites == null) return null;
+RewindChapter _favourites(rust.Favourites? favourites) {
   return RewindChapter.revealed(favouritesSetupPage, "favourites", (media) {
+    if (favourites == null) return null;
     final photos = media.photos(favourites.fileIds, 9);
     return photos.isEmpty ? null : FavouritesPage(favourites, photos);
   });
 }
 
-RewindChapter? _weeklyHabit(rust.WeeklyHabit? habit) {
-  if (habit == null) return null;
+RewindChapter _weeklyHabit(rust.WeeklyHabit? habit) {
   return RewindChapter.revealed(
     ritualSetupPage,
     "weekly_habit",
-    (_) => WeeklyHabitPage(habit),
+    (_) => habit == null ? null : WeeklyHabitPage(habit),
   );
 }
 
-RewindChapter? _crowdFavourite(rust.CrowdFavourite? crowd) {
-  if (crowd == null) return null;
+RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {
   return RewindChapter.revealed(likesSetupPage, "crowd_favourite", (media) {
-    for (final liked in crowd.photos) {
+    for (final liked in crowd?.photos ?? const <rust.LikedPhoto>[]) {
       final file = media.photo(liked.fileId);
       if (file != null) return CrowdFavouritePage(liked, file);
     }
@@ -198,21 +197,20 @@ RewindChapter? _crowdFavourite(rust.CrowdFavourite? crowd) {
   });
 }
 
-RewindChapter? _badge(rust.Badge? badge) {
-  if (badge == null) return null;
+RewindChapter _badge(rust.Badge? badge) {
   return RewindChapter.revealed(
     badgeSetupPage,
     "badge",
-    (_) => BadgeRevealPage(badge),
+    (_) => badge == null ? null : BadgeRevealPage(badge),
   );
 }
 
-RewindChapter? _scrapbook(rust.RewindReport report) {
+RewindChapter _scrapbook(rust.RewindReport report) {
   final scrapbook = report.scrapbook;
-  if (scrapbook == null) return null;
   final racers = report.peopleRace?.people ?? const <rust.RacePerson>[];
   final cities = report.places?.cities ?? const <rust.RewindCity>[];
   return RewindChapter(["scrapbook"], (media) async {
+    if (scrapbook == null) return const [];
     final photos = media.photos(scrapbook.fileIds, 6);
     if (photos.isEmpty) return const [];
     final people = <RewindFace>[
