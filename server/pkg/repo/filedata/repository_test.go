@@ -6,11 +6,48 @@ import (
 	"github.com/ente/museum/ente"
 	enteFileData "github.com/ente/museum/ente/filedata"
 	"github.com/ente/museum/internal/testutil"
+	baserepo "github.com/ente/museum/pkg/repo"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInsertOrUpdatePreviewDataRequiresObjectID(t *testing.T) {
 	if err := (&Repository{}).InsertOrUpdatePreviewData(t.Context(), enteFileData.Row{}, ""); err == nil {
 		t.Fatal("InsertOrUpdatePreviewData() error = nil")
+	}
+}
+
+func TestPreviewRegistrationCleanupState(t *testing.T) {
+	for _, state := range []ente.TempObjectCleanupState{ente.TempObjectUploading, ente.TempObjectReleaseHold, ente.TempObjectDelete} {
+		t.Run(string(state), func(t *testing.T) {
+			testutil.WithServerRoot(t)
+			db := testutil.RequireTestDB(t)
+			testutil.ResetTables(t, db)
+			_, err := db.Exec(`DELETE FROM file_data`)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				testutil.ResetTables(t, db)
+				_, err := db.Exec(`DELETE FROM file_data`)
+				require.NoError(t, err)
+			})
+			_, err = db.Exec(`INSERT INTO temp_objects(object_key, expiration_time, bucket_id, cleanup_state)
+				VALUES ('1/preview', 0, 'wasabi-eu-central-2-v3', NULLIF($1, ''))`, state)
+			require.NoError(t, err)
+			objectID := "preview-id"
+			row := enteFileData.Row{FileID: 1, UserID: 1, Type: ente.PreviewImage, Size: 10,
+				LatestBucket: "wasabi-eu-central-2-v3", ObjectID: &objectID}
+			repository := &Repository{DB: db, ObjectCleanupRepo: &baserepo.ObjectCleanupRepository{DB: db}}
+			err = repository.InsertOrUpdatePreviewData(t.Context(), row, "1/preview")
+			allowed := state == ente.TempObjectUploading
+			if allowed {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+			assertFileDataExists(t, repository, row, allowed)
+			var staged bool
+			require.NoError(t, db.QueryRow(`SELECT EXISTS (SELECT 1 FROM temp_objects WHERE object_key = '1/preview')`).Scan(&staged))
+			require.Equal(t, !allowed, staged)
+		})
 	}
 }
 
