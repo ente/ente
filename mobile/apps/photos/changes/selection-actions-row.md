@@ -1,0 +1,1 @@
+- Photo selection actions now sit in one scrolling row until you expand them.
