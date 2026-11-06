@@ -1,17 +1,27 @@
 use std::collections::HashMap;
 
 use ente_exif::DateTime;
+use ente_location::{CityMatch, Coordinate};
 use tempfile::TempDir;
 
 use super::input::{
     RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest, RewindVisibility,
 };
+use crate::memories::CityLookup;
 use crate::ml_db::{
     CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
 };
 use crate::ml_store::{CLUSTER_CENTROID_DIMENSIONS, MlStore};
 
 pub(super) const BEFORE_NEW_YEAR: &str = "2026-12-20T10:00:00";
+
+pub(super) struct NoCities;
+
+impl CityLookup for NoCities {
+    fn group_cities(&self, _coordinates: &[Coordinate]) -> Vec<CityMatch> {
+        Vec::new()
+    }
+}
 
 pub(super) fn micros(date_time: &str) -> i64 {
     DateTime::parse(&format!("{date_time}Z"))

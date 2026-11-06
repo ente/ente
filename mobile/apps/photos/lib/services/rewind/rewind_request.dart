@@ -153,12 +153,7 @@ rust.RewindFile _rewindFile(
       FileType.livePhoto => rust.RewindFileType.livePhoto,
       FileType.other => rust.RewindFileType.other,
     },
-    location: file.hasLocation
-        ? rust.RewindLocation(
-            latitude: file.location!.latitude!,
-            longitude: file.location!.longitude!,
-          )
-        : null,
+    location: _location(file),
     visibility: visibility,
     isFavourite: isFavourite,
     isJunk: isJunk,
@@ -166,6 +161,13 @@ rust.RewindFile _rewindFile(
     sharedAlbumIds: Int64List.fromList(sharedAlbumIds),
     likeCount: likeCount,
   );
+}
+
+rust.RewindLocation? _location(EnteFile file) {
+  final latitude = file.location?.latitude;
+  final longitude = file.location?.longitude;
+  if (!file.hasLocation || latitude == null || longitude == null) return null;
+  return rust.RewindLocation(latitude: latitude, longitude: longitude);
 }
 
 bool _isScreenshotName(String? name) =>

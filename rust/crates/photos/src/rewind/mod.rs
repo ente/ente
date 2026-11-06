@@ -99,7 +99,7 @@ pub fn encode_rewind_request(request: &RewindRequest) -> Result<Vec<u8>> {
 mod tests {
     use tempfile::TempDir;
 
-    use super::fixtures::{BEFORE_NEW_YEAR, daily_photos, located, photo, request_at};
+    use super::fixtures::{BEFORE_NEW_YEAR, NoCities, daily_photos, located, photo, request_at};
     use super::{
         REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindRequest, RewindState,
         RewindStatus, compute_rewind, decode_rewind_state, encode_rewind_request,
@@ -199,8 +199,12 @@ mod tests {
                 .is_final
         );
 
-        let after =
-            compute_rewind(&request_at(AFTER_NEW_YEAR, photos(3)), None, None, None).unwrap();
+        let after_new_year = request_at(AFTER_NEW_YEAR, photos(3));
+        let without_cities = compute_rewind(&after_new_year, None, None, None).unwrap();
+        assert_eq!(total_files(&without_cities), Some(3));
+        assert!(!without_cities.is_final);
+
+        let after = compute_rewind(&after_new_year, None, Some(&NoCities), None).unwrap();
         assert!(after.is_final);
     }
 
@@ -236,8 +240,13 @@ mod tests {
         assert_eq!(ready.ml_coverage, Some(0.9));
         assert!(!ready.is_final);
 
-        let frozen =
-            compute_rewind(&request_at(AFTER_NEW_YEAR, files), Some(&store), None, None).unwrap();
+        let frozen = compute_rewind(
+            &request_at(AFTER_NEW_YEAR, files),
+            Some(&store),
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
         assert!(frozen.is_final);
     }
 
@@ -376,8 +385,13 @@ mod tests {
         .unwrap();
         assert_eq!(total_files(&next), Some(3));
 
-        let frozen =
-            compute_rewind(&request_at(AFTER_NEW_YEAR, photos(4)), None, None, None).unwrap();
+        let frozen = compute_rewind(
+            &request_at(AFTER_NEW_YEAR, photos(4)),
+            None,
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
         assert!(frozen.is_final);
         let later = request_at("2027-01-10T10:00:00", photos(5));
         assert_eq!(

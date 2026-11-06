@@ -66,8 +66,10 @@ impl RewindState {
         } else {
             RewindStatus::WaitingForMl
         };
-        let is_final =
-            ml_ready && library.year_has_ended() && matches!(status, RewindStatus::Ready { .. });
+        let is_final = ml_ready
+            && cities.is_some()
+            && library.year_has_ended()
+            && matches!(status, RewindStatus::Ready { .. });
         Ok(Self {
             year: request.year,
             version: REWIND_VERSION,
