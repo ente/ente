@@ -96,6 +96,12 @@ func TestRemoveTwoFactorRecovery(t *testing.T) {
 					require.NoError(t, controller.PasskeyRepo.AddPasskeyTwoFactorSession(userID, sessionID, expires))
 					_, err = db.Exec(`INSERT INTO passkeys (id, user_id, friendly_name) VALUES ('00000000-0000-0000-0000-000000000001', $1, 'Test')`, userID)
 					require.NoError(t, err)
+					// Recovery preserves an enrolled factor; parent metadata alone
+					// represents an incomplete enrollment and is not counted.
+					_, err = db.Exec(`INSERT INTO passkey_credentials
+						(passkey_id, credential_id, public_key, attestation_type, authenticator_transports, credential_flags, authenticator)
+						VALUES ('00000000-0000-0000-0000-000000000001', 'recovery-test', '', 'none', '', '{}', '{}')`)
+					require.NoError(t, err)
 					if name == "claimed" {
 						_, err = db.Exec(`UPDATE passkey_login_sessions SET verified_at = $1 WHERE session_id = $2`, enteTime.Microseconds(), sessionID)
 						require.NoError(t, err)
