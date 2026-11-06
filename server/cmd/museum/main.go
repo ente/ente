@@ -1269,8 +1269,7 @@ func setupAndStartBackgroundJobs(
 	contactController *contactCtrl.Controller,
 	spaceModule *spacecontroller.Module,
 ) {
-	// TODO: Restore replication.enabled after B2 recovers and Wasabi backfill is ready.
-	isReplicationEnabled := false
+	isReplicationEnabled := viper.GetBool("replication.enabled")
 	if isReplicationEnabled {
 		err := replicationController3.StartReplication()
 		if err != nil {
