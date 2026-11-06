@@ -538,6 +538,9 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             transformEditorCanvas(originalSizeCanvasRef.current!, transform);
             transformedRef.current = true;
             setTransformationPerformed(true);
+            setCurrentTab((tab) =>
+                tab === "colors" || tab === "filters" ? "transform" : tab,
+            );
         });
 
     const getEditedFile = async () => {
@@ -765,20 +768,42 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         }}
                         value={currentTab}
                         onChange={(_, value: OperationTab) => {
+                            if (canvasLoading || actionBusyRef.current) return;
+                            if (
+                                transformedRef.current &&
+                                (value === "colors" || value === "filters")
+                            )
+                                return;
                             setCurrentTab(value);
                         }}
                     >
-                        <Tab label={t("crop")} value="crop" />
-                        <Tab label={t("transform")} value="transform" />
+                        <Tab
+                            label={t("crop")}
+                            value="crop"
+                            disabled={canvasLoading || editorBusy}
+                        />
+                        <Tab
+                            label={t("transform")}
+                            value="transform"
+                            disabled={canvasLoading || editorBusy}
+                        />
                         <Tab
                             label={t("colors")}
                             value="colors"
-                            disabled={transformationPerformed}
+                            disabled={
+                                canvasLoading ||
+                                editorBusy ||
+                                transformationPerformed
+                            }
                         />
                         <Tab
                             label={t("filters")}
                             value="filters"
-                            disabled={transformationPerformed}
+                            disabled={
+                                canvasLoading ||
+                                editorBusy ||
+                                transformationPerformed
+                            }
                         />
                     </Tabs>
                 </Stack>
