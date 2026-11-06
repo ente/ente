@@ -17,6 +17,7 @@ const adjustments: EditorAdjustments = {
 
 const canvasFixture = (width = 1300, height = 1100) => {
     const context = {
+        filter: "none",
         save: vi.fn(),
         restore: vi.fn(),
         clearRect: vi.fn(),
@@ -73,6 +74,64 @@ describe("bounded editor rendering", () => {
         expect(yieldTask).toHaveBeenCalledTimes(9);
         expect(context.restore).toHaveBeenCalledOnce();
     });
+
+    test.each(["None", "Carbon"])(
+        "%s thumbnails retain manual adjustments and scale blur to thumbnail size",
+        async (preset) => {
+            const { context, canvas, image } = canvasFixture(96, 96);
+            const draws: string[] = [];
+            context.drawImage.mockImplementation(() => {
+                draws.push(context.filter);
+            });
+            const filter =
+                "brightness(120%) contrast(80%) blur(0.5px) saturate(140%) invert(1)";
+            await renderEditorCanvas(
+                canvas,
+                image,
+                {
+                    preset,
+                    brightness: 120,
+                    contrast: 80,
+                    saturation: 140,
+                    blur: 2,
+                    invert: true,
+                },
+                {
+                    blurScale: 96 / 384,
+                    sourceRect: { x: 100, y: 0, width: 400, height: 400 },
+                    isCurrent: () => true,
+                },
+            );
+            expect(context.drawImage).toHaveBeenNthCalledWith(
+                1,
+                image,
+                100,
+                0,
+                400,
+                400,
+                0,
+                0,
+                96,
+                96,
+            );
+            if (preset === "None") {
+                expect(draws).toEqual([filter]);
+                expect(context.getImageData).not.toHaveBeenCalled();
+            } else {
+                expect(draws).toEqual(["none", filter]);
+                expect(context.putImageData).toHaveBeenCalledOnce();
+                expect(context.drawImage).toHaveBeenNthCalledWith(
+                    2,
+                    canvas,
+                    0,
+                    0,
+                );
+                expect(
+                    context.putImageData.mock.invocationCallOrder[0],
+                ).toBeLessThan(context.drawImage.mock.invocationCallOrder[1]!);
+            }
+        },
+    );
 
     test("a cancelled render stops before reading or drawing another tile", async () => {
         const { context, canvas, image } = canvasFixture();

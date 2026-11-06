@@ -40,6 +40,7 @@ export const renderEditorCanvas = async (
     adjustments: EditorAdjustments,
     options: {
         blurScale: number;
+        sourceRect?: { x: number; y: number; width: number; height: number };
         tiled?: boolean;
         isCurrent: () => boolean;
         yieldTask?: () => Promise<void>;
@@ -66,7 +67,22 @@ export const renderEditorCanvas = async (
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.imageSmoothingEnabled =
             canvas.width !== image.width || canvas.height !== image.height;
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        if (options.sourceRect) {
+            const { x, y, width, height } = options.sourceRect;
+            context.drawImage(
+                image,
+                x,
+                y,
+                width,
+                height,
+                0,
+                0,
+                canvas.width,
+                canvas.height,
+            );
+        } else {
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        }
         if (preset === "None") return;
 
         const matrix = editorFilterPresets.find(

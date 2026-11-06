@@ -805,6 +805,14 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         <ImageEditorFilters
                             fileURL={fileURL}
                             selected={selectedFilter}
+                            adjustments={{
+                                brightness,
+                                contrast,
+                                saturation,
+                                blur,
+                                invert,
+                            }}
+                            previewCanvasRef={canvasRef}
                             disabled={canvasLoading || editorBusy}
                             onSelect={setSelectedFilter}
                         />

@@ -2,56 +2,98 @@ import { Box, ButtonBase, Typography } from "@mui/material";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useEffect, useState } from "react";
-import { applyEditorFilter, editorFilterPresets } from "./ImageEditor.filters";
+import { editorFilterPresets } from "./ImageEditor.filters";
+import {
+    renderEditorCanvas,
+    type EditorAdjustments,
+} from "./ImageEditor.render";
 
 export const ImageEditorFilters: React.FC<{
     fileURL: string | undefined;
     selected: string;
+    adjustments: Omit<EditorAdjustments, "preset">;
+    previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
     disabled: boolean;
     onSelect: (name: string) => void;
-}> = ({ fileURL, selected, disabled, onSelect }) => {
+}> = ({
+    fileURL,
+    selected,
+    adjustments: { brightness, contrast, saturation, blur, invert },
+    previewCanvasRef,
+    disabled,
+    onSelect,
+}) => {
     const [thumbnails, setThumbnails] = useState<string[]>([]);
 
     useEffect(() => {
         if (!fileURL) return;
         let cancelled = false;
         const image = new Image();
-        image.onload = () => {
-            if (cancelled) return;
+        let renderRevision = 0;
+        const renderThumbnails = async () => {
+            if (cancelled || !image.complete || !image.naturalWidth) return;
+            const revision = ++renderRevision;
+            const isCurrent = () => !cancelled && revision === renderRevision;
             try {
                 const canvas = document.createElement("canvas");
                 canvas.width = canvas.height = 96;
-                const context = canvas.getContext("2d")!;
                 const side = Math.min(image.width, image.height);
-                setThumbnails(
-                    editorFilterPresets.map(({ matrix }) => {
-                        context.clearRect(0, 0, 96, 96);
-                        context.drawImage(
-                            image,
-                            (image.width - side) / 2,
-                            (image.height - side) / 2,
-                            side,
-                            side,
-                            0,
-                            0,
-                            96,
-                            96,
-                        );
-                        const pixels = context.getImageData(0, 0, 96, 96);
-                        applyEditorFilter(pixels.data, matrix);
-                        context.putImageData(pixels, 0, 0);
-                        return canvas.toDataURL();
-                    }),
-                );
+                const bounds =
+                    previewCanvasRef.current?.getBoundingClientRect();
+                const previewSide = bounds
+                    ? Math.max(1, Math.min(bounds.width, bounds.height))
+                    : 96;
+                const thumbnails: string[] = [];
+                for (const { name } of editorFilterPresets) {
+                    await renderEditorCanvas(
+                        canvas,
+                        image,
+                        {
+                            preset: name,
+                            brightness,
+                            contrast,
+                            saturation,
+                            blur,
+                            invert,
+                        },
+                        {
+                            blurScale: 96 / previewSide,
+                            sourceRect: {
+                                x: (image.width - side) / 2,
+                                y: (image.height - side) / 2,
+                                width: side,
+                                height: side,
+                            },
+                            isCurrent,
+                        },
+                    );
+                    if (!isCurrent()) return;
+                    thumbnails.push(canvas.toDataURL());
+                }
+                setThumbnails(thumbnails);
             } catch (e) {
-                log.error("Error rendering filter thumbnails", e);
+                if (isCurrent())
+                    log.error("Error rendering filter thumbnails", e);
             }
         };
+        image.onload = () => void renderThumbnails();
         image.src = fileURL;
+        const observer = new ResizeObserver(() => void renderThumbnails());
+        if (previewCanvasRef.current)
+            observer.observe(previewCanvasRef.current);
         return () => {
             cancelled = true;
+            observer.disconnect();
         };
-    }, [fileURL]);
+    }, [
+        fileURL,
+        brightness,
+        contrast,
+        saturation,
+        blur,
+        invert,
+        previewCanvasRef,
+    ]);
 
     return (
         <Box
