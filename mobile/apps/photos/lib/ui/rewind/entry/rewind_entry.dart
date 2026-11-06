@@ -5,17 +5,17 @@ import "package:flutter/material.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_navigation_service.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
-import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/shell/rewind_viewer.dart";
 import "package:photos/ui/rewind/story/rewind_composer.dart";
+import "package:photos/ui/rewind/story/rewind_story.dart";
+import "package:photos/ui/rewind/story/rewind_story_view.dart";
 
 class RewindEntry {
-  const RewindEntry._(this.pages);
+  const RewindEntry._(this._report, this.pages);
 
   static RewindEntry? current() {
     final status = rewindService.state.value?.status;
     if (status is! rust.RewindStatus_Ready) return null;
-    return RewindEntry._(composeRewind(status.report));
+    return RewindEntry._(status.report, rewindOutline(status.report));
   }
 
   static Future<void> openWhenReady(BuildContext context) async {
@@ -26,7 +26,8 @@ class RewindEntry {
     await current()?.open(context);
   }
 
-  final List<RewindPage> pages;
+  final rust.RewindReport _report;
+  final List<String> pages;
 
   bool get opened => rewindService.progress.opened;
 
@@ -34,29 +35,25 @@ class RewindEntry {
 
   bool get started => opened && !completed;
 
-  int get resumeIndex {
-    final resumePage = rewindService.progress.resumePage;
-    return max(0, pages.indexWhere((page) => page.key == resumePage));
-  }
+  int get resumeIndex =>
+      max(0, pages.indexOf(rewindService.progress.resumePage ?? ""));
 
   Future<void> open(BuildContext context) {
     final progress = rewindService.progress;
     final resume = !progress.completed;
     unawaited(rewindService.markOpened());
     return Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => RewindViewer(
-          pages: pages,
-          initialPage: resume ? progress.resumePage : null,
-          initialStop: resume ? progress.resumeStop : 0,
-          onSettled: (page, stop) {
-            unawaited(progress.saveResume(page.key, stop));
-            if (identical(page, pages.last)) {
-              unawaited(progress.markCompleted());
-            }
-          },
-        ),
-      ),
+      RewindStoryView(
+        story: RewindStory.prepare(_report),
+        initialPage: resume ? progress.resumePage : null,
+        initialStop: resume ? progress.resumeStop : 0,
+        onSettled: (story, page, stop) {
+          unawaited(progress.saveResume(page.key, stop));
+          if (identical(page, story.pages.last)) {
+            unawaited(progress.markCompleted());
+          }
+        },
+      ).route(),
     );
   }
 }

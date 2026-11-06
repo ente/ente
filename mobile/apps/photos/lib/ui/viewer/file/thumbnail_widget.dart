@@ -32,6 +32,7 @@ import "package:photos/utils/avatar_util.dart";
 class ThumbnailWidget extends StatefulWidget {
   final EnteFile file;
   final BoxFit fit;
+  final Alignment alignment;
 
   final bool rawThumbnail;
   final bool shouldShowSyncStatus;
@@ -55,6 +56,7 @@ class ThumbnailWidget extends StatefulWidget {
     this.file, {
     Key? key,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.rawThumbnail = false,
     this.shouldShowSyncStatus = true,
     this.shouldShowLivePhotoOverlay = false,
@@ -188,6 +190,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       image = Image(
         image: _imageProvider!,
         fit: widget.fit,
+        alignment: widget.alignment,
         gaplessPlayback:
             widget.gaplessPlayback || widget.useCachedThumbnailAsPlaceholder,
       );

@@ -13,6 +13,7 @@ import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh;
 import "package:photos/service_locator.dart";
 import "package:photos/services/notification_service.dart";
+import "package:photos/services/rewind/rewind_asset_store.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/services/rewind/rewind_progress.dart";
 import "package:photos/services/rewind/rewind_request.dart";
@@ -31,6 +32,7 @@ class RewindService {
   final _logger = Logger("RewindService");
   final _lock = Lock();
   final _state = ValueNotifier<rust.RewindState?>(null);
+  final assets = RewindAssetStore();
 
   static const _startupDelay = Duration(seconds: 5);
   static const _refreshInterval = Duration(days: 1);
@@ -87,7 +89,7 @@ class RewindService {
       return;
     }
     final owner = _owner;
-    if (owner == null || !_hasSyncedLibrary) {
+    if (owner == null || !_hasSyncedLibrary || !await assets.prepare()) {
       _state.value = null;
       return;
     }
@@ -122,6 +124,7 @@ class RewindService {
     final computed = await rust.computeRewind(
       request: await buildRewindRequest(now),
       store: store,
+      cities: await locationService.getLocationIndex(),
       previous: previous,
     );
     final cache = await _cacheFile(owner);
@@ -161,6 +164,7 @@ class RewindService {
     DateTime now, {
     required bool afterMlRun,
   }) {
+    if (state.mlCoverage != null && !rewindUsesMl) return false;
     if (state.isFinal) return true;
     if ((state.mlCoverage != null) != rewindUsesMl) return false;
     if (afterMlRun && state.status is rust.RewindStatus_WaitingForMl) {

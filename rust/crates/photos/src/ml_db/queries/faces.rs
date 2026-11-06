@@ -235,6 +235,20 @@ impl MlDb {
         })
     }
 
+    pub(crate) fn for_each_face_without_embedding(
+        &self,
+        mut visit: impl FnMut(FaceWithoutEmbedding),
+    ) -> Result<()> {
+        self.read_each(
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
+            (),
+            |row| {
+                visit(read_face_without_embedding(row)?);
+                Ok(())
+            },
+        )
+    }
+
     pub fn get_faces_for_clustering(&self) -> Result<Vec<FaceForClustering>> {
         self.read_all(
             r#"
