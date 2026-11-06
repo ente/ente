@@ -18,8 +18,7 @@ import 'package:photos/models/location_tag/location_tag.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/native_country_locales.dart";
 import "package:photos/src/rust/api/location_api.dart" as rust;
-
-const double earthRadius = 6371; // Earth's radius in kilometers
+import "package:photos/utils/rust_isolate_util.dart";
 
 class CitySearchIndex {
   final Map<EnteFile, City> assignments;
@@ -160,14 +159,6 @@ class LocationService {
     });
   }
 
-  List<rust.LocationCoordinate> _coordinates(List<EnteFile> files) => [
-    for (final file in files)
-      rust.LocationCoordinate(
-        latitude: file.location!.latitude!,
-        longitude: file.location!.longitude!,
-      ),
-  ];
-
   City _city(rust.LocationCity city) => City(
     city: city.name,
     country: city.country,
@@ -254,11 +245,11 @@ class LocationService {
       final locationTagEntities = await getLocationTags();
       for (LocalEntity<LocationTag> locationTagEntity in locationTagEntities) {
         final locationTag = locationTagEntity.item;
-        final x = fileCoordinates.latitude! - locationTag.centerPoint.latitude!;
-        final y =
-            fileCoordinates.longitude! - locationTag.centerPoint.longitude!;
-        if ((x * x) / (locationTag.aSquare) + (y * y) / (locationTag.bSquare) <=
-            1) {
+        if (isFileInsideLocationTag(
+          locationTag.centerPoint,
+          fileCoordinates,
+          locationTag.radius,
+        )) {
           result.add(locationTagEntity);
         }
       }
@@ -351,33 +342,36 @@ class LocationService {
   }
 }
 
-Map<LocationTag, int> _getLocationTagsToOccurrenceForIsolate(Map args) {
+Future<Map<LocationTag, int>> _getLocationTagsToOccurrenceForIsolate(
+  Map args,
+) async {
+  await ensureRustInitialized();
   final List<EnteFile> files = args["files"];
-
-  final locationTagToOccurrence = <LocationTag, int>{};
   final locationTagEntities =
       args["locationTagEntities"] as Iterable<LocalEntity<LocationTag>>;
+  final uploadedFilesWithLocation = files
+      .where(
+        (file) =>
+            file.uploadedFileID != null &&
+            file.uploadedFileID != -1 &&
+            file.hasLocation,
+      )
+      .toList();
 
-  for (EnteFile file in files) {
-    if (file.uploadedFileID == null ||
-        file.uploadedFileID == -1 ||
-        !file.hasLocation) {
-      continue;
-    }
-    for (LocalEntity<LocationTag> locationTagEntity in locationTagEntities) {
-      final locationTag = locationTagEntity.item;
-      final fileCoordinates = file.location!;
-      if (isFileInsideLocationTag(
-        locationTag.centerPoint,
-        fileCoordinates,
-        locationTag.radius,
-      )) {
-        locationTagToOccurrence.update(
-          locationTag,
-          (value) => value + 1,
-          ifAbsent: () => 1,
-        );
-      }
+  final locationTagToOccurrence = <LocationTag, int>{};
+  for (LocalEntity<LocationTag> locationTagEntity in locationTagEntities) {
+    final locationTag = locationTagEntity.item;
+    final occurrence = filesInsideLocationTag(
+      uploadedFilesWithLocation,
+      locationTag.centerPoint,
+      locationTag.radius,
+    ).length;
+    if (occurrence > 0) {
+      locationTagToOccurrence.update(
+        locationTag,
+        (value) => value + occurrence,
+        ifAbsent: () => occurrence,
+      );
     }
   }
 
@@ -389,34 +383,40 @@ bool isFileInsideLocationTag(
   Location fileCoordinates,
   double radius,
 ) {
-  final a = (radius * scaleFactor(centerPoint.latitude!)) / kilometersPerDegree;
-  final b = radius / kilometersPerDegree;
-  final x = centerPoint.latitude! - fileCoordinates.latitude!;
-  final y = centerPoint.longitude! - fileCoordinates.longitude!;
-  if ((x * x) / (a * a) + (y * y) / (b * b) <= 1) {
-    return true;
-  }
-  return false;
+  return rust.isWithinRadiusKm(
+    point: _coordinate(fileCoordinates),
+    center: _coordinate(centerPoint),
+    radiusKm: radius,
+  );
 }
 
 // Returns kilometers.
 double calculateDistance(Location point1, Location point2) {
-  final lat1 = point1.latitude! * (pi / 180);
-  final lat2 = point2.latitude! * (pi / 180);
-  final long1 = point1.longitude! * (pi / 180);
-  final long2 = point2.longitude! * (pi / 180);
-
-  final dLat = lat2 - lat1;
-  final dLong = long2 - long1;
-
-  final a =
-      sin(dLat / 2) * sin(dLat / 2) +
-      cos(lat1) * cos(lat2) * sin(dLong / 2) * sin(dLong / 2);
-
-  final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-  return earthRadius * c;
+  return rust.distanceKm(from: _coordinate(point1), to: _coordinate(point2));
 }
+
+List<EnteFile> filesInsideLocationTag(
+  List<EnteFile> files,
+  Location centerPoint,
+  double radius,
+) {
+  final indices = rust.indicesWithinRadiusKm(
+    points: _coordinates(files),
+    center: _coordinate(centerPoint),
+    radiusKm: radius,
+  );
+  return [for (final index in indices) files[index]];
+}
+
+List<rust.LocationCoordinate> _coordinates(List<EnteFile> files) => [
+  for (final file in files) _coordinate(file.location!),
+];
+
+rust.LocationCoordinate _coordinate(Location location) =>
+    rust.LocationCoordinate(
+      latitude: location.latitude!,
+      longitude: location.longitude!,
+    );
 
 // Mercator stretches longitude by sec(latitude), so a circle's horizontal
 // radius must scale with latitude.
