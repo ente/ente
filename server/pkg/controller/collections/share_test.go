@@ -502,7 +502,7 @@ func TestUncategorizedCollectionsOnlyAllowViewerShares(t *testing.T) {
 	}
 
 	status, _, err := controller.shareCollectionWithUserID(
-		context.Background(),
+		newBatchShareTestContext(ownerID),
 		ownerID,
 		shareeID,
 		ente.ManualShare,
@@ -512,7 +512,7 @@ func TestUncategorizedCollectionsOnlyAllowViewerShares(t *testing.T) {
 
 	item.Role = ente.ADMIN
 	_, _, err = controller.shareCollectionWithUserID(
-		context.Background(),
+		newBatchShareTestContext(ownerID),
 		ownerID,
 		shareeID,
 		ente.ManualShare,

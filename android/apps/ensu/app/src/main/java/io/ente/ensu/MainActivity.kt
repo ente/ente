@@ -1,5 +1,6 @@
 package io.ente.ensu
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,10 +16,28 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.Theme
+import io.ente.ensu.notifications.BackgroundGeneration
+import io.ente.ensu.notifications.NotificationPermissionPrompt
 
 class MainActivity : ComponentActivity() {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openResponse(intent)
+    }
+
+    private fun openResponse(intent: Intent) {
+        val session = intent.getStringExtra(BackgroundGeneration.SESSION) ?: return
+        (application as EnsuApplication)
+            .runtime
+            .openNotification(session, intent.getStringExtra(BackgroundGeneration.MESSAGE))
+        intent.removeExtra(BackgroundGeneration.SESSION)
+        intent.removeExtra(BackgroundGeneration.MESSAGE)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        openResponse(intent)
         enableEdgeToEdge(
             navigationBarStyle =
                 SystemBarStyle.auto(
@@ -39,6 +58,10 @@ class MainActivity : ComponentActivity() {
                             .safeDrawingPadding()
                 ) {
                     App(appViewModel = appViewModel)
+                    NotificationPermissionPrompt(
+                        this@MainActivity,
+                        (application as EnsuApplication).notificationPermissions,
+                    )
                 }
             }
         }

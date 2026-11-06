@@ -20,6 +20,8 @@ This page helps you solve common issues with Ente Photos. Jump to the section th
 
 Check whether your Photos subscription has expired, even if your usage is within the free allowance or you can still use Ente Auth. A Photos subscription restriction can sometimes appear as a sign-in or verification failure.
 
+If the app says access to your account has been restricted because its data is scheduled for deletion, the cause may be an expired plan or storage over your active plan's limit. Check your subscription status and any warning email, then contact [support@ente.com](mailto:support@ente.com) to discuss your options for keeping or exporting your data.
+
 Contact [support@ente.com](mailto:support@ente.com) to check your subscription status and discuss renewal or returning to the free plan. Do not delete your account or reset two-factor authentication just to troubleshoot an expired subscription.
 
 See [what happens when a subscription expires](/photos/faq/storage-and-plans#subscription-expires).
@@ -172,6 +174,17 @@ When files fail to download, a modal dialog appears showing the failed downloads
 
 If a photo or video fails to load in the desktop viewer, use **Retry** in the viewer to try the download again. The viewer shows download progress while the file loads.
 
+### Why can't I save a video from Ente to my iPhone's Photos app? {#ios-save-unsupported-video}
+
+Apple Photos only accepts formats that iOS supports. If a video was recorded on another device or in an uncommon format, Apple Photos may reject it, and Ente shows "This file could not be saved to Apple Photos. You can still view it in Ente." The original is still safe in Ente.
+
+To keep a copy on your iPhone:
+
+1. Open the video in Ente and tap **Share**.
+2. Tap **Send a copy**, then choose **Save to Files** from the iOS share sheet.
+
+You can also download the original from [photos.ente.com](https://photos.ente.com) or the desktop app.
+
 ### Why can't the app detect certain file types? {#file-type-detection}
 
 The desktop/web app tries to detect if a particular file is a video or image. If the detection fails, the app skips the upload.
@@ -220,7 +233,9 @@ Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected P
 
 **On Android:**
 
-Open device `Settings > Apps > Ente > Permissions`, enable "Photos and videos" or "Files and media", and ensure permission is set to "Allow" (not "Ask every time").
+Open device `Settings > Apps > Ente > Permissions > Photos and videos` (or "Files and media") and choose **Allow all** (or "Allow"). Don't choose "Allow limited access", "Selected photos only" or "Ask every time".
+
+With limited access, Ente only sees the photos you picked, so folders such as Camera and Screenshots may be missing from `Settings > Backup > Backed up folders`. After changing the permission, reopen Ente and select those folders.
 
 If you've granted permission but Ente still can't access photos, try:
 
@@ -381,6 +396,12 @@ Learn more in [Backup and Sync FAQ](/photos/faq/backup-and-sync#watch-folders).
 
 Yes! The desktop app supports resumable uploads. You can close the app at any time, and when you open it again, it will automatically resume from where it left off. Your progress is saved and no files will be uploaded twice.
 
+### How do I stop an upload that's in progress on desktop or web? {#stop-upload}
+
+Click the **X** on the upload progress card in the bottom-right corner, then confirm with **Stop uploads**.
+
+Files that have already uploaded stay in Ente. To continue later, select the same files or folder again. Ente will skip items that are already uploaded.
+
 ## Platform-Specific Issues
 
 ### Why is my iOS app stuck on "Please wait..." when I purchase a subscription? {#ios-appstore-subscription}
@@ -415,6 +436,16 @@ If you purchased a subscription through the iOS App Store but the app shows "Ple
 - Better refund and support options
 
 If you continue experiencing issues after purchasing from the web, contact [support@ente.com](mailto:support@ente.com).
+
+### Why is my iPhone or iPad app stuck on the splash screen? {#ios-splash-freeze}
+
+Try these steps in order:
+
+1. Force close Ente Photos (swipe it away in the app switcher) and open it again.
+2. Check that your device has free space in `Settings > General > iPhone Storage` (or `iPad Storage`). Ente needs some free space to open its local database. Free up space if it's nearly full, then open Ente again.
+3. Restart your device and open Ente before other apps.
+
+Your backed-up photos are safe in your Ente account. If the app still gets stuck, contact [support@ente.com](mailto:support@ente.com) from another device. If you can open Ente later, [send logs](#sharing-logs) from the affected device.
 
 ### Why is my Android app stuck on the splash screen? {#android-splash-freeze}
 

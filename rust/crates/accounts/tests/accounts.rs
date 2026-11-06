@@ -4,6 +4,7 @@
 use ente_accounts::{
     AccountsClient, AccountsClientConfig, ChangePasswordParams, CheckSessionValidityParams, Error,
     SessionValidity, TwoFactorSetup,
+    auth::{SrpSession, derive_kek, derive_srp_login_key},
     lifecycle::{
         change_password, check_session_validity, passkey_management_url, recover_two_factor,
     },
@@ -19,11 +20,11 @@ use zeroize::Zeroizing;
 
 #[test]
 fn accounts() -> TestResult {
-    Museum::run_async(run)
+    Museum::run(|museum| tokio::runtime::Runtime::new()?.block_on(run(museum)))
 }
 
-async fn run(endpoint: String) -> TestResult {
-    let endpoint = &endpoint.replace("127.0.0.1", "localhost");
+async fn run(museum: &Museum) -> TestResult {
+    let endpoint = &museum.endpoint().replace("127.0.0.1", "localhost");
     let email = format!(
         "accounts-e2e-{}{HARDCODED_OTT_EMAIL_SUFFIX}",
         Uuid::new_v4()
@@ -98,6 +99,41 @@ async fn run(endpoint: String) -> TestResult {
     assert_eq!(recovered.secrets.master_key, created.secrets.master_key);
 
     let original_srp_attributes = client.get_srp_attributes(&email).await?;
+    let kek = derive_kek(
+        &password,
+        &original_srp_attributes.kek_salt,
+        original_srp_attributes.mem_limit,
+        original_srp_attributes.ops_limit,
+    )?;
+    let login_key = derive_srp_login_key(&kek)?;
+    let mut srp_session = SrpSession::new(
+        &original_srp_attributes.srp_user_id.to_string(),
+        &b64::decode(&original_srp_attributes.srp_salt)?,
+        &login_key,
+    )?;
+    let srp_session_response = client
+        .create_srp_session(
+            &original_srp_attributes.srp_user_id,
+            &srp_session.public_a(),
+        )
+        .await?;
+    let proof = srp_session.compute_m1(&b64::decode(&srp_session_response.srp_b)?)?;
+    let expired_session_age_micros = 31 * 60 * 1_000_000;
+    museum.execute_sql(&format!(
+        "UPDATE srp_sessions SET created_at = now_utc_micro_seconds() - {expired_session_age_micros} WHERE id = '{}'",
+        srp_session_response.session_id,
+    ))?;
+    assert!(matches!(
+        client
+            .verify_srp_session(
+                &original_srp_attributes.srp_user_id,
+                &srp_session_response.session_id,
+                &proof,
+            )
+            .await,
+        Err(Error::SrpSessionExpired)
+    ));
+
     let new_password = format!("Changed-{}!", Uuid::new_v4().simple());
     let changed = change_password(
         &recovery_client,

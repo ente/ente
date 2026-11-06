@@ -1,9 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:locker/extensions/collection_extension.dart';
-import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 
@@ -22,12 +19,12 @@ class CollectionSearchResult {
 mixin SearchMixin<T extends StatefulWidget> on State<T> {
   String _searchQuery = '';
   bool _isSearchActive = false;
-  Timer? _searchDebounceTimer;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
   List<Collection> get allCollections;
   List<EnteFile> get allFiles;
+  Map<int, List<EnteFile>> get filesByCollection;
 
   void onSearchResultsChanged(
     List<Collection> collections,
@@ -40,7 +37,6 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _searchDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -61,7 +57,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
     });
     _searchController.clear();
     onSearchStateChanged(false);
-    unawaited(_performSearch(''));
+    _performSearch('');
   }
 
   void _clearSearch() {
@@ -70,31 +66,18 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
   }
 
   void _onSearchChanged(String query) {
-    _searchDebounceTimer?.cancel();
-
-    if (query.isEmpty && _searchQuery.isNotEmpty) {
-      setState(() {
-        _searchQuery = query;
-      });
-      unawaited(_performSearch(query));
-      return;
-    }
-
-    _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          _searchQuery = query;
-        });
-        unawaited(_performSearch(query));
-      }
+    if (!mounted) return;
+    setState(() {
+      _searchQuery = query;
     });
+    _performSearch(query);
   }
 
-  Future<void> _performSearch(String query) async {
+  void _performSearch(String query) {
     if (!mounted) return;
 
     try {
-      final normalizedQuery = query.trim();
+      final normalizedQuery = query.trim().toLowerCase();
       if (normalizedQuery.isEmpty) {
         if (mounted) {
           onSearchResultsChanged(allCollections, allFiles);
@@ -108,10 +91,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
       for (final collection in allCollections) {
         if (!mounted) return;
-        final searchResult = await _searchInCollection(
-          collection,
-          normalizedQuery,
-        );
+        final searchResult = _searchInCollection(collection, normalizedQuery);
         if (searchResult.matches) {
           filteredCollections.add(collection);
           if (searchResult.nameMatches) {
@@ -147,14 +127,12 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  Future<CollectionSearchResult> _searchInCollection(
+  CollectionSearchResult _searchInCollection(
     Collection collection,
     String query,
-  ) async {
+  ) {
     try {
-      final files = await CollectionService.instance.getFilesInCollection(
-        collection,
-      );
+      final files = filesByCollection[collection.id] ?? const <EnteFile>[];
       final collectionNameMatches = _containsQuery(
         collection.displayName ?? '',
         query,
@@ -188,18 +166,8 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
         _containsQuery(file.pubMagicMetadata.uploaderName ?? '', query);
   }
 
-  bool _containsQuery(String text, String query) {
-    if (text.isEmpty) return false;
-    final lowerText = text.toLowerCase();
-    final lowerQuery = query.trim().toLowerCase();
-    if (lowerQuery.isEmpty) return false;
-
-    if (lowerText.contains(lowerQuery)) {
-      return true;
-    }
-    final words = lowerText.split(RegExp(r'[\s\-_\.]+'));
-    return words.any((word) => word.startsWith(lowerQuery));
-  }
+  bool _containsQuery(String text, String query) =>
+      text.toLowerCase().contains(query);
 
   bool handleKeyEvent(KeyEvent event) {
     if (event is KeyDownEvent) {
@@ -231,6 +199,8 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
 
   void updateSearchQuery(String query) => _onSearchChanged(query);
 
+  void refreshSearch() => _performSearch(_searchQuery);
+
   void activateSearchWithQuery(String query) {
     setState(() {
       _isSearchActive = true;
@@ -238,7 +208,7 @@ mixin SearchMixin<T extends StatefulWidget> on State<T> {
     });
     _searchController.text = query;
     onSearchStateChanged(true);
-    unawaited(_performSearch(query));
+    _performSearch(query);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();

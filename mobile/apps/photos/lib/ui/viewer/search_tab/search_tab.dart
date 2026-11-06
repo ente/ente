@@ -14,6 +14,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/states/all_sections_examples_state.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/banners/ml_progress_banner.dart";
+import "package:photos/ui/rewind/entry/rewind_search_ticket.dart";
 import "package:photos/ui/rituals/rituals_banner.dart";
 import "package:photos/ui/viewer/search/result/no_result_widget.dart";
 import "package:photos/ui/viewer/search/search_suggestions.dart";
@@ -286,6 +287,7 @@ class _AllSearchSectionsState extends State<AllSearchSections> {
               _RitualsDiscoverySection(
                 resultLimit: widget.previewLimits.ritualResults,
               ),
+            const RewindSearchTicket(),
             ContactsSectionLoader(
               resultLimit: widget.previewLimits.contactResults,
             ),

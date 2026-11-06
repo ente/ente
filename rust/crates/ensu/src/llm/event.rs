@@ -38,6 +38,11 @@ pub struct GenerationSummary {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GenerationEvent {
+    PromptProgress {
+        job_id: JobId,
+        processed_tokens: i32,
+        total_tokens: i32,
+    },
     Text {
         job_id: JobId,
         text: String,

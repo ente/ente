@@ -1,1 +1,0 @@
-- List exact duplicate photos with `photos duplicate list`, preview cleanup, and select groups to move extra copies to trash using the same Rust logic as the web app.

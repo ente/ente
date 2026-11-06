@@ -134,6 +134,16 @@ impl MlDb {
         self.read_grouped("SELECT cluster_id, face_id FROM face_clusters", ())
     }
 
+    pub(crate) fn for_each_cluster_face_id(
+        &self,
+        mut visit: impl FnMut(String, String),
+    ) -> Result<()> {
+        self.read_each("SELECT cluster_id, face_id FROM face_clusters", (), |row| {
+            visit(row.get(0)?, row.get(1)?);
+            Ok(())
+        })
+    }
+
     pub fn get_face_ids_for_cluster(&self, cluster_id: &str) -> Result<Vec<String>> {
         self.read_column(
             "SELECT face_id FROM face_clusters WHERE face_clusters.cluster_id = ?",

@@ -32,5 +32,5 @@ and reload the nginx service before starting Grafana for the first time.
 
 ```sh
 sudo systemctl reload nginx
-sudo systemctl start grafana
+sudo systemctl enable --now grafana
 ```

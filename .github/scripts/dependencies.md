@@ -6,6 +6,8 @@ Evaluate review findings independently. If the existing code and tests already a
 
 Investigate the release changes and how we use each dependency. Classify which updates are safe, explain the risks, and flag useful new features.
 
+For GitHub Actions updates, review `actions.lock` for transitive commits and repository identity changes, and check CI's `gh actions-lock --verify` result. `$/` is [supported syntax](https://docs.github.com/en/actions/how-tos/secure-your-work/lock-workflow-dependencies#3-generate-the-lockfile) for actions at the workflow's commit. Report stale lockfiles for regeneration; never hand-edit them.
+
 Fix mechanical problems and make necessary coordinated changes across consumers and platforms. Investigate updates that need adaptation rather than immediately excluding them. Respect deliberate pins and existing exceptions. New or broader Dependabot exceptions require human approval; recommend them in the report.
 
 Validate the changes with relevant builds and tests. Where existing coverage is insufficient, establish what would give us confidence; for migrations, compare behavior before and after the update. Report CI failures unrelated to these dependency updates as blockers; do not fix them.

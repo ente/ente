@@ -1,11 +1,13 @@
 import { namedError } from "ente-base/error";
 import log from "ente-base/log";
+import { abortable } from "../abortable";
 import {
     DEFAULT_TAURI_CONTEXT_SIZE,
     DEFAULT_WEB_CONTEXT_SIZE,
     resolveGenerationBudget,
 } from "./budget";
 import { createInferenceBackend } from "./inference";
+import { ModelOperationQueue } from "./model-operation-queue";
 import type {
     DownloadProgress,
     GenerateChatRequest,
@@ -160,23 +162,14 @@ export class LlmProvider {
         promise: Promise<void>;
         emitsProgress: boolean;
     };
-    private modelOperationTail: Promise<void> = Promise.resolve();
+    private modelOperations = new ModelOperationQueue();
     private generationEpoch = 0;
 
     private async withExclusiveModelOperation<T>(
         operation: () => Promise<T>,
+        signal?: AbortSignal,
     ): Promise<T> {
-        const previous = this.modelOperationTail;
-        let release: () => void = () => undefined;
-        this.modelOperationTail = new Promise<void>((resolve) => {
-            release = resolve;
-        });
-        await previous;
-        try {
-            return await operation();
-        } finally {
-            release();
-        }
+        return this.modelOperations.run(operation, signal);
     }
 
     public async initialize() {
@@ -499,6 +492,34 @@ export class LlmProvider {
         this.currentMmprojPath = undefined;
         this.currentContextKey = undefined;
         this.modelReady = false;
+    }
+
+    public async withVoiceInput<T>(
+        operation: () => Promise<T>,
+        signal: AbortSignal,
+    ): Promise<T> {
+        return this.withExclusiveModelOperation(async () => {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const before = await abortable(
+                invoke<number>("llm_model_state_epoch"),
+                signal,
+            );
+            try {
+                signal.throwIfAborted();
+                return await operation();
+            } finally {
+                try {
+                    if (
+                        (await invoke<number>("llm_model_state_epoch")) !==
+                        before
+                    ) {
+                        this.invalidateModelState();
+                    }
+                } catch {
+                    this.invalidateModelState();
+                }
+            }
+        }, signal);
     }
 
     public async withKnowledgeRetrieval<T>(

@@ -75,6 +75,13 @@ fn voice_error(operation: &str, error: impl Into<TranscriptionError>) -> crate::
 
 pub type Result<T> = std::result::Result<T, TranscriptionError>;
 
+#[cfg(not(any(target_os = "ios", all(target_family = "wasm", target_os = "unknown"))))]
+pub fn load_runtime_from(path: impl AsRef<std::path::Path>) -> Result<()> {
+    let _ =
+        ort::init_from(path).map_err(|error| TranscriptionError::Transcribe(error.to_string()))?;
+    Ok(())
+}
+
 fn environment() -> Result<ort::environment::Environment> {
     static ENVIRONMENT: std::sync::Mutex<Option<ort::environment::Environment>> =
         std::sync::Mutex::new(None);

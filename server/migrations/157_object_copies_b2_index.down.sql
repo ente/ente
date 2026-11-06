@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY object_copies_b2_null_index;

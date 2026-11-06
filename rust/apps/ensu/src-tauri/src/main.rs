@@ -24,6 +24,7 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(commands::llm::State::default())
+        .manage(commands::voice::State::default())
         .manage(commands::chat_db::ChatDbState::default())
         .manage(commands::knowledge::State::default())
         .manage(commands::conversation::State::default())
@@ -66,7 +67,36 @@ fn main() {
             logging::log("App", "setup complete");
             Ok(())
         })
+        .on_permission_request(|webview, kind| {
+            use tauri::webview::{PermissionKind, PermissionResponse};
+            if matches!(kind, PermissionKind::Microphone) {
+                if commands::voice::microphone_allowed(webview.app_handle(), webview.label()) {
+                    PermissionResponse::Allow
+                } else {
+                    PermissionResponse::Deny
+                }
+            } else {
+                PermissionResponse::Default
+            }
+        })
+        .on_page_load(|window, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
+                commands::voice::clear_for_window(window.app_handle(), Some(window.label()));
+            }
+        })
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                commands::voice::clear_for_window(window.app_handle(), Some(window.label()));
+            }
+        })
         .invoke_handler(tauri::generate_handler![
+            commands::voice::voice_unavailable_reason,
+            commands::voice::voice_create,
+            commands::voice::voice_run,
+            commands::voice::voice_feed,
+            commands::voice::voice_capture_failed,
+            commands::voice::voice_stop,
+            commands::voice::voice_insert,
             commands::crypto::chat_crypto_generate_key,
             commands::crypto::chat_crypto_encrypt_payload,
             commands::crypto::chat_crypto_decrypt_payload,

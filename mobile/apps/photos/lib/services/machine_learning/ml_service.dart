@@ -410,6 +410,9 @@ class MLService {
     } finally {
       computeController.releaseCompute(ml: true);
     }
+    if (disposition == MlRunDisposition.completed && _mlControllerStatus) {
+      await rewindService.refresh(afterMlRun: true);
+    }
     return disposition;
   }
 

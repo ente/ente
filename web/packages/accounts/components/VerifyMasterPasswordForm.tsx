@@ -117,6 +117,11 @@ export const VerifyMasterPasswordForm: React.FC<
                     setFieldError(t("incorrect_password_or_no_account"));
                     return;
                 }
+                if (isNamedError(e, "session_expired")) {
+                    log.info("SRP session expired", e);
+                    setFieldError(t("session_expired_message"));
+                    return;
+                }
                 throw e;
             }
         }

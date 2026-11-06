@@ -5,7 +5,7 @@
     "identifier": "io.ente.ensu",
     "mainBinaryName": "Ensu",
     "build": {
-        "beforeDevCommand": "node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:ensu-wasm && npm exec --workspace ensu -- next dev --webpack -p 3010",
+        "beforeDevCommand": "node scripts/prepare-voice-runtime.mjs && node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:ensu-wasm && npm exec --workspace ensu -- next dev --webpack -p 3010",
         "beforeBuildCommand": "node scripts/tauri-build-web.mjs",
         "devUrl": "http://localhost:3010",
         "frontendDist": "../../../../web/apps/ensu/out"
@@ -37,7 +37,10 @@
             "icons/icon.icns",
             "icons/icon.ico"
         ],
-        "macOS": { "minimumSystemVersion": "10.15" },
+        "macOS": {
+            "minimumSystemVersion": "10.15",
+            "entitlements": "Entitlements.plist"
+        },
         "linux": {
             "deb": { "depends": ["libvulkan1"] },
             "rpm": { "depends": ["vulkan-loader"] }

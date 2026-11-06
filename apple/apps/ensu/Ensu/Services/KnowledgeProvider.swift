@@ -129,7 +129,8 @@ actor KnowledgeProvider {
     func search(
         datasets: [KnowledgeDatasetConfig],
         query: [Float],
-        maxHits: UInt32
+        maxHits: UInt32,
+        onProgress: @escaping @Sendable (Int, Int) -> Void = { _, _ in }
     ) async -> [KnowledgeSearchHit] {
         do {
             return try await withIndexGate {
@@ -138,10 +139,13 @@ actor KnowledgeProvider {
                     guard let index = indexes[dataset.stableId]?.index else { return nil }
                     return (dataset, index)
                 }
-                let searchTask = Task.detached(priority: .utility) { () -> [KnowledgeSearchHit] in
+                let searchTask = Task.detached(priority: .userInitiated) {
+                    () -> [KnowledgeSearchHit] in
                     var merged: [KnowledgeSearchHit] = []
-                    for (dataset, index) in selected {
+                    for (offset, entry) in selected.enumerated() {
                         if Task.isCancelled { return [] }
+                        let (dataset, index) = entry
+                        defer { onProgress(offset + 1, selected.count) }
                         let hits: [RetrievalHit]
                         do {
                             hits = try index.search(

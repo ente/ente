@@ -166,12 +166,19 @@ Your data remains accessible as long as you have access to your account, and you
 
 ### What happens to my data if I cancel my subscription? {#locker-cancel-subscription}
 
-If you cancel your Ente Photos subscription:
+Cancelling does not delete anything. Your paid plan, and Locker's paid limits, continue until the plan's expiry date.
 
-- Your Locker limits return to free tier (100 items, 1GB)
-- If you're over the free limits, you cannot add new items
-- All existing items remain accessible and are not deleted
-- You can delete items to get back under the free limits
+After the plan expires:
+
+- All your existing Locker items remain accessible
+- You cannot add new items, even if you are within the free limits
+- Locker may show "Your Ente Photos subscription has expired". This refers to your Ente account's plan, which Locker shares with Ente Photos
+
+To keep using Locker for free, contact [support@ente.com](mailto:support@ente.com) and we'll move your account to the free plan. You can then add items up to the free limits (100 items, 1GB). If you're over those limits, delete items to get back under them.
+
+You can also renew any Ente Photos plan to get the paid limits back.
+
+See [What happens when my subscription expires?](/photos/faq/storage-and-plans#subscription-expires) for how long your data is kept after expiry.
 
 ### What happens if my free account becomes inactive? {#inactive-free-account}
 

@@ -4,35 +4,22 @@ import {
     getBindingPrintSelection,
     getPrintBinding,
     getPrintExportError,
-    getPrintProduct,
 } from "@/lib/printProducts";
-import {
-    accentGreen,
-    accentGreenHover,
-    editorToolbarButtonSx,
-    headerButtonSx,
-} from "@/theme/buttons";
-import { toolbarColors, uiColors } from "@/theme/colors";
-import {
-    dialogActionSx,
-    dialogCloseButtonSx,
-    dialogDescriptionSx,
-    dialogHeaderSx,
-    dialogPaperSx,
-    dialogTitleSx,
-} from "@/theme/dialogs";
-import { Box, Button, Dialog, IconButton, Typography } from "@mui/material";
-import { useId, useState } from "react";
+import { editorToolbarButtonSx, headerButtonSx } from "@/theme/buttons";
+import { toolbarColors } from "@/theme/colors";
+import { Box, Button } from "@mui/material";
+import { useState } from "react";
 import EditorIconButton from "./EditorIconButton";
 import {
     AddPageIcon,
     AddPhotosIcon,
-    CloseIcon,
-    InfoIcon,
     PreviewIcon,
     RedoIcon,
     UndoIcon,
 } from "./icons";
+import PrintValidationDialog, {
+    type PrintValidation,
+} from "./PrintValidationDialog";
 import ResetBookButton from "./ResetBookButton";
 
 export default function EditorActions({
@@ -133,13 +120,7 @@ export function EditorPreviewButton() {
         "setAppView",
         "processingPhotos",
     );
-    const [validationError, setValidationError] = useState<{
-        title: string;
-        description: string;
-    } | null>(null);
-    const [validationOpen, setValidationOpen] = useState(false);
-    const id = useId();
-    const closeValidation = () => setValidationOpen(false);
+    const [validation, setValidation] = useState<PrintValidation | null>(null);
 
     const handlePreview = () => {
         const selection = getBindingPrintSelection(
@@ -148,28 +129,7 @@ export function EditorPreviewButton() {
         const pageCount = normalizeBookPages(book.pages).length;
         const error = getPrintExportError(selection, pageCount);
         if (error) {
-            const { minPages, maxPages } = getPrintProduct(
-                selection.productId,
-            )!;
-            if (pageCount < minPages) {
-                const missing = minPages - pageCount;
-                setValidationError({
-                    title: `Add ${missing} more ${missing === 1 ? "page" : "pages"}`,
-                    description: `Printed books need at least ${minPages} pages, including the covers.`,
-                });
-            } else if (pageCount > maxPages) {
-                const extra = pageCount - maxPages;
-                setValidationError({
-                    title: `Remove ${extra} ${extra === 1 ? "page" : "pages"}`,
-                    description: `Printed books can have up to ${maxPages} pages, including the covers.`,
-                });
-            } else {
-                setValidationError({
-                    title: "Update your book",
-                    description: error,
-                });
-            }
-            setValidationOpen(true);
+            setValidation({ selection, pageCount, error });
             return;
         }
         setAppView("results");
@@ -180,10 +140,10 @@ export function EditorPreviewButton() {
             <Button
                 variant="contained"
                 aria-label="Preview"
-                startIcon={<PreviewIcon strokeWidth={2.2} />}
+                startIcon={<PreviewIcon />}
                 onClick={handlePreview}
                 disabled={processingPhotos || book.pages.length === 0}
-                sx={{ ...headerButtonSx, fontWeight: 700 }}
+                sx={headerButtonSx}
             >
                 <Box
                     component="span"
@@ -192,80 +152,13 @@ export function EditorPreviewButton() {
                     Preview
                 </Box>
             </Button>
-            <Dialog
-                open={validationOpen}
-                onClose={closeValidation}
-                maxWidth={false}
-                aria-labelledby={`${id}-title`}
-                aria-describedby={`${id}-description`}
-                slotProps={{
-                    paper: { sx: dialogPaperSx },
-                    backdrop: { sx: { bgcolor: "rgba(0,0,0,0.5)" } },
-                }}
-            >
-                <Box sx={{ position: "relative", p: "48px 16px 16px" }}>
-                    <IconButton
-                        aria-label="Close"
-                        onClick={closeValidation}
-                        sx={dialogCloseButtonSx}
-                    >
-                        <CloseIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                    <Box
-                        sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: "16px",
-                        }}
-                    >
-                        <Box
-                            aria-hidden="true"
-                            sx={{
-                                width: 126,
-                                height: 121,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                mb: "8px",
-                                color: uiColors.muted,
-                            }}
-                        >
-                            <InfoIcon sx={{ fontSize: 72 }} />
-                        </Box>
-                        <Box sx={dialogHeaderSx}>
-                            <Typography
-                                component="h2"
-                                id={`${id}-title`}
-                                sx={dialogTitleSx}
-                            >
-                                {validationError?.title}
-                            </Typography>
-                            <Typography
-                                id={`${id}-description`}
-                                sx={{ ...dialogDescriptionSx, px: 4 }}
-                            >
-                                {validationError?.description}
-                            </Typography>
-                        </Box>
-                        <Button
-                            variant="contained"
-                            fullWidth
-                            disableElevation
-                            autoFocus
-                            onClick={closeValidation}
-                            sx={{
-                                ...dialogActionSx,
-                                color: "#FFFFFF",
-                                bgcolor: accentGreen,
-                                "&:hover": { bgcolor: accentGreenHover },
-                            }}
-                        >
-                            Back to editing
-                        </Button>
-                    </Box>
-                </Box>
-            </Dialog>
+            {validation && (
+                <PrintValidationDialog
+                    validation={validation}
+                    onClose={() => setValidation(null)}
+                    actionLabel="Back to editing"
+                />
+            )}
         </>
     );
 }

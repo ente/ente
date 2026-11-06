@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::f64::consts::PI;
 
 use ente_location::Coordinate;
@@ -6,6 +7,8 @@ use super::photo::Photo;
 
 const EARTH_RADIUS_KM: f64 = 6371.0;
 const KILOMETERS_PER_DEGREE: f64 = 111.16;
+const GRID_MAX_LATITUDE: f64 = 80.0;
+const GRID_CELL_MARGIN: f64 = 1.01;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Located<'p> {
@@ -92,35 +95,150 @@ pub(super) fn cluster_by_location<'p>(
     radius_km: f64,
 ) -> Vec<Cluster<'p>> {
     let mut clusters: Vec<Cluster> = Vec::new();
+    let mut grid = Grid::for_ellipses(radius_km);
     for member in members {
-        match clusters
-            .iter_mut()
-            .find(|cluster| is_within(cluster.center, member.location, radius_km))
-        {
-            Some(cluster) => cluster.add(member),
-            None => clusters.push(Cluster::new(member)),
+        let nearby = grid.first_near(member.location, |&id| {
+            is_within(clusters[id].center, member.location, radius_km)
+        });
+        match nearby {
+            Some(id) => {
+                let center = clusters[id].center;
+                clusters[id].add(member);
+                grid.relocate(id, center, clusters[id].center);
+            }
+            None => {
+                grid.insert(clusters.len(), member.location);
+                clusters.push(Cluster::new(member));
+            }
         }
     }
     clusters
 }
 
 pub(super) fn merge_nearby_clusters(
-    mut clusters: Vec<Cluster<'_>>,
+    clusters: Vec<Cluster<'_>>,
     radius_km: f64,
 ) -> Vec<Cluster<'_>> {
-    while let Some((into, from)) = first_pair_within(&clusters, radius_km) {
-        let merged = clusters.remove(from);
-        clusters[into].absorb(merged);
+    let mut centers: Vec<Coordinate> = clusters.iter().map(|cluster| cluster.center).collect();
+    let mut grid = Grid::for_great_circles(radius_km);
+    for (id, &center) in centers.iter().enumerate() {
+        grid.insert(id, center);
     }
-    clusters
+    let mut clusters: Vec<Option<Cluster>> = clusters.into_iter().map(Some).collect();
+    let mut into = 0;
+    while into < clusters.len() {
+        let nearby = clusters[into].as_ref().and_then(|_| {
+            grid.first_near(centers[into], |&other| {
+                other != into
+                    && distance_km(centers[into.min(other)], centers[into.max(other)]) <= radius_km
+            })
+        });
+        let Some(other) = nearby else {
+            into += 1;
+            continue;
+        };
+        let (kept, absorbed) = (into.min(other), into.max(other));
+        grid.remove(absorbed, centers[absorbed]);
+        let absorbed = clusters[absorbed].take();
+        if let (Some(cluster), Some(absorbed)) = (clusters[kept].as_mut(), absorbed) {
+            cluster.absorb(absorbed);
+            grid.relocate(kept, centers[kept], cluster.center);
+            centers[kept] = cluster.center;
+        }
+        into = kept;
+    }
+    clusters.into_iter().flatten().collect()
 }
 
-fn first_pair_within(clusters: &[Cluster], radius_km: f64) -> Option<(usize, usize)> {
-    (0..clusters.len()).find_map(|into| {
-        (into + 1..clusters.len())
-            .find(|&from| distance_km(clusters[into].center, clusters[from].center) <= radius_km)
-            .map(|from| (into, from))
-    })
+struct Grid {
+    row_height: f64,
+    column_width: f64,
+    cells: HashMap<(i64, i64), Vec<usize>>,
+    off_grid: Vec<usize>,
+}
+
+impl Grid {
+    fn for_ellipses(radius_km: f64) -> Self {
+        let longitude_reach = radius_km / KILOMETERS_PER_DEGREE;
+        Self::new(
+            longitude_reach / GRID_MAX_LATITUDE.to_radians().cos(),
+            longitude_reach,
+        )
+    }
+
+    fn for_great_circles(radius_km: f64) -> Self {
+        let half_angle = radius_km / (2.0 * EARTH_RADIUS_KM);
+        let longitude_half_angle = (half_angle.sin() / GRID_MAX_LATITUDE.to_radians().cos())
+            .min(1.0)
+            .asin();
+        Self::new(
+            (2.0 * half_angle).to_degrees(),
+            (2.0 * longitude_half_angle).to_degrees(),
+        )
+    }
+
+    fn new(latitude_reach: f64, longitude_reach: f64) -> Self {
+        Self {
+            row_height: latitude_reach * GRID_CELL_MARGIN,
+            column_width: longitude_reach * GRID_CELL_MARGIN,
+            cells: HashMap::new(),
+            off_grid: Vec::new(),
+        }
+    }
+
+    fn cell(&self, at: Coordinate) -> Option<(i64, i64)> {
+        (at.latitude.abs() <= GRID_MAX_LATITUDE && at.longitude.abs() <= 180.0 - self.column_width)
+            .then(|| {
+                (
+                    (at.latitude / self.row_height).floor() as i64,
+                    (at.longitude / self.column_width).floor() as i64,
+                )
+            })
+    }
+
+    fn insert(&mut self, id: usize, at: Coordinate) {
+        match self.cell(at) {
+            Some(cell) => self.cells.entry(cell).or_default().push(id),
+            None => self.off_grid.push(id),
+        }
+    }
+
+    fn remove(&mut self, id: usize, at: Coordinate) {
+        let ids = match self.cell(at) {
+            Some(cell) => self.cells.get_mut(&cell),
+            None => Some(&mut self.off_grid),
+        };
+        if let Some(ids) = ids {
+            ids.retain(|&other| other != id);
+        }
+    }
+
+    fn relocate(&mut self, id: usize, from: Coordinate, to: Coordinate) {
+        if self.cell(from) != self.cell(to) {
+            self.remove(id, from);
+            self.insert(id, to);
+        }
+    }
+
+    fn first_near(&self, at: Coordinate, matches: impl FnMut(&usize) -> bool) -> Option<usize> {
+        let nearby: Vec<&Vec<usize>> = match self.cell(at) {
+            Some((row, column)) => (row.saturating_sub(1)..=row.saturating_add(1))
+                .flat_map(|row| {
+                    (column.saturating_sub(1)..=column.saturating_add(1))
+                        .map(move |column| (row, column))
+                })
+                .filter_map(|cell| self.cells.get(&cell))
+                .collect(),
+            None => self.cells.values().collect(),
+        };
+        nearby
+            .into_iter()
+            .flatten()
+            .chain(&self.off_grid)
+            .copied()
+            .filter(matches)
+            .min()
+    }
 }
 
 pub(super) fn mean_location(members: &[Located]) -> Coordinate {
@@ -175,7 +293,157 @@ pub(super) fn two_decimals(value: f64) -> String {
 mod tests {
     use ente_location::Coordinate;
 
-    use super::{distance_km, is_within, two_decimals};
+    use super::{
+        Cluster, Located, cluster_by_location, distance_km, is_within, located,
+        merge_nearby_clusters, two_decimals,
+    };
+    use crate::memories::calendar::LocalDate;
+    use crate::memories::photo::Photo;
+    use crate::memories::rng::Rng;
+
+    fn photo(id: i64, location: Coordinate) -> Photo {
+        Photo {
+            id,
+            creation_time: id,
+            local_time: id,
+            date: LocalDate::of_local_time(id),
+            collection_id: None,
+            location: Some(location),
+            shared: false,
+        }
+    }
+
+    fn scattered_photos(count: i64) -> Vec<Photo> {
+        let anchors = [
+            (52.37, 4.89, 0.02),
+            (52.39, 4.92, 0.003),
+            (40.71, -74.0, 0.3),
+            (-33.87, 151.21, 0.05),
+            (64.15, -21.94, 0.05),
+            (79.99, 15.65, 0.02),
+            (89.99, 0.0, 0.05),
+            (-89.99, 120.0, 0.05),
+            (-16.5, 179.995, 0.01),
+            (-16.5, -179.995, 0.01),
+            (10.0, 179.9, 0.3),
+            (0.0, 0.0, 2.0),
+        ];
+        let mut rng = Rng::new(11);
+        (0..count)
+            .map(|id| {
+                let (latitude, longitude, spread) = anchors[rng.below(anchors.len())];
+                let mut offset = || spread * (rng.below(2_000_001) as f64 / 1_000_000.0 - 1.0);
+                photo(
+                    id,
+                    Coordinate::new(latitude + offset(), longitude + offset()),
+                )
+            })
+            .collect()
+    }
+
+    fn linear_clusters<'p>(members: &[Located<'p>], radius_km: f64) -> Vec<Cluster<'p>> {
+        let mut clusters: Vec<Cluster> = Vec::new();
+        for &member in members {
+            match clusters
+                .iter_mut()
+                .find(|cluster| is_within(cluster.center, member.location, radius_km))
+            {
+                Some(cluster) => cluster.add(member),
+                None => clusters.push(Cluster::new(member)),
+            }
+        }
+        clusters
+    }
+
+    fn pairwise_merged(mut clusters: Vec<Cluster<'_>>, radius_km: f64) -> Vec<Cluster<'_>> {
+        while let Some((into, from)) = (0..clusters.len()).find_map(|into| {
+            (into + 1..clusters.len())
+                .find(|&from| {
+                    distance_km(clusters[into].center, clusters[from].center) <= radius_km
+                })
+                .map(|from| (into, from))
+        }) {
+            let merged = clusters.remove(from);
+            clusters[into].absorb(merged);
+        }
+        clusters
+    }
+
+    fn member_ids(cluster: &Cluster) -> Vec<i64> {
+        cluster
+            .members
+            .iter()
+            .map(|member| member.photo.id)
+            .collect()
+    }
+
+    fn summary(clusters: &[Cluster]) -> Vec<(Vec<i64>, [u64; 2])> {
+        clusters
+            .iter()
+            .map(|cluster| {
+                (
+                    member_ids(cluster),
+                    [
+                        cluster.center.latitude.to_bits(),
+                        cluster.center.longitude.to_bits(),
+                    ],
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn grid_clustering_and_merging_match_plain_scans_over_every_pair() {
+        let photos = scattered_photos(1500);
+        let members = located(&photos);
+        for (radius_km, merge_radius_km) in [(0.6, 1.5), (25.0, 25.0)] {
+            let clusters = cluster_by_location(members.iter().copied(), radius_km);
+            let expected = linear_clusters(&members, radius_km);
+            assert_eq!(summary(&clusters), summary(&expected));
+            let expected = pairwise_merged(expected, merge_radius_km);
+            assert!(expected.len() < clusters.len());
+            assert_eq!(
+                summary(&merge_nearby_clusters(clusters, merge_radius_km)),
+                summary(&expected)
+            );
+        }
+    }
+
+    #[test]
+    fn a_merge_that_moves_a_center_next_to_an_earlier_cluster_merges_that_one_too() {
+        let kilometers = |north: f64, east: f64| Coordinate::new(north / 111.195, east / 111.195);
+        let photos = [
+            photo(1, kilometers(0.0, 0.0)),
+            photo(2, kilometers(0.7, 1.45)),
+            photo(3, kilometers(-0.7, 1.45)),
+            photo(4, kilometers(0.0, 5.0)),
+        ];
+        let clusters = || located(&photos).into_iter().map(Cluster::new).collect();
+
+        let merged = merge_nearby_clusters(clusters(), 1.5);
+
+        assert_eq!(summary(&merged), summary(&pairwise_merged(clusters(), 1.5)));
+        let members: Vec<Vec<i64>> = merged.iter().map(member_ids).collect();
+        assert_eq!(members, [vec![1, 2, 3], vec![4]]);
+    }
+
+    #[test]
+    fn merging_reaches_across_the_antimeridian_and_the_poles() {
+        let photos = [
+            photo(1, Coordinate::new(-16.5, 179.9999)),
+            photo(2, Coordinate::new(-16.5, -179.9999)),
+            photo(3, Coordinate::new(89.995, 0.0)),
+            photo(4, Coordinate::new(89.995, 120.0)),
+            photo(5, Coordinate::new(89.995, -120.0)),
+        ];
+        let clusters = cluster_by_location(located(&photos), 0.6);
+        assert_eq!(clusters.len(), 5);
+
+        let merged = merge_nearby_clusters(clusters, 1.5);
+
+        let members: Vec<Vec<i64>> = merged.iter().map(member_ids).collect();
+        assert_eq!(members, [vec![1, 2], vec![3, 4, 5]]);
+    }
 
     #[test]
     fn two_decimals_round_like_dart_including_exact_ties() {

@@ -21,14 +21,14 @@ workflows:
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
         - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+        - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
         - 'r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5'
     '.github/workflows/cast-build.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
-        - 'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+        - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
     '.github/workflows/change-approval.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -80,7 +80,7 @@ workflows:
         - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
         - 'android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd'
-        - 'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+        - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
         - 'r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5'
         - 'swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0'
@@ -95,7 +95,7 @@ workflows:
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+        - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82'
     '.github/workflows/infra-deploy-staff.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -111,7 +111,7 @@ workflows:
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
         - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+        - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
         - 'r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5'
     '.github/workflows/mobile-crowdin-push-sources-and-translations.yml':
@@ -138,7 +138,7 @@ workflows:
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
         - 'actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+        - 'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         - 'ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
         - 'r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5'
     '.github/workflows/photos-desktop-build.yml':
@@ -195,6 +195,10 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
         - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
+    '.github/workflows/web-deploy-photobook.yml':
+        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
+        - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
     '.github/workflows/web-deploy-space.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
@@ -203,6 +207,13 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
         - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
+    '.github/workflows/web-e2e.yml':
+        - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
+        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
+        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
+        - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
+        - 'swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0'
     '.github/workflows/web-lint.yml':
         - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -281,9 +292,9 @@ dependencies:
         commit: 'sha1-be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd'
         owner_id: 69522701
         repo_id: 286780795
-    'apple-actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9':
-        ref: 'v7.1.0'
-        commit: 'sha1-77ba2a2a8f5cfc8c405ebf3159f767c323e238f9'
+    'apple-actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c':
+        ref: 'v7.2.0'
+        commit: 'sha1-288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c'
         owner_id: 60242489
         repo_id: 235022350
     'azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82':

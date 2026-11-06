@@ -14,12 +14,16 @@ export default function BookTitleInput({
     const compact = useMediaQuery(MOBILE_QUERY);
     const [editing, setEditing] = useState(false);
     const { book, setBook } = useBook("book", "setBook");
-    const [title, setTitle] = useState(book.title ?? "");
+    const bookTitle =
+        book.title === "Untitled photobook (for spine)"
+            ? ""
+            : (book.title ?? "");
+    const [title, setTitle] = useState(bookTitle);
     const [focused, setFocused] = useState(false);
 
     useEffect(() => {
-        if (!focused) setTitle(book.title ?? "");
-    }, [book.title, focused]);
+        if (!focused) setTitle(bookTitle);
+    }, [bookTitle, focused]);
 
     return (
         <>
@@ -27,7 +31,7 @@ export default function BookTitleInput({
                 component="input"
                 aria-label="Photobook title"
                 value={title}
-                placeholder="Book title (on spine)"
+                placeholder="Untitled photobook (for the spine)"
                 autoComplete="off"
                 disabled={disabled}
                 readOnly={compact}
@@ -38,7 +42,7 @@ export default function BookTitleInput({
                 }}
                 onBlur={() => {
                     setFocused(false);
-                    if (title !== (book.title ?? "")) {
+                    if (title !== bookTitle) {
                         setBook((previous) => ({ ...previous, title }));
                     }
                 }}
@@ -49,33 +53,27 @@ export default function BookTitleInput({
                     }
                 }}
                 sx={{
-                    gridColumn: { xs: 1, md: 2 },
-                    gridRow: { xs: 2, md: 1 },
-                    justifySelf: { xs: "start", md: "center" },
-                    width: 240,
+                    width: "auto",
+                    fieldSizing: "content",
                     maxWidth: "100%",
                     minWidth: 0,
-                    minHeight: compact ? 44 : undefined,
+                    height: headerButtonSx.height,
                     p: { xs: "8px 12px", sm: "9px 16px" },
                     fontFamily: "var(--font-inter), sans-serif",
                     fontSize: 14,
                     fontWeight: 600,
                     lineHeight: "20px",
                     color: uiColors.text,
-                    textAlign: "center",
-                    bgcolor: "#262626",
-                    border: "1px solid transparent",
+                    textAlign: "left",
+                    bgcolor: "transparent",
+                    border: compact
+                        ? "1px solid #484848"
+                        : "1px solid transparent",
                     borderRadius: headerButtonSx.borderRadius,
                     outline: "none",
-                    transition:
-                        "background-color 120ms ease, border-color 120ms ease",
-                    "&::placeholder": { color: uiColors.muted, opacity: 1 },
-                    "&:enabled:hover": {
-                        bgcolor: "#2E2E2E",
-                        borderColor: "#484848",
-                    },
-                    "&:enabled:focus": {
-                        bgcolor: "#2E2E2E",
+                    transition: "border-color 120ms ease",
+                    "&:enabled:hover": { borderColor: "#484848" },
+                    "&:enabled:focus, &:enabled:active": {
                         borderColor: "#707070",
                     },
                     "&:disabled": { opacity: 0.45 },
@@ -83,8 +81,9 @@ export default function BookTitleInput({
             />
             {editing && (
                 <MobileTextDialog
-                    title="Book title (on spine)"
-                    value={book.title ?? ""}
+                    title="Book title"
+                    description="Shown on the spine of your photobook."
+                    value={bookTitle}
                     onSave={(value) =>
                         setBook((previous) => ({ ...previous, title: value }))
                     }

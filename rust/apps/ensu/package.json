@@ -3,9 +3,9 @@
     "version": "0.1.23-beta",
     "private": true,
     "scripts": {
-        "build": "tauri build",
+        "build": "node scripts/tauri.mjs build",
         "dev": "node scripts/tauri-dev.mjs",
-        "tauri": "tauri"
+        "tauri": "node scripts/tauri.mjs"
     },
     "dependencies": {
         "@tauri-apps/api": "2.12.1",

@@ -8,7 +8,10 @@ use ort::{
 };
 use std::{
     path::{Path, PathBuf},
-    sync::Mutex,
+    sync::{
+        Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 #[cfg(target_os = "android")]
@@ -217,6 +220,12 @@ fn environment() -> MlResult<Environment> {
     Ok(environment)
 }
 
+static KLEIDIAI_ENABLED: AtomicBool = AtomicBool::new(true);
+
+pub(super) fn set_kleidiai_enabled(enabled: bool) {
+    KLEIDIAI_ENABLED.store(enabled, Ordering::Relaxed);
+}
+
 pub(super) fn build_session(model_path: &str, attempt: ProviderAttempt) -> MlResult<Session> {
     let environment = environment()?;
     let mut builder = Session::builder(&environment)?
@@ -231,6 +240,10 @@ pub(super) fn build_session(model_path: &str, attempt: ProviderAttempt) -> MlRes
 
     if attempt.disable_intra_op_spinning {
         builder = builder.with_intra_op_spinning(false)?;
+    }
+
+    if !KLEIDIAI_ENABLED.load(Ordering::Relaxed) {
+        builder = builder.with_config_entry("mlas.disable_kleidiai", "1")?;
     }
     builder = builder.with_execution_providers(attempt.providers)?;
 

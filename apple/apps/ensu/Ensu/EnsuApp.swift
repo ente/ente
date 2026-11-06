@@ -2,17 +2,18 @@ import SwiftUI
 
 @main
 struct EnsuApp: App {
-    private let assetStoreTask: Task<AssetStore, Never>
+    private let chatModelTask: Task<ChatViewModel, Never>
 
     init() {
         EnsuLogging.shared.start()
         AssetStore.registerBackgroundTask()
-        assetStoreTask = Task { await AssetStore() }
+        _ = ResponseNotifications.shared
+        chatModelTask = Task { await ChatViewModel(assetStore: AssetStore()) }
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(assetStoreTask: assetStoreTask)
+            RootView(chatModelTask: chatModelTask)
         }
     }
 }

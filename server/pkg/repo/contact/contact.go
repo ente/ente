@@ -335,7 +335,7 @@ func (r *Repository) AttachContactAttachment(
 	var latestBucket string
 	if err := tx.QueryRowContext(
 		ctx,
-		`SELECT bucket_id FROM temp_objects WHERE object_key = $1 FOR UPDATE`,
+		`SELECT bucket_id FROM temp_objects WHERE object_key = $1 AND cleanup_state IS NULL FOR UPDATE`,
 		objectKey,
 	).Scan(&latestBucket); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -476,7 +476,7 @@ func (r *Repository) GetStagedAttachmentBucket(
 		ctx,
 		`SELECT bucket_id
 		   FROM temp_objects
-		  WHERE object_key = $1`,
+		  WHERE object_key = $1 AND cleanup_state IS NULL`,
 		objectKey,
 	).Scan(&bucketID)
 	if err != nil {

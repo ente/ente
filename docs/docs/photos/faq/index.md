@@ -42,6 +42,7 @@ Jump to a category:
 ### Multi-Device Setup
 
 - [How do I log in on multiple devices?](/photos/faq/account-creation#multi-device-login)
+- [How do I log out of Ente Photos?](/photos/faq/account-creation#logout)
 - [Can I use Ente on both mobile and desktop?](/photos/faq/account-creation#mobile-and-desktop)
 - [Do I need separate accounts for different devices?](/photos/faq/account-creation#separate-accounts)
 
@@ -282,6 +283,8 @@ Jump to a category:
 - [Is my face data used to train AI models?](/photos/faq/search-and-discovery#face-data-training)
 - [Why is face recognition faster on desktop?](/photos/faq/search-and-discovery#face-recognition-speed)
 - [Can I name the recognized persons?](/photos/faq/search-and-discovery#name-persons)
+- [Why does Machine Learning stay just below 100%?](/photos/faq/search-and-discovery#ml-stuck-below-100)
+- [Why does my desktop app show different unnamed people than my phone?](/photos/faq/search-and-discovery#unnamed-people-differ)
 
 ### Magic Search
 
@@ -321,11 +324,13 @@ Jump to a category:
 ### Account Security
 
 - [What happens if I forget my password?](/photos/faq/security-and-privacy#account-recovery)
+- [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email)
 - [What is my recovery key and why is it critical?](/photos/faq/security-and-privacy#recovery-key-importance)
 - [How do I find my recovery key?](/photos/faq/security-and-privacy#find-recovery-key)
 - [How should I store my recovery key?](/photos/faq/security-and-privacy#store-recovery-key)
 - [How do I use my recovery key to reset my password?](/photos/faq/security-and-privacy#use-recovery-key)
 - [Can I change my password?](/photos/faq/security-and-privacy#change-password)
+- [Why did I get a "New login to your Ente account" email?](/photos/faq/security-and-privacy#new-login-email)
 - [Do you support two-factor authentication (2FA)?](/photos/faq/security-and-privacy#two-factor-auth)
 
 ### Sharing and Collaboration
@@ -342,6 +347,7 @@ Jump to a category:
 
 - [How can I delete my account?](/photos/faq/security-and-privacy#delete-account)
 - [Will deleting my Ente Auth or Locker account also delete my Photos account?](/photos/faq/security-and-privacy#shared-account-deletion)
+- [I deleted my account by mistake. Can I get it back?](/photos/faq/security-and-privacy#recover-deleted-account)
 
 ### Trust and Reliability
 
@@ -364,6 +370,7 @@ Jump to a category:
 
 - [What plans does Ente offer?](/photos/faq/storage-and-plans#available-plans)
 - [Is there a forever-free plan?](/photos/faq/storage-and-plans#free-plan)
+- [Does Ente offer a lifetime plan?](/photos/faq/storage-and-plans#lifetime-plan)
 - [What are the limitations of the free plan?](/photos/faq/storage-and-plans#free-plan-limits)
 - [Is there an x GB plan?](/photos/faq/storage-and-plans#specific-plan-size)
 
@@ -398,6 +405,7 @@ Jump to a category:
 
 - [What payment methods does Ente support?](/photos/faq/storage-and-plans#supported-payment-methods)
 - [Can I pay with PayPal?](/photos/faq/storage-and-plans#paypal-payment)
+- [Why is my card payment being declined?](/photos/faq/storage-and-plans#card-declined)
 - [Does Ente store my card details?](/photos/faq/storage-and-plans#card-security)
 
 ### Managing Your Subscription
@@ -407,6 +415,7 @@ Jump to a category:
 - [What happens when I downgrade my plan?](/photos/faq/storage-and-plans#downgrade-plan)
 - [Can I switch between monthly and yearly plans?](/photos/faq/storage-and-plans#switch-billing-cycle)
 - [How can I update my payment method?](/photos/faq/storage-and-plans#update-payment)
+- [Why did I get an "Ente account on hold" email?](/photos/faq/storage-and-plans#account-on-hold)
 - [How can I cancel my subscription?](/photos/faq/storage-and-plans#cancel-subscription)
 
 ## Troubleshooting
@@ -420,6 +429,7 @@ Jump to a category:
 - [Why aren't my photos uploading?](/photos/faq/troubleshooting#upload-failures)
 - [Why does upload show "Waiting to upload"?](/photos/faq/troubleshooting#waiting-to-upload)
 - [Why are uploads failing on desktop or web?](/photos/faq/troubleshooting#faster-uploads)
+- [Why can't I save a video from Ente to my iPhone's Photos app?](/photos/faq/troubleshooting#ios-save-unsupported-video)
 - [Why can't the app detect certain file types?](/photos/faq/troubleshooting#file-type-detection)
 
 ### Mobile Backup Issues
@@ -435,10 +445,12 @@ Jump to a category:
 - [Why aren't my watch folders syncing?](/photos/faq/troubleshooting#watch-folders-troubleshooting)
 - [Can I upload from a network drive (NAS)?](/photos/faq/troubleshooting#nas)
 - [Can I safely close the desktop app while it's uploading?](/photos/faq/troubleshooting#close-during-upload)
+- [How do I stop an upload that's in progress on desktop or web?](/photos/faq/troubleshooting#stop-upload)
 
 ### Platform-Specific Issues
 
 - [Why is my iOS app stuck on "Please wait..." when I purchase a subscription?](/photos/faq/troubleshooting#ios-appstore-subscription)
+- [Why is my iPhone or iPad app stuck on the splash screen?](/photos/faq/troubleshooting#ios-splash-freeze)
 - [Why is my Android app stuck on the splash screen?](/photos/faq/troubleshooting#android-splash-freeze)
 - [Why is the Linux desktop app still showing the old icon after updating?](/photos/faq/troubleshooting#linux-icon-update)
 - [How do I enable AppImage desktop integration on Linux?](/photos/faq/troubleshooting#appimage-integration)
@@ -490,6 +502,7 @@ Jump to a category:
 - [What is a stream technically?](/photos/faq/advanced-features#what-is-a-stream)
 - [Will streams consume space in my storage?](/photos/faq/advanced-features#stream-storage)
 - [Video streaming isn't working correctly, what should I do?](/photos/faq/advanced-features#stream-issues)
+- [Why is Streamable videos stuck just below 100%?](/photos/faq/advanced-features#stream-progress-stuck)
 - [How does Cast work?](/photos/faq/advanced-features#how-does-cast-work)
 - [Can I use Cast without Chromecast?](/photos/faq/advanced-features#cast-without-chromecast)
 - [App crashes with video streaming enabled](/photos/faq/advanced-features#app-crashes-video-streaming)

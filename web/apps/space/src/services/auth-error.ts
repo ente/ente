@@ -8,6 +8,7 @@ const spaceAuthErrorMessages = {
     incorrect_password: "Incorrect email or password.",
     insufficient_memory: "This device doesn't have enough memory to continue.",
     login_session_expired: "Login session expired. Please sign in again.",
+    session_expired: "Login session expired. Please sign in again.",
     signup_incomplete:
         "Account setup incomplete. Create account to finish setup.",
     signup_session_expired: "Signup session expired. Please sign in.",

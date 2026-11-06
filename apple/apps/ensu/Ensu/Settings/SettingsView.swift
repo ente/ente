@@ -4,6 +4,7 @@ import Foundation
 let isEnsuPacksEnabled = true
 
 struct SettingsView: View {
+    let notificationOwner: UUID
     @ObservedObject var knowledgeStore: KnowledgeStore
     @ObservedObject var notesStore: NotesStore
     let onSignIn: () -> Void
@@ -11,6 +12,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
+    @ObservedObject private var notifications = ResponseNotifications.shared
     @State private var query: String = ""
     @State private var buildVersionTapCount = 0
     @State private var lastBuildVersionTapAt: Date?
@@ -99,6 +101,16 @@ struct SettingsView: View {
                     Button("Close") { dismiss() }
                 }
             }
+            .sheet(
+                isPresented: Binding(
+                    get: {
+                        notifications.showPermissionContext
+                            && notifications.promptOwner == notificationOwner
+                    },
+                    set: { notifications.showPermissionContext = $0 })
+            ) {
+                NotificationPermissionContext()
+            }
             .overlay(alignment: .bottom) {
                 if let toastMessage {
                     ToastView(message: toastMessage)
@@ -136,6 +148,11 @@ struct SettingsView: View {
 
     private var legalLinkItems: [SettingsActionItem] {
         [
+            SettingsActionItem(
+                title: "Notifications",
+                iconName: "InformationCircleIcon",
+                action: notifications.fromSettings
+            ),
             SettingsActionItem(
                 title: "Privacy Policy",
                 iconName: "ViewIcon",

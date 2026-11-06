@@ -59,6 +59,33 @@ impl LocationIndex {
             .match_coordinates_with_cities(&self.cities, coordinates, query)
     }
 
+    pub fn urban_center_ids(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
+        let mut ids = vec![None; coordinates.len()];
+        for group in self.urban_centers.match_coordinates(coordinates, "") {
+            for index in group.coordinate_indices {
+                if let Some(id) = ids.get_mut(index as usize) {
+                    *id = Some(group.city.source_id);
+                }
+            }
+        }
+        ids
+    }
+
+    pub fn country_codes(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+        let mut codes = vec![None; coordinates.len()];
+        let Ok(groups) = self.group_countries(coordinates, None) else {
+            return codes;
+        };
+        for group in groups {
+            for index in group.coordinate_indices {
+                if let Some(code) = codes.get_mut(index as usize) {
+                    code.get_or_insert(group.country);
+                }
+            }
+        }
+        codes
+    }
+
     pub fn group_countries(
         &self,
         coordinates: &[Coordinate],

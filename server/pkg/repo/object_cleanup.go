@@ -32,11 +32,29 @@ func (repo *ObjectCleanupRepository) AddTempObject(tempObject ente.TempObject, e
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *sql.Tx, objectKey string, userID int64, app ente.App) error {
-	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1
+func (repo *ObjectCleanupRepository) GetFileUploadBucket(ctx context.Context, objectKey string, userID int64, app ente.App) (string, error) {
+	var bucket sql.NullString
+	err := repo.DB.QueryRowContext(ctx, `SELECT bucket_id FROM temp_objects WHERE object_key = $1
+		AND cleanup_state IS NULL
 		AND (user_id IS NULL OR user_id = $2)
 		AND (app IS NULL OR app = $3)
-		AND (purpose IS NULL OR purpose = 'file_upload')`, objectKey, userID, app)
+		AND (purpose IS NULL OR purpose = 'file_upload')`, objectKey, userID, app).Scan(&bucket)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if !bucket.Valid || bucket.String == "" {
+		return "", ente.NewBadRequestWithMessage("staged upload not found")
+	}
+	return bucket.String, nil
+}
+
+func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *sql.Tx, objectKey string, userID int64, app ente.App, bucket string) error {
+	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1
+		AND cleanup_state IS NULL
+		AND (user_id IS NULL OR user_id = $2)
+		AND (app IS NULL OR app = $3)
+		AND (purpose IS NULL OR purpose = 'file_upload')
+		AND bucket_id = $4`, objectKey, userID, app, bucket)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -51,7 +69,8 @@ func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *
 }
 
 func (repo *ObjectCleanupRepository) RemoveTempObjectFromDC(ctx context.Context, tx *sql.Tx, objectKey string, dc string) error {
-	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1 and bucket_id = $2`, objectKey, dc)
+	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1 AND bucket_id = $2
+		AND cleanup_state IS NULL`, objectKey, dc)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -92,7 +111,7 @@ func (repo *ObjectCleanupRepository) GetAndLockExpiredObjects() (*sql.Tx, []ente
 	}()
 
 	rows, err := tx.Query(`
-	SELECT object_key, is_multipart, upload_id, bucket_id FROM temp_objects
+	SELECT object_key, is_multipart, upload_id, bucket_id, COALESCE(cleanup_state, '') FROM temp_objects
 	WHERE expiration_time <= $1
 	LIMIT 1000
 	FOR UPDATE SKIP LOCKED
@@ -108,7 +127,7 @@ func (repo *ObjectCleanupRepository) GetAndLockExpiredObjects() (*sql.Tx, []ente
 		var tempObject ente.TempObject
 		var uploadID sql.NullString
 		var bucketID sql.NullString
-		err := rows.Scan(&tempObject.ObjectKey, &tempObject.IsMultipart, &uploadID, &bucketID)
+		err := rows.Scan(&tempObject.ObjectKey, &tempObject.IsMultipart, &uploadID, &bucketID, &tempObject.CleanupState)
 		if err != nil {
 			return nil, nil, stacktrace.Propagate(err, "")
 		}
@@ -153,4 +172,10 @@ func (repo *ObjectCleanupRepository) RemoveTempObject(tx *sql.Tx, tempObject ent
 			`, tempObject.ObjectKey)
 		return stacktrace.Propagate(err, "")
 	}
+}
+
+func (repo *ObjectCleanupRepository) SetCleanupState(tx *sql.Tx, objectKey string, state ente.TempObjectCleanupState, expirationTime int64) error {
+	_, err := tx.Exec(`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2 WHERE object_key = $3`,
+		state, expirationTime, objectKey)
+	return stacktrace.Propagate(err, "")
 }

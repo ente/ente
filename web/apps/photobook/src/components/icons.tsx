@@ -13,11 +13,14 @@ import {
     ImageAdd02Icon,
     InformationCircleIcon,
     MoreHorizontalIcon,
+    PanelLeftCloseIcon,
+    PanelLeftOpenIcon,
     PlayIcon,
     Redo03Icon,
     RotateCcwIcon,
     SearchAddIcon,
     SearchMinusIcon,
+    TextFontIcon,
     Undo03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
@@ -70,6 +73,12 @@ export const PreviewIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 export const CloseIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Cancel01Icon} />,
 );
+export const CloseSidebarIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={PanelLeftCloseIcon} />,
+);
+export const OpenSidebarIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={PanelLeftOpenIcon} />,
+);
 export const ChevronLeftIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={ArrowLeft01Icon} />,
 );
@@ -81,6 +90,9 @@ export const ChevronDownIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 );
 export const EditIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Edit02Icon} />,
+);
+export const TitleIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={TextFontIcon} />,
 );
 export const DownloadIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Download04Icon} />,

@@ -210,9 +210,9 @@ You can change the email address associated with your account at any time in Set
 
 **Canceling:**
 
-- 30-day grace period to export your data
-- Data permanently deleted after grace period
-- Can renew anytime during grace period
+- Your paid plan continues until its expiry date
+- If your data is scheduled for deletion, warning emails show the deletion date
+- Renew or export promptly, before any date in a warning email
 
 Learn more in the [Storage and Plans FAQ](/photos/faq/storage-and-plans#upgrade-plan).
 

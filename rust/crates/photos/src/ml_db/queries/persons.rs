@@ -95,6 +95,25 @@ impl MlDb {
         Ok(result)
     }
 
+    pub(crate) fn for_each_person_face_id(
+        &self,
+        mut visit: impl FnMut(String, String),
+    ) -> Result<()> {
+        self.read_each(
+            r#"
+            SELECT person_id, face_id
+            FROM cluster_person
+            INNER JOIN face_clusters
+                ON cluster_person.cluster_id = face_clusters.cluster_id
+            "#,
+            (),
+            |row| {
+                visit(row.get(0)?, row.get(1)?);
+                Ok(())
+            },
+        )
+    }
+
     pub fn get_person_to_cluster_ids(&self) -> Result<HashMap<String, HashSet<String>>> {
         self.read_grouped("SELECT person_id, cluster_id FROM cluster_person", ())
     }

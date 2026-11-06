@@ -1225,6 +1225,30 @@ mod tests {
     }
 
     #[test]
+    fn account_selector() {
+        let mut root = command();
+        root.build();
+        for (path, command) in commands(&root, "") {
+            if command.has_subcommands() || path.contains(" help") {
+                continue;
+            }
+            let selector = command
+                .get_arguments()
+                .any(|arg| arg.get_id() == "account" && arg.is_global_set());
+            let expected = [
+                "ente photos ",
+                "ente locker ",
+                "ente auth ",
+                "ente admin ",
+                "ente account totp ",
+            ]
+            .iter()
+            .any(|group| path.starts_with(group));
+            assert_eq!(selector, expected, "{path}: --account selector");
+        }
+    }
+
+    #[test]
     fn help_shape() {
         let mut root = command();
         root.build();

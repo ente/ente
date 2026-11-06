@@ -48,14 +48,14 @@ Ente/
 - `export.json` records which account the export belongs to in `userID`.
 - `<Album>/metadata.json` is the album record: `title` and an `ente` object with `albumID`, `ownerID` and `type`. When `ownerID` equals the `userID` in `export.json`, you own the album.
 - `<Album>/<file>` is the original. A Live Photo is exported as separate image and video files with the same name and different extensions.
-- `<Album>/metadata/<file>.json` is the sidecar for one file: `title`, `photoTakenTime`, `geoData`, `description`, `favorited`, and an `ente` object with `fileID` and `type`.
+- `<Album>/metadata/<file>.json` holds the metadata for one file: `title`, `photoTakenTime`, `geoData`, `description`, `favorited`, and an `ente` object with `fileID` and `type`.
 - `Trash/` holds albums and files that were removed from your library or from an album since the last run.
 
 Characters that are not portable across filesystems are replaced with `_` in names; a name that is already taken gets a numeric suffix such as `-1`.
 
 ## Keep an export updated
 
-Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, removed items move to `Trash/`, and every sidecar is regenerated. Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
+Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, removed items move to `Trash/`, and every metadata file is regenerated. Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
 
 ## Save space with hard links
 

@@ -106,7 +106,6 @@ class LocalSettings {
       "ml_debug.default_clustering_distance";
   static const _kRunMLDuringInteractionOverride =
       "ml_debug.run_ml_during_interaction";
-  static const _kRustMlDbOverride = "ls.rust_ml_db_override";
   static const _kAppMode = "ls.app_mode";
   static const _kShowLocalGalleryModeOption = "ls.show_offline_mode_option";
   static const _kLocalGalleryOnboardingPending =
@@ -416,12 +415,6 @@ class LocalSettings {
 
   Future<void> setRunMLDuringInteractionOverride(bool value) async {
     await _prefs.setBool(_kRunMLDuringInteractionOverride, value);
-  }
-
-  bool get rustMlDbOverride => _prefs.getBool(_kRustMlDbOverride) ?? false;
-
-  Future<void> setRustMlDbOverride(bool value) async {
-    await _prefs.setBool(_kRustMlDbOverride, value);
   }
 
   Future<bool> setSmartMemories(bool value) async {

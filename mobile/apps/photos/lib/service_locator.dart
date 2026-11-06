@@ -42,6 +42,7 @@ import "package:photos/services/memories/rust_memories_computer.dart";
 import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
+import "package:photos/services/rewind/rewind_service.dart";
 import "package:photos/services/rituals/rituals_service.dart";
 import "package:photos/services/smart_albums_service.dart";
 import "package:photos/services/storage_bonus_service.dart";
@@ -229,6 +230,12 @@ MemoriesCacheService get memoriesCacheService {
   return _memoriesCacheService!;
 }
 
+RewindService? _rewindService;
+RewindService get rewindService {
+  _rewindService ??= RewindService(ServiceLocator.instance.prefs);
+  return _rewindService!;
+}
+
 SmartMemoriesService? _smartMemoriesService;
 SmartMemoriesService get smartMemoriesService {
   _smartMemoriesService ??= SmartMemoriesService();
@@ -237,9 +244,11 @@ SmartMemoriesService get smartMemoriesService {
 
 DartMemoriesComputer? _dartMemoriesComputer;
 RustMemoriesComputer? _rustMemoriesComputer;
+RustMemoriesComputer get rustMemoriesComputer =>
+    _rustMemoriesComputer ??= RustMemoriesComputer();
 MemoriesComputer get memoriesComputer {
   if (flagService.rustMemories && MLDataDB.isRustBackend) {
-    return _rustMemoriesComputer ??= RustMemoriesComputer();
+    return rustMemoriesComputer;
   }
   return _dartMemoriesComputer ??= DartMemoriesComputer();
 }

@@ -3,6 +3,9 @@ Documentation=https://www.metabase.com/docs/
 Requires=docker.service
 After=docker.service
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
 ExecStartPre=docker pull metabase/metabase
 ExecStartPre=-docker stop metabase

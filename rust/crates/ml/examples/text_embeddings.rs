@@ -5,7 +5,7 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use ente_assets::AssetStore;
 use ente_ml::assets::ensure_clip_text;
-use ente_ml::indexing::{RunClipTextRequest, run_clip_text};
+use ente_ml::indexing::{RunClipTextRequest, run_clip_text, set_kleidiai_enabled};
 
 const ASSET_CACHE: &str = "../../.cache/assets";
 const MEMORIES_OUTPUT: &str = "../photos/src/memories/text_embeddings.rs";
@@ -210,6 +210,7 @@ const PEOPLE_ACTIVITIES: [(&str, &str); 10] = [
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     std::env::var_os("ORT_DYLIB_PATH").context("set ORT_DYLIB_PATH to an ONNX Runtime library")?;
+    set_kleidiai_enabled(false);
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let cache = manifest_dir.join(ASSET_CACHE);
     let paths = ensure_clip_text(&AssetStore::new(cache.clone()), &cache).await?;

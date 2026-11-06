@@ -280,6 +280,9 @@ jobs:
                   lookup-only: true
                   shared-key: photos-desktop-ensu-android
 
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
+
             - name: Install Vulkan build dependencies
               run: |
                   sudo apt-get update

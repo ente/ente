@@ -567,7 +567,7 @@ When a participant leaves or is removed from a shared album, any photos they upl
 
 ### Can I recover photos after deleting my account? {#recover-after-account-deletion}
 
-No. When you delete your Ente account, all your data (including photos in trash) is permanently deleted and cannot be recovered. This is an irreversible operation.
+If you deleted your Ente account by mistake, you can recover it within 7 days using the link in the confirmation email. After 7 days, your data (including photos in trash) is permanently deleted and cannot be recovered. See [I deleted my account by mistake. Can I get it back?](/photos/faq/security-and-privacy#recover-deleted-account).
 
 Before deleting your account, make sure to:
 
