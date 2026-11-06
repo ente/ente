@@ -114,7 +114,7 @@ quick-xml = "0.42.0"
 rayon = "1.12.0"
 regex = "1.13.1"
 reqwest = { version = "0.12.28", default-features = false }
-rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"] }
+rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
 same-file = "1.0.6"
 serde = { version = "1.0.229", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
