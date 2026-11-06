@@ -10,23 +10,23 @@
         "@ffmpeg/ffmpeg": "0.12.15",
         "@fontsource-variable/inter": "5.3.0",
         "@fontsource/nunito": "5.3.0",
-        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/core-free-icons": "4.4.0",
         "@hugeicons/react": "1.1.10",
-        "@mediabunny/aac-encoder": "1.61.6",
-        "@rive-app/canvas-lite": "2.43.1",
+        "@mediabunny/aac-encoder": "1.64.0",
+        "@rive-app/canvas-lite": "2.49.0",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-media": "*",
         "ente-prelogin-wasm": "*",
         "ente-space-wasm": "*",
-        "mediabunny": "1.61.6",
+        "mediabunny": "1.64.0",
         "photoswipe": "5.4.4",
-        "react-easy-crop": "5.5.7",
+        "react-easy-crop": "6.2.4",
         "thumbhash": "0.1.1"
     },
     "devDependencies": {
         "ente-build-config": "*",
         "vite-plugin-wasm": "3.6.0",
-        "vitest": "5.0.4"
+        "vitest": "5.0.5"
     }
 }
