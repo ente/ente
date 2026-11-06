@@ -49,6 +49,20 @@ pub struct LocationCityGroups {
     groups: Vec<LocationCityGroup>,
 }
 
+#[wasm_bindgen(js_name = locationIsWithinRadiusKm)]
+pub fn is_within_radius_km(
+    latitude: f64,
+    longitude: f64,
+    center_latitude: f64,
+    center_longitude: f64,
+    radius_km: f64,
+) -> bool {
+    Coordinate::new(latitude, longitude).is_within_radius_km(
+        Coordinate::new(center_latitude, center_longitude),
+        radius_km,
+    )
+}
+
 #[wasm_bindgen]
 pub struct LocationIndex {
     cities: CityIndex,
