@@ -50,6 +50,7 @@ test("shared build inputs select their consumers", (t) => {
         "rust-cli-test",
         "rust-lint",
         "rust-test",
+        "web-e2e",
         "web-lint",
     ]);
     assert.ok(select(t, ["server/pkg/api.go"]).includes("rust-test"));
@@ -104,12 +105,44 @@ test("path filters cover root files, nested files, and dotfiles", (t) => {
 
 test("deletions and moves select every affected area", (t) => {
     const before = ["web/shared.txt"];
-    assert.deepEqual(select(t, [], before), ["repo-lint", "web-lint"]);
+    assert.deepEqual(select(t, [], before), [
+        "repo-lint",
+        "web-e2e",
+        "web-lint",
+    ]);
     assert.deepEqual(select(t, ["desktop/shared.txt"], before), [
         "desktop-lint",
         "repo-lint",
+        "web-e2e",
         "web-lint",
     ]);
+});
+
+test("web E2E follows its apps, backend, and Rust dependencies", (t) => {
+    for (const file of [
+        "web/apps/photos/src/pages/gallery.tsx",
+        "web/apps/locker/src/pages/index.tsx",
+        "web/e2e/playwright.config.ts",
+        "server/pkg/api/file.go",
+        "rust/crates/test-support/src/bin/with-museum.rs",
+        "rust/bindings/wasm/prelogin/src/lib.rs",
+        "rust/bindings/wasm/locker/src/lib.rs",
+        "rust/bindings/wasm/photos/src/lib.rs",
+        "rust/crates/locker/src/lib.rs",
+        "rust/crates/vecdb/src/lib.rs",
+        ".github/workflows/web-e2e.yml",
+    ]) {
+        assert.ok(select(t, [file]).includes("web-e2e"), file);
+    }
+    assert.ok(!select(t, ["rust/apps/cli/src/main.rs"]).includes("web-e2e"));
+    for (const result of ["failure", "cancelled", "skipped"]) {
+        const needs = results(["repo-lint", "web-e2e"]);
+        needs["web-e2e"].result = result;
+        checkResult(
+            needs,
+            new RegExp(`web-e2e: expected success, got ${result}`),
+        );
+    }
 });
 
 test("changes to CI selection or wiring run every workflow", (t) => {

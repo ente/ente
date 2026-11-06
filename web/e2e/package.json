@@ -1,0 +1,11 @@
+{
+    "name": "ente-e2e",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "devDependencies": {
+        "@types/node": "24.19.2",
+        "ente-build-config": "*",
+        "vite": "8.3.4"
+    }
+}

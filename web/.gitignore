@@ -11,3 +11,7 @@ out/
 next-env.d.ts
 
 packages/wasm/*/pkg/
+
+/e2e/playwright-report/
+/e2e/test-results/
+/e2e/.auth/

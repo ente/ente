@@ -1,0 +1,85 @@
+name: "Test (Web E2E)"
+
+on:
+    workflow_call:
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        defaults:
+            run:
+                working-directory: web
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              with:
+                  persist-credentials: false
+
+            - name: Setup Node
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: web/package-lock.json
+
+            - name: Setup Go
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version-file: server/go.mod
+                  cache: false
+
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
+              with:
+                  workspaces: rust
+                  shared-key: rust-wasm
+                  cache-targets: false
+                  save-if: false
+
+            - name: Restore Rust target
+              uses: $/.github/actions/restore-rust-target
+              with:
+                  shared-key: rust-wasm
+
+            - name: Restore Museum cache
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+              with:
+                  key: museum-${{ github.sha }}
+                  restore-keys: museum-
+                  path: |
+                      ~/go/pkg/mod
+                      ~/.cache/go-build
+                      ~/.cache/.theseus/postgresql
+
+            - run: npm ci
+
+            - run: npm exec -- playwright install --with-deps chromium
+
+            - run: npm run test:e2e
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+                  TMPDIR: ${{ runner.temp }}
+
+            - name: Collect Museum diagnostics
+              if: failure()
+              run: |
+                  for dir in "$RUNNER_TEMP"/ente-test-*/logs; do
+                      if [ -d "$dir" ]; then
+                          mkdir -p e2e/test-results/museum
+                          cp -R "$dir/." e2e/test-results/museum/
+                      fi
+                  done
+
+            - name: Upload failure diagnostics
+              if: failure()
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+              with:
+                  name: web-e2e-failure
+                  path: |
+                      web/e2e/playwright-report
+                      web/e2e/test-results
+                  retention-days: 7

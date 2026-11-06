@@ -37,6 +37,25 @@ To see the full list of apps you can run (and other scripts that you can use), u
 >
 > If `package-lock.json` has not changed since your last `npm ci`, you can use `npm install` as a faster incremental alternative.
 
+## End-to-end tests
+
+The Photos and Locker signup tests use production builds and a temporary Museum
+backend. In addition to Node and Rust, install Go and make it available on PATH.
+From `web`, install Chromium and run the tests:
+
+```sh
+npm exec -- playwright install chromium
+npm run test:e2e
+```
+
+Use `npm run test:e2e -- --project=locker` or `--project=photos` to run one app.
+The runner starts and cleans up Museum, PostgreSQL, and test object storage.
+
+PR CI runs both apps when web code, Museum, or their Rust dependencies change.
+The result contributes to `CI required`. Failed runs upload the HTML report,
+browser traces, screenshots, and available Museum logs as the `web-e2e-failure`
+artifact, retained for seven days.
+
 ## Docker images
 
 A Docker image containing the self-hosting web apps is available from `ghcr.io/ente/web`. See [docs/docker.md](docs/docker.md) for more details.
