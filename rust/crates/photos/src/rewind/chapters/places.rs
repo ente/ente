@@ -159,6 +159,18 @@ pub(in crate::rewind) mod tests {
                 })
                 .collect()
         }
+
+        fn urban_centers(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
+            vec![None; coordinates.len()]
+        }
+
+        fn countries(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+            vec![None; coordinates.len()]
+        }
+
+        fn country_name(&self, _country: CountryCode) -> Option<String> {
+            None
+        }
     }
 
     fn towns() -> Towns {

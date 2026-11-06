@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ente_exif::DateTime;
-use ente_location::{CityMatch, Coordinate};
+use ente_location::{CityMatch, Coordinate, CountryCode};
 use tempfile::TempDir;
 
 use super::input::{
@@ -20,6 +20,18 @@ pub(super) struct NoCities;
 impl CityLookup for NoCities {
     fn group_cities(&self, _coordinates: &[Coordinate]) -> Vec<CityMatch> {
         Vec::new()
+    }
+
+    fn urban_centers(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
+        vec![None; coordinates.len()]
+    }
+
+    fn countries(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+        vec![None; coordinates.len()]
+    }
+
+    fn country_name(&self, _country: CountryCode) -> Option<String> {
+        None
     }
 }
 
