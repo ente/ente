@@ -23,17 +23,10 @@ pub struct RewindState {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(
-    target_pointer_width = "64",
-    expect(
-        clippy::large_enum_variant,
-        reason = "A state holds a single report, so boxing it saves nothing"
-    )
-)]
 pub enum RewindStatus {
     WaitingForMl,
     NothingToShow,
-    Ready { report: RewindReport },
+    Ready { report: Box<RewindReport> },
 }
 
 impl RewindState {
@@ -61,7 +54,9 @@ impl RewindState {
             if report.is_empty() {
                 RewindStatus::NothingToShow
             } else {
-                RewindStatus::Ready { report }
+                RewindStatus::Ready {
+                    report: Box::new(report),
+                }
             }
         } else {
             RewindStatus::WaitingForMl

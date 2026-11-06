@@ -56,7 +56,7 @@ pub fn compute_rewind(
     let previous_report = previous
         .filter(|previous| previous.ml_coverage.is_some())
         .and_then(|previous| match &previous.status {
-            RewindStatus::Ready { report } => Some(report),
+            RewindStatus::Ready { report } => Some(report.as_ref()),
             RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
         });
     RewindState::evaluate(
