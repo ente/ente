@@ -91,7 +91,7 @@ class FlagService {
 
   bool get rustMemories => internalUser;
 
-  bool get rewind => false;
+  bool get rewind => internalUser;
 
   String get castUrl => flags.castUrl;
 

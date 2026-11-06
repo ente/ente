@@ -122,6 +122,7 @@ class RewindService {
     final computed = await rust.computeRewind(
       request: await buildRewindRequest(now),
       store: store,
+      cities: await locationService.getLocationIndex(),
       previous: previous,
     );
     final cache = await _cacheFile(owner);

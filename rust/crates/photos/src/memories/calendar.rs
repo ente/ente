@@ -55,7 +55,7 @@ impl LocalDate {
         era * DAYS_PER_ERA + day_of_era - DAYS_FROM_ERA_START_TO_UNIX_EPOCH
     }
 
-    pub(super) fn of_local_time(local_micros: i64) -> Self {
+    pub(crate) fn of_local_time(local_micros: i64) -> Self {
         Self::from_days(local_micros.div_euclid(MICROS_PER_DAY))
     }
 
