@@ -1626,12 +1626,18 @@ Future<void> _shareMemoryVideo(
   }
   dismissDialog();
   if (!context.mounted) return;
-  await SharePlus.instance.share(
-    ShareParams(
-      files: [XFile(video.path, mimeType: "video/mp4")],
-      sharePositionOrigin: shareButtonRect(context, null),
-    ),
-  );
+  try {
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(video.path, mimeType: "video/mp4")],
+        sharePositionOrigin: shareButtonRect(context, null),
+      ),
+    );
+  } catch (e) {
+    if (context.mounted) {
+      await showGenericErrorBottomSheet(context: context, error: e);
+    }
+  }
 }
 
 Future<(String, int)?> _getOrCreateMemoryLink(
