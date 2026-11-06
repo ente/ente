@@ -48,7 +48,9 @@ pub fn compute_rewind(
     previous: Option<&RewindState>,
 ) -> Result<RewindState> {
     let previous = previous.filter(|previous| previous.applies_to(request));
-    if let Some(previous) = previous.filter(|previous| previous.is_final) {
+    let same_ml_mode = |previous: &RewindState| previous.ml_coverage.is_some() == store.is_some();
+    if let Some(previous) = previous.filter(|previous| previous.is_final && same_ml_mode(previous))
+    {
         return Ok(previous.clone());
     }
     let library = Library::of_year(request)?;
@@ -442,6 +444,26 @@ mod tests {
             serde_json::from_slice::<RewindRequest>(&bytes).unwrap(),
             request
         );
+    }
+
+    #[test]
+    fn a_final_result_is_recomputed_when_ml_is_switched_on_or_off() {
+        let (_directory, store) = indexed_store(1..=60);
+        let request = request_at(AFTER_NEW_YEAR, daily_photos(1, "2026-01-01T12:00:00", 60));
+
+        let without_ml = compute_rewind(&request, None, Some(&NoCities), None).unwrap();
+        assert!(without_ml.is_final);
+        assert_eq!(colour(&without_ml), None);
+
+        let with_ml =
+            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&without_ml)).unwrap();
+        assert!(with_ml.is_final);
+        assert_eq!(colour(&with_ml), Some(RewindColour::CherryBomb));
+
+        let without_ml_again =
+            compute_rewind(&request, None, Some(&NoCities), Some(&with_ml)).unwrap();
+        assert_eq!(without_ml_again.ml_coverage, None);
+        assert_eq!(colour(&without_ml_again), None);
     }
 
     #[test]
