@@ -12,7 +12,7 @@ class NavigationCardComponent extends StatefulWidget {
   const NavigationCardComponent({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.leading,
     required this.onTap,
   });
@@ -20,7 +20,7 @@ class NavigationCardComponent extends StatefulWidget {
   static const double leadingSize = 34;
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget leading;
   final FutureOr<void> Function() onTap;
 
@@ -76,13 +76,14 @@ class _NavigationCardComponentState extends State<NavigationCardComponent> {
                               height: 20 / 15,
                             ),
                           ),
-                          Text(
-                            widget.subtitle,
-                            style: TextStyles.mini.copyWith(
-                              color: colors.textLight,
-                              height: 18 / 12,
+                          if (widget.subtitle != null)
+                            Text(
+                              widget.subtitle!,
+                              style: TextStyles.mini.copyWith(
+                                color: colors.textLight,
+                                height: 18 / 12,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

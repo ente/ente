@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RootView: View {
-    let assetStoreTask: Task<AssetStore, Never>
+    let chatModelTask: Task<ChatViewModel, Never>
     @State private var chatModel: ChatViewModel?
 
     var body: some View {
@@ -19,8 +19,7 @@ struct RootView: View {
         .tint(EnsuColor.action)
         .task {
             guard chatModel == nil else { return }
-            let assetStore = await assetStoreTask.value
-            chatModel = await ChatViewModel(assetStore: assetStore)
+            chatModel = await chatModelTask.value
         }
     }
 }

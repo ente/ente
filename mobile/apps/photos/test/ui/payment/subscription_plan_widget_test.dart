@@ -59,13 +59,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text("Continue with 10 GB plan"), findsOneWidget);
 
-    await _tapAllowanceText(tester, "Locker");
+    await tester.tap(find.text("Free"));
     await tester.pumpAndSettle();
     expect(selected, isTrue);
     expect(selections, 1);
     expect(find.byType(SubscriptionLockerSheet), findsNothing);
 
-    await _tapAllowanceText(tester, "+ 100 items on ");
+    await tester.tap(find.text("Free"));
     await tester.pumpAndSettle();
     expect(selections, 2);
     expect(find.byType(SubscriptionLockerSheet), findsNothing);

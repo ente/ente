@@ -157,11 +157,6 @@ func shouldCheckFileLinkDeviceLimit(reqPath string) bool {
 
 func (m *FileLinkMiddleware) isDeviceLimitReached(ctx context.Context,
 	collectionSummary *ente.FileLinkRow, ip string, ua string) (bool, error) {
-	// skip deviceLimit check & record keeping for requests via CF worker
-	if network.IsCFWorkerIP(ip) {
-		return false, nil
-	}
-
 	sharedID := collectionSummary.LinkID
 	hasAccessedInPast, err := m.FileLinkRepo.AccessedInPast(ctx, sharedID, ip, ua)
 	if err != nil {
