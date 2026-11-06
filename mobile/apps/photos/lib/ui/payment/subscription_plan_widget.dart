@@ -3,7 +3,6 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/subscription/plan_card.dart';
 import 'package:ente_ui/components/subscription/plan_price.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import "package:photos/ui/payment/subscription_locker_sheet.dart";
 
@@ -46,11 +45,15 @@ class SubscriptionPlanWidget extends StatelessWidget {
           : isPopular
           ? context.strings.mostPopular
           : null,
-      includedAllowance: _LockerAllowance(
-        count: price.isEmpty ? 100 : 1000,
-        isActive: isActive,
-        color: isActive ? colors.specialWhite : colors.textLight,
-      ),
+      includedAllowance: isActive
+          ? _LockerAllowance(
+              count: price.isEmpty ? 100 : 1000,
+              color: colors.specialWhite,
+            )
+          : null,
+      onIncludedAllowanceTap: isActive
+          ? () => showSubscriptionLockerSheet(context)
+          : null,
       price: _Price(
         price: price,
         period: period,
@@ -61,69 +64,32 @@ class SubscriptionPlanWidget extends StatelessWidget {
   }
 }
 
-class _LockerAllowance extends StatefulWidget {
-  const _LockerAllowance({
-    required this.count,
-    required this.isActive,
-    required this.color,
-  });
+class _LockerAllowance extends StatelessWidget {
+  const _LockerAllowance({required this.count, required this.color});
 
   final int count;
-  final bool isActive;
   final Color color;
-
-  @override
-  State<_LockerAllowance> createState() => _LockerAllowanceState();
-}
-
-class _LockerAllowanceState extends State<_LockerAllowance> {
-  final _lockerTap = TapGestureRecognizer();
-
-  @override
-  void initState() {
-    super.initState();
-    _lockerTap.onTap = () => showSubscriptionLockerSheet(context);
-  }
-
-  @override
-  void dispose() {
-    _lockerTap.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final label = context.strings
-        .subscriptionLockerItems(count: widget.count, appName: "\uFFFC")
+        .subscriptionLockerItems(count: count, appName: "\uFFFC")
         .split("\uFFFC");
-    return AnimatedDefaultTextStyle(
-      duration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : Motion.slow,
-      curve: Curves.easeOutCubic,
-      style: DefaultTextStyle.of(context).style.merge(
-        TextStyles.mini.copyWith(
-          color: widget.color,
-          decorationColor: widget.color,
-          height: 18 / 12,
-        ),
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: label[0]),
+          const TextSpan(
+            text: "Locker",
+            style: TextStyle(decoration: TextDecoration.underline),
+          ),
+          TextSpan(text: label[1]),
+        ],
       ),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(text: label[0]),
-            TextSpan(
-              text: "Locker",
-              recognizer: widget.isActive ? _lockerTap : null,
-              style: TextStyle(
-                decoration: widget.isActive
-                    ? TextDecoration.underline
-                    : TextDecoration.none,
-              ),
-            ),
-            TextSpan(text: label[1]),
-          ],
-        ),
+      style: TextStyles.mini.copyWith(
+        color: color,
+        decorationColor: color,
+        height: 18 / 12,
       ),
     );
   }

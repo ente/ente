@@ -4,11 +4,15 @@ pub fn strip_hidden_parts_text(text: &str) -> String {
     let mut stack = Vec::new();
     let mut output = String::new();
     let mut remaining = input.as_str();
-    while let Some((offset, tag)) = tags
-        .iter()
-        .filter_map(|tag| remaining.find(tag).map(|offset| (offset, *tag)))
-        .min_by_key(|(offset, _)| *offset)
-    {
+    while let Some((offset, tag)) = remaining.match_indices('<').find_map(|(offset, _)| {
+        tags.iter()
+            .find(|tag| {
+                remaining[offset..]
+                    .get(..tag.len())
+                    .is_some_and(|candidate| candidate.eq_ignore_ascii_case(tag))
+            })
+            .map(|tag| (offset, *tag))
+    }) {
         if stack.is_empty() {
             output.push_str(&remaining[..offset]);
         }
@@ -48,7 +52,7 @@ mod tests {
             ),
             (
                 "interrupted_reasoning",
-                "Visible fact.<think>Unfinished private reasoning",
+                "Visible fact.<THINK>Unfinished private reasoning",
                 "Visible fact.",
             ),
             (
@@ -58,8 +62,8 @@ mod tests {
             ),
             (
                 "nested_blocks",
-                "<think>outer<todo_list>inner</todo_list>hidden</think>Visible",
-                "Visible",
+                "नमस्ते <ThInK>outer<THINK>inner</think><TODO_LIST>task</todo_list>hidden</tHiNk>Visible",
+                "नमस्ते Visible",
             ),
             (
                 "mismatched_close",

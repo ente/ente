@@ -14,6 +14,7 @@ class SubscriptionPlanCard extends StatelessWidget {
     required this.unit,
     required this.includedAllowance,
     required this.price,
+    this.onIncludedAllowanceTap,
     this.isSelected = false,
     this.isFree = false,
     this.badgeLabel,
@@ -29,8 +30,9 @@ class SubscriptionPlanCard extends StatelessWidget {
 
   final String value;
   final String unit;
-  final Widget includedAllowance;
+  final Widget? includedAllowance;
   final Widget price;
+  final VoidCallback? onIncludedAllowanceTap;
   final bool isSelected;
   final bool isFree;
   final String? badgeLabel;
@@ -188,9 +190,29 @@ class SubscriptionPlanCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          const SizedBox(height: Spacing.xs),
-                          includedAllowance,
+                          if (includedAllowance != null) ...[
+                            const SizedBox(height: Spacing.xs),
+                            includedAllowance!,
+                          ],
                         ],
+                      );
+                      final allowanceTarget = Semantics(
+                        button: onIncludedAllowanceTap != null,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: onIncludedAllowanceTap,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: onIncludedAllowanceTap == null
+                                  ? 0
+                                  : kMinInteractiveDimension,
+                            ),
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: allowance,
+                            ),
+                          ),
+                        ),
                       );
                       if (constraints.maxWidth < 260 ||
                           textScaler.scale(12) > 16) {
@@ -198,7 +220,7 @@ class SubscriptionPlanCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            allowance,
+                            allowanceTarget,
                             const SizedBox(height: Spacing.sm),
                             Align(
                               alignment: Alignment.centerRight,
@@ -210,7 +232,7 @@ class SubscriptionPlanCard extends StatelessWidget {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(child: allowance),
+                          Expanded(child: allowanceTarget),
                           const SizedBox(width: Spacing.xs),
                           ConstrainedBox(
                             constraints: BoxConstraints(

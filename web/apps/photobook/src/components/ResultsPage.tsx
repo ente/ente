@@ -9,7 +9,7 @@ import {
     PrintExportValidationError,
 } from "@/lib/printProducts";
 import { getSpreadLabel } from "@/lib/spreads";
-import { headerButtonSx } from "@/theme/buttons";
+import { editorButtonSx, headerButtonSx } from "@/theme/buttons";
 import { popupShadow, toolbarColors, uiColors } from "@/theme/colors";
 import {
     Alert,
@@ -24,18 +24,32 @@ import {
 } from "@mui/material";
 import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import BookBindingSelect from "./BookBindingSelect";
 import BookHeader from "./BookHeader";
+import BookSidebar from "./BookSidebar";
+import BookTitleInput from "./BookTitleInput";
 import BookViewer, { type BookViewerHandle } from "./BookViewer";
+import DesktopEditingDialog from "./DesktopEditingDialog";
 import {
+    EDITOR_HEADER_HEIGHT,
     EDITOR_PANEL_BOTTOM_INSET,
     EDITOR_PANEL_INSET,
     EDITOR_PANEL_SX,
     MOBILE_QUERY,
 } from "./editorLayout";
 import { DownloadIcon, EditIcon } from "./icons";
+import PrintValidationDialog, {
+    type PrintValidation,
+} from "./PrintValidationDialog";
 import ResetBookButton from "./ResetBookButton";
 
-function ResultsPage() {
+function ResultsPage({
+    sidebarOpen,
+    onToggleSidebar,
+}: {
+    sidebarOpen: boolean;
+    onToggleSidebar: () => void;
+}) {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
     const { book, photos, setAppView, waitForEnteOriginals } = useBook(
         "book",
@@ -45,12 +59,15 @@ function ResultsPage() {
     );
     const viewerRef = useRef<BookViewerHandle>(null);
     const [spreadIndex, setSpreadIndex] = useState(0);
+    const [desktopEditingOpen, setDesktopEditingOpen] = useState(false);
     const [downloadPhase, setDownloadPhase] = useState<
         "idle" | "originals" | "exporting"
     >("idle");
     const downloadInProgress = useRef(false);
     const [exportProgress, setExportProgress] = useState(0);
     const [exportError, setExportError] = useState<string | null>(null);
+    const [printValidation, setPrintValidation] =
+        useState<PrintValidation | null>(null);
     const waitingForOriginals = downloadPhase === "originals";
     const [originalsProgress, setOriginalsProgress] = useState({
         done: 0,
@@ -108,7 +125,7 @@ function ResultsPage() {
                     target.tagName === "TEXTAREA" ||
                     target.isContentEditable ||
                     target.closest(
-                        '[role="combobox"], [role="listbox"], [role="option"]',
+                        '[role="dialog"], [role="combobox"], [role="listbox"], [role="option"]',
                     ))
             ) {
                 return;
@@ -132,7 +149,11 @@ function ResultsPage() {
             exportPages.length,
         );
         if (validationError) {
-            setExportError(validationError);
+            setPrintValidation({
+                selection: printSelection,
+                pageCount: exportPages.length,
+                error: validationError,
+            });
             return;
         }
 
@@ -187,11 +208,15 @@ function ResultsPage() {
             saveAsFileAndRevokeObjectURL(URL.createObjectURL(blob), filename);
         } catch (e) {
             console.error("Export failed:", e);
-            setExportError(
-                e instanceof PrintExportValidationError
-                    ? e.message
-                    : "Export failed. Please try again.",
-            );
+            if (e instanceof PrintExportValidationError) {
+                setPrintValidation({
+                    selection: printSelection,
+                    pageCount: exportPages.length,
+                    error: e.message,
+                });
+            } else {
+                setExportError("Export failed. Please try again.");
+            }
         } finally {
             downloadInProgress.current = false;
             setDownloadPhase("idle");
@@ -203,6 +228,110 @@ function ResultsPage() {
         waitForEnteOriginals,
     ]);
 
+    const actions = (
+        <>
+            <Button
+                aria-label="Edit"
+                startIcon={<EditIcon />}
+                onClick={() =>
+                    mobile ? setDesktopEditingOpen(true) : setAppView("edit")
+                }
+                disabled={busy}
+                sx={{
+                    ...(mobile ? editorButtonSx : headerButtonSx),
+                    color: toolbarColors.text,
+                    bgcolor: toolbarColors.control,
+                    "&:hover": { bgcolor: toolbarColors.hover },
+                    "&:active": { bgcolor: toolbarColors.active },
+                    "&.Mui-disabled": {
+                        color: toolbarColors.disabled,
+                        bgcolor: toolbarColors.control,
+                        opacity: 1,
+                    },
+                }}
+            >
+                Edit
+            </Button>
+            {mobile && <ResetBookButton disabled={busy} />}
+            <Button
+                id="download-button"
+                variant="contained"
+                aria-label={
+                    busy ? `Downloading, ${exportProgress}%` : "Download"
+                }
+                aria-busy={busy}
+                startIcon={
+                    <Box
+                        component="span"
+                        sx={{
+                            display: "grid",
+                            placeItems: "center",
+                            width: 20,
+                            height: 20,
+                            flexShrink: 0,
+                        }}
+                    >
+                        <DownloadIcon
+                            sx={{
+                                gridArea: "1 / 1",
+                                fontSize: 20,
+                                visibility: busy ? "hidden" : "visible",
+                            }}
+                        />
+                        <CircularProgress
+                            disableShrink
+                            size={mobile ? 16 : 20}
+                            thickness={4}
+                            color="inherit"
+                            aria-hidden="true"
+                            sx={{
+                                gridArea: "1 / 1",
+                                visibility: busy ? "visible" : "hidden",
+                                willChange: "transform",
+                                "& circle": { strokeLinecap: "round" },
+                            }}
+                        />
+                    </Box>
+                }
+                disabled={busy || pages.length === 0}
+                onClick={handleExport}
+                sx={{
+                    ...(mobile ? editorButtonSx : headerButtonSx),
+                    ...(mobile && { ml: "auto", gap: busy ? 0.5 : 0 }),
+                    ...(busy && { "&.Mui-disabled": { opacity: 1 } }),
+                }}
+            >
+                <Box
+                    component="span"
+                    sx={{ display: mobile && busy ? "none" : "inline" }}
+                >
+                    {busy ? "Downloading" : "Download"}
+                </Box>
+                {busy && (
+                    <Box
+                        component="span"
+                        sx={{
+                            display: "inline-flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            flexShrink: 0,
+                            width: "4.5ch",
+                            py: 0.5,
+                            borderRadius: "7px",
+                            bgcolor: "rgba(0,0,0,0.12)",
+                            fontSize: 12,
+                            lineHeight: "16px",
+                            fontWeight: 600,
+                            fontVariantNumeric: "tabular-nums",
+                        }}
+                    >
+                        {exportProgress}%
+                    </Box>
+                )}
+            </Button>
+        </>
+    );
+
     return (
         <Box
             sx={{
@@ -213,135 +342,102 @@ function ResultsPage() {
                 bgcolor: uiColors.background,
             }}
         >
-            <BookHeader showBindingSelect titleDisabled={busy}>
-                {mobile ? (
-                    <ResetBookButton disabled={busy} />
-                ) : (
-                    <Button
-                        aria-label="Edit"
-                        startIcon={<EditIcon />}
-                        onClick={() => setAppView("edit")}
-                        disabled={busy}
-                        sx={{
-                            ...headerButtonSx,
-                            color: toolbarColors.text,
-                            bgcolor: toolbarColors.control,
-                            "&:hover": { bgcolor: toolbarColors.hover },
-                            "&:active": { bgcolor: toolbarColors.active },
-                            "&.Mui-disabled": {
-                                color: toolbarColors.disabled,
-                                bgcolor: toolbarColors.control,
-                                opacity: 1,
-                            },
-                        }}
-                    >
-                        <Box
-                            component="span"
-                            sx={{ display: { xs: "none", sm: "inline" } }}
-                        >
-                            Edit
-                        </Box>
-                    </Button>
-                )}
-                <Button
-                    id="download-button"
-                    variant="contained"
-                    aria-label={
-                        busy ? `Downloading, ${exportProgress}%` : "Download"
-                    }
-                    aria-busy={busy}
-                    startIcon={
-                        <Box
-                            component="span"
-                            sx={{
-                                display: "grid",
-                                width: 18,
-                                height: 18,
-                                flexShrink: 0,
-                            }}
-                        >
-                            <DownloadIcon
-                                strokeWidth={2.2}
-                                sx={{
-                                    gridArea: "1 / 1",
-                                    visibility: busy ? "hidden" : "visible",
-                                }}
-                            />
-                            <CircularProgress
-                                disableShrink
-                                size={18}
-                                thickness={4}
-                                color="inherit"
-                                aria-hidden="true"
-                                sx={{
-                                    gridArea: "1 / 1",
-                                    visibility: busy ? "visible" : "hidden",
-                                    willChange: "transform",
-                                    "& circle": { strokeLinecap: "round" },
-                                }}
-                            />
-                        </Box>
-                    }
-                    disabled={busy || pages.length === 0}
-                    onClick={handleExport}
+            {mobile ? (
+                <Box
+                    component="header"
                     sx={{
-                        ...headerButtonSx,
-                        fontWeight: 700,
-                        gap: { xs: busy ? "6px" : 0, sm: "8px" },
-                        ...(busy && { "&.Mui-disabled": { opacity: 1 } }),
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        minHeight: EDITOR_HEADER_HEIGHT,
+                        px: 1,
+                        gap: 1,
+                        flexShrink: 0,
                     }}
                 >
-                    <Box
-                        component="span"
-                        sx={{ display: { xs: "none", sm: "inline" } }}
-                    >
-                        {busy ? "Downloading" : "Download"}
-                    </Box>
-                    {busy && (
-                        <Box
-                            component="span"
-                            sx={{
-                                display: "inline-flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                flexShrink: 0,
-                                width: "4.5ch",
-                                py: 0.5,
-                                borderRadius: "7px",
-                                bgcolor: "rgba(0,0,0,0.12)",
-                                fontSize: 12,
-                                lineHeight: "16px",
-                                fontWeight: 600,
-                                fontVariantNumeric: "tabular-nums",
-                            }}
-                        >
-                            {exportProgress}%
-                        </Box>
-                    )}
-                </Button>
-            </BookHeader>
+                    <BookTitleInput disabled={busy} />
+                    <BookBindingSelect disabled={busy} />
+                </Box>
+            ) : (
+                <BookHeader
+                    showBindingSelect
+                    titleDisabled={busy}
+                    sidebarOpen={sidebarOpen}
+                    onToggleSidebar={onToggleSidebar}
+                >
+                    {actions}
+                </BookHeader>
+            )}
 
             <Box
-                component="main"
-                aria-label={`Photobook preview: ${pageLabel}`}
                 sx={{
-                    ...EDITOR_PANEL_SX,
+                    display: "flex",
                     flex: 1,
                     minHeight: 0,
-                    mb: EDITOR_PANEL_BOTTOM_INSET,
-                    borderRadius: "20px",
-                    display: "flex",
-                    position: "relative",
-                    overflow: "hidden",
-                    px: { xs: 1, sm: 4 },
+                    gap: EDITOR_PANEL_INSET,
+                    mb: mobile ? 0 : EDITOR_PANEL_BOTTOM_INSET,
                 }}
             >
-                <BookViewer
-                    ref={viewerRef}
-                    pages={pages}
-                    onSpreadChange={handleSpreadChange}
-                />
+                {!mobile && sidebarOpen && (
+                    <BookSidebar
+                        readOnly
+                        onSpreadClick={(index) =>
+                            viewerRef.current?.goToSpread(index)
+                        }
+                    />
+                )}
+                <Box
+                    component="main"
+                    aria-label={`Photobook preview: ${pageLabel}`}
+                    sx={{
+                        ...EDITOR_PANEL_SX,
+                        ...(mobile && { bgcolor: "transparent" }),
+                        flex: 1,
+                        minWidth: 0,
+                        borderRadius: "20px",
+                        display: "flex",
+                        position: "relative",
+                        overflow: "hidden",
+                        px: { xs: 1, sm: 4 },
+                    }}
+                >
+                    <BookViewer
+                        ref={viewerRef}
+                        pages={pages}
+                        onSpreadChange={handleSpreadChange}
+                    />
+                </Box>
             </Box>
+
+            {mobile && (
+                <Box
+                    component="footer"
+                    aria-label="Photobook actions"
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        px: 1,
+                        pt: 1,
+                        pb: "max(16px, env(safe-area-inset-bottom))",
+                        flexShrink: 0,
+                    }}
+                >
+                    {actions}
+                </Box>
+            )}
+
+            <DesktopEditingDialog
+                open={mobile && desktopEditingOpen}
+                onClose={() => setDesktopEditingOpen(false)}
+            />
+
+            {printValidation && (
+                <PrintValidationDialog
+                    validation={printValidation}
+                    onClose={() => setPrintValidation(null)}
+                />
+            )}
 
             <Dialog
                 open={waitingForOriginals}

@@ -1,0 +1,1 @@
+- Fixed app lock being skipped after iOS launches the app in the background.

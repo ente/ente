@@ -265,13 +265,20 @@ impl Memory {
         first_date_to_show: impl Into<MemoryBoundary>,
         last_date_to_show: impl Into<MemoryBoundary>,
     ) -> Self {
+        let mut memory = Self::uncapped(kind, photos, first_date_to_show, last_date_to_show);
+        memory.file_ids.truncate(MAX_MEMORY_ITEMS);
+        memory
+    }
+
+    pub(super) fn uncapped(
+        kind: MemoryKind,
+        photos: &[&Photo],
+        first_date_to_show: impl Into<MemoryBoundary>,
+        last_date_to_show: impl Into<MemoryBoundary>,
+    ) -> Self {
         Self {
             kind,
-            file_ids: photos
-                .iter()
-                .take(MAX_MEMORY_ITEMS)
-                .map(|photo| photo.id)
-                .collect(),
+            file_ids: photos.iter().map(|photo| photo.id).collect(),
             first_date_to_show: first_date_to_show.into(),
             last_date_to_show: last_date_to_show.into(),
         }

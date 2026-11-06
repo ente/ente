@@ -45,7 +45,8 @@ class SmartMemory {
     String? id,
     this.firstCreationTime,
     this.lastCreationTime,
-  }) : memories = _capMemories(memories) {
+    bool capMemories = true,
+  }) : memories = capMemories ? _capMemories(memories) : memories {
     this.id = id ?? newID(type.name);
   }
 

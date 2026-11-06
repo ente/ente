@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    ffi::OsStr,
     fs,
     path::{Component, Path},
 };
@@ -52,6 +53,11 @@ pub fn check(root: &Path, path: &str) -> Result<std::path::PathBuf> {
         }
     }
     Ok(current)
+}
+
+pub fn is_finder_metadata(name: &OsStr) -> bool {
+    let bytes = name.as_encoded_bytes();
+    bytes == b".DS_Store" || bytes.starts_with(b"._")
 }
 
 pub fn portable(name: &str) -> String {
@@ -262,5 +268,18 @@ pub fn same_path(a: &Path, b: &Path) -> bool {
     match (fs::canonicalize(a), fs::canonicalize(b)) {
         (Ok(a), Ok(b)) => a == b,
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_finder_metadata;
+    use std::ffi::OsStr;
+
+    #[test]
+    fn finder_metadata_is_recognized() {
+        for name in ["._export.json", "._nomfichier", "._photo.jpg", ".DS_Store"] {
+            assert!(is_finder_metadata(OsStr::new(name)), "{name}");
+        }
     }
 }

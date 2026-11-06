@@ -32,11 +32,27 @@ func (repo *ObjectCleanupRepository) AddTempObject(tempObject ente.TempObject, e
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *sql.Tx, objectKey string, userID int64, app ente.App) error {
+func (repo *ObjectCleanupRepository) GetFileUploadBucket(ctx context.Context, objectKey string, userID int64, app ente.App) (string, error) {
+	var bucket sql.NullString
+	err := repo.DB.QueryRowContext(ctx, `SELECT bucket_id FROM temp_objects WHERE object_key = $1
+		AND (user_id IS NULL OR user_id = $2)
+		AND (app IS NULL OR app = $3)
+		AND (purpose IS NULL OR purpose = 'file_upload')`, objectKey, userID, app).Scan(&bucket)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if !bucket.Valid || bucket.String == "" {
+		return "", ente.NewBadRequestWithMessage("staged upload not found")
+	}
+	return bucket.String, nil
+}
+
+func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *sql.Tx, objectKey string, userID int64, app ente.App, bucket string) error {
 	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1
 		AND (user_id IS NULL OR user_id = $2)
 		AND (app IS NULL OR app = $3)
-		AND (purpose IS NULL OR purpose = 'file_upload')`, objectKey, userID, app)
+		AND (purpose IS NULL OR purpose = 'file_upload')
+		AND bucket_id = $4`, objectKey, userID, app, bucket)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

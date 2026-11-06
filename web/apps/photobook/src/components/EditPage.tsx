@@ -7,7 +7,7 @@ import { isRequiredBlankPage } from "@/lib/bookPages";
 import type { PhotoDestination } from "@/lib/photoPlacement";
 import { getSpreadPageIndices } from "@/lib/spreads";
 import type { TextBlock } from "@/lib/types";
-import { toolbarColors, uiColors } from "@/theme/colors";
+import { toolbarColors, toolbarShadow, uiColors } from "@/theme/colors";
 import {
     Alert,
     Backdrop,
@@ -30,9 +30,9 @@ import React, {
 import AddPageDialog from "./AddPageDialog";
 import AddPhotosDialog from "./AddPhotosDialog";
 import BookHeader from "./BookHeader";
+import BookSidebar from "./BookSidebar";
 import EditorActions, { EditorPreviewButton } from "./EditorActions";
 import type { PageInsertPosition } from "./PageMenu";
-import PageStrip from "./PageStrip";
 import PrinterBlankPage from "./PrinterBlankPage";
 import SpreadPage, { PICKER_WIDTH } from "./SpreadPage";
 import {
@@ -41,14 +41,19 @@ import {
     EDITOR_PANEL_INSET,
     EDITOR_PANEL_SX,
     EDITOR_SCROLLBAR_SX,
-    EDITOR_SIDEBAR_WIDTH,
     LARGE_DESKTOP_QUERY,
     MAX_DISPLAY_PAGE_SIZE,
 } from "./editorLayout";
 
 const PAGE_GAP = 2;
 
-function EditPage() {
+function EditPage({
+    sidebarOpen,
+    onToggleSidebar,
+}: {
+    sidebarOpen: boolean;
+    onToggleSidebar: () => void;
+}) {
     const largeDesktop = useMediaQuery(LARGE_DESKTOP_QUERY);
     const {
         book,
@@ -429,7 +434,32 @@ function EditPage() {
                 bgcolor: uiColors.background,
             }}
         >
-            <BookHeader showBookControls={pages.length > 0}>
+            <BookHeader
+                showBookControls={pages.length > 0}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={onToggleSidebar}
+                center={
+                    <Box
+                        component="nav"
+                        aria-label="Photobook tools"
+                        sx={{
+                            "--toolbar-radius": "20px",
+                            "--toolbar-inset": "6px",
+                            bgcolor: toolbarColors.background,
+                            width: "max-content",
+                            maxWidth: "100%",
+                            p: "var(--toolbar-inset)",
+                            borderRadius: "var(--toolbar-radius)",
+                            boxShadow: toolbarShadow,
+                        }}
+                    >
+                        <EditorActions
+                            onAddPage={() => setAddPageDialogOpen(true)}
+                            onAddPhotos={() => handleAddPhotos()}
+                        />
+                    </Box>
+                }
+            >
                 <EditorPreviewButton />
             </BookHeader>
 
@@ -442,22 +472,9 @@ function EditPage() {
                     mb: EDITOR_PANEL_BOTTOM_INSET,
                 }}
             >
-                <Box
-                    component="aside"
-                    id="book-pages-sidebar"
-                    aria-label="Book pages"
-                    sx={{
-                        ...EDITOR_PANEL_SX,
-                        borderRadius: "20px",
-                        width: EDITOR_SIDEBAR_WIDTH,
-                        display: pages.length > 0 ? "flex" : "none",
-                        flexDirection: "column",
-                        flexShrink: 0,
-                        overflow: "hidden",
-                    }}
-                >
-                    <PageStrip onSpreadClick={handleSidebarSpreadClick} />
-                </Box>
+                {sidebarOpen && pages.length > 0 && (
+                    <BookSidebar onSpreadClick={handleSidebarSpreadClick} />
+                )}
 
                 <Box
                     component="main"
@@ -505,11 +522,7 @@ function EditPage() {
                                     flexDirection: "column",
                                     alignItems: "center",
                                     px: `${EDITOR_CANVAS_PADDING}px`,
-                                    pt: 4,
-                                    pb: {
-                                        xs: "calc(144px + env(safe-area-inset-bottom))",
-                                        sm: "calc(96px + env(safe-area-inset-bottom))",
-                                    },
+                                    py: 4,
                                     gap: 8,
                                 }}
                             >
@@ -813,33 +826,6 @@ function EditPage() {
                         )}
                     </Box>
                 </Box>
-            </Box>
-
-            <Box
-                component="nav"
-                aria-label="Photobook tools"
-                sx={{
-                    ...EDITOR_PANEL_SX,
-                    "--toolbar-radius": "20px",
-                    "--toolbar-inset": "6px",
-                    bgcolor: toolbarColors.background,
-                    display: pages.length > 0 ? "block" : "none",
-                    position: "fixed",
-                    left: "50%",
-                    bottom: "calc(20px + env(safe-area-inset-bottom))",
-                    transform: "translateX(-50%)",
-                    width: "max-content",
-                    maxWidth: "calc(100% - 32px)",
-                    p: "var(--toolbar-inset)",
-                    borderRadius: "var(--toolbar-radius)",
-                    zIndex: 1200,
-                    boxShadow: `inset 0 0 0 1px ${toolbarColors.border}, 0 8px 24px rgba(0,0,0,0.3)`,
-                }}
-            >
-                <EditorActions
-                    onAddPage={() => setAddPageDialogOpen(true)}
-                    onAddPhotos={() => handleAddPhotos()}
-                />
             </Box>
 
             <input

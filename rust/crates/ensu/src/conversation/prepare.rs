@@ -19,6 +19,12 @@ pub enum PrepareError {
 }
 
 pub trait Effects {
+    fn supports_partial_prompt_reuse(&self) -> bool {
+        false
+    }
+    fn prefer_large_summary_chunks(&self) -> bool {
+        false
+    }
     fn check_current(&mut self) -> Result<(), PrepareError>;
     fn check_cancelled(&mut self) -> Result<(), PrepareError> {
         self.check_current()
@@ -35,6 +41,14 @@ pub trait Effects {
 pub struct PreparationResult {
     pub messages: Vec<ChatMessage>,
     pub prompt_tokens: usize,
+    pub(super) grounding_anchor: Option<GroundingAnchor>,
+    pub(super) saved: bool,
+}
+
+impl PreparationResult {
+    pub fn is_saved(&self) -> bool {
+        self.saved
+    }
 }
 
 pub struct Preparation {
@@ -48,6 +62,7 @@ pub struct Preparation {
     summary_output: usize,
     state: Option<ConversationState>,
     covered: usize,
+    grounding: Option<PromptGrounding>,
 }
 
 struct PendingChunk {
@@ -100,6 +115,7 @@ impl Preparation {
             summary_output,
             state,
             covered,
+            grounding: None,
         })
     }
 
@@ -117,14 +133,49 @@ impl Preparation {
         self
     }
 
+    pub(super) fn with_grounding(mut self, grounding: Option<PromptGrounding>) -> Self {
+        self.grounding = grounding;
+        self
+    }
+
+    fn answer_messages(
+        &self,
+        memory: Option<&str>,
+        tail: &[Message],
+        current: &str,
+    ) -> Vec<ChatMessage> {
+        let mut messages = answer_messages(&self.system, memory, tail, current);
+        if let Some(grounding) = &self.grounding {
+            grounding.apply(tail, &mut messages);
+        }
+        messages
+    }
+
+    fn result(
+        &self,
+        messages: Vec<ChatMessage>,
+        prompt_tokens: usize,
+        tail: &[Message],
+    ) -> PreparationResult {
+        PreparationResult {
+            messages,
+            prompt_tokens,
+            saved: false,
+            grounding_anchor: self
+                .grounding
+                .as_ref()
+                .map(|grounding| grounding.anchor(tail)),
+        }
+    }
+
     fn fallback(&self, effects: &mut impl Effects) -> Result<PreparationResult, PrepareError> {
         effects.check_current()?;
         let mut memory = self.state.as_ref().map(|s| s.summary.text.as_str());
-        let mut messages = answer_messages(&self.system, memory, &[], &self.current);
+        let mut messages = self.answer_messages(memory, &[], &self.current);
         let mut prompt_tokens = effects.measure(&messages)?;
         if prompt_tokens > self.input_budget {
             memory = None;
-            messages = answer_messages(&self.system, None, &[], &self.current);
+            messages = self.answer_messages(None, &[], &self.current);
             prompt_tokens = effects.measure(&messages)?;
         }
         if prompt_tokens > self.input_budget {
@@ -133,30 +184,25 @@ impl Preparation {
         let start = if memory.is_some() { self.covered } else { 0 };
         let history = &self.history[start..];
         let ranges = exchanges(history);
+        let mut retained_start = history.len();
         let (mut low, mut high) = (0, ranges.len());
         while low < high {
             effects.check_current()?;
             let mid = low + (high - low) / 2;
-            let candidate = answer_messages(
-                &self.system,
-                memory,
-                &history[ranges[mid].start..],
-                &self.current,
-            );
+            let candidate =
+                self.answer_messages(memory, &history[ranges[mid].start..], &self.current);
             let count = effects.measure(&candidate)?;
             if count <= self.input_budget {
                 messages = candidate;
                 prompt_tokens = count;
+                retained_start = ranges[mid].start;
                 high = mid;
             } else {
                 low = mid + 1;
             }
         }
         effects.check_current()?;
-        Ok(PreparationResult {
-            messages,
-            prompt_tokens,
-        })
+        Ok(self.result(messages, prompt_tokens, &history[retained_start..]))
     }
 
     pub fn run(&mut self, effects: &mut impl Effects) -> Result<PreparationResult, PrepareError> {
@@ -164,30 +210,23 @@ impl Preparation {
         let mut retrying = false;
         let mut use_retry_instruction = false;
         effects.check_current()?;
-        let mandatory = answer_messages(&self.system, None, &[], &self.current);
+        let mandatory = self.answer_messages(None, &[], &self.current);
         if effects.measure(&mandatory)? > self.input_budget {
             return Err(PrepareError::CurrentInputTooLarge);
         }
         if self.covered > 0 {
-            let messages = answer_messages(&self.system, None, &self.history, &self.current);
+            let messages = self.answer_messages(None, &self.history, &self.current);
             let prompt_tokens = effects.measure(&messages)?;
             if prompt_tokens <= self.input_budget {
                 effects.check_current()?;
-                return Ok(PreparationResult {
-                    messages,
-                    prompt_tokens,
-                });
+                return Ok(self.result(messages, prompt_tokens, &self.history));
             }
         }
         loop {
             effects.check_current()?;
             let memory = self.state.as_ref().map(|s| s.summary.text.as_str());
-            let messages = answer_messages(
-                &self.system,
-                memory,
-                &self.history[self.covered..],
-                &self.current,
-            );
+            let messages =
+                self.answer_messages(memory, &self.history[self.covered..], &self.current);
             let count = effects.measure(&messages)?;
             if count <= self.input_budget {
                 if self.covered > 0
@@ -200,29 +239,28 @@ impl Preparation {
                         .min(self.input_budget / 8)
                         .min(self.input_budget - count);
                     for take in (0..=lookup.excerpts.len()).rev() {
-                        let mut recovered = messages.clone();
-                        if let Some(current) = recovered.last_mut() {
-                            current.content = lookup.prepend_to(&self.current, take);
-                        }
+                        let recovered = self.answer_messages(
+                            memory,
+                            &self.history[self.covered..],
+                            &lookup.prepend_to(&self.current, take),
+                        );
                         let tokens = effects.measure(&recovered)?;
                         if tokens <= self.input_budget && tokens.saturating_sub(count) <= allowance
                         {
                             effects.check_current()?;
-                            return Ok(PreparationResult {
-                                messages: recovered,
-                                prompt_tokens: tokens,
-                            });
+                            return Ok(self.result(
+                                recovered,
+                                tokens,
+                                &self.history[self.covered..],
+                            ));
                         }
                     }
                 }
                 effects.check_current()?;
-                return Ok(PreparationResult {
-                    messages,
-                    prompt_tokens: count,
-                });
+                return Ok(self.result(messages, count, &self.history[self.covered..]));
             }
             let memory_tokens = if memory.is_some() {
-                effects.measure(&answer_messages(&self.system, memory, &[], &self.current))?
+                effects.measure(&self.answer_messages(memory, &[], &self.current))?
             } else {
                 0
             };
@@ -245,7 +283,7 @@ impl Preparation {
                 let Ok(text) = completed_summary(&text, finish) else {
                     return self.fallback(effects);
                 };
-                let after = answer_messages(&self.system, Some(&text), &[], &self.current);
+                let after = self.answer_messages(Some(&text), &[], &self.current);
                 if effects.measure(&after)? >= memory_tokens {
                     return self.fallback(effects);
                 }
@@ -257,6 +295,7 @@ impl Preparation {
                 continue;
             }
             if pending_chunk.is_none() {
+                let full_summary_budget = effects.prefer_large_summary_chunks();
                 let ranges = exchanges(&self.history[self.covered..]);
                 let mut end = self.covered + ranges.first().ok_or(PrepareError::CannotFit)?.end;
                 let preferred = ranges.len().saturating_sub(2).max(1);
@@ -265,7 +304,9 @@ impl Preparation {
                     let request = summary_messages(memory, &self.history[self.covered..candidate]);
                     let tokens = effects.measure(&request)?;
                     if tokens > self.summary_input_budget
-                        || (candidate > end && tokens > self.input_budget / 2)
+                        || (!full_summary_budget
+                            && candidate > end
+                            && tokens > self.input_budget / 2)
                     {
                         break;
                     }
