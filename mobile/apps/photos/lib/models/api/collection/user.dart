@@ -6,8 +6,17 @@ class User {
   String email;
   final String? label;
   String? role;
+  final String acceptanceStatus;
 
-  User({required this.id, required this.email, this.label, this.role});
+  User({
+    required this.id,
+    required this.email,
+    this.label,
+    this.role,
+    this.acceptanceStatus = 'accepted',
+  });
+
+  bool get isPending => acceptanceStatus == 'pending';
 
   bool get isViewer => role == null || role?.toUpperCase() == 'VIEWER';
 
@@ -17,7 +26,12 @@ class User {
   bool get isAdmin => role != null && role?.toUpperCase() == 'ADMIN';
 
   Map<String, dynamic> toMap() {
-    return {'id': id, 'email': email, "role": role};
+    return {
+      'id': id,
+      'email': email,
+      "role": role,
+      'acceptanceStatus': acceptanceStatus,
+    };
   }
 
   static User fromMap(Map<String, dynamic> map) {
@@ -25,6 +39,7 @@ class User {
       id: map['id'] as int,
       email: map['email'] as String,
       role: map['role'] ?? 'VIEWER',
+      acceptanceStatus: map['acceptanceStatus'] as String? ?? 'accepted',
     );
   }
 

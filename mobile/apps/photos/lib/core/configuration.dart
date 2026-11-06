@@ -218,6 +218,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
   @override
   Future<void> logout({bool autoLogout = false}) async {
     _logger.info("Logging out, autoLogout: $autoLogout");
+    await CollectionsService.instance.invitations.clearAccount();
     MLService.instance.stopActiveRun(MlStopReason.logout);
     if (!autoLogout) {
       VideoPreviewService.instance.stop('logout');

@@ -83,15 +83,33 @@ class CollectionsGateway {
     );
   }
 
-  Future<void> joinViaLink({
+  Future<Map<String, dynamic>> joinViaLink({
     required int collectionID,
     required String encryptedKey,
     required Map<String, String> headers,
   }) async {
-    await _enteDio.post(
+    final response = await _enteDio.post(
       "/collections/join-link",
       data: {"collectionID": collectionID, "encryptedKey": encryptedKey},
       options: Options(headers: headers),
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<Map<String, dynamic>> acceptInvitations(
+    List<int> collectionIDs,
+  ) async {
+    final response = await _enteDio.post(
+      "/collections/accept",
+      data: {"collectionIDs": collectionIDs},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<void> rejectInvitation(int collectionID) async {
+    await _enteDio.post(
+      "/collections/reject",
+      data: {"collectionID": collectionID},
     );
   }
 

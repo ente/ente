@@ -10,21 +10,27 @@ import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/tab_changed_event.dart";
+import "package:photos/models/collection/collection_invitation.dart";
 import "package:photos/models/collection/collection_items.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/social/feed_data_provider.dart";
 import "package:photos/models/social/feed_item.dart";
 import "package:photos/models/social/social_data_provider.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/contacts/contact_identity_resolver.dart";
 import 'package:photos/services/social_notification_coordinator.dart';
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
+import "package:photos/ui/sharing/share_invitation_sheet.dart";
 import "package:photos/ui/social/comments_screen.dart";
 import "package:photos/ui/social/social_actor_contact_navigation.dart";
 import "package:photos/ui/social/widgets/feed_empty_state.dart";
 import "package:photos/ui/social/widgets/feed_item_widget.dart";
+import "package:photos/ui/social/widgets/share_invitation_feed_controller.dart";
+import "package:photos/ui/social/widgets/share_invitation_feed_item.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
+import "package:photos/utils/dialog_util.dart";
 
 final _logger = Logger("FeedScreen");
 
@@ -89,7 +95,7 @@ class FeedScreen extends StatefulWidget {
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State<FeedScreen> {
+class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   static const _kInitialFeedLimit = 50;
   static const _kFeedLoadMoreStep = 50;
   static const _kMaxFeedLimit = 500;
@@ -107,6 +113,11 @@ class _FeedScreenState extends State<FeedScreen> {
   bool _isOpeningNavigationTarget = false;
   bool _hasMarkedSocialSeen = false;
   bool _hasStartedLoading = false;
+  late final ShareInvitationFeedController _invitationController;
+  bool _feedTabActive = false;
+  bool _routeCurrent = false;
+  bool _appResumed = true;
+  bool _suppressNextVisibleRefresh = false;
   StreamSubscription<TabChangedEvent>? _tabChangedEventSubscription;
   final Set<String> _suppressedForwardHeroPrefixes = <String>{};
   final ScrollController _scrollController = ScrollController();
@@ -118,6 +129,23 @@ class _FeedScreenState extends State<FeedScreen> {
   void initState() {
     super.initState();
     _currentUserID = Configuration.instance.getUserID() ?? 0;
+    final collections = CollectionsService.instance;
+    _invitationController = ShareInvitationFeedController(
+      load: collections.refreshPendingInvitations,
+      markSeen: (snapshot) async {
+        if (mounted &&
+            _feedTabActive &&
+            _appResumed &&
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
+          await collections.invitations.markSeen(snapshot);
+        }
+      },
+    );
+    collections.invitations.addListener(_onInvitationsChanged);
+    WidgetsBinding.instance.addObserver(this);
+    _appResumed =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _pendingNavigationTarget = widget.initialTarget;
     _scrollController.addListener(_onScroll);
     if (widget.showBackButton) {
@@ -128,13 +156,34 @@ class _FeedScreenState extends State<FeedScreen> {
       ) {
         if (event.selectedIndex == _kFeedTabIndex) {
           _activateFeed();
+        } else {
+          _feedTabActive = false;
+          _updateInvitationVisibility();
         }
       });
     }
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _routeCurrent = ModalRoute.isCurrentOf(context) ?? true;
+    _updateInvitationVisibility();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appResumed = state == AppLifecycleState.resumed;
+    _updateInvitationVisibility();
+  }
+
+  @override
   void dispose() {
+    _invitationController.setVisible(false);
+    WidgetsBinding.instance.removeObserver(this);
+    CollectionsService.instance.invitations.removeListener(
+      _onInvitationsChanged,
+    );
     _tabChangedEventSubscription?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -148,10 +197,74 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   void _activateFeed() {
+    _feedTabActive = true;
+    _updateInvitationVisibility();
     _markSocialSeenOnce();
     if (_hasStartedLoading) return;
     _hasStartedLoading = true;
     _loadFeedItems();
+  }
+
+  void _updateInvitationVisibility() {
+    final visible = _feedTabActive && _routeCurrent && _appResumed;
+    final wasVisible = _invitationController.visible;
+    _invitationController.setVisible(visible);
+    if (visible && !wasVisible) {
+      if (_suppressNextVisibleRefresh) {
+        _suppressNextVisibleRefresh = false;
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _invitationController.visible) {
+          unawaited(_refreshInvitations());
+        }
+      });
+    }
+  }
+
+  void _onInvitationsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshInvitations() async {
+    if (!_invitationController.visible || _currentUserID == 0) return;
+    try {
+      await _invitationController.refresh();
+    } catch (error, stackTrace) {
+      _logger.warning("Failed to load share invitations", error, stackTrace);
+      if (mounted &&
+          _invitationController.visible &&
+          (ModalRoute.of(context)?.isCurrent ?? false)) {
+        _suppressNextVisibleRefresh = true;
+        await showGenericErrorBottomSheet(context: context, error: error);
+      }
+    }
+  }
+
+  Future<void> _reviewInvitation(CollectionInvitation invitation) async {
+    final collections = CollectionsService.instance;
+    _suppressNextVisibleRefresh = true;
+    final collection = await showShareInvitationSheet(
+      context: context,
+      inviterName: resolveDisplayName(invitation.inviter),
+      albumName: invitation.albumName,
+      getAcceptanceIDs: () => <int>{
+        invitation.collectionID,
+        for (final pending in collections.invitations.pending)
+          if (pending.inviter.id == invitation.inviter.id) pending.collectionID,
+      }.toList(),
+      onAccept: (ids) => collections.acceptInvitations(
+        ids,
+        selectedCollectionID: invitation.collectionID,
+      ),
+      onReject: () => collections.rejectInvitation(invitation.collectionID),
+    );
+    if (collection != null && mounted) {
+      await routeToPage(
+        context,
+        CollectionPage(CollectionWithThumbnail(collection, null)),
+      );
+    }
   }
 
   void _onScroll() {
@@ -262,7 +375,7 @@ class _FeedScreenState extends State<FeedScreen> {
     }
     _tryOpenNavigationTarget();
 
-    await _syncAndRefresh();
+    await Future.wait([_syncAndRefresh(), _refreshInvitations()]);
   }
 
   Future<void> _loadMore() async {
@@ -471,6 +584,10 @@ class _FeedScreenState extends State<FeedScreen> {
     // Allow newly loaded rows to be laid out before reading list metrics.
     await Future<void>.delayed(Duration.zero);
 
+    final invitationCount =
+        CollectionsService.instance.invitations.pending.length;
+    final rowIndex = index + invitationCount;
+    final rowCount = _feedItems.length + invitationCount;
     for (var attempt = 0; attempt < 7; attempt++) {
       if (!mounted || !_scrollController.hasClients) {
         return false;
@@ -490,14 +607,14 @@ class _FeedScreenState extends State<FeedScreen> {
 
       final position = _scrollController.position;
       final maxExtent = position.maxScrollExtent;
-      if (maxExtent <= 0 || _feedItems.length <= 1 || index <= 0) {
+      if (maxExtent <= 0 || rowCount <= 1 || rowIndex <= 0) {
         await _scrollController.animateTo(
           0,
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
         );
       } else {
-        final estimatedOffset = (index / (_feedItems.length - 1)) * maxExtent;
+        final estimatedOffset = (rowIndex / (rowCount - 1)) * maxExtent;
         final viewport = position.viewportDimension;
         final sweepStep = viewport > 0 ? viewport * 0.75 : maxExtent * 0.2;
         double nextOffset = estimatedOffset;
@@ -533,6 +650,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final invitations = CollectionsService.instance.invitations.pending;
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -562,13 +680,14 @@ class _FeedScreenState extends State<FeedScreen> {
       ),
       body: _isLoading
           ? const Center(child: EnteLoadingWidget(size: 24))
-          : _feedItems.isEmpty
+          : _feedItems.isEmpty && invitations.isEmpty
           ? FeedEmptyState(
               reservesBottomNavigationSpace: !widget.showBackButton,
             )
           : RefreshIndicator(
               onRefresh: _onRefresh,
               child: ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
                 controller: _scrollController,
                 padding: EdgeInsets.only(
                   left: 15,
@@ -577,8 +696,20 @@ class _FeedScreenState extends State<FeedScreen> {
                       MediaQuery.paddingOf(context).bottom +
                       (widget.showBackButton ? 0 : 88),
                 ),
-                itemCount: _feedItems.length + (_isLoadingMore ? 1 : 0),
+                itemCount:
+                    invitations.length +
+                    _feedItems.length +
+                    (_isLoadingMore ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (index < invitations.length) {
+                    final invitation = invitations[index];
+                    return ShareInvitationFeedItem(
+                      key: ValueKey(invitation.occurrenceKey),
+                      invitation: invitation,
+                      onTap: () => _reviewInvitation(invitation),
+                    );
+                  }
+                  index -= invitations.length;
                   if (index >= _feedItems.length) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
