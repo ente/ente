@@ -3677,7 +3677,7 @@
   "@reviewPickUpAgain": {
     "description": "Caption above the month name on the Review old photos banner when a month is partly reviewed."
   },
-  "reviewProgressCount": "{reviewed}/{total} reviewed",
+  "reviewProgressCount": "{reviewed} / {total} reviewed",
   "@reviewProgressCount": {
     "placeholders": {
       "reviewed": {
