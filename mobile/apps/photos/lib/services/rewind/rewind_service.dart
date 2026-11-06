@@ -164,8 +164,9 @@ class RewindService {
     DateTime now, {
     required bool afterMlRun,
   }) {
-    if ((state.mlCoverage != null) != rewindUsesMl) return false;
+    if (state.mlCoverage != null && !rewindUsesMl) return false;
     if (state.isFinal) return true;
+    if ((state.mlCoverage != null) != rewindUsesMl) return false;
     if (afterMlRun && state.status is rust.RewindStatus_WaitingForMl) {
       return false;
     }

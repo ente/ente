@@ -48,8 +48,10 @@ pub fn compute_rewind(
     previous: Option<&RewindState>,
 ) -> Result<RewindState> {
     let previous = previous.filter(|previous| previous.applies_to(request));
-    let same_ml_mode = |previous: &RewindState| previous.ml_coverage.is_some() == store.is_some();
-    if let Some(previous) = previous.filter(|previous| previous.is_final && same_ml_mode(previous))
+    let ml_switched_off =
+        |previous: &RewindState| previous.ml_coverage.is_some() && store.is_none();
+    if let Some(previous) =
+        previous.filter(|previous| previous.is_final && !ml_switched_off(previous))
     {
         return Ok(previous.clone());
     }
@@ -447,23 +449,27 @@ mod tests {
     }
 
     #[test]
-    fn a_final_result_is_recomputed_when_ml_is_switched_on_or_off() {
+    fn a_final_result_is_kept_unless_ml_was_switched_off() {
         let (_directory, store) = indexed_store(1..=60);
         let request = request_at(AFTER_NEW_YEAR, daily_photos(1, "2026-01-01T12:00:00", 60));
 
         let without_ml = compute_rewind(&request, None, Some(&NoCities), None).unwrap();
         assert!(without_ml.is_final);
-        assert_eq!(colour(&without_ml), None);
+        assert_eq!(
+            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&without_ml)).unwrap(),
+            without_ml
+        );
 
-        let with_ml =
-            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&without_ml)).unwrap();
+        let with_ml = compute_rewind(&request, Some(&store), Some(&NoCities), None).unwrap();
         assert!(with_ml.is_final);
         assert_eq!(colour(&with_ml), Some(RewindColour::CherryBomb));
 
-        let without_ml_again =
-            compute_rewind(&request, None, Some(&NoCities), Some(&with_ml)).unwrap();
-        assert_eq!(without_ml_again.ml_coverage, None);
-        assert_eq!(colour(&without_ml_again), None);
+        let switched_off = compute_rewind(&request, None, Some(&NoCities), Some(&with_ml)).unwrap();
+        assert!(matches!(switched_off.status, RewindStatus::Ready { .. }));
+        assert_eq!(switched_off.ml_coverage, None);
+        assert_eq!(total_files(&switched_off), Some(60));
+        assert_eq!(colour(&switched_off), None);
+        assert!(switched_off.is_final);
     }
 
     #[test]
