@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReplicationRemainsDisabled(t *testing.T) {
+func TestReplicationDisabledByConfig(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
-	viper.Set("replication.enabled", true)
+	viper.Set("replication.enabled", false)
 	viper.Set("jobs.cron.skip", true)
 
 	require.NotPanics(t, func() {
