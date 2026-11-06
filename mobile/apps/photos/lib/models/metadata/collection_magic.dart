@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/models/metadata/common_keys.dart";
 
 const subTypeDefaultHidden = 1;
@@ -55,6 +56,11 @@ class CollectionMagicMetadata {
 class CollectionPubMagicMetadata {
   bool? asc;
 
+  String? sortBy;
+
+  FileSortOrder get fileSortOrder =>
+      FileSortOrder.fromMetadata(asc: asc, sortBy: sortBy);
+
   int? coverID;
 
   // layout for public link sharing (masonry, grouped, continuous, trip)
@@ -64,6 +70,7 @@ class CollectionPubMagicMetadata {
 
   CollectionPubMagicMetadata({
     this.asc,
+    this.sortBy,
     this.coverID,
     this.layout,
     this.description,
@@ -71,6 +78,9 @@ class CollectionPubMagicMetadata {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> result = {"asc": asc ?? false};
+    if (sortBy != null) {
+      result["sortBy"] = sortBy!;
+    }
     if (coverID != null) {
       result["coverID"] = coverID!;
     }
@@ -92,6 +102,7 @@ class CollectionPubMagicMetadata {
   static CollectionPubMagicMetadata fromMap(Map<String, dynamic> map) {
     return CollectionPubMagicMetadata(
       asc: map["asc"] as bool?,
+      sortBy: map["sortBy"] as String?,
       coverID: map["coverID"],
       layout: map["layout"] as String? ?? "masonry",
       description: map[albumDescriptionKey] as String?,

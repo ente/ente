@@ -194,7 +194,6 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
               selectedFiles: _selection,
               inSelectionMode: true,
               disableSelection: widget.model.confirming,
-              sortAsyncFn: () => false,
               disablePinnedGroupHeader: true,
               disableVerticalPaddingForScrollbar: true,
               header: widget.header,

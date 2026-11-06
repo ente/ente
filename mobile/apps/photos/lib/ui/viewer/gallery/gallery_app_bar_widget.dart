@@ -58,6 +58,7 @@ import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart
 import "package:photos/ui/viewer/hierarchical_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
 import 'package:photos/utils/dialog_util.dart';
+import "package:photos/utils/file_sort_util.dart";
 import 'package:photos/utils/magic_util.dart';
 
 class GalleryAppBarWidget extends StatefulWidget {
@@ -921,9 +922,10 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             icon: HugeIcons.strokeRoundedSorting01,
             size: IconSizes.small,
           ),
-          secondaryLabel: (widget.collection!.pubMagicMetadata.asc ?? false)
-              ? strings.sortOldestFirst
-              : strings.sortNewestFirst,
+          secondaryLabel: albumSortOrderLabel(
+            widget.collection!.pubMagicMetadata.fileSortOrder,
+            strings,
+          ),
           trailingWidget: const HugeIcon(
             icon: HugeIcons.strokeRoundedArrowRight01,
             size: IconSizes.small,
@@ -1282,12 +1284,16 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       return null;
     }
 
+    final sortOrder = collection.pubMagicMetadata.fileSortOrder;
     final filesResult = await FilesDB.instance.getFilesInCollection(
       collection.id,
       galleryLoadStartTime,
       galleryLoadEndTime,
-      asc: collection.pubMagicMetadata.asc ?? false,
+      asc: sortOrder.ascending,
     );
+    if (sortOrder.isFilename) {
+      sortFilesByName(filesResult.files, sortOrder);
+    }
     return filesResult.files;
   }
 
@@ -1375,14 +1381,14 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   Future<void> _showSortOption(BuildContext bContext) async {
     final collection = widget.collection!;
-    final sortByAsc = await showAlbumSortSheet(
+    final sortOrder = await showAlbumSortSheet(
       bContext,
-      ascending: collection.pubMagicMetadata.asc ?? false,
+      sortOrder: collection.pubMagicMetadata.fileSortOrder,
     );
-    if (sortByAsc != null &&
-        sortByAsc != (collection.pubMagicMetadata.asc ?? false) &&
+    if (sortOrder != null &&
+        sortOrder != collection.pubMagicMetadata.fileSortOrder &&
         bContext.mounted) {
-      await changeSortOrder(bContext, collection, sortByAsc);
+      await changeSortOrder(bContext, collection, sortOrder);
     }
   }
 

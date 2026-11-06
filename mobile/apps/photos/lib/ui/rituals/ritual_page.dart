@@ -27,6 +27,7 @@ import "package:photos/ui/rituals/ritual_emoji_icon.dart";
 import "package:photos/ui/rituals/ritual_share_card.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
+import "package:photos/utils/file_sort_util.dart";
 import "package:photos/utils/share_util.dart";
 import "package:share_plus/share_plus.dart";
 
@@ -1283,19 +1284,24 @@ Future<void> _openRitualAlbumAndFile(
   ).ignore();
 
   final files = await FilesDB.instance.getAllFilesCollection(collection.id);
-  final asc = collection.pubMagicMetadata.asc ?? false;
-  files.sort((a, b) {
-    final creationCompare = (a.creationTime ?? 0).compareTo(
-      b.creationTime ?? 0,
-    );
-    if (creationCompare != 0) {
-      return asc ? creationCompare : -creationCompare;
-    }
-    final modificationCompare = (a.modificationTime ?? 0).compareTo(
-      b.modificationTime ?? 0,
-    );
-    return asc ? modificationCompare : -modificationCompare;
-  });
+  final sortOrder = collection.pubMagicMetadata.fileSortOrder;
+  if (sortOrder.isFilename) {
+    sortFilesByName(files, sortOrder);
+  } else {
+    final asc = sortOrder.ascending;
+    files.sort((a, b) {
+      final creationCompare = (a.creationTime ?? 0).compareTo(
+        b.creationTime ?? 0,
+      );
+      if (creationCompare != 0) {
+        return asc ? creationCompare : -creationCompare;
+      }
+      final modificationCompare = (a.modificationTime ?? 0).compareTo(
+        b.modificationTime ?? 0,
+      );
+      return asc ? modificationCompare : -modificationCompare;
+    });
+  }
   final selectedIndex = files.indexOf(file);
   if (selectedIndex < 0) return;
 

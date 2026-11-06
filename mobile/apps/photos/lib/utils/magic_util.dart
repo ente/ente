@@ -11,6 +11,7 @@ import "package:photos/events/files_updated_event.dart";
 import 'package:photos/events/force_reload_home_gallery_event.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/models/metadata/collection_magic.dart";
 import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/metadata/file_magic.dart";
@@ -188,13 +189,12 @@ Future<bool> prepareSharedAlbumsForHiding(
 Future<void> changeSortOrder(
   BuildContext context,
   Collection collection,
-  bool sortedInAscOrder,
+  FileSortOrder sortOrder,
 ) async {
   try {
-    final Map<String, dynamic> update = {"asc": sortedInAscOrder};
     await CollectionsService.instance.updatePublicMagicMetadata(
       collection,
-      update,
+      sortOrder.metadata,
     );
     Bus.instance.fire(
       CollectionMetaEvent(collection.id, CollectionMetaEventType.sortChanged),
