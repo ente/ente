@@ -14,6 +14,7 @@ import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/remote_assets_service.dart";
+import "package:photos/utils/device_info.dart";
 import "package:photos/utils/image_util.dart";
 import "package:uuid/uuid.dart";
 
@@ -188,7 +189,9 @@ class MemoryVideoExporter {
     final useThumbnail =
         isRawImageExtension(extension) ||
         (Platform.isAndroid &&
-            const {"tif", "tiff", "jp2", "psd"}.contains(extension));
+            const {"tif", "tiff", "jp2", "psd"}.contains(extension)) ||
+        (const {"heic", "heif"}.contains(extension) &&
+            await isAndroidSDKVersionLowerThan(28));
     if (file.fileType == FileType.video || !useThumbnail) {
       final resolved = await _resolveFile(file);
       if (isLocal &&
@@ -198,7 +201,13 @@ class MemoryVideoExporter {
       }
       return resolved;
     }
-    var thumbnail = await _resolveThumbnail(file);
+    Uint8List? thumbnail;
+    try {
+      thumbnail = await _resolveThumbnail(file);
+    } catch (e, s) {
+      if (!isLocal || !file.isUploaded) rethrow;
+      _logger.warning("Failed to load local thumbnail for ${file.tag}", e, s);
+    }
     if (thumbnail == null && isLocal && file.isUploaded) {
       thumbnail = await _resolveThumbnailFromServer(file);
     }

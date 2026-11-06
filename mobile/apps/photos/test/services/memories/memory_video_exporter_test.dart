@@ -2,6 +2,7 @@ import "dart:io";
 import "dart:math";
 import "dart:typed_data";
 
+import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:native_video_editor/native_video_editor.dart";
 import "package:photos/models/file/file.dart";
@@ -159,10 +160,11 @@ void main() {
     expect(await directory.list().toList(), isEmpty);
   });
 
-  test("cleans up a downloaded thumbnail when export fails", () async {
+  test("cleans up cloud fallback after local decoding fails", () async {
     var remoteDownloads = 0;
     final exporter = MemoryVideoExporter(
-      resolveThumbnail: (_) async => null,
+      resolveThumbnail: (_) async =>
+          throw PlatformException(code: "Thumbnail request error"),
       resolveThumbnailFromServer: (_) async {
         remoteDownloads++;
         return Uint8List.fromList([1, 2, 3]);
