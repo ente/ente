@@ -537,7 +537,7 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
     }
 
     private func dissolved(_ image: CIImage, elapsed: Double) -> CIImage {
-        guard crossfade > 0, elapsed < crossfade else { return image }
+        guard segmentIndex > 0, crossfade > 0, elapsed < crossfade else { return image }
         return hold.applyingFilter(
             "CIDissolveTransition",
             parameters: [

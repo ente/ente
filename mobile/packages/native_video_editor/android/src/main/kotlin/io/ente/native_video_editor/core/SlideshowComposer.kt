@@ -80,7 +80,7 @@ internal class SlideshowComposer(
         var previousPhoto: PhotoOverlay? = null
         val videoItems = segments.mapIndexed { index, segment ->
             val previousOverlay = previousPhoto
-            val dissolve = if (crossfadeUs <= 0) {
+            val dissolve = if (index == 0 || crossfadeUs <= 0) {
                 null
             } else {
                 DissolveOverlay(
