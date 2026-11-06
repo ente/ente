@@ -195,7 +195,7 @@ mod tests {
     use crate::{
         ImageInput,
         bounded::tests::options,
-        color_management::tests::{localized_text, profile_with_text},
+        color_management::tests::{localized_text, lookup_table, profile_with_tag},
         decode::decode_image_from_bytes,
         decode_bounded,
         memory_budget::MemoryBudget,
@@ -415,23 +415,28 @@ mod tests {
     }
 
     #[test]
-    fn profiles_with_excessive_localized_text_are_skipped_within_the_budget() {
+    fn profiles_that_expand_when_parsed_are_skipped_within_the_budget() {
         let pixels = (0..64 * 64 * 3).map(|i| (i * 71) as u8).collect::<Vec<_>>();
-        let mut info = rgb_info(64, 64, false);
-        info.icc_profile = Some(Cow::Owned(profile_with_text(
-            &[*b"desc"],
-            &localized_text(4096, 65_536),
-        )));
-        let bytes = fixture(info, &pixels);
-        let budget = MemoryBudget::new(4 * 1024 * 1024);
-        let bounded =
-            budget.enter(|| decode_bounded(ImageInput::Bytes(&bytes), options(6000)).unwrap());
-        assert!(!budget.is_exceeded());
-        assert_eq!(bounded.image.rgb, pixels);
-        let budget = MemoryBudget::new(4 * 1024 * 1024);
-        let full = budget.enter(|| decode_image_from_bytes(&bytes).unwrap());
-        assert!(!budget.is_exceeded());
-        assert_eq!(full.rgb, pixels);
+        let lookup_tables = [
+            *b"A2B0", *b"A2B1", *b"A2B2", *b"B2A0", *b"B2A1", *b"B2A2", *b"gamt",
+        ];
+        for profile in [
+            profile_with_tag(&[*b"desc"], &localized_text(4096, 65_536)),
+            profile_with_tag(&lookup_tables, &lookup_table(96, 4_000)),
+        ] {
+            let mut info = rgb_info(64, 64, false);
+            info.icc_profile = Some(Cow::Owned(profile));
+            let bytes = fixture(info, &pixels);
+            let budget = MemoryBudget::new(4 * 1024 * 1024);
+            let bounded =
+                budget.enter(|| decode_bounded(ImageInput::Bytes(&bytes), options(6000)).unwrap());
+            assert!(!budget.is_exceeded());
+            assert_eq!(bounded.image.rgb, pixels);
+            let budget = MemoryBudget::new(4 * 1024 * 1024);
+            let full = budget.enter(|| decode_image_from_bytes(&bytes).unwrap());
+            assert!(!budget.is_exceeded());
+            assert_eq!(full.rgb, pixels);
+        }
     }
 
     #[test]
