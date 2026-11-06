@@ -49,7 +49,9 @@ class MemoryVideoExporter {
   static final _logger = Logger("MemoryVideoExporter");
 
   final Future<File?> Function(EnteFile file) _resolveFile;
+  final Future<File?> Function(EnteFile file) _resolveFileFromServer;
   final Future<Uint8List?> Function(EnteFile file) _resolveThumbnail;
+  final Future<Uint8List?> Function(EnteFile file) _resolveThumbnailFromServer;
   final Future<File> Function(MemoryMusicTrack track) _resolveMusic;
   final SlideshowExport _export;
   final String Function() _outputDirectory;
@@ -57,13 +59,18 @@ class MemoryVideoExporter {
 
   MemoryVideoExporter({
     Future<File?> Function(EnteFile file)? resolveFile,
+    Future<File?> Function(EnteFile file)? resolveFileFromServer,
     Future<Uint8List?> Function(EnteFile file)? resolveThumbnail,
+    Future<Uint8List?> Function(EnteFile file)? resolveThumbnailFromServer,
     Future<File> Function(MemoryMusicTrack track)? resolveMusic,
     SlideshowExport? export,
     String Function()? outputDirectory,
     Random? random,
   }) : _resolveFile = resolveFile ?? getFile,
+       _resolveFileFromServer = resolveFileFromServer ?? getFileFromServer,
        _resolveThumbnail = resolveThumbnail ?? getThumbnail,
+       _resolveThumbnailFromServer =
+           resolveThumbnailFromServer ?? getThumbnailFromServer,
        _resolveMusic = resolveMusic ?? _cachedMusicFile,
        _export = export ?? NativeVideoEditor.exportSlideshow,
        _outputDirectory =
@@ -112,25 +119,28 @@ class MemoryVideoExporter {
     required List<File> scratchFiles,
     void Function(double progress)? onProgress,
   }) async {
-    final resolvedFiles = List<File?>.filled(files.length, null);
+    final resolvedFiles = <File>[];
     for (var start = 0; start < files.length; start += _resolveConcurrency) {
       final end = min(start + _resolveConcurrency, files.length);
-      await Future.wait([
-        for (var index = start; index < end; index++)
-          _resolveItem(
-            files[index],
-            scratchFiles,
-          ).then((file) => resolvedFiles[index] = file),
-      ]);
+      resolvedFiles.addAll(
+        await Future.wait([
+          for (var index = start; index < end; index++)
+            _resolveItem(files[index], scratchFiles).then((resolved) {
+              if (resolved == null) {
+                throw MemoryVideoExportException(
+                  "Could not load ${files[index].tag}",
+                );
+              }
+              return resolved;
+            }),
+        ]),
+      );
       onProgress?.call(_downloadProgressShare * end / files.length);
     }
     final items = <SlideshowItem>[];
     for (var index = 0; index < files.length; index++) {
       final file = files[index];
       final resolved = resolvedFiles[index];
-      if (resolved == null) {
-        throw MemoryVideoExportException("Could not load ${file.tag}");
-      }
       items.add(
         file.fileType == FileType.video
             ? SlideshowItem.video(path: resolved.path, isMuted: muteVideos)
@@ -173,16 +183,30 @@ class MemoryVideoExporter {
   }
 
   Future<File?> _resolveItem(EnteFile file, List<File> scratchFiles) async {
-    final extension = file.displayName.split(".").last;
-    if (file.fileType == FileType.video || !isRawImageExtension(extension)) {
-      return _resolveFile(file);
+    final isLocal = file.localID != null;
+    final extension = file.displayName.split(".").last.toLowerCase();
+    final useThumbnail =
+        isRawImageExtension(extension) ||
+        (Platform.isAndroid &&
+            const {"tif", "tiff", "jp2", "psd"}.contains(extension));
+    if (file.fileType == FileType.video || !useThumbnail) {
+      final resolved = await _resolveFile(file);
+      if (isLocal &&
+          file.isUploaded &&
+          (resolved == null || !await resolved.exists())) {
+        return _resolveFileFromServer(file);
+      }
+      return resolved;
     }
-    final thumbnail = await _resolveThumbnail(file);
+    var thumbnail = await _resolveThumbnail(file);
+    if (thumbnail == null && isLocal && file.isUploaded) {
+      thumbnail = await _resolveThumbnailFromServer(file);
+    }
     if (thumbnail == null) return null;
-    _logger.info("Using the thumbnail of RAW file ${file.tag}");
+    _logger.info("Using the thumbnail of file ${file.tag}");
     final raster = File("${_outputDirectory()}memory-${const Uuid().v4()}.jpg");
-    await raster.writeAsBytes(thumbnail, flush: true);
     scratchFiles.add(raster);
+    await raster.writeAsBytes(thumbnail, flush: true);
     return raster;
   }
 

@@ -24,10 +24,9 @@ void main() {
     ..title = title ?? "file-$id.jpg"
     ..fileType = type;
 
-  MemoryVideoExporter createExporter({bool failResolve = false}) {
+  MemoryVideoExporter createExporter() {
     return MemoryVideoExporter(
-      resolveFile: (file) async =>
-          failResolve ? null : File("${directory.path}/${file.localID}"),
+      resolveFile: (file) async => File("${directory.path}/${file.localID}"),
       resolveThumbnail: (file) async => Uint8List.fromList([1, 2, 3]),
       resolveMusic: (track) async => File("${directory.path}/${track.id}.mp3"),
       export: (request, {onProgress}) async {
@@ -114,13 +113,11 @@ void main() {
         inFlight--;
         return File("${directory.path}/${file.localID}");
       },
-      resolveMusic: (track) async => File("${directory.path}/${track.id}.mp3"),
       export: (request, {onProgress}) async {
         requests.add(request);
         return request.outputPath;
       },
       outputDirectory: () => "${directory.path}/",
-      random: Random(7),
     );
 
     await exporter.export(
@@ -138,46 +135,233 @@ void main() {
   });
 
   test("renders RAW photos from their thumbnail", () async {
-    final existedDuringExport = <bool>[];
     final exporter = MemoryVideoExporter(
-      resolveFile: (file) async => File("${directory.path}/${file.localID}"),
       resolveThumbnail: (file) async => Uint8List.fromList([1, 2, 3]),
-      resolveMusic: (track) async => File("${directory.path}/${track.id}.mp3"),
+      resolveThumbnailFromServer: (_) async =>
+          fail("An available thumbnail should not be downloaded again"),
       export: (request, {onProgress}) async {
         requests.add(request);
-        existedDuringExport.add(File(request.items[1].path).existsSync());
+        expect(await File(request.items.single.path).readAsBytes(), [1, 2, 3]);
         return request.outputPath;
       },
       outputDirectory: () => "${directory.path}/",
-      random: Random(7),
     );
 
     await exporter.export(
       files: [
-        makeFile(1, FileType.image),
-        makeFile(2, FileType.image, title: "shot.DNG"),
+        makeFile(1, FileType.image, title: "shot.DNG")..uploadedFileID = 1,
       ],
       musicTrack: null,
       muteVideos: false,
     );
 
-    final items = requests.single.items;
-    expect(items[0].path, "${directory.path}/local-1");
-    expect(items[1].path, startsWith("${directory.path}/memory-"));
-    expect(items[1].path, endsWith(".jpg"));
-    expect(existedDuringExport, [true]);
-    expect(File(items[1].path).existsSync(), isFalse);
+    expect(requests.single.items.single.path, endsWith(".jpg"));
+    expect(await directory.list().toList(), isEmpty);
   });
 
-  test("fails before exporting when an item cannot be loaded", () async {
+  test("cleans up a downloaded thumbnail when export fails", () async {
+    var remoteDownloads = 0;
+    final exporter = MemoryVideoExporter(
+      resolveThumbnail: (_) async => null,
+      resolveThumbnailFromServer: (_) async {
+        remoteDownloads++;
+        return Uint8List.fromList([1, 2, 3]);
+      },
+      export: (request, {onProgress}) async {
+        expect(await File(request.items.single.path).readAsBytes(), [1, 2, 3]);
+        throw StateError("Export failed");
+      },
+      outputDirectory: () => "${directory.path}/",
+    );
+
     await expectLater(
-      createExporter(failResolve: true).export(
-        files: [makeFile(1, FileType.image)],
+      exporter.export(
+        files: [
+          makeFile(1, FileType.image, title: "shot.DNG")..uploadedFileID = 1,
+        ],
+        musicTrack: null,
+        muteVideos: false,
+      ),
+      throwsStateError,
+    );
+
+    expect(remoteDownloads, 1);
+    expect(await directory.list().toList(), isEmpty);
+  });
+
+  test(
+    "does not download thumbnails for files that were never uploaded",
+    () async {
+      final exporter = MemoryVideoExporter(
+        resolveThumbnail: (_) async => null,
+        resolveThumbnailFromServer: (_) async => fail("File has no cloud copy"),
+        export: (request, {onProgress}) async =>
+            fail("Export requires a thumbnail"),
+        outputDirectory: () => "${directory.path}/",
+      );
+
+      await expectLater(
+        exporter.export(
+          files: [makeFile(1, FileType.image, title: "shot.DNG")],
+          musicTrack: null,
+          muteVideos: false,
+        ),
+        throwsA(isA<MemoryVideoExportException>()),
+      );
+    },
+  );
+
+  for (final extension in ["jpg", "dng"]) {
+    test(
+      "recovers $extension when a thumbnail load clears the local ID",
+      () async {
+        final file = makeFile(1, FileType.image, title: "shot.$extension")
+          ..uploadedFileID = 1;
+        final remoteFile = await File(
+          "${directory.path}/remote.jpg",
+        ).writeAsBytes([1]);
+        var remoteDownloads = 0;
+        final exporter = MemoryVideoExporter(
+          resolveFile: (file) async {
+            file.localID = null;
+            return null;
+          },
+          resolveThumbnail: (file) async {
+            file.localID = null;
+            return null;
+          },
+          resolveFileFromServer: (_) async {
+            remoteDownloads++;
+            return remoteFile;
+          },
+          resolveThumbnailFromServer: (_) async {
+            remoteDownloads++;
+            return remoteFile.readAsBytes();
+          },
+          export: (request, {onProgress}) async {
+            expect(await File(request.items.single.path).readAsBytes(), [1]);
+            return request.outputPath;
+          },
+          outputDirectory: () => "${directory.path}/",
+        );
+
+        await exporter.export(
+          files: [file],
+          musicTrack: null,
+          muteVideos: false,
+        );
+
+        expect(remoteDownloads, 1);
+        expect(await directory.list().map((entry) => entry.path).toList(), [
+          remoteFile.path,
+        ]);
+      },
+    );
+  }
+
+  test("downloads the uploaded copy when the local path is stale", () async {
+    final remoteFile = await File(
+      "${directory.path}/remote.jpg",
+    ).writeAsBytes([1]);
+    var remoteDownloads = 0;
+    final exporter = MemoryVideoExporter(
+      resolveFile: (_) async => File("${directory.path}/missing.jpg"),
+      resolveFileFromServer: (_) async {
+        remoteDownloads++;
+        return remoteFile;
+      },
+      export: (request, {onProgress}) async {
+        requests.add(request);
+        return request.outputPath;
+      },
+      outputDirectory: () => "${directory.path}/",
+    );
+
+    await exporter.export(
+      files: [makeFile(1, FileType.image)..uploadedFileID = 1],
+      musicTrack: null,
+      muteVideos: false,
+    );
+
+    expect(remoteDownloads, 1);
+    expect(requests.single.items.single.path, remoteFile.path);
+  });
+
+  test("cleans up a partially written thumbnail", () async {
+    final partialFile = File("${directory.path}/partial.jpg");
+    final exporter = MemoryVideoExporter(
+      resolveThumbnail: (_) async => Uint8List.fromList([1, 2, 3]),
+      export: (request, {onProgress}) async => fail("Thumbnail write failed"),
+      outputDirectory: () => "${directory.path}/",
+    );
+
+    await expectLater(
+      IOOverrides.runZoned(
+        () => exporter.export(
+          files: [makeFile(1, FileType.image, title: "shot.DNG")],
+          musicTrack: null,
+          muteVideos: false,
+        ),
+        createFile: (_) => _PartialWriteFile(partialFile),
+      ),
+      throwsA(isA<FileSystemException>()),
+    );
+
+    expect(await directory.list().toList(), isEmpty);
+  });
+
+  test("stops after a failed batch and cleans up its thumbnails", () async {
+    final resolved = <int>[];
+    final exporter = MemoryVideoExporter(
+      resolveFile: (file) async {
+        resolved.add(file.generatedID!);
+        return null;
+      },
+      resolveThumbnail: (_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        return Uint8List.fromList([1, 2, 3]);
+      },
+      export: (request, {onProgress}) async {
+        requests.add(request);
+        return request.outputPath;
+      },
+      outputDirectory: () => "${directory.path}/",
+    );
+
+    await expectLater(
+      exporter.export(
+        files: [
+          makeFile(1, FileType.image),
+          makeFile(2, FileType.image, title: "shot.DNG"),
+          for (var id = 3; id <= 7; id++) makeFile(id, FileType.image),
+        ],
         musicTrack: null,
         muteVideos: false,
       ),
       throwsA(isA<MemoryVideoExportException>()),
     );
+    expect(resolved, [1, 3]);
     expect(requests, isEmpty);
+    expect(await directory.list().toList(), isEmpty);
   });
+}
+
+class _PartialWriteFile extends Fake implements File {
+  final File file;
+
+  _PartialWriteFile(this.file);
+
+  @override
+  Future<File> writeAsBytes(
+    List<int> bytes, {
+    FileMode mode = FileMode.write,
+    bool flush = false,
+  }) async {
+    await file.writeAsBytes(bytes.take(1).toList(), mode: mode, flush: flush);
+    throw const FileSystemException("Thumbnail write failed");
+  }
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) =>
+      file.delete(recursive: recursive);
 }

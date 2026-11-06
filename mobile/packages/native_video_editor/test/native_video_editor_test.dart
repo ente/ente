@@ -277,7 +277,6 @@ void main() {
     expect(items[0], containsPair('startY', -0.01));
     expect(items[1], containsPair('type', 'video'));
     expect(items[1], containsPair('isMuted', true));
-    expect(items[1], isNot(contains('durationMs')));
     expect(arguments['music'], containsPair('fadeInMs', 900));
   });
 

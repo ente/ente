@@ -303,7 +303,7 @@ private final class SlideshowWriterSession: @unchecked Sendable {
             lock.unlock()
             guard isRunning else { return }
             do {
-                guard try appendNext() else {
+                guard try autoreleasepool(invoking: appendNext) else {
                     finish(input)
                     return
                 }
@@ -379,6 +379,7 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
         let reader: AVAssetReader
         let output: AVAssetReaderTrackOutput
         var lastImage: CIImage?
+        var lastFrameIndex: Int64 = -1
     }
 
     private static let timescale: CMTimeScale = 1_000_000
@@ -507,16 +508,21 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
         guard var state = video else { return nil }
         while let sample = state.output.copyNextSampleBuffer() {
             guard let imageBuffer = CMSampleBufferGetImageBuffer(sample) else { continue }
-            let elapsed = CMTimeSubtract(
+            let elapsedTime = CMTimeSubtract(
                 CMSampleBufferGetPresentationTimeStamp(sample), source.trackStart
-            ).seconds
+            )
+            let elapsed = elapsedTime.seconds
             guard elapsed >= 0, elapsed < segment.duration else { continue }
+            let halfTick = 0.5 / Double(elapsedTime.timescale)
+            let frameIndex = Int64((elapsed + halfTick) * Double(request.frameRate))
+            guard frameIndex > state.lastFrameIndex else { continue }
             let frameTime = time(segment.start + elapsed)
             guard !lastTime.isValid || CMTimeCompare(frameTime, lastTime) > 0 else { continue }
             let image = contained(CIImage(cvPixelBuffer: imageBuffer).oriented(source.orientation))
                 .composited(over: CIImage(color: .black).cropped(to: frameRect))
             let buffer = try render(dissolved(image, elapsed: elapsed))
             state.lastImage = image
+            state.lastFrameIndex = frameIndex
             video = state
             return Frame(buffer: buffer, time: frameTime)
         }

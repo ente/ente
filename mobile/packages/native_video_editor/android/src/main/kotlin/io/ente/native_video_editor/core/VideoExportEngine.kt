@@ -122,6 +122,11 @@ class VideoExportEngine(
         onProgress: ((Float) -> Unit)? = null
     ): String = withContext(Dispatchers.IO) {
         val outputFile = File(request.outputPath).canonicalFile
+        require(
+            request.items.all { File(it.path).canonicalFile != outputFile } &&
+                request.music?.let { File(it.path).canonicalFile } != outputFile
+        ) { "Slideshow output must differ from input and music paths" }
+
         val composer = SlideshowComposer(context, request)
         try {
             val composition = composer.compose()

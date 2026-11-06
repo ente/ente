@@ -129,6 +129,7 @@ internal class SlideshowComposer(
                 is Segment.Video -> {
                     previousPhoto = null
                     EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(segment.file)))
+                    .setFrameRate(request.frameRate)
                     .setRemoveAudio(segment.isMuted)
                     .setEffects(
                         Effects(
@@ -478,11 +479,6 @@ internal abstract class LazyBitmapOverlay(
 
     fun releaseBitmap() {
         bitmap = null
-    }
-
-    override fun release() {
-        super.release()
-        releaseBitmap()
     }
 }
 
