@@ -3,11 +3,11 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@mui/icons-material": "9.4.0",
+        "@mui/icons-material": "9.5.0",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-legacy-wasm": "*",
-        "pdfjs-dist": "6.3.289",
+        "pdfjs-dist": "6.4.299",
         "qr": "0.6.0"
     },
     "devDependencies": {
