@@ -26,6 +26,36 @@ fn run(engine: &mut Engine, complete: bool) -> Value {
 }
 
 #[test]
+fn engine_export_tolerates_finder_sidecars_in_destination() {
+    let mut server = mockito::Server::new();
+    let key = Key::generate();
+    let (record, bytes) = original_fixture(&key, b"original", false, true, 10);
+    let id = record["id"].as_i64().unwrap();
+    let downloaded = download(&mut server, id, &bytes, 1);
+    let mut engine = new_engine(&server, key, record);
+    let root = engine.root();
+    // Finder on a non-native volume (exFAT, FAT32, SMB, NFS) writes a ._
+    // AppleDouble sidecar next to each created file and a .DS_Store into
+    // folders it displays; the export must ignore them in the destination
+    // root across open, prepare, and execute.
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("._export.json"), b"sidecar").unwrap();
+    fs::write(root.join(".DS_Store"), b"finder").unwrap();
+    let summary = engine.run(false, &[]).unwrap();
+    assert!(summary.complete);
+    assert_eq!(fs::read(root.join("First/Photo.jpg")).unwrap(), b"original");
+    assert_eq!(
+        fs::read(root.join("Second/Photo.jpg")).unwrap(),
+        b"original"
+    );
+    assert!(root.join("export.json").is_file());
+    // Re-opening the destination with the sidecars still present resumes fine.
+    let summary = engine.run(false, &["First"]).unwrap();
+    assert!(summary.complete);
+    downloaded.assert();
+}
+
+#[test]
 fn engine_category_filters_preserve_history_and_reuse_excluded_originals() {
     let mut server = mockito::Server::new();
     let key = Key::generate();
