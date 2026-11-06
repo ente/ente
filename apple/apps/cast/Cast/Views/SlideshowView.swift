@@ -160,7 +160,6 @@ struct SlideshowView: View {
         .onChange(of: slideshowService.livePhotoVideoURL) { _, newValue in
             if newValue == nil, isPlayingLivePhotoVideo {
                 isPlayingLivePhotoVideo = false
-                slideshowService.resume()
             }
         }
         .onTapGesture { Task { await handlePlayPauseAction() } }
