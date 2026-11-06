@@ -8,6 +8,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import CropIcon from "@mui/icons-material/Crop";
 import DownloadIcon from "@mui/icons-material/Download";
 import MenuIcon from "@mui/icons-material/Menu";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import {
     Backdrop,
     Box,
@@ -621,7 +623,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     height: "100%",
                     boxSizing: "border-box",
                     borderRadius: "20px",
-                    backgroundColor: "background.default",
+                    backgroundColor: "background.paper",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
@@ -746,14 +748,25 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     >
                         <ChevronRightIcon />
                     </IconButton>
-                    <IconButton
-                        disabled={editorBusy}
-                        aria-label={t("close")}
-                        sx={editorIconButtonSx}
-                        onClick={handleCloseWithConfirmation}
-                    >
-                        <CloseIcon />
-                    </IconButton>
+                    <Stack direction="row" spacing={1}>
+                        <IconButton
+                            aria-label={t("reset")}
+                            title={t("reset")}
+                            sx={editorIconButtonSx}
+                            disabled={canvasLoading || editorBusy}
+                            onClick={() => void loadCanvas()}
+                        >
+                            <RestartAltIcon />
+                        </IconButton>
+                        <IconButton
+                            disabled={editorBusy}
+                            aria-label={t("close")}
+                            sx={editorIconButtonSx}
+                            onClick={handleCloseWithConfirmation}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    </Stack>
                 </Stack>
                 <Stack direction="row" sx={{ mt: 2, mb: 2, flexShrink: 0 }}>
                     <Tabs
@@ -858,32 +871,22 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     )}
                 </Box>
                 <Stack spacing={1} sx={{ pt: 2, flexShrink: 0 }}>
-                    <Stack direction="row" spacing={1}>
-                        <Button
-                            sx={editorActionSx(false)}
-                            disabled={canvasLoading || editorBusy}
-                            onClick={() => void loadCanvas()}
-                        >
-                            {t("reset")}
-                        </Button>
-                        <Button
-                            sx={editorActionSx(true)}
-                            color="accent"
-                            variant="contained"
-                            disabled={
-                                canvasLoading ||
-                                editorBusy ||
-                                (!transformationPerformed && !coloursAdjusted)
-                            }
-                            onClick={saveCopyToEnte}
-                        >
-                            {t("save_a_copy_to_ente")}
-                        </Button>
-                    </Stack>
                     <Button
-                        size="small"
-                        variant="text"
-                        sx={{ color: "text.muted" }}
+                        sx={editorActionSx(true)}
+                        color="accent"
+                        variant="contained"
+                        startIcon={<SaveOutlinedIcon />}
+                        disabled={
+                            canvasLoading ||
+                            editorBusy ||
+                            (!transformationPerformed && !coloursAdjusted)
+                        }
+                        onClick={saveCopyToEnte}
+                    >
+                        {t("save_a_copy_to_ente")}
+                    </Button>
+                    <Button
+                        sx={editorActionSx(false)}
                         startIcon={<DownloadIcon />}
                         disabled={
                             canvasLoading ||
