@@ -66,6 +66,13 @@ import {
 } from "./ImageEditor.render";
 import { ImageEditorFilters } from "./ImageEditorFilters";
 
+import {
+    drawEditorText,
+    newTextLayer,
+    type EditorTextLayer,
+} from "./ImageEditor.text";
+import { EditorTextMenu, EditorTextPreview } from "./ImageEditorText";
+
 export type ImageEditorOverlayProps = ModalVisibilityProps & {
     file: EnteFile;
     onSaveEditedCopy: (
@@ -83,7 +90,7 @@ const filterDefaultValues = {
     invert: false,
 };
 
-type OperationTab = "crop" | "transform" | "colors" | "filters";
+type OperationTab = "crop" | "transform" | "colors" | "filters" | "text";
 
 interface CropBoxProps {
     x: number;
@@ -133,6 +140,17 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     const [transformationPerformed, setTransformationPerformed] =
         useState(false);
     const [coloursAdjusted, setColoursAdjusted] = useState(false);
+
+    const [layers, setLayers] = useState(() => [newTextLayer()]);
+    const [selectedLayer, setSelectedLayer] = useState(0);
+    const hasText = layers.some((layer) => layer.text.trim());
+    const hasEdits = transformationPerformed || coloursAdjusted || hasText;
+    const updateLayer = (patch: Partial<EditorTextLayer>) =>
+        setLayers((current) =>
+            current.map((layer, i) =>
+                i === selectedLayer ? { ...layer, ...patch } : layer,
+            ),
+        );
 
     const [canvasLoading, setCanvasLoading] = useState(false);
 
@@ -438,6 +456,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 return;
             setCanvasLoading(true);
             resetFilters();
+            setLayers([newTextLayer()]);
+            setSelectedLayer(0);
             setCurrentRotationAngle(0);
             let sourceURL = fileURL;
             if (!sourceURL) {
@@ -501,7 +521,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     };
 
     const handleCloseWithConfirmation = () => {
-        if (transformationPerformed || coloursAdjusted) {
+        if (hasEdits) {
             showMiniDialog(confirmEditorCloseDialogAttributes(handleClose));
         } else {
             handleClose();
@@ -549,11 +569,18 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         await awaitLatestEditorRender(() => filterRenderRef.current);
         if (!transformedRef.current)
             await renderFullResolution(++filterRevisionRef.current);
-        return canvasToFile(
-            originalSizeCanvasRef.current!,
-            fileFileName(file),
-            mimeType,
-        );
+        const source = originalSizeCanvasRef.current!;
+        if (!hasText) return canvasToFile(source, fileFileName(file), mimeType);
+        const output = document.createElement("canvas");
+        output.width = source.width;
+        output.height = source.height;
+        try {
+            output.getContext("2d")!.drawImage(source, 0, 0);
+            drawEditorText(output, layers);
+            return await canvasToFile(output, fileFileName(file), mimeType);
+        } finally {
+            output.width = output.height = 1;
+        }
     };
 
     const downloadEditedPhoto = () =>
@@ -700,6 +727,20 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                     position: "absolute",
                                 }}
                             />
+                            {fileURL &&
+                                !canvasLoading &&
+                                (hasText || currentTab === "text") && (
+                                    <EditorTextPreview
+                                        base={canvasRef}
+                                        layers={layers}
+                                        onPlace={
+                                            currentTab === "text" && !editorBusy
+                                                ? (x, y) =>
+                                                      updateLayer({ x, y })
+                                                : undefined
+                                        }
+                                    />
+                                )}
                             <canvas
                                 ref={originalSizeCanvasRef}
                                 style={{ display: "none" }}
@@ -818,6 +859,11 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                 transformationPerformed
                             }
                         />
+                        <Tab
+                            label={t("text")}
+                            value="text"
+                            disabled={canvasLoading || editorBusy}
+                        />
                     </Tabs>
                 </Stack>
                 <Box
@@ -829,6 +875,29 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         pr: 0.5,
                     }}
                 >
+                    {currentTab === "text" && (
+                        <EditorTextMenu
+                            layers={layers}
+                            selected={selectedLayer}
+                            select={setSelectedLayer}
+                            update={updateLayer}
+                            add={() => {
+                                setSelectedLayer(layers.length);
+                                setLayers([...layers, newTextLayer()]);
+                            }}
+                            remove={() => {
+                                const rest = layers.filter(
+                                    (_, i) => i !== selectedLayer,
+                                );
+                                setLayers(
+                                    rest.length ? rest : [newTextLayer()],
+                                );
+                                setSelectedLayer(
+                                    Math.max(0, selectedLayer - 1),
+                                );
+                            }}
+                        />
+                    )}
                     {currentTab == "crop" && (
                         <CropMenu
                             {...menuProps}
@@ -876,11 +945,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                         color="accent"
                         variant="contained"
                         startIcon={<SaveOutlinedIcon />}
-                        disabled={
-                            canvasLoading ||
-                            editorBusy ||
-                            (!transformationPerformed && !coloursAdjusted)
-                        }
+                        disabled={canvasLoading || editorBusy || !hasEdits}
                         onClick={saveCopyToEnte}
                     >
                         {t("save_a_copy_to_ente")}
@@ -888,11 +953,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     <Button
                         sx={editorActionSx(false)}
                         startIcon={<DownloadIcon />}
-                        disabled={
-                            canvasLoading ||
-                            editorBusy ||
-                            (!transformationPerformed && !coloursAdjusted)
-                        }
+                        disabled={canvasLoading || editorBusy || !hasEdits}
                         onClick={downloadEditedPhoto}
                     >
                         {t("download_edited")}
