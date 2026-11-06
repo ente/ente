@@ -122,6 +122,9 @@ func TestCopyFilesFailure(t *testing.T) {
 			}
 			result, err := fc.CopyFiles(ctx, request)
 			require.Error(t, err)
+			if mode == "no hot replica" {
+				require.ErrorContains(t, err, "no recorded hot storage copy")
+			}
 			require.Nil(t, result)
 			var files, staged int
 			var usage int64
