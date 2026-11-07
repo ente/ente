@@ -1,0 +1,1 @@
+- Add or move items between device albums in iOS local gallery mode with full photo access.

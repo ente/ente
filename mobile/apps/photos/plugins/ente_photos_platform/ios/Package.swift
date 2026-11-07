@@ -12,6 +12,11 @@ let package = Package(
         .target(
             name: "PhotosPlatformCore",
             path: "Sources/PhotosPlatformCore"
+        ),
+        .testTarget(
+            name: "PhotosPlatformCoreTests",
+            dependencies: ["PhotosPlatformCore"],
+            path: "Tests"
         )
     ],
     swiftLanguageVersions: [.v5]
