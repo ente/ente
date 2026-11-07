@@ -7,12 +7,13 @@ import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
-enum MemoryShareSheetAction { shareMemory, shareItems }
+enum MemoryShareSheetAction { shareMemory, shareVideo, shareItems }
 
 class MemoryShareSheetResult {
   final MemoryShareSheetAction action;
@@ -123,7 +124,7 @@ class _MemoryShareSelectionSheetState
               ],
             ),
           ),
-          actions: _buildActions(l10n),
+          actions: _buildActions(l10n, maxHeight: sheetHeight / 2),
         ),
       ),
     );
@@ -177,32 +178,52 @@ class _MemoryShareSelectionSheetState
     );
   }
 
-  List<Widget> _buildActions(StringsLocalizations l10n) {
+  List<Widget> _buildActions(
+    StringsLocalizations l10n, {
+    required double maxHeight,
+  }) {
     return [
       _MemoryShareSheetBoundary(
         position: BoundaryPosition.bottom,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.canShareMemoryLink) ...[
-              _buildAction(
-                l10n.shareMemory,
-                MemoryShareSheetAction.shareMemory,
-                leading: const HugeIcon(
-                  icon: HugeIcons.strokeRoundedLink02,
-                  size: IconSizes.small,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.canShareMemoryLink) ...[
+                  _buildAction(
+                    l10n.shareMemory,
+                    MemoryShareSheetAction.shareMemory,
+                    leading: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedLink02,
+                      size: IconSizes.small,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.md),
+                ],
+                if (flagService.internalUser) ...[
+                  _buildAction(
+                    l10n.shareAsVideo,
+                    MemoryShareSheetAction.shareVideo,
+                    variant: ButtonComponentVariant.secondary,
+                    leading: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedVideo01,
+                      size: IconSizes.small,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.md),
+                ],
+                _buildAction(
+                  l10n.shareItemCount(count: _selectedFiles.files.length),
+                  MemoryShareSheetAction.shareItems,
+                  variant: widget.canShareMemoryLink
+                      ? ButtonComponentVariant.secondary
+                      : ButtonComponentVariant.primary,
                 ),
-              ),
-              const SizedBox(height: Spacing.md),
-            ],
-            _buildAction(
-              l10n.shareItemCount(count: _selectedFiles.files.length),
-              MemoryShareSheetAction.shareItems,
-              variant: widget.canShareMemoryLink
-                  ? ButtonComponentVariant.secondary
-                  : ButtonComponentVariant.primary,
+              ],
             ),
-          ],
+          ),
         ),
       ),
     ];
