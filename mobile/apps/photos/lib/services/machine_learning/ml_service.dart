@@ -8,6 +8,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
+import "package:photos/db/ml/rust_db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/compute_control_event.dart";
@@ -65,6 +66,7 @@ class MLService {
 
   static const _kPredownloadLocalModelsDelay = Duration(seconds: 10);
   static const _kDeniedRunRetryDelay = Duration(seconds: 15);
+  static const _kVectorGraphBuildBatch = 2000;
 
   bool get isRunningML =>
       MlProcessLock.instance.activeOperation == MlOperation.fullRun;
@@ -527,12 +529,35 @@ class MLService {
           return MlRunDisposition.stopped;
         }
       }
+      if (mlDataDB is RustMLDataDB) {
+        await _buildPendingVectorGraphs(mlDataDB, control);
+        if (control.stopRequested) {
+          _logRunStopped(control, "after building vector graphs");
+          return MlRunDisposition.stopped;
+        }
+      }
       return MlRunDisposition.completed;
     } finally {
       _logger.info("ML finished running");
       if (!isProcessBg) {
         VideoPreviewService.instance.queueFiles();
       }
+    }
+  }
+
+  Future<void> _buildPendingVectorGraphs(
+    RustMLDataDB mlDataDB,
+    MlRunControl control,
+  ) async {
+    try {
+      while (!control.stopRequested) {
+        final processed = await mlDataDB.buildPendingVectorGraphs(
+          maxVectors: _kVectorGraphBuildBatch,
+        );
+        if (processed < _kVectorGraphBuildBatch) break;
+      }
+    } catch (e, s) {
+      _logger.warning("Failed to build pending vector graphs", e, s);
     }
   }
 
