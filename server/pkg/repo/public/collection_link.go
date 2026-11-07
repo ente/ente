@@ -227,6 +227,9 @@ func (pcr *CollectionLinkRepo) GetActivePublicTokenForUser(ctx context.Context, 
 		}
 		result = append(result, collectionID)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read public collection links for access reset")
+	}
 	return result, nil
 }
 

@@ -81,6 +81,9 @@ func (repo *UserAuthRepository) GetUserTokenInfo(userID int64) ([]ente.TokenInfo
 		}
 		tokenInfos = append(tokenInfos, tokenInfo)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read user token information")
+	}
 	return tokenInfos, nil
 }
 
@@ -421,6 +424,9 @@ func (repo *UserAuthRepository) GetActiveSessions(userID int64, app ente.App) ([
 			session.PrettyUA = "Unknown Device"
 		}
 		sessions = append(sessions, session)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read active sessions")
 	}
 	return sessions, nil
 }

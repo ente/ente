@@ -493,6 +493,9 @@ func (repo *CollectionRepository) GetAllSharedCollections(ctx context.Context, u
 		}
 		result = append(result, sharedCollection)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read collection shares for access reset")
+	}
 	return result, nil
 }
 
