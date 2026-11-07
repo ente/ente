@@ -1,4 +1,20 @@
 {
+  "bringMemoriesTogether": "Atsineškite savo prisiminimus kartu",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Kurti mano paskyrą",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Suteikite leidimą pasiekti ir tvarkyti savo nuotraukas su veido atpažinimu, kuris visiškai apdorojamas jūsų įrenginyje.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Sutvarkykite savo nuotraukas ir vaizdo įrašus. Kiekvienas prisiminimas – vienoje vietoje.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
   "wallpaper": "Fonas",
   "setWallpaper": "Nustatyti foną",
   "wallpaperHome": "Pagrindiniam ekranui",
@@ -92,6 +108,15 @@
   "@addedSuccessfullyTo": {
     "placeholders": {
       "albumName": {}
+    }
+  },
+  "addedToAlbums": "{count, plural, one {Įtrauktas sėkmingai į {count} albumą} few {Įtrauktas sėkmingai į {count} albumus} many {Įtrauktas sėkmingai į {count} albumo} other {Įtrauktas sėkmingai į {count} albumų}}",
+  "@addedToAlbums": {
+    "description": "Message shown when items are added to albums",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
     }
   },
   "addedToQueue": "Įtrauktas į eilę",
@@ -1183,6 +1208,7 @@
   "importAccountPageTitle": "Įvesti paskyros duomenis",
   "importAegisGuide": "Naudokite „Aegis“ nustatymuose esančią parinktį Eksportuoti slėptuvę.\n\nJei jūsų saugykla užšifruota, turėsite įvesti saugyklos slaptažodį, kad iššifruotumėte saugyklą.",
   "importAndOTPGuide": "Eksportuokite savo atsarginę kopiją iš „andOTP“ naudojant parinktį „Backup“ nustatymuose.\n\nJei atsarginė kopija užšifruota, turėsite įvesti atsarginės kopijos slaptažodį, kad ją iššifruotumėte.",
+  "important": "Svarbūs",
   "importBitwardenGuide": "Naudokite „Bitwarden“ įrankiuose esančią parinktį Eksportuoti saugyklą ir importuokite nešifruotą JSON failą.",
   "importCodeDelimiterInfo": "Kodus galima atskirti kableliu arba nauja eilute.",
   "importCodes": "Importuoti kodus",
@@ -1287,6 +1313,7 @@
     }
   },
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Elementai rodo likusių dienų skaičių iki visiško ištrynimo.",
+  "itemsStored": "Saugomi elementai",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one {Šis elementas bus ištrintas iš visų kolekcijų. Jį galite atkurti iš šiukšlinės.} few {Šie elementai bus ištrinti iš visų kolekcijų. Juos galite atkurti iš šiukšlinės.} many {Šio elemento bus ištrinta iš visų kolekcijų. Jo galite atkurti iš šiukšlinės.} other{Šių elementų bus ištrinta iš visų kolekcijų. Jų galite atkurti iš šiukšlinės.}}",
   "@itemsWillBeDeletedFromAllCollections": {
     "description": "Confirmation message explaining that deleted items leave every collection and remain recoverable from Trash.",
@@ -2707,7 +2734,6 @@
   "spotlightOnYourself": "Dėmesys į save",
   "startBackup": "Pradėti kurti atsarginę kopiją",
   "startRecovery": "Pradėti atkūrimą",
-  "startSnappingYourPhotosWillShowUpHere": "Pradėkite fotografuoti – jūsų nuotraukos bus rodomos čia.",
   "status": "Būsena",
   "sticker": "Lipdukas",
   "stopCastingBody": "Ar norite sustabdyti perdavimą?",
@@ -2937,11 +2963,14 @@
   "unarchiving": "Išarchyvuojama...",
   "unavailableReferralCode": "Šis kodas jau yra panaudotas.",
   "uncategorized": "Nekategorizuoti",
+  "uncategorizedItemsWillShowUpHere": "Čia bus rodomi nekategorizuoti elementai.",
+  "uncategorizedUploadHint": "Jei šį praleisite, elementai pereis į nekategorizuotus.",
   "undo": "Anuliuoti",
   "unhide": "Rodyti",
   "unhideToAlbum": "Rodyti į albumą",
   "unhiding": "Rodoma...",
   "unhidingFilesToAlbum": "Rodomi failai į albumą",
+  "unimportant": "Nesvarbūs",
   "unlock": "Atrakinti",
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
@@ -3016,6 +3045,10 @@
   "useRecoveryKey": "Naudoti atkūrimo raktą",
   "@useRecoveryKey": {
     "description": "Use recovery key button label"
+  },
+  "useTwoFactorInstead": "Naudoti 2FA vietoj to",
+  "@useTwoFactorInstead": {
+    "description": "Link on the passkey verification screen to verify with an authenticator code instead"
   },
   "useSelectedPhoto": "Naudoti pasirinktą nuotrauką",
   "usingStorage": "Naudojama {amount}",

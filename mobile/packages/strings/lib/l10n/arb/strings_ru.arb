@@ -1,8 +1,4 @@
 {
-  "bringMemoriesTogether": "Соберите свои воспоминания вместе",
-  "createMyAccount": "Создать мой аккаунт",
-  "localGalleryPermissionDesc": "Разрешите доступ к фотографиям и их организацию с помощью распознавания лиц. Вся обработка выполняется на вашем устройстве.",
-  "onboardingOrganizeDesc": "Организуйте свои фото и видео. Все воспоминания в одном месте.",
   "wallpaper": "Обои",
   "setWallpaper": "Установить как обои",
   "wallpaperHome": "Домашний экран",
@@ -199,7 +195,6 @@
   "albumsOnDevicePermissionCta": "Разрешить доступ",
   "albumsOnEnteEmptyCta": "Выберите альбомы для резервного копирования",
   "albumsOnEnteEmptyTitle": "Сохраняйте воспоминания",
-  "albumsReceivedEmptyTitle": "Просматривайте воспоминания, которыми с вами поделились",
   "albumsSharedEmptyTitle": "Делитесь воспоминаниями",
   "albumsWidgetDesc": "Выберите альбомы, которые хотите видеть на главном экране.",
   "albumTitle": "Название альбома",
@@ -1695,7 +1690,7 @@
       "count": {}
     }
   },
-  "freeUpDeviceSpaceDesc": "Удалите с устройства файлы, для которых созданы резервные копии.",
+  "freeUpDeviceSpaceDesc": "Удалите резервные копии.",
   "freeUpDeviceSpaceDescICloud": "Файлы в общих альбомах iCloud нельзя удалить",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
@@ -2453,7 +2448,6 @@
   },
   "nightLights": "Неоновая ночь",
   "no": "Нет",
-  "noAlbumsOnThisDevice": "Нет альбомов на этом устройстве",
   "noAppToOpenFileDownloadInstead": "Нет приложения для предварительного просмотра этого файла. Вы можете скачать его и открыть с помощью другого приложения.",
   "@noAppToOpenFileDownloadInstead": {
     "description": "Message shown when Android cannot find an app to open or preview a file"
@@ -2970,7 +2964,7 @@
   },
   "receiveRemindersOnBirthdays": "Напоминания о днях рождения",
   "recent": "Недавние",
-  "reclaimSpace": "Освободить {sizeInMBorGB}",
+  "reclaimSpace": "Восстановить {sizeInMBorGB}",
   "@reclaimSpace": {
     "description": "Heading that shows how much device storage can be reclaimed",
     "placeholders": {
@@ -3927,7 +3921,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Начните снимать, и ваши фотографии появятся здесь",
   "startWithAddingPhotosOrFamiliarFaces": "Начните с добавления фотографий или знакомых лиц",
   "status": "Статус",
   "sticker": "Стикер",
@@ -4694,7 +4687,6 @@
   "youAreViewer": "Вы смотрите",
   "youAreCollaborator": "Вы соавтор",
   "youAreAdmin": "Вы админ",
-  "emptyAlbumShareMessage": "Вы еще ни с кем не делились этим альбомом.",
   "addPeople": "Добавить людей",
   "fromYourContacts": "Из ваших контактов",
   "chooseAccess": "Выберите доступ",

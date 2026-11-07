@@ -1,9 +1,4 @@
 {
-  "bringMemoriesTogether": "Rassemblez vos souvenirs",
-  "createMyAccount": "Créer mon compte",
-  "localGalleryPermissionDesc": "Autorisez l’accès à vos photos et leur organisation grâce à la reconnaissance faciale. Tout le traitement est effectué sur votre appareil.",
-  "logInLabel": "Se connecter",
-  "onboardingOrganizeDesc": "Organisez vos photos et vidéos. Tous vos souvenirs au même endroit.",
   "about": "À propos",
   "acceptTrustInvite": "Accepter l'invitation",
   "account": "Compte",
@@ -181,7 +176,6 @@
   "albumsOnDevicePermissionCta": "Autoriser l'accès",
   "albumsOnEnteEmptyCta": "Sélectionner les albums à sauvegarder",
   "albumsOnEnteEmptyTitle": "Sauvegardez vos souvenirs",
-  "albumsReceivedEmptyTitle": "Voir les souvenirs partagés avec vous",
   "albumsSharedEmptyTitle": "Partagez vos souvenirs",
   "albumsWidgetDesc": "Sélectionnez les albums que vous souhaitez voir sur votre écran d'accueil.",
   "albumTitle": "Titre de l'album",
@@ -1948,7 +1942,6 @@
   "nextTotpTitle": "suivant",
   "nightLights": "Soirées néon",
   "no": "Non",
-  "noAlbumsOnThisDevice": "Aucun album sur cet appareil",
   "noChangesWereMade": "Aucune modification effectuee",
   "noCollections": "Aucune collection",
   "noDefaultBackupFolder": "Impossible de créer le dossier de sauvegarde par défaut.",
@@ -3095,7 +3088,6 @@
       }
     }
   },
-  "startSnappingYourPhotosWillShowUpHere": "Commencez à prendre des photos, vos photos apparaîtront ici",
   "startWithAddingPhotosOrFamiliarFaces": "Commencez par ajouter\ndes photos ou des visages familiers",
   "status": "État",
   "sticker": "Autocollant",

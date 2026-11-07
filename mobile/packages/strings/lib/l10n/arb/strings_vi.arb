@@ -4553,6 +4553,7 @@
   },
   "totalSize": "Tổng dung lượng",
   "trash": "Thùng rác",
+  "trashAutoDeleteNotice": "Những mục trong Thùng rác sẽ bị xóa sau 30 ngày",
   "restoreOrPermanentlyDeleteItems": "Khôi phục hoặc xóa vĩnh viễn các mục",
   "trashClearedSuccessfully": "Da xoa sach thung rac",
   "trashCode": "Xóa mã?",
@@ -5154,7 +5155,7 @@
   "permissions": "Quyền truy cập",
   "viewerRoleDescription": "Xem và tải xuống ảnh",
   "collaboratorRoleDescription": "Thêm ảnh của họ",
-  "adminRoleDescription": "Ngoài ra, có thể thêm và xóa người",
+  "adminRoleDescription": "Thêm ảnh của họ và xóa người",
   "addAsViewers": "{count, plural, other{Thêm làm người xem}}",
   "@addAsViewers": {
     "placeholders": {
