@@ -81,3 +81,9 @@ body {
         display: none;
     }
 }
+
+@font-face {
+    font-family: "Gochi Hand";
+    src: url("/fonts/GochiHand-Regular.ttf") format("truetype");
+    font-display: swap;
+}
