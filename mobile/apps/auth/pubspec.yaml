@@ -18,7 +18,6 @@ dependencies:
   collection: 1.19.1
   confetti: 0.8.0
   connectivity_plus: 6.1.4
-  convert: 3.1.2
   dio: 5.9.2
   dots_indicator: 4.0.1
   dotted_border: 3.1.0
@@ -115,7 +114,6 @@ dependencies:
   path: 1.9.1
   path_provider: 2.1.5
   pinput: 5.0.2
-  pointycastle: 3.9.1
   protobuf: 4.2.0
   qr_flutter: 4.1.0
   saf_stream: 2.0.0

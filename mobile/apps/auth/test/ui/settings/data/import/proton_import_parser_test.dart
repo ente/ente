@@ -2,10 +2,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/proton_import_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../helpers/rust.dart';
+
 void main() {
+  final skipReason = rustTestSkipReason;
+  if (skipReason != null) {
+    test('Rust import tests', () {}, skip: skipReason);
+    return;
+  }
+  setUpAll(initializeTestRust);
+
   group('Proton import parser', () {
     test('parses plaintext Proton exports from fixture', () async {
       final codes = await _loadPlaintextFixtureCodes();
@@ -36,20 +46,11 @@ void main() {
     });
 
     test('decrypts password protected Proton exports from fixture', () async {
-      final encryptedJson = decodeProtonExportJson(
+      final decryptedCodes = await importProtonExport(
         await _fixture(
           'proton_authenticator_backup_encrypted_1231246.json',
         ).readAsString(),
-      );
-
-      expect(isEncryptedProtonExport(encryptedJson), isTrue);
-
-      final decryptedJson = decryptProtonExport(
-        encryptedJson,
         password: '1231246',
-      );
-      final decryptedCodes = parseProtonExport(
-        decodeProtonExportJson(decryptedJson),
       );
       final plaintextCodes = await _loadPlaintextFixtureCodes();
 
@@ -63,15 +64,14 @@ void main() {
     test(
       'fails to decrypt password protected Proton exports with bad password',
       () async {
-        final encryptedJson = decodeProtonExportJson(
-          await _fixture(
-            'proton_authenticator_backup_encrypted_1231246.json',
-          ).readAsString(),
-        );
-
-        expect(
-          () => decryptProtonExport(encryptedJson, password: 'wrong-password'),
-          throwsA(isA<IncorrectProtonExportPasswordException>()),
+        await expectLater(
+          importProtonExport(
+            await _fixture(
+              'proton_authenticator_backup_encrypted_1231246.json',
+            ).readAsString(),
+            password: 'wrong-password',
+          ),
+          throwsA(isA<rust.ImportError_IncorrectPassword>()),
         );
       },
     );
@@ -79,10 +79,9 @@ void main() {
 }
 
 Future<List<Code>> _loadPlaintextFixtureCodes() async {
-  final exportJson = decodeProtonExportJson(
+  return importProtonExport(
     await _fixture('proton_authenticator_backup.json').readAsString(),
   );
-  return parseProtonExport(exportJson);
 }
 
 void _expectCode(Code code, _ExpectedCode expected) {
