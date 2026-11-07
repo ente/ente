@@ -347,6 +347,7 @@ func (c *UserController) UpdateEmail(ctx *gin.Context, userID int64, email strin
 		return stacktrace.Propagate(err, "")
 	}
 	c.touchContactsAfterEmailUpdate(ctx, userID)
+	c.touchCollectionsAfterEmailUpdate(ctx, userID)
 	_ = emailUtil.SendTemplatedEmail([]string{user.Email}, "ente", "team@ente.com",
 		ente.EmailChangedSubject, ente.EmailChangedTemplate, map[string]interface{}{
 			"NewEmail": email,
@@ -391,6 +392,20 @@ func (c *UserController) touchContactsAfterEmailUpdate(ctx *gin.Context, userID 
 				"user_id": userID,
 			}).
 			Error("failed to touch contacts after email update")
+	}
+}
+
+func (c *UserController) touchCollectionsAfterEmailUpdate(ctx *gin.Context, userID int64) {
+	if c.CollectionRepo == nil {
+		return
+	}
+	if touchErr := c.CollectionRepo.TouchCollectionsSharedWithOrByUser(ctx, userID); touchErr != nil {
+		log.WithError(touchErr).
+			WithFields(log.Fields{
+				"req_id":  requestid.Get(ctx),
+				"user_id": userID,
+			}).
+			Error("failed to touch collections after email update")
 	}
 }
 
