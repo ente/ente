@@ -19,7 +19,7 @@ func (c *ClICtrl) fetchRemoteCollections(ctx context.Context) error {
 	}
 	collections, err := c.Client.GetCollections(ctx, lastSyncTime)
 	if err != nil {
-		return fmt.Errorf("failed to get collections: %s", err)
+		return fmt.Errorf("failed to get collections: %w", err)
 	}
 	maxUpdated := lastSyncTime
 	for _, collection := range collections {
