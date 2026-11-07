@@ -318,7 +318,10 @@ class _Summary extends StatelessWidget {
           Positioned(
             left: 35,
             top: 545,
-            child: _Uploads(files: totals.files, topPercent: totals.topPercent),
+            child: _Uploads(
+              files: totals.files,
+              topPerMille: totals.topPerMille,
+            ),
           ),
         ],
         if (colour != null) ...[
@@ -381,19 +384,21 @@ class _Label extends StatelessWidget {
 }
 
 class _Uploads extends StatelessWidget {
-  const _Uploads({required this.files, required this.topPercent});
+  const _Uploads({required this.files, required this.topPerMille});
 
   final int files;
-  final int? topPercent;
+  final int? topPerMille;
 
   @override
   Widget build(BuildContext context) {
-    final topPercent = this.topPercent;
+    final topPerMille = this.topPerMille;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: topPercent == null ? 153 : 130),
+          constraints: BoxConstraints(
+            maxWidth: topPerMille == null ? 153 : 130,
+          ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: RewindOutlinedText(
@@ -409,17 +414,17 @@ class _Uploads extends StatelessWidget {
             ),
           ),
         ),
-        if (topPercent != null)
-          Positioned(right: -40.8, top: -29, child: _Seal(topPercent)),
+        if (topPerMille != null)
+          Positioned(right: -40.8, top: -29, child: _Seal(topPerMille)),
       ],
     );
   }
 }
 
 class _Seal extends StatelessWidget {
-  const _Seal(this.topPercent);
+  const _Seal(this.topPerMille);
 
-  final int topPercent;
+  final int topPerMille;
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +442,7 @@ class _Seal extends StatelessWidget {
                 children: [
                   Text("TOP", style: RewindTextStyles.body(8, height: 10 / 8)),
                   Text(
-                    "$topPercent%",
+                    "${rewindTopPercent(topPerMille)}%",
                     style: RewindTextStyles.body(16, height: 18 / 16),
                   ),
                 ],

@@ -29,7 +29,7 @@ pub struct RewindReport {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Totals {
     pub files: u32,
-    pub top_percent: Option<u32>,
+    pub top_per_mille: Option<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -223,6 +223,11 @@ impl RewindReport {
     }
 
     pub(super) fn shows_ml_chapters(&self) -> bool {
-        self.colour.is_some() || self.people_race.is_some() || self.new_faces.is_some()
+        self.colour.is_some()
+            || self.people_race.is_some()
+            || self.new_faces.is_some()
+            || self
+                .badge
+                .is_some_and(|badge| chapters::badge_uses_ml(badge.id))
     }
 }

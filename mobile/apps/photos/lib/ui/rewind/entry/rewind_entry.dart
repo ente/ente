@@ -36,7 +36,10 @@ class RewindEntry {
   bool get started => opened && !completed;
 
   int get resumeIndex =>
+      rewindService.progress.resumeIndex ??
       max(0, pages.indexOf(rewindService.progress.resumePage ?? ""));
+
+  int get pageCount => rewindService.progress.pageCount ?? pages.length;
 
   Future<void> open(BuildContext context) {
     final progress = rewindService.progress;
@@ -48,7 +51,14 @@ class RewindEntry {
         initialPage: resume ? progress.resumePage : null,
         initialStop: resume ? progress.resumeStop : 0,
         onSettled: (story, page, stop) {
-          unawaited(progress.saveResume(page.key, stop));
+          unawaited(
+            progress.saveResume(
+              page.key,
+              stop,
+              index: story.pages.indexOf(page),
+              pageCount: story.pages.length,
+            ),
+          );
           if (identical(page, story.pages.last)) {
             unawaited(progress.markCompleted());
           }

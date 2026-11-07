@@ -97,9 +97,23 @@ impl<'a> Ranking<'a> {
             .into_iter()
             .filter(|file| self.is_showable(file))
             .partition(|file| !file.file.is_junk);
+        let mut chosen: Vec<Chosen> = Vec::new();
+        for files in [kept, junk] {
+            self.spread_into(&mut chosen, files, spread, limit);
+        }
+        chosen.into_iter().map(|chosen| chosen.id).collect()
+    }
+
+    fn spread_into(
+        &self,
+        chosen: &mut Vec<Chosen>,
+        files: Vec<&YearFile<'_>>,
+        spread: Spread,
+        limit: usize,
+    ) {
         let mut groups: Vec<Vec<&YearFile>> = Vec::new();
         let mut positions: HashMap<i64, usize> = HashMap::new();
-        for file in kept.into_iter().chain(junk) {
+        for file in files {
             let position = *positions.entry(spread.key(file)).or_insert_with(|| {
                 groups.push(Vec::new());
                 groups.len() - 1
@@ -107,9 +121,11 @@ impl<'a> Ranking<'a> {
             groups[position].push(file);
         }
         let rounds = groups.iter().map(Vec::len).max().unwrap_or(0);
-        let mut chosen: Vec<Chosen> = Vec::new();
-        'rounds: for round in 0..rounds {
+        for round in 0..rounds {
             for file in groups.iter().filter_map(|group| group.get(round)) {
+                if chosen.len() >= limit {
+                    return;
+                }
                 let vector = self.vector(file.id());
                 if chosen
                     .iter()
@@ -122,12 +138,8 @@ impl<'a> Ranking<'a> {
                     creation_time: file.file.creation_time,
                     vector,
                 });
-                if chosen.len() >= limit {
-                    break 'rounds;
-                }
             }
         }
-        chosen.into_iter().map(|chosen| chosen.id).collect()
     }
 
     fn named_face_count(&self, file_id: i64) -> u32 {
@@ -216,6 +228,22 @@ mod tests {
 
         assert_eq!(ranked, [9, 5, 7, 4, 6]);
         assert_eq!(ranking.best(library.files(), Spread::Days, 2), [9, 5]);
+    }
+
+    #[test]
+    fn junk_only_fills_the_slots_left_after_every_own_photo() {
+        let mut files = vec![
+            photo(1, "2026-03-01T10:00:00"),
+            photo(2, "2026-03-01T12:00:00"),
+            photo(3, "2026-03-02T10:00:00"),
+        ];
+        files[2].is_junk = true;
+        let ranking_request = request(files);
+        let library = Library::of_year(&ranking_request).unwrap();
+        let ranking = Ranking::new(None, None);
+
+        assert_eq!(ranking.best(library.files(), Spread::Days, 2), [1, 2]);
+        assert_eq!(ranking.best(library.files(), Spread::Days, 3), [1, 2, 3]);
     }
 
     #[test]

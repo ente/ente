@@ -1,47 +1,68 @@
 struct Threshold {
-    top_percent: u32,
+    top_per_mille: u32,
     minimum_files: u32,
 }
 
-const PLACEHOLDER_TOP_PERCENT_THRESHOLDS: [Threshold; 3] = [
+const TOP_PERCENT_THRESHOLDS: [Threshold; 6] = [
     Threshold {
-        top_percent: 1,
-        minimum_files: 12_000,
+        top_per_mille: 1,
+        minimum_files: 39_123,
     },
     Threshold {
-        top_percent: 10,
-        minimum_files: 4_000,
+        top_per_mille: 10,
+        minimum_files: 15_059,
     },
     Threshold {
-        top_percent: 25,
-        minimum_files: 1_500,
+        top_per_mille: 50,
+        minimum_files: 8_063,
+    },
+    Threshold {
+        top_per_mille: 100,
+        minimum_files: 4_916,
+    },
+    Threshold {
+        top_per_mille: 250,
+        minimum_files: 2_765,
+    },
+    Threshold {
+        top_per_mille: 500,
+        minimum_files: 985,
     },
 ];
 
-pub(super) fn top_percent(files: u32) -> Option<u32> {
-    PLACEHOLDER_TOP_PERCENT_THRESHOLDS
+pub(super) fn top_per_mille(files: u32) -> Option<u32> {
+    TOP_PERCENT_THRESHOLDS
         .iter()
         .find(|threshold| files >= threshold.minimum_files)
-        .map(|threshold| threshold.top_percent)
+        .map(|threshold| threshold.top_per_mille)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PLACEHOLDER_TOP_PERCENT_THRESHOLDS, top_percent};
+    use super::{TOP_PERCENT_THRESHOLDS, top_per_mille};
 
     #[test]
     fn each_threshold_earns_its_own_band_and_fewer_files_earn_none() {
-        for threshold in &PLACEHOLDER_TOP_PERCENT_THRESHOLDS {
+        for threshold in &TOP_PERCENT_THRESHOLDS {
             assert_eq!(
-                top_percent(threshold.minimum_files),
-                Some(threshold.top_percent)
+                top_per_mille(threshold.minimum_files),
+                Some(threshold.top_per_mille)
             );
         }
-        let lowest = PLACEHOLDER_TOP_PERCENT_THRESHOLDS
+        let lowest = TOP_PERCENT_THRESHOLDS
             .iter()
             .map(|threshold| threshold.minimum_files)
             .min()
             .unwrap();
-        assert_eq!(top_percent(lowest - 1), None);
+        assert_eq!(top_per_mille(lowest - 1), None);
+    }
+
+    #[test]
+    fn the_real_bands_match_the_measured_library_sizes() {
+        assert_eq!(top_per_mille(39_123), Some(1));
+        assert_eq!(top_per_mille(39_122), Some(10));
+        assert_eq!(top_per_mille(5_347), Some(100));
+        assert_eq!(top_per_mille(985), Some(500));
+        assert_eq!(top_per_mille(984), None);
     }
 }
