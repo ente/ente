@@ -1,5 +1,5 @@
-import { useCollectionsSortBy } from "@/components/gallery/hooks/use-collections-sort-by";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
+import { useCollectionsSortBy } from "@/components/utils/use-collections-sort-by";
 import type { AlbumFilter } from "@/utils/album-filters";
 import type { PeopleSortBy } from "@/utils/people-sort";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
@@ -26,7 +26,7 @@ export const useGalleryPreferences = ({
     const [peopleSortBy, setPeopleSortBy] =
         useState<PeopleSortBy>("count-desc");
     const { collectionsSortBy, onChangeCollectionsSortBy } =
-        useCollectionsSortBy();
+        useCollectionsSortBy("collectionsSortBy", "updation-time-desc");
     const [expandedAlbumFilter, setExpandedAlbumFilter] = useState<
         AlbumFilter | undefined
     >("ente");
