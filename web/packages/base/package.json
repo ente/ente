@@ -17,14 +17,14 @@
         "get-user-locale": "3.0.0",
         "i18next": "26.4.2",
         "i18next-resources-to-backend": "1.2.3",
-        "idb": "8.0.3",
+        "idb": "8.0.4",
         "libsodium-wrappers-sumo": "0.7.15",
-        "nanoid": "6.0.1",
-        "next": "16.4.2",
-        "react": "19.3.0",
-        "react-dom": "19.3.0",
+        "nanoid": "6.0.2",
+        "next": "16.4.3",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
         "react-i18next": "16.6.6",
-        "zod": "4.6.6"
+        "zod": "4.6.7"
     },
     "devDependencies": {
         "@types/libsodium-wrappers-sumo": "0.7.8",
