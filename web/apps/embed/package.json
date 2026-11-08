@@ -9,13 +9,13 @@
         "ente-gallery": "*",
         "ente-media": "*",
         "ente-new": "*",
-        "react": "19.3.0",
-        "react-dom": "19.3.0",
+        "react": "19.3.1",
+        "react-dom": "19.3.1",
         "react-virtualized-auto-sizer": "1.0.26",
         "react-window": "1.8.11"
     },
     "devDependencies": {
-        "@types/node": "24.19.2",
+        "@types/node": "26.6.1",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
         "@types/react-window": "1.8.8",
