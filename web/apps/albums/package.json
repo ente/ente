@@ -36,7 +36,6 @@
         "libsodium-wrappers-sumo": "0.7.15",
         "localforage": "1.10.0",
         "media-chrome": "4.19.2",
-        "memoize-one": "6.0.0",
         "nanoid": "6.0.1",
         "next": "16.4.2",
         "photoswipe": "5.4.4",

@@ -9,7 +9,6 @@
         "ente-gallery": "*",
         "ente-media": "*",
         "ente-new": "*",
-        "memoize-one": "6.0.0",
         "react": "19.3.0",
         "react-dom": "19.3.0",
         "react-virtualized-auto-sizer": "1.0.26",
