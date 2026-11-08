@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "devDependencies": {
-        "@types/node": "24.19.2",
+        "@types/node": "26.6.1",
         "ente-build-config": "*",
         "vite": "8.3.5"
     }
