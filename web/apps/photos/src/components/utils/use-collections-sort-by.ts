@@ -5,22 +5,24 @@ import {
 import { includes } from "ente-utils/type-guards";
 import { useCallback, useEffect, useState } from "react";
 
-export const useCollectionsSortBy = () => {
-    const [collectionsSortBy, setCollectionsSortBy] =
-        useState<CollectionsSortBy>("updation-time-desc");
+export const useCollectionsSortBy = (
+    storageKey: string,
+    initialValue: CollectionsSortBy,
+) => {
+    const [collectionsSortBy, setCollectionsSortBy] = useState(initialValue);
 
     useEffect(() => {
-        const value = localStorage.getItem("collectionsSortBy");
+        const value = localStorage.getItem(storageKey);
         if (value && includes(supportedCollectionsSortBy, value))
             setCollectionsSortBy(value);
-    }, []);
+    }, [storageKey]);
 
     const onChangeCollectionsSortBy = useCallback(
         (value: CollectionsSortBy) => {
-            localStorage.setItem("collectionsSortBy", value);
+            localStorage.setItem(storageKey, value);
             setCollectionsSortBy(value);
         },
-        [],
+        [storageKey],
     );
 
     return { collectionsSortBy, onChangeCollectionsSortBy };
