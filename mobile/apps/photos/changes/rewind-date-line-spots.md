@@ -1,1 +1,0 @@
-- Fixed Rewind splitting nearby photos taken across the International Date Line into separate spots.
