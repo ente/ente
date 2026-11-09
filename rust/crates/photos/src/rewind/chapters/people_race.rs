@@ -11,6 +11,7 @@ const RACE_PEOPLE: usize = 3;
 const RACE_MINIMUM_PHOTOS: usize = 10;
 const RACE_FACES: usize = 5;
 const RACE_CANDIDATES: usize = 8;
+const BOOTH_FACE_AREA: f64 = 0.06;
 
 pub(in crate::rewind) fn people_race(
     request: &RewindRequest,
@@ -86,7 +87,7 @@ fn by_prominence<'l, 'r>(
     {
         let (own_faces, prominence) = faces.entry(face.file_id).or_insert((0, 0.0));
         *own_faces += 1;
-        *prominence = prominence.max(face.area * face.score);
+        *prominence = prominence.max(booth_fit(face.area) * face.score);
     }
     let mut files: Vec<(&YearFile, f64)> = faces
         .into_iter()
@@ -102,6 +103,10 @@ fn by_prominence<'l, 'r>(
             .then(first.0.id().cmp(&second.0.id()))
     });
     files.into_iter().map(|(file, _)| file).collect()
+}
+
+fn booth_fit(area: f64) -> f64 {
+    area.min(BOOTH_FACE_AREA * BOOTH_FACE_AREA / area)
 }
 
 #[cfg(test)]
@@ -178,7 +183,7 @@ mod tests {
         assert_eq!(alice.photo_count, 12);
         assert_eq!(alice.monthly_counts, vec![12; 12]);
         assert_eq!(race.people[2].monthly_counts[..3], [0, 10, 10]);
-        assert_eq!(alice.file_ids, [5, 7, 1, 2, 4, 6, 8, 9]);
+        assert_eq!(alice.file_ids, [7, 1, 2, 4, 6, 8, 9, 10]);
         assert_eq!(
             alice.face_ids,
             ["7_alice", "10_alice", "11_alice", "1_alice", "2_alice"]

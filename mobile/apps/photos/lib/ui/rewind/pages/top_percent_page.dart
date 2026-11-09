@@ -12,26 +12,26 @@ import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class TopPercentPage extends RewindPage {
-  const TopPercentPage({required this.percent, required this.count});
+  const TopPercentPage({required this.perMille, required this.count});
 
   static const pageKey = "top_percent";
 
   static const _base = Color(0xFF5666CC);
   static const _night = Color(0xFF1A2A8F);
 
-  final int percent;
+  final int perMille;
   final int count;
 
   @override
   String get key => pageKey;
 
-  _Crowd get _crowd => percent <= 1 ? _Crowd.top1 : _Crowd.wide;
+  _Crowd get _crowd => perMille <= 10 ? _Crowd.top1 : _Crowd.wide;
 
-  List<(String, Rect)> get _heroes => switch (percent) {
-    <= 1 => const [
+  List<(String, Rect)> get _heroes => switch (perMille) {
+    <= 10 => const [
       (RewindAssets.crowdHeroTop1, Rect.fromLTWH(141, 152, 113, 118)),
     ],
-    <= 10 => const [
+    <= 100 => const [
       (RewindAssets.crowdHeroLeft, Rect.fromLTWH(78, 188, 82, 112)),
       (RewindAssets.crowdHeroMiddle, Rect.fromLTWH(139, 188, 98, 112)),
       (RewindAssets.crowdHeroRight, Rect.fromLTWH(223, 183, 88, 113)),
@@ -54,7 +54,8 @@ class TopPercentPage extends RewindPage {
     final crowd = _crowd;
     final heroes = _heroes;
     final textDelay = 950 + 175 * (heroes.length - 1);
-    final small = percent > 1;
+    final label = rewindTopPercent(perMille);
+    final small = label.length > 1;
     return RewindShareable(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -161,7 +162,7 @@ class TopPercentPage extends RewindPage {
                       child: RewindFitWidth(
                         width: 340,
                         child: RewindOutlinedText(
-                          "TOP $percent%",
+                          "TOP $label%",
                           style: RewindTextStyles.display(
                             small ? 85 : 95.144,
                             color: const Color(0xFFFFD525),

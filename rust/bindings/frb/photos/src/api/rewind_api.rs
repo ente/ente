@@ -119,7 +119,7 @@ pub struct _RewindReport {
 #[frb(mirror(Totals))]
 pub struct _Totals {
     pub files: u32,
-    pub top_percent: Option<u32>,
+    pub top_per_mille: Option<u32>,
 }
 
 #[frb(mirror(ColourOfTheYear))]

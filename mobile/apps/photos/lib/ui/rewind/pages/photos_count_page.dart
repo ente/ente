@@ -123,7 +123,7 @@ class PhotosCountPage extends RewindPage {
                 ),
               ),
               RewindLayer(
-                rect: const Rect.fromLTWH(43, 90, 316, 88),
+                rect: const Rect.fromLTWH(41, 79, 320.5, 110),
                 position: position,
                 child: RewindEntrance(
                   preset: RewindPreset.rise,

@@ -19,9 +19,12 @@ import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 const rewindDesignPages = <RewindPage>[CoverPage(), ...setupPages];
 
 const rewindTopPercentPages = <RewindPage>[
-  TopPercentPage(percent: 1, count: 12480),
-  TopPercentPage(percent: 10, count: 4826),
-  TopPercentPage(percent: 25, count: 1712),
+  TopPercentPage(perMille: 1, count: 39123),
+  TopPercentPage(perMille: 10, count: 15059),
+  TopPercentPage(perMille: 50, count: 8063),
+  TopPercentPage(perMille: 100, count: 4916),
+  TopPercentPage(perMille: 250, count: 2765),
+  TopPercentPage(perMille: 500, count: 985),
 ];
 
 final rewindColourChapters = [
@@ -83,7 +86,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
         ),
         ListTile(
           title: const Text("Top % bands"),
-          subtitle: const Text("1%, 10% and 25%"),
+          subtitle: const Text("0.1%, 1%, 5%, 10%, 25% and 50%"),
           trailing: const Icon(Icons.chevron_right_outlined),
           onTap: () => open(rewindTopPercentPages),
         ),
