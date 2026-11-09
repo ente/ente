@@ -7,6 +7,20 @@ description: Release notes of recent updates to Ente Locker
 
 A short summary list of changes to Ente Locker.
 
+## v1.0.12 (mobile) - Nov 2026
+
+- Fixed deleted collections remaining selected.
+- Kept items in your own collections when removing them from Important.
+- Fixed an app launch failure on iOS 27.
+- Improved spacing between onboarding and recovery-key actions.
+- Removed the unused microphone permission on Android.
+- Limited restore selection to one collection.
+- Fixed duplicate files in search results.
+- Improved search responsiveness.
+- Moved the session token to secure storage.
+- Added a 30-day deletion notice to Trash. (@fosszil)
+- Updated the empty home screen to show save options regardless of Legacy kit setup.
+
 ## v1.0.11 (mobile) - Oct 2026
 
 - Open images right in Locker. Pinch or double-tap to zoom.
