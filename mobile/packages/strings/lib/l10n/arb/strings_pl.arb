@@ -7,8 +7,22 @@
   "@createMyAccount": {
     "description": "Create account button on the Photos onboarding screen"
   },
-  "localGalleryPermissionDesc": "Zezwól na dostęp do zdjęć i porządkowanie ich za pomocą rozpoznawania twarzy. Całe przetwarzanie odbywa się na Twoim urządzeniu.",
-  "onboardingOrganizeDesc": "Uporządkuj swoje zdjęcia i filmy. Wszystkie wspomnienia w jednym miejscu.",
+  "localGalleryPermissionDesc": "Przyznaj uprawnienia do dostępu i organizowania zdjęć z rozpoznaniem twarzy. Przetwarzanie odbywa się w całości na Twoim urządzeniu.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Miejsce na wszystkie Twoje zdjęcia i filmy. Wszystkie wspomnienia w jednym miejscu.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
+  "wallpaper": "Tapeta",
+  "setWallpaper": "Ustaw jako tapetę",
+  "wallpaperHome": "Ekran główny",
+  "wallpaperLock": "Ekran blokady",
+  "wallpaperBoth": "Ekran główny i ekran blokady",
+  "wallpaperSet": "Ustawiono nową tapetę",
+  "wallpaperFailed": "Nie udało się ustawić tapety",
+  "wallpaperUnavailable": "Zmiana tapety na tym urządzeniu jest niedozwolona",
   "about": "O nas",
   "acceptTrustInvite": "Zaakceptuj zaproszenie",
   "account": "Konto",
@@ -30,6 +44,7 @@
     "description": "Error shown when account exists but signup is incomplete"
   },
   "actionNotSupportedOnFavouritesAlbum": "Akcja nie jest obsługiwana na Ulubionym albumie",
+  "activeLinksWillShowUpHere": "Tutaj pojawią się aktywne linki",
   "activeSessions": "Aktywne sesje",
   "@activeSessions": {
     "description": "Title for active sessions page"
@@ -55,11 +70,16 @@
   "addFromDevice": "Dodaj z urządzenia",
   "addingPhotos": "Dodawanie zdjęć",
   "addingToFavorites": "Dodawanie do ulubionych...",
+  "addItems": "Dodaj elementy",
   "addLocation": "Dodaj lokalizację",
   "addLocationButton": "Dodaj",
   "addMember": "Dodaj użytkownika",
   "addMore": "Dodaj więcej",
   "addName": "Dodaj nazwę",
+  "addNew": "Dodaj nowy",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
   "addNewEmail": "Dodaj nowy email",
   "addOnPageSubtitle": "Szczegóły dodatków",
   "addOns": "Dodatki",
@@ -70,6 +90,10 @@
       "storageAmount": {}
     }
   },
+  "addPage": "Dodaj stronę",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
   "addPerson": "Dodaj osobę",
   "@addPerson": {
     "description": "Title for the manual tagging flow where user selects a person to tag files with."
@@ -77,6 +101,7 @@
   "addPhotos": "Dodaj zdjęcia",
   "addSelected": "Dodaj zaznaczone",
   "addTag": "Dodaj etykietę",
+  "addTo": "Dodaj do",
   "addToAlbum": "Dodaj do albumu",
   "addToCollection": "Dodaj do kolekcji",
   "addToEnte": "Dodaj do Ente",
@@ -101,9 +126,15 @@
   "after1Month": "Po 1 miesiącu",
   "after1Week": "Po 1 tygodniu",
   "after1Year": "Po 1 roku",
+  "albumDescriptionHint": "Wprowadź opis dla tego albumu",
+  "albumEditsWillNotBeSaved": "Twoje zmiany w tym albumie nie zostaną zapisane.",
   "albumLayout": "Układ albumu",
+  "albumName": "Nazwa albumu",
   "albums": "Albumy",
   "albumsOnDevicePermissionCta": "Zezwól na dostęp",
+  "albumsOnEnteEmptyCta": "Wybierz albumy, dla których zostanie wykonana kopia zapasowa",
+  "albumsSharedEmptyTitle": "Udostępnij swoje wspomnienia",
+  "albumsWidgetDesc": "Wybierz albumy, które chcesz zobaczyć na ekranie głównym.",
   "albumTitle": "Tytuł albumu",
   "albumUpdated": "Album został zaktualizowany",
   "algorithm": "Algorytm",
@@ -113,12 +144,14 @@
   "allFilesAlreadyMarkedAsImportant": "Wszystkie elementy są już oznaczone jako ważne",
   "allMemoriesPreserved": "Wszystkie wspomnienia zachowane",
   "allow": "Zezwól",
+  "allowAccessToYourPhotos": "Zezwól na dostęp do Twoich zdjęć",
   "allowAddingPhotos": "Pozwól na dodawanie zdjęć",
   "@allowAddingPhotos": {
     "description": "Switch button to enable uploading photos to a public link"
   },
   "allowAppToOpenSharedAlbumLinks": "Zezwalaj aplikacji na otwieranie udostępnianych linków do albumu",
   "allowDownloads": "Zezwól na pobieranie",
+  "allowJoining": "Zezwól na dołączenie",
   "allowJoiningAlbum": "Zezwól na dołączanie do albumu",
   "allowPermBody": "Prosimy zezwolić na dostęp do swoich zdjęć w Ustawieniach, aby Ente mogło wyświetlać i tworzyć kopię zapasową Twojej biblioteki.",
   "allowPermTitle": "Zezwól na dostęp do zdjęć",
@@ -133,6 +166,7 @@
   "alreadyHaveAnAccount": "Posiadasz już konto?",
   "analysis": "Analiza",
   "analyzingPhotosLocally": "Analizowanie zdjęć lokalnie...",
+  "and1Other": "i 1 inny",
   "androidBiometricHint": "Potwierdź swoją tożsamość",
   "@androidBiometricHint": {
     "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
@@ -145,10 +179,27 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
+  "andXOthers": "i {count} inne",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aNewVersionOfEnteIsAvailable": "Dostępna jest nowa wersja Ente.",
+  "aNewVersionOfEnteLockerIsAvailable": "Dostępna jest nowa wersja Ente Locker.",
+  "anythingElse": "Czy chciałbyś przekazać nam coś jeszcze?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
   "appearance": "Wygląd",
   "appIcon": "Ikona aplikacji",
   "appleId": "Apple ID",
+  "appLock": "Blokada dostępu do aplikacji",
+  "@appLock": {
+    "description": "App lock setting title"
+  },
   "appLockDescription": "Wybierz między domyślnym ekranem blokady urządzenia a niestandardowym ekranem blokady z kodem PIN lub hasłem.",
   "@appLockDescription": {
     "description": "Description of app lock feature"
@@ -159,11 +210,22 @@
   "apply": "Zastosuj",
   "applyCodeTitle": "Użyj kodu",
   "appstoreSubscription": "Subskrypcja AppStore",
+  "appVersion": "Wersja {versionValue}",
+  "@appVersion": {
+    "placeholders": {
+      "versionValue": {}
+    }
+  },
   "archive": "Archiwum",
   "@archive": {
     "description": "Action of 'Archiving' an element"
   },
   "archiveAlbum": "Archiwizuj album",
+  "archiveCollectionName": "Archiwum",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  },
+  "archivedItemsWillShowUpHere": "Tutaj pojawią się zarchiwizowane elementy",
   "archiving": "Archiwizowanie...",
   "areThey": "Czy są ",
   "areYouSure": "Czy na pewno?",
@@ -172,6 +234,7 @@
   },
   "areYouSureDeleteFiles": "Czy na pewno chcesz usunąć te pliki?",
   "areYouSureRemoveThisFaceFromPerson": "Czy na pewno chcesz usunąć tę twarz z tej osoby?",
+  "areYouSureRemoveThisPersonTag": "Czy na pewno chcesz usunąć oznaczenie tej osoby?",
   "areYouSureThatYouWantToLeaveTheFamily": "Czy jesteś pewien/pewna, że chcesz opuścić plan rodzinny?",
   "areYouSureYouWantToCancel": "Czy na pewno chcesz anulować?",
   "areYouSureYouWantToChangeYourPlan": "Czy na pewno chcesz zmienić swój plan?",
@@ -234,6 +297,9 @@
   },
   "automaticallyAnalyzeAndSplitGrouping": "Automatycznie przeanalizujemy grupę, aby ustalić, czy jest wiele osób i oddzielimy ich ponownie. Może to potrwać kilka sekund.",
   "autoPair": "Automatyczne parowanie",
+  "autumnColors": "Kolory jesieni",
+  "babySmiles": "Uśmiech dziecka",
+  "backedUpAutomatically": "Automatyczna kopia zapasowa",
   "backedUpFolders": "Foldery kopii zapasowej",
   "background": "Tło",
   "backgroundWithThem": "Piękne widoki z {name}",
@@ -244,11 +310,23 @@
   },
   "backingUpLastSevenDaysPhotos": "Tworzenie kopii zapasowej zdjęć z ostatnich 7 dni",
   "backup": "Kopia zapasowa",
+  "backupAndSync": "Kopia zapasowa i synchronizacja",
   "backupCreated": "Utworzono kopię zapasową!",
   "backupFailed": "Tworzenie kopii zapasowej nie powiodło się",
   "backupFile": "Zrób kopię zapasową pliku",
   "backupFolderLabel": "Folder kopii zapasowej:",
+  "backupLatestPhotos": "Utwórz kopię zapasową tylko najnowszych zdjęć",
+  "@backupLatestPhotos": {
+    "description": "Button on the photo permission screen that backs up only recent photos"
+  },
   "backupLocationChoiceDescription": "Gdzie chcesz zapisać kopie zapasowe?",
+  "backupMode": "Tryb tworzenia kopii zapasowej",
+  "backupModeFinishYourBackup": "Zakończ tworzenie kopii zapasowej",
+  "backupModeKeepAppOpen": "Utrzymuj aplikację otwartą",
+  "backupModeNoBackupInProgress": "Brak aktywnego procesu tworzenia kopii zapasowej",
+  "backupModeNoBackupInProgressDescription": "Uruchom kopię zapasową, a następnie wróć do trybu tworzenia kopii zapasowej.",
+  "backupModeStart": "Uruchom tryb tworzenia kopii zapasowej",
+  "backupModeTapToWakeScreen": "Dotknij, aby wybudzić ekran",
   "backupOnlyNewPhotos": "Utwórz kopię zapasową tylko nowych zdjęć",
   "backupOnlyNewPhotosAllFoldersSelected": "Wszystkie foldery są obecnie wybrane do tworzenia kopii zapasowej.\n\nMożesz kontynuować lub zaktualizować wybrane foldery.",
   "backupOnlyNewPhotosNoFoldersSelectedContinue": "Wszystkie foldery są obecnie wybrane do tworzenia kopii zapasowej.\n\nMożesz kontynuować lub zaktualizować wybrane foldery.",
@@ -273,15 +351,30 @@
   "backupVideos": "Utwórz kopię zapasową wideo",
   "beach": "Piasek i morze",
   "birthday": "Urodziny",
+  "birthdayJoy": "Urodzinowa zabawa",
   "birthdays": "Urodziny",
+  "black": "Kolor czarny",
+  "blog": "Blog",
+  "blurred": "Rozmycie",
   "bothIssuerAndAccountCanNotBeEmpty": "Pola wydawca i konto nie mogą być puste",
   "bringYourFamilyAlong": "Przynieś swoją rodzinę",
+  "browseHelpPages": "Przeglądaj strony pomocy",
   "brushColor": "Kolor pędzla",
   "cachedData": "Dane w pamięci podręcznej",
   "calculating": "Obliczanie...",
+  "camera": "Aparat",
   "cancel": "Anuluj",
+  "back": "Wstecz",
   "@cancel": {
     "description": "Cancel button label"
+  },
+  "cancelInvite": "Anuluj zaproszenie",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "Jeśli usuniesz to zaproszenie, będziesz musiał wysłać nowe zaproszenie, jeśli zmienisz zdanie.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
   },
   "cancelOtherSubscription": "Prosimy najpierw anulować istniejącą subskrypcję z {paymentProvider}",
   "@cancelOtherSubscription": {
@@ -316,6 +409,7 @@
   "castAlbum": "Odtwórz album",
   "castIPMismatchBody": "Upewnij się, że jesteś w tej samej sieci co telewizor.",
   "castIPMismatchTitle": "Nie udało się wyświetlić albumu",
+  "cat": "Kot",
   "centerPoint": "Punkt środkowy",
   "changeEmail": "Zmień adres e-mail",
   "@changeEmail": {
@@ -329,6 +423,7 @@
   },
   "changePermissions": "Zmień uprawnienia",
   "changeYourReferralCode": "Zmień swój kod",
+  "checkForUpdates": "Sprawdź dostępne aktualizacje",
   "checkInboxAndSpamFolder": "Sprawdź swoją skrzynkę odbiorczą (i spam), aby zakończyć weryfikację",
   "@checkInboxAndSpamFolder": {
     "description": "Message asking user to check inbox and spam folder"
@@ -339,6 +434,10 @@
   "@checkStatus": {
     "description": "Check status button label"
   },
+  "chooseAlbumsToBackup": "Wybierz albumy, dla których zostanie wykonana kopia zapasowa",
+  "@chooseAlbumsToBackup": {
+    "description": "Button on the photo permission screen that opens album selection for backup"
+  },
   "chooseBackupLocation": "Wybierz lokalizację kopii zapasowej",
   "chooseFromAnExistingContact": "Wybierz z istniejących kontaktów",
   "chooseIcon": "Wybierz ikonę",
@@ -347,6 +446,8 @@
   "claimedByYou": "odebrane przez Ciebie",
   "cleanUncategorized": "Wyczyść Nieskategoryzowane",
   "cleanUncategorizedDescription": "Usuń wszystkie pliki z Nieskategoryzowanych, które są obecne w innych albumach",
+  "cleanupComplete": "Czyszczenie zakończone",
+  "cleanupHiddenFiles": "Usuń ukryte pliki",
   "clearAllFilters": "Wyczyść wszystkie filtry",
   "clearBackupFolder": "Wyczyść folder kopii zapasowej",
   "clearBackupPassword": "Wyczyść hasło kopii zapasowej",
@@ -355,9 +456,14 @@
   "clearSelection": "Wyczyść zaznaczenie",
   "clickToInstallOurBestVersionYet": "Kliknij, aby zainstalować naszą najlepszą wersję",
   "close": "Zamknij",
+  "closeBy": "Zamknij",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
   "closeFamilyConfirmBody": "Wszyscy członkowie utracą dostęp do współdzielonego miejsca. Tej operacji nie można cofnąć.",
   "closeFamilyConfirmTitle": "Zamknąć plan rodzinny?",
   "closeFamilyPlan": "Zamknij plan rodzinny",
+  "closest": "Najbliższy",
   "clusteringProgress": "Postęp tworzenia klastrów",
   "codeAppliedPageTitle": "Kod został zastosowany",
   "codeChangeLimitReached": "Przepraszamy, osiągnięto limit zmian kodu.",
@@ -375,8 +481,15 @@
   "collectionLabel": "Kolekcja",
   "collectionRenamedSuccessfully": "Kolekcja została pomyślnie zmieniona",
   "collections": "Kolekcje",
+  "collectionUpdated": "Kolekcja zaktualizowana",
   "collectPhotos": "Zbierz zdjęcia",
   "color": "Kolor",
+  "commentAndReact": "Komentarze i reakcje",
+  "commentHint": "Powiedz coś miłego",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "comments": "Komentarze",
   "compactMode": "Tryb kompaktowy",
   "comparingImageDetails": "Porównywanie szczegółów zdjęć...",
   "confirm": "Potwierdź",
@@ -397,10 +510,15 @@
       }
     }
   },
+  "confirmPassword": "Wprowadź ponownie hasło",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
   "confirmPlanChange": "Potwierdź zmianę planu",
   "confirmRecoveryKey": "Potwierdź klucz odzyskiwania",
   "confirmUpdatingkey": "Czy na pewno chcesz zaktualizować tajny klucz?",
   "confirmYourRecoveryKey": "Potwierdź klucz odzyskiwania",
+  "congratulations": "Gratulacje!",
   "connectToDevice": "Połącz z urządzeniem",
   "contactDetails": "Dane kontaktowe",
   "contactDetailsHint": "Numer telefonu, email lub inne dane kontaktowe",
@@ -412,6 +530,16 @@
   "contactSupport": "Skontaktuj się z pomocą techniczną",
   "@contactSupport": {
     "description": "Contact support button label"
+  },
+  "contactUs": "Skontaktuj się z nami",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
+  },
+  "contactToManageSubscription": "Skontaktuj się z nami pod adresem support@ente.com, aby zarządzać subskrypcją {provider}.",
+  "@contactToManageSubscription": {
+    "placeholders": {
+      "provider": {}
+    }
   },
   "continueInMailApp": "Kontynuuj w aplikacji pocztowej",
   "continueLabel": "Kontynuuj",
@@ -433,6 +561,10 @@
   "copypasteThisCodentoYourAuthenticatorApp": "Kopiuj, wklej ten kod\ndo swojej aplikacji uwierzytelniającej",
   "couldNotBackUpTryLater": "Nie można utworzyć kopii zapasowej Twoich danych.\nSpróbujemy ponownie później.",
   "couldNotFreeUpSpace": "Nie udało się zwolnić miejsca",
+  "couldNotLoadAlbums": "Nie udało się załadować albumów",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
   "couldNotOpenFile": "Nie można otworzyć elementu: {error}",
   "@couldNotOpenFile": {
     "description": "Error message when item cannot be opened",
@@ -448,13 +580,27 @@
   "crashAndErrorReporting": "Zgłaszanie błędów i awarii",
   "crashReporting": "Zgłaszanie awarii",
   "create": "Utwórz",
+  "createAccount": "Utwórz konto",
+  "@createAccount": {
+    "description": "Create account button label"
+  },
   "createAccountTitle": "Utwórz konto",
+  "createAlbum": "Utwórz album",
   "createAlbumActionHint": "Przytrzymaj, aby wybrać zdjęcia i kliknij +, aby utworzyć album",
   "createAnEnteAccount": "Utwórz konto Ente",
   "createBackupNow": "Utwórz kopię zapasową",
   "createCollaborativeLink": "Utwórz link współpracy",
   "createCollage": "Utwórz kolaż",
   "createCollection": "Utwórz kolekcję",
+  "createdOn": "Utworzono {date}",
+  "@createdOn": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Apr 1, 2026"
+      }
+    }
+  },
   "createNewTag": "Utwórz nową etykietę",
   "createPublicLink": "Utwórz publiczny link",
   "creatingLink": "Tworzenie linku...",
@@ -531,14 +677,21 @@
   "@deleteCollectionFromEverywhere": {
     "description": "Checkbox label asking whether to delete collection items everywhere"
   },
+  "deletedFromEnte": "Usuń z Ente",
+  "deletedItemsStayHereForThirtyDays": "Usunięte elementy pozostaną tutaj przez 30 dni",
   "deleteDuplicates": "Usuń duplikaty",
   "deleteEmptyAlbums": "Usuń puste albumy",
   "deleteEmptyAlbumsWithQuestionMark": "Usunąć puste albumy?",
+  "deleteEnteAccount": "Usuń konto",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
+  },
   "deleteFiles": "Usuń pliki",
   "deleteFromBoth": "Usuń z obu",
   "deleteFromDevice": "Usuń z urządzenia",
   "deleteFromDeviceQuestion": "Usunąć z urządzenia?",
   "deleteFromEnte": "Usuń z Ente",
+  "deleteHiddenFilesFromDevice": "Usuń ukryte pliki z urządzenia",
   "deleteItemCount": "{count, plural, one{Usuń {count} element} few{Usuń {count} elementy} other{Usuń {count} elementów}}",
   "@deleteItemCount": {
     "placeholders": {
@@ -633,7 +786,12 @@
   },
   "documentsHint": "Dokumenty",
   "doesGroupContainMultiplePeople": "Czy ta grupa zawiera wiele osób?",
+  "dog": "Pies",
   "done": "Gotowe",
+  "dontShowAgain": "Nie pokazuj ponownie",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
   "doNotSignOut": "Nie wylogowuj mnie",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
@@ -642,6 +800,7 @@
   "dontSave": "Nie zapisuj",
   "doubleTapToViewHiddenCode": "Możesz kliknąć dwukrotnie na wpis, aby wyświetlić kod",
   "download": "Pobierz",
+  "downloadApplicationUpdate": "Pobierz aktualizację",
   "downloadFailed": "Pobieranie nie powiodło się",
   "downloading": "Pobieranie...",
   "downloadingProgress": "Pobieranie... {percentage}%",
@@ -654,6 +813,7 @@
       }
     }
   },
+  "downloadPhotos": "Pobierz zdjęcia",
   "downloadUpdate": "Pobierz",
   "doYouWantToDiscardTheEditsYouHaveMade": "Czy chcesz odrzucić dokonane zmiany?",
   "draw": "Rysuj",
@@ -699,10 +859,13 @@
     }
   },
   "earned": "zdobyte",
+  "earnFreeStorage": "Uzyskaj darmową przestrzeń dyskową",
   "earnMoreSpace": "Zdobądź więcej miejsca!",
   "edit": "Edytuj",
   "editAutoAddPeople": "Edytuj automatyczne dodawanie osób",
   "editCodeAuthMessage": "Uwierzytelnij się, aby edytować kod",
+  "editContact": "Edytuj kontakt",
+  "editDetails": "Edytuj szczegóły",
   "editEmailAlreadyLinked": "Ten e-mail jest już powiązany z {name}.",
   "@editEmailAlreadyLinked": {
     "placeholders": {
@@ -723,6 +886,10 @@
   "editTag": "Edytuj etykietę",
   "editTime": "Edytuj czas",
   "eligible": "kwalifikujący się",
+  "email": "Adres e-mail",
+  "@email": {
+    "description": "Email field label"
+  },
   "emailAddress": "Adres e-mail",
   "emailAlreadyRegistered": "Adres e-mail jest już zarejestrowany.",
   "@emailAlreadyRegistered": {
@@ -798,9 +965,37 @@
   "enableMaps": "Włącz mapy",
   "encrypted": "Zaszyfrowane",
   "encryptingBackup": "Szyfrowanie kopii zapasowej...",
+  "encryptionKeys": "Klucze szyfrowania",
+  "@encryptionKeys": {
+    "description": "Encryption keys title"
+  },
+  "endpointUpdatedMessage": "Punkt końcowy zaktualizowano pomyślnie",
+  "@endpointUpdatedMessage": {
+    "description": "Success message when endpoint is updated"
+  },
   "ente": "Ente",
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
+  "enteLocker": "Ente Locker",
+  "@enteLocker": {
+    "description": "Product name"
+  },
+  "entePhotos": "Ente Photos",
+  "@entePhotos": {
+    "description": "Product name"
+  },
   "enterAlbumName": "Wprowadź nazwę albumu",
   "enterAnEmailAddress": "Podaj adres e-mail",
+  "enterAppLockPassword": "Wprowadź hasło blokady aplikacji",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "Wprowadź kod PIN blokady aplikacji",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
   "enterAValidEmailAddress": "Podaj poprawny adres e-mail",
   "enterCode": "Wprowadź kod",
   "enterCodeDescription": "Wprowadź kod dostarczony przez znajomego, aby uzyskać bezpłatne miejsce dla was obojga",
@@ -809,6 +1004,7 @@
     "description": "Hint for entering 2FA code"
   },
   "enterCollectionName": "Wprowadź nazwę kolekcji",
+  "enterDateOfBirthHint": "Wprowadź datę urodzenia",
   "enterDetailsManually": "Wprowadź dane ręcznie",
   "enterEmail": "Wprowadź adres e-mail",
   "enterFileName": "Wprowadź nazwę pliku",
@@ -840,7 +1036,12 @@
   },
   "enterReferralCode": "Wprowadź kod polecenia",
   "enterThe6digitCodeFromnyourAuthenticatorApp": "Wprowadź 6-cyfrowy kod z\nTwojej aplikacji uwierzytelniającej",
+  "enterThePasswordFor": "Wprowadź hasło dla",
+  "@enterThePasswordFor": {
+    "description": "Text shown before email on login password verification page"
+  },
   "enterValidEmail": "Prosimy podać prawidłowy adres e-mail.",
+  "enterValidEmailDetailed": "Ten e-mail nie jest prawidłowy. Wprowadź poprawny adres e-mail",
   "enterYourNewEmailAddress": "Podaj swój nowy adres e-mail",
   "enterYourPassword": "Wprowadź hasło",
   "enterYourPasswordHint": "Wprowadź swoje hasło",
@@ -870,6 +1071,18 @@
   "exportYourData": "Eksportuj swoje dane",
   "extraPhotosFound": "Znaleziono dodatkowe zdjęcia",
   "faceNotClusteredYet": "Twarz jeszcze nie zgrupowana, prosimy wrócić później",
+  "memoryLaneNow": "Przed chwilą",
+  "@memoryLaneNow": {
+    "description": "The current moment in a Memory Lane caption, such as Ashil now. This word is styled separately from the person's name."
+  },
+  "facesTimelinePlaybackPause": "Wstrzymaj",
+  "@facesTimelinePlaybackPause": {
+    "description": "Tooltip or semantics label for the pause button"
+  },
+  "facesTimelinePlaybackPlay": "Odtwórz",
+  "@facesTimelinePlaybackPlay": {
+    "description": "Tooltip or semantics label for the play button"
+  },
   "faceThumbnailGenerationFailed": "Nie można wygenerować miniaturek twarzy",
   "failedToApplyCode": "Nie udało się zastosować kodu",
   "failedToCancel": "Nie udało się anulować",
@@ -902,6 +1115,10 @@
       }
     }
   },
+  "failedToLikeComment": "Nie udało się polubić komentarza",
+  "@failedToLikeComment": {
+    "description": "Toast when comment like fails"
+  },
   "failedToLoadAlbums": "Nie udało się załadować albumów",
   "failedToLoadCollections": "Nie udało się załadować kolekcji: {error}",
   "@failedToLoadCollections": {
@@ -925,8 +1142,17 @@
       }
     }
   },
+  "failedToUpdateLike": "Nie udało się zaktualizować polubienia",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
   "failedToVerifyPaymentStatus": "Nie udało się zweryfikować stanu płatności",
   "family": "Rodzina",
+  "familyMoments": "Czas rodzinny",
+  "faq": "Najczęściej zadawane pytania (FAQ)",
+  "@faq": {
+    "description": "FAQ link label"
+  },
   "faqs": "FAQ – Często zadawane pytania",
   "favorite": "Dodaj do ulubionych",
   "feastingWithThem": "Ucztowanie z {name}",
@@ -958,6 +1184,10 @@
   "fileMarkedAsImportant": "Element oznaczony jako ważny",
   "fileNotUploadedYet": "Plik nie został jeszcze przesłany",
   "fileRemovedFromImportant": "Element usunięty z ważnych",
+  "files": "Pliki",
+  "@files": {
+    "description": "Section header for file-related search results"
+  },
   "filesAddedByYouWillBeRemovedFromTheCollection": "Elementy dodane przez Ciebie zostaną usunięte z kolekcji",
   "fileSavedToGallery": "Plik zapisany do galerii",
   "filesDeleted": "Pliki usunięto",
@@ -980,10 +1210,12 @@
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
+  "forgotPasswordPrompt": "Nie pamiętasz hasła?",
   "forgotRecoveryKey": "Zapomniałeś klucz odzyskiwania?",
   "free10GB": "10 GB za darmo na zdjęcia <bold-green>ente</bold-green>",
   "freeStorageOffer": "10% zniżki na zdjęcia <bold-green>ente</bold-green>",
   "freeStorageOfferDescription": "Użyj kodu „AUTH”, aby uzyskać 10% zniżki na pierwszy rok",
+  "free": "Darmowy",
   "freeTrial": "Darmowy okres próbny",
   "freeUpAmount": "Zwolnij {sizeInMBorGB}",
   "@freeUpAmount": {
@@ -1004,14 +1236,34 @@
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
+  "getInTouch": "Kontakt z nami",
+  "getStarted": "Zaczynajmy",
   "gettingReady": "Przygotowywanie",
+  "gettingStarted": "Zacznij korzystać",
   "giveUsAStarOnGithub": "Daj nam gwiazdkę na Githubie",
   "googlePlayId": "Identyfikator Google Play",
+  "goToUrl": "Przejdź do {url}",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
   "grantFullAccessPrompt": "Zezwól na dostęp do wszystkich zdjęć w aplikacji Ustawienia",
+  "grantGalleryPermissionTitle": "Znajdźmy Twoje ulubione",
   "grantPermission": "Przyznaj uprawnienie",
   "grantPermissionDesc": "Zezwól proszę Ente na dostęp do twojej biblioteki, w celu uporządkowania jej z rozpoznawaniem twarzy. Cały proces odbywa się na twoim urządzeniu.",
   "greenery": "Zielone życie",
+  "grid": "Siatka",
+  "photosInOriginalProportions": "Zdjęcia w oryginalnych proporcjach",
+  "photosPerRow": "Zdjęcia w wierszu",
   "groupBy": "Grupuj według",
+  "groupByDay": "Dzień",
+  "groupByMonth": "Miesiąc",
+  "groupByWeek": "Tydzień",
+  "groupByYear": "Rok",
   "guestView": "Widok gościa",
   "guestViewEnablePreSteps": "Aby włączyć widok gościa, należy skonfigurować hasło urządzenia lub blokadę ekranu w ustawieniach Twojego systemu.",
   "happyBirthday": "Wszystkiego najlepszego! 🥳",
@@ -1019,7 +1271,9 @@
   "@hearUsWhereOptionalTitle": {
     "description": "Title asking how user heard about Ente"
   },
+  "hearUsWhereTitle": "Jak usłyszałeś/aś o Ente?",
   "help": "Pomoc",
+  "helpAndSupport": "Pomoc i wsparcie",
   "hidden": "Ukryte",
   "hide": "Ukryj",
   "hideContent": "Ukryj zawartość",
@@ -1051,9 +1305,42 @@
     "description": "How it works button label"
   },
   "howToViewShareeVerificationID": "Poproś ich o przytrzymanie swojego adresu e-mail na ekranie ustawień i sprawdzenie, czy identyfikatory na obu urządzeniach są zgodne.",
+  "iCloudUnavailable": "iCloud niedostępny",
   "ignore": "Ignoruj",
   "ignored": "ignorowane",
   "ignorePerson": "Ignoruj osobę",
+  "imageEditorAlignCenter": "Wyrównanie do środka",
+  "imageEditorAlignLeft": "Wyrównanie do lewej",
+  "imageEditorAlignRight": "Wyrównanie do prawej",
+  "imageEditorBackgroundColor": "Kolor tła",
+  "imageEditorBlue": "Niebieski",
+  "imageEditorBold": "Pogrubiony",
+  "imageEditorBrightness": "Jasność",
+  "imageEditorContrast": "Kontrast",
+  "imageEditorCustomColor": "Niestandardowy kolor",
+  "imageEditorDuplicate": "Powiel",
+  "imageEditorEnterText": "Wprowadź tekst",
+  "imageEditorFade": "Przenikanie",
+  "imageEditorGreen": "Zielony",
+  "imageEditorItalic": "Kursywa",
+  "imageEditorNoBackground": "Brak tła",
+  "@imageEditorNoBackground": {
+    "description": "Text background style with no visible background"
+  },
+  "imageEditorOrange": "Pomarańczowy",
+  "imageEditorPink": "Różowy",
+  "imageEditorPurple": "Fioletowy",
+  "imageEditorRed": "Czerwony",
+  "imageEditorSolidBackground": "Jednolite tło",
+  "@imageEditorSolidBackground": {
+    "description": "Text background style with a fully opaque color"
+  },
+  "imageEditorTemperature": "Temperatura barw",
+  "imageEditorText": "Tekst",
+  "@imageEditorText": {
+    "description": "Tool for adding text to a photo"
+  },
+  "imageEditorTextColor": "Kolor tekstu",
   "imageNotAnalyzed": "Obraz nie został przeanalizowany",
   "immediately": "Natychmiast",
   "@immediately": {
@@ -2166,6 +2453,11 @@
   "selectMorePhotos": "Wybierz więcej zdjęć",
   "selectOneDateAndTime": "Wybierz jedną datę i czas",
   "selectOneDateAndTimeForAll": "Wybierz jedną datę i czas dla wszystkich",
+  "selectPerson": "Wybierz osobę",
+  "selectReason": "Wybierz powód",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
+  },
   "selectStartOfRange": "Wybierz początek zakresu",
   "selectTime": "Wybierz czas",
   "selectYourFace": "Wybierz swoją twarz",
@@ -2179,6 +2471,10 @@
   "@send": {
     "description": "Label for send button"
   },
+  "sendACopy": "Wyślij kopię",
+  "@sendACopy": {
+    "description": "Share a copy of the current photo or video using the system share sheet, as opposed to sending a viewing link"
+  },
   "sendCountInvites": "{count, plural, =0{Wyślij zaproszenia} one{Wyślij {count} zaproszenie} few{Wyślij {count} zaproszenia} other{Wyślij {count} zaproszeń}}",
   "@sendCountInvites": {
     "placeholders": {
@@ -2188,10 +2484,31 @@
       }
     }
   },
+  "sendFileToAnotherApp": "Wysyłanie pliku",
+  "@sendFileToAnotherApp": {
+    "description": "Subtitle for sending a copy of the current photo or video from the file viewer"
+  },
   "sendInvite": "Wyślij zaproszenie",
   "sendLink": "Wyślij link",
   "sendLogsDescription": "Spowoduje to przesłanie logów, które pomogą nam rozwiązać Twój problem. Chociaż podejmujemy środki ostrożności, aby zapewnić, że wrażliwe informacje nie są rejestrowane, zachęcamy do obejrzenia tych dzienników przed ich udostępnieniem.",
+  "sendPhoto": "Wyślij zdjęcie",
+  "@sendPhoto": {
+    "description": "Share a copy of the current photo using the system share sheet, as opposed to sending a viewing link"
+  },
   "sendQrCode": "Wyślij kod QR",
+  "sendToEmail": "Wyślij do {email}",
+  "@sendToEmail": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "sendVideo": "Wyślij wideo",
+  "@sendVideo": {
+    "description": "Share a copy of the current video using the system share sheet, as opposed to sending a viewing link"
+  },
   "serverEndpoint": "Punkt końcowy serwera",
   "@serverEndpoint": {
     "description": "Label for server endpoint setting"
@@ -2204,8 +2521,13 @@
   "@sessionIdMismatch": {
     "description": "In passkey page, deeplink is ignored because of session ID mismatch."
   },
+  "setAContactPhoto": "Ustaw jako zdjęcie kontaktu",
   "setAPassword": "Ustaw hasło",
   "setAs": "Ustaw jako",
+  "setAsMyDefaultChoice": "Ustaw jako domyślny wybór",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
   "setBackupFolder": "Ustaw folder kopii zapasowej",
   "setBackupPassword": "Ustaw hasło kopii zapasowej",
   "setCover": "Ustaw okładkę",
@@ -2229,11 +2551,14 @@
     "description": "Set password title"
   },
   "setRadius": "Ustaw promień",
+  "setSelectedPhoto": "Ustaw zaznaczone zdjęcie",
   "settings": "Ustawienia",
   "setupComplete": "Konfiguracja ukończona",
   "setupFirstAccount": "Skonfiguruj pierwsze\nkonto",
+  "setupLegacyDescription": "Wybierz 3 osoby, którym ufasz. Wymagane jest wspólne działanie dwóch osób, aby odblokować twoje konto.",
   "share": "Udostępnij",
   "shareALink": "Udostępnij link",
+  "shareAnAlbum": "Udostępnij album",
   "shareCodes": "Udostępnij kody",
   "shareCodesDuration": "Wybierz okres, przez który chcesz udostępniać kody.",
   "sharedPhotoNotifications": "Nowe udostępnione zdjęcia i albumy",
@@ -2241,6 +2566,10 @@
   "sharedWith": "Udostępniono",
   "shareKey": "Udostępnij klucz",
   "shareLink": "Udostępnij link",
+  "shareLinkToThisItem": "Udostępnij link do tego elementu",
+  "@shareLinkToThisItem": {
+    "description": "Subtitle for sending a viewing link to the current photo or video from the file viewer"
+  },
   "shareMyVerificationID": "Oto mój identyfikator weryfikacyjny: {verificationID} dla ente.com.",
   "@shareMyVerificationID": {
     "placeholders": {
@@ -2256,13 +2585,24 @@
   },
   "shareTextRecommendUsingEnteForFamily": "Pobierz Ente, abym mógł dodać cię do mojego planu rodzinnego\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForPhotos": "Pobierz Ente, abyśmy mogli łatwo udostępniać zdjęcia i wideo w oryginalnej jakości\n\nhttps://ente.com",
+  "shareTextReferralInvite": "Otrzymaj 20 GB za darmo na Ente Photos! Pobierz aplikację na https://ente.com/invite i użyj kodu {referralCode}.",
+  "@shareTextReferralInvite": {
+    "placeholders": {
+      "referralCode": {}
+    }
+  },
   "shareThisLink": "Ten link pozwala każdemu, kto go otrzyma, uzyskać dostęp do Twojego elementu. Możesz w każdej chwili usunąć dostęp, usuwając link.",
   "shareWithNonenteUsers": "Udostępnij użytkownikom bez konta Ente",
+  "shareYourFeedbackHere": "Podziel się swoją opinią tutaj",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
   "shareYourSubscription": "Podziel się swoją subskrypcją z bliskimi",
   "sharing": "Udostępnianie...",
   "shiftDatesAndTime": "Zmień daty i czas",
   "shouldHideCode": "Ukryj kody",
   "shouldRemoveFilesSmartAlbumsDesc": "Czy pliki związane z osobą, które zostały wcześniej wybrane w inteligentnych albumach, powinny zostać usunięte?",
+  "showIgnored": "Pokaż ignorowane",
   "showLargeIcons": "Pokaż duże ikony",
   "showMemories": "Pokaż wspomnienia",
   "showMoreFaces": "Pokaż więcej twarzy",
@@ -2290,8 +2630,15 @@
   "similar": "Podobne",
   "similarImages": "Podobne zdjęcia",
   "singIn": "Zaloguj się",
+  "singleFileInRemoteOnly": "Ten element zostanie usunięty ze wszystkich albumów. Możesz go odzyskać z kosza.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
   "skip": "Pomiń",
+  "skippedFiles": "Pominięte pliki",
+  "slideshow": "Pokaz slajdów",
   "smartMemories": "Inteligentne wspomnienia",
+  "smartSuggestions": "Inteligentne wskazówki",
   "socialNotifications": "Polubienia i komentarze",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Osoba udostępniająca albumy powinna widzieć ten sam identyfikator na swoim urządzeniu.",
   "somethingWentWrong": "Coś poszło nie tak",
@@ -2320,7 +2667,9 @@
   "sortAToZ": "A-Z",
   "sortNewestFirst": "Od najnowszych",
   "sortOldestFirst": "Od najstarszych",
+  "sortPhotos": "Sortuj zdjęcia",
   "sortZToA": "Z-A",
+  "speed": "Prędkość",
   "sportsWithThem": "Sport z {name}",
   "@sportsWithThem": {
     "placeholders": {
@@ -2379,6 +2728,8 @@
   "subscribe": "Subskrybuj",
   "subscribeToChangeLinkSetting": "Potrzebujesz płatnej subskrypcji, aby zmienić to ustawienie linku.",
   "subscribeToEnableSharing": "Potrzebujesz aktywnej płatnej subskrypcji, aby włączyć udostępnianie.",
+  "subscriptionLearnMore": "Zobacz więcej.",
+  "subscriptionCurrentPlan": "Obecny plan",
   "subscription": "Subskrypcja",
   "subscriptionRequiredForSharing": "Potrzebujesz płatnej subskrypcji, aby udostępniać linki",
   "subWillBeCancelledOn": "Twoja subskrypcja zostanie anulowana dnia {endDate}",

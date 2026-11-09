@@ -1,4 +1,5 @@
 {
+  "allCleanedUp": "Đã dọn sạch sẽ!",
   "bringMemoriesTogether": "Mang theo kỷ niệm của bạn",
   "@bringMemoriesTogether": {
     "description": "Title on the Local Gallery photo permission screen"
@@ -686,11 +687,11 @@
   "@commentedOnAVideo": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
   },
-  "commentedOnYourPhoto": "đã bình luận về video của bạn",
+  "commentedOnYourPhoto": "đã bình luận video của bạn",
   "@commentedOnYourPhoto": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
   },
-  "commentedOnYourVideo": "đã bình luận về video của bạn",
+  "commentedOnYourVideo": "đã bình luận video của bạn",
   "@commentedOnYourVideo": {
     "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
   },
@@ -2147,6 +2148,7 @@
     }
   },
   "itemsLabel": "Mục",
+  "itemsQueuedForDeletion": "Các mục đã được lên lịch xóa",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Trên các mục là số ngày còn lại trước khi xóa vĩnh viễn",
   "itemsStored": "Những mục đã lưu trữ",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, other{Các mục này sẽ bị xóa khỏi tất cả các bộ sưu tập. Bạn có thể khôi phục chúng từ Thùng rác.}}",
@@ -2172,6 +2174,10 @@
   "joinAlbumConfirmationDialogBody": "Tham gia một album sẽ khiến email của bạn hiển thị với những người tham gia khác.",
   "joinAlbumSubtext": "để xem và thêm ảnh của bạn",
   "joinAlbumSubtextViewer": "để thêm vào album được chia sẻ",
+  "keep": "Giữ",
+  "@keep": {
+    "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
+  },
   "keepOffline": "Giữ ngoại tuyến",
   "keepPhotos": "Giữ ảnh",
   "kiloMeterUnit": "km",
@@ -2553,6 +2559,7 @@
   },
   "maps": "Bản đồ",
   "mapsPrivacyNotice": "Tọa độ gần đúng sẽ được gửi đến các bên thứ ba quan tâm đến quyền riêng tư như OpenStreetMap để hiển thị bản đồ và vị trí.",
+  "markAsReviewed": "Đánh dấu là đã xem lại",
   "markingAsImportant": "Dang danh dau quan trong...",
   "me": "Tôi",
   "mediaManagementHintMessage": "Bật quản lý media cho Ente trong cài đặt, và nó sẽ ổn.",
@@ -2887,6 +2894,8 @@
       }
     }
   },
+  "nothingToReviewYet": "Không có gì để xem lại",
+  "nothingToReviewYetDesc": "Ảnh của bạn sẽ hiển thị ở đây, theo từng tháng.",
   "nothingToSeeHere": "Ở đây không có gì để xem",
   "nothingToCleanUp": "Không có gì để dọn dẹp",
   "nothingToTidyUpHere": "Ở đây đã ngon lành rồi",
@@ -2924,6 +2933,8 @@
   "offlineNameFaceBannerTitle": "Đặt tên cho khuôn mặt này",
   "offlineSettingsBannerDesc": "Mã hóa không cần kiến ​​thức nghĩa là kỷ niệm của bạn thuộc về bạn.",
   "offlineSettingsBannerTitle": "Chúng tôi không thể nhìn thấy ảnh của bạn. Không bao giờ.",
+  "oldPhotos": "Ảnh cũ",
+  "oldPhotosDesc": "Xem lại, giữ những thứ quan trọng",
   "onboardingDesc": "Lưu trữ ảnh và video của bạn. Mọi kỷ niệm, tại một nơi.",
   "onboardingTitle": "Cho mọi thứ mà bạn không muốn bị lãng quên",
   "onDevice": "Thiết bị",
@@ -3632,7 +3643,72 @@
   "retake": "Làm lại",
   "retry": "Thử lại",
   "review": "Xem lại",
+  "reviewAgain": "Xem lại lần nữa",
+  "reviewFreedUpSummary": "{count, plural, other{Bạn đã giải phóng {size} của {count} mục.}}",
+  "@reviewFreedUpSummary": {
+    "placeholders": {
+      "size": {
+        "example": "128 MB",
+        "type": "String"
+      },
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
+  "reviewKeptEverything": "Bạn đã giữ mọi thứ trong tháng này.",
+  "reviewLetsGetStartedWith": "Hãy bắt đầu với",
+  "@reviewLetsGetStartedWith": {
+    "description": "Caption above the month name on the Review old photos banner before any month has been started."
+  },
+  "reviewNextMonth": "Xem lại tháng kế tiếp",
+  "reviewOldPhotos": "Xem lại ảnh cũ",
+  "reviewPercentReviewed": "{percent}% đã xem lại",
+  "@reviewPercentReviewed": {
+    "placeholders": {
+      "percent": {
+        "example": "40",
+        "type": "int"
+      }
+    }
+  },
+  "reviewPickUpAgain": "Chọn lại",
+  "@reviewPickUpAgain": {
+    "description": "Caption above the month name on the Review old photos banner when a month is partly reviewed."
+  },
+  "reviewProgressCount": "{reviewed} / {total} đã review",
+  "@reviewProgressCount": {
+    "placeholders": {
+      "reviewed": {
+        "example": "40",
+        "type": "int"
+      },
+      "total": {
+        "example": "60",
+        "type": "int"
+      }
+    }
+  },
+  "reviewRemovedItemsSummary": "{count, plural, other{Bạn đã gỡ {count} mục.}}",
+  "@reviewRemovedItemsSummary": {
+    "placeholders": {
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
   "reviewSuggestions": "Xem gợi ý",
+  "reviewYouReviewedYear": "Bạn đã xem lại {year}!",
+  "@reviewYouReviewedYear": {
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "revoke": "Gỡ",
   "revokeInvite": "Gỡ lời mời",
   "@revokeInvite": {
@@ -3914,7 +3990,9 @@
   "secretCanNotBeEmpty": "Không được để trống khóa bí mật",
   "security": "Bảo mật",
   "securityDesc": "Mã hóa, khóa khôi phục, khóa ứng dụng và bảo vệ tài khoản",
+  "seeAll": "Xem tất cả",
   "seeAllCollections": "Xem tat ca bo suu tap",
+  "seeLess": "Ẩn bớt",
   "seePublicAlbumLinksInApp": "Xem liên kết album công khai trong ứng dụng",
   "selectAlbumsToBackUpToEnte": "Chọn những album sẽ sao lưu lên Ente",
   "selectAlbumToLikePhoto": "Chọn album để thích ảnh này",
@@ -4022,6 +4100,16 @@
   },
   "selectStartOfRange": "Chọn phạm vi bắt đầu",
   "selectTime": "Chọn thời gian",
+  "selectYear": "Chọn {year}",
+  "@selectYear": {
+    "description": "Accessibility label of the control that selects every month of a year.",
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "selectYourFace": "Chọn khuôn mặt bạn",
   "selfiesWithThem": "Selfie với {name}",
   "@selfiesWithThem": {
@@ -4402,6 +4490,19 @@
   "subscribe": "Đăng ký gói",
   "subscribeToChangeLinkSetting": "Bạn cần mua gói trả phí để thay đổi cài đặt liên kết này.",
   "subscribeToEnableSharing": "Bạn phải dùng gói trả phí mới có thể chia sẻ.",
+  "subscriptionPaidPlansLockerNote": "Tất cả gói trả phí bao gồm {count} mục trên {appName}.",
+  "@subscriptionPaidPlansLockerNote": {
+    "description": "Note below Photos subscription plans. The Locker app name is styled as a link.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
   "subscription": "Gói đăng ký",
   "subscriptionRequiredForSharing": "Ban can goi tra phi de chia se lien ket",
   "subWillBeCancelledOn": "Gói của bạn sẽ bị hủy vào {endDate}",
@@ -4553,6 +4654,7 @@
   },
   "totalSize": "Tổng dung lượng",
   "trash": "Thùng rác",
+  "trashAutoDeleteNotice": "Những mục trong Thùng rác sẽ bị xóa sau 30 ngày",
   "restoreOrPermanentlyDeleteItems": "Khôi phục hoặc xóa vĩnh viễn các mục",
   "trashClearedSuccessfully": "Da xoa sach thung rac",
   "trashCode": "Xóa mã?",
@@ -5154,7 +5256,7 @@
   "permissions": "Quyền truy cập",
   "viewerRoleDescription": "Xem và tải xuống ảnh",
   "collaboratorRoleDescription": "Thêm ảnh của họ",
-  "adminRoleDescription": "Ngoài ra, có thể thêm và xóa người",
+  "adminRoleDescription": "Thêm ảnh của họ và xóa người",
   "addAsViewers": "{count, plural, other{Thêm làm người xem}}",
   "@addAsViewers": {
     "placeholders": {

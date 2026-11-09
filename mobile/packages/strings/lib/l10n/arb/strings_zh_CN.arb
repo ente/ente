@@ -1,4 +1,5 @@
 {
+  "allCleanedUp": "整理完成！",
   "bringMemoriesTogether": "将您的回忆汇聚一处",
   "@bringMemoriesTogether": {
     "description": "Title on the Local Gallery photo permission screen"
@@ -62,6 +63,7 @@
   "add": "添加",
   "addAlbumWidgetPrompt": "在主屏幕添加相册小组件，即可在此自定义。",
   "addANameAndPhoto": "添加姓名和照片",
+  "addAnyway": "仍然添加",
   "addCode": "添加代码",
   "addedAMemoryTo": "向 {albumName} 添加了一段回忆",
   "@addedAMemoryTo": {
@@ -338,7 +340,7 @@
   "areYouSureDeleteFiles": "您确定要删除这些文件吗？",
   "areYouSureRemoveThisFaceFromPerson": "您确定要从此人中移除这个人脸吗？",
   "areYouSureRemoveThisPersonTag": "您确定要从此人中移除这个人物标签吗？",
-  "areYouSureThatYouWantToLeaveTheFamily": "您确定要离开家庭计划吗？",
+  "areYouSureThatYouWantToLeaveTheFamily": "您确定要离开家庭方案吗？",
   "areYouSureYouWantToCancel": "您确定要取消吗？",
   "areYouSureYouWantToChangeYourPlan": "您确定要更改您的方案吗？",
   "areYouSureYouWantToExit": "您确定要退出吗？",
@@ -635,13 +637,13 @@
   "clearSelection": "清除选择",
   "clickToInstallOurBestVersionYet": "点击安装我们迄今最好的版本",
   "close": "关闭",
-  "closeBy": "关闭",
+  "closeBy": "近似",
   "@closeBy": {
     "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
   },
   "closeFamilyConfirmBody": "所有成员都将失去对共享存储空间的访问权限。此操作无法撤消。",
   "closeFamilyConfirmTitle": "要关闭家庭计划吗？",
-  "closeFamilyPlan": "关闭家庭计划",
+  "closeFamilyPlan": "关闭家庭方案",
   "closest": "最近",
   "cloudOnly": "清除离线版本",
   "clusteringProgress": "聚类进展",
@@ -1079,6 +1081,9 @@
     "description": "Instructions for enabling device lock"
   },
   "deviceNotFound": "未发现设备",
+  "devicePickerLimitedAccess": "正在显示你已授权访问的照片",
+  "devicePickerPermissionHint": "如需向此相册添加照片和视频，请在设置中授予访问权限。",
+  "devicePickerSelectionChanged": "找不到部分已选项目，请检查后重试。",
   "didYouKnow": "您知道吗？",
   "digits": "数字",
   "disableBackup": "停用备份",
@@ -1126,6 +1131,10 @@
   "doesGroupContainMultiplePeople": "这个分组包含多个人吗？",
   "dog": "狗",
   "done": "完成",
+  "dontShowAgain": "不再显示",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
   "doNotSignOut": "不要退出登录",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
@@ -2139,6 +2148,7 @@
     }
   },
   "itemsLabel": "项目",
+  "itemsQueuedForDeletion": "待删除的项目",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "项目显示永久删除前剩余的天数",
   "itemsStored": "已存储项目",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{此项目将从所有集合中删除。您可以从回收站恢复它。} other{这些项目将从所有集合中删除。您可以从回收站恢复它们。}}",
@@ -2164,6 +2174,10 @@
   "joinAlbumConfirmationDialogBody": "加入相册将使相册的参与者可以看到您的电子邮件地址。",
   "joinAlbumSubtext": "来查看和添加您的照片",
   "joinAlbumSubtextViewer": "来将其添加到共享相册",
+  "keep": "保留",
+  "@keep": {
+    "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
+  },
   "keepOffline": "保持离线可用",
   "keepPhotos": "保留照片",
   "kiloMeterUnit": "公里",
@@ -2182,7 +2196,7 @@
   "leaveCollection": "离开集合",
   "leaveCollectionSuccessfully": "已成功离开集合",
   "leaveFamily": "离开家庭",
-  "leaveFamilyPlan": "离开家庭计划",
+  "leaveFamilyPlan": "离开家庭方案",
   "@leaveFamilyPlan": {
     "description": "Button label for leaving family plan",
     "type": "text"
@@ -2545,6 +2559,7 @@
   },
   "maps": "地图",
   "mapsPrivacyNotice": "我们会将大致坐标发送给注重隐私的第三方（例如 OpenStreetMap），以便显示地图和位置。",
+  "markAsReviewed": "标记为已整理",
   "markingAsImportant": "正在标记为重要...",
   "me": "我",
   "mediaManagementHintMessage": "在设置中为 Ente 开启媒体管理权限后，这些提示就不会再出现。",
@@ -2701,7 +2716,7 @@
   "moon": "月光之下",
   "more": "更多",
   "moreDetails": "更多详情",
-  "moreFrom": "更多来自",
+  "moreFrom": "More from",
   "@moreFrom": {
     "description": "Heading shown above links to other Ente apps"
   },
@@ -2879,10 +2894,13 @@
       }
     }
   },
+  "nothingToReviewYet": "暂无需要整理的照片",
+  "nothingToReviewYetDesc": "你的照片会按月份显示在这里。",
   "nothingToSeeHere": "这里空空如也",
   "nothingToCleanUp": "没有需要清理的内容",
   "nothingToTidyUpHere": "这里没什么可清理的",
   "notifications": "通知",
+  "notificationNewActivity": "新动态",
   "notifyMe": "通知我",
   "notPersonLabel": "不是 {name}？",
   "@notPersonLabel": {
@@ -2915,6 +2933,8 @@
   "offlineNameFaceBannerTitle": "为这张面孔命名",
   "offlineSettingsBannerDesc": "零知识加密让您的回忆始终只属于您。",
   "offlineSettingsBannerTitle": "我们永远看不到您的照片。",
+  "oldPhotos": "旧照片",
+  "oldPhotosDesc": "重温往日，留下珍贵回忆",
   "onboardingDesc": "保存你的照片和视频。每一份回忆，尽在一处。",
   "onboardingTitle": "用于你不想忘记的一切",
   "onDevice": "设备",
@@ -3623,7 +3643,59 @@
   "retake": "重拍",
   "retry": "重试",
   "review": "查看",
+  "reviewAgain": "重新整理",
+  "reviewFreedUpSummary": "{count, plural, one{已清理 {count} 个项目，释放了 {size} 空间。}other{已清理 {count} 个项目，释放了 {size} 空间。}}",
+  "@reviewFreedUpSummary": {
+    "placeholders": {
+      "size": {
+        "example": "128 MB",
+        "type": "String"
+      },
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
+  "reviewKeptEverything": "你保留了这个月的所有照片。",
+  "reviewLetsGetStartedWith": "先从这个月开始",
+  "@reviewLetsGetStartedWith": {
+    "description": "Caption above the month name on the Review old photos banner before any month has been started."
+  },
+  "reviewNextMonth": "整理下一个月",
+  "reviewOldPhotos": "整理旧照片",
+  "reviewPercentReviewed": "已整理 {percent}%",
+  "@reviewPercentReviewed": {
+    "placeholders": {
+      "percent": {
+        "example": "40",
+        "type": "int"
+      }
+    }
+  },
+  "reviewPickUpAgain": "继续整理",
+  "@reviewPickUpAgain": {
+    "description": "Caption above the month name on the Review old photos banner when a month is partly reviewed."
+  },
+  "reviewRemovedItemsSummary": "{count, plural, one{已移除 {count} 个项目。} other{已移除 {count} 个项目。}}",
+  "@reviewRemovedItemsSummary": {
+    "placeholders": {
+      "count": {
+        "example": "24",
+        "type": "int"
+      }
+    }
+  },
   "reviewSuggestions": "查看建议",
+  "reviewYouReviewedYear": "你已整理完 {year} 年的照片！",
+  "@reviewYouReviewedYear": {
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "revoke": "撤销",
   "revokeInvite": "撤销邀请",
   "@revokeInvite": {
@@ -3825,6 +3897,7 @@
   "searchLocationEmptySection": "将同一照片一定半径范围内拍摄的照片分为一组",
   "searchPeopleEmptySection": "邀请他人，您将在此看到他们分享的所有照片",
   "searchPersonsEmptySection": "处理和同步完成后，人物将显示在此处",
+  "searchPhotosPeoplePlaces": "搜索照片、人物、地点……",
   "searchResultCameraMake": "相机品牌",
   "@searchResultCameraMake": {
     "description": "Search result subtitle label for camera make matches"
@@ -3904,7 +3977,9 @@
   "secretCanNotBeEmpty": "密钥不能为空",
   "security": "安全",
   "securityDesc": "加密、恢复密钥、应用锁和账户保护",
+  "seeAll": "查看全部",
   "seeAllCollections": "所有集合",
+  "seeLess": "收起",
   "seePublicAlbumLinksInApp": "在应用程序中查看公开相册链接",
   "selectAlbumsToBackUpToEnte": "选择要备份到 Ente 的相册",
   "selectAlbumToLikePhoto": "选择相册以点赞此照片",
@@ -3939,6 +4014,20 @@
       "count": {
         "type": "int",
         "example": "3"
+      }
+    }
+  },
+  "selectedCountWithLimit": "已选择 {count}/{limit} 项",
+  "@selectedCountWithLimit": {
+    "description": "Selected item count and the selection limit",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "limit": {
+        "type": "int",
+        "example": "50"
       }
     }
   },
@@ -3998,6 +4087,16 @@
   },
   "selectStartOfRange": "选择范围起点",
   "selectTime": "选择时间",
+  "selectYear": "选择 {year} 年",
+  "@selectYear": {
+    "description": "Accessibility label of the control that selects every month of a year.",
+    "placeholders": {
+      "year": {
+        "example": "2026",
+        "type": "String"
+      }
+    }
+  },
   "selectYourFace": "选择您的人脸",
   "selfiesWithThem": "与 {name} 的自拍",
   "@selfiesWithThem": {
@@ -4121,6 +4220,16 @@
     }
   },
   "sharedPhotoNotifications": "新的共享照片和相册",
+  "sharedPhotoLocationWarningTitle": "保留照片位置信息",
+  "sharedPhotoLocationWarningMessage": "从其他应用分享的照片可能会丢失位置信息。请在相册中使用“{addFromDevice}”添加，以保留这些信息。",
+  "@sharedPhotoLocationWarningMessage": {
+    "description": "Precaution before backing up photos shared from another app. addFromDevice is the localized action label.",
+    "placeholders": {
+      "addFromDevice": {
+        "type": "String"
+      }
+    }
+  },
   "sharedPhotoNotificationsExplanation": "您出现在其中的新照片，以及共享给您的照片和相册",
   "sharedWith": "共享对象",
   "shareItemCount": "{count, plural, one{共享 {count} 个项目} other{共享 {count} 个项目}}",
@@ -4156,7 +4265,7 @@
     }
   },
   "shareTextRecommendUsingEnte": "下载 Ente，方便我们轻松共享原始质量的文件\n\nhttps://ente.com",
-  "shareTextRecommendUsingEnteForFamily": "下载 Ente，这样我就能把您加入我的家庭计划：\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForFamily": "下载 Ente，这样我就能把您加入我的家庭方案：\n\nhttps://ente.com",
   "shareTextRecommendUsingEnteForPhotos": "下载 Ente，这样我们就能轻松共享原始画质的照片和视频：\n\nhttps://ente.com",
   "shareTextReferralInvite": "使用 Ente Photos 获得 20 GB 免费空间！在 https://ente.com/invite 下载应用并使用代码 {referralCode}。",
   "@shareTextReferralInvite": {
@@ -4182,7 +4291,7 @@
   "shareYourSubscription": "与亲友共享您的订阅",
   "sharing": "正在共享...",
   "sharingAndCollaboration": "共享与协作",
-  "sharingAndCollaborationDesc": "相册、链接和家庭计划",
+  "sharingAndCollaborationDesc": "相册、链接和家庭方案",
   "shiftDatesAndTime": "调整日期和时间",
   "shouldHideCode": "隐藏代码",
   "shouldRemoveFilesSmartAlbumsDesc": "应该移除之前在智能相册中选择的与该人相关的文件吗？",
@@ -4215,7 +4324,7 @@
   "@signUpTerms": {
     "description": "Terms agreement text for sign up"
   },
-  "similar": "相似的",
+  "similar": "相似",
   "similarImages": "相似图片",
   "similarImagesCount": "{count} 张相似图片",
   "@similarImagesCount": {
@@ -4368,6 +4477,35 @@
   "subscribe": "订阅",
   "subscribeToChangeLinkSetting": "您需要付费订阅才能更改此链接设置。",
   "subscribeToEnableSharing": "您需要有效的付费订阅才能启用共享。",
+  "subscriptionLearnMore": "了解更多",
+  "subscriptionCurrentPlan": "当前计划",
+  "subscriptionFaqDescription": "常见问题解答",
+  "subscriptionFamilyDescription": "与家人共享你的计划",
+  "subscriptionContinueWithPlan": "继续使用 {storage} 计划",
+  "@subscriptionContinueWithPlan": {
+    "description": "Continue button on the Photos plan picker with the selected storage allowance",
+    "placeholders": {
+      "storage": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionLockerItems": "另有 {count} 个项目保存在 {appName} 中",
+  "@subscriptionLockerItems": {
+    "description": "Locker allowance included with a Photos plan",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "appName": {
+        "type": "String",
+        "description": "Placeholder for the styled Locker app name"
+      }
+    }
+  },
+  "subscriptionLockerTitle": "有些重要资料，\n值得用 Locker 妥善保管。",
+  "subscriptionLockerDescription": "护照、证书，以及生活中的重要文件，集中收纳，安心私藏。",
   "subscription": "订阅",
   "subscriptionRequiredForSharing": "您需要付费订阅才能共享链接",
   "subWillBeCancelledOn": "您的订阅将于 {endDate} 取消",
@@ -4519,6 +4657,7 @@
   },
   "totalSize": "总大小",
   "trash": "回收站",
+  "trashAutoDeleteNotice": "回收站中的项目将在 30 天后永久删除",
   "restoreOrPermanentlyDeleteItems": "恢复或永久删除项目",
   "trashClearedSuccessfully": "回收站已清空",
   "trashCode": "要删除代码吗？",
