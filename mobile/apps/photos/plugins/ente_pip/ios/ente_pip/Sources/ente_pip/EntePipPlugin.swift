@@ -127,6 +127,9 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             result(FlutterError(code: "NO_WINDOW", message: nil, details: nil))
             return
         }
+        if let playerView, let window = playerView.window {
+            playerView.frame = window.bounds
+        }
 
         let asset = streamLoader?.asset ?? AVURLAsset(url: URL(fileURLWithPath: path))
         let item = AVPlayerItem(asset: asset)
@@ -321,6 +324,14 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         }
     }
 
+    // iOS animates the window toward the player layer even when no viewer
+    // takes over, so a full-screen layer would show the video above the lock
+    // screen.
+    private func collapsePlayerView() {
+        guard let playerView, let window = playerView.window else { return }
+        playerView.frame = CGRect(x: window.bounds.midX, y: window.bounds.midY, width: 1, height: 1)
+    }
+
     private func cancelHandBack() {
         guard isHandingBack, let playerView else { return }
         isHandingBack = false
@@ -399,6 +410,8 @@ extension EntePipPlugin: AVPictureInPictureControllerDelegate {
             answered = true
             if handled {
                 self?.beginHandBack()
+            } else {
+                self?.collapsePlayerView()
             }
             completionHandler(handled)
         }

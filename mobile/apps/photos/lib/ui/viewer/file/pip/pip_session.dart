@@ -1,8 +1,9 @@
 import "dart:async";
 
-import "package:ente_lock_screen/lock_screen_settings.dart";
+import "package:ente_lock_screen/ui/app_lock.dart";
 import "package:ente_pip/ente_pip.dart";
 import "package:flutter/widgets.dart";
+import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/events/user_logged_out_event.dart";
@@ -14,9 +15,11 @@ import "package:photos/ui/viewer/file/detail_page.dart";
 // Tracks the video playing in Picture-in-Picture for "back to video".
 //
 // A viewer showing the video continues it. Otherwise a viewer is opened for
-// it, except in Guest view, for hidden videos, and when Ente may be locked.
+// it, except in Guest view, for hidden videos, and while Ente is locked.
 class PipSession {
   PipSession._();
+
+  static final _logger = Logger("PipSession");
 
   static EnteFile? _file;
   static String? _path;
@@ -37,11 +40,8 @@ class PipSession {
     });
   }
 
-  // Returning from the background with app lock on shows the lock screen, so
-  // playback must not continue above it.
-  static bool get mayBeLocked =>
-      LockScreenSettings.instance.getIsAppLockSet() &&
-      WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed;
+  static bool _isLocked(BuildContext context) =>
+      AppLock.of(context)?.isLocked ?? false;
 
   // Taken once, when the viewer opened by "back to video" is created, so a
   // later viewer of the same video starts normally.
@@ -63,7 +63,10 @@ class PipSession {
     if (!isShowingVideo || !(ModalRoute.of(context)?.isCurrent ?? false)) {
       return false;
     }
-    if (mayBeLocked) {
+    if (_isLocked(context)) {
+      _logger.info(
+        "Back to video while locked, staying behind the lock screen",
+      );
       unawaited(seek());
       return false;
     }
@@ -81,11 +84,14 @@ class PipSession {
   static bool _openViewer(PipRestore restore) {
     final file = _file;
     final navigation = AppNavigationService.instance;
+    final context = navigation.navigator?.context;
     if (file == null ||
+        context == null ||
         restore.path != _path ||
         navigation.isGuestViewActive ||
-        mayBeLocked ||
+        _isLocked(context) ||
         _isHidden(file)) {
+      _logger.info("Back to video without opening a viewer");
       return false;
     }
     _resume = (tag: file.tag, position: restore.position);

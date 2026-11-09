@@ -193,6 +193,9 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     }
   }
 
+  // Also true while the app is in the background and will ask to unlock.
+  bool get isLocked => this._isLocked;
+
   void setEnabled(bool enabled) {
     if (enabled) {
       this.enable();
