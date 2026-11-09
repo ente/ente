@@ -820,6 +820,7 @@
       }
     }
   },
+  "couldNotStartPictureInPicture": "Could not start picture in picture",
   "couldNotUpdateSubscription": "Could not update subscription",
   "count": "Count",
   "cozyCafes": "Cozy cafe corners",
@@ -3165,6 +3166,7 @@
   "physicalRecordsDescription": "Save locations of real-world items.",
   "pickCenterPoint": "Pick center point",
   "picnicDays": "Picnic memories",
+  "pictureInPicture": "Picture in picture",
   "pin": "Pin",
   "pinLock": "Pin lock",
   "@pinLock": {

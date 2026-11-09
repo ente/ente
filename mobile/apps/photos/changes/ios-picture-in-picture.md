@@ -1,0 +1,1 @@
+- Added picture in picture for videos on iOS.

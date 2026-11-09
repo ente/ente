@@ -34,6 +34,7 @@ import "package:photos/ui/common/photo_library_add_permission.dart";
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/viewer/actions/suggest_delete_sheet.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/file/pip/pip_action.dart";
 import "package:photos/ui/viewer/file/video_control/video_speed_bottom_sheet.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/viewer_app_bar.dart";
@@ -57,6 +58,7 @@ class FileAppBar extends StatefulWidget {
   final FutureOr<void> Function(BuildContext context)? onBackPressed;
   final ValueNotifier<double> playbackSpeed;
   final VideoStreamChangeController? streamChangeController;
+  final VideoPipController? pipController;
 
   const FileAppBar(
     this.file,
@@ -69,6 +71,7 @@ class FileAppBar extends StatefulWidget {
     this.onBackPressed,
     required this.playbackSpeed,
     required this.streamChangeController,
+    this.pipController,
     super.key,
   });
 
@@ -94,10 +97,15 @@ class FileAppBarState extends State<FileAppBar> {
       );
       widget.streamChangeController?.addListener(_onStreamChangeStateChanged);
     }
+    if (oldWidget.pipController != widget.pipController) {
+      oldWidget.pipController?.removeListener(_onStreamChangeStateChanged);
+      widget.pipController?.addListener(_onStreamChangeStateChanged);
+    }
     if (detailPageFileIdentifier(oldWidget.file) !=
             detailPageFileIdentifier(widget.file) ||
         oldWidget.showEditAction != widget.showEditAction ||
-        oldWidget.streamChangeController != widget.streamChangeController) {
+        oldWidget.streamChangeController != widget.streamChangeController ||
+        oldWidget.pipController != widget.pipController) {
       _getActions();
     }
   }
@@ -113,6 +121,7 @@ class FileAppBarState extends State<FileAppBar> {
       });
     });
     widget.streamChangeController?.addListener(_onStreamChangeStateChanged);
+    widget.pipController?.addListener(_onStreamChangeStateChanged);
   }
 
   @override
@@ -153,6 +162,7 @@ class FileAppBarState extends State<FileAppBar> {
       _onThumbnailFallbackChanged,
     );
     widget.streamChangeController?.removeListener(_onStreamChangeStateChanged);
+    widget.pipController?.removeListener(_onStreamChangeStateChanged);
     _guestViewEventSubscription.cancel();
     super.dispose();
   }
@@ -399,6 +409,18 @@ class FileAppBarState extends State<FileAppBar> {
         );
       }
 
+      final pipState = widget.pipController?.value;
+      if (pipState != null) {
+        items.add(
+          _fileMenuOption(
+            context.strings.pictureInPicture,
+            value: 16,
+            hugeIcon: HugeIcons.strokeRoundedPictureInPictureOn,
+            enabled: pipState.canStart,
+          ),
+        );
+      }
+
       items.add(
         _fileMenuOption(
           context.strings.playbackSpeed,
@@ -541,6 +563,11 @@ class FileAppBarState extends State<FileAppBar> {
       final state = widget.streamChangeController?.value;
       if (state?.canChangeStream ?? false) {
         state!.onStreamChange();
+      }
+    } else if (value == 16) {
+      final state = widget.pipController?.value;
+      if (state?.canStart ?? false) {
+        state!.onStart();
       }
     }
   }

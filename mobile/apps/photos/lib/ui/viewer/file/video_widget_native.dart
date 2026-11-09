@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:io";
 
+import "package:ente_pip/ente_pip.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -32,6 +33,8 @@ import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/native_video_player_controls/play_pause_button.dart";
 import "package:photos/ui/viewer/file/native_video_player_controls/seek_bar.dart";
+import "package:photos/ui/viewer/file/pip/pip_action.dart";
+import "package:photos/ui/viewer/file/pip/pip_session.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
 import "package:photos/ui/viewer/file/video_double_tap_seek.dart";
@@ -54,6 +57,7 @@ class VideoWidgetNative extends StatefulWidget {
   final bool selectedPreview;
   final ValueNotifier<double> playbackSpeed;
   final Function({required int memoryDuration})? onFinalFileLoad;
+  final VideoPipController? pipController;
 
   const VideoWidgetNative(
     this.file, {
@@ -68,6 +72,7 @@ class VideoWidgetNative extends StatefulWidget {
     this.onFinalFileLoad,
     required this.selectedPreview,
     required this.playbackSpeed,
+    this.pipController,
   });
 
   @override
@@ -88,7 +93,11 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   String? duration;
   double? aspectRatio;
   final _isPlaybackReady = ValueNotifier(false);
-  bool _shouldClearCache = false;
+
+  // iOS copy of the device video, deleted on dispose.
+  String? _temporaryCopy;
+  bool _isPipSupported = false;
+  Duration? _pipResumePosition;
   bool _isCompletelyVisible = false;
   final _showControls = ValueNotifier(true);
   final _isSeeking = ValueNotifier(false);
@@ -114,6 +123,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       'initState for ${widget.file.generatedID} with tag ${widget.file.tag} and name ${widget.file.displayName}',
     );
     super.initState();
+    _pipResumePosition = PipSession.takeResumePosition(widget.file);
     widget.playbackSpeed.addListener(_onPlaybackSpeedChanged);
     _seekController = VideoSeekController(
       seek: (target) async {
@@ -194,6 +204,16 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       enable: true,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
+
+    if (!widget.isFromMemories) {
+      EntePip.isSupported().then((isSupported) {
+        if (!isSupported || !mounted) return;
+        _isPipSupported = true;
+        EntePip.addRestoreHandler(_handlePipRestore);
+        _isPlaybackReady.addListener(_publishPipState);
+        _publishPipState();
+      });
+    }
   }
 
   @override
@@ -204,6 +224,11 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
       unawaited(_applyVolume());
+    }
+    if (oldWidget.pipController != widget.pipController ||
+        oldWidget.selectedPreview != widget.selectedPreview) {
+      oldWidget.pipController?.clear(this);
+      _publishPipState();
     }
   }
 
@@ -291,7 +316,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
             }
             _setFilePathForNativePlayer(file.path, update);
             if (Platform.isIOS) {
-              _shouldClearCache = true;
+              _useTemporaryCopy(file.path);
             }
           });
         }
@@ -327,17 +352,15 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     }
 
     //https://github.com/fluttercandies/flutter_photo_manager/blob/8afba2745ebaac6af8af75de9cbded9157bc2690/README.md#clear-caches
-    if (_shouldClearCache) {
+    final temporaryCopy = _temporaryCopy;
+    if (temporaryCopy != null) {
       _logger.info("Clearing cache");
-      final file = File(_filePath!);
-
-      // Avoid an observed PathNotFoundException.
-      if (file.existsSync()) {
-        file.delete().then((value) {
-          _logger.info("Cache cleared");
-        });
-      }
+      // PiP or another viewer of the same video may still play this copy.
+      EntePip.deleteWhenUnused(temporaryCopy);
     }
+    EntePip.removeRestoreHandler(_handlePipRestore);
+    _isPlaybackReady.removeListener(_publishPipState);
+    widget.pipController?.clear(this);
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
@@ -555,6 +578,65 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     );
   }
 
+  // A progressive stream is served by this viewer and stops with it, so PiP
+  // can't keep playing it.
+  void _publishPipState() {
+    final pipController = widget.pipController;
+    if (pipController == null || !_isPipSupported) return;
+    if (widget.isFromMemories ||
+        widget.selectedPreview ||
+        _isProgressiveSource) {
+      pipController.clear(this);
+      return;
+    }
+    pipController.update(
+      this,
+      VideoPipState(
+        canStart: _isPlaybackReady.value && _filePath != null,
+        onStart: () => unawaited(_startPip()),
+      ),
+    );
+  }
+
+  Future<void> _startPip() async {
+    final controller = _controller;
+    final path = _filePath;
+    if (controller == null || path == null) return;
+
+    // Called before any await, so dispose() can't delete the file meanwhile.
+    final start = EntePip.start(
+      path: path,
+      position: controller.playbackPosition,
+      muted: widget.isAudioMutedOverride ?? localSettings.isMuted(),
+      speed: widget.playbackSpeed.value,
+      loop: localSettings.shouldLoopVideo(),
+    );
+    await controller.pause();
+    try {
+      await start;
+      PipSession.started(widget.file, path);
+    } catch (e, s) {
+      _logger.warning("Could not start picture in picture", e, s);
+      if (!mounted) return;
+      showShortToast(context, context.strings.couldNotStartPictureInPicture);
+      await _syncPlayback();
+    }
+  }
+
+  bool _handlePipRestore(PipRestore restore) {
+    final controller = _controller;
+    if (!mounted || controller == null) return false;
+    return PipSession.handOver(
+      context,
+      isShowingVideo: restore.path == _filePath && widget.isActive,
+      seek: () => controller.seekTo(restore.position),
+      play: () {
+        _showControls.value = true;
+        return _syncPlayback();
+      },
+    );
+  }
+
   void _stopPlaybackBeforeDismiss() {
     _controller?.pause();
     _controller?.stop().ignore();
@@ -699,7 +781,11 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     }
     await _applyVolume();
     await _controller?.setPlaybackSpeed(widget.playbackSpeed.value);
+    final pipPosition = _pipResumePosition;
+    _pipResumePosition = null;
+    if (pipPosition != null) await _controller?.seekTo(pipPosition);
     await _syncPlayback();
+    if (pipPosition != null) unawaited(EntePip.finishRestore());
     final durationInSeconds = durationToSeconds(duration) ?? 10;
     widget.onFinalFileLoad?.call(memoryDuration: durationInSeconds);
     _isPlaybackReady.value = true;
@@ -927,6 +1013,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     setState(() {
       _filePath = url;
     });
+    _publishPipState();
     _setAspectRatioFromVideoProps().then((_) {
       if (!mounted) return;
       setState(() {});
@@ -935,6 +1022,14 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     if (update) {
       setVideoSource();
     }
+  }
+
+  void _useTemporaryCopy(String path) {
+    final previous = _temporaryCopy;
+    if (previous == path) return;
+    _temporaryCopy = path;
+    EntePip.useFile(path);
+    if (previous != null) EntePip.deleteWhenUnused(previous);
   }
 
   Future<void> _setAspectRatioFromVideoProps() async {
