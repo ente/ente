@@ -516,9 +516,12 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     final preview = widget.preview;
     if (path == null || preview == null) return;
     final position = player.state.position;
+    PipSession.willStart();
     try {
       await player.pause();
       final playlist = await PipStream.playlistFor(widget.file, preview);
+      // Logging out disposes the viewer while the playlist loads.
+      if (!mounted) return;
       final result = await EntePip.start(
         path: path,
         position: position,

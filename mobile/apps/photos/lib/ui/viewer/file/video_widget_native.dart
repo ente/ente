@@ -603,6 +603,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     final path = _filePath;
     if (controller == null || path == null) return;
 
+    PipSession.willStart();
     // Called before any await, so dispose() can't delete the file meanwhile.
     final start = EntePip.start(
       path: path,
@@ -613,6 +614,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     );
     try {
       await controller.pause();
+    } catch (e) {
+      _logger.info("Could not pause before picture in picture: $e");
+    }
+    try {
       switch (await start) {
         case PipStartResult.started:
           PipSession.started(widget.file, path);
@@ -622,7 +627,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           break;
       }
     } catch (e, s) {
-      start.ignore();
       _logger.warning("Could not start picture in picture", e, s);
       if (!mounted) return;
       showShortToast(context, context.strings.couldNotStartPictureInPicture);

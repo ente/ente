@@ -26,9 +26,8 @@ class PipSession {
   static ({String tag, Duration position})? _resume;
   static bool _isListening = false;
 
-  static void started(EnteFile file, String path) {
-    _file = file;
-    _path = path;
+  // Called before each start, so a logout while PiP loads also stops it.
+  static void willStart() {
     if (_isListening) return;
     _isListening = true;
     EntePip.fallbackRestoreHandler = _openViewer;
@@ -38,6 +37,11 @@ class PipSession {
       _resume = null;
       EntePip.stop().ignore();
     });
+  }
+
+  static void started(EnteFile file, String path) {
+    _file = file;
+    _path = path;
   }
 
   static bool _isLocked(BuildContext context) =>
