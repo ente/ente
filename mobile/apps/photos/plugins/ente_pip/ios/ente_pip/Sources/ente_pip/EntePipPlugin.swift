@@ -27,6 +27,12 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         let streamLoader: HLSStreamLoader?
     }
 
+    private struct AudioSessionState {
+        let category: AVAudioSession.Category
+        let mode: AVAudioSession.Mode
+        let options: AVAudioSession.CategoryOptions
+    }
+
     private struct PendingStart {
         let id: Int
         let playback: Playback
@@ -56,6 +62,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
 
     private var isHandingBack = false
     private var handBackID = 0
+    private var audioSessionBeforePip: AudioSessionState?
 
     private init(channel: FlutterMethodChannel) {
         self.channel = channel
@@ -116,6 +123,11 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
 
         do {
             let session = AVAudioSession.sharedInstance()
+            if audioSessionBeforePip == nil {
+                audioSessionBeforePip = AudioSessionState(
+                    category: session.category, mode: session.mode, options: session.categoryOptions
+                )
+            }
             try session.setCategory(.playback, mode: .moviePlayback)
             try session.setActive(true)
         } catch {
@@ -351,12 +363,12 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             playerView.alpha = 1
             let isPipActive = self.pipController?.isPictureInPictureActive ?? false
             if self.pendingStart == nil && !isPipActive {
-                self.tearDown()
+                self.tearDown(viewerIsPlaying: true)
             }
         })
     }
 
-    private func tearDown() {
+    private func tearDown(viewerIsPlaying: Bool = false) {
         statusObservation = nil
         possibleObservation = nil
         player.pause()
@@ -365,6 +377,23 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             pipController.stopPictureInPicture()
         }
         setCurrent(nil)
+        restoreAudioSession(viewerIsPlaying: viewerIsPlaying)
+    }
+
+    // Leaves the session alone if another player changed it since PiP started.
+    // Deactivating stops all of the app's audio, so it only happens when the
+    // app was idle before PiP.
+    private func restoreAudioSession(viewerIsPlaying: Bool) {
+        guard let previous = audioSessionBeforePip else { return }
+        audioSessionBeforePip = nil
+        let session = AVAudioSession.sharedInstance()
+        guard session.category == .playback, session.mode == .moviePlayback,
+              session.categoryOptions.isEmpty
+        else { return }
+        try? session.setCategory(previous.category, mode: previous.mode, options: previous.options)
+        if !viewerIsPlaying && previous.category == .ambient {
+            try? session.setActive(false, options: .notifyOthersOnDeactivation)
+        }
     }
 }
 
