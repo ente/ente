@@ -111,18 +111,21 @@ void main() {
     expect(video.existsSync(), isFalse);
   });
 
-  test("closing PiP keeps a file the viewer still uses", () async {
-    final video = tempVideo("viewer.mp4");
+  test("closing PiP keeps a file another viewer still uses", () async {
+    final video = tempVideo("shared.mp4");
+    EntePip.useFile(video.path); // viewer A
+    EntePip.useFile(video.path); // viewer B of the same video
     await startPip(video.path);
     await nativeHolds([video.path]);
 
-    await nativeHolds([]); // PiP closed, viewer still open
+    EntePip.deleteWhenUnused(video.path); // viewer A closed
+    await nativeHolds([]); // PiP closed, viewer B still open
     await settle();
     expect(video.existsSync(), isTrue);
 
-    // A second PiP from the same viewer gets an existing file.
-    await startPip(video.path);
-    expect(calls.where((c) => c.method == "start"), hasLength(2));
+    EntePip.deleteWhenUnused(video.path); // viewer B closed
+    await settle();
+    expect(video.existsSync(), isFalse);
   });
 
   test("a file is protected from the moment start is called", () async {
