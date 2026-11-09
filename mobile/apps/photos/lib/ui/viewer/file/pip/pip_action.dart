@@ -4,8 +4,13 @@ import "package:flutter/foundation.dart";
 class VideoPipState {
   final bool canStart;
   final VoidCallback onStart;
+  final VoidCallback? onMenuOpened;
 
-  const VideoPipState({required this.canStart, required this.onStart});
+  const VideoPipState({
+    required this.canStart,
+    required this.onStart,
+    this.onMenuOpened,
+  });
 }
 
 // Publishes the player's Picture-in-Picture action to the viewer menu.

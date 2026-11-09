@@ -278,6 +278,7 @@ class _VideoWidgetState extends State<VideoWidget> {
               isActive: _isActive,
               isAudioMutedOverride: widget.isAudioMutedOverride,
               onFinalFileLoad: widget.onFinalFileLoad,
+              pipController: widget.pipController,
             );
     }
 

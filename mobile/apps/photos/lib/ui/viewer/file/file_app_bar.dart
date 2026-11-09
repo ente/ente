@@ -470,7 +470,10 @@ class FileAppBarState extends State<FileAppBar> {
     if (items.isNotEmpty) {
       _actions.add(
         EntePopupMenuButton<int>(
-          optionsBuilder: () => items,
+          optionsBuilder: () {
+            widget.pipController?.value?.onMenuOpened?.call();
+            return items;
+          },
           onSelected: (selected) async {
             if (!mounted) {
               return;

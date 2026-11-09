@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:io";
 
+import "package:ente_pip/ente_pip.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
@@ -25,6 +26,9 @@ import "package:photos/services/wake_lock_service.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/viewer/file/pip/pip_action.dart";
+import "package:photos/ui/viewer/file/pip/pip_session.dart";
+import "package:photos/ui/viewer/file/pip/pip_stream.dart";
 import "package:photos/ui/viewer/file/video_download_progress_indicator.dart";
 import "package:photos/ui/viewer/file/video_widget_media_kit_common.dart"
     as common;
@@ -42,6 +46,7 @@ class VideoWidgetMediaKit extends StatefulWidget {
   final bool selectedPreview;
   final ValueNotifier<double> playbackSpeed;
   final Function({required int memoryDuration})? onFinalFileLoad;
+  final VideoPipController? pipController;
 
   const VideoWidgetMediaKit(
     this.file, {
@@ -55,6 +60,7 @@ class VideoWidgetMediaKit extends StatefulWidget {
     required this.selectedPreview,
     required this.playbackSpeed,
     this.onFinalFileLoad,
+    this.pipController,
     super.key,
   });
 
@@ -84,6 +90,8 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   StreamSubscription<String>? _playerErrors;
   final _transformationController = TransformationController();
   bool _isZooming = false;
+  bool _isPipSupported = false;
+  Duration? _pipResumePosition;
 
   @override
   void initState() {
@@ -91,6 +99,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       'initState for ${widget.file.generatedID} with tag ${widget.file.tag} and name ${widget.file.displayName}',
     );
     super.initState();
+    _pipResumePosition = PipSession.takeResumePosition(widget.file);
     WidgetsBinding.instance.addObserver(this);
     if (widget.selectedPreview) {
       loadPreview();
@@ -152,6 +161,15 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       enable: true,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
+
+    if (!widget.isFromMemories) {
+      EntePip.isSupported().then((isSupported) {
+        if (!isSupported || !mounted) return;
+        _isPipSupported = true;
+        EntePip.addRestoreHandler(_handlePipRestore);
+        _publishPipState();
+      });
+    }
   }
 
   @override
@@ -162,6 +180,12 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     }
     if (oldWidget.isAudioMutedOverride != widget.isAudioMutedOverride) {
       _applyVolume();
+    }
+    if (oldWidget.pipController != widget.pipController ||
+        oldWidget.selectedPreview != widget.selectedPreview ||
+        oldWidget.preview != widget.preview) {
+      oldWidget.pipController?.clear(this);
+      _publishPipState();
     }
   }
 
@@ -236,6 +260,8 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
 
   @override
   void dispose() {
+    EntePip.removeRestoreHandler(_handlePipRestore);
+    widget.pipController?.clear(this);
     _videoLoad++;
     _progressive?.dispose().ignore();
     _progressive = null;
@@ -438,6 +464,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
         }
         _applyVolume();
         _loadedSource = url;
+        _publishPipState();
         final stream = _progressive?.url == url ? _progressive : null;
         player.open(Media(url), play: _isAppInFG && widget.isActive).catchError(
           (Object error, StackTrace stack) {
@@ -453,6 +480,90 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
         duration = 10;
       }
       widget.onFinalFileLoad?.call(memoryDuration: duration);
+      unawaited(_resumeFromPipIfNeeded());
+    }
+  }
+
+  String? get _playingPreviewPath {
+    final preview = widget.preview;
+    if (!widget.selectedPreview || preview == null) return null;
+    return _loadedSource == preview.path ? preview.path : null;
+  }
+
+  // Originals play in the native player, which offers PiP itself.
+  void _publishPipState() {
+    final pipController = widget.pipController;
+    if (pipController == null || !_isPipSupported) return;
+    if (widget.isFromMemories || !widget.selectedPreview) {
+      pipController.clear(this);
+      return;
+    }
+    final preview = widget.preview;
+    pipController.update(
+      this,
+      VideoPipState(
+        canStart: _playingPreviewPath != null,
+        onStart: () => unawaited(_startPip()),
+        onMenuOpened: preview == null
+            ? null
+            : () => PipStream.prepare(widget.file, preview),
+      ),
+    );
+  }
+
+  Future<void> _startPip() async {
+    final path = _playingPreviewPath;
+    if (path == null) return;
+    final position = player.state.position;
+    await player.pause();
+    try {
+      final playlist = await PipStream.playlistFor(
+        widget.file,
+        widget.preview!,
+      );
+      await EntePip.start(
+        path: path,
+        position: position,
+        muted: widget.isAudioMutedOverride ?? localSettings.isMuted(),
+        speed: widget.playbackSpeed.value,
+        loop: localSettings.shouldLoopVideo(),
+        hlsPlaylist: playlist,
+      );
+      PipSession.started(widget.file, path);
+    } catch (e, s) {
+      _logger.warning("Could not start picture in picture", e, s);
+      if (!mounted) return;
+      showShortToast(context, context.strings.couldNotStartPictureInPicture);
+      if (widget.isActive) unawaited(player.play());
+    }
+  }
+
+  bool _handlePipRestore(PipRestore restore) {
+    if (!mounted) return false;
+    return PipSession.handOver(
+      context,
+      isShowingVideo: restore.path == _playingPreviewPath && widget.isActive,
+      seek: () => player.seek(restore.position),
+      play: player.play,
+    );
+  }
+
+  Future<void> _resumeFromPipIfNeeded() async {
+    final position = _pipResumePosition;
+    _pipResumePosition = null;
+    if (position == null) return;
+    try {
+      // media_kit ignores seeks until the stream's duration is known.
+      if (player.state.duration == Duration.zero) {
+        await player.stream.duration
+            .firstWhere((duration) => duration > Duration.zero)
+            .timeout(const Duration(seconds: 5));
+      }
+      await player.seek(position);
+    } catch (e) {
+      _logger.info("Could not continue from picture in picture: $e");
+    } finally {
+      await EntePip.finishRestore();
     }
   }
 
