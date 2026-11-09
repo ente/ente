@@ -17,8 +17,17 @@ class PipStream {
   // Fetches the playlist ahead of `playlistFor`, so starting PiP is faster.
   static void prepare(EnteFile file, File localPlaylist) {
     if (_preparedFor(file) != null) return;
-    final playlist = _build(file, localPlaylist)..ignore();
+    final playlist = _build(file, localPlaylist);
     _prepared = (tag: file.tag, createdAt: DateTime.now(), playlist: playlist);
+    // A failed fetch is not kept, so the next attempt fetches again.
+    playlist
+        .then<void>(
+          (_) {},
+          onError: (Object _) {
+            if (identical(_prepared?.playlist, playlist)) _prepared = null;
+          },
+        )
+        .ignore();
   }
 
   static Future<String> playlistFor(EnteFile file, File localPlaylist) {
