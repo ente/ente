@@ -21,6 +21,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
     private struct Playback {
         let item: AVPlayerItem
         let path: String
+        let muted: Bool
         let speed: Float
         let loop: Bool
         // AVURLAsset holds its resource loader delegate weakly.
@@ -62,6 +63,8 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
 
     private var isHandingBack = false
     private var handBackID = 0
+    private var isRestoring = false
+    private var resumeCurrentOnRevert = false
     private var audioSessionBeforePip: AudioSessionState?
 
     private init(channel: FlutterMethodChannel) {
@@ -79,7 +82,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             endHandBack()
             result(nil)
         case "stop":
-            cancelPendingStart()
+            endPendingStart(code: "CLOSED")
             cancelHandBack()
             tearDown()
             result(nil)
@@ -118,8 +121,17 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             return
         }
 
-        cancelPendingStart()
+        if pendingStart == nil {
+            resumeCurrentOnRevert = player.rate != 0
+        }
+        endPendingStart(code: "REPLACED")
         cancelHandBack()
+
+        guard preparePipController() != nil else {
+            abandonStart()
+            result(FlutterError(code: "NO_WINDOW", message: nil, details: nil))
+            return
+        }
 
         do {
             let session = AVAudioSession.sharedInstance()
@@ -131,14 +143,11 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             try session.setCategory(.playback, mode: .moviePlayback)
             try session.setActive(true)
         } catch {
+            abandonStart()
             result(FlutterError(code: "AUDIO_SESSION", message: error.localizedDescription, details: nil))
             return
         }
 
-        guard preparePipController() != nil else {
-            result(FlutterError(code: "NO_WINDOW", message: nil, details: nil))
-            return
-        }
         if let playerView, let window = playerView.window {
             playerView.frame = window.bounds
         }
@@ -148,16 +157,12 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         nextStartID += 1
         let id = nextStartID
         let playback = Playback(
-            item: item, path: path, speed: Float(speed), loop: loop, streamLoader: streamLoader
+            item: item, path: path, muted: muted, speed: Float(speed), loop: loop,
+            streamLoader: streamLoader
         )
         pendingStart = PendingStart(id: id, playback: playback, result: result)
         reportHeldPaths()
-
-        player.replaceCurrentItem(with: item)
-        player.isMuted = muted
-        // Pausing at the end would stop a loop on a locked phone, where a
-        // background app can't start playback again.
-        player.actionAtItemEnd = loop ? .none : .pause
+        load(playback)
 
         statusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             DispatchQueue.main.async {
@@ -194,12 +199,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
               let controller = pipController
         else { return }
 
-        let speed = pending.playback.speed
-        if #available(iOS 16.0, *) {
-            // Used by the PiP window's play button.
-            player.defaultRate = speed
-        }
-        player.rate = speed
+        player.rate = pending.playback.speed
 
         if controller.isPictureInPictureActive {
             completePendingStart()
@@ -231,21 +231,47 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
     private func failPendingStart(code: String, message: String?) {
         guard let pending = pendingStart else { return }
         pendingStart = nil
-        tearDown()
+        abandonStart()
         pending.result(FlutterError(code: code, message: message, details: nil))
     }
 
-    // Fails a start that is still loading without closing an open PiP window.
-    private func cancelPendingStart() {
+    // Ends a start that is still loading without an error: it was replaced
+    // by a newer one, or the user closed PiP.
+    private func endPendingStart(code: String) {
         guard let pending = pendingStart else { return }
         pendingStart = nil
         statusObservation = nil
         possibleObservation = nil
-        if let current {
-            player.replaceCurrentItem(with: current.item)
+        reportHeldPaths()
+        pending.result(FlutterError(code: code, message: nil, details: nil))
+    }
+
+    // After a failed start, a window still showing the previous video goes
+    // back to it as it was. Without one, everything is torn down.
+    private func abandonStart() {
+        statusObservation = nil
+        possibleObservation = nil
+        guard let current, pipController?.isPictureInPictureActive ?? false else {
+            tearDown()
+            return
+        }
+        load(current)
+        if resumeCurrentOnRevert {
+            player.rate = current.speed
         }
         reportHeldPaths()
-        pending.result(FlutterError(code: "CANCELLED", message: nil, details: nil))
+    }
+
+    private func load(_ playback: Playback) {
+        player.replaceCurrentItem(with: playback.item)
+        player.isMuted = playback.muted
+        // Pausing at the end would stop a loop on a locked phone, where a
+        // background app can't start playback again.
+        player.actionAtItemEnd = playback.loop ? .none : .pause
+        if #available(iOS 16.0, *) {
+            // Used by the PiP window's play button.
+            player.defaultRate = playback.speed
+        }
     }
 
     // MARK: - Current video
@@ -363,12 +389,12 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             playerView.alpha = 1
             let isPipActive = self.pipController?.isPictureInPictureActive ?? false
             if self.pendingStart == nil && !isPipActive {
-                self.tearDown(viewerIsPlaying: true)
+                self.tearDown()
             }
         })
     }
 
-    private func tearDown(viewerIsPlaying: Bool = false) {
+    private func tearDown() {
         statusObservation = nil
         possibleObservation = nil
         player.pause()
@@ -377,13 +403,14 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
             pipController.stopPictureInPicture()
         }
         setCurrent(nil)
-        restoreAudioSession(viewerIsPlaying: viewerIsPlaying)
+        restoreAudioSession()
     }
 
-    // Leaves the session alone if another player changed it since PiP started.
-    // Deactivating stops all of the app's audio, so it only happens when the
-    // app was idle before PiP.
-    private func restoreAudioSession(viewerIsPlaying: Bool) {
+    // Puts back the category the app had before PiP, unless another player
+    // changed it since. The session stays active, because deactivating it
+    // would also stop the app's own players; audio that PiP interrupted in
+    // other apps resumes from those apps.
+    private func restoreAudioSession() {
         guard let previous = audioSessionBeforePip else { return }
         audioSessionBeforePip = nil
         let session = AVAudioSession.sharedInstance()
@@ -391,9 +418,6 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
               session.categoryOptions.isEmpty
         else { return }
         try? session.setCategory(previous.category, mode: previous.mode, options: previous.options)
-        if !viewerIsPlaying && previous.category == .ambient {
-            try? session.setActive(false, options: .notifyOthersOnDeactivation)
-        }
     }
 }
 
@@ -414,17 +438,24 @@ extension EntePipPlugin: AVPictureInPictureControllerDelegate {
     public func pictureInPictureControllerDidStopPictureInPicture(
         _ pictureInPictureController: AVPictureInPictureController
     ) {
-        // A pending start reopens PiP, and a hand-back tears down when it ends.
-        if pendingStart == nil && !isHandingBack {
-            tearDown()
-        }
+        let wasRestoring = isRestoring
+        isRestoring = false
+        // A hand-back tears down once the viewer has taken over.
+        guard !isHandingBack else { return }
+        // A start made after "back to video" opens its own window.
+        if wasRestoring && pendingStart != nil { return }
+        endPendingStart(code: "CLOSED")
+        tearDown()
     }
 
     public func pictureInPictureController(
         _ pictureInPictureController: AVPictureInPictureController,
         restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
     ) {
-        guard let current else {
+        isRestoring = true
+        guard let current, pendingStart == nil else {
+            endPendingStart(code: "CLOSED")
+            collapsePlayerView()
             completionHandler(false)
             return
         }

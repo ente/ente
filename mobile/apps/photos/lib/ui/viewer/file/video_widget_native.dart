@@ -611,11 +611,18 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       speed: widget.playbackSpeed.value,
       loop: localSettings.shouldLoopVideo(),
     );
-    await controller.pause();
     try {
-      await start;
-      PipSession.started(widget.file, path);
+      await controller.pause();
+      switch (await start) {
+        case PipStartResult.started:
+          PipSession.started(widget.file, path);
+        case PipStartResult.closed:
+          if (mounted) await _syncPlayback();
+        case PipStartResult.replaced:
+          break;
+      }
     } catch (e, s) {
+      start.ignore();
       _logger.warning("Could not start picture in picture", e, s);
       if (!mounted) return;
       showShortToast(context, context.strings.couldNotStartPictureInPicture);

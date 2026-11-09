@@ -513,15 +513,13 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
 
   Future<void> _startPip() async {
     final path = _playingPreviewPath;
-    if (path == null) return;
+    final preview = widget.preview;
+    if (path == null || preview == null) return;
     final position = player.state.position;
-    await player.pause();
     try {
-      final playlist = await PipStream.playlistFor(
-        widget.file,
-        widget.preview!,
-      );
-      await EntePip.start(
+      await player.pause();
+      final playlist = await PipStream.playlistFor(widget.file, preview);
+      final result = await EntePip.start(
         path: path,
         position: position,
         muted: widget.isAudioMutedOverride ?? localSettings.isMuted(),
@@ -529,7 +527,14 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
         loop: localSettings.shouldLoopVideo(),
         hlsPlaylist: playlist,
       );
-      PipSession.started(widget.file, path);
+      switch (result) {
+        case PipStartResult.started:
+          PipSession.started(widget.file, path);
+        case PipStartResult.closed:
+          if (mounted && widget.isActive) unawaited(player.play());
+        case PipStartResult.replaced:
+          break;
+      }
     } catch (e, s) {
       _logger.warning("Could not start picture in picture", e, s);
       if (!mounted) return;

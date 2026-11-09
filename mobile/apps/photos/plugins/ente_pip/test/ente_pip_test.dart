@@ -17,7 +17,7 @@ void main() {
   Future<void> nativeHolds(List<String> paths) =>
       EntePip.handleNativeCall(MethodCall("held", {"paths": paths}));
 
-  Future<void> startPip(String path) => EntePip.start(
+  Future<PipStartResult> startPip(String path) => EntePip.start(
     path: path,
     position: Duration.zero,
     muted: false,
@@ -213,6 +213,21 @@ void main() {
       expect(asked, ["newer"]);
     });
   });
+
+  test(
+    "start reports replaced and closed starts instead of throwing",
+    () async {
+      for (final (code, result) in [
+        ("REPLACED", PipStartResult.replaced),
+        ("CLOSED", PipStartResult.closed),
+      ]) {
+        messenger.setMockMethodCallHandler(channel, (_) async {
+          throw PlatformException(code: code);
+        });
+        expect(await startPip("/tmp/video.mp4"), result);
+      }
+    },
+  );
 
   test("stop closes the PiP window", () async {
     await EntePip.stop();

@@ -4,6 +4,14 @@ import "dart:io";
 import "package:flutter/foundation.dart";
 import "package:flutter/services.dart";
 
+enum PipStartResult {
+  started,
+  // A newer `EntePip.start` call took its place.
+  replaced,
+  // The user closed PiP, or `EntePip.stop` was called, before it started.
+  closed,
+}
+
 class PipRestore {
   final String path;
   final Duration position;
@@ -70,8 +78,9 @@ class EntePip {
   //
   // With `hlsPlaylist`, plays that stream and uses `path` only as its name.
   // The playlist's key must be an inline `data:` URI and its segments HTTPS
-  // URLs. `path` counts as in use from this call, before any await.
-  static Future<void> start({
+  // URLs. `path` counts as in use from this call, before any await. Throws a
+  // `PlatformException` when PiP can't start.
+  static Future<PipStartResult> start({
     required String path,
     required Duration position,
     required bool muted,
@@ -90,6 +99,15 @@ class EntePip {
         "loop": loop,
         "hlsPlaylist": ?hlsPlaylist,
       });
+      return PipStartResult.started;
+    } on PlatformException catch (e) {
+      switch (e.code) {
+        case "REPLACED":
+          return PipStartResult.replaced;
+        case "CLOSED":
+          return PipStartResult.closed;
+      }
+      rethrow;
     } finally {
       _starting.remove(path);
       _deleteUnusedFiles();
