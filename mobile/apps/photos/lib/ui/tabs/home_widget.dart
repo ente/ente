@@ -932,8 +932,14 @@ class _HomeWidgetState extends State<HomeWidget> {
           drawerScrimColor: getEnteColorScheme(context).strokeFainter,
           drawerEnableOpenDragGesture: false,
           drawer: enableDrawer
+              // A custom display DPI can make a phone a few dp wider than the
+              // 430 cap, leaving a strip of the page visible beside the drawer.
               ? ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 430),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width < 600
+                        ? double.infinity
+                        : 430,
+                  ),
                   child: Drawer(
                     width: double.infinity,
                     shape: const RoundedRectangleBorder(),
@@ -1117,7 +1123,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                       openDrawer: Scaffold.of(context).openDrawer,
                       physics: isPageScrollLocked
                           ? const NeverScrollableScrollPhysics()
-                          : const BouncingScrollPhysics(),
+                          : const NoLeftBounceScrollPhysics(),
                       children: [
                         _buildTabHeroMode(0, selectedTabIndex, child!),
                         _buildTabHeroMode(
