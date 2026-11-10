@@ -1,0 +1,1 @@
+- Fixed deselecting photos in the Device tab of Trash.
