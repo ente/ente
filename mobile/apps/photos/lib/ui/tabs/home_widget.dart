@@ -1193,6 +1193,15 @@ class _HomeWidgetState extends State<HomeWidget> {
             );
           },
         ),
+        // Swipes on the system gesture bar (app switching) would otherwise
+        // also scroll the tab pager.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: MediaQuery.systemGestureInsetsOf(context).bottom,
+          child: const AbsorbPointer(child: SizedBox.expand()),
+        ),
         Align(
           alignment: Alignment.bottomCenter,
           child: ValueListenableBuilder(

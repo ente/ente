@@ -436,6 +436,43 @@ class _BodyState extends State<_Body> {
           child: Stack(
             children: [
               _buildPageView(),
+              // The action buttons and the gesture bar below them must not
+              // swipe the photos. The filmstrip sits above and stays live.
+              if (widget.config.mode == DetailPageMode.full)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height:
+                      max(
+                        MediaQuery.paddingOf(context).bottom,
+                        MediaQuery.systemGestureInsetsOf(context).bottom,
+                      ) +
+                      _galleryBottomBarHeight,
+                  child: const AbsorbPointer(child: SizedBox.expand()),
+                ),
+              // Edge swipes are the system back gesture; keep them from also
+              // starting a swipe to the next photo.
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: max(
+                  MediaQuery.systemGestureInsetsOf(context).left,
+                  24.0,
+                ),
+                child: const AbsorbPointer(child: SizedBox.expand()),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: max(
+                  MediaQuery.systemGestureInsetsOf(context).right,
+                  24.0,
+                ),
+                child: const AbsorbPointer(child: SizedBox.expand()),
+              ),
               // Keep viewer controls above OCR so their real hit boxes, rather
               // than approximated screen insets, decide which gestures they own.
               ValueListenableBuilder(
