@@ -32,6 +32,66 @@ import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/image_util.dart';
 import "package:photos/utils/ram_check_util.dart";
 
+// Same size key as ZoomableImage uses, so a preload is an ImageCache hit there.
+ResizeImage screenSizedImage(BuildContext context, File file) {
+  final screen =
+      MediaQuery.sizeOf(context) * MediaQuery.devicePixelRatioOf(context);
+  return ResizeImage(
+    FileImage(file),
+    width: screen.width.round(),
+    height: screen.height.round(),
+    policy: ResizeImagePolicy.fit,
+  );
+}
+
+// Remote files are skipped: preloading them would start a download. Android
+// HEIC is skipped: ZoomableImage decodes it with Rust, never via FileImage.
+Future<void> preloadScreenSizedImage(
+  BuildContext context,
+  EnteFile file,
+) async {
+  final name = file.displayName.toLowerCase();
+  if (file.isVideo ||
+      file.isRemoteOnlyFile ||
+      file.isDeviceTrash ||
+      (Platform.isAndroid &&
+          (name.endsWith('.heic') || name.endsWith('.heif')))) {
+    return;
+  }
+  final f = await getFile(file);
+  if (f == null || !context.mounted) return;
+  await precacheImage(
+    screenSizedImage(context, f),
+    context,
+    onError: (_, _) {},
+  );
+}
+
+// Decodes the original into ImageCache ahead of the viewer, which asks for the
+// same FileImage. Skips what the viewer decodes differently (see
+// _loadWithPlatformDecoder) and images too large to decode at full size.
+Future<void> preloadFullImage(BuildContext context, EnteFile file) async {
+  final name = file.displayName.toLowerCase();
+  final maxPixels = hasLessThan5GBRAM
+      ? _ZoomableImageState._lowRamMaxPixels
+      : _ZoomableImageState._defaultMaxPixels;
+  if (file.isVideo ||
+      file.isRemoteOnlyFile ||
+      file.isDeviceTrash ||
+      file.width * file.height > maxPixels ||
+      // ImageCache drops any image larger than its limit, so decoding it
+      // ahead of time would be wasted.
+      file.width * file.height * 4 >
+          PaintingBinding.instance.imageCache.maximumSizeBytes ||
+      (Platform.isAndroid &&
+          (name.endsWith('.heic') || name.endsWith('.heif')))) {
+    return;
+  }
+  final f = await getFile(file);
+  if (f == null || !context.mounted) return;
+  await precacheImage(FileImage(f), context, onError: (_, _) {});
+}
+
 class ZoomableImage extends StatefulWidget {
   final EnteFile photo;
   final Function(bool)? shouldDisableScroll;
@@ -407,7 +467,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   ) {
     if (mounted && !_loadedFinalImage) {
       precacheImage(imageProvider, context).then((value) {
-        if (mounted && !_loadedFinalImage) {
+        if (mounted && !_loadedFinalImage && !_loadedLargeThumbnail) {
           setState(() {
             _imageProvider = imageProvider;
             _loadedLargeThumbnail = true;
@@ -464,7 +524,23 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
+  // Full-res decode of a large photo takes ~0.5-1s. A screen-sized decode is
+  // near-instant and looks identical until the user zooms in.
+  void _loadScreenSizedPreview(File file) {
+    final provider = screenSizedImage(context, file);
+    precacheImage(provider, context, onError: (_, _) {}).then((_) {
+      if (mounted && !_loadedFinalImage) {
+        setState(() {
+          _imageProvider = provider;
+          _loadedLargeThumbnail = true;
+        });
+        _notifyReadyOnce();
+      }
+    });
+  }
+
   void _loadWithPlatformDecoder(File file) {
+    if (mounted) _loadScreenSizedPreview(file);
     ImageProvider imageProvider;
     if (isTooLargeImage) {
       _logger.info(
