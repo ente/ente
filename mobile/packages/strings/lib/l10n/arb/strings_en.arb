@@ -4007,7 +4007,7 @@
   "selectAllConfirmationBody": "Anything you do next, like deleting, will apply to all of them.",
   "selectAllConfirmationTitle": "{count, plural, one{Select all {count} item?} other{Select all {count} items?}}",
   "@selectAllConfirmationTitle": {
-    "description": "Title of the confirmation shown before selecting every photo in a large gallery",
+    "description": "Title of the confirmation shown before selecting more than 100 photos at once, either with All or with the checkmark on a date header",
     "placeholders": {
       "count": {
         "type": "int",

@@ -15,6 +15,7 @@ import "package:photos/models/search/hierarchical/only_them_filter.dart";
 import 'package:photos/models/selected_files.dart';
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/viewer/actions/file_selection_actions_widget.dart";
+import "package:photos/ui/viewer/actions/large_selection_confirmation.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
@@ -252,8 +253,6 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   }
 }
 
-const _selectAllConfirmationThreshold = 100;
-
 class SelectAllButton extends StatelessWidget {
   const SelectAllButton({super.key});
 
@@ -305,32 +304,11 @@ class SelectAllButton extends StatelessWidget {
       selectedFiles.clearAll();
       return;
     }
-    if (allGalleryFiles.length > _selectAllConfirmationThreshold) {
-      final confirmed = await _confirmSelectAll(
-        context,
-        allGalleryFiles.length,
-      );
-      if (!confirmed || !context.mounted) return;
-    }
-    selectedFiles.selectAll(allGalleryFiles.toSet());
-  }
-
-  Future<bool> _confirmSelectAll(BuildContext context, int count) async {
-    final confirmed = await components.showBottomSheetComponent<bool>(
-      context: context,
-      builder: (sheetContext) => components.BottomSheetComponent(
-        title: sheetContext.strings.selectAllConfirmationTitle(count: count),
-        message: sheetContext.strings.selectAllConfirmationBody,
-        closeTooltip: sheetContext.strings.close,
-        actions: [
-          components.ButtonComponent(
-            label: sheetContext.strings.selectAll,
-            shouldSurfaceExecutionStates: false,
-            onTap: () => Navigator.of(sheetContext).pop(true),
-          ),
-        ],
-      ),
+    final confirmed = await confirmIfLargeSelection(
+      context,
+      allGalleryFiles.length,
     );
-    return confirmed ?? false;
+    if (!confirmed || !context.mounted) return;
+    selectedFiles.selectAll(allGalleryFiles.toSet());
   }
 }
