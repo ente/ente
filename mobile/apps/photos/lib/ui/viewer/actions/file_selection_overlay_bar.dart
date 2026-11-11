@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart" as components;
@@ -5,6 +6,7 @@ import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photos/models/collection/collection.dart';
+import "package:photos/models/file/file.dart";
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
@@ -250,6 +252,8 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   }
 }
 
+const _selectAllConfirmationThreshold = 100;
+
 class SelectAllButton extends StatelessWidget {
   const SelectAllButton({super.key});
 
@@ -279,18 +283,54 @@ class SelectAllButton extends StatelessWidget {
           ),
           onTap: allGalleryFiles.isEmpty
               ? null
-              : () {
-                  HapticFeedback.selectionClick();
-                  if (allSelected) {
-                    selectionState.selectedFiles.clearAll();
-                  } else {
-                    selectionState.selectedFiles.selectAll(
-                      allGalleryFiles.toSet(),
-                    );
-                  }
-                },
+              : () => _toggleSelectAll(
+                  context,
+                  selectionState.selectedFiles,
+                  allGalleryFiles,
+                  allSelected,
+                ),
         );
       },
     );
+  }
+
+  Future<void> _toggleSelectAll(
+    BuildContext context,
+    SelectedFiles selectedFiles,
+    List<EnteFile> allGalleryFiles,
+    bool allSelected,
+  ) async {
+    unawaited(HapticFeedback.selectionClick());
+    if (allSelected) {
+      selectedFiles.clearAll();
+      return;
+    }
+    if (allGalleryFiles.length > _selectAllConfirmationThreshold) {
+      final confirmed = await _confirmSelectAll(
+        context,
+        allGalleryFiles.length,
+      );
+      if (!confirmed || !context.mounted) return;
+    }
+    selectedFiles.selectAll(allGalleryFiles.toSet());
+  }
+
+  Future<bool> _confirmSelectAll(BuildContext context, int count) async {
+    final confirmed = await components.showBottomSheetComponent<bool>(
+      context: context,
+      builder: (sheetContext) => components.BottomSheetComponent(
+        title: sheetContext.strings.selectAllConfirmationTitle(count: count),
+        message: sheetContext.strings.selectAllConfirmationBody,
+        closeTooltip: sheetContext.strings.close,
+        actions: [
+          components.ButtonComponent(
+            label: sheetContext.strings.selectAll,
+            shouldSurfaceExecutionStates: false,
+            onTap: () => Navigator.of(sheetContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 }

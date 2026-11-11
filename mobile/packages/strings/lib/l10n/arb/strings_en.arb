@@ -4004,6 +4004,18 @@
     "description": "Instruction for liking video"
   },
   "selectAll": "Select all",
+  "selectAllConfirmationBody": "Anything you do next, like deleting, will apply to all of them.",
+  "selectAllConfirmationTitle": "{count, plural, one{Select all {count} item?} other{Select all {count} items?}}",
+  "@selectAllConfirmationTitle": {
+    "description": "Title of the confirmation shown before selecting every photo in a large gallery",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "12546"
+      }
+    }
+  },
   "selectAllShort": "All",
   "@selectAllShort": {
     "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."

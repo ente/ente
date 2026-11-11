@@ -1,0 +1,1 @@
+- Selecting all photos now asks for confirmation when it would select more than 100 items.
