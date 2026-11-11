@@ -1,1 +1,0 @@
-- Fixed merging with an existing person by tapping a name suggestion in Save Person.
