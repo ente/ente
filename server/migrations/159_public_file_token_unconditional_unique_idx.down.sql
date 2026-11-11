@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY public_file_token_unconditional_unique_idx;
