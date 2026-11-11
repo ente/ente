@@ -44,7 +44,10 @@ class PlacesQuizPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  void resetAnswer() => _guess = null;
+  void resetAnswer() {
+    _guess = null;
+    _played = false;
+  }
 
   static List<_Slot> _shuffledBoard(Iterable<String> names) {
     final count = min(names.length, _Slot.fillOrder.length);
