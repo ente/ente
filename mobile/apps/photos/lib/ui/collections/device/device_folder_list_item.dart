@@ -6,13 +6,15 @@ import 'package:photos/models/device_collection.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
+import 'package:photos/ui/viewer/file/no_thumbnail_widget.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/gallery/device/device_folder_page.dart';
 
 class DeviceFolderListItem extends StatelessWidget {
   final DeviceCollection deviceCollection;
+  final VoidCallback? onTap;
 
-  const DeviceFolderListItem(this.deviceCollection, {super.key});
+  const DeviceFolderListItem(this.deviceCollection, {this.onTap, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +23,15 @@ class DeviceFolderListItem extends StatelessWidget {
 
     return ThumbnailListItem(
       backgroundColor: thumbnailListItemBackgroundColor(context),
-      onTap: () {
-        routeToPage(
-          context,
-          DeviceFolderPage(deviceCollection),
-          useFadeTransition: true,
-        );
-      },
+      onTap:
+          onTap ??
+          () {
+            routeToPage(
+              context,
+              DeviceFolderPage(deviceCollection),
+              useFadeTransition: true,
+            );
+          },
       leading: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -39,15 +43,20 @@ class DeviceFolderListItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(
                 ThumbnailListItem.defaultLeadingRadius,
               ),
-              child: ThumbnailWidget(
-                deviceCollection.thumbnail!,
-                shouldShowSyncStatus: false,
-                key: Key(
-                  "device_folder:" +
-                      deviceCollection.name +
-                      deviceCollection.thumbnail!.tag,
-                ),
-              ),
+              child: deviceCollection.thumbnail == null
+                  ? const NoThumbnailWidget(
+                      borderRadius: ThumbnailListItem.defaultLeadingRadius,
+                      addBorder: false,
+                    )
+                  : ThumbnailWidget(
+                      deviceCollection.thumbnail!,
+                      shouldShowSyncStatus: false,
+                      key: Key(
+                        "device_folder:" +
+                            deviceCollection.name +
+                            deviceCollection.thumbnail!.tag,
+                      ),
+                    ),
             ),
           ),
           if (!isBackedUp && !isLocalGalleryMode)
