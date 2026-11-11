@@ -12,6 +12,7 @@ import 'package:logging/logging.dart';
 import 'package:media_extension/media_extension.dart';
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/events/file_uploaded_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/extensions/file_props.dart";
@@ -80,6 +81,7 @@ class FileAppBarState extends State<FileAppBar> {
   final _logger = Logger("FadingAppBar");
   final List<Widget> _actions = [];
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
+  late final StreamSubscription<FileUploadedEvent> _fileUploadedSubscription;
   bool isGuestView = false;
   bool shouldLoopVideo = localSettings.shouldLoopVideo();
   bool _reloadActions = false;
@@ -94,8 +96,7 @@ class FileAppBarState extends State<FileAppBar> {
       );
       widget.streamChangeController?.addListener(_onStreamChangeStateChanged);
     }
-    if (detailPageFileIdentifier(oldWidget.file) !=
-            detailPageFileIdentifier(widget.file) ||
+    if (!identical(oldWidget.file, widget.file) ||
         oldWidget.showEditAction != widget.showEditAction ||
         oldWidget.streamChangeController != widget.streamChangeController) {
       _getActions();
@@ -111,6 +112,23 @@ class FileAppBarState extends State<FileAppBar> {
       setState(() {
         isGuestView = event.isGuestView;
       });
+    });
+    _fileUploadedSubscription = Bus.instance.on<FileUploadedEvent>().listen((
+      event,
+    ) {
+      final generatedID = widget.file.generatedID;
+      if (generatedID != null && event.file.generatedID == generatedID) {
+        final notifier = _showingThumbnailFallbackNotifier;
+        final localID = widget.file.localID;
+        final currentFileID = detailPageFileIdentifier(widget.file);
+        if (notifier != null &&
+            localID != null &&
+            notifier.value == "local_$localID" &&
+            notifier.value != currentFileID) {
+          notifier.value = currentFileID;
+        }
+        _requestActionsReload();
+      }
     });
     widget.streamChangeController?.addListener(_onStreamChangeStateChanged);
   }
@@ -154,6 +172,7 @@ class FileAppBarState extends State<FileAppBar> {
     );
     widget.streamChangeController?.removeListener(_onStreamChangeStateChanged);
     _guestViewEventSubscription.cancel();
+    _fileUploadedSubscription.cancel();
     super.dispose();
   }
 
@@ -194,6 +213,11 @@ class FileAppBarState extends State<FileAppBar> {
   }
 
   List<Widget> _getActions() {
+    var uploadIcon = _actions.whereType<UploadIconWidget>().firstOrNull;
+    if (widget.file.generatedID == null ||
+        uploadIcon?.file.generatedID != widget.file.generatedID) {
+      uploadIcon = null;
+    }
     _actions.clear();
 
     final fallbackFileId = InheritedDetailPageState.maybeOf(
@@ -274,9 +298,16 @@ class FileAppBarState extends State<FileAppBar> {
       );
     }
 
-    if (!isFileUploaded && !widget.file.isTrash && !isLocalGalleryMode) {
+    if ((!isFileUploaded || uploadIcon != null) &&
+        !widget.file.isTrash &&
+        !isLocalGalleryMode) {
       _actions.add(
-        UploadIconWidget(file: widget.file, key: ValueKey(widget.file.tag)),
+        uploadIcon != null && identical(uploadIcon.file, widget.file)
+            ? uploadIcon
+            : UploadIconWidget(
+                file: widget.file,
+                key: uploadIcon?.key ?? ValueKey(widget.file.tag),
+              ),
       );
     }
 
