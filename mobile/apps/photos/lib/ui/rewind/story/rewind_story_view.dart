@@ -48,6 +48,8 @@ class _RewindStoryViewState extends State<RewindStoryView> {
   static final _logger = Logger("RewindStoryView");
 
   RewindStory? _story;
+  String? _initialPage;
+  var _initialStop = 0;
 
   @override
   void initState() {
@@ -57,8 +59,13 @@ class _RewindStoryViewState extends State<RewindStoryView> {
 
   void _show(RewindStory story) {
     if (!mounted) return;
-    story.preloadFrom(story.indexOf(widget.initialPage));
-    setState(() => _story = story);
+    final page = story.resumeAt(widget.initialPage);
+    story.preloadFrom(story.indexOf(page));
+    setState(() {
+      _story = story;
+      _initialPage = page;
+      _initialStop = page == widget.initialPage ? widget.initialStop : 0;
+    });
   }
 
   void _fail(Object error, StackTrace stackTrace) {
@@ -76,8 +83,8 @@ class _RewindStoryViewState extends State<RewindStoryView> {
           : RewindViewer(
               key: ObjectKey(story),
               pages: story.pages,
-              initialPage: widget.initialPage,
-              initialStop: widget.initialStop,
+              initialPage: _initialPage,
+              initialStop: _initialStop,
               onSettled: (page, stop) {
                 story.preloadFrom(max(0, story.pages.indexOf(page)));
                 widget.onSettled?.call(story, page, stop);

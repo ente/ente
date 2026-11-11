@@ -28,7 +28,7 @@ class RewindMemoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final page = entry.resumeIndex + 1;
-    final pages = entry.pages.length;
+    final pages = entry.pageCount;
     final status = entry.completed
         ? "Watch again"
         : entry.started

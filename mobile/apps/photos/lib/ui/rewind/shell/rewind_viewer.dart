@@ -61,7 +61,7 @@ class _RewindViewerState extends State<RewindViewer>
   final _shareButton = GlobalKey();
   ScrollController? _controller;
   double? _height;
-  int? _settledStep;
+  var _settledStep = -1;
   int? _resizeStep;
   int? _targetStep;
   var _sharing = false;
@@ -164,7 +164,7 @@ class _RewindViewerState extends State<RewindViewer>
   }
 
   double _offset(ScrollController controller, double height) =>
-      (controller.hasClients ? controller.offset : _initialStep * height).clamp(
+      (controller.hasClients ? controller.offset : _settledStep * height).clamp(
         0.0,
         (_steps - 1) * height,
       );
@@ -197,9 +197,12 @@ class _RewindViewerState extends State<RewindViewer>
     final controller = _controller;
     final previousHeight = _height;
     _height = height;
-    if (controller == null || previousHeight == null) {
+    if (controller == null ||
+        previousHeight == null ||
+        !controller.hasClients) {
+      controller?.dispose();
       return _controller = ScrollController(
-        initialScrollOffset: _initialStep * height,
+        initialScrollOffset: _settledStep * height,
       );
     }
     if (height != previousHeight && controller.hasClients) {

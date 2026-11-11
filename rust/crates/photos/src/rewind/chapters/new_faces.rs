@@ -7,7 +7,7 @@ use crate::rewind::people::{Entity, People};
 use crate::rewind::ranking::{Ranking, best_faces};
 use crate::rewind::report::{NewFace, NewFaces};
 
-const NEW_FACE_MINIMUM_PHOTOS: usize = 5;
+const NEW_FACE_MINIMUM_PHOTOS: usize = 20;
 const NEW_FACES_MINIMUM: usize = 3;
 const NEW_FACES_SHOWN: usize = 12;
 const NEW_FACE_FACES: usize = 3;
@@ -68,20 +68,20 @@ mod tests {
     #[test]
     fn people_and_clusters_first_seen_this_year_are_new_named_ones_first() {
         let (_directory, store) = store();
-        let mut files = daily_photos(1, "2026-01-01T10:00:00", 100);
+        let mut files = daily_photos(1, "2026-01-01T10:00:00", 200);
         files.push(photo(500, "2025-06-01T10:00:00"));
         let mut faces_request = request(files);
         faces_request.people = ["ana", "ben", "old", "me", "hidden"].map(person).to_vec();
         faces_request.people[4].is_hidden_from_memories = true;
         faces_request.me_person_id = Some("me".to_string());
-        appear(&store, "ana", Some("ana"), 1..=5);
-        appear(&store, "ben", Some("ben"), 11..=16);
-        appear(&store, "old", Some("old"), [500].into_iter().chain(21..=30));
-        appear(&store, "me", Some("me"), 31..=40);
-        appear(&store, "hidden", Some("hidden"), 41..=50);
-        appear(&store, "stranger", None, 51..=58);
-        appear(&store, "passer-by", None, 61..=64);
-        appear(&store, "deleted-person", Some("gone"), 71..=80);
+        appear(&store, "ana", Some("ana"), 1..=20);
+        appear(&store, "ben", Some("ben"), 21..=41);
+        appear(&store, "old", Some("old"), [500].into_iter().chain(42..=60));
+        appear(&store, "me", Some("me"), 61..=80);
+        appear(&store, "hidden", Some("hidden"), 81..=100);
+        appear(&store, "stranger", None, 101..=120);
+        appear(&store, "passer-by", None, 121..=139);
+        appear(&store, "deleted-person", Some("gone"), 141..=160);
         let library = Library::of_year(&faces_request).unwrap();
         let people = People::load(&faces_request, &library, &store).unwrap();
         let ranking = Ranking::new(Some(&people), None);
@@ -102,7 +102,7 @@ mod tests {
                 (None, Some("stranger"))
             ]
         );
-        assert_eq!(new.faces[1].face_ids, ["1_ana", "2_ana", "3_ana"]);
+        assert_eq!(new.faces[1].face_ids, ["10_ana", "11_ana", "12_ana"]);
 
         let mut fewer = faces_request.clone();
         fewer.people.retain(|person| person.id != "ben");

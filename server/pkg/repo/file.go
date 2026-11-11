@@ -511,6 +511,9 @@ func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []
 			result[ownerID] = []int64{fileID}
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file ownership")
+	}
 	return result, nil
 }
 func (repo *FileRepository) VerifyFileOwner(ctx context.Context, fileIDs []int64, ownerID int64, logger *log.Entry) error {
@@ -662,6 +665,9 @@ func (repo *FileRepository) DropFilesMetadata(ctx context.Context, fileIDs []int
 			return stacktrace.Propagate(err, "")
 		}
 		fileIdsNotDeleted = append(fileIdsNotDeleted, fileID)
+	}
+	if err := rows.Err(); err != nil {
+		return stacktrace.Propagate(err, "failed to check remaining file objects")
 	}
 	if len(fileIdsNotDeleted) > 0 {
 		return stacktrace.Propagate(fmt.Errorf("fileIDs %v are still present in object_keys", fileIdsNotDeleted), "")

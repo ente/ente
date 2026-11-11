@@ -86,20 +86,74 @@ pub(in crate::rewind) fn spots_of<'l, 'r>(library: &'l Library<'r>) -> Vec<Spot<
 
 fn mean(coordinates: impl ExactSizeIterator<Item = Coordinate>) -> Coordinate {
     let count = coordinates.len() as f64;
-    let (latitude, longitude) = coordinates.fold((0.0, 0.0), |(latitude, longitude), point| {
-        (latitude + point.latitude, longitude + point.longitude)
-    });
-    Coordinate::new(latitude / count, longitude / count)
+    let (latitude, longitude_sin, longitude_cos) = coordinates.fold(
+        (0.0, 0.0, 0.0),
+        |(latitude, longitude_sin, longitude_cos), point| {
+            let (point_sin, point_cos) = point.longitude.to_radians().sin_cos();
+            (
+                latitude + point.latitude,
+                longitude_sin + point_sin,
+                longitude_cos + point_cos,
+            )
+        },
+    );
+    Coordinate::new(
+        latitude / count,
+        longitude_sin.atan2(longitude_cos).to_degrees(),
+    )
 }
 
 #[cfg(test)]
 mod tests {
+    use ente_location::Coordinate;
+
     use crate::rewind::fixtures::{daily_photos, located, request};
     use crate::rewind::input::RewindFile;
     use crate::rewind::library::Library;
     use crate::rewind::ranking::Ranking;
 
-    use super::spots;
+    use super::{spots, spots_of};
+
+    #[test]
+    fn regular_spots_crossing_the_antimeridian_stay_together() {
+        for longitude in [179.9995, -179.9995] {
+            let files = [52.0, 52.1, 52.2]
+                .into_iter()
+                .enumerate()
+                .flat_map(|(spot, latitude)| {
+                    daily_photos(spot as i64 * 100 + 1, "2026-01-01T09:00:00", 6)
+                        .into_iter()
+                        .enumerate()
+                        .map(move |(day, file)| {
+                            located(
+                                file,
+                                latitude,
+                                if day % 2 == 0 { longitude } else { -longitude },
+                            )
+                        })
+                })
+                .collect();
+            let request = request(files);
+            let state = crate::rewind::compute_rewind(&request, None, None, None).unwrap();
+            let crate::rewind::RewindStatus::Ready { report } = state.status else {
+                panic!("the rewind should be ready");
+            };
+            let spots = report.spots.expect("three regular spots should be shown");
+            assert_eq!(spots.spot_count, 3);
+            assert_eq!(spots.photo_count, 18);
+            assert_eq!(spots.file_ids.len(), 18);
+
+            let library = Library::of_year(&request).unwrap();
+            for spot in spots_of(&library) {
+                assert!(
+                    crate::rewind::geo::distance_km(
+                        spot.center,
+                        Coordinate::new(spot.center.latitude, 180.0)
+                    ) < 0.001
+                );
+            }
+        }
+    }
 
     fn spot(first_id: i64, first_day: &str, days: i64, latitude: f64) -> Vec<RewindFile> {
         daily_photos(first_id, first_day, days)

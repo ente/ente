@@ -47,16 +47,19 @@ pub(super) fn cluster(points: &[Coordinate], radius_km: f64) -> Vec<Vec<usize>> 
 struct Cluster {
     members: Vec<usize>,
     latitude_sum: f64,
-    longitude_sum: f64,
+    longitude_sin_sum: f64,
+    longitude_cos_sum: f64,
     center: Coordinate,
 }
 
 impl Cluster {
     fn new(position: usize, point: Coordinate) -> Self {
+        let (longitude_sin_sum, longitude_cos_sum) = point.longitude.to_radians().sin_cos();
         Self {
             members: vec![position],
             latitude_sum: point.latitude,
-            longitude_sum: point.longitude,
+            longitude_sin_sum,
+            longitude_cos_sum,
             center: point,
         }
     }
@@ -64,9 +67,16 @@ impl Cluster {
     fn add(&mut self, position: usize, point: Coordinate) {
         self.members.push(position);
         self.latitude_sum += point.latitude;
-        self.longitude_sum += point.longitude;
+        let (longitude_sin, longitude_cos) = point.longitude.to_radians().sin_cos();
+        self.longitude_sin_sum += longitude_sin;
+        self.longitude_cos_sum += longitude_cos;
         let count = self.members.len() as f64;
-        self.center = Coordinate::new(self.latitude_sum / count, self.longitude_sum / count);
+        self.center = Coordinate::new(
+            self.latitude_sum / count,
+            self.longitude_sin_sum
+                .atan2(self.longitude_cos_sum)
+                .to_degrees(),
+        );
     }
 }
 

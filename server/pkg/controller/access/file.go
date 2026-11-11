@@ -38,6 +38,13 @@ func (c controllerImpl) CanAccessFile(ctx *gin.Context, req *CanAccessFileParams
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to get owner to fileIDs map")
 	}
+	fileCount := 0
+	for _, fileIDs := range ownerToFilesMap {
+		fileCount += len(fileIDs)
+	}
+	if fileCount != len(req.FileIDs) {
+		return stacktrace.Propagate(ente.ErrPermissionDenied, "could not verify access to all files")
+	}
 
 	var sharedCollections []int64
 	for owner, fileIDs := range ownerToFilesMap {
