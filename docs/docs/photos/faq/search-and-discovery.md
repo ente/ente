@@ -223,9 +223,17 @@ Open `Settings > Preferences > Machine learning`, enable "Face recognition", and
 
 Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning).
 
+### Does face recognition or Magic search include photos from albums shared with me? {#ml-shared-albums}
+
+Yes. When Machine learning is on, face recognition and Magic search index photos in albums shared with you and in collaborative albums, as well as photos you uploaded. You do not need to copy those photos into an album you own first.
+
+Indexing runs on your devices. If local indexing is off on a phone, that phone uses indexes built on another of your devices (for example desktop). A device with local indexing on still needs to process newly shared photos before they show up in People or Magic search there.
+
+Names you give people and face labels stay on your account only. They are not shared with other members of the album. See [Are people names and face labels shared with other members?](/photos/faq/sharing-and-collaboration#shared-face-labels).
+
 ### Can I search my library by text that appears inside images? {#search-text-in-images}
 
-Only partially. Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
+Only partially (this includes what people often call OCR). Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
 
 ### Can I merge or de-merge persons recognized by the app? {#merge-persons}
 
@@ -462,6 +470,8 @@ To watch a memory without music in the mobile app:
 2. Tap the speaker icon to mute the music.
 
 Tap the speaker icon again to turn the music back on.
+
+Ente remembers this choice the next time you open a memory on the same device.
 
 ## General Search
 

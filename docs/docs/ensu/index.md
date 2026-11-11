@@ -25,7 +25,7 @@ It is not a replacement for the largest cloud models. The model that runs on you
 
 ## How it works in one paragraph
 
-When you first launch Ensu, it downloads a small language model and runs it locally from then on. Inference happens on your CPU and GPU, in the same app, with no calls to Ente or anyone else. Your conversations, voice input, and image attachments are processed on-device. Learn more in [How it works](/ensu/how-it-works).
+When you first launch Ensu, it downloads a small language model and runs it locally from then on. Inference happens on your device (on the GPU where supported; on Windows it currently runs on the CPU), in the same app, with no calls to Ente or anyone else. Your conversations, voice input, and image attachments are processed on-device. Learn more in [How it works](/ensu/how-it-works).
 
 ## Install
 
