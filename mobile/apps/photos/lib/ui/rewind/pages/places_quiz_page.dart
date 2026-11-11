@@ -419,7 +419,11 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
       child: RewindStamp(
         photo: photo == null
             ? const ColoredBox(color: Color(0xFFD9D9D9))
-            : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
+            : RewindPhoto(
+                photo,
+                placeholder: const Color(0xFFD9D9D9),
+                zoomable: _phase == _Phase.done,
+              ),
         label: _stamps[rank].city.name,
         portrait: slot.portrait,
         width: size.width,
