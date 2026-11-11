@@ -686,6 +686,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     const captionInputRef = React.useRef<HTMLTextAreaElement | null>(null);
     const cancelKeyboardDismissWaitRef = React.useRef<() => void>(undefined);
     const replyInputRef = React.useRef<HTMLTextAreaElement | null>(null);
+    const replyControlsRef = React.useRef<HTMLDivElement | null>(null);
     const [actionsAnchor, setActionsAnchor] =
         React.useState<HTMLElement | null>(null);
     const [deleteSheetOpen, setDeleteSheetOpen] = React.useState(false);
@@ -708,7 +709,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         isDraftPostPreviewPending ||
         hasDraftPostPreparationError ||
         !onPublishDraftPost;
-    const isSendingReply = replyActionPhase == "busy";
+    const isReplyActionRunning = replyActionPhase != null;
     const canAddFriendForPostAction = Boolean(
         !isDraftPost && onAddFriendForPostAction,
     );
@@ -728,7 +729,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 onReplyToPost)),
     );
     const isReplyMode =
-        canReplyToPost && (isReplyFocused || replyActionPhase != null);
+        canReplyToPost && (isReplyFocused || isReplyActionRunning);
     const commentCount = useCommentCount(
         profile?.spaceId,
         activePhoto.postId,
@@ -736,7 +737,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     );
     const canSendReply =
         canReplyToPost &&
-        !isSendingReply &&
+        !isReplyActionRunning &&
         (canAddFriendForPostAction || replyText.trim().length > 0);
     const isSwipeBlockedRef = React.useRef(false);
     isSwipeBlockedRef.current =
@@ -749,10 +750,10 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         isDraftPostExit ||
         isCaptionEditing ||
         isCaptionDialogOpen ||
-        isSendingReply ||
+        isReplyActionRunning ||
         isDraftPostActionRunning;
     const isDismissBlockedRef = React.useRef(false);
-    isDismissBlockedRef.current = isSwipeBlockedRef.current || isReplyFocused;
+    isDismissBlockedRef.current = isSwipeBlockedRef.current || isReplyMode;
     const viewerViewportSize = React.useCallback(() => {
         const currentSize = currentViewerViewportSize(viewerRootRef.current);
         const stableSize = stableViewportSizeRef.current;
@@ -1122,14 +1123,9 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                     objectKey,
                 );
                 replyDraftsRef.current.delete(activeReplyKey);
-                if (activeReplyKeyRef.current == activeReplyKey) {
+                if (activeReplyKeyRef.current == activeReplyKey)
                     setReplyText("");
-                    replyInputRef.current?.blur();
-                    setIsReplyFocused(false);
-                    setReplyActionPhase("done");
-                } else {
-                    setReplyActionPhase(null);
-                }
+                setReplyActionPhase("done");
             } catch (error) {
                 log.error("Failed to send post reply", error);
                 setReplyActionPhase(null);
@@ -1205,17 +1201,14 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     React.useEffect(() => {
         if (replyActionPhase != "done") return;
 
-        const timeoutID = window.setTimeout(
-            () => setReplyActionPhase(null),
-            replySentDurationMs,
-        );
+        const timeoutID = window.setTimeout(() => {
+            setReplyActionPhase(null);
+            if (!replyControlsRef.current?.contains(document.activeElement))
+                setIsReplyFocused(false);
+        }, replySentDurationMs);
 
-        return () => {
-            window.clearTimeout(timeoutID);
-            if (activeReplyKeyRef.current != activeReplyKey)
-                setReplyActionPhase(null);
-        };
-    }, [activeReplyKey, replyActionPhase, setReplyActionPhase]);
+        return () => window.clearTimeout(timeoutID);
+    }, [replyActionPhase, setReplyActionPhase]);
 
     React.useEffect(() => {
         if (isDraftPost || isCaptionEditingRef.current) return;
@@ -2849,6 +2842,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                         )}
                         {showPhotoLikeButton || canReplyToPost ? (
                             <SpacePostReplyControls
+                                ref={replyControlsRef}
                                 canSendReply={canSendReply}
                                 commentsButton={
                                     canComment ? (
@@ -2894,13 +2888,8 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                                       nextText,
                                                   );
                                               },
-                                              onFocus: () => {
-                                                  setIsReplyFocused(true);
-                                                  if (
-                                                      replyActionPhase == "done"
-                                                  )
-                                                      setReplyActionPhase(null);
-                                              },
+                                              onFocus: () =>
+                                                  setIsReplyFocused(true),
                                               onKeyDown: handleReplyKeyDown,
                                               onPointerDown:
                                                   handleReplyInputPointerDown,
