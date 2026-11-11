@@ -138,7 +138,7 @@ class RewindService {
   }
 
   Future<void> _rebuildStory() async {
-    if (_story.value == null) return;
+    if (_state.value?.status is! rust.RewindStatus_Ready) return;
     await _lock.synchronized(() {
       _storyComputedAt = null;
       return _buildStory();
