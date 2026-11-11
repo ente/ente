@@ -1,1 +1,0 @@
-- Rewind now leaves out photos of people you've hidden from memories.
