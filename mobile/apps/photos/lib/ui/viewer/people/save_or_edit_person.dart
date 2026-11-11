@@ -187,6 +187,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                               hintText: context.strings.enterName,
                               initialValue: widget.person?.data.name,
                               focusNode: _nameFocsNode,
+                              groupId: _nameFocsNode,
                               textCapitalization: TextCapitalization.words,
                               autocorrect: false,
                               isRequired: true,
@@ -202,9 +203,12 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                                       padding: const EdgeInsets.only(
                                         top: Spacing.sm,
                                       ),
-                                      child: _PersonSuggestionsDropdown(
-                                        persons: suggestions,
-                                        onPersonTap: _onSuggestionSelected,
+                                      child: TextFieldTapRegion(
+                                        groupId: _nameFocsNode,
+                                        child: _PersonSuggestionsDropdown(
+                                          persons: suggestions,
+                                          onPersonTap: _onSuggestionSelected,
+                                        ),
                                       ),
                                     ),
                             ),
