@@ -1,0 +1,1 @@
+- Added checksum verification and recovery for migrated machine learning models.
