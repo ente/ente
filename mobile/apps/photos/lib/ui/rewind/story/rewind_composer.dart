@@ -38,10 +38,6 @@ class RewindChapter {
   final Future<List<RewindPage>> Function(RewindMedia media) compose;
 }
 
-List<String> rewindOutline(rust.RewindReport report) => [
-  for (final chapter in rewindChapters(report)) ...chapter.keys,
-];
-
 List<RewindChapter> rewindChapters(rust.RewindReport report) => [
   RewindChapter([const CoverPage().key], (_) async => const [CoverPage()]),
   _totals(report.totals),
@@ -154,17 +150,16 @@ RewindChapter _busiestDay(rust.BusiestDay? day) {
 RewindChapter _newFaces(rust.NewFaces? newFaces) {
   return RewindChapter.revealed(newFacesSetupPage, "new_faces", (media) async {
     if (newFaces == null) return null;
-    final resolved = await Future.wait([
-      for (final face in newFaces.faces)
-        if (face.personId case final personId?)
-          media.person(personId, face.faceIds)
-        else if (face.clusterId case final clusterId?)
-          media.cluster(clusterId, face.faceIds),
-    ]);
-    final faces = [
-      for (final face in resolved)
-        if (face?.crop != null) face!,
-    ].take(_newFaceBubbles).toList();
+    final faces = <RewindFace>[];
+    for (final face in newFaces.faces) {
+      if (faces.length == _newFaceBubbles) break;
+      final resolved = switch ((face.personId, face.clusterId)) {
+        (final personId?, _) => await media.person(personId, face.faceIds),
+        (_, final clusterId?) => await media.cluster(clusterId, face.faceIds),
+        _ => null,
+      };
+      if (resolved?.crop != null) faces.add(resolved!);
+    }
     return faces.length < _minimumNewFaces
         ? null
         : NewFacesPage(newFaces, faces);
