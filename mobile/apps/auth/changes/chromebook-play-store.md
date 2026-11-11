@@ -1,1 +1,0 @@
-- Improved Google Play compatibility with Chromebooks.

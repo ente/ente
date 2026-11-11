@@ -1,1 +1,0 @@
-- Added the Posteo icon.

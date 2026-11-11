@@ -1,1 +1,0 @@
-- Added Swift Package Manager support for the iOS backup exclusion plugin.
