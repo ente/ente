@@ -11,6 +11,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/collection_updated_event.dart";
 import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/sync_finished_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/ignored_file.dart";
 import "package:photos/services/collections_service.dart";
@@ -33,14 +34,21 @@ class UploadIconWidget extends StatefulWidget {
 class _UpdateIconWidgetState extends State<UploadIconWidget> {
   final Logger _logger = Logger("_UpdateIconWidgetState");
   late StreamSubscription<CollectionUpdatedEvent> _firstImportEvent;
+  late StreamSubscription<SyncFinishedEvent> _syncFinishedEvent;
   late IgnoredFilesService ignoreService;
   bool isUploadedNow = false;
   bool isBeingUploaded = false;
+  bool _isHiddenForSync = false;
 
   @override
   void initState() {
     super.initState();
     ignoreService = IgnoredFilesService.instance;
+    _syncFinishedEvent = Bus.instance.on<SyncFinishedEvent>().listen((_) {
+      if (mounted && _isHiddenForSync) {
+        setState(() {});
+      }
+    });
     _firstImportEvent = Bus.instance.on<CollectionUpdatedEvent>().listen((
       event,
     ) {
@@ -59,12 +67,14 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
   @override
   void dispose() {
     _firstImportEvent.cancel();
+    _syncFinishedEvent.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (SyncService.instance.isSyncInProgress()) {
+    _isHiddenForSync = SyncService.instance.isSyncInProgress();
+    if (_isHiddenForSync) {
       if (!widget.file.isUploaded) {
         _logger.info("sync in progress ${widget.file.displayName}");
       }
