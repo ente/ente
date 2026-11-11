@@ -95,6 +95,10 @@ class RewindMedia {
 
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
 
+  List<EnteFile> extraPhotos(Int64List ids, int slots) => [
+    for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
+  ].take(slots).toList();
+
   List<EnteFile> _pick(Iterable<int> ids, int slots) {
     final fresh = <int>[];
     final repeats = <int>[];

@@ -197,6 +197,7 @@ pub struct _NewFace {
     pub person_id: Option<String>,
     pub cluster_id: Option<String>,
     pub face_ids: Vec<String>,
+    pub file_ids: Vec<i64>,
 }
 
 #[frb(mirror(Favourites))]

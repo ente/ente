@@ -25,6 +25,7 @@ class PhotosCountPage extends RewindPage {
 
   static const _ducky = Rect.fromLTWH(90, 191, 210, 234);
   static const _burstPivot = Offset(195, 457);
+  static const _cloud = Color(0xFFFFF4DC);
 
   final int count;
 
@@ -116,9 +117,22 @@ class PhotosCountPage extends RewindPage {
                   preset: RewindPreset.cloud,
                   active: isActive,
                   delayMs: 90,
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.cloudsFront),
-                    fit: BoxFit.fill,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    fit: StackFit.expand,
+                    children: [
+                      Image.file(
+                        RewindAssets.file(RewindAssets.cloudsFront),
+                        fit: BoxFit.fill,
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 332,
+                        height: RewindStage.size.height,
+                        child: const ColoredBox(color: _cloud),
+                      ),
+                    ],
                   ),
                 ),
               ),

@@ -75,100 +75,136 @@ class BusiestDayPage extends RewindPage {
     final lower = split
         ? [for (var i = 1; i < photos.length; i += 2) photos[i]]
         : [...photos.skip(1), ...photos.take(1)];
+    final covered = ModalRoute.of(context)?.isCurrent == false;
     return RewindShareable(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const RewindBackdrop(
-            color: Color(0xFFF7601F),
-            pattern: RewindStripes(Color(0xFFFF6B2B)),
-            grain: 0.25,
-          ),
-          Semantics(
-            label:
-                "$kicker ${rewindCounted(day.photoCount, "photo", "photos")}. "
-                "$line",
-            child: ExcludeSemantics(
-              child: RewindStage(
-                children: [
-                  if (upper.isNotEmpty) ...[
-                    _Reel(
-                      photos: upper,
-                      date: date,
-                      firstFrame: 1,
-                      center: const Offset(195, 218),
-                      turn: -7,
-                      direction: 1,
-                      delayMs: 60,
+      child: _HoldToPause(
+        builder: (context, held) => Stack(
+          fit: StackFit.expand,
+          children: [
+            const RewindBackdrop(
+              color: Color(0xFFF7601F),
+              pattern: RewindStripes(Color(0xFFFF6B2B)),
+              grain: 0.25,
+            ),
+            Semantics(
+              label:
+                  "$kicker ${rewindCounted(day.photoCount, "photo", "photos")}. "
+                  "$line",
+              child: ExcludeSemantics(
+                child: RewindStage(
+                  children: [
+                    if (upper.isNotEmpty) ...[
+                      _Reel(
+                        photos: upper,
+                        date: date,
+                        firstFrame: 1,
+                        center: const Offset(195, 218),
+                        turn: -7,
+                        direction: 1,
+                        delayMs: 60,
+                        position: position,
+                        isActive: isActive && !held && !covered,
+                      ),
+                      _Reel(
+                        photos: lower,
+                        date: date,
+                        firstFrame: upper.length + 1,
+                        center: const Offset(230.9, 436.8),
+                        turn: 7,
+                        direction: -1,
+                        delayMs: 180,
+                        position: position,
+                        isActive: isActive && !held && !covered,
+                      ),
+                    ],
+                    RewindRevealLayer(
+                      left: 28,
+                      top: 571,
+                      maxWidth: 334,
+                      height: 23,
                       position: position,
-                      isActive: isActive,
+                      active: isActive,
+                      delayMs: 900,
+                      child: Text(
+                        kicker.toUpperCase(),
+                        style: RewindTextStyles.display(
+                          20,
+                          height: 1.15,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
                     ),
-                    _Reel(
-                      photos: lower,
-                      date: date,
-                      firstFrame: upper.length + 1,
-                      center: const Offset(230.9, 436.8),
-                      turn: 7,
-                      direction: -1,
-                      delayMs: 180,
+                    RewindRevealLayer(
+                      left: 28,
+                      top: 607,
+                      maxWidth: 334,
+                      height: 99,
                       position: position,
-                      isActive: isActive,
+                      active: isActive,
+                      preset: RewindPreset.slap,
+                      delayMs: 1050,
+                      child: RewindOutlinedText(
+                        count,
+                        style: RewindTextStyles.numeral(
+                          104,
+                          color: RewindColors.white,
+                        ),
+                        outline: 3.5,
+                        shadow: const Offset(5, 6),
+                      ),
+                    ),
+                    RewindRevealLayer(
+                      left: 28,
+                      top: 718,
+                      width: 316,
+                      height: 25,
+                      position: position,
+                      active: isActive,
+                      delayMs: 1350,
+                      child: Text(
+                        line,
+                        style: RewindTextStyles.body(19, height: 1.32),
+                      ),
                     ),
                   ],
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 571,
-                    maxWidth: 334,
-                    height: 23,
-                    position: position,
-                    active: isActive,
-                    delayMs: 900,
-                    child: Text(
-                      kicker.toUpperCase(),
-                      style: RewindTextStyles.display(
-                        20,
-                        height: 1.15,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 607,
-                    maxWidth: 334,
-                    height: 99,
-                    position: position,
-                    active: isActive,
-                    preset: RewindPreset.slap,
-                    delayMs: 1050,
-                    child: RewindOutlinedText(
-                      count,
-                      style: RewindTextStyles.numeral(
-                        104,
-                        color: RewindColors.white,
-                      ),
-                      outline: 3.5,
-                      shadow: const Offset(5, 6),
-                    ),
-                  ),
-                  RewindRevealLayer(
-                    left: 28,
-                    top: 718,
-                    width: 316,
-                    height: 25,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1350,
-                    child: Text(
-                      line,
-                      style: RewindTextStyles.body(19, height: 1.32),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HoldToPause extends StatefulWidget {
+  const _HoldToPause({required this.builder});
+
+  final Widget Function(BuildContext context, bool held) builder;
+
+  @override
+  State<_HoldToPause> createState() => _HoldToPauseState();
+}
+
+class _HoldToPauseState extends State<_HoldToPause> {
+  var _pointers = 0;
+
+  void _press(PointerDownEvent event) => setState(() => _pointers++);
+
+  void _release(PointerEvent event) =>
+      setState(() => _pointers = max(0, _pointers - 1));
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _press,
+      onPointerUp: _release,
+      onPointerCancel: _release,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onLongPress: () {},
+        child: widget.builder(context, _pointers > 0),
       ),
     );
   }
