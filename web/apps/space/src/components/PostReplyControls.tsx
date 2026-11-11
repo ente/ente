@@ -102,7 +102,6 @@ export const SpacePostInputButton: React.FC<{
 );
 
 interface SpacePostReplyControlsProps {
-    ref?: React.Ref<HTMLDivElement>;
     canSendReply: boolean;
     commentsButton?: React.ReactNode;
     disabled?: boolean;
@@ -121,7 +120,6 @@ interface SpacePostReplyControlsProps {
 }
 
 export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
-    ref,
     canSendReply,
     commentsButton,
     disabled = false,
@@ -170,7 +168,6 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
     }, [isReplyMode, replyInputRef, replyInputProps?.value]);
     return (
         <Box
-            ref={ref}
             onBlur={onBlur}
             sx={{
                 alignItems: "flex-end",
@@ -184,7 +181,7 @@ export const SpacePostReplyControls: React.FC<SpacePostReplyControlsProps> = ({
                     ref={replyInputRef}
                     component="textarea"
                     aria-label="Reply privately"
-                    disabled={disabled || replyActionPhase != null}
+                    disabled={disabled || replyActionPhase == "busy"}
                     placeholder="Reply privately…"
                     rows={1}
                     {...replyInputProps}
