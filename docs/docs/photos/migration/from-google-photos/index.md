@@ -11,7 +11,7 @@ Follow the steps below to export the library and import it into Ente. Ente reads
 
 > [!NOTE]
 >
-> You need the **Ente desktop app** (Windows, macOS or Linux) to import a Google Takeout. The mobile apps and [photos.ente.com](https://photos.ente.com) do not have a Takeout import option. [Download the desktop app](https://ente.com/download/), then follow the steps below.
+> Import a Google Takeout from a computer. The **Ente desktop app** (Windows, macOS or Linux) can import ZIP files or an unzipped folder. [photos.ente.com](https://photos.ente.com) can import an unzipped folder only. The mobile apps do not have a Takeout importer. [Download the desktop app](https://ente.com/download/), then follow the steps below.
 
 ### Steps
 

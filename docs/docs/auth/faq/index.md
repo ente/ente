@@ -306,7 +306,7 @@ Ente Auth could not read that file as an authenticator export.
 
 Common causes:
 
-- **Wrong file.** A recovery key file, a Word document (`.docx`), a password-manager vault (for example Proton Pass or Bitwarden), or an unrelated JSON or CSV file is not an Auth export. Ente Auth imports **authenticator codes** (TOTP and similar), not password-manager vaults.
+- **Wrong file.** A recovery key file, a Word document (`.docx`), or an unrelated JSON or CSV file is not an Auth export. Ente Auth imports **authenticator codes** (TOTP and similar). A password-manager export works only if that password manager is listed in `Settings > Data > Import codes` (for example Bitwarden). Vaults from password managers that are not listed, such as Proton Pass, are not supported.
 - **Import option does not match the file.** For example, choosing a plain-text import for an Aegis JSON export, or the wrong provider in `Settings > Data > Import codes`.
 - **Encrypted export without its password.** If the export is password-protected, enter the same password you set when you created it.
 - **Edited or corrupted file.** Do not edit the export before importing.
@@ -316,7 +316,7 @@ What to do:
 
 1. Open `Settings > Data > Import codes` and choose the [import option that matches your export](/auth/migration/import#choose-import-format).
 2. If you only have QR screenshots, use Import from gallery and select those images, or scan the QR code.
-3. If the export came from a password manager, export codes from an authenticator app instead, or add the accounts by scanning each service's 2FA setup QR again.
+3. If the export came from a password manager that is not listed in Import codes, export codes from an authenticator app instead, or add the accounts by scanning each service's 2FA setup QR again.
 
 Ente Auth does not promise support for every third-party password-manager export. If a real authenticator export still fails after you pick the matching format, email [support@ente.com](mailto:support@ente.com). Do not send files that contain secrets.
 
@@ -377,10 +377,11 @@ If you chose **Use without backups**, the logout control is unavailable and your
 
 On Linux, app lock secrets can remain in your system keyring after you uninstall Ente Auth (including Flatpak uninstall with `--delete-data`). A new install may still expect the old lock.
 
-1. Uninstall Ente Auth if it is still installed.
-2. Clear the Auth secure-storage entry from your system secret service. Prefer your distribution's keyring UI (for example Seahorse). If you use `secret-tool`, remove the Auth secure-storage secret for this app. Attribute names can differ between Flatpak and native packages; one reporter used `secret-tool clear account io.ente.auth.secureStorage`, but confirm the attributes on your system before relying on that exact command.
-3. Install Ente Auth again.
-4. Set up app lock from scratch if you want it.
+1. If you chose **Use without backups** and can still open Ente Auth, export your codes first. Your codes are stored only on this device, and the next steps can make them unrecoverable.
+2. Uninstall Ente Auth if it is still installed.
+3. Clear the Auth secure-storage entry from your system secret service. Prefer your distribution's keyring UI (for example Seahorse). If you use `secret-tool`, remove the Auth secure-storage secret for this app. Attribute names can differ between Flatpak and native packages; one reporter used `secret-tool clear account io.ente.auth.secureStorage`, but confirm the attributes on your system before relying on that exact command.
+4. Install Ente Auth again.
+5. Set up app lock from scratch if you want it.
 
 If you still have a working signed-in Auth session on another device, keep it signed in until you confirm the new Linux install works.
 

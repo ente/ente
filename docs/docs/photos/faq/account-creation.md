@@ -272,7 +272,7 @@ Your Ente account is tied to the email address you signed up with, so finding th
 1. **A device where Ente is still signed in.** Open Settings in the Ente app. Your account email is shown at the top. Keep that device signed in while you sort things out.
 2. **Your inboxes.** Search every mailbox you use, including any email aliases or hide-my-email addresses, for emails from Ente, such as the welcome email, verification codes or payment receipts.
 3. **Your password manager or saved browser logins.** Search for "ente" to find the address you saved.
-4. **Your purchase records.** If you have a paid plan, App Store or Stripe receipts show which email made the purchase.
+4. **Your purchase records.** If you have a paid plan, look for Ente receipts. A Stripe receipt goes to the email your Ente account had when you paid. An App Store receipt goes to your Apple ID email, which may be different from the email you used for Ente.
 
 Once you've found the address, sign in with it. If you've also forgotten your password, see [What happens if I forget my password?](/photos/faq/security-and-privacy#account-recovery).
 
