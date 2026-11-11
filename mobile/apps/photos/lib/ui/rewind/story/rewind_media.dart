@@ -57,6 +57,9 @@ class RewindMedia {
     );
     for (final person in people) {
       if (!person.data.hideFromMemories) continue;
+      for (final fileId in person.data.manuallyAssigned) {
+        files.remove(fileId);
+      }
       final faceIds = await MLDataDB.instance.getFaceIDsForPerson(
         person.remoteID,
       );
