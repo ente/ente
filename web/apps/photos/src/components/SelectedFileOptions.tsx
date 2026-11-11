@@ -1,4 +1,9 @@
 import type { CollectionSelectorAttributes } from "@/components/CollectionSelector";
+import {
+    headerIconButtonSize,
+    headerIconButtonSx,
+    headerIconSize,
+} from "@/components/gallery/header-styles";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
 import {
     getAvailableFileActions,
@@ -26,13 +31,26 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import CloseIcon from "@mui/icons-material/Close";
-import { Box, Button, IconButton, Tooltip, Typography } from "@mui/material";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import {
+    Box,
+    Button,
+    IconButton,
+    Tooltip,
+    Typography,
+    useMediaQuery,
+    useTheme,
+} from "@mui/material";
+import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { SpacedRow } from "ente-base/components/containers";
-import type { ButtonishProps } from "ente-base/components/mui";
 import { useBaseContext } from "ente-base/context";
 import type { Collection } from "ente-media/collection";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { t } from "i18next";
+import { useId, useLayoutEffect, useRef, useState } from "react";
+
+const selectionToolbarGap = 8;
+const selectionActionGap = 4;
 
 export type FileOp =
     | "sendLink"
@@ -95,6 +113,10 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     isAllSelected,
 }) => {
     const { showMiniDialog } = useBaseContext();
+    const isCompactViewport = useMediaQuery(useTheme().breakpoints.down("md"));
+    const toolbarRef = useRef<HTMLDivElement>(null);
+    const selectionControlsRef = useRef<HTMLDivElement>(null);
+    const [actionsOverflow, setActionsOverflow] = useState(false);
 
     const handleFavorite = createFileOpHandler("favorite");
     const handleUnfavorite = createFileOpHandler("unfavorite");
@@ -227,80 +249,128 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
         return favoriteAction === "none" ? [] : [favoriteAction];
     });
 
-    const renderActionButton = (action: FileContextAction) => {
-        switch (action) {
-            case "sendLink":
-                return <SendLinkButton key={action} onClick={handleSendLink} />;
-            case "download":
-                return <DownloadButton key={action} onClick={handleDownload} />;
-            case "fixTime":
-                return <FixTimeButton key={action} onClick={handleFixTime} />;
-            case "editLocation":
-                return onEditLocation ? (
-                    <EditLocationButton key={action} onClick={onEditLocation} />
-                ) : null;
-            case "favorite":
-                return <FavoriteButton key={action} onClick={handleFavorite} />;
-            case "unfavorite":
-                return (
-                    <UnfavoriteButton key={action} onClick={handleUnfavorite} />
-                );
-            case "archive":
-                return <ArchiveButton key={action} onClick={handleArchive} />;
-            case "unarchive":
-                return (
-                    <UnarchiveButton key={action} onClick={handleUnarchive} />
-                );
-            case "hide":
-                return <HideButton key={action} onClick={handleHide} />;
-            case "unhide":
-                return <UnhideButton key={action} onClick={handleUnhide} />;
-            case "trash":
-                return <DeleteButton key={action} onClick={onDelete} />;
-            case "deletePermanently":
-                return (
-                    <DeletePermanentlyButton
-                        key={action}
-                        onClick={handleDeletePermanently}
-                    />
-                );
-            case "restore":
-                return <RestoreButton key={action} onClick={handleRestore} />;
-            case "addToAlbum":
-                return (
-                    <AddToCollectionButton
-                        key={action}
-                        onClick={handleAddToCollection}
-                    />
-                );
-            case "moveToAlbum":
-                return (
-                    <MoveToCollectionButton
-                        key={action}
-                        onClick={handleMoveToCollection}
-                    />
-                );
-            case "removeFromAlbum":
-                return (
-                    <RemoveFromCollectionButton
-                        key={action}
-                        onClick={handleRemoveFromCollection}
-                    />
-                );
-            case "addPerson":
-                return onShowAssignPersonDialog ? (
-                    <AddPersonButton
-                        key={action}
-                        onClick={onShowAssignPersonDialog}
-                    />
-                ) : null;
-        }
-    };
+    const actionDetails = {
+        sendLink: {
+            label: t("send_link"),
+            icon: Navigation03Icon,
+            onClick: handleSendLink,
+        },
+        download: {
+            label: t("download"),
+            icon: Download01Icon,
+            onClick: handleDownload,
+        },
+        fixTime: {
+            label: t("fix_creation_time"),
+            icon: Time04Icon,
+            onClick: handleFixTime,
+        },
+        editLocation: {
+            label: t("edit_location"),
+            icon: Location01Icon,
+            onClick: onEditLocation,
+        },
+        favorite: {
+            label: t("favorite"),
+            icon: StarIcon,
+            onClick: handleFavorite,
+        },
+        unfavorite: {
+            label: t("un_favorite"),
+            icon: StarOffIcon,
+            onClick: handleUnfavorite,
+        },
+        archive: {
+            label: t("archive"),
+            icon: Download05Icon,
+            onClick: handleArchive,
+        },
+        unarchive: {
+            label: t("unarchive"),
+            icon: Unarchive03Icon,
+            onClick: handleUnarchive,
+        },
+        hide: { label: t("hide"), icon: ViewOffSlashIcon, onClick: handleHide },
+        unhide: { label: t("unhide"), icon: ViewIcon, onClick: handleUnhide },
+        trash: { label: t("delete"), icon: Delete02Icon, onClick: onDelete },
+        deletePermanently: {
+            label: t("delete_permanently"),
+            icon: Delete02Icon,
+            onClick: handleDeletePermanently,
+        },
+        restore: {
+            label: t("restore"),
+            icon: Clock02Icon,
+            onClick: handleRestore,
+        },
+        addToAlbum: {
+            label: t("add"),
+            icon: AddSquareIcon,
+            onClick: handleAddToCollection,
+        },
+        moveToAlbum: {
+            label: t("move"),
+            icon: ArrowRight02Icon,
+            onClick: handleMoveToCollection,
+        },
+        removeFromAlbum: {
+            label: t("remove"),
+            icon: RemoveCircleIcon,
+            onClick: handleRemoveFromCollection,
+        },
+        addPerson: {
+            label: t("add_a_person"),
+            icon: UserAdd02Icon,
+            onClick: onShowAssignPersonDialog,
+        },
+    } satisfies Record<
+        FileContextAction,
+        Omit<SelectionAction, "id" | "destructive">
+    >;
+    const actions = toolbarActions.map((id): SelectionAction => ({
+        id,
+        ...actionDetails[id],
+        destructive: id === "trash" || id === "deletePermanently",
+    }));
+    const actionCount = actions.length;
+
+    useLayoutEffect(() => {
+        const toolbar = toolbarRef.current;
+        const selectionControls = selectionControlsRef.current;
+        if (!toolbar || !selectionControls || !actionCount) return;
+
+        const actionRowWidth =
+            actionCount * headerIconButtonSize +
+            (actionCount - 1) * selectionActionGap;
+        const measure = () => {
+            const availableWidth =
+                toolbar.getBoundingClientRect().width -
+                selectionControls.getBoundingClientRect().width -
+                selectionToolbarGap;
+            setActionsOverflow(actionRowWidth > availableWidth);
+        };
+
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(toolbar);
+        observer.observe(selectionControls);
+        return () => observer.disconnect();
+    }, [actionCount]);
 
     return (
-        <SpacedRow sx={{ flex: 1, minWidth: 0, gap: 1, flexWrap: "wrap" }}>
-            <SpacedRow sx={{ gap: 1, flexShrink: 0 }}>
-                <IconButton onClick={onClearSelection} aria-label={t("close")}>
+        <SpacedRow
+            ref={toolbarRef}
+            sx={{ flex: 1, minWidth: 0, gap: `${selectionToolbarGap}px` }}
+        >
+            <SpacedRow
+                ref={selectionControlsRef}
+                sx={{ gap: 1, flexShrink: 0 }}
+            >
+                <IconButton
+                    onClick={onClearSelection}
+                    aria-label={t("close")}
+                    sx={headerIconButtonSx}
+                >
                     <CloseIcon />
                 </IconButton>
                 <Typography>
@@ -316,164 +386,113 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
                     onClick={isAllSelected ? onClearSelection : onSelectAll}
                 />
             </SpacedRow>
-            <Box
-                sx={{
-                    display: "flex",
-                    flex: "1 1 320px",
-                    minWidth: 0,
-                    overflowX: "auto",
-                }}
-            >
+            {isCompactViewport || actionsOverflow ? (
+                <SelectionActionsMenu actions={actions} />
+            ) : (
                 <Box
                     sx={{
                         display: "flex",
-                        flexShrink: 0,
-                        ml: "auto",
-                        "& .MuiIconButton-root": { p: 1 },
+                        flex: 1,
+                        minWidth: 0,
+                        overflowX: "auto",
                     }}
                 >
-                    {toolbarActions.map(renderActionButton)}
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexShrink: 0,
+                            ml: "auto",
+                            gap: `${selectionActionGap}px`,
+                            "& .MuiIconButton-root": headerIconButtonSx,
+                        }}
+                    >
+                        {actions.map(
+                            ({ id, label, icon, onClick, destructive }) => (
+                                <Tooltip key={id} title={label}>
+                                    <IconButton
+                                        aria-label={label}
+                                        onClick={onClick}
+                                        sx={
+                                            destructive
+                                                ? { color: "critical.main" }
+                                                : undefined
+                                        }
+                                    >
+                                        <HugeiconsIcon
+                                            icon={icon}
+                                            aria-hidden
+                                        />
+                                    </IconButton>
+                                </Tooltip>
+                            ),
+                        )}
+                    </Box>
                 </Box>
-            </Box>
+            )}
         </SpacedRow>
     );
 };
 
-const DownloadButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("download")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={Download01Icon} />
-        </IconButton>
-    </Tooltip>
-);
+interface SelectionAction {
+    id: FileContextAction;
+    label: string;
+    icon: typeof Download01Icon;
+    onClick: (() => void) | undefined;
+    destructive: boolean;
+}
 
-const SendLinkButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("send_link")}>
-        <IconButton {...{ onClick }} aria-label="Send link">
-            <HugeiconsIcon icon={Navigation03Icon} />
-        </IconButton>
-    </Tooltip>
-);
+const SelectionActionsMenu = ({ actions }: { actions: SelectionAction[] }) => {
+    const menuID = useId();
+    const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+    if (!actions.length) return null;
 
-const FavoriteButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("favorite")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={StarIcon} size={20} aria-hidden />
-        </IconButton>
-    </Tooltip>
-);
-
-const UnfavoriteButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("un_favorite")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={StarOffIcon} size={20} aria-hidden />
-        </IconButton>
-    </Tooltip>
-);
-
-const ArchiveButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("archive")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={Download05Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const UnarchiveButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("unarchive")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={Unarchive03Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const HideButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("hide")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={ViewOffSlashIcon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const UnhideButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("unhide")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={ViewIcon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const DeleteButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("delete")}>
-        <IconButton {...{ onClick }} sx={{ color: "critical.main" }}>
-            <HugeiconsIcon icon={Delete02Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const RestoreButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("restore")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={Clock02Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const DeletePermanentlyButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("delete_permanently")}>
-        <IconButton {...{ onClick }} sx={{ color: "critical.main" }}>
-            <HugeiconsIcon icon={Delete02Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const FixTimeButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("fix_creation_time")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={Time04Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const EditLocationButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("edit_location")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={Location01Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const AddToCollectionButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("add")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={AddSquareIcon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const AddPersonButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("add_a_person")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={UserAdd02Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const MoveToCollectionButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("move")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={ArrowRight02Icon} />
-        </IconButton>
-    </Tooltip>
-);
-
-const RemoveFromCollectionButton: React.FC<ButtonishProps> = ({ onClick }) => (
-    <Tooltip title={t("remove")}>
-        <IconButton {...{ onClick }}>
-            <HugeiconsIcon icon={RemoveCircleIcon} />
-        </IconButton>
-    </Tooltip>
-);
+    return (
+        <>
+            <IconButton
+                id={`${menuID}-trigger`}
+                aria-label={t("more_options")}
+                aria-haspopup="menu"
+                aria-expanded={!!anchorEl}
+                aria-controls={anchorEl ? menuID : undefined}
+                onClick={(event) => setAnchorEl(event.currentTarget)}
+                sx={{ ...headerIconButtonSx, ml: "auto" }}
+            >
+                <MoreHorizIcon />
+            </IconButton>
+            <ContextMenu
+                anchorEl={anchorEl}
+                open={!!anchorEl}
+                onClose={() => setAnchorEl(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                slotProps={{
+                    list: {
+                        id: menuID,
+                        "aria-labelledby": `${menuID}-trigger`,
+                    },
+                }}
+            >
+                {actions.map(({ id, label, icon, onClick, destructive }) => (
+                    <ContextMenuItem
+                        key={id}
+                        destructive={destructive}
+                        onClick={() => {
+                            setAnchorEl(null);
+                            onClick?.();
+                        }}
+                    >
+                        <HugeiconsIcon
+                            icon={icon}
+                            size={headerIconSize}
+                            aria-hidden
+                        />
+                        {label}
+                    </ContextMenuItem>
+                ))}
+            </ContextMenu>
+        </>
+    );
+};
 
 interface SelectAllToggleButtonProps {
     isAllSelected: boolean;
@@ -495,6 +514,10 @@ const SelectAllToggleButton: React.FC<SelectAllToggleButtonProps> = ({
                 px: 2,
                 ml: 2,
                 borderRadius: 9999,
+                "& .MuiButton-endIcon > svg": {
+                    width: headerIconSize,
+                    height: headerIconSize,
+                },
             }}
             endIcon={
                 isAllSelected ? (
