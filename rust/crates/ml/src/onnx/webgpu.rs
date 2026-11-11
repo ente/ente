@@ -60,7 +60,7 @@ pub(super) fn set_enabled(enabled: bool) {
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "windows"))]
 pub(super) fn attempt_permitted(model_path: &str) -> bool {
     WEBGPU_ENABLED.load(Ordering::Relaxed)
-        && model_dir(model_path).is_some_and(|dir| !quarantined(&dir))
+        && canary_dir(model_path).is_some_and(|dir| !quarantined(&dir))
 }
 
 // Mirrors Chromium's `gpu/config/webgpu_blocklist_impl.cc` Android 12+ policy
@@ -170,7 +170,7 @@ pub(super) struct ArmedCanary {
     test
 ))]
 pub(super) fn arm_canary(model_path: &str, model_namespace: &str) -> io::Result<ArmedCanary> {
-    let dir = model_dir(model_path).ok_or_else(|| {
+    let dir = canary_dir(model_path).ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::InvalidInput,
             "cannot derive WebGPU canary directory from model path",
@@ -292,14 +292,28 @@ fn update_failure_count(path: &Path, failures: u32) -> io::Result<()> {
     target_os = "windows",
     test
 ))]
-fn model_dir(model_path: &str) -> Option<PathBuf> {
+fn canary_dir(model_path: &str) -> Option<PathBuf> {
     if model_path.trim().is_empty() {
         return None;
     }
     Path::new(model_path)
+        .parent()?
         .parent()
         .filter(|dir| !dir.as_os_str().is_empty())
         .map(Path::to_path_buf)
+}
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "windows",
+    test
+))]
+fn is_canary(entry: &fs::DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .is_some_and(|name| name.starts_with(CANARY_FILE_PREFIX))
 }
 
 #[cfg(any(
@@ -315,23 +329,48 @@ fn quarantined(dir: &Path) -> bool {
     let Ok(entries) = fs::read_dir(dir) else {
         return true;
     };
+    let mut failures = 0_u32;
     for entry in entries {
         let Ok(entry) = entry else {
             return true;
         };
-        let file_name = entry.file_name();
-        let Some(name) = file_name.to_str() else {
-            continue;
-        };
-        if !name.starts_with(CANARY_FILE_PREFIX) {
-            continue;
-        }
-        match read_failure_count(&entry.path()) {
-            Ok(failures) if failures < MAX_CONSECUTIVE_FAILURES => {}
-            _ => return true,
+        if is_canary(&entry) {
+            match read_failure_count(&entry.path()) {
+                Ok(count) => failures = failures.saturating_add(count),
+                Err(_) => return true,
+            }
+        } else {
+            let Ok(kind) = entry.file_type() else {
+                return true;
+            };
+            if kind.is_dir() && legacy_model_quarantined(&entry.path()) {
+                return true;
+            }
         }
     }
-    false
+    failures >= MAX_CONSECUTIVE_FAILURES
+}
+
+#[cfg(any(
+    target_os = "android",
+    target_os = "linux",
+    target_os = "windows",
+    test
+))]
+fn legacy_model_quarantined(model_dir: &Path) -> bool {
+    let Ok(entries) = fs::read_dir(model_dir) else {
+        return true;
+    };
+    entries.into_iter().any(|entry| match entry {
+        Err(_) => true,
+        Ok(entry) => {
+            is_canary(&entry)
+                && !matches!(
+                    read_failure_count(&entry.path()),
+                    Ok(failures) if failures < MAX_CONSECUTIVE_FAILURES
+                )
+        }
+    })
 }
 
 #[cfg(any(
@@ -446,7 +485,22 @@ mod tests {
     }
 
     fn model_path(dir: &std::path::Path) -> String {
-        dir.join("model.onnx").to_string_lossy().into_owned()
+        model_in(dir, "model")
+    }
+
+    fn model_in(dir: &std::path::Path, key: &str) -> String {
+        let model_dir = dir.join(key);
+        std::fs::create_dir_all(&model_dir).unwrap();
+        model_dir.join("model.onnx").to_string_lossy().into_owned()
+    }
+
+    fn write_legacy_canary(dir: &std::path::Path, key: &str, failures: u32) {
+        std::fs::write(
+            dir.join(key)
+                .join(format!("{}{key}", super::CANARY_FILE_PREFIX)),
+            format!("{failures}\n"),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -655,15 +709,99 @@ mod tests {
     }
 
     #[test]
-    fn failures_do_not_accumulate_across_models() {
+    fn canaries_live_in_the_directory_shared_by_all_models() {
         let dir = tempfile::tempdir().unwrap();
-        let model = model_path(dir.path());
+        let clip = model_in(dir.path(), "clip");
 
-        drop(arm_canary(&model, "clip-image").unwrap());
-        drop(arm_canary(&model, "face-detection").unwrap());
-        drop(arm_canary(&model, "face-embedding").unwrap());
+        drop(arm_canary(&clip, "clip-image").unwrap());
+
+        assert!(
+            dir.path()
+                .join(format!("{}clip-image", super::CANARY_FILE_PREFIX))
+                .exists()
+        );
+        assert!(
+            !dir.path()
+                .join("clip")
+                .join(format!("{}clip-image", super::CANARY_FILE_PREFIX))
+                .exists()
+        );
+    }
+
+    #[test]
+    fn failures_accumulate_across_models() {
+        let dir = tempfile::tempdir().unwrap();
+        let clip = model_in(dir.path(), "clip");
+        let detection = model_in(dir.path(), "face-detection");
+        let embedding = model_in(dir.path(), "face-embedding");
+
+        drop(arm_canary(&clip, "clip-image").unwrap());
+        drop(arm_canary(&detection, "face-detection").unwrap());
+        assert!(!quarantined(dir.path()));
+        drop(arm_canary(&embedding, "face-embedding").unwrap());
+
+        assert!(quarantined(dir.path()));
+    }
+
+    #[test]
+    fn success_clears_only_that_models_failures() {
+        let dir = tempfile::tempdir().unwrap();
+        let clip = model_in(dir.path(), "clip");
+        let detection = model_in(dir.path(), "face-detection");
+
+        drop(arm_canary(&detection, "face-detection").unwrap());
+        drop(arm_canary(&detection, "face-detection").unwrap());
+        arm_canary(&clip, "clip-image").unwrap().disarm();
+        assert!(!quarantined(dir.path()));
+        drop(arm_canary(&detection, "face-detection").unwrap());
+
+        assert!(quarantined(dir.path()));
+    }
+
+    #[test]
+    fn full_per_model_quarantine_from_earlier_versions_applies_to_every_model() {
+        let dir = tempfile::tempdir().unwrap();
+        model_in(dir.path(), "clip");
+        model_in(dir.path(), "face-detection");
+
+        write_legacy_canary(dir.path(), "clip", MAX_CONSECUTIVE_FAILURES);
+
+        assert!(quarantined(dir.path()));
+    }
+
+    #[test]
+    fn partial_per_model_failures_from_earlier_versions_are_not_carried_over() {
+        let dir = tempfile::tempdir().unwrap();
+        model_in(dir.path(), "clip");
+        model_in(dir.path(), "face-detection");
+        model_in(dir.path(), "face-embedding");
+
+        write_legacy_canary(dir.path(), "clip", MAX_CONSECUTIVE_FAILURES - 1);
+        write_legacy_canary(dir.path(), "face-detection", MAX_CONSECUTIVE_FAILURES - 1);
 
         assert!(!quarantined(dir.path()));
+    }
+
+    #[test]
+    fn unlistable_per_model_folder_from_earlier_versions_fails_closed() {
+        let dir = tempfile::tempdir().unwrap();
+
+        assert!(super::legacy_model_quarantined(&dir.path().join("clip")));
+    }
+
+    #[test]
+    fn unreadable_per_model_canary_from_earlier_versions_fails_closed() {
+        let dir = tempfile::tempdir().unwrap();
+        model_in(dir.path(), "clip");
+        std::fs::write(
+            dir.path()
+                .join("clip")
+                .join(format!("{}clip-image", super::CANARY_FILE_PREFIX)),
+            b"not a number",
+        )
+        .unwrap();
+
+        assert!(quarantined(dir.path()));
     }
 
     #[test]
