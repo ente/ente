@@ -28,8 +28,6 @@ const playTestPredecessor = "test-predecessor"
 const playTestSuccessor = "test-successor"
 const playTestExpiry int64 = 2000000000000
 
-// Exercise the real SDK, including its OAuth and acknowledgement requests, while
-// refusing all requests outside this test's synthetic purchase.
 type playTestTransport struct {
 	t                      *testing.T
 	linked, token          string
@@ -90,8 +88,6 @@ func newPlayTestClient(t *testing.T, transport *playTestTransport) *playstore.Cl
 func TestPlayStoreNotificationProvider(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
-	// These subtests intentionally run serially: the shared database and default
-	// transports must not overlap with another test's fixtures.
 	oldTransport, oldClient := http.DefaultTransport, http.DefaultClient
 	http.DefaultTransport = playTestDenyTransport{t}
 	http.DefaultClient = &http.Client{Transport: playTestDenyTransport{t}}
@@ -176,7 +172,6 @@ func TestPlayStoreNotificationProvider(t *testing.T) {
 			}
 			first, err := billing.GetUserSubscription(uid)
 			require.NoError(t, err)
-			// Use nonfatal checks so the baseline also demonstrates the missed callback.
 			if first.PaymentProvider != ente.PlayStore {
 				t.Errorf("stored provider = %s; want playstore", first.PaymentProvider)
 			}
