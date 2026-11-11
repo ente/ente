@@ -72,7 +72,6 @@ test("keeps album selection actions reachable across toolbar widths", async ({
     }
     await expect(selectionMenu).toBeHidden();
 
-    // The sidebar can make the toolbar too narrow even above the mobile breakpoint.
     await page.setViewportSize({ width: 1000, height: 900 });
     await expect(selectionMenu).toBeVisible();
     await page.getByRole("button", { name: "Hide navigation panel" }).click();
