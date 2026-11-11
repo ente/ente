@@ -34,7 +34,7 @@ class RewindService {
     Bus.instance.on<DiffSyncCompleteEvent>().listen((_) => _rebuildStory());
     Bus.instance
         .on<FilesUpdatedEvent>()
-        .where((event) => _fileRemovals.contains(event.type))
+        .where((event) => _visibilityChanges.contains(event.type))
         .listen((_) => _rebuildStory());
   }
 
@@ -52,12 +52,14 @@ class RewindService {
   static const _notificationPayload = "ente://rewind";
   static const _notificationHour = 20;
   static const _notificationLeadTime = Duration(hours: 1);
-  static const _fileRemovals = {
+  static const _visibilityChanges = {
     EventType.deletedFromDevice,
     EventType.deletedFromRemote,
     EventType.deletedFromEverywhere,
     EventType.archived,
+    EventType.unarchived,
     EventType.hide,
+    EventType.unhide,
   };
 
   ValueListenable<rust.RewindState?> get state => _state;
@@ -162,6 +164,7 @@ class RewindService {
       );
     } catch (e, s) {
       _logger.warning("Failed to build the Rewind story", e, s);
+      _setStory(null, null);
     }
   }
 
