@@ -69,7 +69,10 @@ struct VideoPlayerView: View {
                 for track in tracks {
                     let naturalSize = try await track.load(.naturalSize)
                     let transform = try await track.load(.preferredTransform)
-                    let displaySize = naturalSize.applying(transform)
+                    let displaySize = CGRect(origin: .zero, size: naturalSize)
+                        .applying(transform)
+                        .standardized
+                        .size
                     guard validVideoDimensions(naturalSize),
                         validVideoDimensions(displaySize)
                     else {
