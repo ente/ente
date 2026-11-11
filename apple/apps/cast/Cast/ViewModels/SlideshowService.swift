@@ -675,7 +675,10 @@ class RealSlideshowService: ObservableObject {
                 let file = files[(startIndex + i) % files.count]
 
                 if prefetchedFileIDs.contains(file.id) {
-                    continue
+                    if await fileCache.get(file.id) != nil {
+                        continue
+                    }
+                    prefetchedFileIDs.remove(file.id)
                 }
 
                 do {
