@@ -364,7 +364,11 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
         >
             <SpacedRow
                 ref={selectionControlsRef}
-                sx={{ gap: 1, flexShrink: 0 }}
+                sx={{
+                    gap: { xs: 0.5, md: 1 },
+                    flexShrink: { xs: 1, md: 0 },
+                    minWidth: 0,
+                }}
             >
                 <IconButton
                     onClick={onClearSelection}
@@ -373,7 +377,14 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
                 >
                     <CloseIcon />
                 </IconButton>
-                <Typography>
+                <Typography
+                    sx={{
+                        fontSize: 14,
+                        lineHeight: "18px",
+                        minWidth: 0,
+                        overflowWrap: "anywhere",
+                    }}
+                >
                     {selectedFileCount == selectedOwnFileCount
                         ? t("selected_count", { selected: selectedFileCount })
                         : t("selected_and_yours_count", {
@@ -511,13 +522,16 @@ const SelectAllToggleButton: React.FC<SelectAllToggleButtonProps> = ({
             sx={{
                 textTransform: "none",
                 minWidth: "auto",
-                px: 2,
-                ml: 2,
+                minHeight: 36,
+                px: 1.25,
+                py: 0,
+                ml: 0.5,
+                flexShrink: 0,
+                fontSize: 14,
+                lineHeight: "18px",
                 borderRadius: 9999,
-                "& .MuiButton-endIcon > svg": {
-                    width: headerIconSize,
-                    height: headerIconSize,
-                },
+                "& .MuiButton-endIcon": { ml: 0.75, mr: 0 },
+                "& .MuiButton-endIcon > svg": { width: 16, height: 16 },
             }}
             endIcon={
                 isAllSelected ? (
