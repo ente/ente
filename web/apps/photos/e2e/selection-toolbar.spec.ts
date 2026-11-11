@@ -7,6 +7,8 @@ test.use({ actionTimeout: 15_000 });
 const albumName = "Toolbar test";
 const desktop = { width: 1440, height: 900 };
 const mobile = { width: 320, height: 700 };
+const importedCaptureDate = "Mon, Jan 4, 2021";
+const filenameCaptureDate = "Wed, Jan 1, 2020";
 
 const expectAlbumSize = (page: Page, count: number) =>
     expect(
@@ -37,6 +39,7 @@ const openAlbumWithPhotos = async (
     page: Page,
     photos: Awaited<ReturnType<typeof testPhotos>>,
     destinationAlbums: string[],
+    metadataSidecars = false,
 ) => {
     await page.setViewportSize(desktop);
     await page.getByText("Continue with free plan", { exact: true }).click();
@@ -58,14 +61,32 @@ const openAlbumWithPhotos = async (
     await page.getByRole("button", { name: "Upload", exact: true }).click();
     const chooser = page.waitForEvent("filechooser");
     await page.getByRole("button", { name: "Files", exact: true }).click();
-    await (await chooser).setFiles(photos);
+    const sidecars = metadataSidecars
+        ? photos.map(({ name }) => ({
+              name: `${name}.json`,
+              mimeType: "application/json",
+              buffer: Buffer.from(
+                  JSON.stringify({
+                      photoTakenTime: {
+                          timestamp: Date.parse("2021-01-04T12:00:00Z") / 1000,
+                      },
+                  }),
+              ),
+          }))
+        : [];
+    await (await chooser).setFiles([...photos, ...sidecars]);
     const uploadAlbum = page
         .getByRole("dialog")
         .filter({ has: page.getByText("Upload to album", { exact: true }) });
     await uploadAlbum.getByRole("button", { name: /^Toolbar test\b/ }).click();
     await expect(uploadAlbum).toBeHidden();
     if (photos.length > 1) {
-        await page.getByRole("button", { name: "Start upload" }).click();
+        await page
+            .getByRole("button", {
+                name: metadataSidecars ? "Start import" : "Start upload",
+                exact: true,
+            })
+            .click();
     }
     await navigation
         .getByRole("button", { name: albumName, exact: true })
@@ -178,10 +199,12 @@ test("performs every selection action on shuffled batches of photos", async ({
     };
 
     let remaining = 15;
-    await openAlbumWithPhotos(page, await testPhotos(page, remaining), [
-        "Add destination",
-        "Move destination",
-    ]);
+    await openAlbumWithPhotos(
+        page,
+        await testPhotos(page, remaining),
+        ["Add destination", "Move destination"],
+        true,
+    );
 
     const toolbar = page.getByRole("toolbar");
     const thumbnails = page.locator('input[type="checkbox"]:not([name])');
@@ -207,6 +230,14 @@ test("performs every selection action on shuffled batches of photos", async ({
         {
             name: "Fix time",
             run: async (click: () => Promise<void>) => {
+                const importedDate = page.getByText(importedCaptureDate, {
+                    exact: true,
+                });
+                const filenameDate = page.getByText(filenameCaptureDate, {
+                    exact: true,
+                });
+                await expect(importedDate).toBeVisible();
+                await expect(filenameDate).toBeHidden();
                 await click();
                 const fixTime = page.getByRole("dialog", { name: "Fix time" });
                 await fixTime.getByRole("radio", { name: "File name" }).check();
@@ -218,6 +249,8 @@ test("performs every selection action on shuffled batches of photos", async ({
                     .getByRole("button", { name: "Close", exact: true })
                     .last()
                     .click();
+                await page.setViewportSize(desktop);
+                await expect(filenameDate).toBeVisible();
             },
         },
         {
