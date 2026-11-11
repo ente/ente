@@ -73,8 +73,11 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
     void open(List<RewindPage> pages) =>
         Navigator.of(context).push(RewindViewer(pages: pages).route());
 
-    void openStory(Future<RewindStory> story) =>
-        Navigator.of(context).push(RewindStoryView(story: story).route());
+    Future<void> openStory(Future<RewindStory> story) async {
+      final ready = await story;
+      if (!context.mounted) return;
+      await Navigator.of(context).push(RewindStoryView(story: ready).route());
+    }
 
     return ListView(
       children: [

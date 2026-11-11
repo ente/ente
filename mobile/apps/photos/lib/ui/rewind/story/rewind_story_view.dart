@@ -1,16 +1,9 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
-import "package:logging/logging.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_viewer.dart";
 import "package:photos/ui/rewind/story/rewind_story.dart";
-import "package:photos/ui/rewind/theme/rewind_colors.dart";
-import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
-import "package:photos/ui/rewind/widgets/rewind_buttons.dart";
-import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_stickers.dart";
 
 class RewindStoryView extends StatefulWidget {
   const RewindStoryView({
@@ -21,10 +14,10 @@ class RewindStoryView extends StatefulWidget {
     super.key,
   });
 
-  final Future<RewindStory> story;
+  final RewindStory story;
   final String? initialPage;
   final int initialStop;
-  final void Function(RewindStory story, RewindPage page, int stop)? onSettled;
+  final void Function(RewindPage page, int stop)? onSettled;
 
   Route<void> route() => PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 260),
@@ -45,102 +38,28 @@ class RewindStoryView extends StatefulWidget {
 }
 
 class _RewindStoryViewState extends State<RewindStoryView> {
-  static final _logger = Logger("RewindStoryView");
-
-  RewindStory? _story;
-  String? _initialPage;
-  var _initialStop = 0;
+  late final _initialPage = widget.story.resumeAt(widget.initialPage);
 
   @override
   void initState() {
     super.initState();
-    widget.story.then(_show, onError: _fail);
-  }
-
-  void _show(RewindStory story) {
-    if (!mounted) return;
-    final page = story.resumeAt(widget.initialPage);
-    story.preloadFrom(story.indexOf(page));
-    setState(() {
-      _story = story;
-      _initialPage = page;
-      _initialStop = page == widget.initialPage ? widget.initialStop : 0;
-    });
-  }
-
-  void _fail(Object error, StackTrace stackTrace) {
-    _logger.severe("Could not prepare the Rewind story", error, stackTrace);
-    if (mounted) Navigator.of(context).maybePop();
+    for (final page in widget.story.pages) {
+      page.resetAnswer();
+    }
+    widget.story.preloadFrom(widget.story.indexOf(_initialPage));
   }
 
   @override
   Widget build(BuildContext context) {
-    final story = _story;
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      child: story == null
-          ? const _Preparing()
-          : RewindViewer(
-              key: ObjectKey(story),
-              pages: story.pages,
-              initialPage: _initialPage,
-              initialStop: _initialStop,
-              onSettled: (page, stop) {
-                story.preloadFrom(max(0, story.pages.indexOf(page)));
-                widget.onSettled?.call(story, page, stop);
-              },
-            ),
-    );
-  }
-}
-
-class _Preparing extends StatelessWidget {
-  const _Preparing();
-
-  @override
-  Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: RewindColors.green,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            const RewindBackdrop(
-              color: RewindColors.green,
-              doodle: RewindColors.doodleGreen,
-              grain: 0,
-            ),
-            Center(
-              child: RewindEntrance(
-                preset: RewindPreset.pop,
-                active: true,
-                delayMs: 350,
-                child: RewindIdleLoop(
-                  idle: RewindIdle.pulse,
-                  active: true,
-                  delayMs: 1100,
-                  child: Transform.rotate(
-                    angle: -4 * pi / 180,
-                    child: const RewindLabelSticker("REWINDING…", size: 24),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: MediaQuery.paddingOf(context).top + 5,
-              right: 22,
-              child: RewindRoundButton(
-                glyph: RewindGlyph.close,
-                label: "Close",
-                size: 36,
-                ring: false,
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-            ),
-          ],
-        ),
-      ),
+    final story = widget.story;
+    return RewindViewer(
+      pages: story.pages,
+      initialPage: _initialPage,
+      initialStop: _initialPage == widget.initialPage ? widget.initialStop : 0,
+      onSettled: (page, stop) {
+        story.preloadFrom(max(0, story.pages.indexOf(page)));
+        widget.onSettled?.call(page, stop);
+      },
     );
   }
 }
