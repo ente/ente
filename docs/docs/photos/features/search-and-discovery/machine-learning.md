@@ -58,7 +58,7 @@ After enabling machine learning, the app needs to download and index your photos
 
 ### Which photos are indexed? {#which-photos-are-indexed}
 
-While you are signed in, face recognition and Magic search index photos backed up to Ente. Turning on local indexing does not include unbacked photos just because they are visible in your device gallery.
+While you are signed in, face recognition and Magic search index photos backed up to Ente. That includes photos in albums shared with you and collaborative albums, not only albums you own. Turning on local indexing does not include unbacked photos just because they are visible in your device gallery.
 
 On mobile, [Gallery Mode](/photos/faq/gallery-mode) can index local photos that Ente has permission to access while you are signed out. Gallery Mode is not available in the desktop app.
 

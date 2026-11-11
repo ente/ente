@@ -7,6 +7,12 @@ description: Frequently asked questions about migrating to Ente Photos from othe
 
 ## Importing from Google Photos
 
+### Can I import Google Takeout on my phone or on the web? {#takeout-desktop-only}
+
+No. Importing a Google Takeout (ZIP files or an unzipped Takeout folder) is supported in the **Ente desktop app** only. The mobile apps and [photos.ente.com](https://photos.ente.com) do not offer the Google takeout importer.
+
+Download the desktop app from [ente.com/download](https://ente.com/download/), then follow [Import from Google Photos](/photos/migration/from-google-photos/).
+
 ### How much Ente storage do I need when importing my Google Photos Takeout? {#google-takeout-storage}
 
 When importing your Google Photos Takeout into Ente, your storage usage is based on your actual Google Photos library size - not the (much larger) Takeout ZIP size.

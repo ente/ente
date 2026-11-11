@@ -117,6 +117,8 @@ You can view and manage all devices logged into your Ente account:
 
 This is useful if you've lost a device or want to ensure old devices no longer have access to your account.
 
+If you received a "New login to your Ente account" email, see [Why did I get a "New login to your Ente account" email?](/photos/faq/security-and-privacy#new-login-email).
+
 ### How do I log out of Ente Photos? {#logout}
 
 - **Mobile:** Open Settings, scroll to the bottom and tap **Logout**, then confirm.
@@ -262,6 +264,19 @@ If you're not receiving verification codes:
 The recovery key does not bypass email verification. For security reasons, Ente does not disable or bypass email verification unless the account owner reaches out and successfully verifies their identity by providing account details.
 
 If you lose access to your email, contact [support@ente.com](mailto:support@ente.com).
+
+### I forgot which email address I used for Ente. How do I find it? {#forgot-account-email}
+
+Your Ente account is tied to the email address you signed up with, so finding that address is the first step. Try these:
+
+1. **A device where Ente is still signed in.** Open Settings in the Ente app. Your account email is shown at the top. Keep that device signed in while you sort things out.
+2. **Your inboxes.** Search every mailbox you use, including any email aliases or hide-my-email addresses, for emails from Ente, such as the welcome email, verification codes or payment receipts.
+3. **Your password manager or saved browser logins.** Search for "ente" to find the address you saved.
+4. **Your purchase records.** If you have a paid plan, App Store or Stripe receipts show which email made the purchase.
+
+Once you've found the address, sign in with it. If you've also forgotten your password, see [What happens if I forget my password?](/photos/faq/security-and-privacy#account-recovery).
+
+If Ente says the address isn't registered, see [Why does Ente say my email address is not registered?](#email-not-registered).
 
 ### Why does Ente say my email address is not registered? {#email-not-registered}
 

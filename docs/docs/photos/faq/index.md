@@ -57,6 +57,7 @@ Jump to a category:
 - [What happens if I lose my passkey?](/photos/faq/account-creation#lost-passkey)
 - [I'm not receiving the verification code email](/photos/faq/account-creation#verification-code)
 - [What if I lose access to my email address?](/photos/faq/account-creation#lost-email)
+- [I forgot which email address I used for Ente. How do I find it?](/photos/faq/account-creation#forgot-account-email)
 
 ## Albums and Organization
 
@@ -76,6 +77,7 @@ Jump to a category:
 
 - [How do I change the gallery layout?](/photos/faq/albums-and-organization#gallery-layout)
 - [How do I change how many photos fit on my screen?](/photos/faq/albums-and-organization#gallery-photos-per-row)
+- [How do I view only my starred or Favorite photos?](/photos/faq/albums-and-organization#view-favorites)
 
 ### Uncategorized
 
@@ -98,6 +100,7 @@ Jump to a category:
 - [Do archived photos appear in search results?](/photos/faq/albums-and-organization#archive-search)
 - [How do I hide photos in Ente?](/photos/faq/albums-and-organization#how-to-hide)
 - [How do I archive photos in Ente?](/photos/faq/albums-and-organization#how-to-archive)
+- [Can I hide an album's photos from my timeline?](/photos/faq/albums-and-organization#album-off-timeline)
 
 ### Storage Management
 
@@ -136,6 +139,7 @@ Jump to a category:
 
 - [How does automatic backup work in Ente?](/photos/faq/backup-and-sync#automatic-backup)
 - [How do I select which albums to back up?](/photos/faq/backup-and-sync#select-albums)
+- [Can I back up only some photos from a folder, not the whole folder?](/photos/faq/backup-and-sync#backup-selected-photos)
 - [Can I backup over mobile data or only WiFi?](/photos/faq/backup-and-sync#mobile-data)
 - [Why is my initial backup taking so long?](/photos/faq/backup-and-sync#initial-backup-slow)
 - [What happens if my backup is interrupted?](/photos/faq/backup-and-sync#backup-interrupted)
@@ -249,6 +253,7 @@ Jump to a category:
 
 ### Importing from Google Photos
 
+- [Can I import Google Takeout on my phone or on the web?](/photos/faq/migration#takeout-desktop-only)
 - [How much Ente storage do I need when importing my Google Photos Takeout?](/photos/faq/migration#google-takeout-storage)
 - [I imported Google Takeout, but the same photos are on my Android phone. How do I avoid uploading them again?](/photos/faq/migration#takeout-android-existing-photos)
 
@@ -274,6 +279,7 @@ Jump to a category:
 
 - [Why doesn't search work for me?](/photos/faq/search-and-discovery#search-not-working)
 - [How do I enable face recognition?](/photos/faq/search-and-discovery#enable-face-recognition)
+- [Does face recognition or Magic search include photos from albums shared with me?](/photos/faq/search-and-discovery#ml-shared-albums)
 - [Can I merge or de-merge persons recognized by the app?](/photos/faq/search-and-discovery#merge-persons)
 - [How can I remove an incorrectly grouped face from a person?](/photos/faq/search-and-discovery#remove-incorrect-face)
 - [How do I change the cover for a recognized person?](/photos/faq/search-and-discovery#change-person-cover)
@@ -317,6 +323,7 @@ Jump to a category:
 ### Data Encryption and Storage
 
 - [Can Ente see my photos and videos?](/photos/faq/security-and-privacy#can-ente-see-photos)
+- [Why does my photo's info show "ICC Copyright Apple Inc."?](/photos/faq/security-and-privacy#icc-apple-copyright)
 - [How is my data encrypted?](/photos/faq/security-and-privacy#data-encryption)
 - [Where is my data stored?](/photos/faq/security-and-privacy#data-storage-location)
 - [How does Ente's encryption compare to industry standards?](/photos/faq/security-and-privacy#encryption-comparison)
@@ -327,6 +334,7 @@ Jump to a category:
 - [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email)
 - [What is my recovery key and why is it critical?](/photos/faq/security-and-privacy#recovery-key-importance)
 - [How do I find my recovery key?](/photos/faq/security-and-privacy#find-recovery-key)
+- [Can I get a new recovery key?](/photos/faq/security-and-privacy#new-recovery-key)
 - [How should I store my recovery key?](/photos/faq/security-and-privacy#store-recovery-key)
 - [How do I use my recovery key to reset my password?](/photos/faq/security-and-privacy#use-recovery-key)
 - [Can I change my password?](/photos/faq/security-and-privacy#change-password)
@@ -363,6 +371,7 @@ Jump to a category:
 - [How does Ente deduplicate photos?](/photos/faq/storage-and-plans#deduplication)
 - [Does Ente deduplicate across different albums?](/photos/faq/storage-and-plans#dedup-albums)
 - [How can I optimize my storage usage?](/photos/faq/storage-and-plans#optimize-storage)
+- [Can I free up space for one device folder only?](/photos/faq/storage-and-plans#free-up-one-folder)
 - [Do items in trash count against my storage?](/photos/faq/storage-and-plans#trash-storage-count)
 - [What happens if I exceed my storage limit?](/photos/faq/storage-and-plans#exceed-storage)
 
@@ -378,6 +387,7 @@ Jump to a category:
 
 - [Does Ente have Family Plans?](/photos/faq/storage-and-plans#family-plans-faq)
 - [Where do I manage my family plan?](/photos/faq/storage-and-plans#manage-family-plan)
+- [Where do I manage Family in the apps?](/photos/faq/storage-and-plans#where-is-family)
 - [How many family members can I add to my plan?](/photos/faq/storage-and-plans#family-members-limit)
 - [Can family members see each other's photos?](/photos/faq/storage-and-plans#family-privacy)
 - [Can I set storage limits for family members?](/photos/faq/storage-and-plans#family-storage-limits)
@@ -430,6 +440,7 @@ Jump to a category:
 - [Why does upload show "Waiting to upload"?](/photos/faq/troubleshooting#waiting-to-upload)
 - [Why are uploads failing on desktop or web?](/photos/faq/troubleshooting#faster-uploads)
 - [Why can't I save a video from Ente to my iPhone's Photos app?](/photos/faq/troubleshooting#ios-save-unsupported-video)
+- [Why does a video play with sound but a black screen on desktop?](/photos/faq/troubleshooting#video-black-screen)
 - [Why can't the app detect certain file types?](/photos/faq/troubleshooting#file-type-detection)
 
 ### Mobile Backup Issues
@@ -504,6 +515,7 @@ Jump to a category:
 - [Video streaming isn't working correctly, what should I do?](/photos/faq/advanced-features#stream-issues)
 - [Why is Streamable videos stuck just below 100%?](/photos/faq/advanced-features#stream-progress-stuck)
 - [How does Cast work?](/photos/faq/advanced-features#how-does-cast-work)
+- [Can I use Ente as a photo frame on a tablet or TV?](/photos/faq/advanced-features#photo-frame)
 - [Can I use Cast without Chromecast?](/photos/faq/advanced-features#cast-without-chromecast)
 - [App crashes with video streaming enabled](/photos/faq/advanced-features#app-crashes-video-streaming)
 - [Video upload failures with streaming enabled](/photos/faq/advanced-features#video-upload-failures-streaming)

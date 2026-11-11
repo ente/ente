@@ -56,7 +56,7 @@ Check the app for the complete list of supported formats.
 
 Individual file uploads have size limits. Large files may need to be compressed or split before uploading. Check the app for current size limits.
 
-If a large file fails to upload in Locker on mobile, try uploading it with Locker web on locker.ente.com. Larger uploads can fail on mobile because multipart uploads are not generally enabled there. For a self-hosted account, use the Locker web client connected to your own server.
+If a large file fails to upload in Locker on mobile, try uploading it with Locker web on [locker.ente.com](https://locker.ente.com). Locker web handles large files more reliably. For a self-hosted account, use the Locker web client connected to your own server.
 
 ### How do I add a photo or image to Locker on iOS? {#locker-add-image-ios}
 
