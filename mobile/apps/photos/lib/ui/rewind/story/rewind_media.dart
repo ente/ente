@@ -25,18 +25,19 @@ class RewindMedia {
   static const _eyeLine = 0.4;
 
   static Future<RewindMedia> load() async {
-    return RewindMedia._(await _showableFiles(), await _namedPeople());
+    final people = await _namedPeople();
+    return RewindMedia._(await _showableFiles(people.values), people);
   }
 
   static Future<RewindMedia> sampled() async {
-    final files = await _showableFiles();
+    final people = await _namedPeople();
+    final files = await _showableFiles(people.values);
     final photos = files.entries
         .where((entry) => entry.value.fileType != FileType.video)
         .sortedBy<num>((entry) => -(entry.value.creationTime ?? 0))
         .map((entry) => entry.key)
         .take(400)
         .toList();
-    final people = await _namedPeople();
     return RewindMedia._(
       files,
       people,
@@ -47,20 +48,31 @@ class RewindMedia {
     );
   }
 
-  static Future<Map<int, EnteFile>> _showableFiles() =>
-      getFilesAndMapForMemories(
-        useLocalIntIds: isLocalGalleryMode,
-        requireLocalId: isLocalGalleryMode,
+  static Future<Map<int, EnteFile>> _showableFiles(
+    Iterable<PersonEntity> people,
+  ) async {
+    final files = await getFilesAndMapForMemories(
+      useLocalIntIds: isLocalGalleryMode,
+      requireLocalId: isLocalGalleryMode,
+    );
+    for (final person in people) {
+      if (!person.data.hideFromMemories) continue;
+      for (final fileId in person.data.manuallyAssigned) {
+        files.remove(fileId);
+      }
+      final faceIds = await MLDataDB.instance.getFaceIDsForPerson(
+        person.remoteID,
       );
+      for (final faceId in faceIds) {
+        files.remove(tryGetFileIdFromFaceId(faceId));
+      }
+    }
+    return files;
+  }
 
   static Future<Map<String, PersonEntity>> _namedPeople() async {
     if (isLocalGalleryMode) return const {};
-    try {
-      return await PersonService.instance.getPersonsMap();
-    } catch (error, stackTrace) {
-      _logger.warning("Could not load people", error, stackTrace);
-      return const {};
-    }
+    return PersonService.instance.getPersonsMap();
   }
 
   static bool _isShown(PersonEntity person) =>
