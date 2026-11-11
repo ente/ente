@@ -63,11 +63,11 @@ pub(super) fn attempt_permitted(model_path: &str) -> bool {
         && canary_dir(model_path).is_some_and(|dir| !quarantined(&dir))
 }
 
-// Mirrors Chromium's `gpu/config/webgpu_blocklist_impl.cc` Android 12+ policy
-// as of 2026-07; revisit with pinned ONNX Runtime or Dawn upgrades.
+// Chromium's `gpu/config/webgpu_blocklist_impl.cc` Android 12+ policy as of
+// 2026-07, minus ARM, whose GPUs fail or hang on WebGPU inference
+// (ente/ente#14485); revisit with pinned ONNX Runtime or Dawn upgrades.
 #[cfg(any(target_os = "android", test))]
-const ALLOWLISTED_VULKAN_VENDOR_IDS: [u32; 3] = [
-    0x13B5, // ARM (Mali, Immortalis)
+const ALLOWLISTED_VULKAN_VENDOR_IDS: [u32; 2] = [
     0x5143, // Qualcomm (Adreno)
     0x8086, // Intel
 ];
@@ -452,10 +452,14 @@ mod tests {
     use super::{MAX_CONSECUTIVE_FAILURES, arm_canary, quarantined, vendors_allowlisted};
 
     #[test]
-    fn allowlists_the_vendors_chromium_ships_webgpu_to_on_android_12() {
-        assert!(vendors_allowlisted(&[0x13B5]), "ARM");
+    fn allowlists_qualcomm_and_intel() {
         assert!(vendors_allowlisted(&[0x5143]), "Qualcomm");
         assert!(vendors_allowlisted(&[0x8086]), "Intel");
+    }
+
+    #[test]
+    fn denies_arm_mali_and_immortalis() {
+        assert!(!vendors_allowlisted(&[0x13B5]));
     }
 
     #[test]
@@ -476,7 +480,7 @@ mod tests {
 
     #[test]
     fn allows_when_every_adapter_is_allowlisted() {
-        assert!(vendors_allowlisted(&[0x13B5, 0x8086]));
+        assert!(vendors_allowlisted(&[0x5143, 0x8086]));
     }
 
     #[test]
