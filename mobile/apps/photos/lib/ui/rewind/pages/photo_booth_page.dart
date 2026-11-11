@@ -1,11 +1,13 @@
 import "dart:async";
 import "dart:math";
 
+import "package:flutter/gestures.dart" show DragStartBehavior;
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -188,19 +190,50 @@ class _Booth extends StatefulWidget {
   State<_Booth> createState() => _BoothState();
 }
 
-class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
+class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _slot = Rect.fromLTWH(58, 96, 274, 46);
   static const _strip = Rect.fromLTWH(83, 118, 224, 451);
   static const _stops = [116.0, 226.0, 336.0, 451.0];
   static const _swayMs = 1300;
+  static const _nudgeStartMs = _Booth.printedMs + _swayMs + 300;
+  static const _nudgeMs = 650;
+  static const _tearDistance = 70.0;
+  static const _tearVelocity = 700.0;
+  static const _fallDistance = 900.0;
   static const _move = Cubic(0.4, 0, 0.3, 1);
   static const _drop = Cubic(0.2, 0.8, 0.3, 1);
 
+  late final _strips = _stripsOf(widget.photos);
   late final _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: _Booth.printedMs + _swayMs),
+    duration: const Duration(milliseconds: _nudgeStartMs + _nudgeMs),
+  );
+  late final _pull = AnimationController.unbounded(vsync: this);
+  late final _fall = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
   );
   var _lastStop = -1;
+  var _shown = 0;
+  var _torn = 0;
+  var _tornFrom = 0.0;
+  var _drag = 0.0;
+
+  static List<List<EnteFile>> _stripsOf(List<EnteFile> photos) {
+    const frames = RewindBoothStrip.frames;
+    if (photos.length < frames) {
+      return [
+        [
+          for (var i = 0; i < frames && photos.isNotEmpty; i++)
+            photos[i % photos.length],
+        ],
+      ];
+    }
+    return [
+      for (var start = 0; start + frames <= photos.length; start += frames)
+        photos.sublist(start, start + frames),
+    ];
+  }
 
   @override
   void initState() {
@@ -218,11 +251,15 @@ class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _controller.dispose();
+    _pull.dispose();
+    _fall.dispose();
     super.dispose();
   }
 
   double get _elapsed =>
       _controller.value * _controller.duration!.inMilliseconds;
+
+  bool get _reprints => _strips.length > 1;
 
   void _buzz() {
     final stop = _printed(_elapsed).stop;
@@ -246,11 +283,57 @@ class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
     return (length: length, stop: moving >= 1 ? index : index - 1);
   }
 
+  void _startPull(DragStartDetails details) {
+    _pull.stop();
+    _drag = _pull.value;
+  }
+
+  void _updatePull(DragUpdateDetails details) {
+    _drag += details.primaryDelta ?? 0;
+    _pull.value = max(0.0, _drag);
+  }
+
+  void _endPull(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (_drag < 0) {
+      _pull.value = 0;
+      RewindPageScope.navigatorOf(context)?.next();
+    } else if (_pull.value >= _tearDistance || velocity >= _tearVelocity) {
+      _tear();
+    } else {
+      unawaited(
+        _pull.animateTo(
+          0,
+          duration: const Duration(milliseconds: 380),
+          curve: Curves.easeOutBack,
+        ),
+      );
+    }
+  }
+
+  void _tear() {
+    unawaited(HapticFeedback.mediumImpact());
+    setState(() {
+      _torn = _shown;
+      _tornFrom = _pull.value;
+      _shown = (_shown + 1) % _strips.length;
+    });
+    _pull.value = 0;
+    _lastStop = -1;
+    if (MediaQuery.disableAnimationsOf(context)) return;
+    unawaited(_fall.forward(from: 0));
+    unawaited(
+      _controller.forward(
+        from: _Booth._printStartMs / _controller.duration!.inMilliseconds,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final still = MediaQuery.disableAnimationsOf(context);
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_controller, _pull, _fall]),
       builder: (context, _) {
         final elapsed = still ? double.infinity : _elapsed;
         final printing =
@@ -263,6 +346,9 @@ class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
         final slotOpacity = still ? 1.0 : (drop / 0.7).clamp(0.0, 1.0);
         final length = still ? _strip.height : _printed(elapsed).length;
         final sway = _sway(elapsed - _Booth.printedMs);
+        final pullable =
+            widget.active && _reprints && elapsed >= _Booth.printedMs;
+        final nudge = _reprints ? _nudge(elapsed - _nudgeStartMs) : 0.0;
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -274,38 +360,32 @@ class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
               left: _strip.left - 20,
               top: _strip.top,
               width: _strip.width + 40,
-              height: _strip.height + 30,
+              height: RewindStage.size.height * 2,
               child: ClipRect(
                 child: Transform.translate(
-                  offset: Offset(20, length - _strip.height),
+                  offset: Offset(
+                    20,
+                    length - _strip.height + _pull.value + nudge,
+                  ),
                   child: Transform.rotate(
                     angle: sway * pi / 180,
                     alignment: Alignment.topCenter,
                     child: Align(
                       alignment: Alignment.topLeft,
-                      child: DecoratedBox(
-                        decoration: const BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x33000000),
-                              blurRadius: 8,
-                              offset: Offset(-2, 4),
-                            ),
-                          ],
-                        ),
-                        child: RewindBoothStrip(
-                          photos: [
-                            for (var i = 0; i < 4; i++)
-                              if (widget.photos.isNotEmpty)
-                                _photo(widget.photos[i % widget.photos.length]),
-                          ],
-                        ),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        dragStartBehavior: DragStartBehavior.down,
+                        onVerticalDragStart: pullable ? _startPull : null,
+                        onVerticalDragUpdate: pullable ? _updatePull : null,
+                        onVerticalDragEnd: pullable ? _endPull : null,
+                        child: _printedStrip(_strips[_shown]),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+            if (_fall.isAnimating) _falling(),
             Positioned.fromRect(
               rect: Rect.fromLTWH(
                 _slot.left,
@@ -318,6 +398,36 @@ class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
           ],
         );
       },
+    );
+  }
+
+  Widget _falling() {
+    final t = Curves.easeIn.transform(_fall.value);
+    return Positioned(
+      left: _strip.left,
+      top: _strip.top + _tornFrom + _fallDistance * t,
+      child: Transform.rotate(
+        angle: 7 * t * pi / 180,
+        alignment: Alignment.topCenter,
+        child: _printedStrip(_strips[_torn]),
+      ),
+    );
+  }
+
+  Widget _printedStrip(List<EnteFile> photos) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 8,
+            offset: Offset(-2, 4),
+          ),
+        ],
+      ),
+      child: RewindBoothStrip(
+        photos: [for (final photo in photos) _photo(photo)],
+      ),
     );
   }
 
@@ -336,6 +446,11 @@ class _BoothState extends State<_Booth> with SingleTickerProviderStateMixin {
     final span = t * (angles.length - 1);
     final i = min(span.floor(), angles.length - 2);
     return angles[i] + (angles[i + 1] - angles[i]) * (span - i);
+  }
+
+  double _nudge(double sinceMs) {
+    if (sinceMs <= 0 || sinceMs >= _nudgeMs) return 0;
+    return 16 * sin(pi * Curves.easeOut.transform(sinceMs / _nudgeMs));
   }
 }
 

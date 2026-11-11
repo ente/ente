@@ -1,16 +1,18 @@
 use std::cmp::Reverse;
 
 use super::count;
+use super::people_race::by_prominence;
 use crate::rewind::input::RewindRequest;
 use crate::rewind::library::Library;
 use crate::rewind::people::{Entity, People};
-use crate::rewind::ranking::{Ranking, best_faces};
+use crate::rewind::ranking::{Ranking, Spread, best_faces};
 use crate::rewind::report::{NewFace, NewFaces};
 
 const NEW_FACE_MINIMUM_PHOTOS: usize = 20;
 const NEW_FACES_MINIMUM: usize = 3;
 const NEW_FACES_SHOWN: usize = 12;
 const NEW_FACE_FACES: usize = 3;
+const NEW_FACE_PHOTOS: usize = 9;
 
 pub(in crate::rewind) fn new_faces(
     request: &RewindRequest,
@@ -46,6 +48,11 @@ pub(in crate::rewind) fn new_faces(
                 person_id: is_named.then(|| entity.id.clone()),
                 cluster_id: (!is_named).then(|| entity.id.clone()),
                 face_ids,
+                file_ids: ranking.pick(
+                    by_prominence(entity, people, library),
+                    Spread::Days,
+                    NEW_FACE_PHOTOS,
+                ),
             })
         })
         .take(NEW_FACES_SHOWN)
@@ -103,6 +110,8 @@ mod tests {
             ]
         );
         assert_eq!(new.faces[1].face_ids, ["10_ana", "11_ana", "12_ana"]);
+        assert_eq!(new.faces[1].file_ids.len(), 9);
+        assert!(new.faces[1].file_ids.iter().all(|id| (1..=20).contains(id)));
 
         let mut fewer = faces_request.clone();
         fewer.people.retain(|person| person.id != "ben");

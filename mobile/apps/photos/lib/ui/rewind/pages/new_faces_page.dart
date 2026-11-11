@@ -1,6 +1,9 @@
+import "dart:async";
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -11,9 +14,13 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
+
+typedef NewFaceBubble = ({RewindFace face, List<EnteFile> photos});
 
 typedef _Bubble = ({
   double size,
@@ -77,11 +84,21 @@ const List<_Bubble> _bubbles = [
 
 const _paintOrder = [3, 1, 0, 4, 2, 5];
 
+Rect _boundsOf(Iterable<_Bubble> bubbles) => bubbles
+    .map(
+      (bubble) => Rect.fromCenter(
+        center: bubble.center,
+        width: bubble.size,
+        height: bubble.size,
+      ),
+    )
+    .reduce((bounds, rect) => bounds.expandToInclude(rect));
+
 class NewFacesPage extends RewindPage {
   const NewFacesPage(this.newFaces, this.faces);
 
   final rust.NewFaces newFaces;
-  final List<RewindFace> faces;
+  final List<NewFaceBubble> faces;
 
   @override
   String get key => "new_faces";
@@ -96,6 +113,8 @@ class NewFacesPage extends RewindPage {
     final title = count == 1 ? "1 NEW FACE" : "${rewindCount(count)} NEW FACES";
     const line = "debuted in your frame this year.";
     final shown = min(faces.length, _bubbles.length);
+    final centering =
+        _boundsOf(_bubbles).center - _boundsOf(_bubbles.take(shown)).center;
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -125,6 +144,7 @@ class NewFacesPage extends RewindPage {
                                   faces[slot],
                                   ms,
                                   isActive,
+                                  centering,
                                 ),
                           ],
                         ),
@@ -169,7 +189,13 @@ class NewFacesPage extends RewindPage {
     );
   }
 
-  Widget _placed(_Bubble bubble, RewindFace face, double ms, bool isActive) {
+  Widget _placed(
+    _Bubble bubble,
+    NewFaceBubble face,
+    double ms,
+    bool isActive,
+    Offset centering,
+  ) {
     final since = ms - bubble.delayMs - 700;
     var offset = Offset.zero;
     if (since > 0) {
@@ -180,7 +206,7 @@ class NewFacesPage extends RewindPage {
     }
     return Positioned.fromRect(
       rect: Rect.fromCenter(
-        center: bubble.center,
+        center: bubble.center + centering,
         width: bubble.size,
         height: bubble.size,
       ),
@@ -190,7 +216,7 @@ class NewFacesPage extends RewindPage {
           preset: RewindPreset.bubble,
           active: isActive,
           delayMs: bubble.delayMs,
-          child: _FaceBubble(face),
+          child: _FaceBubble(face.face, photos: face.photos),
         ),
       ),
     );
@@ -198,12 +224,44 @@ class NewFacesPage extends RewindPage {
 }
 
 class _FaceBubble extends StatelessWidget {
-  const _FaceBubble(this.face);
+  const _FaceBubble(this.face, {this.photos = const []});
 
   final RewindFace face;
+  final List<EnteFile> photos;
 
   @override
   Widget build(BuildContext context) {
+    final bubble = _bubble();
+    if (photos.isEmpty) return bubble;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showPhotos(context),
+      child: bubble,
+    );
+  }
+
+  void _showPhotos(BuildContext context) {
+    unawaited(HapticFeedback.selectionClick());
+    unawaited(
+      showGeneralDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: "Close",
+        barrierColor: const Color(0xD9000000),
+        transitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (context, _, _) => Material(
+          type: MaterialType.transparency,
+          child: _FacePhotos(face, photos),
+        ),
+        transitionBuilder: (context, animation, _, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _bubble() {
     final crop = face.crop;
     final initial = face.name?.trim().characters.firstOrNull ?? "";
     return CustomPaint(
@@ -246,4 +304,91 @@ class _BubblePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BubblePainter oldDelegate) => false;
+}
+
+class _FacePhotos extends StatelessWidget {
+  const _FacePhotos(this.face, this.photos);
+
+  static const _bubble = 120.0;
+  static const _polaroid = Size(104, 124.4);
+  static const _columns = 3;
+  static const _columnGap = 116.0;
+  static const _rowGap = 136.0;
+  static const _turns = [-4.0, 3.0, -2.0, 2.5, -3.0, 4.0, -1.5, 2.0, -3.5];
+
+  final RewindFace face;
+  final List<EnteFile> photos;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = face.name;
+    final shown = min(photos.length, _turns.length);
+    final gridTop = name == null ? 300.0 : 362.0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pop(),
+      child: RewindStage(
+        children: [
+          Positioned.fromRect(
+            rect: Rect.fromCenter(
+              center: const Offset(195, 150),
+              width: _bubble,
+              height: _bubble,
+            ),
+            child: RewindEntrance(
+              preset: RewindPreset.bubble,
+              active: true,
+              child: _FaceBubble(face),
+            ),
+          ),
+          if (name != null)
+            Positioned(
+              left: 24,
+              top: 226,
+              child: RewindEntrance(
+                preset: RewindPreset.slap,
+                active: true,
+                delayMs: 120,
+                child: RewindFitWidth(
+                  width: 342,
+                  alignment: Alignment.center,
+                  child: RewindOutlinedText(
+                    name.toUpperCase(),
+                    style: RewindTextStyles.display(
+                      44,
+                      color: RewindColors.white,
+                    ),
+                    outline: 2,
+                    shadow: const Offset(2.4, 2.9),
+                  ),
+                ),
+              ),
+            ),
+          for (var i = 0; i < shown; i++)
+            Positioned.fromRect(
+              rect: Rect.fromCenter(
+                center: Offset(
+                  195 + (i % _columns - 1) * _columnGap,
+                  gridTop + (i ~/ _columns) * _rowGap,
+                ),
+                width: _polaroid.width,
+                height: _polaroid.height,
+              ),
+              child: RewindEntrance(
+                preset: RewindPreset.pop,
+                active: true,
+                delayMs: 180 + 60 * i,
+                child: Transform.rotate(
+                  angle: _turns[i] * pi / 180,
+                  child: RewindPolaroid(
+                    photo: RewindPhoto(photos[i]),
+                    width: _polaroid.width,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
