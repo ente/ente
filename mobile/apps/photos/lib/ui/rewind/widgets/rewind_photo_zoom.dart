@@ -45,7 +45,7 @@ Future<void> showRewindPhotoZoom(
   if (!context.mounted || from == null) return;
   onLifted();
   unawaited(HapticFeedback.lightImpact());
-  await Navigator.of(context, rootNavigator: true).push(
+  await Navigator.of(context).push(
     PageRouteBuilder<void>(
       opaque: false,
       transitionDuration: Duration.zero,
