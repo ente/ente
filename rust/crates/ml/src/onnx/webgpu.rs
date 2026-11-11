@@ -339,10 +339,13 @@ fn quarantined(dir: &Path) -> bool {
                 Ok(count) => failures = failures.saturating_add(count),
                 Err(_) => return true,
             }
-        } else if entry.file_type().is_ok_and(|kind| kind.is_dir())
-            && legacy_model_quarantined(&entry.path())
-        {
-            return true;
+        } else {
+            let Ok(kind) = entry.file_type() else {
+                return true;
+            };
+            if kind.is_dir() && legacy_model_quarantined(&entry.path()) {
+                return true;
+            }
         }
     }
     failures >= MAX_CONSECUTIVE_FAILURES
@@ -356,13 +359,17 @@ fn quarantined(dir: &Path) -> bool {
 ))]
 fn legacy_model_quarantined(model_dir: &Path) -> bool {
     let Ok(entries) = fs::read_dir(model_dir) else {
-        return false;
+        return true;
     };
-    entries.flatten().filter(is_canary).any(|entry| {
-        !matches!(
-            read_failure_count(&entry.path()),
-            Ok(failures) if failures < MAX_CONSECUTIVE_FAILURES
-        )
+    entries.into_iter().any(|entry| match entry {
+        Err(_) => true,
+        Ok(entry) => {
+            is_canary(&entry)
+                && !matches!(
+                    read_failure_count(&entry.path()),
+                    Ok(failures) if failures < MAX_CONSECUTIVE_FAILURES
+                )
+        }
     })
 }
 
@@ -713,9 +720,11 @@ mod tests {
                 .join(format!("{}clip-image", super::CANARY_FILE_PREFIX))
                 .exists()
         );
-        assert_eq!(
-            std::fs::read_dir(dir.path().join("clip")).unwrap().count(),
-            0
+        assert!(
+            !dir.path()
+                .join("clip")
+                .join(format!("{}clip-image", super::CANARY_FILE_PREFIX))
+                .exists()
         );
     }
 
@@ -771,6 +780,13 @@ mod tests {
         write_legacy_canary(dir.path(), "face-detection", MAX_CONSECUTIVE_FAILURES - 1);
 
         assert!(!quarantined(dir.path()));
+    }
+
+    #[test]
+    fn unlistable_per_model_folder_from_earlier_versions_fails_closed() {
+        let dir = tempfile::tempdir().unwrap();
+
+        assert!(super::legacy_model_quarantined(&dir.path().join("clip")));
     }
 
     #[test]
