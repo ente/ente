@@ -489,7 +489,7 @@ func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs 
 		}
 		result[ownerID] = count
 	}
-	return result, nil
+	return result, stacktrace.Propagate(rows.Err(), "failed to read file owner counts")
 }
 
 func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []int64) (map[int64][]int64, error) {
