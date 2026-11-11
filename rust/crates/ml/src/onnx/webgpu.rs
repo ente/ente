@@ -64,8 +64,11 @@ pub(super) fn attempt_permitted(model_path: &str) -> bool {
 }
 
 // Chromium's `gpu/config/webgpu_blocklist_impl.cc` Android 12+ policy as of
-// 2026-07, minus ARM, whose GPUs fail or hang on WebGPU inference
-// (ente/ente#14485); revisit with pinned ONNX Runtime or Dawn upgrades.
+// 2026-07, minus ARM; revisit with pinned ONNX Runtime or Dawn upgrades.
+// Leaving out ARM is temporary: Mali GPUs fail or hang on WebGPU inference
+// with the current ONNX Runtime (ente/ente#14485). Add ARM back once ONNX
+// Runtime fixes WebGPU on Mali, and bump CANARY_FILE_PREFIX so quarantined
+// devices retry.
 #[cfg(any(target_os = "android", test))]
 const ALLOWLISTED_VULKAN_VENDOR_IDS: [u32; 2] = [
     0x5143, // Qualcomm (Adreno)
