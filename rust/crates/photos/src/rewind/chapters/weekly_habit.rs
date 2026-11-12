@@ -35,11 +35,20 @@ pub(in crate::rewind) fn weekly_habit(
         .by_quality(at_hour)
         .into_iter()
         .chain(ranking.by_quality(other_hours));
+    let file_ids = ranking.pick(ranked, Spread::Days, WEEKLY_HABIT_CANDIDATES);
+    let led_by_the_hour = file_ids
+        .first()
+        .and_then(|&id| library.get(id))
+        .is_some_and(|file| file.hour == hour);
     Some(WeeklyHabit {
         weekday,
         hour,
         percent,
-        file_ids: ranking.pick(ranked, Spread::Days, WEEKLY_HABIT_CANDIDATES),
+        file_ids: if led_by_the_hour {
+            file_ids
+        } else {
+            Vec::new()
+        },
     })
 }
 
@@ -56,7 +65,7 @@ fn most_common(
 #[cfg(test)]
 mod tests {
     use crate::rewind::fixtures::{micros, photo, request};
-    use crate::rewind::input::RewindFile;
+    use crate::rewind::input::{RewindFile, RewindFileType};
     use crate::rewind::library::Library;
     use crate::rewind::ranking::Ranking;
     use crate::rewind::report::WeeklyHabit;
@@ -128,6 +137,26 @@ mod tests {
             ]
         );
         assert_eq!(file_ids.len(), 36);
+    }
+
+    #[test]
+    fn the_habit_has_no_photos_when_none_from_the_habit_hour_can_be_shown() {
+        let mut files = sundays(1, 10, 18, 5);
+        for file in &mut files {
+            file.file_type = RewindFileType::Video;
+        }
+        files.extend(sundays(1000, 10, 9, 1));
+        files.extend(sundays(3000, 40, 12, 1).into_iter().map(|mut file| {
+            file.creation_time += 86_400_000_000;
+            file
+        }));
+        let habit_request = request(files);
+        let library = Library::of_year(&habit_request).unwrap();
+
+        let habit = weekly_habit(&library, &Ranking::new(None, None)).unwrap();
+
+        assert_eq!((habit.weekday, habit.hour), (7, 18));
+        assert!(habit.file_ids.is_empty());
     }
 
     #[test]

@@ -214,7 +214,7 @@ RewindChapter _weeklyHabit(rust.WeeklyHabit? habit) {
         ? null
         : WeeklyHabitPage(
             habit,
-            media.photos(habit.fileIds, WeeklyHabitPage.maxPhotos),
+            media.photosLedByFirst(habit.fileIds, WeeklyHabitPage.maxPhotos),
           ),
   );
 }

@@ -481,10 +481,23 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     (dx: 15.0, dy: 0.0, turn: 11.0),
   ];
 
+  EdgeInsets _fanReach(int rank, Size size) {
+    final unit = size.width / 139.6;
+    var side = 0.0;
+    var rise = 0.0;
+    for (final fan in _fans.take(_stamps[rank].extras.length)) {
+      final turn = fan.turn.abs() * pi / 180;
+      side = max(side, size.height * sin(turn) + fan.dx.abs() * unit);
+      rise = max(rise, size.width / 2 * sin(turn) + fan.dy.abs() * unit);
+    }
+    return EdgeInsets.symmetric(horizontal: side, vertical: rise);
+  }
+
   Widget _podiumStamp(int rank, Rect rect, bool revealed) {
     final slot = _Slot.podium[rank];
+    final reach = _fanReach(rank, rect.size);
     return Positioned.fromRect(
-      rect: rect,
+      rect: reach.inflateRect(rect),
       child: _leave(
         rect.center.dy,
         RewindKeyframes(
@@ -496,16 +509,19 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _opensGallery(rank) ? () => _showGallery(rank) : null,
-            child: Transform.rotate(
-              angle: slot.turn * pi / 180,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final (i, photo)
-                      in _stamps[rank].extras.indexed.toList().reversed)
-                    _fannedStamp(photo, rank, i, slot, rect.size, revealed),
-                  _stamp(rank, slot, rect.size, 4),
-                ],
+            child: Padding(
+              padding: reach,
+              child: Transform.rotate(
+                angle: slot.turn * pi / 180,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (final (i, photo)
+                        in _stamps[rank].extras.indexed.toList().reversed)
+                      _fannedStamp(photo, rank, i, slot, rect.size, revealed),
+                    _stamp(rank, slot, rect.size, 4),
+                  ],
+                ),
               ),
             ),
           ),
