@@ -44,6 +44,7 @@ class ThumbnailWidget extends StatefulWidget {
   final bool useRequestedThumbnailSizeForLocalCache;
   final bool useCachedThumbnailAsPlaceholder;
   final bool gaplessPlayback;
+  final bool isVisible;
   final bool shouldShowOwnerAvatar;
   final AvatarType ownerAvatarType;
   final bool shouldShowFavoriteIcon;
@@ -69,6 +70,7 @@ class ThumbnailWidget extends StatefulWidget {
     this.useRequestedThumbnailSizeForLocalCache = false,
     this.useCachedThumbnailAsPlaceholder = false,
     this.gaplessPlayback = false,
+    this.isVisible = true,
     this.shouldShowFavoriteIcon = true,
     this.placeholderColor,
     this.shouldShowVideoDuration = false,
@@ -90,6 +92,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
   int? optimizedImageHeight;
   int? optimizedImageWidth;
   String? _localThumbnailQueueTaskId;
+  VoidCallback? _releaseThumbnailRequest;
   static const _maxLocalThumbnailRetries = 8;
 
   int get _localCacheThumbnailSize {
@@ -116,16 +119,20 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
           smallLocalThumbnailQueue.removeTask(_localThumbnailQueueTaskId!);
         }
       }
-      if (!mounted && widget.file.isRemoteOnlyFile && !_hasLoadedThumbnail) {
-        removePendingGetThumbnailRequestIfAny(widget.file);
-      }
+      _releaseThumbnailRequest?.call();
+      _releaseThumbnailRequest = null;
     });
   }
 
   @override
   void didUpdateWidget(ThumbnailWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.file.generatedID != oldWidget.file.generatedID) {
+    if (widget.file.generatedID != oldWidget.file.generatedID ||
+        (widget.isVisible &&
+            !oldWidget.isVisible &&
+            !_hasLoadedThumbnail &&
+            ((_errorLoadingLocalThumbnail && !_isLoadingRemoteThumbnail) ||
+                _errorLoadingRemoteThumbnail))) {
       _reset();
     }
   }
@@ -352,6 +359,12 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
     return _loadWithRetry()
         .then((thumbData) async {
           if (thumbData == null) {
+            _errorLoadingLocalThumbnail = true;
+            if (!mounted) return;
+            if (!widget.isVisible) {
+              if (widget.file.isUploaded) _loadNetworkImage();
+              return;
+            }
             if (widget.file.isUploaded) {
               _logger.info("Removing localID reference for " + widget.file.tag);
               if (widget.file.isTrash) {
@@ -457,6 +470,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
     }
 
     final completer = Completer<Uint8List?>();
+    completer.future.ignore();
 
     late TaskQueue<String> relevantTaskQueue;
     if (widget.thumbnailSize == thumbnailLargeSize) {
@@ -517,8 +531,17 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
   }
 
   void _getThumbnailFromServer() async {
+    VoidCallback? release;
     try {
-      final thumbnail = await getThumbnailFromServer(widget.file);
+      final request = await getThumbnailFromServerRequest(widget.file);
+      release = request.release;
+      if (!mounted) {
+        request.future.ignore();
+        release?.call();
+        return;
+      }
+      _releaseThumbnailRequest = release;
+      final thumbnail = await request.future;
       if (mounted) {
         final imageProvider = Image.memory(
           thumbnail,
@@ -539,6 +562,10 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       } else {
         _logger.severe("Could not load image " + widget.file.toString(), e);
         _errorLoadingRemoteThumbnail = true;
+      }
+    } finally {
+      if (identical(_releaseThumbnailRequest, release)) {
+        _releaseThumbnailRequest = null;
       }
     }
   }

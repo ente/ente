@@ -92,11 +92,11 @@ preloadThumbnailWithPendingRequestRef(EnteFile file) async {
       pendingRequest: Future<void>.value(),
     );
   }
-  final request = await _getThumbnailFromServerRequest(file);
+  final request = await getThumbnailFromServerRequest(file);
   final pendingRequest = request.future.then<void>((_) {}, onError: (_, _) {});
   unawaited(pendingRequest);
   return (
-    acquiredPendingRequestRef: request.acquiredPendingRequestRef,
+    acquiredPendingRequestRef: request.release != null,
     pendingRequest: pendingRequest,
   );
 }
@@ -132,19 +132,16 @@ Future<File?> getThumbnailForUploadedFile(EnteFile file) async {
 }
 
 Future<Uint8List> getThumbnailFromServer(EnteFile file) async {
-  final request = await _getThumbnailFromServerRequest(file);
+  final request = await getThumbnailFromServerRequest(file);
   return request.future;
 }
 
-Future<({Future<Uint8List> future, bool acquiredPendingRequestRef})>
-_getThumbnailFromServerRequest(EnteFile file) async {
+Future<({Future<Uint8List> future, void Function()? release})>
+getThumbnailFromServerRequest(EnteFile file) async {
   final cachedThumbnail = cachedThumbnailPath(file);
   final cachedData = await _readCachedThumbnailIfPresent(cachedThumbnail, file);
   if (cachedData != null) {
-    return (
-      future: Future<Uint8List>.value(cachedData),
-      acquiredPendingRequestRef: false,
-    );
+    return (future: Future<Uint8List>.value(cachedData), release: null);
   }
   final existing = _uploadIDToDownloadItem[file.uploadedFileID];
   if (existing == null) {
@@ -165,10 +162,16 @@ _getThumbnailFromServerRequest(EnteFile file) async {
     }
     _downloadQueue.add(item);
     _downloadItem(item);
-    return (future: item.completer.future, acquiredPendingRequestRef: true);
+    return (
+      future: item.completer.future,
+      release: () => _releaseThumbnailRequest(item),
+    );
   } else {
     existing.counter++;
-    return (future: existing.completer.future, acquiredPendingRequestRef: true);
+    return (
+      future: existing.completer.future,
+      release: () => _releaseThumbnailRequest(existing),
+    );
   }
 }
 
@@ -274,11 +277,16 @@ getVideoThumbnailFromInAppCacheFile(EnteFile file) async {
 void removePendingGetThumbnailRequestIfAny(EnteFile file) {
   final item = _uploadIDToDownloadItem[file.uploadedFileID];
   if (item != null) {
-    item.counter--;
-    if (item.counter <= 0) {
-      _removeIfCurrent(item);
-      item.cancelToken.cancel();
-    }
+    _releaseThumbnailRequest(item);
+  }
+}
+
+void _releaseThumbnailRequest(_ThumbnailDownload item) {
+  if (!_isCurrent(item)) return;
+  item.counter--;
+  if (item.counter <= 0) {
+    _removeIfCurrent(item);
+    item.cancelToken.cancel();
   }
 }
 

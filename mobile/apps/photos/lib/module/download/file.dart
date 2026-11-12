@@ -73,7 +73,12 @@ Future<File?> getFile(
 }
 
 Future<bool> doesLocalFileExist(EnteFile file) async {
-  return await _getLocalDiskFile(file) != null;
+  if (file.isDeviceTrash) return false;
+  if (file.isSharedMediaToAppSandbox) {
+    return File(getSharedMediaFilePath(file)).exists();
+  }
+  final asset = await file.getAsset;
+  return asset != null && await asset.exists;
 }
 
 Future<File?> getFileForEditing(EnteFile file) async {

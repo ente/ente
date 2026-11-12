@@ -12,6 +12,8 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+import "package:photos/ui/viewer/file/zoomable_image.dart";
+import "package:photos/utils/image_util.dart";
 
 enum ReviewSwipeDirection { left, right }
 
@@ -84,6 +86,10 @@ class ReviewSwipeStack extends StatefulWidget {
 
 class _ReviewSwipeStackState extends State<ReviewSwipeStack>
     with SingleTickerProviderStateMixin {
+  static const _visibleCardCount = 3;
+  static const _thumbnailLookahead = 2;
+  static final _imageLoadQueue = TaskQueue<Object>(maxConcurrentTasks: 2);
+
   late final AnimationController _animation = AnimationController(
     vsync: this,
     duration: Motion.slow,
@@ -97,6 +103,8 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
   Size _cardSize = Size.zero;
   _SideGlow? _keepGlow;
   _SideGlow? _deleteGlow;
+  final _images = Map<EnteFile, ZoomableImage>.identity();
+  final _imageFiles = Set<EnteFile>.identity();
 
   @override
   void initState() {
@@ -108,6 +116,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
         setState(() => _drag = tween.value);
       }
     });
+    _warmNextImage();
   }
 
   @override
@@ -117,6 +126,24 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
       oldWidget.controller._detach(this);
       widget.controller._state = this;
     }
+    _images.clear();
+    _warmNextImage();
+  }
+
+  void _warmNextImage() {
+    final files = widget.files.take(2);
+    if (_imageFiles.length == files.length &&
+        files.every(_imageFiles.contains)) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(
+        () => _imageFiles
+          ..clear()
+          ..addAll(widget.files.take(2)),
+      );
+    });
   }
 
   @override
@@ -224,7 +251,9 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
             )
             .clamp(ReviewSwipeStack._minCardWidth, double.infinity);
         _cardSize = Size(width, width / ReviewSwipeStack.aspectRatio);
-        final files = widget.files.take(3).toList();
+        final files = widget.files
+            .take(_visibleCardCount + _thumbnailLookahead)
+            .toList();
         final glow =
             (_drag.dx / (_cardSize.width * ReviewSwipeStack._glowFraction))
                 .clamp(-1.0, 1.0);
@@ -261,7 +290,13 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
                 ),
               ),
             ),
-            for (var index = files.length - 1; index >= 0; index--)
+            for (
+              var index = math.min(files.length, _visibleCardCount) - 1;
+              index >= 0;
+              index--
+            )
+              _positionedCard(files[index], index, tilt),
+            for (var index = _visibleCardCount; index < files.length; index++)
               _positionedCard(files[index], index, tilt),
           ],
         );
@@ -276,6 +311,30 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
       return cached;
     }
     return _SideGlow(color: color, cardHeight: _cardSize.height);
+  }
+
+  ZoomableImage? _imageFor(EnteFile file) {
+    if ((file.fileType != FileType.image &&
+            file.fileType != FileType.livePhoto) ||
+        isRawImageExtension(file.displayName.split('.').last)) {
+      return null;
+    }
+    final background = BoxDecoration(color: context.componentColors.fillDark);
+    if (_images[file]?.backgroundDecoration != background) {
+      _images[file] = ZoomableImage(
+        file,
+        key: ObjectKey(file),
+        tagPrefix: "review_swipe_",
+        backgroundDecoration: background,
+        shouldCover: true,
+        enableVerticalSwipeActions: false,
+        showDownloadErrorDialog: false,
+        loadThumbnail: false,
+        imageLoadQueue: _imageLoadQueue,
+        loadingBuilder: (_, _) => const SizedBox.expand(),
+      );
+    }
+    return _images[file];
   }
 
   Widget _positionedCard(EnteFile file, int index, double topTilt) {
@@ -310,28 +369,36 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
         border: ReviewSwipeStack._cardBorder,
         isFavorite: widget.isFavorite(file),
         onTap: isTop ? () => widget.onCardTap(file) : null,
+        isVisible: index < _visibleCardCount,
+        image: isTop || (index == 1 && _imageFiles.contains(file))
+            ? _imageFor(file)
+            : null,
       ),
     );
 
     return Positioned(
       key: ValueKey("review_card_${file.tag}"),
       top: 0,
-      child: AnimatedContainer(
-        duration: _dragging || _flying || _animation.isAnimating
-            ? Duration.zero
-            : Motion.slow,
-        curve: Curves.easeOutCubic,
-        transform: transform,
-        child: isTop
-            ? GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: _onPanStart,
-                onPanUpdate: _onPanUpdate,
-                onPanEnd: _onPanEnd,
-                onPanCancel: () => _onPanEnd(DragEndDetails()),
-                child: card,
-              )
-            : IgnorePointer(child: card),
+      child: Offstage(
+        offstage: index >= _visibleCardCount,
+        child: AnimatedContainer(
+          duration: _dragging || _flying || _animation.isAnimating
+              ? Duration.zero
+              : Motion.slow,
+          curve: Curves.easeOutCubic,
+          transform: transform,
+          child: IgnorePointer(
+            ignoring: !isTop,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: isTop ? _onPanStart : null,
+              onPanUpdate: isTop ? _onPanUpdate : null,
+              onPanEnd: isTop ? _onPanEnd : null,
+              onPanCancel: isTop ? () => _onPanEnd(DragEndDetails()) : null,
+              child: card,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -345,6 +412,8 @@ class _ReviewCard extends StatelessWidget {
     required this.border,
     required this.isFavorite,
     required this.onTap,
+    required this.image,
+    required this.isVisible,
   });
 
   final EnteFile file;
@@ -353,6 +422,8 @@ class _ReviewCard extends StatelessWidget {
   final double border;
   final bool isFavorite;
   final VoidCallback? onTap;
+  final Widget? image;
+  final bool isVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -387,11 +458,13 @@ class _ReviewCard extends StatelessWidget {
                   file,
                   key: Key("review_swipe_${file.tag}"),
                   thumbnailSize: thumbnailLargeSize,
+                  isVisible: isVisible,
                   shouldShowSyncStatus: false,
                   shouldShowFavoriteIcon: false,
                   shouldShowVideoOverlayIcon: false,
                   placeholderColor: colors.fillDark,
                 ),
+                if (image != null) HeroMode(enabled: false, child: image!),
                 if (file.fileType == FileType.video)
                   Center(child: _VideoIndicator(duration: file.duration)),
                 if (fileSize != null)
