@@ -1,1 +1,0 @@
-- Selecting all photos, or all photos under a date header, now asks for confirmation when it would select more than 100 items.

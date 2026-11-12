@@ -1,1 +1,0 @@
-- Refresh cached people after resetting or deleting an unlinked person so the People list updates without restarting.
