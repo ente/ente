@@ -384,6 +384,8 @@ Once we've verified your enrollment, we'll reply with a personal coupon code for
 
 Please note that these discounts are valid for a year, after which you may reapply to reclaim the discount.
 
+The discount works on monthly and yearly plans. On a monthly plan, enter the code once at checkout and it applies to each monthly payment for 12 months.
+
 **Already subscribed?**
 
 Contact [students@ente.com](mailto:students@ente.com) before your next renewal invoice is generated so we can review your eligibility and help renew the discount on your existing subscription. Include the email address registered with Ente if it differs from your institute email.
@@ -727,11 +729,15 @@ If your subscription is through the Apple App Store or Google Play, update your 
 
 If you pay Ente directly:
 
+We retry a failed renewal automatically over the next few days. If the problem was temporary, for example your bank blocked the payment and has now unblocked it, you don't need to do anything. You'll see the renewal under `Settings > Account > Manage subscription` once it goes through.
+
+If your card has expired or been replaced:
+
 1. Open `Settings > Account > Manage subscription > Manage payment method` in the app, or on [photos.ente.com](https://photos.ente.com).
 2. Add your new card or update the expired one.
-3. In the invoices list on the same page, open the unpaid invoice and retry the payment.
+3. To pay straight away instead of waiting for the next retry, open the unpaid invoice in the invoices list on the same page and retry the payment.
 
-Updating your card does not retry the failed payment on its own, so make sure to complete step 3.
+Want to switch to a smaller plan? Pay the current renewal first, then change plans. Any difference is credited to your account. See [What happens when I downgrade my plan?](#downgrade-plan)
 
 If you don't see an unpaid invoice, or want to change your plan at the same time, reply to the email or contact [support@ente.com](mailto:support@ente.com) and we'll help you renew.
 

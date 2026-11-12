@@ -3258,6 +3258,7 @@
     }
   },
   "preparingLogs": "Preparing logs...",
+  "preparingVideo": "Preparing video...",
   "preserveMore": "Preserve more",
   "pressAndHoldToPlayVideoDetailed": "Press and hold on the image to  play video",
   "preview": "Preview",
@@ -4225,6 +4226,7 @@
   "setupYourLegacy": "Setup your Legacy",
   "share": "Share",
   "shareALink": "Share a link",
+  "shareAsVideo": "Share as video",
   "shareAnAlbum": "Share an album",
   "shareCodeEarnStorage": "Double your storage on Ente",
   "shareCodes": "Share codes",
