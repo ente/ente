@@ -17,7 +17,7 @@ The recipient must be an active member of your [family plan](/photos/features/ac
 
 1. Open `Settings > Family`.
 
-   ![Mobile: home with Settings menu (three bars) highlighted, then Family, then the Family page](https://docs-assets.ente.com/screenshots/phone-settings-family-path.png){width=560px}
+   ![Mobile: home with Settings menu (three bars) highlighted, then Family, then the Family page](https://docs-assets.ente.com/screenshots/phone-settings-family-path-nc.png){width=560px}
 
 2. Select a family member and tap **Share albums**.
 3. Select the albums to share, or tap **Select all**.

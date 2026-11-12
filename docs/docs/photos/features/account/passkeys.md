@@ -25,7 +25,7 @@ Passkeys get enabled if you add one (or more) passkeys to your account. Converse
 
 To add and remove passkeys, use the _Passkey_ option in the settings menu. This will open the Ente Accounts web app (_accounts.ente.com_), where you can manage your passkeys.
 
-![Ente Photos on Android: Settings path to Security with Passkey ringed](https://docs-assets.ente.com/screenshots/phone-settings-security-passkey-path.png){width=560px}
+![Ente Photos on Android: Settings path to Security with Passkey ringed](https://docs-assets.ente.com/screenshots/phone-settings-security-passkey-path-nc.png){width=560px}
 
 <div align="center">
 

@@ -35,7 +35,7 @@ The generated stream is a single encrypted blob (AES encryption) while the playl
 
 1. Open `Settings > Streamable videos`
 
-   ![Mobile: home with Settings menu (three bars) highlighted, then Streamable videos, then the Streamable videos page](https://docs-assets.ente.com/screenshots/phone-settings-streamable-path.png){width=560px}
+   ![Mobile: home with Settings menu (three bars) highlighted, then Streamable videos, then the Streamable videos page](https://docs-assets.ente.com/screenshots/phone-settings-streamable-path-nc.png){width=560px}
 
 2. Enable the toggle
 
@@ -58,7 +58,7 @@ While viewing a video on mobile:
 
 These controls are available whether Ente plays the original video or a streamable version.
 
-![Mobile: overflow menu (three dots) and Playback speed highlighted, then the Playback speed options on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-playback-speed-steps.png){width=560px}
+![Mobile: overflow menu (three dots) and Playback speed highlighted, then the Playback speed options on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-playback-speed-steps-nc.png){width=560px}
 
 ### On desktop
 
@@ -82,7 +82,7 @@ These controls are available whether Ente plays the original video or a streamab
 
 - Open `Settings > Backup > Backup status` to see processing status
 
-  ![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup status, then the Backup status page](https://docs-assets.ente.com/screenshots/phone-settings-backup-status-path.png){width=560px}
+  ![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup status, then the Backup status page](https://docs-assets.ente.com/screenshots/phone-settings-backup-status-path-nc.png){width=560px}
 
 - Processed videos show a green play button
 - Tap processed videos to see a `Play stream` button

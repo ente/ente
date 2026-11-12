@@ -127,7 +127,7 @@ This option is available in two places:
 - **During signup/login**: On the permissions screen, you can choose to back up only new photos instead of your full library.
 - **In settings**: Open `Settings > Backup > Backup settings` and toggle on **Backup only new photos**.
 
-![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup settings, then Backup settings page](https://docs-assets.ente.com/screenshots/phone-settings-backup-backup-settings-path.png){width=560px}
+![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backup settings, then Backup settings page](https://docs-assets.ente.com/screenshots/phone-settings-backup-backup-settings-path-nc.png){width=560px}
 
 ### What "new photos" means
 

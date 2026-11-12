@@ -21,7 +21,7 @@ If the person you want to share with has an Ente account, you can share an album
 
 **To invite someone to Ente**: Send them an invite from the app. Once they create an account, you can share albums with them.
 
-![Mobile: Share icon, then Add person, then Choose access on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-share-ente-users-steps.png){width=560px}
+![Mobile: Share icon, then Add person, then Choose access on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-share-ente-users-steps-nc.png){width=560px}
 
 ### Share your library with family
 

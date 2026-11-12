@@ -23,7 +23,7 @@ Share an entire album via a public link:
 4. On the "Link settings" screen, configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Tap "Copy link" and share it
 
-![From an album > On mobile, steps 2-4 screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-public-link-steps-2-4.png){width=560px}
+![From an album > On mobile, steps 2-4 screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-public-link-steps-2-4-nc.png){width=560px}
 
 **On web/desktop:**
 

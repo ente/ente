@@ -78,7 +78,7 @@ Open `Settings > Widgets` in the Ente app to configure your widgets.
 3. By default, the **Favorites** album is selected
 4. You can select multiple albums to include more variety
 
-![Ente Photos on Android: Settings path to Albums widget picker with Travel Maps ringed](https://docs-assets.ente.com/screenshots/phone-settings-widgets-albums-path.png){width=560px}
+![Ente Photos on Android: Settings path to Albums widget picker with Travel Maps ringed](https://docs-assets.ente.com/screenshots/phone-settings-widgets-albums-path-nc.png){width=560px}
 
 ### Configuring the People Widget
 
@@ -100,7 +100,7 @@ Open `Settings > Widgets` in the Ente app to configure your widgets.
     - **Past Years**: Yearly memories
     - **Smart Memories**: AI-curated memorable moments
 
-![Ente Photos on Android: Settings path to Memories widget with On this day memories ringed](https://docs-assets.ente.com/screenshots/phone-settings-widgets-memories-path.png){width=560px}
+![Ente Photos on Android: Settings path to Memories widget with On this day memories ringed](https://docs-assets.ente.com/screenshots/phone-settings-widgets-memories-path-nc.png){width=560px}
 
 ## How Widgets Work
 

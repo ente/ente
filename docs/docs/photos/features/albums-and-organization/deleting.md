@@ -229,7 +229,7 @@ Choose carefully based on whether you want to keep the photos or remove them ent
 
 ![Delete album confirmation dialog on Ente Photos web with Keep photos Delete photos and Cancel](https://docs-assets.ente.com/screenshots/web-delete-album-confirm.png){width=720px}
 
-![Mobile: album overflow menu (three dots) highlighted, then Delete, then the Delete this album? dialog with Keep photos and Delete photos highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-delete-album-steps.png){width=560px}
+![Mobile: album overflow menu (three dots) highlighted, then Delete, then the Delete this album? dialog with Keep photos and Delete photos highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-delete-album-steps-nc.png){width=560px}
 
 ### Deleting from collaborative albums
 

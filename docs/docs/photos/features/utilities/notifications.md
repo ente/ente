@@ -82,7 +82,7 @@ Open `Settings > Notifications` in the Ente app to:
 - Turn off all notifications
 - Choose which reminders you want to receive
 
-![Mobile: home with Settings menu (three bars) highlighted, then Notifications, then the Notifications page](https://docs-assets.ente.com/screenshots/phone-settings-notifications-path.png){width=560px}
+![Mobile: home with Settings menu (three bars) highlighted, then Notifications, then the Notifications page](https://docs-assets.ente.com/screenshots/phone-settings-notifications-path-nc.png){width=560px}
 
 By default, all notification categories are enabled when you grant notification permission.
 

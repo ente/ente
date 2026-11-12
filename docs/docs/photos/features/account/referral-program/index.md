@@ -13,7 +13,7 @@ Your friend gets an extra 10 GB immediately after applying your referral code. Y
 
 You can find your referral code under `Settings > Referrals`.
 
-![Mobile: home with Settings menu (three bars) highlighted, then Referrals, then the Get free storage referrals page](https://docs-assets.ente.com/screenshots/phone-settings-referrals-path.png){width=560px}
+![Mobile: home with Settings menu (three bars) highlighted, then Referrals, then the Get free storage referrals page](https://docs-assets.ente.com/screenshots/phone-settings-referrals-path-nc.png){width=560px}
 
 <div align="center">
 

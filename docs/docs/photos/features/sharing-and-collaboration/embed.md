@@ -37,7 +37,7 @@ The simplest way to get the embed code is directly from Ente, whether you're on 
 
 This copies ready-to-use iframe code that you can paste directly into your website's HTML.
 
-![Mobile steps 2, 3 and 5: Share icon, then Create public link, then Copy embed HTML highlighted in Link settings on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-embed-copy-html-steps.png){width=560px}
+![Mobile steps 2, 3 and 5: Share icon, then Create public link, then Copy embed HTML highlighted in Link settings on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-embed-copy-html-steps-nc.png){width=560px}
 
 ### Manual method
 
