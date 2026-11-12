@@ -238,16 +238,27 @@ class RemoteSyncService {
     return _prefs.containsKey(_isFirstRemoteSyncDone);
   }
 
-  Future<bool> whiteListVideoForUpload(EnteFile file) async {
-    if (file.fileType == FileType.video &&
-        !backupSettings.shouldBackupVideos() &&
-        file.localID != null) {
-      final List<String> whitelistedIDs =
-          _prefs.getStringList(_ignoreBackUpSettingsForIDs_) ?? <String>[];
-      whitelistedIDs.add(file.localID!);
-      return _prefs.setStringList(_ignoreBackUpSettingsForIDs_, whitelistedIDs);
-    }
-    return false;
+  Future<bool> whiteListVideoForUpload(EnteFile file) =>
+      whiteListVideosForUpload([file]);
+
+  Future<bool> whiteListVideosForUpload(Iterable<EnteFile> files) async {
+    if (backupSettings.shouldBackupVideos()) return false;
+    final requestedIDs = {
+      for (final file in files)
+        if (file.fileType == FileType.video && file.localID != null)
+          file.localID!,
+    };
+    if (requestedIDs.isEmpty) return false;
+    final existingIDs =
+        _prefs.getStringList(_ignoreBackUpSettingsForIDs_) ?? <String>[];
+    final whitelistedIDs = existingIDs.toSet();
+    final hasNewIDs = requestedIDs.any((id) => !whitelistedIDs.contains(id));
+    if (!hasNewIDs && whitelistedIDs.length == existingIDs.length) return false;
+    whitelistedIDs.addAll(requestedIDs);
+    return _prefs.setStringList(
+      _ignoreBackUpSettingsForIDs_,
+      whitelistedIDs.toList(),
+    );
   }
 
   Future<void> _pullDiff() async {
