@@ -1,0 +1,1 @@
+- (i) Improve photo review loading, image quality, completion animations, and scrollbar placement.
