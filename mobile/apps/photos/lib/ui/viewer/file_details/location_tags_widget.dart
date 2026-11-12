@@ -104,6 +104,7 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
     final locationTags = await locationService.enclosingLocationTags(
       widget.file.location!,
     );
+    if (!mounted) return const [];
     if (locationTags.isEmpty) {
       if (mounted) {
         setState(() {
@@ -142,6 +143,7 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
           .toList();
       result.add(
         IconButtonComponent(
+          tooltip: context.strings.addLocation,
           size: FilterChipComponent.minHeight,
           icon: const HugeIcon(
             icon: HugeIcons.strokeRoundedPlusSign,

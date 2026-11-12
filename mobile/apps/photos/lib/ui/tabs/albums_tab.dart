@@ -860,6 +860,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     final selectedAlbums = widget.selectedAlbums;
     final albumsOptionsButton = Builder(
       builder: (buttonContext) => IconButtonComponent(
+        tooltip: strings.filters,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),
@@ -956,6 +957,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                                 ),
                               ),
                               IconButtonComponent(
+                                tooltip: strings.search,
                                 variant: IconButtonComponentVariant.primary,
                                 shouldSurfaceExecutionStates: false,
                                 icon: const HugeIcon(
@@ -1289,6 +1291,7 @@ class _LocalGalleryTrashButtonState extends State<_LocalGalleryTrashButton> {
               children: [
                 widget.before,
                 IconButtonComponent(
+                  tooltip: context.strings.trash,
                   variant: IconButtonComponentVariant.primary,
                   shouldSurfaceExecutionStates: false,
                   icon: const HugeIcon(icon: HugeIcons.strokeRoundedDelete02),

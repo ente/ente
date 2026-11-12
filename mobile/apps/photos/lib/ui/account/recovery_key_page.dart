@@ -151,6 +151,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
               ),
               const SizedBox(width: Spacing.xs),
               IconButtonComponent(
+                tooltip: MaterialLocalizations.of(context).copyButtonLabel,
                 variant: IconButtonComponentVariant.unfilled,
                 iconSize: IconSizes.small,
                 icon: HugeIcon(

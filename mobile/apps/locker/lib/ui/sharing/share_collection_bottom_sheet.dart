@@ -257,9 +257,14 @@ class _ShareCollectionSheetState extends State<ShareCollectionSheet> {
           _removeSharee(user);
         }
       },
-      child: HugeIcon(
-        icon: HugeIcons.strokeRoundedMoreVertical,
-        color: colors.textBase,
+      child: Tooltip(
+        message: context.strings.more,
+        child: ExcludeSemantics(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedMoreVertical,
+            color: colors.textBase,
+          ),
+        ),
       ),
     );
   }

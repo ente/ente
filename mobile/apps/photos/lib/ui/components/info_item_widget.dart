@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -217,6 +218,7 @@ class InfoItemWidget extends StatelessWidget {
                     if (editOnTap != null) ...[
                       const SizedBox(width: Spacing.md),
                       IconButtonComponent(
+                        tooltip: context.strings.edit,
                         icon: HugeIcon(
                           icon: HugeIcons.strokeRoundedEdit03,
                           size: IconSizes.small,

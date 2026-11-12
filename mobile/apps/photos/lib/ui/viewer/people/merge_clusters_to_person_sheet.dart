@@ -425,6 +425,7 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
                             SizedBox.square(
                               dimension: _titleActionSize,
                               child: IconButtonComponent(
+                                tooltip: context.strings.search,
                                 variant: IconButtonComponentVariant.primary,
                                 shouldSurfaceExecutionStates: false,
                                 icon: const HugeIcon(
