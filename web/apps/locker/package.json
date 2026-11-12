@@ -7,7 +7,7 @@
     },
     "dependencies": {
         "@fontsource-variable/outfit": "5.3.0",
-        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/core-free-icons": "4.4.0",
         "@hugeicons/react": "1.1.10",
         "ente-accounts": "*",
         "ente-base": "*",
@@ -16,6 +16,6 @@
     },
     "devDependencies": {
         "ente-build-config": "*",
-        "vitest": "5.0.5"
+        "vitest": "5.1.0"
     }
 }
