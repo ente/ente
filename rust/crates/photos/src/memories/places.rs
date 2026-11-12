@@ -98,6 +98,7 @@ impl Places {
     pub(super) fn cities(&self, members: &[Located]) -> Vec<CityPhotos<'_>> {
         let places = self.fold(self.place_counts(members), |town, place, _, _| {
             normalize_search_text(&town.city) == normalize_search_text(&place.city)
+                && distance_km(town.location, place.location) <= NEARBY_TOWN_KM
         });
         let towns = self.fold(places, |town, place, town_photos, place_photos| {
             town.rank > place.rank

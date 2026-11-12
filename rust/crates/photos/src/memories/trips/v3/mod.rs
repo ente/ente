@@ -395,7 +395,9 @@ mod tests {
     const MARKET_TOWN: (f64, f64) = (15.3, 73.475);
     const DISTRICT_TOWN: (f64, f64) = (15.2689, 73.3909);
     const HARBOUR_TOWN: (f64, f64) = (22.2783, 111.1747);
-    const HARBOUR_TOWN_WEST: (f64, f64) = (22.3964, 111.1095);
+    const HARBOUR_TOWN_WEST: (f64, f64) = (22.29, 111.16);
+    const SAN_MARCO_NORTH: (f64, f64) = (45.0, 10.0);
+    const SAN_MARCO_SOUTH: (f64, f64) = (40.5, 16.0);
     const FRENCH_TOWNS: [(f64, f64); 6] = [
         (45.764, 4.8357),
         (45.1885, 5.7245),
@@ -427,7 +429,7 @@ mod tests {
 
     struct Atlas;
 
-    const CITIES: [(&str, [u8; 2], (f64, f64)); 37] = [
+    const CITIES: [(&str, [u8; 2], (f64, f64)); 39] = [
         ("Amsterdam", *b"NL", AMSTERDAM),
         ("Berlin", *b"DE", BERLIN),
         ("Los Angeles", *b"US", DOWNTOWN_LOS_ANGELES),
@@ -465,6 +467,8 @@ mod tests {
         ("District Town", *b"IN", DISTRICT_TOWN),
         ("Porto Belém", *b"IN", HARBOUR_TOWN),
         ("Porto Belem", *b"IN", HARBOUR_TOWN_WEST),
+        ("San Marco", *b"IT", SAN_MARCO_NORTH),
+        ("San Marco", *b"IT", SAN_MARCO_SOUTH),
     ];
 
     fn nearest_city(coordinate: Coordinate) -> usize {
@@ -1299,17 +1303,24 @@ mod tests {
     }
 
     #[test]
-    fn entries_spelled_alike_count_as_one_place_but_neighbouring_villages_stay_apart() {
+    fn entries_for_one_place_count_together_but_namesakes_and_neighbours_stay_apart() {
         let mut harbour = stay(1000, "2024-08-10T09:00:00", 5, 240, HARBOUR_TOWN);
         harbour.extend(stay(1100, "2024-08-11T09:00:00", 4, 240, HARBOUR_TOWN_WEST));
         harbour.extend(stay(1200, "2024-08-12T09:00:00", 3, 240, HILL_VILLAGE));
         let mut villages = stay(2000, "2025-02-10T09:00:00", 10, 240, TEMPLE_VILLAGE);
         villages.extend(stay(2100, "2025-02-12T09:00:00", 10, 240, RIVER_VILLAGE));
-        let files = library(vec![harbour, villages], &AMSTERDAM_HOME);
+        let mut namesakes = stay(3000, "2025-09-10T09:00:00", 8, 240, SAN_MARCO_NORTH);
+        namesakes.extend(stay(3100, "2025-09-12T09:00:00", 8, 240, SAN_MARCO_SOUTH));
+        namesakes.extend(stay(3200, "2025-09-14T09:00:00", 4, 240, ROME));
+        let files = library(vec![harbour, villages, namesakes], &AMSTERDAM_HOME);
 
         assert_eq!(
             trips(files),
-            named(&[(1, "Porto Belém"), (2, "River Village & Temple Village")])
+            named(&[
+                (1, "Porto Belém"),
+                (2, "River Village & Temple Village"),
+                (3, "Italy")
+            ])
         );
     }
 
