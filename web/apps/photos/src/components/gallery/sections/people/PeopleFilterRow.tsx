@@ -240,12 +240,12 @@ const PeopleFilterChip = ({
             borderRadius: `${(avatarSize + 8) / 2}px`,
             bgcolor: label
                 ? selected
-                    ? "#d6d6d6"
-                    : "#e8e8e8"
+                    ? "#555555"
+                    : "#666666"
                 : selected
                   ? "#161616"
                   : "#fff",
-            color: label ? "#161616" : selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
+            color: label ? "#fff" : selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
             transition: "background-color 120ms ease-in-out",
             "&.Mui-focusVisible": {
                 outline: "2px solid",
@@ -256,13 +256,13 @@ const PeopleFilterChip = ({
             ...theme.applyStyles("dark", {
                 bgcolor: label
                     ? selected
-                        ? "#d6d6d6"
-                        : "#e8e8e8"
+                        ? "#555555"
+                        : "#666666"
                     : selected
                       ? "#f4f4f4"
                       : "#212121",
                 color: label
-                    ? "#161616"
+                    ? "#fff"
                     : selected
                       ? "#000"
                       : "rgba(255, 255, 255, 0.7)",
