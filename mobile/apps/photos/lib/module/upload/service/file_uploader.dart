@@ -923,6 +923,13 @@ class FileUploader {
       }
       if (deleteEntry) {
         await FilesDB.instance.deleteLocalFile(file);
+        Bus.instance.fire(
+          LocalPhotosUpdatedEvent(
+            [file],
+            type: EventType.deletedFromDevice,
+            source: "invalidFile",
+          ),
+        );
       }
       if (canIgnoreFile) {
         await LocalSyncService.instance.ignoreUpload(file, e);

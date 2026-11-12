@@ -9,6 +9,7 @@ import "package:photos/core/user_config.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/photo_review_db.dart";
 import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/force_reload_home_gallery_event.dart";
 import "package:photos/events/photo_review_updated_event.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/models/file/file.dart";
@@ -22,6 +23,9 @@ import "package:photos/services/ignored_files_service.dart";
 class PhotoReviewService {
   PhotoReviewService._privateConstructor() {
     Bus.instance.on<FilesUpdatedEvent>().listen((_) => _overviewFuture = null);
+    Bus.instance.on<ForceReloadHomeGalleryEvent>().listen(
+      (_) => _overviewFuture = null,
+    );
     Bus.instance.on<UserLoggedOutEvent>().listen((_) => _overviewFuture = null);
   }
 
