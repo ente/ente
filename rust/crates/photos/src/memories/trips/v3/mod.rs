@@ -2,7 +2,7 @@ mod homes;
 mod naming;
 
 use std::collections::HashMap;
-use std::mem;
+use std::{iter, mem};
 
 use ente_location::{Coordinate, CountryCode};
 
@@ -130,6 +130,7 @@ fn trips<'p>(own: &[Placed<'p>], shared: &[Placed<'p>], homes: &Homes) -> Vec<Ve
         .filter(|(_, frequent)| !frequent)
         .flat_map(|(visit, _)| country_legs(visit))
         .filter(|leg| is_trip(leg))
+        .flat_map(|leg| without_home_ends(leg, homes))
         .collect()
 }
 
@@ -287,6 +288,42 @@ fn country_legs(visit: Vec<Placed>) -> Vec<Vec<Placed>> {
     merged.into_iter().map(|(_, leg)| leg).collect()
 }
 
+fn without_home_ends<'p>(leg: Vec<Placed<'p>>, homes: &Homes) -> Vec<Vec<Placed<'p>>> {
+    let in_home_country: Vec<Option<bool>> = leg
+        .iter()
+        .map(|point| {
+            point.country.map(|country| {
+                homes
+                    .countries_on(point.member.photo.date.days_since_epoch())
+                    .contains(&country)
+            })
+        })
+        .collect();
+    let abroad: Vec<usize> = (0..leg.len())
+        .filter(|&index| in_home_country[index] == Some(false))
+        .collect();
+    let (Some(&first), Some(&last)) = (abroad.first(), abroad.last()) else {
+        return vec![leg];
+    };
+    if abroad.len() * 2 <= in_home_country.iter().flatten().count() {
+        return vec![leg];
+    }
+    let start = in_home_country[..first]
+        .iter()
+        .rposition(|&home| home == Some(true))
+        .map_or(0, |index| index + 1);
+    let end = in_home_country[last..]
+        .iter()
+        .position(|&home| home == Some(true))
+        .map_or(leg.len(), |index| last + index);
+    let mut before = leg;
+    let after = before.split_off(end);
+    let away = before.split_off(start);
+    iter::once(away)
+        .chain([before, after].into_iter().filter(|part| is_trip(part)))
+        .collect()
+}
+
 fn is_trip(points: &[Placed]) -> bool {
     let (Some(first), Some(last)) = (points.first(), points.last()) else {
         return false;
@@ -342,6 +379,15 @@ mod tests {
     const ROMAN_COUNTRYSIDE: (f64, f64) = (42.25, 12.95);
     const ARDECHE: (f64, f64) = (44.6, 4.4);
     const TRIER: (f64, f64) = (49.7499, 6.6371);
+    const FLORENCE: (f64, f64) = (43.7696, 11.2558);
+    const TIVOLI: (f64, f64) = (41.9634, 12.7983);
+    const PUDUCHERRY: (f64, f64) = (11.9416, 79.8083);
+    const MANAVELI: (f64, f64) = (11.87, 79.82);
+    const CANACONA: (f64, f64) = (15.0086, 74.0466);
+    const KANKON: (f64, f64) = (15.0186, 74.0466);
+    const AGONDA: (f64, f64) = (15.0436, 73.9867);
+    const HONG_KONG_ISLAND: (f64, f64) = (22.2783, 114.1747);
+    const HONG_KONG_NEW_TERRITORIES: (f64, f64) = (22.3964, 114.1095);
     const FRENCH_TOWNS: [(f64, f64); 6] = [
         (45.764, 4.8357),
         (45.1885, 5.7245),
@@ -373,7 +419,7 @@ mod tests {
 
     struct Atlas;
 
-    const CITIES: [(&str, [u8; 2], (f64, f64)); 24] = [
+    const CITIES: [(&str, [u8; 2], (f64, f64)); 33] = [
         ("Amsterdam", *b"NL", AMSTERDAM),
         ("Berlin", *b"DE", BERLIN),
         ("Los Angeles", *b"US", DOWNTOWN_LOS_ANGELES),
@@ -398,6 +444,15 @@ mod tests {
         ("Toulouse", *b"FR", FRENCH_TOWNS[5]),
         ("Nijmegen", *b"NL", NIJMEGEN),
         ("Trier", *b"DE", TRIER),
+        ("Florence", *b"IT", FLORENCE),
+        ("Tivoli", *b"IT", TIVOLI),
+        ("Puducherry", *b"IN", PUDUCHERRY),
+        ("Manaveli", *b"IN", MANAVELI),
+        ("Canacona", *b"IN", CANACONA),
+        ("Kānkon", *b"IN", KANKON),
+        ("Agonda", *b"IN", AGONDA),
+        ("Hong Kong", *b"HK", HONG_KONG_ISLAND),
+        ("Hong Kong", *b"HK", HONG_KONG_NEW_TERRITORIES),
     ];
 
     fn nearest_city(coordinate: Coordinate) -> usize {
@@ -427,7 +482,7 @@ mod tests {
                             country_code: CountryCode::from_bytes(country).unwrap(),
                             latitude,
                             longitude,
-                            rank: 0,
+                            rank: if name == "Puducherry" { 4 } else { 0 },
                         },
                         coordinate_indices: coordinates
                             .iter()
@@ -1215,5 +1270,74 @@ mod tests {
         let files = library(vec![road_trip], &AMSTERDAM_HOME);
 
         assert_eq!(trips(files), named(&[(1, "Bruges & Groningen")]));
+    }
+
+    #[test]
+    fn a_village_next_to_a_town_is_named_after_the_town_only_when_you_photographed_the_town_too() {
+        let mut first = stay(1000, "2024-01-10T09:00:00", 20, 240, MANAVELI);
+        first.extend(stay(1100, "2024-01-11T10:00:00", 8, 60, PUDUCHERRY));
+        let mut second = stay(2000, "2025-01-10T09:00:00", 20, 240, MANAVELI);
+        second.extend(stay(2100, "2025-01-11T10:00:00", 2, 60, PUDUCHERRY));
+        let files = library(vec![first, second], &AMSTERDAM_HOME);
+
+        assert_eq!(trips(files), named(&[(1, "Puducherry"), (2, "Manaveli")]));
+    }
+
+    #[test]
+    fn two_entries_for_one_town_count_as_one_town() {
+        let mut goa = stay(1000, "2024-02-10T09:00:00", 8, 240, CANACONA);
+        goa.extend(stay(1100, "2024-02-12T09:00:00", 7, 240, KANKON));
+        goa.extend(stay(1200, "2024-02-14T09:00:00", 9, 240, AGONDA));
+        let mut hong_kong = stay(2000, "2024-08-10T09:00:00", 5, 240, HONG_KONG_ISLAND);
+        hong_kong.extend(stay(
+            2100,
+            "2024-08-11T09:00:00",
+            5,
+            240,
+            HONG_KONG_NEW_TERRITORIES,
+        ));
+        let files = library(vec![goa, hong_kong], &AMSTERDAM_HOME);
+
+        assert_eq!(trips(files), named(&[(1, "Canacona"), (2, "Hong Kong")]));
+    }
+
+    #[test]
+    fn a_trip_across_a_foreign_country_is_named_after_the_country_unless_one_city_has_most_photos()
+    {
+        let mut tour = stay(1000, "2023-04-10T09:00:00", 14, 240, ROME);
+        tour.extend(stay(1100, "2023-04-14T09:00:00", 8, 240, FLORENCE));
+        let mut city_break = stay(2000, "2024-10-10T09:00:00", 18, 240, ROME);
+        city_break.extend(stay(2100, "2024-10-14T09:00:00", 4, 240, FLORENCE));
+        let mut around_rome = stay(3000, "2026-04-10T09:00:00", 14, 240, ROME);
+        around_rome.extend(stay(3100, "2026-04-14T09:00:00", 8, 240, TIVOLI));
+        let files = library(vec![tour, city_break, around_rome], &AMSTERDAM_HOME);
+
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Italy"), (2, "Rome"), (3, "Rome")])
+        );
+    }
+
+    #[test]
+    fn a_trip_abroad_leaves_out_photos_from_home_before_and_after_it() {
+        let mut holiday = stay(2000, "2024-06-09T18:00:00", 3, 60, ROTTERDAM);
+        holiday.extend(stay(2003, "2024-06-10T06:00:00", 2, 30, ROTTERDAM));
+        holiday.extend(stay(1100, "2024-06-10T10:00:00", 1, 0, MATTERHORN_BORDER));
+        holiday.extend(stay(1000, "2024-06-10T15:00:00", 7, 480, ROME));
+        holiday.extend(stay(1101, "2024-06-13T03:00:00", 1, 0, MATTERHORN_BORDER));
+        holiday.extend(stay(2005, "2024-06-13T12:00:00", 1, 0, ROTTERDAM));
+        let mut road_trip = stay(3000, "2025-05-01T09:00:00", 10, 180, GRONINGEN);
+        road_trip.extend(stay(4000, "2025-05-02T20:00:00", 14, 360, ROME));
+        let files = library(vec![holiday, road_trip], &AMSTERDAM_HOME);
+        let rome = memories(files.clone())
+            .into_iter()
+            .find(|memory| memory.file_ids.contains(&1000))
+            .unwrap();
+
+        assert!(rome.file_ids.contains(&1100) && rome.file_ids.contains(&1101));
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Rome"), (3, "Groningen"), (4, "Rome")])
+        );
     }
 }

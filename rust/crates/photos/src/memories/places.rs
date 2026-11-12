@@ -3,14 +3,26 @@ use std::collections::{HashMap, HashSet};
 
 use ente_location::{Coordinate, CountryCode};
 
-use super::geo::Located;
+use super::geo::{Located, distance_km};
 use super::input::CityLookup;
+
+const NEARBY_TOWN_KM: f64 = 10.0;
+const TOWN_MAX_PHOTO_RATIO: usize = 3;
+const DUPLICATE_PLACE_KM: f64 = 3.0;
 
 #[derive(Debug)]
 struct Place {
     city: String,
     country: String,
     country_code: CountryCode,
+    rank: u8,
+    location: Coordinate,
+}
+
+pub(super) struct CityPhotos<'p> {
+    pub(super) name: &'p str,
+    pub(super) location: Coordinate,
+    pub(super) photos: usize,
 }
 
 #[derive(Debug, Default)]
@@ -39,6 +51,8 @@ impl Places {
                 city: group.city.name,
                 country: group.city.country_name,
                 country_code: group.city.country_code,
+                rank: group.city.rank,
+                location: Coordinate::new(group.city.latitude, group.city.longitude),
             });
             for position in group.coordinate_indices {
                 if let Some(member) = members.get(position as usize) {
@@ -82,13 +96,50 @@ impl Places {
             .map(|&place| self.places[place].country_code)
     }
 
-    pub(super) fn city_counts(&self, members: &[Located]) -> Vec<(&str, usize)> {
-        let mut counts: Vec<(usize, usize)> = self.place_counts(members).into_iter().collect();
-        counts.sort_by_key(|&(place, count)| (Reverse(count), place));
-        counts
+    pub(super) fn cities(&self, members: &[Located]) -> Vec<CityPhotos<'_>> {
+        let counts = self.place_counts(members);
+        let absorbs = |town: usize, place: usize| {
+            let (town_photos, place_photos) = (counts[&town], counts[&place]);
+            let (town, place) = (&self.places[town], &self.places[place]);
+            let distance = distance_km(town.location, place.location);
+            town.city == place.city
+                || (town.rank > place.rank
+                    && distance <= NEARBY_TOWN_KM
+                    && town_photos * TOWN_MAX_PHOTO_RATIO >= place_photos)
+                || (town.rank == place.rank && distance <= DUPLICATE_PLACE_KM)
+        };
+        let mut smallest_first: Vec<usize> = counts.keys().copied().collect();
+        smallest_first
+            .sort_by_key(|&place| (self.places[place].rank, counts[&place], Reverse(place)));
+        let mut folded_into: HashMap<usize, usize> = HashMap::new();
+        for (position, &place) in smallest_first.iter().enumerate() {
+            if let Some(town) = smallest_first[position + 1..]
+                .iter()
+                .copied()
+                .filter(|&town| absorbs(town, place))
+                .max_by_key(|&town| (self.places[town].rank, counts[&town]))
+            {
+                folded_into.insert(place, town);
+            }
+        }
+        let mut photos: HashMap<usize, usize> = HashMap::new();
+        for (&place, &count) in &counts {
+            let mut town = place;
+            while let Some(&bigger) = folded_into.get(&town) {
+                town = bigger;
+            }
+            *photos.entry(town).or_default() += count;
+        }
+        let mut cities: Vec<CityPhotos> = photos
             .into_iter()
-            .map(|(place, count)| (self.places[place].city.as_str(), count))
-            .collect()
+            .map(|(town, photos)| CityPhotos {
+                name: &self.places[town].city,
+                location: self.places[town].location,
+                photos,
+            })
+            .collect();
+        cities.sort_by_key(|city| (Reverse(city.photos), city.name));
+        cities
     }
 
     fn place_counts(&self, members: &[Located]) -> HashMap<usize, usize> {
