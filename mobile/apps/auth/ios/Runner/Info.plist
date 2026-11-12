@@ -20,7 +20,7 @@
 			<string>es</string>
 		</array>
 		<key>CFBundleName</key>
-		<string>Auth</string>
+		<string>$(PRODUCT_NAME)</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

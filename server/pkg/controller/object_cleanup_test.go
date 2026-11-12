@@ -36,7 +36,7 @@ func TestFileRegistrationStoresApp(t *testing.T) {
 
 	file, _, err := fileRepo.Create(objectCleanupTestFile(
 		ownerID, collectionID, fileObjectKey, thumbnailObjectKey,
-	), 100, 10, 110, ownerID, ente.Photos)
+	), 100, 10, 110, ownerID, ente.Photos, repo.FileObjectBuckets{File: "b2-eu-cen", Thumbnail: "b2-eu-cen"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 	go func() {
 		_, _, err := fileRepo.Create(objectCleanupTestFile(
 			ownerID, collectionID, fileObjectKey, thumbnailObjectKey,
-		), 100, 10, 110, ownerID, ente.Photos)
+		), 100, 10, 110, ownerID, ente.Photos, repo.FileObjectBuckets{File: "b2-eu-cen", Thumbnail: "b2-eu-cen"})
 		registrationDone <- err
 	}()
 	waitForTempObjectDeleteLock(t, db)

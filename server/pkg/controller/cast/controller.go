@@ -104,6 +104,12 @@ func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest)
 		return uuid.Nil, stacktrace.Propagate(ente.ErrBadRequest, "encrypted payload too large")
 	}
 	userID := auth.GetUserID(ctx.Request.Header)
+	if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+		CollectionID: request.CollectionID,
+		ActorUserID:  userID,
+	}); err != nil {
+		return uuid.Nil, stacktrace.Propagate(err, "failed to verify cast access")
+	}
 	devices, err := c.CastRepo.GetAllDevices(ctx, userID)
 	if err != nil {
 		return uuid.Nil, stacktrace.Propagate(err, "failed to get existing devices")

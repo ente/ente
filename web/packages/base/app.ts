@@ -12,6 +12,7 @@ export const appNames = [
     "embed",
     "share",
     "photos",
+    "photobook",
     "ensu",
     "locker",
     "legacy",
@@ -38,6 +39,7 @@ export const staticAppTitle = {
     embed: "Ente Photos",
     share: "Ente Locker",
     photos: "Ente Photos",
+    photobook: "Ente Photobook",
     ensu: "Ensu",
     locker: "Ente Locker",
     legacy: "Ente Legacy Kit",
@@ -59,6 +61,7 @@ export const clientPackageName = (() => {
         embed: "io.ente.photos.web", // Use photos package name for embed app
         share: "io.ente.share.web",
         photos: "io.ente.photos.web",
+        photobook: "io.ente.photobook.web",
         ensu: "io.ente.ensu",
         locker: "io.ente.locker.web",
         legacy: "io.ente.legacy.web",

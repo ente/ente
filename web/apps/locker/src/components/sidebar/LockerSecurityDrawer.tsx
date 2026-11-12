@@ -1,4 +1,4 @@
-import { generatePasskeyRecovery } from "@/services/recovery-key";
+import { recoveryKeyMnemonic } from "@/services/recovery-key";
 import {
     ComputerPhoneSyncIcon,
     Key01Icon,
@@ -53,7 +53,7 @@ export const LockerSecurityDrawer: React.FC<
     const handleOpenPasskeys = async () => {
         handleRootClose();
         try {
-            await openAccountsManagePasskeysPage(generatePasskeyRecovery);
+            await openAccountsManagePasskeysPage(recoveryKeyMnemonic);
         } catch (e) {
             onGenericError(e);
         }

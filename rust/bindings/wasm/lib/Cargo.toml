@@ -3,6 +3,7 @@ name = "ente-wasm-lib"
 edition.workspace = true
 
 [features]
+account-deletion = ["session", "dep:wasm-bindgen-futures"]
 accounts = ["dep:ente-accounts", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify"]
 cast = ["dep:ente-cast", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify"]
 collections = ["session", "dep:ente-collections"]
@@ -16,8 +17,10 @@ crypto-blob = ["crypto"]
 crypto-file = ["crypto-blob", "dep:md-5"]
 crypto-seal = ["crypto"]
 legacy = ["session", "dep:ente-legacy", "dep:wasm-bindgen-futures"]
+location = ["dep:ente-location", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify"]
 locker = ["session", "dep:ente-locker"]
-prelogin = ["accounts", "crypto"]
+photos = ["session", "dep:ente-photos", "dep:serde", "dep:serde-wasm-bindgen", "dep:tsify", "dep:wasm-bindgen-futures"]
+prelogin = ["accounts", "crypto", "dep:wasm-bindgen-futures"]
 session = [
     "dep:ente-accounts",
     "dep:serde",
@@ -32,7 +35,9 @@ ente-collections = { workspace = true, optional = true }
 ente-contacts = { workspace = true, optional = true }
 ente-core.workspace = true
 ente-legacy = { workspace = true, optional = true }
+ente-location = { workspace = true, optional = true }
 ente-locker = { workspace = true, optional = true }
+ente-photos = { workspace = true, optional = true }
 js-sys.workspace = true
 log.workspace = true
 md-5 = { workspace = true, optional = true }

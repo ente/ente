@@ -1,1 +1,0 @@
-- Fixed notifications, widgets and shared content navigating outside Guest view.

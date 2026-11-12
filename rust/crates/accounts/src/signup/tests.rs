@@ -92,7 +92,10 @@ async fn checkpoints_preserve_keys_and_reconcile_an_accepted_upload() {
     let account = restore(&recovered).finish(&client).await.unwrap();
     assert_eq!(account.secrets.master_key, keys.master_key);
     assert_eq!(account.secrets.secret_key, keys.secret_key);
-    assert_eq!(account.recovery_key, recovered.recovery_key().unwrap());
+    assert_eq!(
+        account.recovery_key,
+        recovered.recovery_key().unwrap().unwrap()
+    );
     accepted.assert_async().await;
     accepted.remove_async().await;
     let mut different = keys.attributes.clone();
@@ -128,7 +131,7 @@ fn checkpoints_resume_signup_against_museum() -> ente_test_support::TestResult {
             "signup-resume-{}{HARDCODED_OTT_EMAIL_SUFFIX}",
             Uuid::new_v4()
         );
-        client.send_otp(&email, "signup").await?;
+        client.send_otp(&email, "signup", false).await?;
         let response = client
             .verify_email(&email, HARDCODED_OTT, Some("testAccount"))
             .await?;
@@ -340,7 +343,7 @@ async fn create_account_uploads_keys_and_completes_srp_setup() {
 
     let client = make_client(server.url());
 
-    client.send_otp(email, "signup").await.unwrap();
+    client.send_otp(email, "signup", false).await.unwrap();
     let verification = client
         .verify_email(email, "123456", Some("testAccount"))
         .await
@@ -356,7 +359,7 @@ async fn create_account_uploads_keys_and_completes_srp_setup() {
 
     assert_eq!(created.user_id, 99);
     assert_eq!(created.secrets.token, signup_token_bytes);
-    assert!(created.recovery_key.is_some());
+    assert!(!created.recovery_key.is_empty());
 
     send_otp.assert_async().await;
     verify_email.assert_async().await;

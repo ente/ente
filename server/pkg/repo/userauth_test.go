@@ -181,7 +181,7 @@ func TestAddLoginResultRejectsInvalidatedCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = repo.AddLoginResult(context.Background(), userID, srpAuth, &keyAttributes, ente.Photos, "token", "", "", "", "", 0)
+	err = repo.AddLoginResult(context.Background(), userID, srpAuth, &keyAttributes, ente.Photos, "token", "", "", "", "", 0, false)
 	if !errors.Is(err, ente.ErrAuthenticationRequired) {
 		t.Fatalf("stale key attributes returned %v", err)
 	}
@@ -191,7 +191,7 @@ func TestAddLoginResultRejectsInvalidatedCredentials(t *testing.T) {
 	if _, err = db.Exec(`UPDATE srp_auth SET verifier = 'new-verifier' WHERE user_id = $1`, userID); err != nil {
 		t.Fatal(err)
 	}
-	err = repo.AddLoginResult(context.Background(), userID, srpAuth, &keyAttributes, ente.Photos, "token", "", "", "", "", 0)
+	err = repo.AddLoginResult(context.Background(), userID, srpAuth, &keyAttributes, ente.Photos, "token", "", "", "", "", 0, false)
 	if !errors.Is(err, ente.ErrInvalidPassword) {
 		t.Fatalf("stale SRP returned %v", err)
 	}
@@ -200,8 +200,59 @@ func TestAddLoginResultRejectsInvalidatedCredentials(t *testing.T) {
 		t.Fatalf("token count = %d, err = %v", tokenCount, err)
 	}
 	require.NoError(t, (&UserRepository{DB: db}).Delete(userID))
-	err = repo.AddLoginResult(context.Background(), userID, srpAuth, &keyAttributes, ente.Photos, "token", "", "", "", "", 0)
+	err = repo.AddLoginResult(context.Background(), userID, srpAuth, &keyAttributes, ente.Photos, "token", "", "", "", "", 0, false)
 	require.ErrorIs(t, err, ente.ErrUserDeleted)
+}
+
+func TestAddLoginResultOrdersSRPLoginWithEmailMFAUpdate(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{Email: "srp-mfa-race@example.com", CreationTime: 1})
+	_, err := db.Exec(`INSERT INTO srp_auth(user_id, srp_user_id, salt, verifier) VALUES($1, $2, 'salt', 'verifier')`, userID, uuid.New())
+	require.NoError(t, err)
+	repo := &UserAuthRepository{DB: db}
+	srpAuth, err := repo.GetSRPAuthEntity(t.Context(), userID)
+	require.NoError(t, err)
+
+	update, err := db.BeginTx(t.Context(), nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = update.Rollback() })
+	_, err = update.ExecContext(t.Context(), `UPDATE users SET email_mfa = true WHERE user_id = $1`, userID)
+	require.NoError(t, err)
+	var updatePID int
+	require.NoError(t, update.QueryRowContext(t.Context(), `SELECT pg_backend_pid()`).Scan(&updatePID))
+	loginResult := make(chan error, 1)
+	go func() {
+		loginResult <- repo.AddLoginResult(t.Context(), userID, srpAuth, nil, ente.Photos, "srp-token", "", "", "", "", 0, true)
+	}()
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var blocked bool
+		require.NoError(collect, db.QueryRow(`SELECT EXISTS(SELECT 1 FROM pg_stat_activity
+			WHERE datname = current_database() AND $1 = ANY(pg_blocking_pids(pid)))`, updatePID).Scan(&blocked))
+		require.True(collect, blocked)
+	}, 5*gotime.Second, 10*gotime.Millisecond)
+	require.NoError(t, update.Commit())
+	err = <-loginResult
+	var apiError *ente.ApiError
+	require.ErrorAs(t, err, &apiError)
+	require.Equal(t, ente.ErrorCode("EMAIL_MFA_ENABLED"), apiError.Code)
+	require.Equal(t, 409, apiError.HttpStatusCode)
+
+	err = repo.AddLoginResult(t.Context(), userID, srpAuth, nil, ente.Photos, "", "", "", "", "srp-pending", time.Microseconds()+1000000, true)
+	require.ErrorAs(t, err, &apiError)
+	require.Equal(t, ente.ErrorCode("EMAIL_MFA_ENABLED"), apiError.Code)
+	var issued int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM tokens WHERE user_id = $1`, userID).Scan(&issued))
+	require.Zero(t, issued)
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM two_factor_sessions WHERE user_id = $1`, userID).Scan(&issued))
+	require.Zero(t, issued)
+
+	require.NoError(t, repo.AddLoginResult(t.Context(), userID, srpAuth, nil, ente.Photos, "email-token", "", "", "", "", 0, false))
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM tokens WHERE user_id = $1`, userID).Scan(&issued))
+	require.Equal(t, 1, issued)
 }
 
 func TestPasswordUpdateRollsBackRecoveryAuthorization(t *testing.T) {

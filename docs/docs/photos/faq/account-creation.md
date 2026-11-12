@@ -117,6 +117,17 @@ You can view and manage all devices logged into your Ente account:
 
 This is useful if you've lost a device or want to ensure old devices no longer have access to your account.
 
+If you received a "New login to your Ente account" email, see [Why did I get a "New login to your Ente account" email?](/photos/faq/security-and-privacy#new-login-email).
+
+### How do I log out of Ente Photos? {#logout}
+
+- **Mobile:** Open Settings, scroll to the bottom and tap **Logout**, then confirm.
+- **Web/Desktop:** Open the sidebar, scroll to the bottom and click **Logout**, then confirm.
+
+Logging out does not delete your account or your backed-up photos. You can log in again at any time with your email and password.
+
+To sign out a device you no longer have, use [Active sessions](#manage-devices) instead.
+
 ### Can I use Ente on both mobile and desktop? {#mobile-and-desktop}
 
 Yes! You can use Ente Photos on as many devices as you want:
@@ -195,7 +206,7 @@ On the login page:
 3. Enter your recovery key
 4. Create a new password
 
-If you don't have your recovery key and are logged out of all devices, we cannot recover your account due to end-to-end encryption.
+If you don't have your recovery key and are logged out of all devices, we cannot recover your account due to end-to-end encryption. You can [start over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
 ### Can I change my password later? {#change-password-later}
 
@@ -253,6 +264,19 @@ If you're not receiving verification codes:
 The recovery key does not bypass email verification. For security reasons, Ente does not disable or bypass email verification unless the account owner reaches out and successfully verifies their identity by providing account details.
 
 If you lose access to your email, contact [support@ente.com](mailto:support@ente.com).
+
+### I forgot which email address I used for Ente. How do I find it? {#forgot-account-email}
+
+Your Ente account is tied to the email address you signed up with, so finding that address is the first step. Try these:
+
+1. **A device where Ente is still signed in.** Open Settings in the Ente app. Your account email is shown at the top. Keep that device signed in while you sort things out.
+2. **Your inboxes.** Search every mailbox you use, including any email aliases or hide-my-email addresses, for emails from Ente, such as the welcome email, verification codes or payment receipts.
+3. **Your password manager or saved browser logins.** Search for "ente" to find the address you saved.
+4. **Your purchase records.** If you have a paid plan, look for Ente receipts. A Stripe receipt goes to the email your Ente account had when you paid. An App Store receipt goes to your Apple ID email, which may be different from the email you used for Ente.
+
+Once you've found the address, sign in with it. If you've also forgotten your password, see [What happens if I forget my password?](/photos/faq/security-and-privacy#account-recovery).
+
+If Ente says the address isn't registered, see [Why does Ente say my email address is not registered?](#email-not-registered).
 
 ### Why does Ente say my email address is not registered? {#email-not-registered}
 

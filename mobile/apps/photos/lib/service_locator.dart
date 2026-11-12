@@ -6,6 +6,7 @@ import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/core/network/endpoint_config.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/events/ml_consent_changed_event.dart";
 import "package:photos/gateways/billing/billing_gateway.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
@@ -20,7 +21,6 @@ import "package:photos/gateways/files/files_gateway.dart";
 import "package:photos/gateways/push/push_gateway.dart";
 import "package:photos/gateways/social/social_gateway.dart";
 import "package:photos/gateways/trash/trash_gateway.dart";
-import "package:photos/gateways/users/passkey_gateway.dart";
 import "package:photos/gateways/users/users_gateway.dart";
 import "package:photos/module/download/gallery_download_queue_service.dart";
 import "package:photos/module/download/manager.dart";
@@ -36,18 +36,20 @@ import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/services/machine_learning/ml_decryption_record_store.dart";
 import "package:photos/services/magic_cache_service.dart";
+import "package:photos/services/memories/dart_memories_computer.dart";
+import "package:photos/services/memories/memories_computer.dart";
+import "package:photos/services/memories/rust_memories_computer.dart";
+import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
+import "package:photos/services/rewind/rewind_service.dart";
 import "package:photos/services/rituals/rituals_service.dart";
 import "package:photos/services/smart_albums_service.dart";
-import "package:photos/services/smart_memories_service.dart";
 import "package:photos/services/storage_bonus_service.dart";
 import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
 import "package:photos/services/update_service.dart";
 import "package:photos/services/wake_lock_service.dart";
-import "package:photos/services/wrapped/wrapped_cache_service.dart";
-import "package:photos/services/wrapped/wrapped_service.dart";
 import "package:photos/settings/backup_settings.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -96,6 +98,7 @@ FlagService get flagService {
   _flagService ??= FlagService(
     ServiceLocator.instance.prefs,
     ServiceLocator.instance.enteDio,
+    Configuration.instance.getToken,
   );
   return _flagService!;
 }
@@ -227,10 +230,27 @@ MemoriesCacheService get memoriesCacheService {
   return _memoriesCacheService!;
 }
 
+RewindService? _rewindService;
+RewindService get rewindService {
+  _rewindService ??= RewindService(ServiceLocator.instance.prefs);
+  return _rewindService!;
+}
+
 SmartMemoriesService? _smartMemoriesService;
 SmartMemoriesService get smartMemoriesService {
   _smartMemoriesService ??= SmartMemoriesService();
   return _smartMemoriesService!;
+}
+
+DartMemoriesComputer? _dartMemoriesComputer;
+RustMemoriesComputer? _rustMemoriesComputer;
+RustMemoriesComputer get rustMemoriesComputer =>
+    _rustMemoriesComputer ??= RustMemoriesComputer();
+MemoriesComputer get memoriesComputer {
+  if (flagService.rustMemories && MLDataDB.isRustBackend) {
+    return rustMemoriesComputer;
+  }
+  return _dartMemoriesComputer ??= DartMemoriesComputer();
 }
 
 TextEmbeddingsCacheService? _textEmbeddingsCacheService;
@@ -302,18 +322,6 @@ LibrarySharingService get librarySharingService {
     store: LibrarySharingEntityStore(entityService),
   );
   return _librarySharingService!;
-}
-
-WrappedService? _wrappedService;
-WrappedService get wrappedService {
-  _wrappedService ??= WrappedService.instance;
-  return _wrappedService!;
-}
-
-WrappedCacheService? _wrappedCacheService;
-WrappedCacheService get wrappedCacheService {
-  _wrappedCacheService ??= WrappedCacheService.instance;
-  return _wrappedCacheService!;
 }
 
 InstallSourceService? _installSourceService;
@@ -394,12 +402,6 @@ BillingGateway? _billingGateway;
 BillingGateway get billingGateway {
   _billingGateway ??= BillingGateway(ServiceLocator.instance.enteDio);
   return _billingGateway!;
-}
-
-PasskeyGateway? _passkeyGateway;
-PasskeyGateway get passkeyGateway {
-  _passkeyGateway ??= PasskeyGateway(ServiceLocator.instance.enteDio);
-  return _passkeyGateway!;
 }
 
 UsersGateway? _usersGateway;

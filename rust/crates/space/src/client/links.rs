@@ -307,11 +307,11 @@ impl SpaceLinkCtx {
         Ok(response.target_id)
     }
 
-    pub async fn unsubscribe_web_push(&self, endpoint: String) -> Result<()> {
+    pub async fn unsubscribe_web_push(&self, endpoint: String, auth: String) -> Result<()> {
         self.api
             .delete(&format!("{}/push/subscription", self.prefix()))
             .header(AUTH_HEADER, &self.auth_key)
-            .json(&WebPushUnsubscriptionRequest { endpoint })
+            .json(&WebPushUnsubscriptionRequest { endpoint, auth })
             .send()
             .await?
             .error_for_status()?;
@@ -722,7 +722,8 @@ mod tests {
             .mock("DELETE", format!("{prefix}/push/subscription").as_str())
             .match_header("x-space-link-auth", link_auth)
             .match_body(Matcher::Json(json!({
-                "endpoint": WEB_PUSH_ENDPOINT
+                "endpoint": WEB_PUSH_ENDPOINT,
+                "auth": WEB_PUSH_AUTH
             })))
             .with_status(204)
             .create_async()
@@ -756,7 +757,7 @@ mod tests {
             .unwrap(),
             "wpt_target"
         );
-        ctx.unsubscribe_web_push(WEB_PUSH_ENDPOINT.to_owned())
+        ctx.unsubscribe_web_push(WEB_PUSH_ENDPOINT.to_owned(), WEB_PUSH_AUTH.to_owned())
             .await
             .unwrap();
 

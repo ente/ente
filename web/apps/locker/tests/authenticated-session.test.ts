@@ -7,7 +7,6 @@ const {
     masterKeyFromSession,
     keyAttributes,
     user,
-    encryptBoxWithRecoveryKey,
     generateKey,
     openLocker,
 } = vi.hoisted(() => ({
@@ -22,8 +21,6 @@ const {
         recoveryKeyDecryptionNonce: "recovery-key-nonce",
     },
     user: { id: 1 },
-    encryptBoxWithRecoveryKey:
-        vi.fn<typeof import("ente-locker-wasm").encryptBoxWithRecoveryKey>(),
     generateKey: vi.fn<typeof import("ente-locker-wasm").generateKey>(),
     openLocker: vi.fn<typeof import("ente-locker-wasm").openSession>(),
 }));
@@ -40,11 +37,7 @@ vi.mock("ente-accounts/services/user", () => ({
     ensureLocalUser: () => user,
     ensureSavedKeyAttributes: () => keyAttributes,
 }));
-vi.mock("ente-locker-wasm", () => ({
-    encryptBoxWithRecoveryKey,
-    generateKey,
-    openSession: openLocker,
-}));
+vi.mock("ente-locker-wasm", () => ({ generateKey, openSession: openLocker }));
 
 let sessions: typeof import("../src/services/authenticated-session");
 

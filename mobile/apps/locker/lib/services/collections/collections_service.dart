@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import "package:ente_accounts/services/user_service.dart";
@@ -83,11 +84,6 @@ class CollectionService {
     for (final collection in updatedCollections) {
       _collectionIDToCollections[collection.id] = collection;
     }
-    await _db.setSyncTime(updatedCollections.last.updationTime);
-    if (shouldCheckFirstSyncCompletion) {
-      await _setFirstSyncCompleted();
-    }
-
     final List<Future<bool>> fileFutures = [];
     for (final collection in updatedCollections) {
       if (collection.isDeleted) {
@@ -123,6 +119,14 @@ class CollectionService {
     }
     final fileSyncResults = await Future.wait(fileFutures);
     if (fileSyncResults.every((didSync) => didSync)) {
+      await _db.setSyncTime(
+        updatedCollections
+            .map((collection) => collection.updationTime)
+            .reduce(max),
+      );
+      if (shouldCheckFirstSyncCompletion) {
+        await _setFirstSyncCompleted();
+      }
       await OfflineFilesService.instance.cleanupInactiveOfflineFiles();
     } else {
       _logger.warning(

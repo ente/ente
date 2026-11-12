@@ -1,7 +1,6 @@
 mod adopt;
 mod fs;
 mod legacy;
-mod live_photo;
 mod metadata;
 mod names;
 mod reconcile;
@@ -50,8 +49,37 @@ pub struct Options {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("{0}")]
-pub struct AdoptionRequired(&'static str);
+pub enum AdoptionRequired {
+    #[error("this folder contains an export made by another Ente client")]
+    Foreign,
+    #[error("this export is not associated")]
+    Unassociated,
+    #[error("the destination association does not match")]
+    Destination,
+}
+
+#[derive(Debug)]
+pub enum Report<'a> {
+    RefreshingCatalog,
+    RefreshingAlbums,
+    CheckingExistingFiles,
+    Maintaining {
+        expected: i64,
+    },
+    Completed {
+        completed: i64,
+        expected: i64,
+    },
+    Failure {
+        unit: &'a str,
+        error: &'a anyhow::Error,
+    },
+    UnknownAlbum {
+        id: i64,
+        shared_unknown: bool,
+        hidden_unknown: bool,
+    },
+}
 
 pub struct Summary {
     pub json: Value,
@@ -83,12 +111,7 @@ impl Export {
         let expected_root = Root::new(&session.master_key, session.user_id)?;
         let root_lock = open_root(&destination, &expected_root)?;
         let adopting = root_lock.is_none() && legacy::read::recognized(&destination)?;
-        ensure!(
-            !adopting || options.adopt,
-            AdoptionRequired(
-                "This folder contains an export from the old CLI or Ente Desktop. Use --adopt if you want to take it over."
-            )
-        );
+        ensure!(!adopting || options.adopt, AdoptionRequired::Foreign);
         ensure!(
             !options.adopt || root_lock.is_some() || adopting,
             "there is no export to adopt"
@@ -97,7 +120,8 @@ impl Export {
             root_lock.is_some()
                 || adopting
                 || !destination.try_exists()?
-                || std::fs::read_dir(&destination)?.next().is_none(),
+                || std::fs::read_dir(&destination)?
+                    .all(|entry| { entry.is_ok_and(|entry| is_finder_metadata_entry(&entry)) }),
             "nonempty destination has no recognized export.json"
         );
         Ok(Self {
@@ -130,11 +154,11 @@ impl Export {
     pub async fn prepare(
         &mut self,
         connection: rusqlite::Connection,
-        open_index: impl FnOnce(&Path) -> Result<rusqlite::Connection>,
+        open_index: impl FnOnce() -> Result<(tempfile::TempDir, rusqlite::Connection)>,
         source: &mut impl Source,
         session: &ente_core::Session,
         cancel: &mut watch::Receiver<bool>,
-        report: &(dyn Fn(&str) + Sync),
+        report: &(dyn Fn(Report<'_>) + Sync),
     ) -> Result<()> {
         let store = Store::open(connection, &self.destination)?;
         let bound: bool = store
@@ -148,7 +172,7 @@ impl Export {
             )?;
         ensure!(
             self.root_lock.is_none() || bound || accepted || self.options.adopt,
-            AdoptionRequired("this export is not associated; use --adopt")
+            AdoptionRequired::Unassociated
         );
         let initial = !bound && !accepted && self.options.adopt;
         let index = initial.then(|| adopt::Index::new(open_index)).transpose()?;
@@ -166,7 +190,7 @@ impl Export {
             if self.root_lock.is_some() {
                 failures.record(
                     adopt::scan(&self.destination, index, desktop.as_ref(), session.user_id),
-                    "this CLI's export records",
+                    "export records",
                 )?;
             }
             if self.adopting {
@@ -224,7 +248,7 @@ impl Export {
                 )?;
             }
         }
-        report("Refreshing album metadata.");
+        report(Report::RefreshingCatalog);
         tokio::select! {
             result=source.refresh_catalog(session)=>result?,
             _=cancel.changed()=>return Err(Cancelled.into()),
@@ -285,7 +309,7 @@ impl Export {
             refreshed?;
             legacy::scope(&store, &self.options, index.as_ref(), report)?;
             if let Some(index) = &index {
-                report("Checking the existing files before taking over this export.");
+                report(Report::CheckingExistingFiles);
                 legacy::Preflight {
                     root: &self.destination,
                     store: &store,
@@ -320,7 +344,7 @@ impl Export {
         session: &ente_core::Session,
         cancel_send: &watch::Sender<bool>,
         cancel: &watch::Receiver<bool>,
-        report: &(dyn Fn(&str) + Sync),
+        report: &(dyn Fn(Report<'_>) + Sync),
     ) -> Result<Summary> {
         let (store, refreshed) = self.prepared.take().context("export is not prepared")?;
         let prepared = refreshed.is_ok();
@@ -354,7 +378,10 @@ impl Export {
             && let Err(error) = legacy::finish(&self.destination, &store, cancel)
         {
             record_outcome(&store, "run", &error)?;
-            report(&format!("run: {error:#}"));
+            report(Report::Failure {
+                unit: "run",
+                error: &error,
+            });
         }
         summary(&store, &self.destination, prepared)
     }
@@ -419,6 +446,11 @@ fn open_root(destination: &Path, expected: &Root) -> Result<Option<RootLock>> {
     Ok(Some(lock))
 }
 
+fn is_finder_metadata_entry(entry: &std::fs::DirEntry) -> bool {
+    entry.file_type().is_ok_and(|file_type| file_type.is_file())
+        && names::is_finder_metadata(&entry.file_name())
+}
+
 fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<RootLock> {
     std::fs::create_dir_all(destination)?;
     let path = names::check(destination, "export.json")?;
@@ -433,8 +465,11 @@ fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<RootLock>
         let mut lock = RootLock(file);
         ensure!(
             legacy
-                || std::fs::read_dir(destination)?
-                    .all(|entry| entry.is_ok_and(|entry| entry.file_name() == "export.json")),
+                || std::fs::read_dir(destination)?.all(|entry| {
+                    entry.is_ok_and(|entry| {
+                        entry.file_name() == "export.json" || is_finder_metadata_entry(&entry)
+                    })
+                }),
             "destination became nonempty during initialization"
         );
         serde_json::to_writer_pretty(&mut lock.0, root)?;
@@ -453,7 +488,7 @@ fn select(
     store: &Store,
     options: &Options,
     index: Option<&adopt::Index>,
-    report: &(dyn Fn(&str) + Sync),
+    report: &(dyn Fn(Report<'_>) + Sync),
 ) -> Result<()> {
     if options.albums.is_empty() {
         store
@@ -494,12 +529,18 @@ fn select(
         "UPDATE desired_albums SET selected=0 WHERE (?1 AND shared=1) OR (?2 AND hidden=1)",
         params![options.exclude_shared, options.exclude_hidden],
     )?;
-    let mut unknown = store.db.prepare("SELECT id,CASE WHEN ?1 AND shared IS NULL AND ?2 AND hidden IS NULL THEN '--exclude-shared and --exclude-hidden' WHEN ?1 AND shared IS NULL THEN '--exclude-shared' ELSE '--exclude-hidden' END FROM desired_albums WHERE selected=1 AND present=0 AND ((?1 AND shared IS NULL) OR (?2 AND hidden IS NULL))")?;
+    let mut unknown = store.db.prepare("SELECT id,?1 AND shared IS NULL,?2 AND hidden IS NULL FROM desired_albums WHERE selected=1 AND present=0 AND ((?1 AND shared IS NULL) OR (?2 AND hidden IS NULL))")?;
     for row in unknown.query_map(
         params![options.exclude_shared, options.exclude_hidden],
-        |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)),
+        |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, bool>(1)?,
+                r.get::<_, bool>(2)?,
+            ))
+        },
     )? {
-        let (id, flags) = row?;
+        let (id, shared_unknown, hidden_unknown) = row?;
         store
             .db
             .execute("UPDATE desired_albums SET selected=0 WHERE id=?1", [id])?;
@@ -521,9 +562,11 @@ fn select(
                 .execute("INSERT OR IGNORE INTO outcomes VALUES(?1,0)", [&unit])?
                 != 0
         {
-            report(&format!(
-                "{unit}: cannot determine whether this album is excluded by {flags}; use --exclude-album {id} or remove {flags}"
-            ));
+            report(Report::UnknownAlbum {
+                id,
+                shared_unknown,
+                hidden_unknown,
+            });
         }
     }
     Ok(())
@@ -535,7 +578,7 @@ async fn refresh(
     session: &ente_core::Session,
     options: &Options,
     cancel: &watch::Receiver<bool>,
-    report: &(dyn Fn(&str) + Sync),
+    report: &(dyn Fn(Report<'_>) + Sync),
 ) -> Result<()> {
     let need_favorites: bool = store.db.query_row(
         "SELECT EXISTS(SELECT 1 FROM desired_albums WHERE selected=1 AND present=1)",
@@ -544,7 +587,7 @@ async fn refresh(
     )?;
     let mut favorites_known = true;
     let mut after = 0;
-    report("Refreshing selected albums and Favorites.");
+    report(Report::RefreshingAlbums);
     loop {
         ensure!(!*cancel.borrow(), Cancelled);
         let next: Option<(i64, bool, bool)> = store
@@ -590,8 +633,12 @@ async fn refresh(
                 params![error.to_string(), id],
             )?;
             if selected {
-                record_outcome(store, &format!("album:{id}"), &error)?;
-                report(&format!("album:{id}: {error:#}"));
+                let unit = format!("album:{id}");
+                record_outcome(store, &unit, &error)?;
+                report(Report::Failure {
+                    unit: &unit,
+                    error: &error,
+                });
             }
             if fatal(&error) {
                 return Err(error);
@@ -706,7 +753,10 @@ async fn refresh(
         let unit = format!("file:{}:{}", row.get::<_, i64>(0)?, row.get::<_, i64>(1)?);
         let error = anyhow::anyhow!(row.get::<_, String>(2)?);
         record_outcome(store, &unit, &error)?;
-        report(&format!("{unit}: {error:#}"));
+        report(Report::Failure {
+            unit: &unit,
+            error: &error,
+        });
     }
     Ok(())
 }
@@ -733,7 +783,7 @@ fn transfers(
         [],
         |r| Ok((r.get(0)?, r.get(1)?)),
     )?;
-    report(&format!("Maintaining {expected} selected copies."));
+    report(Report::Maintaining { expected });
     let runtime = tokio::runtime::Handle::current();
     let last_report = Mutex::new(None::<Instant>);
     std::thread::scope(|scope| {
@@ -796,7 +846,7 @@ fn transfers(
                             }
                         };
                         if let Some(completed) = completed {
-                            report(&format!("Completed {completed}/{expected} selected copies."));
+                            report(Report::Completed { completed, expected });
                         }
                     }
                     Ok(())
@@ -860,11 +910,11 @@ fn fatal_cause(cause: &(dyn std::error::Error + 'static)) -> bool {
     if let Some(ente_collections::Error::Http(error)) = cause.downcast_ref() {
         return fatal_cause(error);
     }
-    if let Some(error) = cause.downcast_ref::<crate::live_photo::Error>() {
+    if let Some(error) = cause.downcast_ref::<ente_live_photo::Error>() {
         match error {
-            crate::live_photo::Error::Io(error) => return fatal_cause(error),
-            crate::live_photo::Error::Zip(error) => return fatal_cause(error),
-            crate::live_photo::Error::Components | crate::live_photo::Error::ExpansionLimit => {}
+            ente_live_photo::Error::Io(error) => return fatal_cause(error),
+            ente_live_photo::Error::Zip(error) => return fatal_cause(error),
+            ente_live_photo::Error::Components | ente_live_photo::Error::ExpansionLimit => {}
         }
     }
     cause.source().is_some_and(fatal_cause)
@@ -925,6 +975,68 @@ mod tests {
     use super::*;
 
     #[test]
+    fn initialization_ignores_finder_metadata() {
+        let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("._export.json"), b"sidecar").unwrap();
+        std::fs::write(directory.path().join(".DS_Store"), b"finder").unwrap();
+        drop(initialize(directory.path(), &root, false).unwrap());
+        assert!(directory.path().join("export.json").exists());
+        assert!(open_root(directory.path(), &root).unwrap().is_some());
+    }
+
+    #[test]
+    fn initialization_rejects_non_file_sidecar_names() {
+        let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
+        for name in ["._Photos", ".DS_Store"] {
+            let directory = tempfile::tempdir().unwrap();
+            std::fs::create_dir(directory.path().join(name)).unwrap();
+            let error = initialize(directory.path(), &root, false).err().unwrap();
+            assert!(
+                error.to_string().contains("destination became nonempty"),
+                "{name}"
+            );
+            assert!(!directory.path().join("export.json").exists());
+        }
+        #[cfg(unix)]
+        {
+            let directory = tempfile::tempdir().unwrap();
+            let target = tempfile::NamedTempFile::new().unwrap();
+            std::os::unix::fs::symlink(target.path(), directory.path().join(".DS_Store")).unwrap();
+            let error = initialize(directory.path(), &root, false).err().unwrap();
+            assert!(error.to_string().contains("destination became nonempty"));
+            assert!(!directory.path().join("export.json").exists());
+        }
+    }
+
+    #[test]
+    fn open_rejects_non_file_sidecar_names() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::create_dir(directory.path().join("._Photos")).unwrap();
+        let session = ente_core::Session::new(
+            ente_core::http::ApiConfig::new("http://127.0.0.1:1".into()),
+            1,
+            ente_core::crypto::Key::generate(),
+            ente_core::crypto::Key::generate(),
+            ente_core::crypto::SecretKey::generate(),
+        )
+        .unwrap();
+        let options = Options {
+            albums: Vec::new(),
+            exclude_albums: Vec::new(),
+            exclude_shared: false,
+            exclude_hidden: false,
+            adopt: false,
+            hardlinks: false,
+            jobs: std::num::NonZeroUsize::new(1).unwrap(),
+        };
+        let error = Export::open(directory.path(), &session, options)
+            .err()
+            .unwrap();
+        assert!(error.to_string().contains("nonempty destination"));
+    }
+
+    #[test]
     fn initialization_removes_its_marker_on_failure_and_retries() {
         let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
         let directory = tempfile::tempdir().unwrap();
@@ -955,11 +1067,11 @@ mod tests {
                 format!("download failed: HTTP {status} at /files")
             );
         }
-        let cancelled = crate::live_photo::Error::Io(std::io::Error::other(Cancelled));
+        let cancelled = ente_live_photo::Error::Io(std::io::Error::other(Cancelled));
         assert!(fatal(&anyhow::Error::new(cancelled)));
-        let full = crate::live_photo::Error::Io(std::io::ErrorKind::StorageFull.into());
+        let full = ente_live_photo::Error::Io(std::io::ErrorKind::StorageFull.into());
         assert!(fatal(&anyhow::Error::new(full)));
-        let zip = crate::live_photo::Error::Zip(zip::result::ZipError::Io(
+        let zip = ente_live_photo::Error::Zip(zip::result::ZipError::Io(
             std::io::ErrorKind::StorageFull.into(),
         ));
         assert!(fatal(&anyhow::Error::new(zip)));

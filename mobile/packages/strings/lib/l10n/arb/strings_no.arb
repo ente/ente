@@ -808,7 +808,6 @@
   "mlConsent": "Aktiver maskinlæring",
   "mlConsentConfirmation": "Jeg forstår, og ønsker å aktivere maskinlæring",
   "mlConsentDescription": "Hvis du aktiverer maskinlæring, vil Ente hente ut informasjon som ansiktsgeometri fra filer, inkludert de som er delt med deg.\n\nDette skjer på enheten din, og all generert biometrisk informasjon blir ende-til-ende-kryptert.",
-  "mlConsentPrivacy": "Klikk her for mer informasjon om denne funksjonen i våre retningslinjer for personvern",
   "moderateStrength": "Moderat",
   "@moderateStrength": {
     "description": "Moderate password strength label"

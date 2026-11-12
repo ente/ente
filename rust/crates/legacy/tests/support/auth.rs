@@ -22,7 +22,7 @@ pub async fn create_account(endpoint: &str, email: String, password: String) -> 
     let client = accounts_client(endpoint).unwrap();
 
     let authenticated = tokio::time::timeout(Duration::from_secs(180), async {
-        client.send_otp(&email, "signup").await?;
+        client.send_otp(&email, "signup", false).await?;
         let response = client
             .verify_email(&email, HARDCODED_OTT, Some("testAccount"))
             .await?;
@@ -122,14 +122,9 @@ pub fn test_account_from_authenticated(
     password: String,
     authenticated: AuthenticatedAccount,
 ) -> TestAccount {
-    let recovery_key = recovery_key_from_mnemonic_or_hex(
-        authenticated
-            .recovery_key
-            .as_deref()
-            .expect("authentication should return a recovery key"),
-    )
-    .expect("authentication recovery key should be valid")
-    .into_vec();
+    let recovery_key = recovery_key_from_mnemonic_or_hex(&authenticated.recovery_key)
+        .expect("authentication recovery key should be valid")
+        .into_vec();
 
     TestAccount {
         email,

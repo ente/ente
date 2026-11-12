@@ -20,7 +20,7 @@ abstract interface class DeviceMediaLibrary {
 class PhotoManagerDeviceLibrary implements DeviceMediaLibrary {
   @override
   Future<PermissionState> permission({required bool request}) => request
-      ? permissionService.requestPhotoMangerPermissions()
+      ? permissionService.requestPhotoManagerPermissions()
       : permissionService.getPermissionState();
 
   @override

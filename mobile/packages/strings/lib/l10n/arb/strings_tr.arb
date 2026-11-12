@@ -1292,7 +1292,6 @@
   "mlConsent": "Makine öğrenimini etkinleştir",
   "mlConsentConfirmation": "Anladım, ve makine öğrenimini etkinleştirmek istiyorum",
   "mlConsentDescription": "Makine öğrenimini etkinleştirirseniz, Ente sizinle paylaşılanlar da dahil olmak üzere dosyalardan yüz geometrisi gibi bilgileri çıkarır.\n\nBu, cihazınızda gerçekleşecek ve oluşturulan tüm biyometrik bilgiler uçtan uca şifrelenecektir.",
-  "mlConsentPrivacy": "Gizlilik politikamızdaki bu özellik hakkında daha fazla ayrıntı için lütfen buraya tıklayın",
   "mlIndexingDescription": "Tüm ögeler işlenene kadar makine öğrenmesi yüksek bant genişliği ve pil kullanımına yol açabilir. Daha hızlı işleme için masaüstü uygulamasını kullanabilirsiniz, tüm sonuçlar otomatik olarak eşitlenecektir.",
   "modifyYourQueryOrTrySearchingFor": "Sorgunuzu değiştirin veya aramayı deneyin",
   "moments": "Anlar",

@@ -23,7 +23,7 @@ import {
     type ModalProps,
 } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
-import { isDesktop } from "ente-base/app";
+import { appName, isDesktop } from "ente-base/app";
 import { SpacedRow } from "ente-base/components/containers";
 import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";
@@ -120,7 +120,7 @@ interface FileViewerAnnotatedFile {
     itemData: ItemData;
 }
 
-export type FileViewerInitialSidebar = "likes" | "comments";
+type FileViewerInitialSidebar = "likes" | "comments";
 
 export type FileViewerProps = ModalVisibilityProps & {
     user?: LocalUser;
@@ -162,6 +162,7 @@ export type FileViewerProps = ModalVisibilityProps & {
     disableEscapeClose?: boolean;
     enableComment?: boolean;
     isCommentsFeatureEnabled?: boolean;
+    hasSocialActivity?: boolean;
 } & Pick<
         FileInfoProps,
         "collectionNameByID" | "onSelectCollection" | "onSelectPerson"
@@ -204,6 +205,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     shouldCloseOnBrowserBack: shouldCloseOnBrowserBackOverride,
     disableEscapeClose = false,
     enableComment = true,
+    hasSocialActivity = false,
     isCommentsFeatureEnabled = true,
 }) => {
     const { onGenericError } = useBaseContext();
@@ -1055,6 +1057,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         if (!haveUser) return false;
         if (!enableComment) return false;
         if (!isCommentsFeatureEnabled) return false;
+        if (hasSocialActivity) return true;
         if (
             activeCollectionID &&
             activeCollectionID !== 0 &&
@@ -1068,6 +1071,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     }, [
         haveUser,
         enableComment,
+        hasSocialActivity,
         isCommentsFeatureEnabled,
         activeCollectionID,
         collectionSummaries,
@@ -1496,8 +1500,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                         const { comments, reactions } =
                             await getUnifiedSocialDiff(
                                 collectionId,
-                                activeFileID,
                                 collection.key,
+                                { fileID: activeFileID },
                             );
 
                         commentsMap.set(collectionId, comments);
@@ -1610,8 +1614,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 try {
                     const { comments, reactions } = await getUnifiedSocialDiff(
                         collectionId,
-                        activeFileID,
                         cached.key,
+                        { fileID: activeFileID },
                     );
 
                     commentsMap.set(collectionId, comments);
@@ -1853,6 +1857,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 id={moreMenuID}
                 disableAutoFocusItem
                 slotProps={{ list: { "aria-labelledby": moreButtonID } }}
+                sx={appName == "photos" ? islandMoreMenuSx : undefined}
             >
                 {activeAnnotatedFile.annotation.showDownload == "menu" && (
                     <ContextMenuItem onClick={handleDownloadMenuAction}>
@@ -2156,3 +2161,19 @@ const createImagePNGBlob = async (imageURL: string): Promise<Blob> =>
         image.onerror = reject;
         image.src = imageURL;
     });
+
+const islandMoreMenuSx = {
+    "& .MuiPaper-root": {
+        borderRadius: "20px",
+        minWidth: 260,
+        marginTop: "4px",
+        boxShadow: "0 24px 60px rgba(0, 0, 0, 0.25)",
+    },
+    "& .MuiList-root": { padding: "6px" },
+    "& .MuiMenuItem-root": {
+        minHeight: 44,
+        borderRadius: "14px",
+        fontSize: 14,
+        fontWeight: 500,
+    },
+} as const;

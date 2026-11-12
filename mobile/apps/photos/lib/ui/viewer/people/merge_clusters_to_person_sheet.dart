@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:math" show max;
 
 import "package:collection/collection.dart";
 import "package:dotted_border/dotted_border.dart";
@@ -10,16 +9,14 @@ import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
-import "package:ml_linalg/linalg.dart" as ml;
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/ml/db.dart";
 import "package:photos/events/people_sort_order_change_event.dart";
-import "package:photos/generated/protos/ente/common/vector.pb.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
+import "package:photos/services/machine_learning/face_ml/feedback/face_distances.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -626,16 +623,6 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
     if (!_canUseSimilaritySort || seedClusterId == null || persons.isEmpty) {
       return {};
     }
-    final allClusterSummary = await MLDataDB.instance.getAllClusterSummary();
-    final currentClusterEmbeddingData = allClusterSummary[seedClusterId]?.$1;
-    if (currentClusterEmbeddingData == null) {
-      return {};
-    }
-    final ml.Vector currentClusterEmbedding = ml.Vector.fromList(
-      EVector.fromBuffer(currentClusterEmbeddingData).values,
-      dtype: ml.DType.float32,
-    );
-
     final personIds = persons
         .map((result) => result.params[kPersonParamID] as String?)
         .where((id) => id != null && id.isNotEmpty)
@@ -644,31 +631,10 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
     if (personIds.isEmpty) {
       return {};
     }
-
-    final clusterToPerson = await MLDataDB.instance.getClusterIDToPersonID();
-    clusterToPerson.removeWhere((_, personId) => !personIds.contains(personId));
-    allClusterSummary.removeWhere(
-      (key, value) => !clusterToPerson.containsKey(key),
+    return FaceDistances.instance.maxSimilaritiesToPersons(
+      seedClusterId,
+      personIds,
     );
-    final Map<String, ml.Vector> allClusterEmbeddings = allClusterSummary.map(
-      (key, value) => MapEntry(
-        key,
-        ml.Vector.fromList(
-          EVector.fromBuffer(value.$1).values,
-          dtype: ml.DType.float32,
-        ),
-      ),
-    );
-
-    for (final entry in allClusterEmbeddings.entries) {
-      final personId = clusterToPerson[entry.key]!;
-      final similarity = currentClusterEmbedding.dot(entry.value);
-      _personToMaxSimilarity[personId] = max(
-        _personToMaxSimilarity[personId] ?? double.negativeInfinity,
-        similarity,
-      );
-    }
-    return _personToMaxSimilarity;
   }
 }
 

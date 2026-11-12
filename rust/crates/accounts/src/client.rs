@@ -30,33 +30,41 @@ fn require_srp_m2(auth_response: &AuthResponse) -> Result<&str> {
 
 pub struct AccountsClient {
     pub(crate) api: Api,
-    client_package: String,
+    config: AccountsClientConfig,
 }
 
 impl AccountsClient {
     pub fn new(config: AccountsClientConfig) -> Result<Self> {
+        Ok(Self::with_http(Http::new()?, config))
+    }
+
+    fn with_http(http: Http, mut config: AccountsClientConfig) -> Self {
         let api = Api::new(
-            Http::new()?,
+            http,
             ApiConfig {
-                origin: config.origin,
+                origin: config.origin.clone(),
                 client_package: Some(config.client_package.clone()),
-                client_version: config.client_version,
-                user_agent: config.user_agent,
-                auth: config.auth_token.map(Auth::User),
+                client_version: config.client_version.clone(),
+                user_agent: config.user_agent.clone(),
+                auth: config.auth_token.take().map(Auth::User),
             },
         );
-        Ok(Self {
-            api,
-            client_package: config.client_package,
-        })
+        Self { api, config }
     }
 
     pub fn set_auth_token(&self, auth_token: Option<String>) {
         self.api.set_auth(auth_token.map(Auth::User));
     }
 
+    pub fn with_auth_token(&self, auth_token: String) -> Self {
+        Self::with_http(
+            self.api.http().clone(),
+            self.config.clone().with_auth_token(auth_token),
+        )
+    }
+
     pub fn client_package(&self) -> &str {
-        &self.client_package
+        &self.config.client_package
     }
 
     pub async fn email(&self) -> Result<String> {
@@ -91,22 +99,34 @@ impl AccountsClient {
                 .json()
                 .await
         })
-        .await?;
+        .await
+        .map_err(|error| match error.status_code() {
+            Some(404) => Error::SrpNotConfigured,
+            _ => error.into(),
+        })?;
         Ok(response.attributes)
     }
 
-    pub(crate) async fn login_with_srp(
+    pub async fn login_with_srp(
         &self,
         password: &str,
         srp_attrs: &SrpAttributes,
     ) -> Result<(AuthResponse, SecretVec)> {
-        let creds = auth::derive_srp_credentials(password, srp_attrs)?;
-        let srp_salt = b64::decode(&srp_attrs.srp_salt)?;
-        let mut srp_session = SrpSession::new(
-            &srp_attrs.srp_user_id.to_string(),
-            &srp_salt,
-            &creds.login_key,
+        let kek = auth::derive_kek(
+            password,
+            &srp_attrs.kek_salt,
+            srp_attrs.mem_limit,
+            srp_attrs.ops_limit,
         )?;
+        let response = self.verify_srp(srp_attrs, &kek).await?;
+        Ok((response, kek))
+    }
+
+    pub async fn verify_srp(&self, srp_attrs: &SrpAttributes, kek: &[u8]) -> Result<AuthResponse> {
+        let login_key = auth::derive_srp_login_key(kek)?;
+        let srp_salt = b64::decode(&srp_attrs.srp_salt)?;
+        let mut srp_session =
+            SrpSession::new(&srp_attrs.srp_user_id.to_string(), &srp_salt, &login_key)?;
         let a_pub = srp_session.public_a();
 
         let session = self
@@ -125,7 +145,7 @@ impl AccountsClient {
             .verify_m2(&server_proof)
             .map_err(|_| Error::Srp("Server proof verification failed".to_string()))?;
 
-        Ok((auth_response, creds.kek))
+        Ok(auth_response)
     }
 
     pub async fn create_srp_session(
@@ -170,18 +190,24 @@ impl AccountsClient {
             .await?
             .error_for_code()
             .await
-            .map_err(|error| match error.status_code() {
-                Some(401) => Error::IncorrectPassword,
+            .map_err(|error| match error {
+                http::Error::Api {
+                    status: 410,
+                    ref code,
+                    ..
+                } if code == "SESSION_EXPIRED" => Error::SrpSessionExpired,
+                _ if error.status_code() == Some(401) => Error::IncorrectPassword,
                 _ => error.into(),
             })?
             .json()
             .await?)
     }
 
-    pub async fn send_otp(&self, email: &str, purpose: &str) -> Result<()> {
+    pub async fn send_otp(&self, email: &str, purpose: &str, mobile: bool) -> Result<()> {
         let request = SendOtpRequest {
             email: email.to_string(),
             purpose: purpose.to_string(),
+            mobile,
         };
         self.api
             .post("/users/ott")
@@ -189,7 +215,28 @@ impl AccountsClient {
             .send()
             .await?
             .error_for_code()
-            .await?;
+            .await
+            .map_err(|error| match error {
+                http::Error::Api {
+                    status: 404,
+                    ref code,
+                    ..
+                } if code == "USER_NOT_REGISTERED" => Error::NotRegistered,
+                http::Error::Api {
+                    status: 409,
+                    ref code,
+                    ..
+                } if code == "USER_ALREADY_REGISTERED" => Error::AlreadyRegistered,
+                http::Error::Api {
+                    status: 404,
+                    ref code,
+                    ..
+                } if code == "USER_SIGNUP_INCOMPLETE" => Error::SignupIncomplete,
+                _ if purpose == "change" && error.status_code() == Some(403) => {
+                    Error::EmailAlreadyInUse
+                }
+                _ => error.into(),
+            })?;
         Ok(())
     }
 
@@ -441,7 +488,7 @@ impl AccountsClient {
                 },
             ),
         ];
-        Ok(http::retry(|| async {
+        http::retry(|| async {
             self.api
                 .get("/users/two-factor/recover")
                 .query(&query)
@@ -452,7 +499,14 @@ impl AccountsClient {
                 .json()
                 .await
         })
-        .await?)
+        .await
+        .map_err(|error| match error.status_code() {
+            Some(404) => Error::SecondFactorSessionExpired,
+            Some(400) if matches!(two_factor_type, TwoFactorType::Passkey) => {
+                Error::TwoFactorRecoveryNotConfigured
+            }
+            _ => error.into(),
+        })
     }
 
     pub async fn remove_two_factor(
@@ -466,7 +520,11 @@ impl AccountsClient {
             .send()
             .await?
             .error_for_code()
-            .await?
+            .await
+            .map_err(|error| match error.status_code() {
+                Some(404) => Error::SecondFactorSessionExpired,
+                _ => error.into(),
+            })?
             .json()
             .await?)
     }
@@ -557,6 +615,94 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn with_auth_token_preserves_client_settings_and_scopes_auth() {
+        let mut server = Server::new_async().await;
+        let public = AccountsClient::new(
+            AccountsClientConfig::new("io.ente.photos")
+                .with_origin(server.url())
+                .with_client_version("1.0.0")
+                .with_user_agent("ente-accounts-test"),
+        )
+        .unwrap();
+        let authorized = public.with_auth_token("tok".into());
+
+        for (client, auth) in [
+            (&authorized, mockito::Matcher::Exact("tok".into())),
+            (&public, mockito::Matcher::Missing),
+        ] {
+            let request = server
+                .mock("GET", "/users/details/v2")
+                .match_query(mockito::Matcher::UrlEncoded(
+                    "memoryCount".into(),
+                    "false".into(),
+                ))
+                .match_header("x-auth-token", auth)
+                .match_header("x-client-package", "io.ente.photos")
+                .match_header("x-client-version", "1.0.0")
+                .match_header("user-agent", "ente-accounts-test")
+                .with_body(r#"{"email":"user@example.org"}"#)
+                .create_async()
+                .await;
+            assert_eq!(client.client_package(), "io.ente.photos");
+            assert_eq!(client.email().await.unwrap(), "user@example.org");
+            request.assert_async().await;
+        }
+    }
+
+    #[tokio::test]
+    async fn send_otp_classifies_account_errors() {
+        let cases = [
+            (
+                "login",
+                404,
+                "USER_NOT_REGISTERED",
+                Some(Error::NotRegistered),
+            ),
+            (
+                "signup",
+                409,
+                "USER_ALREADY_REGISTERED",
+                Some(Error::AlreadyRegistered),
+            ),
+            (
+                "login",
+                404,
+                "USER_SIGNUP_INCOMPLETE",
+                Some(Error::SignupIncomplete),
+            ),
+            ("change", 403, "", Some(Error::EmailAlreadyInUse)),
+            ("signup", 403, "", None),
+            ("login", 404, "UNEXPECTED", None),
+            ("login", 500, "USER_NOT_REGISTERED", None),
+        ];
+        for (purpose, status, code, expected) in cases {
+            let mut server = Server::new_async().await;
+            let response = server
+                .mock("POST", "/users/ott")
+                .with_status(status)
+                .with_body(serde_json::json!({"code": code}).to_string())
+                .expect(1)
+                .create_async()
+                .await;
+            let error = make_client(server.url())
+                .send_otp("user@example.org", purpose, false)
+                .await
+                .unwrap_err();
+            if let Some(expected) = expected {
+                assert_eq!(
+                    std::mem::discriminant(&error),
+                    std::mem::discriminant(&expected)
+                );
+            } else {
+                assert!(
+                    matches!(error, Error::Http(http) if http.status_code() == Some(status as u16))
+                );
+            }
+            response.assert_async().await;
+        }
+    }
+
+    #[tokio::test]
     async fn verify_srp_session_does_not_retry_on_server_error() {
         let mut server = Server::new_async().await;
         let verify = server
@@ -574,6 +720,28 @@ mod tests {
             .unwrap_err();
 
         assert!(matches!(&error, Error::Http(e) if e.status_code() == Some(500)));
+        verify.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn verify_srp_session_maps_expired_session() {
+        let mut server = Server::new_async().await;
+        let verify = server
+            .mock("POST", "/users/srp/verify-session")
+            .with_status(410)
+            .with_header("content-type", "application/json")
+            .with_body(r#"{"code":"SESSION_EXPIRED"}"#)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let client = make_client(server.url());
+        let error = client
+            .verify_srp_session(&uuid::Uuid::new_v4(), &uuid::Uuid::new_v4(), &[1u8; 32])
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, Error::SrpSessionExpired));
         verify.assert_async().await;
     }
 

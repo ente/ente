@@ -1,1 +1,0 @@
-- Fixed incorrect aspect ratios for newly uploaded videos.

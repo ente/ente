@@ -440,6 +440,7 @@ order by updated_at ASC limit $2
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	defer rows.Close()
 	var fileWithUpdatedAt []FileWithUpdatedAt
 	for rows.Next() {
 		var fileID, updatedAt int64
@@ -450,6 +451,9 @@ order by updated_at ASC limit $2
 			FileID:    fileID,
 			UpdatedAt: updatedAt,
 		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read files for metadata deletion")
 	}
 
 	if len(fileWithUpdatedAt) == 0 {
@@ -497,7 +501,7 @@ func convertRowsToTrash(rows *sql.Rows) ([]ente.Trash, error) {
 		)
 		err := rows.Scan(&trash.File.ID, &trash.File.OwnerID, &trash.File.CollectionID, &trash.File.EncryptedKey, &trash.File.KeyDecryptionNonce,
 			&trash.File.File.DecryptionHeader, &trash.File.Thumbnail.DecryptionHeader, &trash.File.Metadata.DecryptionHeader,
-			&trash.File.Metadata.EncryptedData, &trash.File.MagicMetadata, &trash.File.PubicMagicMetadata, &trash.File.UpdationTime, &trash.File.Info, &trash.IsDeleted, &trash.IsRestored,
+			&trash.File.Metadata.EncryptedData, &trash.File.MagicMetadata, &trash.File.PublicMagicMetadata, &trash.File.UpdationTime, &trash.File.Info, &trash.IsDeleted, &trash.IsRestored,
 			&trash.CreatedAt, &trash.UpdatedAt, &trash.DeleteBy)
 		if err != nil {
 			return trashFiles, stacktrace.Propagate(err, "")

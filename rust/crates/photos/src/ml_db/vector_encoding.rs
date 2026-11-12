@@ -28,9 +28,13 @@ pub(crate) fn decode_evector(bytes: &[u8]) -> Result<Vec<f64>> {
                 if length % 8 != 0 {
                     return Err(malformed());
                 }
-                for chunk in bytes[offset..offset + length].as_chunks::<8>().0 {
-                    values.push(f64::from_le_bytes(*chunk));
-                }
+                values.extend(
+                    bytes[offset..offset + length]
+                        .as_chunks::<8>()
+                        .0
+                        .iter()
+                        .map(|chunk| f64::from_le_bytes(*chunk)),
+                );
                 offset += length;
             }
             EVECTOR_VALUES_FIXED64_KEY => {

@@ -48,14 +48,14 @@ Ente/
 - `export.json` records which account the export belongs to in `userID`.
 - `<Album>/metadata.json` is the album record: `title` and an `ente` object with `albumID`, `ownerID` and `type`. When `ownerID` equals the `userID` in `export.json`, you own the album.
 - `<Album>/<file>` is the original. A Live Photo is exported as separate image and video files with the same name and different extensions.
-- `<Album>/metadata/<file>.json` is the sidecar for one file: `title`, `photoTakenTime`, `geoData`, `description`, `favorited`, and an `ente` object with `fileID` and `type`.
+- `<Album>/metadata/<file>.json` holds the metadata for one file: `title`, `photoTakenTime`, `geoData`, `description`, `favorited`, and an `ente` object with `fileID` and `type`.
 - `Trash/` holds albums and files that were removed from your library or from an album since the last run.
 
 Characters that are not portable across filesystems are replaced with `_` in names; a name that is already taken gets a numeric suffix such as `-1`.
 
 ## Keep an export updated
 
-Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, removed items move to `Trash/`, and every sidecar is regenerated. Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
+Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, removed items move to `Trash/`, and every metadata file is regenerated. Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
 
 ## Save space with hard links
 
@@ -90,20 +90,100 @@ ente photos file download 1580559962386999 --output ./IMG_0001.jpg
 
 A file selector is a file ID or an exact name; when several files share a name, the CLI lists the candidates and you pick an ID. Download prints `Downloaded "IMG_0001.jpg" to ./IMG_0001.jpg.` and refuses to overwrite an existing file. A Live Photo downloads as a ZIP archive. Lists show 100 results and then print `Showing first 100 results; use --limit N or --all to see more.` on the terminal.
 
+## Filter and sort files
+
+```sh
+ente photos file list --type video --since 2024-01-01 --before 2025-01-01
+ente photos file list --search "beach sunset" --no-location
+ente photos file list --sort size --limit 20
+ente photos file list --type video --min-size 500MB
+```
+
+- `--type` takes `image`, `video` or `livephoto`; repeat it to include several types.
+- `--since` and `--before` compare `createdAt`, which includes dates edited in Ente. `--since` includes the given instant and `--before` excludes it. Both accept `YYYY-MM-DD` (midnight UTC) or RFC 3339 with a timezone, such as `2024-06-01T00:00:00+02:00`.
+- `--search` finds files where every word occurs in either the name or the caption, ignoring case.
+- `--no-location` keeps files without a location.
+- `--min-size` and `--max-size` keep files whose `sizeBytes` is at least or at most the given size. Both accept KB, MB or GB in powers of 1024, such as `500KB`, `100MB` or `1.5GB`. `sizeBytes` is the size of the stored encrypted file, slightly larger than the original. Files with an unknown size are left out.
+
+A file must match every filter you pass. `--sort created` lists the newest files first and `--sort size` the largest first; add `--reverse` for the opposite order. Files with an unknown size sort as the smallest, and ties keep ID order. Without `--sort`, files are listed by ID.
+
+## Find and remove duplicates
+
+```sh
+ente photos duplicate list
+ente photos duplicate remove
+```
+
+`list` shows exact duplicate groups, their files and albums, which copy will be kept, and reclaimable space, largest first. Lists show 100 groups; use `--all` or `--limit N` to see more. `remove` lets you select groups with space and continue with enter, then shows the plan and asks for confirmation. `duplicates` is an alias for `duplicate`.
+
+Select group IDs from the list, preview cleanup, or select all groups:
+
+```sh
+ente photos duplicate remove 1580559962386999 --dry-run
+ente photos duplicate remove 1580559962386999 --yes --no-input
+ente photos duplicate remove --all --dry-run --json
+```
+
+Group IDs are the smallest file ID in each group. Removal refreshes metadata first; a group ID that no longer exists stops the command. `--dry-run` previews without changes. `--yes` approves removal; `--no-input` disables prompts and requires IDs or `--all`, plus `--yes` unless previewing.
+
+Duplicates are matched by stored hashes in non-hidden albums you own. Files with any hidden album membership are excluded, even if they also belong to a visible album. The CLI keeps a copy with a caption first, then one with an edited name or date. It preserves album memberships before moving extra copies to Ente's trash. Files are not permanently deleted. If interrupted, list duplicates again before retrying.
+
+With `--json`, `list` returns an array and `remove` returns one object; see [Read as JSON](#read-as-json) for fields. Previews and progress go to stderr.
+
+## Find files by place
+
+```sh
+ente photos place list
+ente photos place list --countries --album Holidays
+ente photos file list --place lisbon
+ente photos file list --country JP --type video
+```
+
+`place list` shows the cities where your files were taken, with the number of files in each, most first. `--countries` lists countries instead. Places come from each file's location; files without one are not counted. Locations that match no city or country in the dataset are omitted from that list, so city and country totals can differ. Country filters use the groups shown by `place list --countries`, which can differ from a city's country. For example, photos in French Guiana count under France.
+
+`--place` keeps files taken in a city whose name contains the given text. When one of the cities `place list` shows for the same `--album` has exactly that name, only cities with that name match, so `--place nice` leaves out Venice. `--country` takes a two-letter code such as `PT`, or a full English country name, which matches only that country, so `--country niger` leaves out Nigeria; other text matches every country whose name contains it. `UK` also works for the United Kingdom, whose code is `GB`, and an unknown two-letter code is an error. Both ignore case and accent marks, and combine with the other filters. Type letters such as ł or ø as `place list` shows them: `--place wrocław` finds Wrocław, but `--place wroclaw` does not.
+
+The first time you use places, the CLI downloads about 7 MB of location data from Ente (`assets.ente.com`) and keeps it in the CLI home, where all your accounts share it. After that, places work with `--offline`. The location data is adapted from [GeoNames](https://www.geonames.org/) and the European Commission Joint Research Centre's [GHS-UCDB R2024A](https://doi.org/10.2905/1a338be6-7eaf-480c-9664-3a8ade88cbcd), both under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and from [Natural Earth](https://www.naturalearthdata.com/), which is in the public domain.
+
+## Check storage and file count
+
+```sh
+ente photos usage
+```
+
+```
+Email   alice@example.com
+Total   20 GB
+Used    3.61 GB
+Free    16.39 GB
+Plan    10 GB
+Status  active
+Bonus   10 GB
+Files   339
+Family  none
+```
+
+`Total` is the plan plus bonuses such as referrals, `Used` and `Files` are what Photos holds, and `Status` says whether the plan is active or expired. In a family the plan and total are the family admin's, and `Family` lists its members, followed by the shared totals and your own limit when the admin has set one.
+
 ## Read as JSON
 
 Lists return arrays and `view` returns one object. IDs are strings; timestamps are RFC 3339 strings in UTC.
 
-| Command                    | Fields                                                                                                                                                                                                                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `album list`, `album view` | `id`, `name`, `type` (`album`, `folder`, `favorites`, `uncategorized`, `defaultHidden`, `quicklink`), `visibility` (`visible`, `archived`, `hidden`), `ownerId`, `updatedAt`                                                                                        |
-| `file list`, `file view`   | `id`, `name`, `type` (`image`, `video`, `livephoto`), `ownerId`, `albumIds`, `createdAt`, `updatedAt`; nullable `modifiedAt`, `location` (`latitude`, `longitude`), `caption`, `hash`, `dateTime`, `offsetTime`, `visibility`, `durationSeconds`, `width`, `height` |
-| `file download`            | `id`, `output`, `bytes`                                                                                                                                                                                                                                             |
-| `export`                   | See [Automation](./automation.md#export-summary)                                                                                                                                                                                                                    |
+| Command                    | Fields                                                                                                                                                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `album list`, `album view` | `id`, `name`, `type` (`album`, `folder`, `favorites`, `uncategorized`, `defaultHidden`, `quicklink`), `visibility` (`visible`, `archived`, `hidden`), `ownerId`, `updatedAt`                                                                                                     |
+| `file list`, `file view`   | `id`, `name`, `type` (`image`, `video`, `livephoto`), `ownerId`, `albumIds`, `createdAt`, `updatedAt`; nullable `modifiedAt`, `location` (`latitude`, `longitude`), `caption`, `hash`, `dateTime`, `offsetTime`, `visibility`, `durationSeconds`, `width`, `height`, `sizeBytes` |
+| `file download`            | `id`, `output`, `bytes`                                                                                                                                                                                                                                                          |
+| `duplicate list`           | `id`, `sizeBytes`, `reclaimableBytes`, `retainedId`, `files` (`id`, `name`, `albums`: `id`, `name`). `sizeBytes` is the stored encrypted size of one copy; `reclaimableBytes` is the total for the extra copies in that group.                                                   |
+| `duplicate remove`         | `dryRun`, `groupIds`, `retainedIds`, `trashIds`, `reclaimableBytes` (total across selected groups). IDs are strings and byte counts are integers; `trashIds` contains planned removals in a dry run and completed removals otherwise.                                            |
+| `place list`               | `name`, `country`, `countryCode`, `latitude` and `longitude` (the city's position), `fileCount`                                                                                                                                                                                  |
+| `place list --countries`   | `name`, `code`, `fileCount`                                                                                                                                                                                                                                                      |
+| `usage`                    | `email`, `planExpiresAt`, `planActive`, `totalBytes`, `usedBytes`, `freeBytes`, `planBytes`, `bonusBytes`; nullable `files`, `family` (`usedBytes`, `storageBytes`, `members`: `email`, `status`, `admin`, `usedBytes`, `storageLimitBytes`)                                     |
+| `export`                   | See [Automation](./automation.md#export-summary)                                                                                                                                                                                                                                 |
 
 ## Read offline
 
-`album list`, `album view`, `file list` and `file view` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline. Export and download need the network.
+`album list`, `album view`, `file list`, `file view`, `duplicate list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums needed for duplicate detection, including hidden memberships. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
 
 ## Limits
 

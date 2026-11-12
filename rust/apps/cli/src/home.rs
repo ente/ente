@@ -48,6 +48,13 @@ pub fn application_home() -> Result<PathBuf> {
         .join("ente-cli"))
 }
 
+pub fn lock_assets() -> Result<File> {
+    let lock = open_lock(&application_home()?.join("assets.lock"))
+        .context("cannot open the assets lock")?;
+    lock.lock().context("cannot lock the assets")?;
+    Ok(lock)
+}
+
 pub fn create(path: &Path) -> io::Result<()> {
     #[cfg(unix)]
     use std::os::unix::fs::DirBuilderExt;

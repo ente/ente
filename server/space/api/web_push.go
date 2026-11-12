@@ -43,7 +43,7 @@ func (h *Handlers) UpsertSpaceLinkWebPushSubscription(c *gin.Context) {
 }
 
 func (h *Handlers) DeleteSpaceLinkWebPushSubscription(c *gin.Context) {
-	var req models.SpaceWebPushUnsubscriptionRequest
+	var req models.SpaceLinkWebPushUnsubscriptionRequest
 	if !bindJSON(c, &req) {
 		return
 	}

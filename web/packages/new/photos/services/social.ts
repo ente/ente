@@ -31,20 +31,42 @@ export interface UnifiedSocialDiff {
 
 export const getUnifiedSocialDiff = async (
     collectionID: number,
-    fileID: number,
     collectionKey: string,
-): Promise<UnifiedSocialDiff> => {
+    {
+        fileID,
+        commentsSinceTime = 0,
+        reactionsSinceTime = 0,
+        signal,
+    }: {
+        fileID?: number;
+        commentsSinceTime?: number;
+        reactionsSinceTime?: number;
+        signal?: AbortSignal;
+    } = {},
+) => {
     const res = await fetch(
         await apiURL("/social/diff", {
             collectionID,
-            fileID,
-            sinceTime: 0,
+            ...(fileID === undefined ? {} : { fileID }),
+            commentsSinceTime,
+            reactionsSinceTime,
             limit: 1000,
         }),
-        { headers: await authenticatedRequestHeaders() },
+        { headers: await authenticatedRequestHeaders(), signal },
     );
     ensureOk(res);
-    return decryptSocialDiff(collectionKey, await res.json());
+    const data = UnifiedDiffResponse.parse(await res.json());
+    return {
+        ...(await decryptSocialDiff(collectionKey, data)),
+        commentsUpdatedAt: Math.max(
+            commentsSinceTime,
+            ...data.comments.map((c) => c.updatedAt),
+        ),
+        reactionsUpdatedAt: Math.max(
+            reactionsSinceTime,
+            ...data.reactions.map((r) => r.updatedAt),
+        ),
+    };
 };
 
 const decryptSocialDiff = async (
@@ -174,10 +196,11 @@ const UnifiedDiffResponse = z.object({
 export const getAnonProfiles = async (
     collectionID: number,
     collectionKey: string,
+    signal?: AbortSignal,
 ): Promise<Map<string, string>> => {
     const res = await fetch(
         await apiURL("/social/anon-profiles", { collectionID }),
-        { headers: await authenticatedRequestHeaders() },
+        { headers: await authenticatedRequestHeaders(), signal },
     );
     ensureOk(res);
     const { profiles } = GetAnonProfilesResponse.parse(await res.json());
@@ -216,3 +239,26 @@ const GetAnonProfilesResponse = z.object({
         .nullish()
         .transform((v) => v ?? []),
 });
+
+const SocialUpdatesResponse = z.object({
+    updates: z
+        .array(
+            z.object({
+                collectionID: z.number(),
+                commentsUpdatedAt: z.number().nullish(),
+                reactionsUpdatedAt: z.number().nullish(),
+                anonProfilesUpdatedAt: z.number().nullish(),
+            }),
+        )
+        .nullish()
+        .transform((updates) => updates ?? []),
+});
+
+export const getSocialUpdates = async (signal?: AbortSignal) => {
+    const response = await fetch(
+        await apiURL("/comments-reactions/updated-at"),
+        { headers: await authenticatedRequestHeaders(), signal },
+    );
+    ensureOk(response);
+    return SocialUpdatesResponse.parse(await response.json()).updates;
+};

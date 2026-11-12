@@ -1,9 +1,7 @@
 import 'dart:io' as io;
 
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_configuration/base_configuration.dart';
-import 'package:ente_configuration/constants.dart';
 import 'package:ente_strings/ente_strings.dart';
 import "package:ente_ui/components/base_bottom_sheet.dart";
 import 'package:ente_ui/components/buttons/gradient_button.dart';
@@ -49,15 +47,9 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
 
-    final String recoveryKeyMnemonic = bip39.entropyToMnemonic(
+    final String recoveryKeyMnemonic = _config.recoveryKeyToMnemonic(
       widget.recoveryKey,
     );
-
-    if (recoveryKeyMnemonic.split(' ').length != mnemonicKeyWordCount) {
-      throw AssertionError(
-        'Recovery code should have $mnemonicKeyWordCount words',
-      );
-    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,

@@ -13,13 +13,17 @@ import {
     generateKey,
     type SpaceKeyResponse,
 } from "ente-space-wasm";
-import { spaceBootstrapAuthHeaders } from "services/bootstrap-auth";
 import {
     clearSpaceSecureSessionStorage,
     saveSpaceRootKeyInSpaceSession,
     spaceRootKeyFromSpaceSession,
 } from "services/secure-session-storage";
 import { z } from "zod";
+
+const spaceBootstrapAuthHeaders = (authToken: string) => ({
+    ...publicRequestHeaders(),
+    "X-Auth-Token": authToken,
+});
 
 const spaceBrowserSessionStorageKey = "spaceBrowserSession";
 export const spaceSessionTokenHeader = "X-Space-Session-Token";

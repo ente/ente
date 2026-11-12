@@ -12,7 +12,7 @@ import "package:photos/db/offline_files_db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/ml/face/box.dart";
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
@@ -137,7 +137,7 @@ Future<void> checkRemoveCachedFaceIDForPersonOrClusterId(
 // Pass personOrClusterID only when every face belongs to that person or cluster.
 Future<Map<String, Uint8List>?> getCachedFaceCrops(
   EnteFile enteFile,
-  Iterable<Face> faces, {
+  Iterable<FaceWithoutEmbedding> faces, {
   int fetchAttempt = 1,
   bool useFullFile = true,
   String? personOrClusterID,
@@ -284,10 +284,11 @@ Future<Uint8List?> precomputeClusterFaceCrop(
   try {
     final w = (kDebugMode ? EnteWatch('precomputeClusterFaceCrop') : null)
       ?..start();
-    final Face? face = await MLDataDB.instance.getCoverFaceForPerson(
-      recentFileID: file.uploadedFileID!,
-      clusterID: clusterID,
-    );
+    final FaceWithoutEmbedding? face = await MLDataDB.instance
+        .getCoverFaceForPerson(
+          recentFileID: file.uploadedFileID!,
+          clusterID: clusterID,
+        );
     w?.log('getCoverFaceForPerson');
     if (face == null) {
       debugPrint(
@@ -334,8 +335,6 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
   Map<String, FaceBox> faceBoxeMap, {
   bool useFullFile = true,
 }) async {
-  final completer = Completer<Map<String, Uint8List>?>();
-
   late final TaskQueue relevantTaskQueue;
   late final String taskId;
   if (useFullFile) {
@@ -346,16 +345,15 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
     taskId = await _faceCropTaskId(file, useFullFile: false);
   }
 
+  Map<String, Uint8List>? faceCrops;
   await relevantTaskQueue.addTask(taskId, () async {
-    final faceCrops = await _getFaceCrops(
+    faceCrops = await _getFaceCrops(
       file,
       faceBoxeMap,
       useFullFile: useFullFile,
     );
-    completer.complete(faceCrops);
   });
-
-  return completer.future;
+  return faceCrops;
 }
 
 Future<String> _faceCropTaskId(

@@ -1663,7 +1663,6 @@
   "mlConsent": "啟用機器學習",
   "mlConsentConfirmation": "我了解，並希望啟用機器學習",
   "mlConsentDescription": "若啟用機器學習，Ente 將從檔案（包括與您分享的檔案）中提取臉部幾何等資訊。\n\n此處理將在您的裝置上進行，任何產生的生物辨識資訊都會經過端對端加密。",
-  "mlConsentPrivacy": "請點擊此處查看我們隱私政策中關於此功能的更多詳情",
   "mlIndexingDescription": "請注意，在所有項目處理完成前，機器學習會增加頻寬與電池使用量。建議使用桌面版應用程式以加快處理速度，所有結果都會自動同步。",
   "mlProgressBannerDescription": "您的照片正在裝置上處理，以偵測臉孔、物件等。",
   "mlProgressBannerStatus": "已處理 {indexed} / {total} 張照片",

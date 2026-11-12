@@ -62,6 +62,7 @@
   "add": "Thêm",
   "addAlbumWidgetPrompt": "Thêm một widget album vào màn hình chính để tùy chỉnh nó ở đây.",
   "addANameAndPhoto": "Thêm tên và ảnh",
+  "addAnyway": "Vẫn thêm",
   "addCode": "Thêm mã",
   "addedAMemoryTo": "đã thêm một kỷ niệm vào {albumName}",
   "@addedAMemoryTo": {
@@ -133,6 +134,7 @@
       "count": {}
     }
   },
+  "addItems": "Thêm mục",
   "addLocation": "Thêm vị trí",
   "addLocationButton": "Thêm",
   "addMember": "Thêm thành viên",
@@ -168,6 +170,7 @@
   "addTo": "Thêm vào",
   "addToAlbum": "Thêm vào album",
   "addToCollection": "Thêm vào bộ sưu tập",
+  "addToCollections": "Thêm vào bộ sưu tập",
   "addToEnte": "Thêm vào Ente",
   "addToHiddenAlbum": "Thêm vào album ẩn",
   "addToPerson": "Thêm vào người",
@@ -435,6 +438,10 @@
   "backupFailed": "Sao lưu thất bại",
   "backupFile": "Sao lưu tệp",
   "backupFolderLabel": "Thư mục sao lưu:",
+  "backupLatestPhotos": "Sao lưu những ảnh gần nhất",
+  "@backupLatestPhotos": {
+    "description": "Button on the photo permission screen that backs up only recent photos"
+  },
   "backupLocationChoiceDescription": "Bạn muốn lưu bản sao lưu của mình ở đâu?",
   "backupMode": "Chế độ sao lưu",
   "backupModeBackingUpItems": "{count, plural, other{Đang sao lưu {formattedCount} mục}}",
@@ -595,6 +602,10 @@
   "checkStatus": "Kiểm tra trạng thái",
   "@checkStatus": {
     "description": "Check status button label"
+  },
+  "chooseAlbumsToBackup": "Chọn album để sao lưu",
+  "@chooseAlbumsToBackup": {
+    "description": "Button on the photo permission screen that opens album selection for backup"
   },
   "chooseARecoveryTime": "Chọn thời điểm khôi phục",
   "chooseBackupLocation": "Chọn nơi sao lưu",
@@ -1069,6 +1080,9 @@
     "description": "Instructions for enabling device lock"
   },
   "deviceNotFound": "Không tìm thấy thiết bị",
+  "devicePickerLimitedAccess": "Hiện những ảnh bạn cho phép",
+  "devicePickerPermissionHint": "Để thêm ảnh và video vào album này, cho phép truy cập trong cài đặt.",
+  "devicePickerSelectionChanged": "Không thể tìm thấy vài mục đã chọn. Kiểm tra và thử lại.",
   "didYouKnow": "Bạn có biết?",
   "digits": "Chữ số",
   "disableBackup": "Tắt tính năng sao lưu",
@@ -1084,6 +1098,8 @@
   "disablingTwofactorAuthentication": "Đang vô hiệu hóa xác thực 2 bước...",
   "discardChanges": "Huy bo",
   "discardEditsQuestion": "Bỏ chỉnh sửa?",
+  "discardUploadMessage": "Không thể lưu những mục bạn đã chọn.",
+  "discardUploadTitle": "Hủy việc tải lên?",
   "discover": "Khám phá",
   "@discover": {
     "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
@@ -1114,6 +1130,10 @@
   "doesGroupContainMultiplePeople": "Nhóm này có chứa nhiều người?",
   "dog": "Chó",
   "done": "Xong",
+  "dontShowAgain": "Không hiện lại",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
   "doNotSignOut": "Không đăng xuất",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
@@ -1811,10 +1831,12 @@
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
+  "forgotPasswordPrompt": "Quên mật khẩu?",
   "forgotRecoveryKey": "Quên mã khôi phục?",
   "free10GB": "10GB miễn phí với <bold-green>ente</bold-green> Photos",
   "freeStorageOffer": "Giảm 10% <bold-green>ente</bold-green> Photos",
   "freeStorageOfferDescription": "Dùng mã \"AUTH\" để giảm 10% năm đầu tiên",
+  "free": "Miễn phí",
   "freeTrial": "Dùng thử miễn phí",
   "freeUpAmount": "Giải phóng {sizeInMBorGB}",
   "@freeUpAmount": {
@@ -1871,6 +1893,9 @@
   "grantPermissionDesc": "Vui lòng cho phép Ente truy cập thư viện của bạn để chúng tôi có thể sắp xếp bằng nhận diện khuôn mặt. Toàn bộ quá trình này diễn ra trên thiết bị của bạn.",
   "greenery": "Cây cối",
   "grid": "Lưới",
+  "photosInOriginalProportions": "Ảnh ở tỷ lệ ban đầu",
+  "squarePhotos": "Ảnh vuông",
+  "photosPerRow": "Số lượng ảnh mỗi hàng",
   "groupBy": "Phân nhóm theo",
   "groupByDay": "Ngày",
   "groupByMonth": "Tháng",
@@ -2121,6 +2146,7 @@
       }
     }
   },
+  "itemsLabel": "Mục",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "Trên các mục là số ngày còn lại trước khi xóa vĩnh viễn",
   "itemsStored": "Những mục đã lưu trữ",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, other{Các mục này sẽ bị xóa khỏi tất cả các bộ sưu tập. Bạn có thể khôi phục chúng từ Thùng rác.}}",
@@ -2627,7 +2653,10 @@
   "mlConsent": "Bật học máy",
   "mlConsentConfirmation": "Tôi hiểu và muốn bật học máy",
   "mlConsentDescription": "Nếu bạn bật học máy, Ente sẽ trích xuất thông tin như hình dạng khuôn mặt từ các tệp, gồm cả những tệp mà bạn được chia sẻ.\n\nViệc này sẽ diễn ra trên thiết bị của bạn, với mọi thông tin sinh trắc học tạo ra đều được mã hóa đầu cuối.",
-  "mlConsentPrivacy": "Vui lòng nhấn vào đây để biết thêm chi tiết về tính năng này trong chính sách quyền riêng tư của chúng tôi",
+  "mlConsentPrivacyDetails": "Vui lòng <policy>nhấn vào đây</policy> để biết thêm chi tiết về chính sách bảo mật",
+  "@mlConsentPrivacyDetails": {
+    "description": "Machine learning consent screen sentence; only the text inside the policy tags is tappable and opens the privacy policy"
+  },
   "mlCouldNotProcessItems": "{count, plural, other{Không thể xử lý {count} mục}}",
   "@mlCouldNotProcessItems": {
     "description": "Title shown when machine learning could not process one or more items",
@@ -2671,6 +2700,7 @@
   "modifyYourQueryOrTrySearchingFor": "Chỉnh sửa truy vấn của bạn, hoặc thử tìm",
   "moments": "Khoảnh khắc",
   "month": "tháng",
+  "mostPopular": "Phổ biến nhất",
   "monthly": "Theo tháng",
   "@monthly": {
     "description": "The text to display for monthly plans",
@@ -2861,6 +2891,7 @@
   "nothingToCleanUp": "Không có gì để dọn dẹp",
   "nothingToTidyUpHere": "Ở đây đã ngon lành rồi",
   "notifications": "Thông báo",
+  "notificationNewActivity": "Hoạt động mới",
   "notifyMe": "Thông báo cho tôi",
   "notPersonLabel": "Không phải {name}?",
   "@notPersonLabel": {
@@ -2934,6 +2965,7 @@
   "openAlbumInBrowser": "Mở album trong trình duyệt",
   "openAlbumInBrowserTitle": "Vui lòng sử dụng ứng dụng web để thêm ảnh vào album này",
   "openFile": "Mở tệp",
+  "openInAnotherApp": "Mở bằng ứng dụng khác",
   "openLink": "Mở liên kết",
   "openSettings": "Mở cài đặt",
   "openstreetmapContributors": "Người đóng góp OpenStreetMap",
@@ -3019,6 +3051,8 @@
       }
     }
   },
+  "pdfNeedsPassword": "Tệp PDF này cần mật khẩu",
+  "pdfPasswordNotSupportedOnDevice": "Thiết bị này không thể mở khóa những tệp PDF được bảo vệ mật khẩu. Mở bằng một ứng dụng khác.",
   "pending": "Đang chờ",
   "pendingSync": "Đồng bộ hóa đang chờ",
   "pendingSyncs": "Cảnh báo",
@@ -3232,6 +3266,7 @@
     }
   },
   "publicLink": "Liên kết công khai",
+  "publicCollectionLinkAccessDescription": "Bất kỳ ai có liên kết đều có thể mở bộ sưu tập mà không cần tài khoản Ente.",
   "publicLinkAccessDescription": "Bất kỳ ai có liên kết đều có thể mở album mà không cần tài khoản Ente.",
   "publicLinkCollectDescription": "Bất kỳ ai có liên kết đều có thể thêm ảnh vào album của bạn.",
   "publicLinkEnabled": "Liên kết công khai đã được bật",
@@ -3799,6 +3834,7 @@
   "searchLocationEmptySection": "Xếp nhóm những ảnh được chụp gần kề nhau",
   "searchPeopleEmptySection": "Mời mọi người, và bạn sẽ thấy tất cả ảnh mà họ chia sẻ ở đây",
   "searchPersonsEmptySection": "Người sẽ được hiển thị ở đây sau khi hoàn tất xử lý và đồng bộ",
+  "searchPhotosPeoplePlaces": "Tìm ảnh, người, địa điểm...",
   "searchResultCameraMake": "Hãng máy ảnh",
   "@searchResultCameraMake": {
     "description": "Search result subtitle label for camera make matches"
@@ -3916,6 +3952,20 @@
       }
     }
   },
+  "selectedCountWithLimit": "{count}/{limit} đã chọn",
+  "@selectedCountWithLimit": {
+    "description": "Selected item count and the selection limit",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "limit": {
+        "type": "int",
+        "example": "50"
+      }
+    }
+  },
   "selectedFilesAreNotOnEnte": "Các tệp đã chọn không có trên Ente",
   "selectedFilesBackedUpToEnte": "Những nục này sẽ bị xóa khỏi tất cả album. Bạn có thể khôi phục chúng từ Thùng rác.",
   "@selectedFilesBackedUpToEnte": {
@@ -3983,6 +4033,10 @@
   "@send": {
     "description": "Label for send button"
   },
+  "sendACopy": "Gửi một bản sao",
+  "@sendACopy": {
+    "description": "Share a copy of the current photo or video using the system share sheet, as opposed to sending a viewing link"
+  },
   "sendCountInvites": "{count, plural, =0{Gửi lời mời} other{Gửi {count} lời mời}}",
   "@sendCountInvites": {
     "placeholders": {
@@ -3991,6 +4045,10 @@
         "example": "2"
       }
     }
+  },
+  "sendFileToAnotherApp": "Gửi tệp đến ứng dụng khác",
+  "@sendFileToAnotherApp": {
+    "description": "Subtitle for sending a copy of the current photo or video from the file viewer"
   },
   "sendInvite": "Gửi lời mời",
   "sendLink": "Gửi liên kết",
@@ -4087,6 +4145,16 @@
     }
   },
   "sharedPhotoNotifications": "Ảnh và album mới chia sẻ",
+  "sharedPhotoLocationWarningTitle": "Giữ địa điểm chụp",
+  "sharedPhotoLocationWarningMessage": "Ảnh được chia sẻ từ những ứng dụng khác có thể thiếu địa điểm. Dùng “{addFromDevice}” trong một album để giữ chúng.",
+  "@sharedPhotoLocationWarningMessage": {
+    "description": "Precaution before backing up photos shared from another app. addFromDevice is the localized action label.",
+    "placeholders": {
+      "addFromDevice": {
+        "type": "String"
+      }
+    }
+  },
   "sharedPhotoNotificationsExplanation": "Ảnh và album mới mà bạn có mặt hoặc được chia sẻ với bạn",
   "sharedWith": "Chia se voi",
   "shareItemCount": "{count, plural, other{Chia sẻ {count} mục}}",
@@ -4102,6 +4170,10 @@
   "shareKey": "Chia sẻ mã",
   "shareLegacyDescription": "Hãy gửi từng tấm thiệp cho đúng người nhận. Không có tấm thiệp nào có thể dùng riêng lẻ.",
   "shareLink": "Chia sẻ liên kết",
+  "shareLinkToThisItem": "Chia sẻ liên kết của mục này",
+  "@shareLinkToThisItem": {
+    "description": "Subtitle for sending a viewing link to the current photo or video from the file viewer"
+  },
   "shareMemory": "Chia sẻ kỷ niệm",
   "shareMyVerificationID": "Đây là ID xác minh của tôi: {verificationID} cho ente.com.",
   "@shareMyVerificationID": {
@@ -4245,6 +4317,7 @@
   "sortAToZ": "A-Z",
   "sortNewestFirst": "Mới nhất trước",
   "sortOldestFirst": "Cũ nhất trước",
+  "sortPhotos": "Sắp xếp ảnh",
   "sortZToA": "Z-A",
   "speed": "Tốc độ",
   "sportsAction": "Trò chơi",
@@ -4584,6 +4657,7 @@
   "unavailableReferralCode": "Mã này đã được dùng",
   "uncategorized": "Chưa phân loại",
   "uncategorizedItemsWillShowUpHere": "Những mục chưa phân loại sẽ hiển thị ở đây",
+  "uncategorizedUploadHint": "Nếu bạn bỏ qua, các mục sẽ được cho vào Chưa phân loại",
   "undo": "Hoàn tác",
   "unhide": "Hiện lại",
   "unhideToAlbum": "Hiện lại trong album",
@@ -4594,6 +4668,7 @@
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
   },
+  "unlockPdf": "Mở khóa",
   "unnamedCollection": "Bộ sưu tập không tên",
   "unnamedPeopleDoingSomethingTogether": "Làm gì đó với nhau",
   "unnamedPeopleSpotlight": "Khuôn mặt giống",
@@ -4682,6 +4757,7 @@
     }
   },
   "uploadingSingleMemory": "Đang lưu giữ 1 kỷ niệm...",
+  "uploadItemsRemoved": "Không còn mục nào để tải lên",
   "uploadIsIgnoredDueToIgnorereason": "Tải lên bị bỏ qua do {ignoreReason}",
   "@uploadIsIgnoredDueToIgnorereason": {
     "placeholders": {
@@ -4719,6 +4795,10 @@
   "@useRecoveryKey": {
     "description": "Use recovery key button label"
   },
+  "useTwoFactorInstead": "Dùng 2FA",
+  "@useTwoFactorInstead": {
+    "description": "Link on the passkey verification screen to verify with an authenticator code instead"
+  },
   "username": "Ten nguoi dung",
   "usernameHint": "ID dang nhap hoac email",
   "useSelectedPhoto": "Sử dụng ảnh đã chọn",
@@ -4730,6 +4810,10 @@
         "example": "20 GB"
       }
     }
+  },
+  "validEmailAddress": "Địa chỉ email hợp lệ",
+  "@validEmailAddress": {
+    "description": "Success message under the email field once the address is valid"
   },
   "validTill": "Áp dụng đến {endDate}",
   "@validTill": {
@@ -4865,6 +4949,10 @@
       "count": {}
     }
   },
+  "year": "năm",
+  "@year": {
+    "description": "Billing period suffix on the pricing page (/year)"
+  },
   "yearShort": "năm",
   "@yearShort": {
     "description": "Appears in pricing page (/yr)"
@@ -4949,12 +5037,12 @@
       }
     }
   },
-  "legacyKitSheetIntro": "Nếu có lúc tôi không còn ở bên hoặc mất quyền truy cập vào tài khoản, tờ giấy này sẽ giúp bạn khôi phục ảnh, tài liệu và nhiều nội dung khác của tôi.",
+  "legacyKitSheetIntro": "Nếu tôi ngủm hoặc mất quyền truy cập vào tài khoản, bảng tính này sẽ giúp bạn khôi phục ảnh, tài liệu và nhiều thứ khác của tôi.",
   "@legacyKitSheetIntro": {
     "description": "Written in the voice of the account owner, addressed to the sheet holder"
   },
   "legacyKitSheetHowToRecover": "Cách khôi phục tài khoản của tôi",
-  "legacyKitSheetStepGetAnother": "Đây là tờ thứ {index} trong tổng số {total} tờ. Hãy hỏi xin {names} tờ của họ — bạn chỉ cần thêm một tờ nữa.",
+  "legacyKitSheetStepGetAnother": "Đây là {index} trong {total} bảng tính. Hỏi {names} về cái của họ — bạn chỉ cần thêm một cái nữa.",
   "@legacyKitSheetStepGetAnother": {
     "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",
     "placeholders": {
@@ -4990,7 +5078,7 @@
       }
     }
   },
-  "legacyKitSheetStepScan": "Quét {count} tờ giấy.",
+  "legacyKitSheetStepScan": "Quét {count} bảng tính.",
   "@legacyKitSheetStepScan": {
     "description": "Third recovery step. {count} is how many sheets must be scanned together",
     "placeholders": {

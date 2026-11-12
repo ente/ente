@@ -1,13 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use super::helpers::{
-    MAX_SQL_BIND_PARAMS_PER_QUERY, bind_placeholders, group_into, optional_parameter, pair,
-};
+use super::helpers::{MAX_SQL_BIND_PARAMS_PER_QUERY, bind_placeholders, group_into, pair};
 use crate::db::{self, Row, ToSql, params_from_iter};
 
 use super::clip::CLIP_ML_VERSION;
 use super::pets::PET_ML_VERSION;
-use super::{limit_clause, unique_in_order};
+use super::unique_in_order;
 use crate::ml_db::vector_encoding::{decode_evector, encode_evector};
 use crate::ml_db::{Error, MlDb, Result};
 
@@ -40,19 +38,23 @@ pub struct FaceWithoutEmbedding {
     pub score: f64,
     pub detection_json: String,
     pub blur: f64,
+    pub image_height: i64,
+    pub image_width: i64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FaceDbInfoForClustering {
+pub struct FaceForClustering {
     pub face_id: String,
+    pub file_id: i64,
     pub cluster_id: Option<String>,
-    pub embedding_bytes: Vec<u8>,
-    pub face_score: f64,
-    pub blur_value: f64,
-    pub is_sideways: bool,
+    pub embedding: Option<Vec<f32>>,
+    pub bad: bool,
 }
 
 const FACE_EMBEDDING_MAX_ROWS: usize = 20000;
+
+const FACE_WITHOUT_EMBEDDING_COLUMNS: &str =
+    "face_id, file_id, score, detection, blur, height, width";
 
 const UPSERT_FACE: &str = r#"
     INSERT INTO faces (
@@ -108,71 +110,33 @@ impl MlDb {
         )
     }
 
-    pub fn get_face_embeddings_for_cluster(
-        &self,
-        cluster_id: &str,
-        limit: Option<i64>,
-    ) -> Result<Vec<Vec<u8>>> {
-        let sql = format!(
-            r#"
-            SELECT embedding
-            FROM faces
-            WHERE face_id in (
-                SELECT face_id
-                from face_clusters
-                where cluster_id = ?
-            ) {}
-            "#,
-            limit_clause(limit)
-        );
-        let mut parameters: Vec<&dyn ToSql> = vec![&cluster_id];
-        parameters.extend(optional_parameter(&limit));
-        self.read_column(&sql, parameters.as_slice())
-    }
-
-    pub fn get_face_embeddings_for_clusters(
+    pub(crate) fn for_each_face_embedding_for_clusters(
         &self,
         cluster_ids: &[String],
-        limit: Option<i64>,
-    ) -> Result<HashMap<String, Vec<Vec<u8>>>> {
-        if cluster_ids.is_empty() {
-            return Ok(HashMap::new());
-        }
-        let unique_cluster_ids = unique_in_order(cluster_ids);
-        let max_cluster_ids_per_query = if limit.is_some() {
-            MAX_SQL_BIND_PARAMS_PER_QUERY - 1
-        } else {
-            MAX_SQL_BIND_PARAMS_PER_QUERY
-        };
-        let mut remaining_limit = limit;
-        let mut result: HashMap<String, Vec<Vec<u8>>> = HashMap::new();
-        for cluster_chunk in unique_cluster_ids.chunks(max_cluster_ids_per_query) {
-            if remaining_limit.is_some_and(|remaining| remaining <= 0) {
-                break;
-            }
-            let sql = format!(
-                r#"
-                SELECT fc.cluster_id, fe.embedding
-                FROM face_clusters fc
-                INNER JOIN faces fe
-                    ON fc.face_id = fe.face_id
-                WHERE fc.cluster_id IN ({}) {}
-                "#,
-                bind_placeholders(cluster_chunk.len()),
-                limit_clause(remaining_limit)
-            );
-            let mut parameters: Vec<&dyn ToSql> =
-                cluster_chunk.iter().map(|id| id as &dyn ToSql).collect();
-            parameters.extend(optional_parameter(&remaining_limit));
-            let rows: Vec<(String, Vec<u8>)> = self.read_all(&sql, parameters.as_slice(), pair)?;
-            if let Some(remaining) = remaining_limit.as_mut() {
-                *remaining -= rows.len() as i64;
-            }
-            for (cluster_id, embedding) in rows {
-                result.entry(cluster_id).or_default().push(embedding);
-            }
-        }
-        Ok(result)
+        mut visit: impl FnMut(String, Vec<u8>),
+    ) -> Result<()> {
+        let cluster_ids = unique_in_order(cluster_ids);
+        self.db
+            .read(|connection| {
+                for chunk in cluster_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY) {
+                    let sql = format!(
+                        r#"
+                        SELECT fc.cluster_id, fe.embedding
+                        FROM face_clusters fc
+                        INNER JOIN faces fe ON fc.face_id = fe.face_id
+                        WHERE fc.cluster_id IN ({})
+                        "#,
+                        bind_placeholders(chunk.len())
+                    );
+                    let mut statement = connection.prepare_cached(&sql)?;
+                    for row in statement.query_map(params_from_iter(chunk), pair)? {
+                        let (cluster_id, embedding) = row?;
+                        visit(cluster_id, embedding);
+                    }
+                }
+                Ok(())
+            })
+            .map_err(Into::into)
     }
 
     pub fn get_cover_face_for_person(
@@ -181,7 +145,7 @@ impl MlDb {
         person_id: Option<&str>,
         avatar_face_id: Option<&str>,
         cluster_id: Option<&str>,
-    ) -> Result<Option<FaceRow>> {
+    ) -> Result<Option<FaceWithoutEmbedding>> {
         if let Some(person_id) = person_id {
             let mut file_ids = vec![recent_file_id];
             let avatar_file_id = avatar_face_id.and_then(try_file_id_from_face_id);
@@ -194,7 +158,7 @@ impl MlDb {
             )?;
             let sql = format!(
                 r#"
-                SELECT *
+                SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS}
                 FROM faces
                 WHERE face_id IN (
                     SELECT face_id
@@ -210,15 +174,15 @@ impl MlDb {
             let mut parameters: Vec<&dyn ToSql> =
                 cluster_ids.iter().map(|id| id as &dyn ToSql).collect();
             parameters.extend(file_ids.iter().map(|id| id as &dyn ToSql));
-            let faces: Vec<StoredFace> =
-                self.read_all(&sql, parameters.as_slice(), read_stored_face)?;
+            let faces: Vec<FaceWithoutEmbedding> =
+                self.read_all(&sql, parameters.as_slice(), read_face_without_embedding)?;
             if !faces.is_empty() {
                 if let Some(avatar_file_id) = avatar_file_id
-                    && let Some(face) = faces.iter().find(|face| face.row.file_id == avatar_file_id)
+                    && let Some(face) = faces.iter().find(|face| face.file_id == avatar_file_id)
                 {
-                    return face.clone().decode().map(Some);
+                    return Ok(Some(face.clone()));
                 }
-                return faces[0].clone().decode().map(Some);
+                return Ok(faces.into_iter().next());
             }
         }
         if let Some(cluster_id) = cluster_id {
@@ -240,93 +204,81 @@ impl MlDb {
         Ok(None)
     }
 
-    pub fn get_faces_for_given_file_id(&self, file_upload_id: i64) -> Result<Vec<FaceRow>> {
-        let faces: Vec<StoredFace> = self.read_all(
-            "SELECT * FROM faces WHERE file_id = ?",
+    pub fn get_faces_for_given_file_id(
+        &self,
+        file_upload_id: i64,
+    ) -> Result<Vec<FaceWithoutEmbedding>> {
+        self.read_all(
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces WHERE file_id = ?"),
             [file_upload_id],
-            read_stored_face,
-        )?;
-        faces.into_iter().map(StoredFace::decode).collect()
+            read_face_without_embedding,
+        )
     }
 
     pub fn get_file_ids_to_faces_without_embedding(
         &self,
     ) -> Result<HashMap<i64, Vec<FaceWithoutEmbedding>>> {
         let faces: Vec<FaceWithoutEmbedding> = self.read_all(
-            "SELECT face_id, file_id, score, detection, blur FROM faces",
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
             (),
-            |row| {
-                Ok(FaceWithoutEmbedding {
-                    face_id: row.get(0)?,
-                    file_id: row.get(1)?,
-                    score: row.get(2)?,
-                    detection_json: row.get(3)?,
-                    blur: row.get(4)?,
-                })
-            },
+            read_face_without_embedding,
         )?;
         Ok(group_into(
             faces.into_iter().map(|face| (face.file_id, face)),
         ))
     }
 
-    pub fn get_face_info_for_clustering(
+    pub(crate) fn for_each_face_id(&self, mut visit: impl FnMut(i64, String)) -> Result<()> {
+        self.read_each("SELECT file_id, face_id FROM faces", (), |row| {
+            visit(row.get(0)?, row.get(1)?);
+            Ok(())
+        })
+    }
+
+    pub(crate) fn for_each_face_without_embedding(
         &self,
-        max_faces: i64,
-        offset: i64,
-        batch_size: i64,
-    ) -> Result<Vec<FaceDbInfoForClustering>> {
-        let mut offset = offset;
-        let mut result = Vec::new();
-        loop {
-            let rows: Vec<(String, Vec<u8>, f64, f64, i64)> = self.read_all(
-                r#"
-                SELECT face_id, embedding, score, blur, is_sideways
-                FROM faces
-                WHERE score > ?
-                    AND blur > ?
-                ORDER BY face_id DESC
-                LIMIT ?
-                OFFSET ?
-                "#,
-                (
-                    MINIMUM_QUALITY_FACE_SCORE,
-                    LAPLACIAN_HARD_THRESHOLD,
-                    batch_size,
-                    offset,
-                ),
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
+        mut visit: impl FnMut(FaceWithoutEmbedding),
+    ) -> Result<()> {
+        self.read_each(
+            &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
+            (),
+            |row| {
+                visit(read_face_without_embedding(row)?);
+                Ok(())
+            },
+        )
+    }
+
+    pub fn get_faces_for_clustering(&self) -> Result<Vec<FaceForClustering>> {
+        self.read_all(
+            r#"
+            SELECT faces.face_id, faces.file_id, face_clusters.cluster_id, faces.embedding,
+                faces.score, faces.blur, faces.is_sideways
+            FROM faces
+            LEFT JOIN face_clusters
+                ON face_clusters.face_id = faces.face_id
+            WHERE faces.score > ?
+                AND faces.blur > ?
+            ORDER BY faces.face_id DESC
+            "#,
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+            |row| {
+                let embedding: Vec<u8> = row.get(3)?;
+                Ok(FaceForClustering {
+                    face_id: row.get(0)?,
+                    file_id: row.get(1)?,
+                    cluster_id: row.get(2)?,
+                    embedding: decode_evector(&embedding)
+                        .ok()
+                        .map(|values| values.into_iter().map(|value| value as f32).collect()),
+                    bad: is_bad_face_for_clustering(
                         row.get(4)?,
-                    ))
-                },
-            )?;
-            if rows.is_empty() {
-                break;
-            }
-            let face_ids: Vec<String> = rows.iter().map(|row| row.0.clone()).collect();
-            let face_id_to_cluster_id = self.get_face_ids_to_cluster_ids(&face_ids)?;
-            for (face_id, embedding_bytes, face_score, blur_value, is_sideways) in rows {
-                let cluster_id = face_id_to_cluster_id.get(&face_id).cloned().flatten();
-                result.push(FaceDbInfoForClustering {
-                    face_id,
-                    cluster_id,
-                    embedding_bytes,
-                    face_score,
-                    blur_value,
-                    is_sideways: is_sideways == 1,
-                });
-            }
-            if result.len() as i64 >= max_faces {
-                break;
-            }
-            offset += batch_size;
-        }
-        Ok(result)
+                        row.get(5)?,
+                        row.get::<_, i64>(6)? == 1,
+                    ),
+                })
+            },
+        )
     }
 
     pub fn get_face_embedding_rows_for_faces(
@@ -563,40 +515,21 @@ pub(super) fn file_id_from_face_id(face_id: &str) -> Result<i64> {
         .ok_or_else(|| Error::Invalid(format!("Error parsing faceId: {face_id}")))
 }
 
-fn try_file_id_from_face_id(face_id: &str) -> Option<i64> {
+pub(crate) fn try_file_id_from_face_id(face_id: &str) -> Option<i64> {
     face_id
         .split_once('_')
         .and_then(|(file_id, _)| file_id.parse().ok())
 }
 
-#[derive(Clone)]
-struct StoredFace {
-    row: FaceRow,
-    embedding_bytes: Vec<u8>,
-}
-
-impl StoredFace {
-    fn decode(mut self) -> Result<FaceRow> {
-        self.row.embedding = decode_evector(&self.embedding_bytes)?;
-        Ok(self.row)
-    }
-}
-
-fn read_stored_face(row: &Row<'_>) -> db::Result<StoredFace> {
-    Ok(StoredFace {
-        row: FaceRow {
-            file_id: row.get("file_id")?,
-            face_id: row.get("face_id")?,
-            detection_json: row.get("detection")?,
-            embedding: Vec::new(),
-            score: row.get("score")?,
-            blur: row.get("blur")?,
-            is_sideways: row.get::<_, i64>("is_sideways")? == 1,
-            image_height: row.get("height")?,
-            image_width: row.get("width")?,
-            ml_version: row.get("ml_version")?,
-        },
-        embedding_bytes: row.get("embedding")?,
+fn read_face_without_embedding(row: &Row<'_>) -> db::Result<FaceWithoutEmbedding> {
+    Ok(FaceWithoutEmbedding {
+        face_id: row.get(0)?,
+        file_id: row.get(1)?,
+        score: row.get(2)?,
+        detection_json: row.get(3)?,
+        blur: row.get(4)?,
+        image_height: row.get(5)?,
+        image_width: row.get(6)?,
     })
 }
 
@@ -605,10 +538,10 @@ pub(in crate::ml_db) mod tests {
     use std::collections::HashMap;
     use std::ops::RangeInclusive;
 
-    use super::{FaceRow, MlDb};
+    use super::{FaceRow, FaceWithoutEmbedding, MlDb};
     use crate::ml_db::Error;
     use crate::ml_db::queries::{clip, clusters, persons};
-    use crate::ml_db::tests::{cases, check, ids, open, sorted, strings};
+    use crate::ml_db::tests::{cases, check, ids, open, strings};
     use crate::ml_db::vector_encoding::encode_evector;
     use tempfile::TempDir;
 
@@ -629,6 +562,18 @@ pub(in crate::ml_db) mod tests {
 
     fn good_face(file_id: i64, index: i64) -> FaceRow {
         face(file_id, index, 0.9, 300.0, false)
+    }
+
+    fn without_embedding(face: FaceRow) -> FaceWithoutEmbedding {
+        FaceWithoutEmbedding {
+            face_id: face.face_id,
+            file_id: face.file_id,
+            score: face.score,
+            detection_json: face.detection_json,
+            blur: face.blur,
+            image_height: face.image_height,
+            image_width: face.image_width,
+        }
     }
 
     fn versions(file_ids: RangeInclusive<i64>, version: i64) -> HashMap<i64, i64> {
@@ -717,7 +662,13 @@ pub(in crate::ml_db) mod tests {
         let (_directory, db) = seeded();
         let mut faces = db.get_faces_for_given_file_id(1).unwrap();
         faces.sort_by(|left, right| left.face_id.cmp(&right.face_id));
-        assert_eq!(faces, vec![good_face(1, 0), face(1, 1, 0.95, 300.0, false)]);
+        assert_eq!(
+            faces,
+            vec![
+                without_embedding(good_face(1, 0)),
+                without_embedding(face(1, 1, 0.95, 300.0, false))
+            ]
+        );
         assert!(db.get_faces_for_given_file_id(99).unwrap().is_empty());
 
         let without_embedding = db.get_file_ids_to_faces_without_embedding().unwrap();
@@ -732,38 +683,8 @@ pub(in crate::ml_db) mod tests {
     }
 
     #[test]
-    fn face_embeddings_by_cluster_and_face() {
+    fn face_embedding_rows_for_faces() {
         let (_directory, db) = seeded();
-        let c1 = db.get_face_embeddings_for_cluster("c1", None).unwrap();
-        assert_eq!(
-            sorted(c1),
-            sorted(vec![
-                encode_evector(&[1.0, 0.0, 0.5]),
-                encode_evector(&[2.0, 0.0, 0.5])
-            ])
-        );
-        assert_eq!(
-            db.get_face_embeddings_for_cluster("c1", Some(1))
-                .unwrap()
-                .len(),
-            1
-        );
-
-        let all = db
-            .get_face_embeddings_for_clusters(&strings(["c1", "c2", "c1"]), None)
-            .unwrap();
-        assert_eq!(all["c1"].len(), 2);
-        assert_eq!(all["c2"], vec![encode_evector(&[1.0, 1.0, 0.5])]);
-        let limited = db
-            .get_face_embeddings_for_clusters(&strings(["c1", "c2"]), Some(2))
-            .unwrap();
-        assert_eq!(limited.values().map(Vec::len).sum::<usize>(), 2);
-        assert!(
-            db.get_face_embeddings_for_clusters(&[], Some(2))
-                .unwrap()
-                .is_empty()
-        );
-
         assert_eq!(
             db.get_face_embedding_rows_for_faces(&strings(["1_0", "2_0", "1_1", "1_0", "nope"]))
                 .unwrap(),
@@ -781,34 +702,41 @@ pub(in crate::ml_db) mod tests {
     }
 
     #[test]
-    fn face_info_for_clustering_filters_and_pages() {
+    fn faces_for_clustering_join_clusters_decode_embeddings_and_flag_bad_faces() {
         let (_directory, db) = seeded();
-        let info = db.get_face_info_for_clustering(20000, 0, 3).unwrap();
-        let ids: Vec<&str> = info.iter().map(|face| face.face_id.as_str()).collect();
+        db.execute(
+            "UPDATE faces SET embedding = x'0a' WHERE face_id = '3_0'",
+            (),
+        )
+        .unwrap();
+        let faces = db.get_faces_for_clustering().unwrap();
+        let rows: Vec<(&str, i64, Option<&str>, bool)> = faces
+            .iter()
+            .map(|face| {
+                (
+                    face.face_id.as_str(),
+                    face.file_id,
+                    face.cluster_id.as_deref(),
+                    face.bad,
+                )
+            })
+            .collect();
         assert_eq!(
-            ids,
+            rows,
             [
-                "9_0", "8_0", "7_0", "6_1", "3_0", "2_0", "1_1", "1_0", "10_0"
+                ("9_0", 9, Some("c9"), true),
+                ("8_0", 8, Some("c8"), true),
+                ("7_0", 7, Some("c7"), true),
+                ("6_1", 6, None, false),
+                ("3_0", 3, Some("c3"), false),
+                ("2_0", 2, Some("c1"), false),
+                ("1_1", 1, Some("c2"), false),
+                ("1_0", 1, Some("c1"), false),
+                ("10_0", 10, None, false),
             ]
         );
-        assert_eq!(info[0].cluster_id, Some("c9".to_string()));
-        assert_eq!(info[0].embedding_bytes, encode_evector(&[9.0, 0.0, 0.5]));
-        assert_eq!(
-            (info[0].face_score, info[0].blur_value, info[0].is_sideways),
-            (0.9, 20.0, false)
-        );
-        assert!(info[2].is_sideways);
-        assert_eq!(info[3].cluster_id, None);
-
-        assert_eq!(db.get_face_info_for_clustering(3, 0, 3).unwrap().len(), 3);
-        let last_page = db.get_face_info_for_clustering(20000, 6, 3).unwrap();
-        let last_ids: Vec<&str> = last_page.iter().map(|face| face.face_id.as_str()).collect();
-        assert_eq!(last_ids, ["1_1", "1_0", "10_0"]);
-        assert!(
-            db.get_face_info_for_clustering(20000, 9, 3)
-                .unwrap()
-                .is_empty()
-        );
+        assert_eq!(faces[0].embedding, Some(vec![9.0, 0.0, 0.5]));
+        assert_eq!(faces[4].embedding, None);
     }
 
     #[test]
@@ -879,7 +807,7 @@ pub(in crate::ml_db) mod tests {
             .get_cover_face_for_person(2, Some("p1"), None, None)
             .unwrap()
             .unwrap();
-        assert_eq!(by_score, face(2, 0, 0.85, 300.0, false));
+        assert_eq!(by_score, without_embedding(face(2, 0, 0.85, 300.0, false)));
         assert_eq!(
             cover(2, Some("p1"), Some("1_1"), None),
             Some("1_1".to_string())
@@ -915,7 +843,12 @@ pub(in crate::ml_db) mod tests {
         assert_eq!(faces.len(), 2);
         assert_eq!(
             faces.iter().find(|face| face.face_id == "1_0"),
-            Some(&updated)
+            Some(&without_embedding(updated.clone()))
+        );
+        assert_eq!(
+            db.get_face_embedding_rows_for_faces(std::slice::from_ref(&updated.face_id))
+                .unwrap(),
+            vec![(updated.face_id, encode_evector(&updated.embedding))]
         );
         assert_eq!(db.get_total_face_count().unwrap(), 9);
 

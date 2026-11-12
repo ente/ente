@@ -192,6 +192,12 @@ func (c *MessagesController) ListThread(ctx context.Context, viewerSpace *repo.S
 	if err := c.auth.requireActiveSpaceOwner(ctx, targetSpace); err != nil {
 		return nil, err
 	}
+	if _, err := c.FriendsRepo.GetShareForFriendAndSpace(ctx, viewerSpace.SpaceID, targetSpace.SpaceID); err != nil {
+		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
+			return nil, ente.ErrPermissionDenied
+		}
+		return nil, err
+	}
 	messages, nextCursor, err := c.MessagesRepo.ListThread(ctx, viewerSpace.SpaceID, strings.TrimSpace(targetSpaceID), req.Cursor, req.Limit)
 	if err != nil {
 		return nil, err

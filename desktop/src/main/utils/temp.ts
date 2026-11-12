@@ -5,11 +5,21 @@ import path from "node:path";
 import type { ZipItem } from "../../types/ipc";
 import log from "../log";
 import { markClosableZip, openZip } from "../services/zip";
-import { writeStream } from "./stream";
+import { writeNodeStream, writeStream } from "./stream";
 
 const enteTempDirPath = async () => {
-    const result = path.join(app.getPath("temp"), "ente");
-    await fs.mkdir(result, { recursive: true });
+    const uid = process.getuid?.();
+    const result = path.join(
+        app.getPath("temp"),
+        uid === undefined ? "ente" : `ente-${uid}`,
+    );
+    await fs.mkdir(result, { recursive: true, mode: 0o700 });
+    const stat = await fs.lstat(result);
+    if (
+        !stat.isDirectory() ||
+        (uid !== undefined && (stat.uid != uid || (stat.mode & 0o777) != 0o700))
+    )
+        throw new Error(`Unsafe temporary directory: ${result}`);
     return result;
 };
 
@@ -93,7 +103,10 @@ export const makeFileForStreamOrPathOrZipItem = async (
                 const [zipPath, entryName] = item;
                 const zip = openZip(zipPath);
                 try {
-                    await zip.extract(entryName, filePath);
+                    await writeNodeStream(
+                        filePath,
+                        await zip.stream(entryName),
+                    );
                 } finally {
                     markClosableZip(zipPath);
                 }

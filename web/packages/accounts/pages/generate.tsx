@@ -6,26 +6,28 @@ import {
     savedJustSignedUp,
     savedOriginalKeyAttributes,
     savedPartialLocalUser,
+    saveIsFirstLogin,
     saveJustSignedUp,
+    saveKeyAttributes,
+    saveOriginalKeyAttributes,
+    stashSRPSetupAttributes,
 } from "ente-accounts/services/accounts-db";
+import { deriveKey } from "ente-accounts/services/crypto";
 import { saveMasterKeyInSessionAndSafeStore } from "ente-accounts/services/prelogin-session";
 import { getPreloginRecoveryKeyMnemonic } from "ente-accounts/services/recovery-key";
 import { appHomeRoute } from "ente-accounts/services/redirect";
-import {
-    generateSRPSetupAttributes,
-    getAndSaveSRPAttributes,
-    setupSRP,
-} from "ente-accounts/services/srp";
+import { completePendingSignup } from "ente-accounts/services/srp";
 import {
     generateAndSaveInteractiveKeyAttributes,
-    generateKeysAndAttributes,
-    putUserKeyAttributes,
+    generateSignupKeys,
+    unlockAccountWithKEK,
 } from "ente-accounts/services/user";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import { useBaseContext } from "ente-base/context";
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { haveMasterKeyInSession } from "ente-base/session-storage";
+import { ensureAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -63,11 +65,32 @@ const Page: React.FC = () => {
     const handleSubmit: NewPasswordFormProps["onSubmit"] = useCallback(
         async (password, setPasswordsFieldError) => {
             try {
-                const { masterKey, kek, keyAttributes } =
-                    await generateKeysAndAttributes(password);
-                await putUserKeyAttributes(keyAttributes);
-                await setupSRP(await generateSRPSetupAttributes(kek));
-                await getAndSaveSRPAttributes(userEmail);
+                let keyAttributes = savedOriginalKeyAttributes();
+                let masterKey: string;
+                if (keyAttributes) {
+                    const kek = await deriveKey(
+                        password,
+                        keyAttributes.kekSalt,
+                        keyAttributes.opsLimit,
+                        keyAttributes.memLimit,
+                    );
+                    ({ masterKey } = await unlockAccountWithKEK(
+                        {
+                            id: savedPartialLocalUser()!.id!,
+                            token: await ensureAuthToken(),
+                            keyAttributes,
+                        },
+                        kek,
+                    ));
+                } else {
+                    const generated = await generateSignupKeys(password);
+                    ({ masterKey, keyAttributes } = generated);
+                    saveOriginalKeyAttributes(keyAttributes);
+                    saveKeyAttributes(keyAttributes);
+                    stashSRPSetupAttributes(generated.srp);
+                    saveIsFirstLogin();
+                }
+                await completePendingSignup(userEmail, await ensureAuthToken());
                 await generateAndSaveInteractiveKeyAttributes(
                     password,
                     keyAttributes,

@@ -167,12 +167,11 @@ class _HomePageState extends UploaderPageState<HomePage>
   bool _isSettingsOpen = false;
   bool get _isSyncing => !_hasCompletedInitialLoad || _isLoading;
   bool get _isHomeEmptyState => _error == null && _recentFiles.isEmpty;
-  bool get _showsLegacySetupEmptyState =>
-      _isHomeEmptyState && !_hasSetupLegacyKit;
 
   List<Collection> _collections = [];
   List<Collection> _filteredCollections = [];
   List<EnteFile> _recentFiles = [];
+  Map<int, List<EnteFile>> _filesByCollection = {};
   List<EnteFile> _filteredFiles = [];
   final ValueNotifier<List<EnteFile>> _displayedFilesNotifier = ValueNotifier(
     [],
@@ -199,6 +198,9 @@ class _HomePageState extends UploaderPageState<HomePage>
 
   @override
   List<EnteFile> get allFiles => _recentFiles;
+
+  @override
+  Map<int, List<EnteFile>> get filesByCollection => _filesByCollection;
 
   @override
   void onSearchResultsChanged(
@@ -556,11 +558,14 @@ class _HomePageState extends UploaderPageState<HomePage>
       if (mounted) {
         setState(() {
           _collections = sortedCollections;
-          _filteredCollections = _filterOutUncategorized(sortedCollections);
-          _filteredFiles = _recentFiles;
+          if (!isSearchActive) {
+            _filteredCollections = _filterOutUncategorized(sortedCollections);
+            _filteredFiles = _recentFiles;
+          }
           _isLoading = false;
           _hasCompletedInitialLoad = hasCompletedFirstSync;
         });
+        if (isSearchActive) refreshSearch();
         if (_recentFiles.isEmpty) {
           unawaited(_evaluateLegacyKit());
         }
@@ -579,11 +584,14 @@ class _HomePageState extends UploaderPageState<HomePage>
 
   Future<void> _loadRecentFiles(List<Collection> collections) async {
     final allFiles = <EnteFile>[];
+    final filesByCollection = <int, List<EnteFile>>{};
 
     for (final collection in collections) {
-      allFiles.addAll(
-        await CollectionService.instance.getFilesInCollection(collection),
+      final files = await CollectionService.instance.getFilesInCollection(
+        collection,
       );
+      filesByCollection[collection.id] = files;
+      allFiles.addAll(files);
     }
 
     final uniqueFiles = <EnteFile>[];
@@ -614,6 +622,7 @@ class _HomePageState extends UploaderPageState<HomePage>
     });
 
     _recentFiles = uniqueFiles;
+    _filesByCollection = filesByCollection;
   }
 
   void _handleSearchChange(String query) {
@@ -719,7 +728,7 @@ class _HomePageState extends UploaderPageState<HomePage>
                               _buildScannerFab(colors),
                               const SizedBox(height: 14),
                               FloatingActionButton(
-                                tooltip: 'Add item',
+                                tooltip: context.strings.addItem(count: 1),
                                 onPressed: () =>
                                     _openSavePage(includeScanner: false),
                                 shape: const CircleBorder(),
@@ -812,7 +821,7 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   Widget _buildEmptyState(double scrollBottomPadding) {
-    if (_hasSetupLegacyKit && !_isSyncing) {
+    if (!_isSyncing) {
       return SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
@@ -848,7 +857,7 @@ class _HomePageState extends UploaderPageState<HomePage>
           onLegacyTapped: () => unawaited(openLegacyFromHome(context)),
           isSyncing: _isSyncing,
         ),
-        if (!_showsLegacySetupEmptyState) _buildSearchBar(),
+        _buildSearchBar(),
         Expanded(child: _buildBody()),
       ],
     );

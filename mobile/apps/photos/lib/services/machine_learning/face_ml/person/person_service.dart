@@ -15,7 +15,7 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/local_entity_data.dart";
-import 'package:photos/models/ml/face/face.dart';
+import 'package:photos/models/ml/face/face_with_embedding.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/entity_service.dart";
@@ -587,6 +587,7 @@ class PersonService {
     } else {
       await entityService.deleteEntry(personID);
       await faceMLDataDB.removePerson(personID);
+      _invalidatePersonCache();
 
       if (entity != null) {
         if (entity.data.email != null) {
@@ -742,7 +743,7 @@ class PersonService {
     PersonEntity p,
     EnteFile file,
   ) async {
-    final Face? face = await faceMLDataDB.getCoverFaceForPerson(
+    final FaceWithoutEmbedding? face = await faceMLDataDB.getCoverFaceForPerson(
       recentFileID: file.uploadedFileID!,
       personID: p.remoteID,
     );
@@ -774,7 +775,7 @@ class PersonService {
   Future<void> _updateLinkedContactAvatarBeforePerson(
     PersonEntity person,
     EnteFile file,
-    Face face,
+    FaceWithoutEmbedding face,
   ) async {
     final contact = await _getLinkedContact(person);
     if (contact == null) {
@@ -834,12 +835,15 @@ class PersonService {
     }
     await updatePerson(updatedPerson);
     await refreshPersonCache();
-    if (hideFromMemories != null &&
-        hideFromMemories != person.data.hideFromMemories) {
-      memoriesCacheService.queueUpdateCache();
-      if (hideFromMemories) {
-        unawaited(memoriesCacheService.purgePersonFromMemoriesCache(id));
-      }
+    if (hideFromMemories == true && !person.data.hideFromMemories) {
+      final currentUserEmail = Configuration.instance.getEmail();
+      unawaited(
+        memoriesCacheService.purgePersonFromMemoriesCache(
+          id,
+          isCurrentUser:
+              currentUserEmail != null && person.data.email == currentUserEmail,
+        ),
+      );
     }
     return updatedPerson;
   }

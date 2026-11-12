@@ -52,9 +52,12 @@ class OnboardingPageScaffold extends StatefulWidget {
     this.showBackButton = true,
     this.titleBarStyle = OnboardingTitleBarStyle.card,
     this.headerTrailing,
+    this.titleTopPadding,
     this.isBodyCentered = false,
     this.pinActions = false,
     this.showDeveloperSettingsTapArea = false,
+    this.bodyHorizontalPadding = horizontalPadding,
+    this.manageInputFocus = true,
   });
 
   static const double defaultHeaderHeight = 159;
@@ -71,11 +74,14 @@ class OnboardingPageScaffold extends StatefulWidget {
   final bool showBackButton;
   final OnboardingTitleBarStyle titleBarStyle;
   final Widget? headerTrailing;
+  final double? titleTopPadding;
   final bool isBodyCentered;
 
   // Only pin actions on pages that never show the keyboard.
   final bool pinActions;
   final bool showDeveloperSettingsTapArea;
+  final double bodyHorizontalPadding;
+  final bool manageInputFocus;
 
   @override
   State<OnboardingPageScaffold> createState() => OnboardingPageScaffoldState();
@@ -121,9 +127,10 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
       (_userGestureInProgress?.value ?? false);
 
   double get _titleTopInset =>
-      widget.titleBarStyle == OnboardingTitleBarStyle.card
-      ? _titleBarTopInset
-      : _inlineTitleTopInset;
+      widget.titleTopPadding ??
+      (widget.titleBarStyle == OnboardingTitleBarStyle.card
+          ? _titleBarTopInset
+          : _inlineTitleTopInset);
 
   double get _keyboardProgress =>
       (_viewInsets.bottom / OnboardingPageScaffold.defaultHeaderHeight).clamp(
@@ -558,6 +565,7 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
     return ListenableBuilder(
       listenable: FocusManager.instance,
       builder: (context, child) {
+        if (!widget.manageInputFocus) return child!;
         final focusContext = FocusManager.instance.primaryFocus?.context;
         final input = focusContext
             ?.findAncestorStateOfType<EditableTextState>();
@@ -622,6 +630,7 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
             child: ListenableBuilder(
               listenable: FocusManager.instance,
               builder: (context, child) {
+                if (!widget.manageInputFocus) return child!;
                 final input = FocusManager.instance.primaryFocus?.context
                     ?.findAncestorStateOfType<EditableTextState>();
                 return TextFieldTapRegion(
@@ -686,10 +695,10 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
                     padding: EdgeInsets.only(
                       left:
                           mediaQuery.padding.left +
-                          OnboardingPageScaffold.horizontalPadding,
+                          widget.bodyHorizontalPadding,
                       right:
                           mediaQuery.padding.right +
-                          OnboardingPageScaffold.horizontalPadding,
+                          widget.bodyHorizontalPadding,
                     ),
                     sliver: SliverLayoutBuilder(
                       builder: (context, constraints) {

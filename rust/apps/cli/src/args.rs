@@ -127,6 +127,21 @@ pub enum Command {
         #[command(subcommand)]
         command: PasteCommand,
     },
+    #[command(
+        about = "Send feedback about the CLI to Ente",
+        after_long_help = "Send MESSAGE, read it from --input PATH, or pipe feedback on stdin.
+--input - explicitly reads stdin. Messages must be nonblank and at most
+2,000 characters.
+
+Sends your message, CLI version and OS to Ente's private feedback inbox.
+Requires network access; no login needed.
+Prints a receipt ID. With --json: {\"id\": \"...\"}.
+
+Examples:
+  ente feedback \"Export restarted after reconnecting\"
+  ente feedback --input feedback.txt --json"
+    )]
+    Feedback(FeedbackArgs),
     #[command(about = "Manage Ente accounts", alias = "accounts")]
     Account {
         #[command(subcommand)]
@@ -168,7 +183,10 @@ Fish loads a saved script on demand. Write it once, and again after upgrading:
 
 Prints the script to stdout, including when --json is set."
     )]
-    Completion { shell: Shell },
+    Completion {
+        #[arg(help = "Shell to generate the script for")]
+        shell: Shell,
+    },
     #[command(about = "Administer an Ente server", after_long_help = ADMIN_HELP)]
     Admin {
         #[command(flatten)]
@@ -243,6 +261,28 @@ With --json: {\"text\": \"...\"}. --raw affects plain terminal output only. Requ
         #[arg(long, help = "Ente API server; defaults to api.ente.com")]
         host: Option<String>,
     },
+}
+
+#[derive(Args)]
+pub struct FeedbackArgs {
+    #[arg(
+        conflicts_with = "input",
+        help = "Feedback text; defaults to piped stdin"
+    )]
+    pub message: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH|-",
+        help = "Read plain UTF-8 text from a file, or stdin with -"
+    )]
+    pub input: Option<PathBuf>,
+    #[arg(
+        long,
+        hide = true,
+        default_value = "https://feedback.ente.com",
+        help = "Feedback server"
+    )]
+    pub host: String,
 }
 
 #[derive(Subcommand)]
@@ -375,6 +415,25 @@ Examples:
   ente photos export ~/Pictures/Ente --album Holidays --account personal"
     )]
     Export(PhotosExportArgs),
+    #[command(about = "Show storage usage, plan status and file count")]
+    #[command(
+        after_long_help = "Reads your account details from the server; requires network access.
+In a family, the plan and total are the family admin's, and a member limit set by the admin caps your free space.
+JSON fields: email, planExpiresAt (UTC), planActive, totalBytes, usedBytes, freeBytes, planBytes, bonusBytes, files, family.
+planActive is false once the plan has expired; an expired personal plan still counts in totalBytes, as in the apps.
+files is null when the server has no count.
+family is null outside a family; otherwise it contains usedBytes, storageBytes and members.
+Each member has email, status, admin, usedBytes and storageLimitBytes (null without a cap)."
+    )]
+    Usage,
+    #[command(
+        about = "Find and remove exact duplicate photos and videos",
+        visible_alias = "duplicates"
+    )]
+    Duplicate {
+        #[command(subcommand)]
+        command: DuplicateCommand,
+    },
     #[command(about = "Manage albums")]
     Album {
         #[command(subcommand)]
@@ -391,6 +450,18 @@ Examples:
         album: Option<String>,
         #[command(subcommand)]
         command: FileCommand,
+    },
+    #[command(about = "See where your files were taken")]
+    Place {
+        #[arg(
+            long,
+            global = true,
+            value_name = "ALBUM",
+            help = "Limit to an album ID or exact name"
+        )]
+        album: Option<String>,
+        #[command(subcommand)]
+        command: PlaceCommand,
     },
 }
 
@@ -549,15 +620,20 @@ Use --album to limit the albums read. With --json, list returns an array and vie
 Fields: id, name, type, ownerId (strings); albumIds (string array);
 createdAt, updatedAt (RFC3339 timestamp strings).
 Nullable fields: modifiedAt (RFC3339 string); location ({latitude, longitude}, numbers);
-caption, hash, dateTime, offsetTime, visibility (strings); durationSeconds, width, height (integers).
-dateTime and offsetTime retain the stored metadata strings.
+caption, hash, dateTime, offsetTime, visibility (strings); durationSeconds, width, height, sizeBytes (integers).
+dateTime and offsetTime retain the stored metadata strings. sizeBytes is the stored size reported by the server.
 hash comes from Ente's stored metadata. For Live Photos, it can contain the image and video hashes separated by a colon.";
 
 #[derive(Subcommand)]
 pub enum FileCommand {
     #[command(about = "List files, including shared and hidden ones")]
     #[command(after_long_help = FILE_HELP)]
-    List(ListArgs),
+    List {
+        #[command(flatten)]
+        query: FileQuery,
+        #[command(flatten)]
+        list: ListArgs,
+    },
     #[command(about = "Show a file's metadata")]
     #[command(after_long_help = FILE_HELP)]
     View {
@@ -574,6 +650,179 @@ pub enum FileCommand {
         #[arg(long, value_name = "PATH", help = "Write to this new file")]
         output: PathBuf,
     },
+}
+
+const DUPLICATES_HELP: &str = "Uses the same duplicate detection and removal rules as Ente Photos.
+Scans files you own in non-hidden albums, including Favorites and archived albums.
+Matches stored hashes; a file in several albums is counted once. Files without a hash or known group size are omitted.
+Group IDs are the smallest file ID in each group, not row numbers.
+Keeps a copy with a caption first, then one with an edited name or date, then the first copy in album-name order.
+The retained copy is added to the other copies' albums before extra copies move to trash.
+List refreshes metadata first; --offline reads a previous sync. Groups are ordered by reclaimable size.
+Remove always refreshes online. Pass group IDs or --all, or omit both to select with space and enter.
+Without --dry-run, removal asks for confirmation; --yes approves it and --no-input only disables prompts.
+List JSON: an array of groups with id, sizeBytes, reclaimableBytes, retainedId and files.
+Each file has id, name and albums (id and name). All IDs are strings; byte counts are integers.
+sizeBytes is the stored encrypted size of one copy; reclaimableBytes is the total for the extra copies in the group.
+Remove JSON: dryRun, groupIds, retainedIds, trashIds and reclaimableBytes.
+Removal reclaimableBytes is the total for all selected groups.
+With --dry-run, trashIds are planned; otherwise they were moved to trash. Preview and progress go to stderr.
+
+Examples:
+  ente photos duplicate list
+  ente photos duplicate remove
+  ente photos duplicate remove 1580559962386999 --dry-run
+  ente photos duplicate remove 1580559962386999 --yes --no-input --json";
+
+#[derive(Subcommand)]
+pub enum DuplicateCommand {
+    #[command(about = "List duplicate groups and the copies to keep or trash", after_long_help = DUPLICATES_HELP)]
+    List(ListArgs),
+    #[command(about = "Select duplicate groups and move extra copies to trash", after_long_help = DUPLICATES_HELP)]
+    Remove {
+        #[arg(
+            value_name = "GROUP",
+            conflicts_with = "all",
+            help = "Group IDs from duplicates list; omit to select interactively"
+        )]
+        groups: Vec<i64>,
+        #[arg(long, help = "Select every current duplicate group")]
+        all: bool,
+        #[arg(long, help = "Show the selected removal plan without changing files")]
+        dry_run: bool,
+        #[arg(long, help = "Approve removal without a confirmation prompt")]
+        yes: bool,
+    },
+}
+
+#[derive(Args)]
+pub struct FileQuery {
+    #[arg(
+        long = "type",
+        value_enum,
+        value_name = "TYPE",
+        help = "Include files of this type; repeat for multiple types"
+    )]
+    pub types: Vec<FileType>,
+    #[arg(
+        long,
+        value_name = "WHEN",
+        value_parser = crate::admin::parse_date,
+        help = "Include files created at or after this instant",
+        long_help = "Include files created at or after this instant. Accepts YYYY-MM-DD (00:00 UTC at the start of that date) or RFC3339 with a timezone. Compares createdAt, which includes edits to a file's date."
+    )]
+    pub since: Option<i64>,
+    #[arg(
+        long,
+        value_name = "WHEN",
+        value_parser = crate::admin::parse_date,
+        help = "Include files created before this instant",
+        long_help = "Include files created before this instant. Accepts YYYY-MM-DD (00:00 UTC at the start of that date) or RFC3339 with a timezone. Compares createdAt, which includes edits to a file's date."
+    )]
+    pub before: Option<i64>,
+    #[arg(
+        long,
+        value_name = "TEXT",
+        value_parser = nonempty_search,
+        help = "Find files by words in their name or caption",
+        long_help = "Find files where every word of TEXT occurs in either the name or the caption, ignoring case. Quote text containing spaces."
+    )]
+    pub search: Option<String>,
+    #[arg(long, help = "Include only files without a location")]
+    pub no_location: bool,
+    #[arg(
+        long,
+        value_name = "TEXT",
+        value_parser = nonempty_search,
+        help = "Include files taken in a city whose name contains TEXT",
+        long_help = "Include files taken in a city whose name contains TEXT, ignoring case and accent marks. If one of the cities `place list` shows for the same --album is named exactly TEXT, only cities with that name match. Type letters such as ł or ø as `place list` shows them. Downloads location data on first use; see `place list --help`."
+    )]
+    pub place: Option<String>,
+    #[arg(
+        long,
+        value_name = "COUNTRY",
+        value_parser = nonempty_search,
+        help = "Include files taken in a country, given by code or name",
+        long_help = "Include files taken in the country with this two-letter code, such as PT, or this full English name. UK also selects the United Kingdom (GB); an unknown two-letter code is an error. Other text includes every country whose English name contains it. Names ignore case and accent marks, and are the ones `place list --countries` shows. Downloads location data on first use; see `place list --help`."
+    )]
+    pub country: Option<String>,
+    #[arg(
+        long,
+        value_name = "SIZE",
+        value_parser = min_file_size,
+        help = "Include files of at least this size, e.g. 100MB",
+        long_help = "Include files whose sizeBytes is at least SIZE. Accepts KB, MB and GB, case-insensitive, using powers of 1024; fractions are allowed, such as 1.5GB. Files with an unknown size are left out."
+    )]
+    pub min_size: Option<u64>,
+    #[arg(
+        long,
+        value_name = "SIZE",
+        value_parser = max_file_size,
+        help = "Include files of at most this size, e.g. 1.5GB",
+        long_help = "Include files whose sizeBytes is at most SIZE. Accepts KB, MB and GB, case-insensitive, using powers of 1024; fractions are allowed, such as 1.5GB. Files with an unknown size are left out."
+    )]
+    pub max_size: Option<u64>,
+    #[arg(
+        long,
+        value_enum,
+        value_name = "ORDER",
+        help = "Sort by creation time or size instead of ID",
+        long_help = "Sort by createdAt, newest first, or by sizeBytes, largest first. Files with an unknown size sort as the smallest. Ties keep ID order."
+    )]
+    pub sort: Option<FileSort>,
+    #[arg(long, requires = "sort", help = "Reverse the --sort order")]
+    pub reverse: bool,
+}
+
+const PLACE_HELP: &str = "Refreshes file metadata first; --offline reads previously synced data.
+Groups files by their location and lists the most files first. Files without a location,
+or whose location matches no city (or with --countries, no country), are not counted.
+--country uses the groups --countries shows, which can differ from a city's country:
+photos in French Guiana count under France.
+On first use, downloads about 7 MB of location data and keeps it in the CLI home for all accounts.
+With --json, returns an array. City fields: name, country, countryCode (strings);
+latitude, longitude of the city (numbers); fileCount (integer). With --countries: name, code (strings); fileCount (integer).";
+
+#[derive(Subcommand)]
+pub enum PlaceCommand {
+    #[command(about = "List the cities or countries where your files were taken")]
+    #[command(after_long_help = PLACE_HELP)]
+    List {
+        #[arg(long, help = "List countries instead of cities")]
+        countries: bool,
+        #[command(flatten)]
+        list: ListArgs,
+    },
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum FileType {
+    Image,
+    Video,
+    #[value(name = "livephoto")]
+    LivePhoto,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum FileSort {
+    Created,
+    Size,
+}
+
+fn nonempty_search(text: &str) -> Result<String, String> {
+    if text.trim().is_empty() {
+        Err("supply search text".into())
+    } else {
+        Ok(text.to_owned())
+    }
+}
+
+fn min_file_size(input: &str) -> Result<u64, String> {
+    crate::admin::parse_file_size(input).map(|bytes| bytes.ceil() as u64)
+}
+
+fn max_file_size(input: &str) -> Result<u64, String> {
+    crate::admin::parse_file_size(input).map(|bytes| bytes as u64)
 }
 
 const ACCOUNT_HELP: &str = "Reads accounts stored on this device without network access.
@@ -905,7 +1154,7 @@ pub struct SubscriptionArgs {
     pub target: AdminTarget,
     #[arg(long, conflicts_with_all = ["storage", "expires"], help = "Set 100 TB of storage and another 100 years")]
     pub no_limit: bool,
-    #[arg(long, value_name = "SIZE", value_parser = crate::admin::parse_size, help = "Storage limit, e.g. 500GB or 1.5TB")]
+    #[arg(long, value_name = "SIZE", value_parser = crate::admin::parse_storage, help = "Storage limit, e.g. 500GB or 1.5TB")]
     pub storage: Option<i64>,
     #[arg(long, value_name = "WHEN", value_parser = crate::admin::parse_date, help = "Expiry date or timestamp")]
     pub expires: Option<i64>,
@@ -958,6 +1207,87 @@ impl App {
             Self::Photos => "io.ente.photos",
             Self::Locker => "io.ente.locker",
             Self::Auth => "io.ente.auth",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::command;
+
+    fn commands(command: &clap::Command, path: &str) -> Vec<(String, clap::Command)> {
+        let path = format!("{path} {}", command.get_name()).trim().to_owned();
+        let mut all = vec![(path.clone(), command.clone())];
+        for child in command.get_subcommands() {
+            all.extend(commands(child, &path));
+        }
+        all
+    }
+
+    #[test]
+    fn account_selector() {
+        let mut root = command();
+        root.build();
+        for (path, command) in commands(&root, "") {
+            if command.has_subcommands() || path.contains(" help") {
+                continue;
+            }
+            let selector = command
+                .get_arguments()
+                .any(|arg| arg.get_id() == "account" && arg.is_global_set());
+            let expected = [
+                "ente photos ",
+                "ente locker ",
+                "ente auth ",
+                "ente admin ",
+                "ente account totp ",
+            ]
+            .iter()
+            .any(|group| path.starts_with(group));
+            assert_eq!(selector, expected, "{path}: --account selector");
+        }
+    }
+
+    #[test]
+    fn help_shape() {
+        let mut root = command();
+        root.build();
+        for (path, command) in commands(&root, "") {
+            let about = command
+                .get_about()
+                .map(ToString::to_string)
+                .unwrap_or_default();
+            assert!(
+                !about.is_empty() && !about.ends_with('.'),
+                "{path}: about {about:?}"
+            );
+            for arg in command.get_arguments() {
+                let help = arg
+                    .get_help()
+                    .or(arg.get_long_help())
+                    .map(ToString::to_string);
+                assert!(
+                    help.is_some_and(|help| !help.is_empty()),
+                    "{path}: {} has no help",
+                    arg.get_id()
+                );
+            }
+            let notes = [command.get_after_help(), command.get_after_long_help()]
+                .into_iter()
+                .flatten()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n");
+            let Some(examples) = notes.split("Examples:\n").nth(1) else {
+                continue;
+            };
+            assert!(
+                !command.has_subcommands(),
+                "{path}: group help carries examples"
+            );
+            for line in examples.lines().take_while(|line| !line.is_empty()) {
+                assert!(line.starts_with("  ente "), "{path}: example {line:?}");
+            }
         }
     }
 }

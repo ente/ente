@@ -86,7 +86,7 @@ pub struct DownloadTarget {
     pub destination: PathBuf,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Progress {
     pub label: String,
     pub downloaded_bytes: u64,
@@ -238,10 +238,14 @@ impl Downloader {
         on_progress: impl FnMut(Progress) + Send,
         cancellation: CancellationToken,
     ) -> Result<(), Error> {
-        fetch_async(&self.client, targets, on_progress, move || {
+        let download = fetch_async(&self.client, targets, on_progress, || {
             cancellation.is_cancelled()
-        })
-        .await
+        });
+        tokio::select! {
+            biased;
+            result = download => result,
+            _ = cancellation.cancelled() => Err(Error::Cancelled),
+        }
     }
 
     pub(crate) async fn estimated_download_size(&self, targets: &[DownloadTarget]) -> Option<u64> {
@@ -2453,7 +2457,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn dropping_download_preserves_partial_without_installing() {
+    async fn cancelling_a_stalled_download_preserves_partial_for_retry() {
         let bytes = Arc::new(sample_bytes(512));
         let release = Arc::new(AtomicBool::new(false));
         let server = {
@@ -2463,7 +2467,7 @@ mod tests {
                 handle_stalled_test_request(stream, Arc::clone(&bytes), Arc::clone(&release));
             })
         };
-        let test_dir = scratch_dir("drop-download");
+        let test_dir = scratch_dir("cancel-stalled-download");
         let destination = test_dir.join("model.bin");
         let tmp = tmp_path_for(&destination);
         let target = DownloadTarget {
@@ -2474,20 +2478,33 @@ mod tests {
             sha256: sha_hex(&bytes),
         };
 
-        let task = tokio::spawn(download(vec![target], |_| {}, false));
-        for _ in 0..10_000 {
-            if file_size(&tmp).unwrap_or(0) > 0 {
-                break;
+        let cancellation = CancellationToken::new();
+        let task = tokio::spawn({
+            let token = cancellation.clone();
+            let target = target.clone();
+            async move {
+                Downloader::new()?
+                    .download(vec![target], |_| {}, token)
+                    .await
             }
-            tokio::task::yield_now().await;
-        }
-        task.abort();
+        });
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while file_size(&tmp).unwrap_or(0) == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        cancellation.cancel();
+        let result = tokio::time::timeout(Duration::from_secs(5), task).await;
         release.store(true, Ordering::SeqCst);
 
-        assert!(task.await.unwrap_err().is_cancelled());
+        assert!(matches!(result.unwrap().unwrap(), Err(Error::Cancelled)));
         assert!(file_size(&tmp).unwrap_or(0) > 0);
         assert!(!destination.exists());
         assert!(partial_metadata_path_for(&destination).is_file());
+        download(vec![target], |_| {}, false).await.unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), *bytes);
         let _ = fs::remove_dir_all(test_dir);
     }
 

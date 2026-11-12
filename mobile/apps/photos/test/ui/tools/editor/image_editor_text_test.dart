@@ -360,6 +360,7 @@ Future<ProImageEditorState> _openEditor(
                     stream: stream,
                     builder: (_) => ImageEditorMainBottomBar(
                       editor: editor,
+                      imageReady: Future<void>.value(),
                       configs: editor.configs,
                       callbacks: editor.callbacks,
                     ),

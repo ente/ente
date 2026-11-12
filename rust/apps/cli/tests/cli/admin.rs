@@ -322,6 +322,10 @@ fn admin_email_and_input_contract() {
             "cannot be used with '--expires <WHEN>'",
         ),
         (vec!["--storage", "2GiB"], "use a size such as"),
+        (
+            vec!["--storage", "500KB"],
+            "use a size such as 500GB or 1.5TB",
+        ),
         (vec!["--expires", "2030-01-01 12:00:00"], "use YYYY-MM-DD"),
     ] {
         let mut args = vec!["admin", "user", "update-subscription", EMAIL];

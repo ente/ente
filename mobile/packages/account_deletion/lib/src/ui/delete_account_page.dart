@@ -1,12 +1,11 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:ente_account_deletion/src/account_deletion_settings.dart';
-import 'package:ente_account_deletion/src/models/account_deletion_summary.dart';
 import 'package:ente_account_deletion/src/ui/delete_account_bottom_actions.dart';
 import 'package:ente_account_deletion/src/ui/delete_account_confirmation_step.dart';
 import 'package:ente_account_deletion/src/ui/delete_account_reason_step.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_frb/account_deletion.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -119,27 +118,23 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
       _summaryLoading = true;
     });
     try {
-      final summary = await _settings.service.getDeletionSummary();
+      final summary = await _settings.host.getDeletionSummary();
       if (!mounted) {
         return;
       }
       setState(() {
         _summary = summary;
-        _summaryUnsupported = false;
+        _summaryUnsupported = summary == null;
         _summaryLoading = false;
       });
     } catch (e, s) {
-      final summaryUnsupported =
-          e is DioException && e.response?.statusCode == 404;
-      if (!summaryUnsupported) {
-        _logger.warning('Failed to load account deletion summary', e, s);
-      }
+      _logger.warning('Failed to load account deletion summary', e, s);
       if (!mounted) {
         return;
       }
       setState(() {
         _summary = null;
-        _summaryUnsupported = summaryUnsupported;
+        _summaryUnsupported = false;
         _summaryLoading = false;
       });
     }
@@ -149,13 +144,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
     final reason = _selectedReason!;
     try {
       setState(() => _isDeleting = true);
-      final encryptedChallenge = await _settings.service.getDeleteChallenge();
-      final challenge = _settings.host.decryptDeleteChallenge(
-        encryptedChallenge,
-      );
-      await _settings.service.deleteAccount(
-        challenge: challenge,
-        reasonCategory: reason.apiValue,
+      final encryptedChallenge = await _settings.host.getDeleteChallenge();
+      await _settings.host.deleteAccount(
+        encryptedChallenge: encryptedChallenge,
+        reason: reason.apiValue,
         feedback: _optionalFeedback,
       );
       await _settings.host.logout();

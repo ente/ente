@@ -51,23 +51,27 @@ class MagicResultScreen extends StatefulWidget {
 
 class _MagicResultScreenState extends State<MagicResultScreen> {
   final _selectedFiles = SelectedFiles();
+  final _coverAppBarKey = GlobalKey();
   late final List<EnteFile> files;
+  late final String? _coverHeroTag;
   late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdatedEvent;
   late final StreamSubscription<MagicSortChangeEvent> _magicSortChangeEvent;
   late final Logger _logger = Logger("_MagicResultScreenState");
   late Map<int, int> fileIDToRelevantPos;
   Map<String, int> _localIdToIntId = const {};
+  Future<void>? _localIdsLoaded;
   bool _enableGrouping = false;
   late final SearchFilterDataProvider _searchFilterDataProvider;
 
   @override
   void initState() {
     super.initState();
-    files = widget.files;
+    files = List.of(widget.files);
+    _coverHeroTag = files.isEmpty ? null : widget.heroTag + files.first.tag;
     _enableGrouping = widget.enableGrouping;
     fileIDToRelevantPos = getFileIDToRelevantPos();
     if (isLocalGalleryMode) {
-      _loadLocalIntIds();
+      _localIdsLoaded = _loadLocalIntIds();
     }
     _filesUpdatedEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen((
       event,
@@ -76,8 +80,10 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
           event.type == EventType.deletedFromEverywhere ||
           event.type == EventType.deletedFromRemote ||
           event.type == EventType.hide) {
-        for (var updatedFile in event.updatedFiles) {
-          files.remove(updatedFile);
+        if (event.updatedFiles.isNotEmpty) {
+          final updatedFiles = event.updatedFiles.toSet();
+          files.removeWhere(updatedFiles.contains);
+          widget.files.removeWhere(updatedFiles.contains);
         }
         setState(() {});
       }
@@ -85,7 +91,9 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
 
     _magicSortChangeEvent = Bus.instance.on<MagicSortChangeEvent>().listen((
       event,
-    ) {
+    ) async {
+      await _localIdsLoaded;
+      if (!mounted) return;
       if (event.sortType == MagicSortType.mostRelevant) {
         if (_enableGrouping) {
           if (fileIDToRelevantPos.isNotEmpty) {
@@ -180,6 +188,13 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
       MagicResultScreen.appBarType,
       widget.name,
       _selectedFiles,
+      coverAppBarKey: _coverAppBarKey,
+      cover: files.firstOrNull,
+      coverHeroTag: _coverHeroTag,
+      files: files,
+      magicSortType: _enableGrouping
+          ? MagicSortType.mostRecent
+          : MagicSortType.mostRelevant,
     );
     final gallery = Gallery(
       key: ValueKey(_enableGrouping),
@@ -202,7 +217,7 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
         EventType.deletedFromEverywhere,
         EventType.hide,
       },
-      tagPrefix: widget.heroTag,
+      tagPrefix: "${widget.heroTag}_files",
       selectedFiles: _selectedFiles,
       enableFileGrouping: _enableGrouping,
       initialFiles: files.isNotEmpty ? [files.first] : const [],
@@ -226,16 +241,11 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
                         builder: (context, value, _) {
                           return value
                               ? HierarchicalSearchGallery(
-                                  tagPrefix: widget.heroTag,
+                                  tagPrefix: "${widget.heroTag}_files",
                                   selectedFiles: _selectedFiles,
                                   appBar: appBar,
                                 )
-                              : AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 250),
-                                  switchInCurve: Curves.easeInOutQuad,
-                                  switchOutCurve: Curves.easeInOutQuad,
-                                  child: gallery,
-                                );
+                              : gallery;
                         },
                       );
                     },

@@ -8,7 +8,11 @@ export const execAsyncWorker = async (command: string | string[]) => {
         ? shellescape(command)
         : command;
     const startTime = Date.now();
-    const result = await execAsync_(escapedCommand);
+    const result = await execAsync_(
+        process.platform == "win32"
+            ? escapedCommand
+            : `umask 077 && ${escapedCommand}`,
+    );
     log.debugString(`${escapedCommand} (${Date.now() - startTime} ms)`);
     return result;
 };

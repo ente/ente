@@ -15,7 +15,7 @@ env:
     NDK_VERSION: "27.3.13750724"
 
 permissions:
-    contents: write
+    contents: read
 
 concurrency:
     group: ensu-build
@@ -93,6 +93,8 @@ jobs:
                   node .github/scripts/release-notes.mjs rust/apps/ensu/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
 
     build-desktop:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         environment:
@@ -148,7 +150,7 @@ jobs:
               run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: ensu-desktop
@@ -291,6 +293,8 @@ jobs:
                   updateOnlyUnreleased: true
 
     build-android:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
@@ -433,7 +437,7 @@ jobs:
               working-directory: rust
 
             - name: Import Apple Distribution certificate
-              uses: Apple-Actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9 # v7.1.0
+              uses: Apple-Actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c # v7.2.0
               with:
                   p12-file-base64: ${{ secrets.APPLE_DISTRIBUTION_CERT_BASE64 }}
                   p12-password: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
@@ -475,6 +479,8 @@ jobs:
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
     finish-build:
+        permissions:
+            contents: write
         needs: [build-metadata, build-desktop, build-android, build-ios]
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest

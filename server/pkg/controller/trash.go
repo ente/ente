@@ -35,7 +35,7 @@ func (t *TrashController) GetDiff(userID int64, sinceTime int64, app ente.App) (
 	for _, trashFile := range trashFilesDiff {
 		if trashFile.IsDeleted {
 			trashFile.File.MagicMetadata = nil
-			trashFile.File.PubicMagicMetadata = nil
+			trashFile.File.PublicMagicMetadata = nil
 			trashFile.File.Metadata = ente.FileAttributes{}
 			trashFile.File.Info = nil
 		}

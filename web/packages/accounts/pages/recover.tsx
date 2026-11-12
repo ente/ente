@@ -3,19 +3,16 @@ import { RecoverAccountForm } from "ente-accounts/components/auth/RecoveryForm";
 import {
     savedKeyAttributes,
     savedPartialLocalUser,
+    updateSavedLocalUser,
 } from "ente-accounts/services/accounts-db";
-import { decryptBox } from "ente-accounts/services/crypto";
 import { saveMasterKeyInSessionAndSafeStore } from "ente-accounts/services/prelogin-session";
-import { recoveryKeyFromMnemonic } from "ente-accounts/services/recovery-key";
 import { appHomeRoute, stashRedirect } from "ente-accounts/services/redirect";
 import type { KeyAttributes } from "ente-accounts/services/user";
-import {
-    decryptAndStoreTokenIfNeeded,
-    sendOTT,
-} from "ente-accounts/services/user";
+import { recoverAccount, sendOTT } from "ente-accounts/services/user";
 import type { SingleInputFormProps } from "ente-base/components/SingleInputForm";
 import log from "ente-base/log";
 import { haveMasterKeyInSession } from "ente-base/session-storage";
+import { saveAuthToken } from "ente-base/token";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -63,17 +60,13 @@ const Page: React.FC = () => {
     const handleSubmit: SingleInputFormProps["onSubmit"] = useCallback(
         async (recoveryKeyMnemonic: string, setFieldError) => {
             try {
-                const keyAttr = keyAttributes!;
-                const masterKey = await decryptBox(
-                    {
-                        encryptedData:
-                            keyAttr.masterKeyEncryptedWithRecoveryKey!,
-                        nonce: keyAttr.masterKeyDecryptionNonce!,
-                    },
-                    await recoveryKeyFromMnemonic(recoveryKeyMnemonic),
+                const { masterKey, token } = await recoverAccount(
+                    keyAttributes!,
+                    recoveryKeyMnemonic,
                 );
                 await saveMasterKeyInSessionAndSafeStore(masterKey);
-                await decryptAndStoreTokenIfNeeded(keyAttr, masterKey);
+                updateSavedLocalUser({ token, encryptedToken: undefined });
+                await saveAuthToken(token);
 
                 void router.push("/change-password?op=reset");
             } catch (e) {

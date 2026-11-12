@@ -258,7 +258,6 @@ class UsearchClusterCentroidVectorDB implements ClusterCentroidVectorDB {
     return output;
   }
 
-  @override
   Future<List<List<(String, double)>>> bulkSearchNearestAllowed(
     List<List<double>> queries,
     Set<String> allowedClusterIDs, {

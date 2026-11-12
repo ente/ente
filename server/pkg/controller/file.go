@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/ente/museum/pkg/controller/access"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -135,9 +136,14 @@ func (c *FileController) validateFileCreateOrUpdateReq(userID int64, file ente.F
 	return nil
 }
 
+type uploadedObject struct {
+	size   int64
+	bucket string
+}
+
 type sizeResult struct {
-	size int64
-	err  error
+	object uploadedObject
+	err    error
 }
 
 func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, userAgent string, app ente.App) (ente.File, error) {
@@ -149,28 +155,29 @@ func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, 
 	fileChan := make(chan sizeResult, 1)
 	thumbChan := make(chan sizeResult, 1)
 	go func() {
-		size, err := c.sizeOf(requestCtx, file.File.ObjectKey)
-		fileChan <- sizeResult{size, err}
+		object, err := c.getUploadedObject(requestCtx, file.File.ObjectKey, userID, app)
+		fileChan <- sizeResult{object, err}
 	}()
 	go func() {
-		size, err := c.sizeOf(requestCtx, file.Thumbnail.ObjectKey)
-		thumbChan <- sizeResult{size, err}
+		object, err := c.getUploadedObject(requestCtx, file.Thumbnail.ObjectKey, userID, app)
+		thumbChan <- sizeResult{object, err}
 	}()
 	fileResult := <-fileChan
 	thumbResult := <-thumbChan
 
-	hotDC := c.S3Config.GetHotDataCenter()
+	fileObject, thumbnailObject := fileResult.object, thumbResult.object
+	buckets := repo.FileObjectBuckets{File: fileObject.bucket, Thumbnail: thumbnailObject.bucket}
 
 	if fileResult.err != nil {
 		log.Error("Could not find size of file: " + file.File.ObjectKey)
-		return file, stacktrace.Propagate(ente.ErrObjSizeFetchFailed, "%v", fileResult.err)
+		return file, stacktrace.Propagate(fileResult.err, "")
 	}
 	if thumbResult.err != nil {
 		log.Error("Could not find size of thumbnail: " + file.Thumbnail.ObjectKey)
-		return file, stacktrace.Propagate(ente.ErrObjSizeFetchFailed, "%v", thumbResult.err)
+		return file, stacktrace.Propagate(thumbResult.err, "")
 	}
-	fileSize := fileResult.size
-	thumbnailSize := thumbResult.size
+	fileSize := fileObject.size
+	thumbnailSize := thumbnailObject.size
 	isFileSizeAllowed, err := c.isFileSizeAllowed(ctx, userID, fileSize, app)
 	if err != nil {
 		return file, stacktrace.Propagate(err, "")
@@ -203,7 +210,7 @@ func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, 
 	}
 
 	var usage int64
-	file, usage, err = c.FileRepo.Create(file, fileSize, thumbnailSize, fileSize+thumbnailSize, userID, app)
+	file, usage, err = c.FileRepo.Create(file, fileSize, thumbnailSize, fileSize+thumbnailSize, userID, app, buckets)
 	if err != nil {
 		if err == ente.ErrDuplicateFileObjectFound || err == ente.ErrDuplicateThumbnailObjectFound {
 			var existing ente.File
@@ -215,7 +222,7 @@ func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, 
 			if err != nil {
 				return file, stacktrace.Propagate(err, "")
 			}
-			return c.onDuplicateObjectDetected(ctx, file, existing, hotDC, app)
+			return c.onDuplicateObjectDetected(ctx, file, existing, app)
 		}
 		return file, stacktrace.Propagate(err, "")
 	}
@@ -267,9 +274,23 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 	}
 	existingThumbnailObjectKey := existingThumbnailObject.ObjectKey
 	oldThumbnailSize := existingThumbnailObject.FileSize
-	fileSize, err := c.sizeOf(ctx, file.File.ObjectKey)
+	if file.File.ObjectKey == existingFileObjectKey || file.Thumbnail.ObjectKey == existingThumbnailObjectKey {
+		attributes, err := c.FileRepo.GetFileAttributes(file.ID)
+		if err != nil {
+			return response, stacktrace.Propagate(err, "")
+		}
+		if (file.File.ObjectKey == existingFileObjectKey && file.File.DecryptionHeader != attributes.File.DecryptionHeader) ||
+			(file.Thumbnail.ObjectKey == existingThumbnailObjectKey && file.Thumbnail.DecryptionHeader != attributes.Thumbnail.DecryptionHeader) {
+			return response, ente.ErrFileUploadConflict
+		}
+	}
+	fileObject, err := c.getUploadedObject(ctx, file.File.ObjectKey, userID, app)
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
+	}
+	fileSize := fileObject.size
+	if file.File.ObjectKey == existingFileObjectKey && fileSize != oldFileSize {
+		return response, ente.ErrFileUploadConflict
 	}
 	isFileSizeAllowed, err := c.isFileSizeAllowed(ctx, userID, fileSize, app)
 	if err != nil {
@@ -281,9 +302,13 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 	if file.File.Size != 0 && file.File.Size != fileSize {
 		return response, stacktrace.Propagate(ente.ErrBadRequest, "mismatch in file size")
 	}
-	thumbnailSize, err := c.sizeOf(ctx, file.Thumbnail.ObjectKey)
+	thumbnailObject, err := c.getUploadedObject(ctx, file.Thumbnail.ObjectKey, userID, app)
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
+	}
+	thumbnailSize := thumbnailObject.size
+	if file.Thumbnail.ObjectKey == existingThumbnailObjectKey && thumbnailSize != oldThumbnailSize {
+		return response, ente.ErrFileUploadConflict
 	}
 	if file.Thumbnail.Size != 0 && file.Thumbnail.Size != thumbnailSize {
 		return response, stacktrace.Propagate(ente.ErrBadRequest, "mismatch in thumbnail size")
@@ -312,7 +337,8 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 			ThumbnailSize: thumbnailSize,
 		}
 	}
-	err = c.FileRepo.Update(file, fileSize, thumbnailSize, diff, oldObjects, stagedObjects, app)
+	err = c.FileRepo.Update(file, fileSize, thumbnailSize, diff, oldObjects, stagedObjects, app,
+		repo.FileObjectBuckets{File: fileObject.bucket, Thumbnail: thumbnailObject.bucket})
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
 	}
@@ -457,119 +483,62 @@ func (c *FileController) GetSignedURLForPublicFile(ctx *gin.Context, fileID int6
 }
 
 func (c *FileController) getSignedURLForType(ctx *gin.Context, fileID int64, objType ente.ObjectType) (string, error) {
-	if isCliRequest(ctx) {
-		return c.getWasabiSignedUrlIfAvailable(fileID, objType)
-	}
-	s3Object, err := c.ObjectRepo.GetObject(fileID, objType)
+	s3Object, dcs, err := c.ObjectRepo.GetObjectWithDCs(fileID, objType)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	return c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
 func (c *FileController) getSignedURLForAccessibleObject(ctx *gin.Context, userID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	var url string
-	var err error
-	if isCliRequest(ctx) {
-		url, err = c.getWasabiSignedUrlForAccessibleObject(ctx, userID, fileID, objType)
-	} else {
-		var s3Object ente.S3ObjectKey
-		s3Object, err = c.ObjectRepo.GetAccessibleObject(ctx, fileID, userID, objType)
-		if err == nil {
-			url, err = c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-		}
-	}
+	s3Object, dcs, err := c.ObjectRepo.GetAccessibleObjectWithDCs(ctx, fileID, userID, objType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			go c.CleanUpStaleCollectionFiles(fileID)
 		}
 		return "", stacktrace.Propagate(err, "")
 	}
-	return url, nil
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
 func (c *FileController) getSignedURLForOwnedObject(ctx *gin.Context, ownerID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	var url string
-	var err error
-	if isCliRequest(ctx) {
-		var s3Object ente.S3ObjectKey
-		var dcs []string
-		s3Object, dcs, err = c.ObjectRepo.GetOwnedObjectWithDCs(ctx, fileID, ownerID, objType)
-		if err == nil {
-			url, err = c.getSignedURLFromObjectAndDCs(s3Object, dcs, objType)
-		}
-	} else {
-		var s3Object ente.S3ObjectKey
-		s3Object, err = c.ObjectRepo.GetOwnedObject(ctx, fileID, ownerID, objType)
-		if err == nil {
-			url, err = c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-		}
-	}
+	s3Object, dcs, err := c.ObjectRepo.GetOwnedObjectWithDCs(ctx, fileID, ownerID, objType)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			go c.CleanUpStaleCollectionFiles(fileID)
 		}
 		return "", stacktrace.Propagate(err, "")
 	}
-	return url, nil
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
 func (c *FileController) getSignedURLForCollectionObject(ctx *gin.Context, collectionID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	var url string
-	var err error
-	if isCliRequest(ctx) {
-		var s3Object ente.S3ObjectKey
-		var dcs []string
-		s3Object, dcs, err = c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
-		if err == nil {
-			url, err = c.getSignedURLFromObjectAndDCs(s3Object, dcs, objType)
-		}
-	} else {
-		var s3Object ente.S3ObjectKey
-		s3Object, err = c.ObjectRepo.GetCollectionObject(ctx, collectionID, fileID, objType)
-		if err == nil {
-			url, err = c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-		}
-	}
+	s3Object, dcs, err := c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	return url, nil
+	return c.getSignedURLFromObjectAndDCs(ctx, s3Object, dcs, objType)
 }
 
-func (c *FileController) getSignedURLFromObjectAndDCs(s3Object ente.S3ObjectKey, dcs []string, objType ente.ObjectType) (string, error) {
-	for _, dc := range dcs {
-		if dc == c.S3Config.GetHotWasabiDC() {
+func (c *FileController) getSignedURLFromObjectAndDCs(ctx *gin.Context, s3Object ente.S3ObjectKey, dcs []string, objType ente.ObjectType) (string, error) {
+	primary, secondary := c.S3Config.GetHotDataCenter(), c.S3Config.GetSecondaryHotDataCenter()
+	if isCliRequest(ctx) && secondary == c.S3Config.GetHotWasabiDC() {
+		primary, secondary = secondary, primary
+	}
+	for _, dc := range []string{primary, secondary} {
+		if dc != c.S3Config.GetHotBackblazeDC() && dc != c.S3Config.GetHotWasabiDC() {
+			continue
+		}
+		if slices.Contains(dcs, dc) {
 			return c.getPreSignedURLForDC(s3Object.ObjectKey, dc, objType)
 		}
 	}
-	return c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
+	return "", fmt.Errorf("no recorded hot storage copy for object %q", s3Object.ObjectKey)
 }
 
 func isCliRequest(ctx *gin.Context) bool {
 	userAgent := ctx.Request.Header.Get("User-Agent")
 	return strings.Contains(userAgent, "go-resty")
-}
-
-func (c *FileController) getWasabiSignedUrlIfAvailable(fileID int64, objType ente.ObjectType) (string, error) {
-	s3Object, dcs, err := c.ObjectRepo.GetObjectWithDCs(fileID, objType)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	for _, dc := range dcs {
-		if dc == c.S3Config.GetHotWasabiDC() {
-			return c.getPreSignedURLForDC(s3Object.ObjectKey, dc, objType)
-		}
-	}
-	return c.getHotDcSignedUrl(s3Object.ObjectKey, objType)
-}
-
-func (c *FileController) getWasabiSignedUrlForAccessibleObject(ctx *gin.Context, userID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	s3Object, dcs, err := c.ObjectRepo.GetAccessibleObjectWithDCs(ctx, fileID, userID, objType)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "")
-	}
-	return c.getSignedURLFromObjectAndDCs(s3Object, dcs, objType)
 }
 
 func (c *FileController) Trash(ctx *gin.Context, userID int64, request ente.TrashRequest) error {
@@ -712,9 +681,22 @@ func (c *FileController) UpdateThumbnail(ctx *gin.Context, fileID int64, newThum
 	}
 	existingThumbnailObjectKey := existingThumbnailObject.ObjectKey
 	oldThumbnailSize := existingThumbnailObject.FileSize
-	newThumbnailSize, err := c.sizeOf(ctx.Request.Context(), newThumbnail.ObjectKey)
+	if newThumbnail.ObjectKey == existingThumbnailObjectKey {
+		attributes, err := c.FileRepo.GetFileAttributes(fileID)
+		if err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+		if newThumbnail.DecryptionHeader != attributes.Thumbnail.DecryptionHeader {
+			return ente.ErrFileUploadConflict
+		}
+	}
+	thumbnailObject, err := c.getUploadedObject(ctx.Request.Context(), newThumbnail.ObjectKey, userID, app)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
+	}
+	newThumbnailSize := thumbnailObject.size
+	if newThumbnail.ObjectKey == existingThumbnailObjectKey && newThumbnailSize != oldThumbnailSize {
+		return ente.ErrFileUploadConflict
 	}
 	diff := newThumbnailSize - oldThumbnailSize
 	if diff > 0 {
@@ -728,7 +710,7 @@ func (c *FileController) UpdateThumbnail(ctx *gin.Context, fileID int64, newThum
 	if existingThumbnailObjectKey != newThumbnail.ObjectKey {
 		oldObject = &existingThumbnailObjectKey
 	}
-	err = c.FileRepo.UpdateThumbnail(ctx, fileID, userID, newThumbnail, newThumbnailSize, diff, oldObject, app)
+	err = c.FileRepo.UpdateThumbnail(ctx, fileID, userID, newThumbnail, newThumbnailSize, diff, oldObject, app, thumbnailObject.bucket)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -905,20 +887,6 @@ func (c *FileController) cleanupDeletedFile(qItem repo.QueueItem) {
 	ctxLogger.Info("Successfully deleted item")
 }
 
-func (c *FileController) getHotDcSignedUrl(objectKey string, objType ente.ObjectType) (string, error) {
-	s3Client := c.S3Config.GetHotS3Client()
-	input := &s3.GetObjectInput{
-		Bucket: c.S3Config.GetHotBucket(),
-		Key:    &objectKey,
-	}
-	input.ResponseContentDisposition = aws.String("attachment")
-	if objType == ente.FILE || objType == ente.THUMBNAIL {
-		input.ResponseContentType = aws.String("application/octet-stream")
-	}
-	r, _ := s3Client.GetObjectRequest(input)
-	return r.Presign(PreSignedRequestValidityDuration)
-}
-
 func (c *FileController) getPreSignedURLForDC(objectKey string, dc string, objType ente.ObjectType) (string, error) {
 	s3Client := c.S3Config.GetS3Client(dc)
 	input := &s3.GetObjectInput{
@@ -933,31 +901,46 @@ func (c *FileController) getPreSignedURLForDC(objectKey string, dc string, objTy
 	return r.Presign(PreSignedRequestValidityDuration)
 }
 
-func (c *FileController) sizeOf(ctx context.Context, objectKey string) (int64, error) {
-	s3Client := c.S3Config.GetHotS3Client()
-	bucket := c.S3Config.GetHotBucket()
+func (c *FileController) getUploadedObject(ctx context.Context, objectKey string, userID int64, app ente.App) (uploadedObject, error) {
+	object := uploadedObject{}
+	bucketID, err := c.ObjectCleanupRepo.GetFileUploadBucket(ctx, objectKey, userID, app)
+	if errors.Is(err, sql.ErrNoRows) {
+		bucketID, err = c.ObjectRepo.GetObjectUploadBucket(ctx, objectKey, userID)
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return object, ente.NewBadRequestWithMessage("staged upload not found")
+	}
+	if err != nil {
+		return object, stacktrace.Propagate(err, "")
+	}
+	if !c.S3Config.IsBucketActive(bucketID) {
+		return object, stacktrace.NewError("upload bucket %q is not configured", bucketID)
+	}
+	object.bucket = bucketID
+	s3Client := c.S3Config.GetS3Client(bucketID)
+	bucket := c.S3Config.GetBucket(bucketID)
 	var head *s3.HeadObjectOutput
-	var err error
 	for i := 0; i < 3; i++ {
 		head, err = s3Client.HeadObjectWithContext(ctx, &s3.HeadObjectInput{
 			Key:    &objectKey,
 			Bucket: bucket,
 		})
 		if err == nil {
-			return *head.ContentLength, nil
+			object.size = *head.ContentLength
+			return object, nil
 		}
 		if i < 2 {
 			select {
 			case <-ctx.Done():
-				return -1, stacktrace.Propagate(ctx.Err(), "")
+				return object, stacktrace.Propagate(ctx.Err(), "")
 			case <-gTime.After(gTime.Duration(500*(i+1)) * gTime.Millisecond):
 			}
 		}
 	}
-	return -1, stacktrace.Propagate(err, "")
+	return object, stacktrace.Propagate(ente.ErrObjSizeFetchFailed, "%v", err)
 }
 
-func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.File, existing ente.File, hotDC string, app ente.App) (ente.File, error) {
+func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.File, existing ente.File, app ente.App) (ente.File, error) {
 	newJSON, _ := json.Marshal(file)
 	existingJSON, _ := json.Marshal(existing)
 	log.Info("Comparing " + string(newJSON) + " against " + string(existingJSON))
@@ -980,8 +963,8 @@ func (c *FileController) onDuplicateObjectDetected(ctx *gin.Context, file ente.F
 		file.ID = existing.ID
 		return file, nil
 	}
-	go c.onExistingObjectsReplaced(ctx, file, hotDC)
-	return ente.File{}, ente.ErrBadRequest
+	go c.onExistingObjectsReplaced(ctx, file)
+	return ente.File{}, ente.ErrFileUploadConflict
 }
 
 func (c *FileController) safeAlert(msg string) {
@@ -993,7 +976,7 @@ func (c *FileController) safeAlert(msg string) {
 	c.DiscordController.Notify(msg)
 }
 
-func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.File, hotDC string) {
+func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.File) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Errorf("Panic caught: %s, stack: %s", r, string(debug.Stack()))
@@ -1013,20 +996,30 @@ func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.F
 		"thumbSize": file.Thumbnail.Size,
 	})
 
-	err := c.rollbackObject(file.File.ObjectKey)
-	if err != nil {
-		logger.Error("Error rolling back latest file from hot storage", err)
-		revertErr = true
-	}
-	err = c.rollbackObject(file.Thumbnail.ObjectKey)
-	if err != nil {
-		log.Error("Error rolling back latest thumbnail from hot storage", err)
-		revertErr = true
-	}
-	resetErr := c.FileRepo.ResetNeedsReplication(file, hotDC)
-	if resetErr != nil {
-		log.Error("Error resetting needs replication", resetErr)
-		revertErr = true
+	for _, item := range []struct {
+		key  string
+		kind ente.ObjectType
+	}{
+		{file.File.ObjectKey, ente.FILE},
+		{file.Thumbnail.ObjectKey, ente.THUMBNAIL},
+	} {
+		bucketID, err := c.ObjectRepo.GetObjectUploadBucket(context.Background(), item.key, file.OwnerID)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			logger.WithField("object_key", item.key).WithError(err).Error("Error finding object upload bucket")
+			revertErr = true
+			continue
+		}
+		if err := c.rollbackObject(item.key, bucketID); err != nil {
+			logger.WithField("object_key", item.key).WithError(err).Error("Error rolling back latest object")
+			revertErr = true
+		}
+		if err := c.FileRepo.ResetObjectReplication(item.key, bucketID, item.kind); err != nil {
+			logger.WithField("object_key", item.key).WithError(err).Error("Error resetting needs replication")
+			revertErr = true
+		}
 	}
 	if revertErr {
 		go c.safeAlert(fmt.Sprintf(`☠️ Client %s replaced an existing object req_id %s for user %d, failed to revert`, client, reqId, file.OwnerID))
@@ -1035,14 +1028,13 @@ func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.F
 	}
 }
 
-func (c *FileController) rollbackObject(objectKey string) error {
-	versions, err := c.getVersions(objectKey)
+func (c *FileController) rollbackObject(objectKey string, bucketID string) error {
+	versions, err := c.getVersions(objectKey, bucketID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if len(versions) > 1 {
-		err = c.deleteObjectVersionFromHotStorage(objectKey,
-			*versions[0].VersionId)
+		err = c.deleteObjectVersion(objectKey, *versions[0].VersionId, bucketID)
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
@@ -1050,11 +1042,11 @@ func (c *FileController) rollbackObject(objectKey string) error {
 	return nil
 }
 
-func (c *FileController) getVersions(objectKey string) ([]*s3.ObjectVersion, error) {
-	s3Client := c.S3Config.GetHotS3Client()
+func (c *FileController) getVersions(objectKey string, bucketID string) ([]*s3.ObjectVersion, error) {
+	s3Client := c.S3Config.GetS3Client(bucketID)
 	response, err := s3Client.ListObjectVersions(&s3.ListObjectVersionsInput{
 		Prefix: &objectKey,
-		Bucket: c.S3Config.GetHotBucket(),
+		Bucket: c.S3Config.GetBucket(bucketID),
 	})
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -1062,10 +1054,10 @@ func (c *FileController) getVersions(objectKey string) ([]*s3.ObjectVersion, err
 	return response.Versions, nil
 }
 
-func (c *FileController) deleteObjectVersionFromHotStorage(objectKey string, versionID string) error {
-	var s3Client = c.S3Config.GetHotS3Client()
+func (c *FileController) deleteObjectVersion(objectKey string, versionID string, bucketID string) error {
+	s3Client := c.S3Config.GetS3Client(bucketID)
 	_, err := s3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket:    c.S3Config.GetHotBucket(),
+		Bucket:    c.S3Config.GetBucket(bucketID),
 		Key:       &objectKey,
 		VersionId: &versionID,
 	})
@@ -1073,8 +1065,9 @@ func (c *FileController) deleteObjectVersionFromHotStorage(objectKey string, ver
 		return stacktrace.Propagate(err, "")
 	}
 	err = s3Client.WaitUntilObjectNotExists(&s3.HeadObjectInput{
-		Bucket: c.S3Config.GetHotBucket(),
-		Key:    &objectKey,
+		Bucket:    c.S3Config.GetBucket(bucketID),
+		Key:       &objectKey,
+		VersionId: &versionID,
 	})
 	if err != nil {
 		return stacktrace.Propagate(err, "")

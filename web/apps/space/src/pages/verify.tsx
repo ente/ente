@@ -1,6 +1,6 @@
 import { SpacePageMeta } from "components/PageMeta";
 import { SpaceRouteFallback } from "components/RouteFallback";
-import { isHTTPErrorWithStatus } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import { VerifyEmailScreen } from "screens/VerifyEmailScreen";
@@ -21,10 +21,10 @@ import { useSpaceRouter } from "utils/route-transitions";
 import { spaceRoutes, verifyFlowFromQuery } from "utils/routes";
 
 const verificationErrorMessage = (error: unknown) => {
-    if (isHTTPErrorWithStatus(error, 401)) {
+    if (isNamedError(error, "incorrect_email_code")) {
         return "Incorrect code. Please try again.";
     }
-    if (isHTTPErrorWithStatus(error, 410)) {
+    if (isNamedError(error, "email_code_expired")) {
         return "This code has expired. Please request a new one.";
     }
     return spaceAuthErrorMessage(
@@ -34,7 +34,8 @@ const verificationErrorMessage = (error: unknown) => {
 };
 
 const isExpectedVerificationError = (error: unknown) =>
-    isHTTPErrorWithStatus(error, 401) || isHTTPErrorWithStatus(error, 410);
+    isNamedError(error, "incorrect_email_code") ||
+    isNamedError(error, "email_code_expired");
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
@@ -142,7 +143,7 @@ const Page: React.FC = () => {
             if (!isExpectedVerificationError(error)) {
                 log.error("Space signup verification failed", error);
             }
-            if (isHTTPErrorWithStatus(error, 401)) {
+            if (isNamedError(error, "incorrect_email_code")) {
                 setCodeResetKey((key) => key + 1);
             }
             setVerificationError(verificationErrorMessage(error));
@@ -167,7 +168,7 @@ const Page: React.FC = () => {
             if (!isExpectedVerificationError(error)) {
                 log.error("Space login email verification failed", error);
             }
-            if (isHTTPErrorWithStatus(error, 401)) {
+            if (isNamedError(error, "incorrect_email_code")) {
                 setCodeResetKey((key) => key + 1);
             }
             setVerificationError(verificationErrorMessage(error));

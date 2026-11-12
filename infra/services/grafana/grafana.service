@@ -3,12 +3,15 @@ Documentation=https://grafana.com/docs/grafana/latest/setup-grafana/configure-do
 Requires=docker.service
 After=docker.service
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
-ExecStartPre=docker pull grafana/grafana-oss
+ExecStartPre=docker pull grafana/grafana
 ExecStartPre=-docker stop grafana
 ExecStartPre=-docker rm grafana
 ExecStart=docker run --name grafana \
     -p 3001:3001 \
     -v grafana-storage:/var/lib/grafana \
     -e "GF_SERVER_HTTP_PORT=3001" \
-    grafana/grafana-oss
+    grafana/grafana

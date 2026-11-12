@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:app_links/app_links.dart';
 import 'package:ente_accounts/ente_accounts.dart';
-import 'package:ente_accounts/models/errors.dart';
 import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 class PasskeyPage extends StatefulWidget {
   final BaseConfiguration config;
   final String sessionID;
+  final Uint8List? keyEncryptionKey;
   final String totp2FASessionID;
   final String accountsUrl;
   final String redirectUrl;
@@ -32,6 +33,7 @@ class PasskeyPage extends StatefulWidget {
     required this.accountsUrl,
     required this.redirectUrl,
     required this.clientPackage,
+    this.keyEncryptionKey,
     super.key,
   });
 
@@ -65,17 +67,12 @@ class _PasskeyPageState extends State<PasskeyPage> {
   }
 
   Future<void> checkStatus() async {
-    late dynamic response;
+    Map<String, dynamic>? response;
     try {
       response = await UserService.instance.getTokenForPasskeySession(
         widget.sessionID,
       );
-    } on PassKeySessionNotVerifiedError {
-      if (mounted) {
-        showToast(context, context.strings.passKeyPendingVerification);
-      }
-      return;
-    } on PassKeySessionExpiredError {
+    } on AccountsError_SessionExpired {
       if (!mounted) {
         return;
       }
@@ -96,9 +93,16 @@ class _PasskeyPageState extends State<PasskeyPage> {
       }
       return;
     }
+    if (response == null) {
+      if (mounted) {
+        showToast(context, context.strings.passKeyPendingVerification);
+      }
+      return;
+    }
     await UserService.instance.onPassKeyVerified(
       mounted ? context : null,
       response,
+      keyEncryptionKey: widget.keyEncryptionKey,
     );
   }
 
@@ -134,6 +138,7 @@ class _PasskeyPageState extends State<PasskeyPage> {
         await UserService.instance.onPassKeyVerified(
           mounted ? context : null,
           json,
+          keyEncryptionKey: widget.keyEncryptionKey,
         );
       } else {
         _logger.info(
@@ -236,6 +241,7 @@ class _PasskeyPageState extends State<PasskeyPage> {
                             context,
                             TwoFactorAuthenticationPage(
                               widget.totp2FASessionID,
+                              keyEncryptionKey: widget.keyEncryptionKey,
                             ),
                           );
                         },

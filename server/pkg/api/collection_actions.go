@@ -26,7 +26,8 @@ func (h *CollectionActionsHandler) ListPendingRemove(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	actions, err := h.Controller.ListPendingRemoveActions(c, userID, updatedAfter, collectionActionsLimit)
+	app, _ := auth.GetAuthenticatedApp(c)
+	actions, err := h.Controller.ListPendingRemoveActions(c, userID, app, updatedAfter, collectionActionsLimit)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -44,7 +45,8 @@ func (h *CollectionActionsHandler) ListDeleteSuggestions(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	actions, err := h.Controller.ListPendingDeleteSuggestions(c, userID, updatedAfter, collectionActionsLimit)
+	app, _ := auth.GetAuthenticatedApp(c)
+	actions, err := h.Controller.ListPendingDeleteSuggestions(c, userID, app, updatedAfter, collectionActionsLimit)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -74,7 +76,8 @@ func (h *CollectionActionsHandler) RejectDeleteSuggestions(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage(fmt.Sprintf("can not reject more than %d items in one request", collectionActionsLimit)), ""))
 		return
 	}
-	updated, err := h.Controller.RejectDeleteSuggestions(c, userID, req.FileIDs)
+	app, _ := auth.GetAuthenticatedApp(c)
+	updated, err := h.Controller.RejectDeleteSuggestions(c, userID, app, req.FileIDs)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to reject delete suggestions"))
 		return

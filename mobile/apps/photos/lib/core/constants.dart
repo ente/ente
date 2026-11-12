@@ -31,10 +31,6 @@ const galleryThumbnailServerLoadDeferDuration = Duration(milliseconds: 80);
 const mediaManagementHintDismissDuration = Duration(days: 7);
 const mediaManagementHintDeleteAttemptThreshold = 3;
 
-// 256 bit key maps to 24 words
-// https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki#Generating_the_mnemonic
-const mnemonicKeyWordCount = 24;
-
 const dragSensitivity = 8;
 
 const supportEmail = 'support@ente.com';

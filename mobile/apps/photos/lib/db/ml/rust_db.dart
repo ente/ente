@@ -10,6 +10,8 @@ import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/ml_exclusive_operation.dart";
 import "package:photos/db/ml/rust_db_model_mappers.dart" as mappers;
+import "package:photos/db/ml/usearch_clip_vector_db.dart";
+import "package:photos/db/ml/usearch_cluster_centroid_vector_db.dart";
 import "package:photos/events/embedding_updated_event.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
@@ -18,7 +20,6 @@ import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/filedata/model/file_data.dart";
-import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" as rust;
 import "package:photos/utils/ml_util.dart";
@@ -30,13 +31,27 @@ class RustMLDataDB implements IMLDataDB<int> {
       "cluster_centroid_vector_db_migration_in_progress";
 
   final String _databaseName;
+  final UsearchClipVectorDB _dartClipVectorDB;
+  final UsearchClusterCentroidVectorDB _dartClusterCentroidVectorDB;
 
-  RustMLDataDB._privateConstructor({String databaseName = "ente.ml.db"})
-    : _databaseName = databaseName;
+  RustMLDataDB._privateConstructor({
+    String databaseName = "ente.ml.db",
+    UsearchClipVectorDB? dartClipVectorDB,
+    UsearchClusterCentroidVectorDB? dartClusterCentroidVectorDB,
+  }) : _databaseName = databaseName,
+       _dartClipVectorDB = dartClipVectorDB ?? UsearchClipVectorDB.instance,
+       _dartClusterCentroidVectorDB =
+           dartClusterCentroidVectorDB ??
+           UsearchClusterCentroidVectorDB.instance;
 
   static final RustMLDataDB instance = RustMLDataDB._privateConstructor();
   static final RustMLDataDB localGalleryInstance =
-      RustMLDataDB._privateConstructor(databaseName: "ente.ml.offline.db");
+      RustMLDataDB._privateConstructor(
+        databaseName: "ente.ml.offline.db",
+        dartClipVectorDB: UsearchClipVectorDB.localGalleryInstance,
+        dartClusterCentroidVectorDB:
+            UsearchClusterCentroidVectorDB.localGalleryInstance,
+      );
 
   Future<rust.MlStore>? _dbFuture;
 
@@ -56,11 +71,15 @@ class RustMLDataDB implements IMLDataDB<int> {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final String path = join(documentsDirectory.path, _databaseName);
     _logger.info("Opening rust ML DB access: DB path $path");
+    final rust.MlStore store;
     try {
-      return await rust.MlStore.open(path: path);
+      store = await rust.MlStore.open(path: path);
     } on rust.MlDbError_Downgrade catch (e) {
       throw DatabaseDowngradeError(e.message);
     }
+    await _dartClipVectorDB.invalidateMigrationState();
+    await _dartClusterCentroidVectorDB.invalidateMigrationState();
+    return store;
   }
 
   Future<rust.FillState> fillState(rust.Index index) async =>
@@ -188,25 +207,7 @@ class RustMLDataDB implements IMLDataDB<int> {
       (await store).getPersonsClusterIds(personIds: personID);
 
   @override
-  Future<Iterable<Uint8List>> getFaceEmbeddingsForCluster(
-    String clusterID, {
-    int? limit,
-  }) async => (await store).getFaceEmbeddingsForCluster(
-    clusterId: clusterID,
-    limit: limit,
-  );
-
-  @override
-  Future<Map<String, Iterable<Uint8List>>> getFaceEmbeddingsForClusters(
-    Iterable<String> clusterIDs, {
-    int? limit,
-  }) async => (await store).getFaceEmbeddingsForClusters(
-    clusterIds: clusterIDs.toList(),
-    limit: limit,
-  );
-
-  @override
-  Future<Face?> getCoverFaceForPerson({
+  Future<FaceWithoutEmbedding?> getCoverFaceForPerson({
     required int recentFileID,
     String? personID,
     String? avatarFaceId,
@@ -219,14 +220,18 @@ class RustMLDataDB implements IMLDataDB<int> {
       avatarFaceId: avatarFaceId,
       clusterId: clusterID,
     );
-    return row == null ? null : mappers.toFace(row);
+    return row == null ? null : mappers.toFaceWithoutEmbedding(row);
   }
 
   @override
-  Future<List<Face>?> getFacesForGivenFileID(int fileUploadID) async {
+  Future<List<FaceWithoutEmbedding>?> getFacesForGivenFileID(
+    int fileUploadID,
+  ) async {
     final db = await store;
     final rows = await db.getFacesForGivenFileId(fileUploadId: fileUploadID);
-    return rows.isEmpty ? null : rows.map(mappers.toFace).toList();
+    return rows.isEmpty
+        ? null
+        : rows.map(mappers.toFaceWithoutEmbedding).toList();
   }
 
   @override
@@ -300,10 +305,6 @@ class RustMLDataDB implements IMLDataDB<int> {
   );
 
   @override
-  Future<Iterable<double>> getBlurValuesForCluster(String clusterID) async =>
-      (await store).getBlurValuesForCluster(clusterId: clusterID);
-
-  @override
   Future<Map<String, String?>> getFaceIdsToClusterIds(
     Iterable<String> faceIds,
   ) async => (await store).getFaceIdsToClusterIds(faceIds: faceIds.toList());
@@ -328,32 +329,6 @@ class RustMLDataDB implements IMLDataDB<int> {
   @override
   Future<void> removePerson(String personID) async =>
       (await store).removePerson(personId: personID);
-
-  @override
-  Future<List<FaceDbInfoForClustering>> getFaceInfoForClustering({
-    int maxFaces = 20000,
-    int offset = 0,
-    int batchSize = 10000,
-  }) async {
-    final db = await store;
-    final rows = await db.getFaceInfoForClustering(
-      maxFaces: maxFaces,
-      offset: offset,
-      batchSize: batchSize,
-    );
-    return rows.map(mappers.toFaceDbInfoForClustering).toList();
-  }
-
-  @override
-  Future<Map<String, Uint8List>> getFaceEmbeddingMapForFaces(
-    Iterable<String> faceIDs,
-  ) async {
-    final db = await store;
-    final rows = await db.getFaceEmbeddingRowsForFaces(
-      faceIds: faceIDs.toList(),
-    );
-    return {for (final (faceID, embedding) in rows) faceID: embedding};
-  }
 
   @override
   Future<int> getTotalFaceCount() async => (await store).getTotalFaceCount();
@@ -506,32 +481,6 @@ class RustMLDataDB implements IMLDataDB<int> {
       "ClusterCentroidVectorDB write failed during `$operation`. The index is marked stale and refills on the next fill check.",
       error,
       stackTrace,
-    );
-  }
-
-  @override
-  Future<Map<String, (Uint8List, int)>> getAllClusterSummary([
-    int? minClusterSize,
-  ]) async {
-    final db = await store;
-    final rows = await db.getAllClusterSummary(minClusterSize: minClusterSize);
-    return rows.map(
-      (clusterID, summary) =>
-          MapEntry(clusterID, mappers.toClusterSummaryRecord(summary)),
-    );
-  }
-
-  @override
-  Future<Map<String, (Uint8List, int)>> getClusterToClusterSummary(
-    Iterable<String> clusterIDs,
-  ) async {
-    final db = await store;
-    final rows = await db.getClusterToClusterSummary(
-      clusterIds: clusterIDs.toList(),
-    );
-    return rows.map(
-      (clusterID, summary) =>
-          MapEntry(clusterID, mappers.toClusterSummaryRecord(summary)),
     );
   }
 

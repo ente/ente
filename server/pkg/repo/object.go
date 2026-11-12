@@ -50,7 +50,8 @@ func (repo *ObjectRepository) GetObjectsMissingInDC(dc string, limit int, random
 }
 
 func (repo *ObjectRepository) MarkObjectReplicated(objectKey string, datacenter string) (int64, error) {
-	result, err := repo.DB.Exec(`UPDATE object_keys SET datacenters = datacenters || $1::s3region WHERE object_key = $2`,
+	result, err := repo.DB.Exec(`UPDATE object_keys SET datacenters = datacenters || $1::s3region
+		WHERE object_key = $2 AND NOT ($1::s3region = ANY(datacenters))`,
 		datacenter, objectKey)
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "")
@@ -58,13 +59,27 @@ func (repo *ObjectRepository) MarkObjectReplicated(objectKey string, datacenter 
 	return result.RowsAffected()
 }
 
-func (repo *ObjectRepository) GetObjectsForFileIDs(fileIDs []int64) ([]ente.S3ObjectKey, error) {
-	rows, err := repo.DB.Query(`SELECT file_id, o_type, object_key, size FROM object_keys 
+type ObjectWithDataCenters struct {
+	ente.S3ObjectKey
+	DataCenters []string
+}
+
+func (repo *ObjectRepository) GetObjectsForFileIDs(fileIDs []int64) ([]ObjectWithDataCenters, error) {
+	rows, err := repo.DB.Query(`SELECT file_id, o_type, object_key, size, datacenters FROM object_keys
 		WHERE file_id = ANY($1) AND is_deleted=false`, pq.Array(fileIDs))
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	return convertRowsToObjectKeys(rows)
+	defer rows.Close()
+	var objects []ObjectWithDataCenters
+	for rows.Next() {
+		var object ObjectWithDataCenters
+		if err := rows.Scan(&object.FileID, &object.Type, &object.ObjectKey, &object.FileSize, pq.Array(&object.DataCenters)); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		objects = append(objects, object)
+	}
+	return objects, stacktrace.Propagate(rows.Err(), "")
 }
 
 func (repo *ObjectRepository) GetObject(fileID int64, objType ente.ObjectType) (ente.S3ObjectKey, error) {
@@ -282,6 +297,21 @@ func (repo *ObjectRepository) GetDataCentersForObject(objectKey string) ([]strin
 		datacenters = append(datacenters, dc)
 	}
 	return datacenters, nil
+}
+
+func (repo *ObjectRepository) GetObjectUploadBucket(ctx context.Context, objectKey string, userID int64) (string, error) {
+	var bucket sql.NullString
+	// The upload bucket is first; replication appends additional locations.
+	err := repo.DB.QueryRowContext(ctx, `SELECT datacenters[1] FROM object_keys
+		JOIN files USING (file_id)
+		WHERE object_key = $1 AND owner_id = $2 AND object_keys.is_deleted = false`, objectKey, userID).Scan(&bucket)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if !bucket.Valid || bucket.String == "" {
+		return "", ente.NewBadRequestWithMessage("object upload bucket not found")
+	}
+	return bucket.String, nil
 }
 
 func (repo *ObjectRepository) RemoveDataCenterFromObject(objectKey string, datacenter string) error {

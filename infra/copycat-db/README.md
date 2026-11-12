@@ -126,7 +126,7 @@ The database dumps are stored in a bucket that has object lock enabled (complian
 
 ## Deploying
 
-Ensure that promtail is running, and is configured to scrape `/root/var/logs/copycat-db.log`.
+Ensure that Alloy is running, and is configured to scrape `/root/var/logs/copycat-db.log`.
 
 Create the configuration and log directories.
 

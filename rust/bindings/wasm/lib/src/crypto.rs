@@ -100,19 +100,3 @@ pub fn crypto_box_seal(data_b64: &str, recipient_public_key_b64: &str) -> Result
     let sealed = crypto::sealed::seal(&data, &crypto::PublicKey::try_from_slice(&pk)?)?;
     Ok(b64::encode(&sealed))
 }
-
-#[wasm_bindgen(js_name = cryptoBoxSealOpen)]
-pub fn crypto_box_seal_open(
-    sealed_b64: &str,
-    recipient_public_key_b64: &str,
-    recipient_secret_key_b64: &str,
-) -> Result<Vec<u8>, Error> {
-    let sealed = b64::decode(sealed_b64)?;
-    let pk = b64::decode(recipient_public_key_b64)?;
-    let sk = b64::decode(recipient_secret_key_b64)?;
-    Ok(crypto::sealed::open(
-        &sealed,
-        &crypto::PublicKey::try_from_slice(&pk)?,
-        &crypto::SecretKey::try_from_slice(&sk)?,
-    )?)
-}

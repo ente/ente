@@ -14,6 +14,7 @@ import {
     collectionDialogTitleSx as titleSx,
 } from "@/components/CollectionDialog/styles";
 import { CollectionsSortOptions } from "@/components/CollectionsSortOptions";
+import { useCollectionsSortBy } from "@/components/utils/use-collections-sort-by";
 import {
     Cancel01Icon,
     Image01Icon,
@@ -42,13 +43,10 @@ import { ItemCard } from "ente-new/photos/components/Tiles";
 import {
     canAddToCollection,
     canMoveToCollection,
-    collectionsSortBy,
     sortCollectionSummaries,
-    type CollectionsSortBy,
     type CollectionSummaries,
     type CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
-import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -94,8 +92,8 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
     const [category, setCategory] = useState<
         "all" | "mine" | "shared" | "received"
     >("all");
-    const [sortBy, setSortBy] =
-        useCollectionSelectorSortByLocalState("name-asc");
+    const { collectionsSortBy: sortBy, onChangeCollectionsSortBy: setSortBy } =
+        useCollectionsSortBy("collectionSelectorSortBy", "name-asc");
     const [filteredCollections, setFilteredCollections] = useState<
         CollectionSummary[]
     >([]);
@@ -222,7 +220,7 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
                             maxWidth: isFullScreen ? "100%" : 600,
                             maxHeight: isFullScreen
                                 ? "100%"
-                                : "min(600px, calc(100svh - 64px))",
+                                : "min(600px, calc(100% - 64px))",
                             boxSizing: "border-box",
                         },
                     ],
@@ -340,27 +338,6 @@ const collectionSelectorTitle = (action: CollectionSelectorAction) =>
             unhide: "unhide_to_album",
         }[action],
     );
-
-const useCollectionSelectorSortByLocalState = (
-    initialValue: CollectionsSortBy,
-) => {
-    const key = "collectionSelectorSortBy";
-    const [value, setValue] = useState(initialValue);
-
-    useEffect(() => {
-        const storedValue = localStorage.getItem(key);
-        if (storedValue && includes(collectionsSortBy, storedValue)) {
-            setValue(storedValue);
-        }
-    }, []);
-
-    const setter = (newValue: CollectionsSortBy) => {
-        localStorage.setItem(key, newValue);
-        setValue(newValue);
-    };
-
-    return [value, setter] as const;
-};
 
 const categoryTabsSx = (theme: Theme) => ({
     minHeight: 26,

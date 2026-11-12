@@ -23,8 +23,14 @@ pub enum Error {
     #[error("Incorrect password")]
     IncorrectPassword,
 
+    #[error("SRP session expired. Please restart login.")]
+    SrpSessionExpired,
+
     #[error("Incorrect recovery key")]
     IncorrectRecoveryKey,
+
+    #[error("Malformed recovery key")]
+    MalformedRecoveryKey,
 
     #[error("Invalid key attributes")]
     InvalidKeyAttributes,
@@ -44,6 +50,21 @@ pub enum Error {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
 
+    #[error("Account is not registered")]
+    NotRegistered,
+
+    #[error("Account is already registered")]
+    AlreadyRegistered,
+
+    #[error("Account setup is incomplete")]
+    SignupIncomplete,
+
+    #[error("Email is already in use")]
+    EmailAlreadyInUse,
+
+    #[error("SRP is not configured")]
+    SrpNotConfigured,
+
     #[error("Incorrect email verification code")]
     IncorrectEmailVerificationCode,
 
@@ -61,6 +82,9 @@ pub enum Error {
 
     #[error("Second factor session expired. Please restart login.")]
     SecondFactorSessionExpired,
+
+    #[error("Second factor recovery is not configured")]
+    TwoFactorRecoveryNotConfigured,
 
     #[error("Session is invalid")]
     SessionInvalid,

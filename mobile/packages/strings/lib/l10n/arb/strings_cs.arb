@@ -1720,7 +1720,6 @@
   "mlConsent": "Povolit strojové učení",
   "mlConsentConfirmation": "Rozumím a chci povolit strojové učení",
   "mlConsentDescription": "Pokud povolíte strojové učení, Ente bude extrahovat informace, jako je geometrie obličeje, ze souborů, včetně těch, které s Vámi byly sdíleny.\n\nToto se bude dít na Vašem zařízení a veškeré generované biometrické informace budou koncově šifrovány.",
-  "mlConsentPrivacy": "Klikněte prosím zde pro více informací o této funkci v našich zásadách ochrany osobních údajů",
   "mlIndexingDescription": "Vezměte prosím na vědomí, že strojové učení bude mít za následek vyšší využití sítě a baterie, dokud nebudou zpracovány všechny položky. Pro rychlejší zpracování zvažte použití desktopové aplikace a všechny výsledky budou synchronizovány automaticky.",
   "mlProgressBannerDescription": "Vaše fotografie se zpracovávají v zařízení za účelem detekce obličejů, objektů a dalších prvků.",
   "mlProgressBannerStatus": "{indexed} z {total} fotografií zpracováno",

@@ -45,10 +45,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class RemoteSyncService {
   final _logger = Logger("RemoteSyncService");
-  final _db = FilesDB.instance;
+  final FilesDB _db;
   final FileUploader _uploader = FileUploader.instance;
-  final Configuration _config = Configuration.instance;
-  final CollectionsService _collectionsService = CollectionsService.instance;
+  final Configuration _config;
+  final CollectionsService _collectionsService;
   final DiffFetcher _diffFetcher = DiffFetcher();
   final PhotoManagerPlugin _photoManagerPlugin = PhotoManagerPlugin();
   final LocalFileUpdateService _localFileUpdateService =
@@ -78,7 +78,19 @@ class RemoteSyncService {
   static final RemoteSyncService instance =
       RemoteSyncService._privateConstructor();
 
-  RemoteSyncService._privateConstructor();
+  RemoteSyncService._privateConstructor()
+    : _db = FilesDB.instance,
+      _config = Configuration.instance,
+      _collectionsService = CollectionsService.instance;
+
+  @visibleForTesting
+  RemoteSyncService.forTesting({
+    required FilesDB filesDB,
+    required Configuration configuration,
+    required CollectionsService collectionsService,
+  }) : _db = filesDB,
+       _config = configuration,
+       _collectionsService = collectionsService;
 
   void init(SharedPreferences preferences) {
     _prefs = preferences;
@@ -399,19 +411,36 @@ class RemoteSyncService {
       _logger.info("Found ${newerLocalIDs.length} newer files");
     }
 
+    var remainingIfMissingFolders = deviceCollections
+        .where((folder) => folder.uploadStrategy == UploadStrategy.ifMissing)
+        .length;
+    Set<String>? claimedLocalIDs;
     bool moreFilesMarkedForBackup = false;
     for (final deviceCollection in deviceCollections) {
       final Set<String> localIDsToSync =
           pathIdToLocalIDs[deviceCollection.id]?.toSet() ?? {};
       if (deviceCollection.uploadStrategy == UploadStrategy.ifMissing) {
-        final Set<String> alreadyClaimedLocalIDs = await _db
-            .getLocalIDsMarkedForOrAlreadyUploaded(ownerID);
+        remainingIfMissingFolders--;
+        final alreadyClaimedLocalIDs =
+            claimedLocalIDs ??
+            await _db.getLocalIDsMarkedForOrAlreadyUploaded(ownerID);
+        claimedLocalIDs = remainingIfMissingFolders > 0
+            ? alreadyClaimedLocalIDs
+            : null;
         localIDsToSync.removeAll(alreadyClaimedLocalIDs);
         if (alreadyClaimedLocalIDs.isNotEmpty && !_hasCleanupStaleEntry) {
           try {
-            await _db.removeQueuedLocalFiles(alreadyClaimedLocalIDs, ownerID);
+            final removed = await _db.removeQueuedLocalFiles(
+              alreadyClaimedLocalIDs,
+              ownerID,
+            );
+            if (removed > 0) {
+              // Cleanup can remove the last mapped row for a local ID.
+              claimedLocalIDs = null;
+            }
             _hasCleanupStaleEntry = true;
           } catch (e, s) {
+            claimedLocalIDs = null;
             _logger.severe("removeQueuedLocalFiles failed", e, s);
           }
         }
@@ -437,10 +466,13 @@ class RemoteSyncService {
       }
 
       moreFilesMarkedForBackup = true;
-      await _db.setCollectionIDForUnMappedLocalFiles(
-        collectionID,
-        localIDsToSync,
-      );
+      final newlyClaimedLocalIDs = await _db
+          .setCollectionIDForUnMappedLocalFiles(
+            collectionID,
+            localIDsToSync,
+            trackClaimsForOwner: claimedLocalIDs == null ? null : ownerID,
+          );
+      claimedLocalIDs?.addAll(newlyClaimedLocalIDs);
 
       // Re-enabling a backup folder must not duplicate its existing rows.
       final Set<String> existingMapping = await _db
@@ -464,11 +496,23 @@ class RemoteSyncService {
         final filesWithCollectionID = await _db.getLocalFiles(
           localIDsToSync.toList(),
         );
+        if (deviceCollection.uploadStrategy == UploadStrategy.ifMissing) {
+          final claimedSinceRead = {
+            for (final file in filesWithCollectionID)
+              if (file.collectionID != null &&
+                  file.collectionID != -1 &&
+                  (file.ownerID == null || file.ownerID == ownerID))
+                file.localID!,
+          };
+          localIDsToSync.removeAll(claimedSinceRead);
+          claimedLocalIDs?.addAll(claimedSinceRead);
+        }
         final List<EnteFile> newFilesToInsert = [];
         final Set<String> fileFoundForLocalIDs = {};
         for (var existingFile in filesWithCollectionID) {
           final String localID = existingFile.localID!;
-          if (!fileFoundForLocalIDs.contains(localID)) {
+          if (localIDsToSync.contains(localID) &&
+              !fileFoundForLocalIDs.contains(localID)) {
             existingFile.generatedID = null;
             existingFile.collectionID = collectionID;
             existingFile.uploadedFileID = null;
@@ -478,6 +522,7 @@ class RemoteSyncService {
           }
         }
         await _db.insertMultiple(newFilesToInsert);
+        claimedLocalIDs?.addAll(fileFoundForLocalIDs);
         if (fileFoundForLocalIDs.length != localIDsToSync.length) {
           _logger.warning(
             "mismatch in num of filesToSync ${localIDsToSync.length} to "

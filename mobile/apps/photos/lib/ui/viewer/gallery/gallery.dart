@@ -146,7 +146,7 @@ class Gallery extends StatefulWidget {
   }
 }
 
-class GalleryState extends State<Gallery> {
+class GalleryState extends State<Gallery> with WidgetsBindingObserver {
   static const int kInitialLoadLimit = 100;
   static final RegExp _automationIdentifierUnsafeChars = RegExp(
     r'[^A-Za-z0-9_.-]',
@@ -154,6 +154,9 @@ class GalleryState extends State<Gallery> {
   late final Debouncer _debouncer;
   late final Debouncer _priorityDebouncer;
   double? groupHeaderExtent;
+  bool _groupHeaderMeasurementScheduled = false;
+  bool _groupHeaderMeasurementInProgress = false;
+  bool _groupHeaderMeasurementRequested = false;
 
   late Logger _logger;
   bool _hasLoadedFiles = false;
@@ -167,6 +170,9 @@ class GalleryState extends State<Gallery> {
   bool _sortOrderAsc = false;
   int _layoutChangeGeneration = 0;
   bool _committingGridZoom = false;
+  bool _isGalleryVisible = false;
+  ModalRoute<dynamic>? _layoutPreviewRoute;
+  bool _needsLayoutRefresh = false;
   int _activeFileLoads = 0;
   List<EnteFile> _allGalleryFiles = [];
   final _scrollController = ScrollController();
@@ -188,6 +194,7 @@ class GalleryState extends State<Gallery> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _automationScrollIdentifier = _buildAutomationScrollIdentifier(
       widget.tagPrefix,
     );
@@ -213,16 +220,10 @@ class GalleryState extends State<Gallery> {
     );
     _layoutChangeSubscription = Bus.instance
         .on<GalleryLayoutChangedEvent>()
-        .listen((_) async {
+        .listen((_) {
           if (!mounted || _committingGridZoom) return;
-          final generation = ++_layoutChangeGeneration;
-          final scrollAnchor = _captureLayoutScrollAnchor();
-          _setGroupType();
-          final measuredHeaderExtent = await _measureGroupHeaderExtent();
-          if (!mounted || generation != _layoutChangeGeneration) return;
-          groupHeaderExtent = measuredHeaderExtent;
-          _updateGalleryGroups();
-          _restoreLayoutScrollAnchor(scrollAnchor, generation);
+          _needsLayoutRefresh = true;
+          unawaited(_refreshGalleryLayout());
         });
     _sortOrderAsc = widget.sortAsyncFn != null ? widget.sortAsyncFn!() : false;
     if (widget.reloadEvent != null) {
@@ -314,16 +315,7 @@ class GalleryState extends State<Gallery> {
       }
     });
 
-    if (_groupType.showGroupHeader()) {
-      final generation = _layoutChangeGeneration;
-      _measureGroupHeaderExtent().then((extent) {
-        if (!mounted || generation != _layoutChangeGeneration) return;
-        setState(() {
-          groupHeaderExtent = extent;
-          _updateGalleryGroups(callSetState: false);
-        });
-      });
-    } else {
+    if (!_groupType.showGroupHeader()) {
       groupHeaderExtent = GalleryGroups.spacing;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -370,6 +362,12 @@ class GalleryState extends State<Gallery> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final wasVisible = _isGalleryVisible;
+    _isGalleryVisible = ModalRoute.isCurrentOf(context) ?? true;
+    if (wasVisible && !_isGalleryVisible) {
+      ++_layoutChangeGeneration;
+      if (groupHeaderExtent == null) _needsLayoutRefresh = true;
+    }
     _inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(context);
     final boundaries = GalleryBoundariesProvider.of(context);
     if (_boundariesProvider != boundaries) {
@@ -382,9 +380,50 @@ class GalleryState extends State<Gallery> {
       );
     }
     _selectedFilesListener();
+    if (_canRefreshGalleryLayout && _needsLayoutRefresh) {
+      unawaited(_refreshGalleryLayout());
+    }
+  }
+
+  bool get _canRefreshGalleryLayout =>
+      _isGalleryVisible || (_layoutPreviewRoute?.isCurrent ?? false);
+
+  void setLayoutPreviewVisibility(ModalRoute<dynamic> route, bool visible) {
+    if (!mounted) return;
+    if (visible) {
+      _layoutPreviewRoute = route;
+    } else if (identical(_layoutPreviewRoute, route)) {
+      _layoutPreviewRoute = null;
+    }
+    if (_canRefreshGalleryLayout && _needsLayoutRefresh) {
+      unawaited(_refreshGalleryLayout());
+    }
+  }
+
+  Future<void> _refreshGalleryLayout() async {
+    if (!mounted || !_canRefreshGalleryLayout || !_needsLayoutRefresh) {
+      return;
+    }
+    final generation = ++_layoutChangeGeneration;
+    final scrollAnchor = _captureLayoutScrollAnchor();
+    _setGroupType();
+    final measuredHeaderExtent = await _measureGroupHeaderExtent();
+    if (!mounted ||
+        !_canRefreshGalleryLayout ||
+        generation != _layoutChangeGeneration) {
+      return;
+    }
+    _needsLayoutRefresh = false;
+    groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
+    _updateGalleryGroups();
+    _restoreLayoutScrollAnchor(scrollAnchor, generation);
   }
 
   void _updateGalleryGroups({bool callSetState = true}) {
+    if (!_canRefreshGalleryLayout) {
+      _needsLayoutRefresh = true;
+      return;
+    }
     if (groupHeaderExtent == null) return;
     final widthAvailable = MediaQuery.sizeOf(context).width;
     // View metrics can be zero during background startup. Skip invalid layouts
@@ -431,9 +470,10 @@ class GalleryState extends State<Gallery> {
         await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
       }
       if (!mounted) return;
-      ++_layoutChangeGeneration;
-      groupHeaderExtent = await _measureGroupHeaderExtent();
-      if (!mounted) return;
+      final generation = ++_layoutChangeGeneration;
+      final measuredHeaderExtent = await _measureGroupHeaderExtent();
+      if (!mounted || generation != _layoutChangeGeneration) return;
+      groupHeaderExtent = measuredHeaderExtent ?? groupHeaderExtent;
       _updateGalleryGroups();
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) return;
@@ -562,8 +602,67 @@ class GalleryState extends State<Gallery> {
       ? 2
       : localSettings.getPhotoGridSize();
 
-  Future<double> _measureGroupHeaderExtent() async {
+  static bool _hasUsableSize(Size size) =>
+      size.width.isFinite &&
+      size.height.isFinite &&
+      size.width > 0 &&
+      size.height > 0;
+
+  void _scheduleGroupHeaderMeasurement() {
+    if (!mounted ||
+        groupHeaderExtent != null ||
+        !_hasUsableSize(MediaQuery.sizeOf(context))) {
+      return;
+    }
+    _groupHeaderMeasurementRequested = true;
+    if (_groupHeaderMeasurementScheduled || _groupHeaderMeasurementInProgress) {
+      return;
+    }
+    _groupHeaderMeasurementScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _groupHeaderMeasurementScheduled = false;
+      if (!mounted || groupHeaderExtent != null) return;
+      _groupHeaderMeasurementRequested = false;
+      if (!_hasUsableSize(MediaQuery.sizeOf(context))) return;
+      _groupHeaderMeasurementInProgress = true;
+      final generation = _layoutChangeGeneration;
+      try {
+        final extent = await _measureGroupHeaderExtent();
+        if (!mounted ||
+            generation != _layoutChangeGeneration ||
+            groupHeaderExtent != null ||
+            extent == null) {
+          return;
+        }
+        setState(() {
+          groupHeaderExtent = extent;
+          _updateGalleryGroups(callSetState: false);
+        });
+      } finally {
+        _groupHeaderMeasurementInProgress = false;
+        if (mounted && _groupHeaderMeasurementRequested) {
+          _scheduleGroupHeaderMeasurement();
+        }
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _scheduleGroupHeaderMeasurement();
+    }
+  }
+
+  Future<double?> _measureGroupHeaderExtent() async {
     if (!_groupType.showGroupHeader()) return GalleryGroups.spacing;
+    final overlayBox = Overlay.of(context).context.findRenderObject();
+    if (overlayBox is! RenderBox ||
+        !overlayBox.hasSize ||
+        !_hasUsableSize(overlayBox.size)) {
+      return null;
+    }
     final size = await getIntrinsicSizeOfWidget(
       GroupHeaderWidget(
         title: "Dummy title",
@@ -574,7 +673,7 @@ class GalleryState extends State<Gallery> {
       ),
       context,
     );
-    return size.height;
+    return size.height.isFinite && size.height > 0 ? size.height : null;
   }
 
   void _selectedFilesListener() {
@@ -823,6 +922,7 @@ class GalleryState extends State<Gallery> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _boundariesProvider?.selectionSheetMinHeightNotifier.removeListener(
       _selectedFilesListener,
     );
@@ -901,6 +1001,9 @@ class GalleryState extends State<Gallery> {
   @override
   Widget build(BuildContext context) {
     _logger.info("Building Gallery  ${widget.tagPrefix}");
+    if (!_isGalleryVisible && galleryGroups == null) {
+      return const SizedBox.shrink();
+    }
     final appBarGeometry = widget.appBar?.resolveGeometry(context);
     final appBarPinnedHeight = appBarGeometry?.minExtent ?? 0;
     final appBarCollapseExtent = appBarGeometry?.collapseExtent ?? 0;
@@ -946,16 +1049,22 @@ class GalleryState extends State<Gallery> {
       });
     }
 
-    final widthAvailable = MediaQuery.sizeOf(context).width;
+    final viewSize = MediaQuery.sizeOf(context);
+    final widthAvailable = viewSize.width;
     final shouldEnableSwipeSelection = widget.limitSelectionToOne == false;
 
     if (groupHeaderExtent == null) {
+      _scheduleGroupHeaderMeasurement();
       final photoGridSize = _photoGridSize;
       final tileHeight =
           (widthAvailable - (photoGridSize - 1) * GalleryGroups.spacing) /
           photoGridSize;
       final placeholder =
-          widget.initialFiles != null && widget.initialFiles!.isNotEmpty
+          _hasUsableSize(viewSize) &&
+              tileHeight.isFinite &&
+              tileHeight > 0 &&
+              widget.initialFiles != null &&
+              widget.initialFiles!.isNotEmpty
           ? Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [

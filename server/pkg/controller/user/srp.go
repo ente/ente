@@ -54,11 +54,11 @@ func (c *UserController) SetupSRP(context *gin.Context, userID int64, req ente.S
 
 func (c *UserController) CompleteSRPSetup(context *gin.Context, req ente.CompleteSRPSetupRequest) (*ente.CompleteSRPSetupResponse, error) {
 	userID := auth.GetUserID(context.Request.Header)
-	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(context, req.SetupID)
+	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(context, req.SetupID, userID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	srpM2, err := c.verifySRPSession(context, setup.Verifier, setup.SessionID, req.SRPM1)
+	srpM2, err := c.verifySRPSession(context, setup.SRPUserID, setup.Verifier, setup.SessionID, req.SRPM1)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +99,11 @@ func (c *UserController) updateSrpAndKeyAttributes(ctx *gin.Context,
 	if err := req.Validate(); err != nil {
 		return nil, stacktrace.Propagate(err, "invalid request")
 	}
-	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(ctx, req.SetupID)
+	setup, err := c.UserAuthRepo.GetTempSRPSetupEntity(ctx, req.SetupID, userID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	srpM2, err := c.verifySRPSession(ctx, setup.Verifier, setup.SessionID, req.SRPM1)
+	srpM2, err := c.verifySRPSession(ctx, setup.SRPUserID, setup.Verifier, setup.SessionID, req.SRPM1)
 	if err != nil {
 		return nil, err
 	}
@@ -204,18 +204,25 @@ func (c *UserController) VerifySRPSession(context *gin.Context, req ente.VerifyS
 	srpAuthEntity, err := c.UserAuthRepo.GetSRPAuthEntityBySRPUserID(context, req.SRPUserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			_, verifyErr := c.verifySRPSession(context, FakeVerifier, req.SessionID, req.SRPM1)
+			_, verifyErr := c.verifySRPSession(context, req.SRPUserID, FakeVerifier, req.SessionID, req.SRPM1)
 			return nil, verifyErr
 		}
 		return nil, stacktrace.Propagate(err, "")
 	}
-	srpM2, err := c.verifySRPSession(context, srpAuthEntity.Verifier, req.SessionID, req.SRPM1)
+	srpM2, err := c.verifySRPSession(context, srpAuthEntity.SRPUserID, srpAuthEntity.Verifier, req.SessionID, req.SRPM1)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	user, err := c.UserRepo.Get(srpAuthEntity.UserID)
 	if err != nil {
 		return nil, err
+	}
+	if *user.IsEmailMFAEnabled {
+		return nil, stacktrace.Propagate(&ente.ApiError{
+			Code:           "EMAIL_MFA_ENABLED",
+			Message:        "Email MFA is enabled",
+			HttpStatusCode: http.StatusConflict,
+		}, "email mfa is enabled")
 	}
 	verResponse, err := c.onVerificationSuccess(context, user.Email, nil, srpAuthEntity)
 	if err != nil {
@@ -283,6 +290,7 @@ func (c *UserController) createAndInsertSRPSession(
 }
 
 func (c *UserController) verifySRPSession(ctx context.Context,
+	srpUserID uuid.UUID,
 	srpVerifier string,
 	sessionID uuid.UUID,
 	srpM1 string,
@@ -309,22 +317,16 @@ func (c *UserController) verifySRPSession(ctx context.Context,
 			}
 			return nil, stacktrace.Propagate(err, "")
 		}
-		if srpSession.IsVerified {
-			return nil, stacktrace.Propagate(&ente.ApiError{
-				Code:           "SESSION_ALREADY_VERIFIED",
-				HttpStatusCode: http.StatusGone,
-			}, "")
-		}
-		return nil, stacktrace.Propagate(&ente.ApiError{
-			Code:           "TOO_MANY_WRONG_ATTEMPTS",
-			HttpStatusCode: http.StatusGone,
-		}, "")
+		return nil, stacktrace.Propagate(srpSessionUnavailableError(srpSession), "")
 	}
 
 	if srpSession.IsFake {
 		// Match real-session timing.
 		time.Sleep(time.Duration(20+mathRand.Intn(30)) * time.Millisecond)
 		return nil, stacktrace.Propagate(ente.ErrInvalidPassword, "fake session verification")
+	}
+	if srpSession.SRPUserID != srpUserID {
+		return nil, stacktrace.Propagate(ente.ErrInvalidPassword, "srp session belongs to another account")
 	}
 
 	srpParams := srp.GetParams(Srp4096Params)
@@ -358,13 +360,24 @@ func (c *UserController) verifySRPSession(ctx context.Context,
 		return nil, stacktrace.Propagate(err, "")
 	}
 	if !claimed {
-		return nil, stacktrace.Propagate(&ente.ApiError{
-			Code:           "SESSION_ALREADY_VERIFIED",
-			HttpStatusCode: http.StatusGone,
-		}, "")
+		srpSession, err = c.UserAuthRepo.GetSrpSessionEntity(ctx, sessionID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		return nil, stacktrace.Propagate(srpSessionUnavailableError(srpSession), "")
 	}
 	srpM2 := convertBytesToString(srpM2Bytes)
 	return &srpM2, nil
+}
+
+func srpSessionUnavailableError(session *ente.SRPSessionEntity) *ente.ApiError {
+	var code ente.ErrorCode = "TOO_MANY_WRONG_ATTEMPTS"
+	if session.IsVerified {
+		code = "SESSION_ALREADY_VERIFIED"
+	} else if session.IsExpired {
+		code = ente.SessionExpired
+	}
+	return &ente.ApiError{Code: code, HttpStatusCode: http.StatusGone}
 }
 
 func fSrpAttributes(email string, hashKey []byte) (*ente.GetSRPAttributesResponse, error) {

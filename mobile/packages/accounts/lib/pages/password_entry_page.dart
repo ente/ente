@@ -431,12 +431,8 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
         : null;
     await dialog?.show();
     try {
-      final result = await widget.config.getAttributesForNewPassword(
+      await UserService.instance.changePassword(
         _passwordController1.text,
-      );
-      await UserService.instance.updateKeyAttributes(
-        result.item1,
-        result.item2,
         logoutOtherDevices: logOutFromOthers,
       );
       await dialog?.hide();
@@ -523,7 +519,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
       if (usingVolatilePassword) {
         _logger.info('Using volatile password');
       }
-      final result = await widget.config.generateKey(password);
+      final result = await UserService.instance.generateKey(password);
       widget.config.resetVolatilePassword();
       await dialog.hide();
       if (!mounted) {
@@ -564,7 +560,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
         context,
         RecoveryKeyPage(
           widget.config,
-          result.privateKeyAttributes.recoveryKey,
+          result.recoveryKey,
           context.strings.continueLabel,
           showAppBar: false,
           isDismissible: false,
@@ -578,7 +574,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
       if (!mounted) {
         return;
       }
-      if (e is UnsupportedError) {
+      if (e == const AccountsError.keyDerivation()) {
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,

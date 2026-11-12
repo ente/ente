@@ -21,8 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -71,16 +70,19 @@ internal fun MessageInput(
     sourcesError: String?,
     onRetrySources: () -> Unit,
     onMessageChange: (String) -> Unit,
+    onComposerSelection: (Int, Int, Boolean) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     onAttachmentSelected: (AttachmentType) -> Unit,
     onRemoveAttachment: (Attachment) -> Unit,
     onCancelEdit: () -> Unit,
-    voiceInputState: VoiceInputState,
-    onVoiceInput: () -> Unit,
+    voiceController: VoiceTranscriptionController,
+    onVoiceInput: (TextFieldValue) -> Unit,
+    voiceCaret: Int?,
     focusRequestId: Int,
 ) {
     val haptic = rememberHaptics()
+    val focusManager = LocalFocusManager.current
     val placeholder = "Ask Ensu"
     val composerIconSize = 18.dp
 
@@ -94,13 +96,23 @@ internal fun MessageInput(
         )
     }
 
-    LaunchedEffect(messageText) {
-        if (messageText != fieldValue.text) {
+    LaunchedEffect(messageText, voiceCaret, voiceController.blocksComposer) {
+        if (messageText != fieldValue.text || voiceCaret != null) {
             fieldValue =
                 TextFieldValue(
                     text = messageText,
-                    selection = TextRange(messageText.length),
+                    selection =
+                        TextRange(
+                            voiceCaret?.coerceIn(0, messageText.length) ?: messageText.length
+                        ),
                 )
+        }
+        if (!voiceController.blocksComposer) {
+            onComposerSelection(
+                fieldValue.selection.min,
+                fieldValue.selection.max,
+                fieldValue.composition != null,
+            )
         }
     }
 
@@ -196,50 +208,7 @@ internal fun MessageInput(
             }
         }
 
-        voiceInputState.statusText()?.let { status ->
-            Row(
-                modifier = Modifier.padding(horizontal = EnsuSpacing.sm.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                when (voiceInputState) {
-                    is VoiceInputState.Downloading,
-                    VoiceInputState.Transcribing -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    }
-                    VoiceInputState.Recording -> {
-                        Icon(
-                            painter = painterResource(HugeIcons.Mic02Icon),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = EnsuColor.stopButton,
-                        )
-                    }
-                    is VoiceInputState.Error -> {
-                        Icon(
-                            imageVector = Icons.Rounded.ErrorOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = EnsuColor.stopButton,
-                        )
-                    }
-                    VoiceInputState.Idle -> Unit
-                }
-                Spacer(modifier = Modifier.width(EnsuSpacing.sm.dp))
-                Text(
-                    text = status,
-                    style = EnsuTypography.small,
-                    color =
-                        if (voiceInputState is VoiceInputState.Error) {
-                            EnsuColor.stopButton
-                        } else {
-                            EnsuColor.textMuted()
-                        },
-                )
-            }
-        }
+        VoiceInputControls(voiceController)
 
         Box(
             modifier =
@@ -259,7 +228,7 @@ internal fun MessageInput(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (supportsImageAttachments) {
+                if (supportsImageAttachments && !voiceController.blocksComposer) {
                     IconButton(
                         onClick = {
                             haptic.perform(HapticFeedbackType.TextHandleMove)
@@ -287,13 +256,21 @@ internal fun MessageInput(
                     value = fieldValue,
                     onValueChange = { newValue ->
                         fieldValue = newValue
-                        onMessageChange(newValue.text)
+                        if (!voiceController.blocksComposer) {
+                            onMessageChange(newValue.text)
+                            onComposerSelection(
+                                newValue.selection.min,
+                                newValue.selection.max,
+                                newValue.composition != null,
+                            )
+                        }
                     },
                     modifier = Modifier.weight(1f).focusRequester(focusRequester),
                     textStyle = EnsuTypography.message.copy(color = EnsuColor.textPrimary()),
                     visualTransformation = LongMessageVisualTransformation,
                     minLines = 1,
-                    maxLines = 5,
+                    maxLines = if (voiceController.blocksComposer) 8 else 5,
+                    readOnly = voiceController.blocksComposer,
                     keyboardOptions =
                         KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     cursorBrush = SolidColor(EnsuColor.accent()),
@@ -314,53 +291,28 @@ internal fun MessageInput(
                 }
 
                 if (editingMessage == null) {
-                    val isVoiceBusy =
-                        voiceInputState is VoiceInputState.Downloading ||
-                            voiceInputState is VoiceInputState.Transcribing
-                    val canUseVoice =
-                        voiceInputState.isRecording ||
-                            (!isGenerating && !isDownloading && !isVoiceBusy)
-
-                    IconButton(
-                        onClick = {
-                            haptic.perform(
-                                if (voiceInputState.isRecording) {
-                                    HapticFeedbackType.LongPress
-                                } else {
-                                    HapticFeedbackType.TextHandleMove
-                                }
+                    VoiceInputButton(
+                        controller = voiceController,
+                        enabled = !isGenerating && !isDownloading,
+                        onOpen = {
+                            haptic.perform(HapticFeedbackType.TextHandleMove)
+                            focusManager.clearFocus(force = true)
+                            fieldValue = fieldValue.copy(composition = null)
+                            onMessageChange(fieldValue.text)
+                            onComposerSelection(
+                                fieldValue.selection.min,
+                                fieldValue.selection.max,
+                                false,
                             )
-                            onVoiceInput()
+                            onVoiceInput(fieldValue)
                         },
-                        enabled = canUseVoice,
-                        modifier = Modifier.size(36.dp),
-                    ) {
-                        if (isVoiceBusy) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                            )
-                        } else if (voiceInputState.isRecording) {
-                            Icon(
-                                painter = painterResource(HugeIcons.StopIcon),
-                                contentDescription = "Stop dictation",
-                                modifier = Modifier.size(composerIconSize),
-                                tint = EnsuColor.sendButton,
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(HugeIcons.Mic02Icon),
-                                contentDescription = "Dictate",
-                                modifier = Modifier.size(composerIconSize),
-                            )
-                        }
-                    }
+                    )
                 }
 
                 val canSend =
                     sourcesReady &&
                         (messageText.isNotBlank() || attachments.isNotEmpty()) &&
-                        !voiceInputState.blocksSend &&
+                        !voiceController.blocksComposer &&
                         !hasUnsupportedImages
 
                 IconButton(

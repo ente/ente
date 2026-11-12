@@ -1867,7 +1867,6 @@
   "mlConsent": "Activer l'apprentissage automatique",
   "mlConsentConfirmation": "Je comprends et je souhaite activer l'apprentissage automatique",
   "mlConsentDescription": "Si vous activez l'apprentissage automatique Ente extraira des informations comme la géométrie des visages, y compris dans les photos partagées avec vous. \nCela se fera localement sur votre appareil et avec un chiffrement bout-en-bout de toutes les données biométriques générées.",
-  "mlConsentPrivacy": "Veuillez cliquer ici pour plus de détails sur cette fonctionnalité dans notre politique de confidentialité",
   "mlIndexingDescription": "Veuillez noter que l'apprentissage automatique entraînera une augmentation de la connexion Internet et de la batterie jusqu'à ce que tous les souvenirs soient indexés. \nVous pouvez utiliser l'application de bureau Ente pour accélérer cette étape, tous les résultats seront synchronisés.",
   "mlProgressBannerDescription": "Vos photos sont traitées sur l'appareil pour détecter les visages, les objets et plus encore.",
   "mlProgressBannerStatus": "{indexed} photos traitées sur un total de {total}",

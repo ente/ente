@@ -33,6 +33,24 @@ Enter the two-factor setup key provided by the service you are securing. It is n
 
 Keep the setup key private.
 
+### Why does Ente Auth say "Please verify the details and try again", "Secret can not be empty", or "Digits must be between 1 and 10"? {#manual-entry-errors}
+
+Ente Auth checks the details when you save a code you added with **Enter details manually**. If something is wrong, it shows an **Incorrect details** message and doesn't save the code.
+
+- **Secret can not be empty**: the **Secret** field is blank. Enter the service's setup key in **Secret**.
+- **Please verify the details and try again**: Ente Auth couldn't create a code from what you entered in **Secret**. This happens when the text isn't a valid setup key, for example if you entered a password or a 6-digit code instead. Spaces and lowercase letters in the setup key are fine.
+- **Digits must be between 1 and 10**: the **Digits** value under **Advanced** is outside 1 to 10, for example 0. Set it to the number of digits the service uses, usually 6.
+
+To fix a Secret error:
+
+1. On the service's two-factor setup page, choose **Show setup key** or **Can't scan?**
+2. In Ente Auth, enter that setup key in **Secret**. Don't enter your Ente password, the service's password, or a 6-digit code.
+3. Save the entry, then enter the code Ente Auth shows on the service's setup page to finish setup.
+
+Unless the service tells you otherwise, leave the **Advanced** options at their defaults.
+
+See also [What should I enter in the Secret field when adding a code manually?](#manual-secret-field)
+
 ### Why does Ente Auth say "No QR code found in image"? {#qr-code-not-scanning}
 
 If the QR code is sharp and high-resolution but Ente Auth still won't scan it, the most likely cause is that the service is using a QR format Ente Auth doesn't recognise. Some sites embed proprietary or non-standard data instead of the standard `otpauth://` URI that authenticator apps expect.
@@ -116,6 +134,12 @@ On desktop, you can move focus to a code with your keyboard, for example with Ta
 - In multi-select mode, tapping a code selects it instead of copying it.
 - With **Hide codes** on, double-tap a code to reveal it. A single tap still copies it.
 - On Android, turn on `Settings > General > Minimize app on copy` if you want Ente Auth to move to the background after copying.
+
+### Is there a public API for qr.ente.com? {#qr-ente-api}
+
+No. There is no documented public API for [qr.ente.com](https://qr.ente.com).
+
+To create QR codes for authenticator setup strings, use an offline QR library or tool on your own device. Do not paste secrets into untrusted online generators.
 
 ### How can I support this project?
 
@@ -217,7 +241,7 @@ This moves Auth codes only. Photos libraries, subscriptions, account history, an
 >
 > If you have already lost the codes, use each service's backup codes, account-recovery process, or support team. Ente cannot disable another service's MFA or recover that service's account for you.
 
-You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account.
+You can delete your account at any time by using the "Delete account" option in the settings. For security reasons, we request you to delete your account on your own instead of contacting support to ask them to delete your account. If you can't sign in on any device and have lost both your password and recovery key, see [starting over with the same email](/photos/faq/security-and-privacy#start-fresh-same-email).
 
 Note that Ente Photos, Ente Auth, and Ente Locker data will be deleted when you delete your account (irrespective of which app you delete it from) since Photos, Auth, and Locker use the same underlying account.
 
@@ -233,11 +257,15 @@ Desktop and direct-download Android builds may still contact Ente to check for a
 
 ### Will I lose my offline codes if I create an account later?
 
-No. When you sign in after using Ente Auth offline, the desktop app migrates any remaining offline codes into the newly created account so you keep them.
+No. When you sign in after using Ente Auth offline, Ente Auth moves any remaining offline codes into the newly created account so you keep them.
 
 > [!NOTE]
 >
 > The app will still recommend you to export your codes first before starting the sign in, so you have your own copy in case something unexpected happens during the sign-in.
+
+### How do I start backing up my codes after using Ente Auth without backups? {#enable-backup-later}
+
+Open **Settings** and tap **Sign in to backup your codes** at the top. Ente Auth suggests exporting your codes first, so you have your own copy. Then create an account or sign in. Your offline codes move into the account and sync from then on.
 
 ### Can I use Ente Auth on multiple devices and sync them?
 
@@ -271,6 +299,41 @@ Due to E2EE, the server doesn't know anything about your codes. Everything is en
 An import may skip entries it cannot read. Check that you selected the [correct import option for the exported file](/auth/migration/import#choose-import-format), then compare the imported entries with your original authenticator and [verify the codes](/auth/migration/import#verify-import).
 
 Keep the original authenticator and export until all the entries you need are present and working. Switching to **Plain text** does not fix every provider-format problem. If entries are still missing, contact [support@ente.com](mailto:support@ente.com) with the app versions, export type, and entry counts. Do not send secret-bearing exports or QR codes.
+
+### Why does Auth say it could not parse the selected file? {#could-not-parse}
+
+Ente Auth could not read that file as an authenticator export.
+
+Common causes:
+
+- **Wrong file.** A recovery key file, a Word document (`.docx`), or an unrelated JSON or CSV file is not an Auth export. Ente Auth imports **authenticator codes** (TOTP and similar). A password-manager export works only if that password manager is listed in `Settings > Data > Import codes` (for example Bitwarden). Vaults from password managers that are not listed, such as Proton Pass, are not supported.
+- **Import option does not match the file.** For example, choosing a plain-text import for an Aegis JSON export, or the wrong provider in `Settings > Data > Import codes`.
+- **Encrypted export without its password.** If the export is password-protected, enter the same password you set when you created it.
+- **Edited or corrupted file.** Do not edit the export before importing.
+- **Screenshot used in the file importer.** A screenshot is not an export file. For a QR code screenshot, use **+** then **Import from gallery** (or scan the QR code). Do not use the file importer meant for export files.
+
+What to do:
+
+1. Open `Settings > Data > Import codes` and choose the [import option that matches your export](/auth/migration/import#choose-import-format).
+2. If you only have QR screenshots, use Import from gallery and select those images, or scan the QR code.
+3. If the export came from a password manager that is not listed in Import codes, export codes from an authenticator app instead, or add the accounts by scanning each service's 2FA setup QR again.
+
+Ente Auth does not promise support for every third-party password-manager export. If a real authenticator export still fails after you pick the matching format, email [support@ente.com](mailto:support@ente.com). Do not send files that contain secrets.
+
+### How do I import from Google Authenticator if it shows several QR codes? {#google-authenticator-multiple-qr}
+
+Google Authenticator splits larger exports across several QR codes.
+
+1. In Google Authenticator, use **Transfer accounts** > **Export accounts** and select the accounts to move.
+2. In Ente Auth, open `Settings > Data > Import codes` and choose **Google Authenticator**.
+3. On mobile, scan the first QR code. Ente Auth shows how many codes it has received, for example **Scan a code (1/3)**. On desktop, choose **Select file** and select an image of the first QR code.
+4. Repeat with each remaining QR code from the same export. On mobile, scan the next code. On desktop, select its image file.
+
+Ente Auth imports the accounts after the last QR code. Import all the codes from the same export. If you start a new export in Google Authenticator, import its codes from the beginning.
+
+QR images contain your authentication secrets. Keep them private and delete them after verifying the import.
+
+If the import still fails, export your accounts in smaller groups and import each group separately, then [check the imported codes](/auth/migration/import#verify-import).
 
 ### Why do some Google Authenticator codes fail to import? {#google-authenticator-import-failed}
 
@@ -306,7 +369,32 @@ Try the following:
 
 ### I can't change my app lock PIN. What do I do? {#cant-change-app-lock-pin}
 
-If the option to change the PIN doesn't appear, log out by tapping the back arrow on the app lock screen. Once logged out, the app lock is no longer in effect and you can set it up again from scratch when you sign back in.
+If you are signed in with backups and the option to change the PIN doesn't appear, tap the back arrow on the app lock screen to log out. You can set up app lock again after signing back in. Your backed-up codes remain in your Ente account.
+
+If you chose **Use without backups**, the logout control is unavailable and your codes are stored only on this device. If you can still unlock the app, export your codes before changing the lock or reinstalling. If you cannot unlock it, your local codes may be inaccessible.
+
+### Why does Ente Auth still ask for my app lock after I reinstall on Linux? {#auth-linux-app-lock-after-uninstall}
+
+On Linux, app lock secrets can remain in your system keyring after you uninstall Ente Auth (including Flatpak uninstall with `--delete-data`). A new install may still expect the old lock.
+
+1. If you chose **Use without backups** and can still open Ente Auth, export your codes first. Your codes are stored only on this device, and the next steps can make them unrecoverable.
+2. Uninstall Ente Auth if it is still installed.
+3. Clear the Auth secure-storage entry from your system secret service. Prefer your distribution's keyring UI (for example Seahorse). If you use `secret-tool`, remove the Auth secure-storage secret for this app. Attribute names can differ between Flatpak and native packages; one reporter used `secret-tool clear account io.ente.auth.secureStorage`, but confirm the attributes on your system before relying on that exact command.
+4. Install Ente Auth again.
+5. Set up app lock from scratch if you want it.
+
+If you still have a working signed-in Auth session on another device, keep it signed in until you confirm the new Linux install works.
+
+If you cannot find the leftover secret, contact [support@ente.com](mailto:support@ente.com) with your distribution and whether you installed Auth as Flatpak or native.
+
+### Ente Auth is asking for a password I don't recognise. Which password is it? {#which-password}
+
+Ente Auth can ask for two different passwords:
+
+- **App lock:** If the screen asks you to unlock the app, it wants the PIN or password you set for app lock under `Settings > Security > App lock`, or your device lock. If you are signed in with backups and have forgotten it, use the logout control at the top left of the lock screen, then sign back in. If you chose **Use without backups**, that control is unavailable and your codes are stored only on this device. See [I can't change my app lock PIN](#cant-change-app-lock-pin).
+- **Ente account password:** If the screen shows your email address and asks for your password, it wants the password of your Ente account. This is the same password you use for Ente Photos or Ente Locker if you use the same account. If you've forgotten it, tap **Forgot password** and enter your [recovery key](/photos/faq/security-and-privacy#use-recovery-key).
+
+If you used Ente Auth without backups, logging out removes the codes from the device. Export them first if you can.
 
 ### Codes won't sync, password is rejected, or recovery key keeps failing. Where do I start? {#sync-password-recovery-failures}
 

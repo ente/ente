@@ -5,14 +5,14 @@ import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
 import {
     getRecoverTwoFactor,
     recoverTwoFactorFinish,
-    type TwoFactorRecoveryResponse,
+    type TwoFactorRecovery,
     type TwoFactorType,
 } from "ente-accounts/services/user";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import type { SingleInputFormProps } from "ente-base/components/SingleInputForm";
 import { useBaseContext } from "ente-base/context";
-import { isHTTP4xxError, isHTTPErrorWithStatus } from "ente-base/http";
+import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useRouter } from "next/router";
@@ -34,9 +34,9 @@ const Page: React.FC<RecoverPageProps> = ({ twoFactorType = "totp" }) => {
     const { logout, showMiniDialog, onGenericError } = useBaseContext();
 
     const [sessionID, setSessionID] = useState<string | undefined>(undefined);
-    const [recoveryResponse, setRecoveryResponse] = useState<
-        TwoFactorRecoveryResponse | undefined
-    >(undefined);
+    const [recovery, setRecovery] = useState<TwoFactorRecovery | undefined>(
+        undefined,
+    );
 
     const router = useRouter();
 
@@ -77,14 +77,16 @@ const Page: React.FC<RecoverPageProps> = ({ twoFactorType = "totp" }) => {
             } else {
                 setSessionID(sessionID);
                 try {
-                    setRecoveryResponse(
+                    setRecovery(
                         await getRecoverTwoFactor(twoFactorType, sessionID),
                     );
                 } catch (e) {
                     log.error("Second factor recovery page setup failed", e);
-                    if (isHTTPErrorWithStatus(e, 404)) {
+                    if (isNamedError(e, "session_expired")) {
                         logout();
-                    } else if (isHTTP4xxError(e)) {
+                    } else if (
+                        isNamedError(e, "two_factor_recovery_not_configured")
+                    ) {
                         showContactSupportDialog({ action: router.back });
                     } else {
                         onGenericError(e);
@@ -102,21 +104,25 @@ const Page: React.FC<RecoverPageProps> = ({ twoFactorType = "totp" }) => {
 
     const handleSubmit: SingleInputFormProps["onSubmit"] | undefined = useMemo(
         () =>
-            sessionID && recoveryResponse
+            sessionID && recovery
                 ? (recoveryKeyMnemonic, setFieldError) =>
                       recoverTwoFactorFinish(
                           twoFactorType,
                           sessionID,
-                          recoveryResponse,
+                          recovery,
                           recoveryKeyMnemonic,
                       )
                           .then(() => router.push("/credentials"))
                           .catch((e: unknown) => {
                               log.error("Second factor recovery failed", e);
-                              setFieldError(t("incorrect_recovery_key"));
+                              if (isNamedError(e, "session_expired")) {
+                                  logout();
+                              } else {
+                                  setFieldError(t("incorrect_recovery_key"));
+                              }
                           })
                 : undefined,
-        [twoFactorType, router, sessionID, recoveryResponse],
+        [twoFactorType, router, sessionID, recovery, logout],
     );
 
     if (!handleSubmit) {

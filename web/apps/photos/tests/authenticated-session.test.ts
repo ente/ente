@@ -4,7 +4,6 @@ import { beforeEach, expect, test, vi } from "vitest";
 const {
     apiOrigin,
     bindCollectionKeyOpener,
-    encryptBoxWithRecoveryKey,
     generateKey,
     keyAttributes,
     masterKeyFromSession,
@@ -18,8 +17,6 @@ const {
         vi.fn<
             typeof import("ente-new/photos/services/collection").bindCollectionKeyOpener
         >(),
-    encryptBoxWithRecoveryKey:
-        vi.fn<typeof import("ente-photos-wasm").encryptBoxWithRecoveryKey>(),
     generateKey: vi.fn<typeof import("ente-photos-wasm").generateKey>(),
     keyAttributes: {
         publicKey: "public-key",
@@ -55,7 +52,6 @@ vi.mock("ente-new/photos/services/collection", () => ({
     unbindCollectionKeyOpener,
 }));
 vi.mock("ente-photos-wasm", () => ({
-    encryptBoxWithRecoveryKey,
     generateKey,
     openCollectionKey,
     openSession,

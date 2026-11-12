@@ -12,7 +12,6 @@ import type {
     EncryptedBoxB64,
     EncryptedFile,
     InitChunkDecryptionResult,
-    KeyPair,
     SodiumStateAddress,
 } from "./types";
 import type { CryptoWorker } from "./worker";
@@ -132,10 +131,13 @@ export const initChunkDecryption = (
 export const decryptStreamChunk = (
     data: Uint8Array,
     state: SodiumStateAddress,
+    isFinalChunk?: boolean,
 ): Promise<Uint8Array<ArrayBuffer>> =>
     inWorker()
-        ? libsodium.decryptStreamChunk(data, state)
-        : sharedWorker().then((w) => w.decryptStreamChunk(data, state));
+        ? libsodium.decryptStreamChunk(data, state, isFinalChunk)
+        : sharedWorker().then((w) =>
+              w.decryptStreamChunk(data, state, isFinalChunk),
+          );
 
 export const decryptMetadataJSON = (
     blob: EncryptedBlob,
@@ -149,16 +151,6 @@ export const boxSeal = (data: string, publicKey: string): Promise<string> =>
     inWorker()
         ? libsodium.boxSeal(data, publicKey)
         : sharedWorker().then((w) => w.boxSeal(data, publicKey));
-
-export const boxSealOpenBytes = (
-    encryptedData: string,
-    keyPair: KeyPair,
-): Promise<Uint8Array> =>
-    inWorker()
-        ? libsodium.boxSealOpenBytes(encryptedData, keyPair)
-        : sharedWorker().then((w) =>
-              w.boxSealOpenBytes(encryptedData, keyPair),
-          );
 
 export const deriveKey = (
     passphrase: string,

@@ -3,7 +3,7 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/ui/sharing/more_count_badge.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 
 class AlbumSharesIcons extends StatelessWidget {
   final List<User> sharees;

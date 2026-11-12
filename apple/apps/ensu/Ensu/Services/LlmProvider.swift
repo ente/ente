@@ -11,7 +11,6 @@ struct LlmModelSelection: Equatable {
 
     private var isSmallModel: Bool { id == "lfm-350m" }
     var batchSize: Int { isSmallModel ? 128 : 512 }
-
     var contextCandidates: [Int] {
         let defaultContext = isSmallModel ? 2048 : 12000
         let requested = contextLength.flatMap { $0 > 0 ? $0 : nil } ?? defaultContext
@@ -102,12 +101,18 @@ struct ModelImagesUnsupported: LocalizedError {
     }
 }
 
+private final class InferenceMemory: LlmExecutionMemory {
+    func availableBytes() -> UInt64 { UInt64(os_proc_available_memory()) }
+}
+
 actor LlmProvider {
     private struct LoadedModelKey: Equatable {
         let id: String
         let requestedContextLength: Int?
     }
 
+    private nonisolated let executionControl = LlmExecutionControl(memory: InferenceMemory())
+    private nonisolated let responseResources = OSAllocatedUnfairLock(initialState: 0)
     private let assetStore: AssetStore
     private let transcriber: Transcriber
     private let knowledgeEmbedding: KnowledgeEmbeddingConfig
@@ -118,7 +123,6 @@ actor LlmProvider {
     private var currentContextLength: Int?
     private var backendInitialized = false
     private var chatWarmupOwner: UUID?
-    private var voiceOwner: UUID?
     private var chatForeground = false
     private var appForeground = false
     private var memoryPressure = ModelMemoryPressureState()
@@ -140,11 +144,23 @@ actor LlmProvider {
 
     func setChatForeground(_ active: Bool) async {
         chatForeground = active
-        if !active {
-            try? await modelLoadGate.withLock {
-                guard !chatForeground else { return }
-                unloadModel()
-            }
+        if !active { await releaseIdleResources() }
+    }
+
+    nonisolated func setInferenceForeground(_ active: Bool) {
+        let foregroundThreads = max(1, ProcessInfo.processInfo.activeProcessorCount - 1)
+        let threads = active ? foregroundThreads : min(4, foregroundThreads)
+        try? executionControl.setParams(
+            params: LlmExecutionParams(
+                allowGpu: active, nThreads: Int32(threads),
+                nThreadsGeneration: Int32(threads), batchSize: active ? 512 : 128))
+    }
+
+    nonisolated func retainResponseResources() -> ModelUseScope {
+        responseResources.withLock { $0 += 1 }
+        return ModelUseScope { [self] in
+            responseResources.withLock { $0 -= 1 }
+            Task { await releaseIdleResources() }
         }
     }
 
@@ -162,58 +178,51 @@ actor LlmProvider {
         try? await modelLoadGate.withLock { reconcileIdleResources() }
     }
 
-    private func reconcileIdleResources(force: Bool = false) {
+    private func reconcileIdleResources(recovering: Bool = false) {
+        let force =
+            recovering
+            && (memoryPressure.suppressesOptionalWork(now: ProcessInfo.processInfo.systemUptime)
+                || !canAllocate(.embedding, queryBytes: 0))
         guard
             force
                 || memoryPressure.requiresCleanup(
-                    appForeground: appForeground, now: ProcessInfo.processInfo.systemUptime
+                    appForeground: appForeground && chatForeground,
+                    retainingResponse: responseResources.withLock { $0 > 0 },
+                    now: ProcessInfo.processInfo.systemUptime
                 )
         else { return }
-        unloadTranscriptionModelIfLoaded()
+        transcriber.unloadModel()
         unloadModel()
         memoryPressure.didCleanUp()
     }
 
-    func prewarmVoice(owner: UUID) async throws {
-        try await withModelLock {
-            try Task.checkCancellation()
-            guard chatForeground, !memoryPressureSuppressed else { return }
-            try prepareVoice()
-            do {
-                let transcriber = transcriber
-                try await Task.detached { try transcriber.loadModel() }.value
-                try Task.checkCancellation()
-                voiceOwner = owner
-            } catch {
-                unloadTranscriptionModelIfLoaded()
-                throw error
+    func runLiveVoice(
+        stream: DictationStream, callback: any DictationStreamCallback
+    ) async throws {
+        do {
+            try await withTaskCancellationHandler {
+                try await withModelLock {
+                    try Task.checkCancellation()
+                    try prepareVoice()
+                    let transcriber = transcriber
+                    defer { transcriber.unloadModel() }
+                    try await Task.detached(priority: .userInitiated) {
+                        try stream.run(transcriber: transcriber, callback: callback)
+                    }.value
+                    try Task.checkCancellation()
+                }
+            } onCancel: {
+                try? stream.abandon(reason: .interruption)
             }
-        }
-    }
-
-    func releaseVoice(owner: UUID) async {
-        try? await modelLoadGate.withLock {
-            if voiceOwner == owner { unloadTranscriptionModelIfLoaded() }
-        }
-    }
-
-    func transcribe(inputSampleRate: UInt32, pcmLe: Data) async throws -> String {
-        try await withModelLock {
-            try Task.checkCancellation()
-            try prepareVoice()
-            defer { unloadTranscriptionModelIfLoaded() }
-            let transcriber = transcriber
-            let result = try await Task.detached {
-                try transcriber.transcribe(inputSampleRate: inputSampleRate, pcmLe: pcmLe)
-            }.value
-            try Task.checkCancellation()
-            return result
+        } catch {
+            try? stream.abandon(reason: .failure)
+            throw error
         }
     }
 
     private func prepareVoice() throws {
         loadedContext?.releaseMultimodal()
-        if voiceOwner == nil && !canAllocate(.voice) {
+        if !canAllocate(.voice) {
             unloadModel()
             guard hasRequiredWorkReserve() else { throw ModelMemoryUnavailable() }
         }
@@ -227,7 +236,6 @@ actor LlmProvider {
     private func withModelLock<T>(
         isolation: isolated (any Actor)? = #isolation,
         suspendMaintenance: Bool = true,
-        retainAfterCooldown: Bool = false,
         _ operation: () async throws -> T
     ) async throws -> T {
         var scope: ModelUseScope?
@@ -236,15 +244,13 @@ actor LlmProvider {
             scope = await maintenance.suspendMaintenance()
             await maintenance.awaitMaintenance()
         }
-        var releaseAfterUse = false
+        var recovering = false
         return try await modelLoadGate.withLock(
             onEnter: {
                 await self.reconcileIdleResources()
-                if !retainAfterCooldown {
-                    releaseAfterUse = await self.memoryPressureSuppressed
-                }
+                recovering = await self.memoryPressureSuppressed
             },
-            onExit: { await self.reconcileIdleResources(force: releaseAfterUse) }, operation)
+            onExit: { await self.reconcileIdleResources(recovering: recovering) }, operation)
     }
 
     init(
@@ -255,6 +261,7 @@ actor LlmProvider {
         self.transcriber = transcriber
         self.knowledgeEmbedding = knowledgeEmbedding
         self.embeddingAsset = knowledgeEmbeddingModelAsset()
+        setInferenceForeground(false)
     }
 
     nonisolated func isEmbeddingModelReady() -> Bool {
@@ -332,37 +339,42 @@ actor LlmProvider {
 
     func ensureChatModelAssetsReady(
         _ selection: LlmModelSelection,
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void
     ) async throws {
         let capability = currentChatDeviceCapability()
         guard capability.isChatSupported else {
             throw UnsupportedDeviceMemoryError(capability: capability)
         }
-        try await downloadAssets([chatAsset(selection)], onProgress: onProgress)
+        try await downloadAssets(
+            [chatAsset(selection)], downloadContext: downloadContext, onProgress: onProgress)
         assetStore.cleanupObsoleteChatModels(selection.id)
     }
 
     func ensureModelReady(
         _ selection: LlmModelSelection,
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void
     ) async throws {
         try await withModelLock {
-            try await ensureModelReadyLocked(selection, onProgress: onProgress, allowRecovery: true)
+            try await ensureModelReadyLocked(
+                selection, onProgress: onProgress, allowRecovery: true,
+                downloadContext: downloadContext)
         }
     }
 
     func prewarmChatModelIfDownloaded(
         _ selection: LlmModelSelection, owner: UUID
     ) async throws -> ChatWarmupResult {
-        let result: ChatWarmupResult = try await withModelLock(retainAfterCooldown: true) {
-            guard appForeground, chatForeground, voiceOwner == nil,
+        let result: ChatWarmupResult = try await withModelLock {
+            guard appForeground, chatForeground,
                 isChatModelReady(selection)
             else { return .skipped }
             let cooldown = memoryPressure.remainingCooldown(
                 now: ProcessInfo.processInfo.systemUptime)
             if cooldown > 0 { return .retryAfter(cooldown) }
             guard !memoryPressureSuppressed else { return .skipped }
-            unloadTranscriptionModelIfLoaded()
+            transcriber.unloadModel()
             try Task.checkCancellation()
             guard loadedContextLength(selection) == nil else {
                 if chatWarmupOwner != nil { chatWarmupOwner = owner }
@@ -397,7 +409,8 @@ actor LlmProvider {
         _ selection: LlmModelSelection,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void,
         allowRecovery: Bool,
-        shouldDownload: Bool = true
+        shouldDownload: Bool = true,
+        downloadContext: AssetDownloadContext = .independent
     ) async throws {
         chatWarmupOwner = nil
         let capability = currentChatDeviceCapability()
@@ -410,7 +423,7 @@ actor LlmProvider {
             return
         }
 
-        unloadTranscriptionModelIfLoaded()
+        transcriber.unloadModel()
         unloadModel()
 
         if !backendInitialized {
@@ -421,7 +434,8 @@ actor LlmProvider {
         let asset = chatAsset(selection)
         let wasAlreadyDownloaded = assetStore.isDownloaded(asset)
         if shouldDownload {
-            try await downloadAssets([asset], onProgress: onProgress)
+            try await downloadAssets(
+                [asset], downloadContext: downloadContext, onProgress: onProgress)
         }
 
         assetStore.cleanupObsoleteChatModels(selection.id)
@@ -436,7 +450,8 @@ actor LlmProvider {
             if allowRecovery, wasAlreadyDownloaded, assetStore.removeDownloaded(asset) {
                 onProgress(DownloadProgress(percent: 0, status: "Starting download..."))
                 try await ensureModelReadyLocked(
-                    selection, onProgress: onProgress, allowRecovery: false)
+                    selection, onProgress: onProgress, allowRecovery: false,
+                    downloadContext: downloadContext)
                 return
             }
             throw error
@@ -446,9 +461,11 @@ actor LlmProvider {
 
     private func downloadAssets(
         _ assets: [Asset],
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void
     ) async throws {
-        try await assetStore.download(assets: assets) { progress in
+        try await assetStore.download(assets: assets, context: downloadContext) {
+            progress in
             onProgress(
                 DownloadProgress(
                     percent: min(max(Int(progress.percentage), 0), 99),
@@ -467,11 +484,11 @@ actor LlmProvider {
         try await withTaskCancellationHandler {
             try await withModelLock {
                 try control.checkCancellation()
-                guard chatForeground, !memoryPressureSuppressed, voiceOwner == nil,
+                guard chatForeground, !memoryPressureSuppressed,
                     loadedContextLength(selection) != nil,
                     let model = loadedModel, let loadedContext
                 else { throw ModelMemoryDeferred() }
-                unloadTranscriptionModelIfLoaded()
+                transcriber.unloadModel()
                 loadedContext.releaseMultimodal()
                 guard canAllocate(.title) else { throw ModelMemoryDeferred() }
                 try control.checkCancellation()
@@ -482,6 +499,7 @@ actor LlmProvider {
                     nThreads: Int32(max(1, ProcessInfo.processInfo.activeProcessorCount - 1)),
                     nThreadsGeneration: nil
                 )
+                try context.setExecutionControl(control: executionControl)
                 let outputTokens = 48
                 let inputTokens = max(0, min(2000, Int(context.contextSize()) - outputTokens))
                 let titleMessages = try context.truncateTextChatMessages(
@@ -504,6 +522,7 @@ actor LlmProvider {
 
     func withConversationContext<T: Sendable>(
         _ selection: LlmModelSelection,
+        downloadContext: AssetDownloadContext = .independent,
         onProgress: @escaping @Sendable (DownloadProgress) -> Void = { _ in },
         _ operation: @MainActor (LlmContext, ChatGenerationControl) async throws -> T
     ) async throws -> T {
@@ -517,12 +536,13 @@ actor LlmProvider {
                     generationControl.withLock { $0 = nil }
                 }
                 try await ensureModelReadyLocked(
-                    selection, onProgress: onProgress, allowRecovery: true)
+                    selection, onProgress: onProgress, allowRecovery: true,
+                    downloadContext: downloadContext)
                 try control.checkCancellation()
                 guard let context = loadedContext else {
                     throw CancellationError()
                 }
-                unloadTranscriptionModelIfLoaded()
+                transcriber.unloadModel()
                 try control.checkCancellation()
                 return try await operation(context, control)
             }
@@ -538,6 +558,7 @@ actor LlmProvider {
         temperature: Float,
         maxTokens: UInt32,
         control: ChatGenerationControl,
+        onPromptProgress: (@Sendable (Int32, Int32) -> Void)? = nil,
         onToken: @escaping @Sendable (String) -> Void
     ) async throws -> GenerationSummary {
         try await generateChatLocked(
@@ -547,6 +568,7 @@ actor LlmProvider {
             temperature: temperature,
             maxTokens: Int(maxTokens),
             control: control,
+            onPromptProgress: onPromptProgress,
             onToken: onToken
         )
     }
@@ -559,6 +581,7 @@ actor LlmProvider {
         maxTokens: Int?,
         contextOverride: LlmContext? = nil,
         control: ChatGenerationControl,
+        onPromptProgress: (@Sendable (Int32, Int32) -> Void)? = nil,
         onToken: @escaping @Sendable (String) -> Void
     ) async throws -> GenerationSummary {
         let capability = currentChatDeviceCapability()
@@ -605,9 +628,14 @@ actor LlmProvider {
         )
 
         let sink = CallbackSink { event in
-            if case let .text(jobId, text, _) = event {
+            switch event {
+            case let .promptProgress(_, processed, total):
+                onPromptProgress?(processed, total)
+            case let .text(jobId, text, _):
                 control.setJob(jobId)
                 onToken(text)
+            case .done:
+                break
             }
         }
 
@@ -649,10 +677,10 @@ actor LlmProvider {
                 throw EmbeddingAssetInvalidError()
             }
 
-            if maintenance && (voiceOwner != nil || memoryPressureSuppressed) {
+            if maintenance && memoryPressureSuppressed {
                 throw ModelMemoryDeferred()
             }
-            unloadTranscriptionModelIfLoaded()
+            transcriber.unloadModel()
             loadedContext?.releaseMultimodal()
             if !canAllocate(.embedding, queryBytes: maintenance ? nil : queryBytes) {
                 if maintenance && chatForeground && loadedModel != nil {
@@ -695,6 +723,7 @@ actor LlmProvider {
             guard let context = embeddingContext else {
                 throw EmbeddingAssetInvalidError()
             }
+            try context.setExecutionControl(control: executionControl)
             return try await operation(context)
         }
     }
@@ -704,18 +733,6 @@ actor LlmProvider {
             control.cancel(invalidatePreparation: invalidatePreparation)
         } else {
             llmCancel(jobId: 0)
-        }
-    }
-
-    func resetContext() async {
-        try? await withModelLock {
-            guard let model = loadedModel, let key = currentModelKey else { return }
-            let selection = LlmModelSelection(id: key.id, contextLength: key.requestedContextLength)
-            let contextParams = LlmContextParams(
-                contextSize: currentContextLength.map(Int32.init), nThreads: nil,
-                nThreadsGeneration: nil, nBatch: Int32(selection.batchSize))
-            loadedContext = nil
-            loadedContext = try? model.newContext(params: contextParams)
         }
     }
 
@@ -734,11 +751,6 @@ actor LlmProvider {
         loadedModel = nil
         currentModelKey = nil
         currentContextLength = nil
-    }
-
-    private func unloadTranscriptionModelIfLoaded() {
-        voiceOwner = nil
-        transcriber.unloadModel()
     }
 
     private nonisolated func chatAsset(_ selection: LlmModelSelection) -> Asset {
@@ -765,6 +777,7 @@ actor LlmProvider {
                     nThreadsGeneration: nil,
                     nBatch: Int32(selection.batchSize))
                 let context = try model.newContext(params: contextParams)
+                try context.setExecutionControl(control: executionControl)
                 loadedContext = context
                 currentModelKey = LoadedModelKey(
                     id: selection.id, requestedContextLength: selection.contextLength)

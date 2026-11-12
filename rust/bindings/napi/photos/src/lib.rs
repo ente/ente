@@ -10,13 +10,11 @@ pub use log::init_logging;
 
 #[napi]
 pub fn init_ort(dylib_path: String) -> Result<()> {
-    ort::init_from(&dylib_path)
-        .map_err(|error| {
-            Error::from_reason(format!(
-                "Runtime: failed to load ONNX Runtime library from '{dylib_path}': {error}"
-            ))
-        })?
-        .commit();
+    let _ = ort::init_from(&dylib_path).map_err(|error| {
+        Error::from_reason(format!(
+            "Runtime: failed to load ONNX Runtime library from '{dylib_path}': {error}"
+        ))
+    })?;
     Ok(())
 }
 

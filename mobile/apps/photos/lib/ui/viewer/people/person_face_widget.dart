@@ -13,7 +13,7 @@ import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/models/ml/face/face.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
@@ -28,6 +28,14 @@ import "package:photos/utils/face/face_thumbnail_cache.dart";
 final _logger = Logger("PersonFaceWidget");
 
 class PersonFaceWidget extends StatefulWidget {
+  static String coverHeroTag({
+    required String tagPrefix,
+    String? personId,
+    String? clusterID,
+  }) => personId != null
+      ? "$tagPrefix:person_cover:$personId"
+      : "$tagPrefix:cluster_cover:$clusterID";
+
   final String? personId;
   final String? clusterID;
   final bool useFullFile;
@@ -485,7 +493,7 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
         );
         return null;
       }
-      final Face? face = await mlDataDB.getCoverFaceForPerson(
+      final FaceWithoutEmbedding? face = await mlDataDB.getCoverFaceForPerson(
         recentFileID: recentFileID,
         avatarFaceId: fixedFaceID,
         personID: widget.personId,

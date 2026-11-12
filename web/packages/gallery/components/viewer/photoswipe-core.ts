@@ -1,3 +1,4 @@
+import { appName } from "ente-base/app";
 import { isNamedError } from "ente-base/error";
 import log from "ente-base/log";
 import type { FileDownloadProgress } from "ente-gallery/services/download-core";
@@ -22,6 +23,8 @@ import {
     heartFillSVGPath,
     heartSVGPath,
     settingsSVGPath,
+    slideArrowNextSVG,
+    slideArrowPrevSVG,
 } from "./icons";
 
 export interface FileViewerPhotoSwipeAnnotatedFile {
@@ -103,6 +106,13 @@ export const moreMenuID = "ente-pswp-more-menu";
 
 const fullscreenControlsAutoHideDelayMS = 3000;
 
+const islandLayoutPadding = ({ x }: { x: number }) =>
+    document.fullscreenElement
+        ? { top: 0, bottom: 0, left: 0, right: 0 }
+        : x < 450
+          ? { top: 8, bottom: 8, left: 8, right: 8 }
+          : { top: 11 + 24, bottom: 11 + 24, left: 11 + 80, right: 11 + 80 };
+
 export class FileViewerPhotoSwipe<
     T extends FileViewerPhotoSwipeAnnotatedFile =
         FileViewerPhotoSwipeAnnotatedFile,
@@ -131,6 +141,7 @@ export class FileViewerPhotoSwipe<
         onDownload,
         onMore,
     }: FileViewerPhotoSwipeCoreOptions<T>) {
+        const useIslandLayout = appName == "photos" && !isPublicAlbum;
         const pswp = new PhotoSwipe({
             bgOpacity: 1,
             showHideAnimationType: "fade",
@@ -164,7 +175,14 @@ export class FileViewerPhotoSwipe<
             index: initialIndex,
             mainClass: isPublicAlbum
                 ? "pswp-ente pswp-ente-public-album"
-                : "pswp-ente",
+                : useIslandLayout
+                  ? "pswp-ente pswp-ente-island"
+                  : "pswp-ente",
+            ...(useIslandLayout && {
+                paddingFn: islandLayoutPadding,
+                arrowPrevSVG: slideArrowPrevSVG,
+                arrowNextSVG: slideArrowNextSVG,
+            }),
             closeTitle: t("close"),
             zoomTitle: t("zoom"),
             arrowPrevTitle: t("previous"),
@@ -173,6 +191,34 @@ export class FileViewerPhotoSwipe<
         });
 
         this.pswp = pswp;
+
+        if (useIslandLayout) {
+            pswp.on("afterInit", () => {
+                const counter = pswp.element?.querySelector(".pswp__counter");
+                const progress = pswp.element?.querySelector(
+                    ".pswp__ente-progress-text",
+                );
+                if (!counter || !progress) return;
+                const island = document.createElement("div");
+                island.className = "pswp__status-island";
+                counter.before(island);
+                island.append(counter, progress);
+                const buffering = pswp.element?.querySelector(
+                    "media-control-bar:has(media-loading-indicator)",
+                );
+                if (buffering) {
+                    const statusBuffering = buffering.cloneNode(
+                        true,
+                    ) as HTMLElement;
+                    statusBuffering.classList.add("pswp__status-buffering");
+                    const label = document.createElement("span");
+                    label.textContent = t("buffering");
+                    buffering.append(label);
+                    statusBuffering.append(label.cloneNode(true));
+                    counter.after(statusBuffering);
+                }
+            });
+        }
 
         let _currentAnnotatedFile: T | undefined;
 
@@ -496,6 +542,7 @@ export class FileViewerPhotoSwipe<
         };
 
         const handleFullscreenChange = () => {
+            if (useIslandLayout) pswp.updateSize(true);
             if (document.fullscreenElement) {
                 document.addEventListener(
                     "mousemove",
@@ -557,7 +604,7 @@ export class FileViewerPhotoSwipe<
             );
 
             const controls =
-                container?.querySelectorAll(
+                pswp.element?.querySelectorAll(
                     "media-control-bar, media-playback-rate-menu",
                 ) ?? [];
             for (const control of controls) {
@@ -624,6 +671,16 @@ export class FileViewerPhotoSwipe<
             if (document.querySelector("media-settings-menu:not([hidden])"))
                 toggleMediaChromeSettingsMenu();
         };
+
+        pswp.on("contentAppendImage", ({ content }) => {
+            const image = content.element;
+            if (!(image instanceof HTMLImageElement)) return;
+
+            void image.decode().then(
+                () => image.classList.add("ente-image-decoded"),
+                () => undefined,
+            );
+        });
 
         pswp.on("contentAppend", (e) => {
             // PhotoSwipe can emit this later for content it already detached.
@@ -962,10 +1019,20 @@ export class FileViewerPhotoSwipe<
                         : "";
                 setText(percentageEl, percentageText);
                 setText(status, statusText);
-                setText(size, sizeText);
+                progressText.classList.toggle(
+                    "pswp__ente-progress-text--downloading",
+                    state?.phase == "downloading",
+                );
+                const compactSize = useIslandLayout ? percentageText : sizeText;
+                setText(size, compactSize);
+                progressText.title = [statusText, sizeText]
+                    .filter(Boolean)
+                    .join(" · ");
                 setText(retry, t("retry"));
-                size.hidden = !sizeText;
-                separator.hidden = !(sizeText || failed);
+                size.hidden = !compactSize;
+                separator.hidden = useIslandLayout
+                    ? !failed
+                    : !(sizeText || failed);
                 retry.hidden = !failed;
                 fill.style.width = `${Math.max(state?.percentage ?? 0, 1)}%`;
                 progressRing.style.strokeDashoffset = `${100 - (state?.percentage ?? 0)}`;
@@ -1350,7 +1417,7 @@ export class FileViewerPhotoSwipe<
                             moreLink.addEventListener("click", handleViewInfo);
                             captionP.appendChild(moreLink);
                         }
-                        captionEl.style.display = captionText
+                        captionEl.style.display = captionText?.trim()
                             ? "block"
                             : "none";
                         captionEl.classList.toggle(
@@ -1540,12 +1607,22 @@ export class FileViewerPhotoSwipe<
                         cb = handleDelete;
                         break;
                     case "ArrowLeft":
-                        cb = handleSeekBackOrPreviousSlide;
                         pswpEvent.preventDefault();
+                        if (
+                            document.activeElement?.tagName ===
+                            "MEDIA-VOLUME-RANGE"
+                        )
+                            return;
+                        cb = handleSeekBackOrPreviousSlide;
                         break;
                     case "ArrowRight":
-                        cb = handleSeekForwardOrNextSlide;
                         pswpEvent.preventDefault();
+                        if (
+                            document.activeElement?.tagName ===
+                            "MEDIA-VOLUME-RANGE"
+                        )
+                            return;
+                        cb = handleSeekForwardOrNextSlide;
                         break;
                     case "?":
                         cb = handleHelp;
@@ -1589,6 +1666,7 @@ export class FileViewerPhotoSwipe<
             const target = e.target;
             if (target instanceof HTMLElement) {
                 switch (target.tagName) {
+                    case "MEDIA-VOLUME-RANGE":
                     case "MEDIA-TIME-RANGE":
                     case "MEDIA-PLAY-BUTTON":
                     case "MEDIA-MUTE-BUTTON":
@@ -1704,6 +1782,7 @@ const hlsVideoControlsHTML = () => `
   <media-control-bar>
     <media-play-button notooltip></media-play-button>
     <media-mute-button notooltip></media-mute-button>
+    <media-volume-range></media-volume-range>
     <media-time-display showduration notoggle></media-time-display>
     <media-text-display></media-text-display>
     <media-settings-menu-button id="ente-settings-menu-btn" invoketarget="ente-settings-menu" notooltip>
@@ -1722,7 +1801,7 @@ const livePhotoVideoHTML = (videoURL: string) => `
 `;
 
 const bottomRightControlsHTML = () => `
-<div class="pswp__caption"><p></p></div>
+<div class="pswp__caption" style="display: none"><p></p></div>
 <div class="pswp__action-buttons">
   <button class="pswp__action-button" aria-label="Like">
     <svg viewBox="0 0 30 26" fill="none">${heartSVGPath} id="pswp__icn-heart" />${heartFillSVGPath} id="pswp__icn-heart-fill" /></svg>

@@ -50,11 +50,13 @@ class AlbumsTab extends StatefulWidget {
   const AlbumsTab({
     super.key,
     this.selectedAlbums,
+    this.isActive = true,
     this.isSearchActiveNotifier,
     this.shouldConsumeBackNotifier,
   });
 
   final SelectedAlbums? selectedAlbums;
+  final bool isActive;
   final ValueNotifier<bool>? isSearchActiveNotifier;
   final ValueNotifier<bool>? shouldConsumeBackNotifier;
 
@@ -534,10 +536,15 @@ class _AlbumsTabState extends State<AlbumsTab>
   Widget _buildGlobalSearchEmptyStateSliver(StringsLocalizations strings) {
     return SliverFillRemaining(
       hasScrollBody: false,
-      child: EmptyStateComponent(
-        assetPath: "assets/empty_state_album_search.png",
-        title: strings.noMatchesFound,
-        textWidth: 240,
+      child: TickerMode(
+        enabled: widget.isActive,
+        child: EmptyStateComponent(
+          assetPath: "assets/ente-nomatch-ducky.riv",
+          animated: true,
+          illustrationSize: const Size(181, 138),
+          title: strings.noMatchesFound,
+          textWidth: 240,
+        ),
       ),
     );
   }
@@ -1089,9 +1096,16 @@ class _AlbumsTabState extends State<AlbumsTab>
                           fit: StackFit.expand,
                           children: [
                             for (final previousChild in previousChildren)
-                              Positioned.fill(child: previousChild),
+                              Positioned.fill(
+                                child: HeroMode(
+                                  enabled: false,
+                                  child: previousChild,
+                                ),
+                              ),
                             if (currentChild != null)
-                              Positioned.fill(child: currentChild),
+                              Positioned.fill(
+                                child: HeroMode(child: currentChild),
+                              ),
                           ],
                         );
                       },

@@ -1,1 +1,0 @@
-- Made the Add more sheet taller, added a selected photo count, and fixed scrolling while selecting photos.

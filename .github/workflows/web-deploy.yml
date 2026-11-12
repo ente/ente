@@ -35,49 +35,49 @@ jobs:
             - name: Audit dependencies
               run: npm audit --audit-level critical
             - name: Deploy photos
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: photos
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy albums
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: albums
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy accounts
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: accounts
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy auth
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: auth
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy legacy
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: legacy
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy cast
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: cast
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy payments
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: payments
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -85,50 +85,57 @@ jobs:
                   output: dist
 
             - name: Deploy locker
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: locker
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy share
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: share
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy space
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: space
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy memories
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: memories
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy paste
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: paste
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy embed
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: embed
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
             - name: Deploy ensu
-              uses: ./.github/actions/deploy-web-app
+              uses: $/.github/actions/deploy-web-app
               with:
                   app: ensu
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+            - name: Deploy photobook
+              uses: $/.github/actions/deploy-web-app
+              with:
+                  app: photobook
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

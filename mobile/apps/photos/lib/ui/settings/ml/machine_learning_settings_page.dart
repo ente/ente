@@ -417,7 +417,9 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
                 size: IconSizes.small,
               ),
               trailing: Text(
-                '${(entry.value.$1 * 100) ~/ entry.value.$2}%',
+                entry.value.$2 > 0
+                    ? '${(entry.value.$1 * 100) ~/ entry.value.$2}%'
+                    : '0%',
                 style: TextStyles.mini.copyWith(color: colors.textLight),
               ),
             ),

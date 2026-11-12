@@ -42,6 +42,7 @@ pub struct AssetFile {
 pub struct AssetDownloadProgress {
     pub asset_index: usize,
     pub asset_progress: Progress,
+    pub queued: bool,
     pub batch_downloaded_bytes: u64,
     pub batch_total_bytes: Option<u64>,
     pub batch_percentage: f64,
@@ -218,20 +219,37 @@ impl AssetStore {
             .map(|asset| self.asset_lock(asset))
             .collect::<Result<Vec<_>, _>>()?;
         let progress = std::sync::Mutex::new(BatchProgress::new(assets.len(), on_progress));
-        let jobs = assets
-            .iter()
-            .zip(locks)
-            .enumerate()
-            .map(|(asset_index, (asset, lock))| {
-                self.download_asset(
-                    asset_index,
-                    asset,
-                    lock,
-                    &progress,
-                    cancellation.clone(),
-                    &import,
-                )
-            });
+        let progress = &progress;
+        let import = &import;
+        let cancellation = &cancellation;
+        let jobs =
+            assets
+                .iter()
+                .zip(locks)
+                .enumerate()
+                .map(|(asset_index, (asset, lock))| async move {
+                    let result = self
+                        .download_asset(
+                            asset_index,
+                            asset,
+                            lock,
+                            progress,
+                            cancellation.clone(),
+                            import,
+                        )
+                        .await;
+                    let state = if result.is_ok() {
+                        AssetDownloadState::Complete
+                    } else {
+                        AssetDownloadState::Failed
+                    };
+                    #[expect(clippy::expect_used, reason = "A panic unwinds the download")]
+                    progress
+                        .lock()
+                        .expect("progress lock")
+                        .set_state(asset_index, state);
+                    result
+                });
         let results = join_all(jobs).await;
         if cancellation.is_cancelled() {
             return Err(Error::Cancelled);
@@ -267,16 +285,16 @@ impl AssetStore {
         F: FnMut(AssetDownloadProgress) + Send,
         I: Fn(&Asset, &Path) -> Result<(), Error> + Sync,
     {
+        #[expect(clippy::expect_used, reason = "A panic unwinds the download")]
+        progress
+            .lock()
+            .expect("progress lock")
+            .set_state(asset_index, AssetDownloadState::Queued);
         let _guard = tokio::select! {
             guard = lock.lock() => guard,
             _ = cancellation.cancelled() => return Err(Error::Cancelled),
         };
         if self.is_downloaded(asset) {
-            #[expect(
-                clippy::expect_used,
-                reason = "A panic unwinds the download; its local state is not reused"
-            )]
-            progress.lock().expect("progress lock").skip(asset_index);
             return Ok(());
         }
         import(asset, &self.staging_dir(asset))?;
@@ -288,6 +306,11 @@ impl AssetStore {
             slot = self.coordination.asset_slots.acquire() => slot.expect("asset semaphore closed"),
             _ = cancellation.cancelled() => return Err(Error::Cancelled),
         };
+        #[expect(clippy::expect_used, reason = "A panic unwinds the download")]
+        progress
+            .lock()
+            .expect("progress lock")
+            .set_state(asset_index, AssetDownloadState::Downloading);
 
         self.downloader()?
             .download(
@@ -481,9 +504,17 @@ fn normalized_root(root: PathBuf) -> PathBuf {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum AssetDownloadState {
+    Queued,
+    Downloading,
+    Complete,
+    Failed,
+}
+
 struct BatchProgress<F> {
     assets: Vec<Option<Progress>>,
-    pending: Vec<bool>,
+    states: Vec<AssetDownloadState>,
     callback: F,
 }
 
@@ -494,37 +525,48 @@ where
     fn new(asset_count: usize, callback: F) -> Self {
         Self {
             assets: vec![None; asset_count],
-            pending: vec![true; asset_count],
+            states: vec![AssetDownloadState::Queued; asset_count],
             callback,
         }
     }
 
-    fn skip(&mut self, asset_index: usize) {
-        self.pending[asset_index] = false;
+    fn set_state(&mut self, asset_index: usize, state: AssetDownloadState) {
+        self.states[asset_index] = state;
+        self.emit(
+            asset_index,
+            self.assets[asset_index].clone().unwrap_or_default(),
+        );
     }
 
     fn update(&mut self, asset_index: usize, asset_progress: Progress) {
-        self.pending[asset_index] = false;
         self.assets[asset_index] = Some(asset_progress.clone());
         self.emit(asset_index, asset_progress);
     }
 
-    fn emit(&mut self, asset_index: usize, asset_progress: Progress) {
+    fn emit(&mut self, asset_index: usize, mut asset_progress: Progress) {
+        let queued = self.states.contains(&AssetDownloadState::Queued)
+            && !self.states.contains(&AssetDownloadState::Downloading);
+        if queued {
+            asset_progress.label = "Download queued".to_string();
+        } else if asset_progress.label.is_empty() {
+            asset_progress.label = "Preparing downloads".to_string();
+        }
         let batch_downloaded_bytes = self
             .assets
             .iter()
             .flatten()
             .map(|progress| progress.downloaded_bytes)
             .sum();
-        let batch_total_bytes = (!self.pending.iter().any(|pending| *pending))
-            .then(|| {
-                self.assets
-                    .iter()
-                    .flatten()
-                    .map(|progress| progress.total_bytes)
-                    .try_fold(0u64, |total, value| total.checked_add(value?))
+        let batch_total_bytes = self
+            .assets
+            .iter()
+            .zip(&self.states)
+            .map(|(progress, state)| match progress {
+                Some(progress) => progress.total_bytes,
+                None if *state == AssetDownloadState::Complete => Some(0),
+                None => None,
             })
-            .flatten();
+            .try_fold(0u64, |total, value| total.checked_add(value?));
         let batch_percentage = batch_total_bytes
             .filter(|total| *total > 0)
             .map(|total| ((batch_downloaded_bytes as f64 / total as f64) * 100.0).clamp(0.0, 100.0))
@@ -532,6 +574,7 @@ where
         (self.callback)(AssetDownloadProgress {
             asset_index,
             asset_progress,
+            queued,
             batch_downloaded_bytes,
             batch_total_bytes,
             batch_percentage,
@@ -890,24 +933,55 @@ mod tests {
             Asset::files(key(&["models", "second"]), vec![file("model", b"second")]).unwrap();
         stage_files(&store, &first, &[("model", b"first")]);
         stage_files(&store, &second, &[("model", b"second")]);
-        let mut latest_progress = None;
-        let mut asset_progress = [0, 0];
-
-        store
-            .download(
-                &[first.clone(), second.clone()],
-                |progress| {
-                    asset_progress[progress.asset_index] = progress.asset_progress.downloaded_bytes;
-                    latest_progress = Some((
-                        progress.batch_downloaded_bytes,
-                        progress.batch_total_bytes,
-                        progress.batch_percentage,
-                    ));
-                },
-                CancellationToken::default(),
-            )
+        let slots = store
+            .coordination
+            .asset_slots
+            .acquire_many(ASSET_CONCURRENCY as u32)
             .await
             .unwrap();
+        let second_lock = store.asset_lock(&second).unwrap();
+        let second_guard = second_lock.lock().await;
+        let (updates, mut receiver) = tokio::sync::mpsc::unbounded_channel();
+        let assets = [first.clone(), second.clone()];
+        let download = store.download(
+            &assets,
+            |progress| updates.send(progress).unwrap(),
+            CancellationToken::default(),
+        );
+        let mut asset_progress = [0, 0];
+        let observe_queue = async {
+            assert!(receiver.recv().await.unwrap().queued);
+            drop(slots);
+            let mut started = false;
+            loop {
+                let progress = receiver.recv().await.unwrap();
+                asset_progress[progress.asset_index] = progress.asset_progress.downloaded_bytes;
+                if !progress.queued {
+                    started = true;
+                } else if progress.batch_downloaded_bytes == 5 {
+                    assert!(started);
+                    assert_eq!(progress.asset_progress.label, "Download queued");
+                    break;
+                }
+            }
+            drop(second_guard);
+        };
+        let (result, ()) = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            tokio::join!(download, observe_queue)
+        })
+        .await
+        .unwrap();
+        result.unwrap();
+        let mut latest_progress = None;
+        while let Ok(progress) = receiver.try_recv() {
+            assert!(!progress.queued);
+            asset_progress[progress.asset_index] = progress.asset_progress.downloaded_bytes;
+            latest_progress = Some((
+                progress.batch_downloaded_bytes,
+                progress.batch_total_bytes,
+                progress.batch_percentage,
+            ));
+        }
 
         assert!(store.is_downloaded(&first));
         assert!(store.is_downloaded(&second));
@@ -924,19 +998,40 @@ mod tests {
         let mut bad_file = file("model", b"bad");
         bad_file.url = ":".to_string();
         let bad = Asset::files(key(&["models", "bad"]), vec![bad_file]).unwrap();
-        stage_files(&store, &good, &[("model", b"good")]);
+        for fail_before_progress in [false, true] {
+            stage_files(&store, &good, &[("model", b"good")]);
+            let mut latest_progress = None;
 
-        store
-            .download(
-                &[good.clone(), bad.clone()],
-                |_| {},
-                CancellationToken::default(),
-            )
-            .await
-            .unwrap_err();
+            store
+                .download_with_staged_import(
+                    &[good.clone(), bad.clone()],
+                    |progress| {
+                        assert!(progress.batch_percentage < 100.0);
+                        latest_progress = Some(progress);
+                    },
+                    CancellationToken::default(),
+                    |asset, _| {
+                        if fail_before_progress && asset == &bad {
+                            Err(Error::StorageFull)
+                        } else {
+                            Ok(())
+                        }
+                    },
+                )
+                .await
+                .unwrap_err();
 
-        assert!(store.is_downloaded(&good));
-        assert!(!store.is_downloaded(&bad));
+            let progress = latest_progress.unwrap();
+            assert!(!progress.queued);
+            assert_eq!(progress.batch_downloaded_bytes, 4);
+            assert_eq!(
+                progress.batch_total_bytes,
+                if fail_before_progress { None } else { Some(7) }
+            );
+            assert!(store.is_downloaded(&good));
+            assert!(!store.is_downloaded(&bad));
+            store.remove(&good).unwrap();
+        }
         let _ = fs::remove_dir_all(root);
     }
 
@@ -964,13 +1059,20 @@ mod tests {
         let waiting_store = Arc::clone(&store);
         let waiting_asset = asset.clone();
         let waiter = tokio::spawn(async move {
-            waiting_store
-                .download(&[waiting_asset], |_| {}, token)
-                .await
+            let mut updates = Vec::new();
+            let result = waiting_store
+                .download(&[waiting_asset], |progress| updates.push(progress), token)
+                .await;
+            (result, updates)
         });
         tokio::task::yield_now().await;
         cancellation.cancel();
-        assert!(matches!(waiter.await.unwrap(), Err(Error::Cancelled)));
+        let (result, updates) = waiter.await.unwrap();
+        assert!(matches!(result, Err(Error::Cancelled)));
+        assert!(!updates.last().unwrap().queued);
+        assert!(updates.iter().all(|progress| {
+            progress.batch_total_bytes.is_none() && progress.batch_percentage == 0.0
+        }));
         drop(guard);
 
         stage_files(&store, &asset, &[("model", b"model")]);

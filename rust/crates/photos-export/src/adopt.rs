@@ -35,9 +35,8 @@ pub struct Index {
 }
 
 impl Index {
-    pub fn new(open: impl FnOnce(&Path) -> Result<Connection>) -> Result<Self> {
-        let directory = tempfile::tempdir()?;
-        let db = open(&directory.path().join("index.db"))?;
+    pub fn new(open: impl FnOnce() -> Result<(tempfile::TempDir, Connection)>) -> Result<Self> {
+        let (directory, db) = open()?;
         db.execute_batch(
             "PRAGMA temp_store=MEMORY; PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; BEGIN;",
         )?;
@@ -151,6 +150,7 @@ fn scan_album(
         let bytes = fs::read(path)?;
         let value: Value = match serde_json::from_slice(&bytes) {
             Ok(value) => value,
+            Err(_) if crate::is_finder_metadata_entry(&entry) => continue,
             Err(_) if desktop.is_some_and(|d| d.common_sidecar(album.id, &name)) => continue,
             Err(error) => return Err(error.into()),
         };

@@ -10,6 +10,7 @@ import { appHomeRoute } from "ente-accounts/services/redirect";
 import { changeEmail, sendOTT } from "ente-accounts/services/user";
 import { LinkButton } from "ente-base/components/LinkButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
+import { isNamedError } from "ente-base/error";
 import { isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import { useFormik } from "formik";
@@ -62,7 +63,7 @@ const ChangeEmailForm: React.FC = () => {
                     log.error("Could not send OTT for email change", e);
                     setFieldError(
                         "email",
-                        isHTTPErrorWithStatus(e, 403)
+                        isNamedError(e, "email_already_in_use")
                             ? t("email_already_taken")
                             : t("generic_error"),
                     );

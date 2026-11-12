@@ -4,6 +4,8 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
 
     @Environment(\.scenePhase) private var scenePhase
+    @State private var notificationOwner = UUID()
+    @ObservedObject private var notifications = ResponseNotifications.shared
     @ObservedObject private var modelSettings = ModelSettingsStore.shared
 
     @StateObject private var viewState = ChatViewState()
@@ -158,31 +160,59 @@ struct ChatView: View {
                 viewModel.modelSelectionChanged()
             }
             .onChange(of: scenePhase) { newValue in
+                viewModel.setInferenceForeground(newValue == .active)
                 viewModel.setAppForeground(newValue != .background)
                 viewModel.notesStore.setForeground(newValue == .active)
                 if newValue == .active {
+                    viewModel.voiceTranscriber.setForeground(true)
                     viewModel.refreshModelDownloadInfo()
+                    notifications.claimPrompt(owner: notificationOwner)
                 } else {
-                    viewModel.cancelVoiceInput()
+                    viewModel.voiceTranscriber.setForeground(false)
                 }
             }
         }
         .environmentObject(viewModel.notesStore)
         .onAppear {
+            viewModel.setInferenceForeground(scenePhase == .active)
             viewModel.setAppForeground(scenePhase != .background)
             viewModel.notesStore.setForeground(scenePhase == .active)
             viewModel.setChatActive(isChatActive)
         }
         .onChange(of: isChatActive) { viewModel.setChatActive($0) }
-        .onDisappear { viewModel.setChatActive(false) }
+        .onDisappear {
+            viewModel.setChatActive(false)
+            notifications.releasePrompt(owner: notificationOwner)
+        }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: UIApplication.didReceiveMemoryWarningNotification)
         ) { _ in
             viewModel.handleMemoryPressure()
         }
+        .sheet(
+            isPresented: Binding(
+                get: {
+                    notifications.showPermissionContext
+                        && notifications.promptOwner == notificationOwner && !viewState.showSettings
+                },
+                set: { if !$0 { notifications.showPermissionContext = false } })
+        ) {
+            NotificationPermissionContext()
+        }
+        .onChange(of: notifications.showPermissionContext) { show in
+            if show && scenePhase == .active { notifications.claimPrompt(owner: notificationOwner) }
+        }
+        .task(id: notifications.pendingRoute) {
+            guard let route = notifications.pendingRoute else { return }
+            viewState.showSettings = false
+            viewState.isDrawerOpen = false
+            viewModel.openResponse(route)
+            notifications.pendingRoute = nil
+        }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(
+                notificationOwner: notificationOwner,
                 knowledgeStore: viewModel.knowledgeStore,
                 notesStore: viewModel.notesStore,
                 onSignIn: {
@@ -204,6 +234,7 @@ struct ChatView: View {
         }
         .onChange(of: viewState.showSettings) { isPresented in
             if isPresented {
+                viewModel.voiceTranscriber.interrupt()
                 viewState.didDismissKeyboard = true
                 isInputFocused = false
             } else if viewState.pendingSignInRequest {
@@ -370,11 +401,10 @@ struct ChatView: View {
                         attachments: $viewModel.draftAttachments,
                         supportsImageAttachments: viewModel.supportsImageAttachments,
                         isGenerating: viewModel.isGenerating,
-                        isSendPending: viewModel.isSendPending,
                         isDownloading: viewModel.isDownloading,
                         editingMessage: editingMessage,
                         isProcessingAttachments: viewModel.isProcessingAttachments,
-                        voiceInputState: viewModel.voiceInputState,
+                        voiceService: viewModel.voiceTranscriber,
                         moveCursorToEndToken: viewModel.draftCursorMoveToken,
                         onSend: {
                             viewState.didDismissKeyboard = true
@@ -391,6 +421,11 @@ struct ChatView: View {
                             viewState.didDismissKeyboard = true
                             isInputFocused = false
                             viewModel.toggleVoiceInput()
+                        },
+                        voiceInsertionCaret: viewModel.voiceInsertionCaret,
+                        onComposerSelection: { range, composing in
+                            viewModel.composerSelection = range
+                            viewModel.composerIsComposing = composing
                         },
                         onAddImage: { data, name in
                             viewModel.addImageAttachment(data: data, fileName: name)

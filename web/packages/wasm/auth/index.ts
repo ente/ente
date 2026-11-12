@@ -12,10 +12,8 @@ const wasm = () => import("./pkg/ente_auth_wasm");
 export const openSession = async (input: OpenSessionInput): Promise<Session> =>
     (await wasm()).openSession(input);
 
-export const encryptBoxWithRecoveryKey = async (
-    session: Session,
-    dataB64: string,
-) => (await wasm()).authEncryptWithRecoveryKey(session, dataB64);
+export const recoveryKeyMnemonic = async (session: Session) =>
+    (await wasm()).authRecoveryKeyMnemonic(session);
 
 export const decryptBox = async (box: EncryptedBox, keyB64: string) =>
     (await wasm()).cryptoDecryptBox(box.encryptedData, box.nonce, keyB64);

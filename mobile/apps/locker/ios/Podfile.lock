@@ -44,7 +44,7 @@ PODS:
     - Flutter
   - ente_screen_cover (0.0.1):
     - Flutter
-  - EnteOnnxRuntime (1.28.1-r1)
+  - EnteOnnxRuntime (1.31.0-r1)
   - file_picker (0.0.1):
     - DKImagePickerController/PhotoGallery
     - Flutter
@@ -222,7 +222,7 @@ SPEC CHECKSUMS:
   ente_mail: f0569c7ea17e8324ef28f36a93c49fa1f3de724f
   ente_pdf_renderer: aaf425420589887ef3aeab27344ccba3cb820d2f
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
-  EnteOnnxRuntime: 7baa83a95717a6c9c8d0d4599f9f2c90b72d2905
+  EnteOnnxRuntime: e8cd50b12fc3dc8ecd2102dfdf52c8ca9352e296
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47

@@ -42,6 +42,7 @@ Jump to a category:
 ### Multi-Device Setup
 
 - [How do I log in on multiple devices?](/photos/faq/account-creation#multi-device-login)
+- [How do I log out of Ente Photos?](/photos/faq/account-creation#logout)
 - [Can I use Ente on both mobile and desktop?](/photos/faq/account-creation#mobile-and-desktop)
 - [Do I need separate accounts for different devices?](/photos/faq/account-creation#separate-accounts)
 
@@ -56,6 +57,7 @@ Jump to a category:
 - [What happens if I lose my passkey?](/photos/faq/account-creation#lost-passkey)
 - [I'm not receiving the verification code email](/photos/faq/account-creation#verification-code)
 - [What if I lose access to my email address?](/photos/faq/account-creation#lost-email)
+- [I forgot which email address I used for Ente. How do I find it?](/photos/faq/account-creation#forgot-account-email)
 
 ## Albums and Organization
 
@@ -71,9 +73,16 @@ Jump to a category:
 - [What happens if I reorganize my photos in the iOS Photos app after backing up?](/photos/faq/albums-and-organization#ios-reorganize)
 - [How does Ente handle photos that are part of multiple iOS albums?](/photos/faq/albums-and-organization#multiple-ios-albums)
 
+### Gallery Layout
+
+- [How do I change the gallery layout?](/photos/faq/albums-and-organization#gallery-layout)
+- [How do I change how many photos fit on my screen?](/photos/faq/albums-and-organization#gallery-photos-per-row)
+- [How do I view only my starred or Favorite photos?](/photos/faq/albums-and-organization#view-favorites)
+
 ### Uncategorized
 
 - [What is the Uncategorized album?](/photos/faq/albums-and-organization#what-is-uncategorized)
+- [Why can't I share the Uncategorized album?](/photos/faq/albums-and-organization#share-uncategorized-album)
 - [Why are photos appearing in Uncategorized?](/photos/faq/albums-and-organization#why-uncategorized)
 - [How do I clean up Uncategorized items?](/photos/faq/albums-and-organization#clean-uncategorized)
 - [Can I delete the Uncategorized album?](/photos/faq/albums-and-organization#delete-uncategorized)
@@ -91,6 +100,7 @@ Jump to a category:
 - [Do archived photos appear in search results?](/photos/faq/albums-and-organization#archive-search)
 - [How do I hide photos in Ente?](/photos/faq/albums-and-organization#how-to-hide)
 - [How do I archive photos in Ente?](/photos/faq/albums-and-organization#how-to-archive)
+- [Can I hide an album's photos from my timeline?](/photos/faq/albums-and-organization#album-off-timeline)
 
 ### Storage Management
 
@@ -129,6 +139,7 @@ Jump to a category:
 
 - [How does automatic backup work in Ente?](/photos/faq/backup-and-sync#automatic-backup)
 - [How do I select which albums to back up?](/photos/faq/backup-and-sync#select-albums)
+- [Can I back up only some photos from a folder, not the whole folder?](/photos/faq/backup-and-sync#backup-selected-photos)
 - [Can I backup over mobile data or only WiFi?](/photos/faq/backup-and-sync#mobile-data)
 - [Why is my initial backup taking so long?](/photos/faq/backup-and-sync#initial-backup-slow)
 - [What happens if my backup is interrupted?](/photos/faq/backup-and-sync#backup-interrupted)
@@ -163,6 +174,7 @@ Jump to a category:
 - [What happens if I delete a file from my watched folder?](/photos/faq/backup-and-sync#delete-from-watched-folder)
 - [Why don't metadata changes to a file in my watched folder show up in Ente?](/photos/faq/backup-and-sync#watch-folder-edited-files)
 - [What happens if I rename a file in my watched folder?](/photos/faq/backup-and-sync#rename-in-watched-folder)
+- [Why are my albums empty after I renamed a folder inside a watched folder?](/photos/faq/backup-and-sync#rename-folder-in-watched-folder)
 - [Why are my watch folders not syncing?](/photos/faq/backup-and-sync#watch-folders-not-syncing)
 - [Can I watch folders on a network drive (NAS)?](/photos/faq/backup-and-sync#watch-nas)
 - [How do I stop watching a folder?](/photos/faq/backup-and-sync#stop-watching-folder)
@@ -207,6 +219,11 @@ Jump to a category:
 - [How does Ente handle Google Takeout metadata?](/photos/faq/metadata-and-editing#google-takeout-metadata)
 - [Why are my Google Photos dates wrong after import?](/photos/faq/metadata-and-editing#google-photos-dates-wrong)
 
+### Editing Photos
+
+- [What editing tools are available on mobile?](/photos/faq/metadata-and-editing#mobile-photo-editor)
+- [How do I straighten a tilted photo?](/photos/faq/metadata-and-editing#straighten-photo)
+
 ### Editing Metadata
 
 - [How do I add descriptions or captions to photos?](/photos/faq/metadata-and-editing#add-descriptions)
@@ -236,6 +253,7 @@ Jump to a category:
 
 ### Importing from Google Photos
 
+- [Can I import Google Takeout on my phone or on the web?](/photos/faq/migration#takeout-desktop-only)
 - [How much Ente storage do I need when importing my Google Photos Takeout?](/photos/faq/migration#google-takeout-storage)
 - [I imported Google Takeout, but the same photos are on my Android phone. How do I avoid uploading them again?](/photos/faq/migration#takeout-android-existing-photos)
 
@@ -261,6 +279,7 @@ Jump to a category:
 
 - [Why doesn't search work for me?](/photos/faq/search-and-discovery#search-not-working)
 - [How do I enable face recognition?](/photos/faq/search-and-discovery#enable-face-recognition)
+- [Does face recognition or Magic search include photos from albums shared with me?](/photos/faq/search-and-discovery#ml-shared-albums)
 - [Can I merge or de-merge persons recognized by the app?](/photos/faq/search-and-discovery#merge-persons)
 - [How can I remove an incorrectly grouped face from a person?](/photos/faq/search-and-discovery#remove-incorrect-face)
 - [How do I change the cover for a recognized person?](/photos/faq/search-and-discovery#change-person-cover)
@@ -270,6 +289,8 @@ Jump to a category:
 - [Is my face data used to train AI models?](/photos/faq/search-and-discovery#face-data-training)
 - [Why is face recognition faster on desktop?](/photos/faq/search-and-discovery#face-recognition-speed)
 - [Can I name the recognized persons?](/photos/faq/search-and-discovery#name-persons)
+- [Why does Machine Learning stay just below 100%?](/photos/faq/search-and-discovery#ml-stuck-below-100)
+- [Why does my desktop app show different unnamed people than my phone?](/photos/faq/search-and-discovery#unnamed-people-differ)
 
 ### Magic Search
 
@@ -302,6 +323,7 @@ Jump to a category:
 ### Data Encryption and Storage
 
 - [Can Ente see my photos and videos?](/photos/faq/security-and-privacy#can-ente-see-photos)
+- [Why does my photo's info show "ICC Copyright Apple Inc."?](/photos/faq/security-and-privacy#icc-apple-copyright)
 - [How is my data encrypted?](/photos/faq/security-and-privacy#data-encryption)
 - [Where is my data stored?](/photos/faq/security-and-privacy#data-storage-location)
 - [How does Ente's encryption compare to industry standards?](/photos/faq/security-and-privacy#encryption-comparison)
@@ -309,11 +331,14 @@ Jump to a category:
 ### Account Security
 
 - [What happens if I forget my password?](/photos/faq/security-and-privacy#account-recovery)
+- [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email)
 - [What is my recovery key and why is it critical?](/photos/faq/security-and-privacy#recovery-key-importance)
 - [How do I find my recovery key?](/photos/faq/security-and-privacy#find-recovery-key)
+- [Can I get a new recovery key?](/photos/faq/security-and-privacy#new-recovery-key)
 - [How should I store my recovery key?](/photos/faq/security-and-privacy#store-recovery-key)
 - [How do I use my recovery key to reset my password?](/photos/faq/security-and-privacy#use-recovery-key)
 - [Can I change my password?](/photos/faq/security-and-privacy#change-password)
+- [Why did I get a "New login to your Ente account" email?](/photos/faq/security-and-privacy#new-login-email)
 - [Do you support two-factor authentication (2FA)?](/photos/faq/security-and-privacy#two-factor-auth)
 
 ### Sharing and Collaboration
@@ -330,6 +355,7 @@ Jump to a category:
 
 - [How can I delete my account?](/photos/faq/security-and-privacy#delete-account)
 - [Will deleting my Ente Auth or Locker account also delete my Photos account?](/photos/faq/security-and-privacy#shared-account-deletion)
+- [I deleted my account by mistake. Can I get it back?](/photos/faq/security-and-privacy#recover-deleted-account)
 
 ### Trust and Reliability
 
@@ -345,6 +371,7 @@ Jump to a category:
 - [How does Ente deduplicate photos?](/photos/faq/storage-and-plans#deduplication)
 - [Does Ente deduplicate across different albums?](/photos/faq/storage-and-plans#dedup-albums)
 - [How can I optimize my storage usage?](/photos/faq/storage-and-plans#optimize-storage)
+- [Can I free up space for one device folder only?](/photos/faq/storage-and-plans#free-up-one-folder)
 - [Do items in trash count against my storage?](/photos/faq/storage-and-plans#trash-storage-count)
 - [What happens if I exceed my storage limit?](/photos/faq/storage-and-plans#exceed-storage)
 
@@ -352,6 +379,7 @@ Jump to a category:
 
 - [What plans does Ente offer?](/photos/faq/storage-and-plans#available-plans)
 - [Is there a forever-free plan?](/photos/faq/storage-and-plans#free-plan)
+- [Does Ente offer a lifetime plan?](/photos/faq/storage-and-plans#lifetime-plan)
 - [What are the limitations of the free plan?](/photos/faq/storage-and-plans#free-plan-limits)
 - [Is there an x GB plan?](/photos/faq/storage-and-plans#specific-plan-size)
 
@@ -359,6 +387,7 @@ Jump to a category:
 
 - [Does Ente have Family Plans?](/photos/faq/storage-and-plans#family-plans-faq)
 - [Where do I manage my family plan?](/photos/faq/storage-and-plans#manage-family-plan)
+- [Where do I manage Family in the apps?](/photos/faq/storage-and-plans#where-is-family)
 - [How many family members can I add to my plan?](/photos/faq/storage-and-plans#family-members-limit)
 - [Can family members see each other's photos?](/photos/faq/storage-and-plans#family-privacy)
 - [Can I set storage limits for family members?](/photos/faq/storage-and-plans#family-storage-limits)
@@ -386,6 +415,7 @@ Jump to a category:
 
 - [What payment methods does Ente support?](/photos/faq/storage-and-plans#supported-payment-methods)
 - [Can I pay with PayPal?](/photos/faq/storage-and-plans#paypal-payment)
+- [Why is my card payment being declined?](/photos/faq/storage-and-plans#card-declined)
 - [Does Ente store my card details?](/photos/faq/storage-and-plans#card-security)
 
 ### Managing Your Subscription
@@ -395,6 +425,7 @@ Jump to a category:
 - [What happens when I downgrade my plan?](/photos/faq/storage-and-plans#downgrade-plan)
 - [Can I switch between monthly and yearly plans?](/photos/faq/storage-and-plans#switch-billing-cycle)
 - [How can I update my payment method?](/photos/faq/storage-and-plans#update-payment)
+- [Why did I get an "Ente account on hold" email?](/photos/faq/storage-and-plans#account-on-hold)
 - [How can I cancel my subscription?](/photos/faq/storage-and-plans#cancel-subscription)
 
 ## Troubleshooting
@@ -408,6 +439,8 @@ Jump to a category:
 - [Why aren't my photos uploading?](/photos/faq/troubleshooting#upload-failures)
 - [Why does upload show "Waiting to upload"?](/photos/faq/troubleshooting#waiting-to-upload)
 - [Why are uploads failing on desktop or web?](/photos/faq/troubleshooting#faster-uploads)
+- [Why can't I save a video from Ente to my iPhone's Photos app?](/photos/faq/troubleshooting#ios-save-unsupported-video)
+- [Why does a video play with sound but a black screen on desktop?](/photos/faq/troubleshooting#video-black-screen)
 - [Why can't the app detect certain file types?](/photos/faq/troubleshooting#file-type-detection)
 
 ### Mobile Backup Issues
@@ -423,10 +456,12 @@ Jump to a category:
 - [Why aren't my watch folders syncing?](/photos/faq/troubleshooting#watch-folders-troubleshooting)
 - [Can I upload from a network drive (NAS)?](/photos/faq/troubleshooting#nas)
 - [Can I safely close the desktop app while it's uploading?](/photos/faq/troubleshooting#close-during-upload)
+- [How do I stop an upload that's in progress on desktop or web?](/photos/faq/troubleshooting#stop-upload)
 
 ### Platform-Specific Issues
 
 - [Why is my iOS app stuck on "Please wait..." when I purchase a subscription?](/photos/faq/troubleshooting#ios-appstore-subscription)
+- [Why is my iPhone or iPad app stuck on the splash screen?](/photos/faq/troubleshooting#ios-splash-freeze)
 - [Why is my Android app stuck on the splash screen?](/photos/faq/troubleshooting#android-splash-freeze)
 - [Why is the Linux desktop app still showing the old icon after updating?](/photos/faq/troubleshooting#linux-icon-update)
 - [How do I enable AppImage desktop integration on Linux?](/photos/faq/troubleshooting#appimage-integration)
@@ -478,7 +513,9 @@ Jump to a category:
 - [What is a stream technically?](/photos/faq/advanced-features#what-is-a-stream)
 - [Will streams consume space in my storage?](/photos/faq/advanced-features#stream-storage)
 - [Video streaming isn't working correctly, what should I do?](/photos/faq/advanced-features#stream-issues)
+- [Why is Streamable videos stuck just below 100%?](/photos/faq/advanced-features#stream-progress-stuck)
 - [How does Cast work?](/photos/faq/advanced-features#how-does-cast-work)
+- [Can I use Ente as a photo frame on a tablet or TV?](/photos/faq/advanced-features#photo-frame)
 - [Can I use Cast without Chromecast?](/photos/faq/advanced-features#cast-without-chromecast)
 - [App crashes with video streaming enabled](/photos/faq/advanced-features#app-crashes-video-streaming)
 - [Video upload failures with streaming enabled](/photos/faq/advanced-features#video-upload-failures-streaming)

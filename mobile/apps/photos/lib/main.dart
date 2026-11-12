@@ -57,6 +57,7 @@ import "package:photos/services/notification_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/process_activity.dart";
 import 'package:photos/services/push_service.dart';
+import "package:photos/services/rewind/rewind_2025_leftovers.dart";
 import 'package:photos/services/search_service.dart';
 import 'package:photos/services/social_notification_coordinator.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
@@ -177,7 +178,9 @@ Future<void> _runInForeground(
           onLogout: (context) => UserService.instance.logout(context),
         ),
         enabled:
-            await LockScreenSettings.instance.shouldShowLockScreen() ||
+            await LockScreenSettings.instance.shouldShowLockScreen(
+              isAppLaunch: true,
+            ) ||
             localSettings.isOnGuestView(),
         onUnlock: () {
           unawaited(localSettings.setOnGuestView(false));
@@ -321,9 +324,7 @@ Future<void> _runMinimally(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
-    MLDataDB.initialize(
-      preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
-    );
+    MLDataDB.initialize(preferRust: flagService.rustMlDb);
     NotificationService.instance.init(prefs);
 
     _logger.info("(for debugging) Configuration init $tlog");
@@ -395,6 +396,9 @@ Future<void> _runMinimally(
     }
     if (shouldStop?.call() ?? false) return;
     await _homeWidgetSync(true);
+
+    if (shouldStop?.call() ?? false) return;
+    await rewindService.refresh();
 
     if (shouldStop?.call() ?? false) return;
     if ((isLocalGalleryMode || flagService.enableMLInBackground) &&
@@ -495,9 +499,7 @@ Future<void> _init(
     if (!isBackground) {
       await localSettings.migrateGalleryLayoutPreferences();
     }
-    MLDataDB.initialize(
-      preferRust: flagService.rustMlDb || localSettings.rustMlDbOverride,
-    );
+    MLDataDB.initialize(preferRust: flagService.rustMlDb);
 
     _logger.info("Configuration init $tlog");
     await Configuration.instance.init(preferences);
@@ -512,10 +514,7 @@ Future<void> _init(
       appLogoAsset: 'assets/ente-branding.svg',
       appLogoHeight: 18,
     );
-    AccountDeletionSettings.instance.init(
-      host: Configuration.instance,
-      enteDio: NetworkClient.instance.enteDio,
-    );
+    AccountDeletionSettings.instance.init(host: Configuration.instance);
 
     await MemoryShareService.instance.init();
 
@@ -593,7 +592,8 @@ Future<void> _init(
     if (!isBackground) {
       unawaited(_warmContactsCacheInBackground());
     }
-    wrappedService.scheduleInitialLoad();
+    unawaited(removeRewind2025Leftovers(preferences));
+    if (!isBackground) rewindService.scheduleRefresh();
     logLocalSettings();
     initComplete = true;
     _stopHearBeat = true;

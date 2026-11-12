@@ -42,12 +42,6 @@ func NewObjectCleanupController(
 }
 
 func (c *ObjectCleanupController) StartRemovingUnreportedObjects() {
-	// TODO: object_cleanup: This code is only currently tested for B2
-	if c.S3Config.GetHotDataCenter() != c.S3Config.GetHotBackblazeDC() {
-		log.Info("Skipping RemovingUnreportedObjects since the Hot DC is not B2")
-		return
-	}
-
 	workerCount := viper.GetInt("jobs.remove-unreported-objects.worker-count")
 	if workerCount == 0 {
 		workerCount = 1
@@ -101,18 +95,14 @@ func (c *ObjectCleanupController) removeUnreportedObjects() int {
 	if cerr != nil {
 		cerr = stacktrace.Propagate(cerr, "Failed to commit transaction")
 		logger.Error(cerr)
+		return 0
 	}
 
 	return count
 }
 
 func (c *ObjectCleanupController) removeUnreportedObject(tx *sql.Tx, t ente.TempObject) error {
-	// TODO: object_cleanup
-	// This should use the DC from TempObject (once we start persisting it)
 	dc := t.BucketId
-	if dc == "" {
-		dc = c.S3Config.GetHotDataCenter()
-	}
 
 	logger := log.WithFields(log.Fields{
 		"task":        "remove-unreported-objects",
@@ -132,6 +122,15 @@ func (c *ObjectCleanupController) removeUnreportedObject(tx *sql.Tx, t ente.Temp
 	}
 
 	logger.Info("Clearing tempObject")
+	if dc == "" || !c.S3Config.IsBucketActive(dc) {
+		return skip(stacktrace.NewError("temporary object bucket %q is not configured", dc))
+	}
+
+	switch t.CleanupState {
+	case ente.TempObjectUploading, ente.TempObjectReleaseHold, ente.TempObjectDelete:
+	default:
+		return skip(stacktrace.NewError("unknown temporary object cleanup state %q", t.CleanupState))
+	}
 
 	exists, err := c.ObjectRepo.DoesObjectExist(tx, t.ObjectKey)
 	if err != nil {
@@ -143,11 +142,25 @@ func (c *ObjectCleanupController) removeUnreportedObject(tx *sql.Tx, t ente.Temp
 		return skip(stacktrace.Propagate(err, ""))
 	}
 
-	if t.IsMultipart {
-		err = c.abortMultipartUpload(t.ObjectKey, t.UploadID, dc)
-		if err != nil {
+	if t.CleanupState == ente.TempObjectUploading && dc == c.S3Config.WasabiComplianceDC() {
+		if err := c.Repo.SetCleanupState(tx, t.ObjectKey, ente.TempObjectReleaseHold, time.Microseconds()); err != nil {
 			return skip(err)
 		}
+		return nil
+	}
+	if t.IsMultipart && t.CleanupState != ente.TempObjectDelete {
+		if err := c.abortMultipartUpload(t.ObjectKey, t.UploadID, dc); err != nil {
+			return skip(err)
+		}
+	}
+	if t.CleanupState == ente.TempObjectReleaseHold {
+		if err := c.disableConditionalHoldIfPresent(dc, t.ObjectKey); err != nil {
+			return skip(err)
+		}
+		if err := c.Repo.SetCleanupState(tx, t.ObjectKey, ente.TempObjectDelete, time.MicrosecondsAfterDays(24)); err != nil {
+			return skip(err)
+		}
+		return nil
 	}
 	err = c.DeleteObjectFromDataCenter(t.ObjectKey, dc)
 	if err != nil {
@@ -175,7 +188,6 @@ func (c *ObjectCleanupController) AddTempObject(object ente.TempObject) error {
 func (c *ObjectCleanupController) DeleteAllObjectsWithPrefix(prefix string, dc string) error {
 	s3Client := c.S3Config.GetS3Client(dc)
 	bucket := c.S3Config.GetBucket(dc)
-	var keys []string
 	var continuationToken *string
 	for {
 		output, err := s3Client.ListObjectsV2(&s3.ListObjectsV2Input{
@@ -191,7 +203,14 @@ func (c *ObjectCleanupController) DeleteAllObjectsWithPrefix(prefix string, dc s
 			return stacktrace.Propagate(err, "")
 		}
 		for _, obj := range output.Contents {
-			keys = append(keys, *obj.Key)
+			err := c.DeleteObjectFromDataCenter(*obj.Key, dc)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"object_key": *obj.Key,
+					"dc":         dc,
+				}).WithError(err).Error("Failed to delete object")
+				return stacktrace.Propagate(err, "")
+			}
 		}
 		if !aws.BoolValue(output.IsTruncated) {
 			break
@@ -202,16 +221,6 @@ func (c *ObjectCleanupController) DeleteAllObjectsWithPrefix(prefix string, dc s
 			return errors.New("truncated object listing did not provide a new continuation token")
 		}
 		continuationToken = nextContinuationToken
-	}
-	for _, key := range keys {
-		err := c.DeleteObjectFromDataCenter(key, dc)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"object_key": key,
-				"dc":         dc,
-			}).WithError(err).Error("Failed to delete object")
-			return stacktrace.Propagate(err, "")
-		}
 	}
 	return nil
 }

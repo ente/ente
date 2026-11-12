@@ -449,6 +449,8 @@ const getTypography = (appName: AppName): TypographyVariantsOptions => {
 
 const typography = baseTypography;
 
+const titlebarAreaHeight = "env(titlebar-area-height, 0px)";
+
 // Theme overrides are bundled into every app; keep heavy customization local.
 const components: Components = {
     MuiCssBaseline: { styleOverrides: { body: { letterSpacing: "-0.011em" } } },
@@ -465,7 +467,34 @@ const components: Components = {
             root: {
                 ".MuiBackdrop-root": {
                     backgroundColor: "var(--mui-palette-backdrop-muted)",
+                    top: titlebarAreaHeight,
                 },
+            },
+            paper: {
+                top: titlebarAreaHeight,
+                variants: [
+                    {
+                        props: { anchor: "left" },
+                        style: { height: `calc(100% - ${titlebarAreaHeight})` },
+                    },
+                    {
+                        props: { anchor: "right" },
+                        style: { height: `calc(100% - ${titlebarAreaHeight})` },
+                    },
+                    {
+                        props: { anchor: "top" },
+                        style: {
+                            maxHeight: `calc(100% - ${titlebarAreaHeight})`,
+                        },
+                    },
+                    {
+                        props: { anchor: "bottom" },
+                        style: {
+                            top: "auto",
+                            maxHeight: `calc(100% - ${titlebarAreaHeight})`,
+                        },
+                    },
+                ],
             },
         },
     },
@@ -476,7 +505,9 @@ const components: Components = {
             closeAfterTransition: false,
         },
         styleOverrides: {
+            backdrop: { top: titlebarAreaHeight },
             root: {
+                top: titlebarAreaHeight,
                 ".MuiBackdrop-root": {
                     backgroundColor: "var(--mui-palette-backdrop-muted)",
                 },

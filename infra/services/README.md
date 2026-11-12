@@ -6,7 +6,7 @@ Generally our services (including museum itself) follow the same pattern:
 
 - They're run on vanilla Ubuntu instances. The only expectation they have is for Docker to be installed.
 
-- They log to fixed, known locations such as `/root/var/logs/foo.log` so Promtail can ingest them when needed.
+- They log to fixed, known locations such as `/root/var/logs/foo.log` so Alloy can ingest them when needed.
 
 - Each service should consist of a Docker image (or a Docker compose file), and a systemd unit file.
 
@@ -73,10 +73,10 @@ sudo journalctl --follow --unit example
 
 ## Logging
 
-Simple services can log to standard output and error. Docker captures these logs, and Promtail sends them to Grafana.
+Simple services can log to standard output and error. Docker captures these logs, and Alloy sends them to Grafana.
 
 Services that need a specific job name or more control over retention can log to their own files.
 
 - Such files should be in `/var/logs` within the container, and this should be mounted to `/root/var/logs` on the instance (using the `-v` flag in the service file which launches the Docker container or the Docker compose cluster).
 
-- Add each log file to `promtail/promtail.yaml` on that instance so Promtail can send it to Grafana.
+- Add each log file to `alloy/config.alloy` on that instance so Alloy can send it to Grafana.

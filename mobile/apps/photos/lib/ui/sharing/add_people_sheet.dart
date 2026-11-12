@@ -17,7 +17,7 @@ import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/sharing/choose_access_sheet.dart";
 import "package:photos/ui/sharing/manage_links_widget.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import "package:photos/ui/sharing/verify_identity_dialog.dart";
 import "package:photos/ui/sharing/widgets/selected_person_chip.dart";
 import "package:photos/ui/sharing/widgets/sharing_progress_sheet.dart";

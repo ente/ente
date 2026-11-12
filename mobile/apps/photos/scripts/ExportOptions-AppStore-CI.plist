@@ -20,6 +20,8 @@
         <string>Photos App Store</string>
         <key>io.ente.frame.ShareExtension</key>
         <string>Photos Share Extension App Store</string>
+        <key>io.ente.frame.NotificationServiceExtension</key>
+        <string>Photos Notification Service Extension App Store</string>
         <key>io.ente.frame.EnteAlbumWidget</key>
         <string>Photos Album Widget App Store</string>
         <key>io.ente.frame.EnteMemoryWidget</key>

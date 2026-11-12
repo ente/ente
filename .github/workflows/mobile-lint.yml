@@ -55,11 +55,11 @@ jobs:
               working-directory: mobile/apps/auth
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-flutter
@@ -67,11 +67,14 @@ jobs:
                   save-if: false
 
             - name: Restore Rust target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   shared-key: rust-flutter
 
             - run: cargo codegen frb
+              working-directory: rust
+
+            - run: cargo clippy -p ente-auth-frb --features flutter --all-targets --locked
               working-directory: rust
 
             - run: cargo clippy -p ente-photos-frb --features flutter --all-targets --locked
@@ -98,9 +101,16 @@ jobs:
             - run: flutter analyze --no-pub
               working-directory: mobile
 
+            - name: Build Photos Rust library for tests
+              run: cargo build -p ente-photos-frb --features flutter --locked
+              working-directory: rust
+
             - name: Test
               working-directory: mobile
+              env:
+                  ENTE_PHOTOS_FRB_LIBRARY: ${{ github.workspace }}/rust/target/debug/libente_photos_frb.so
               run: |
+                  test -f "$ENTE_PHOTOS_FRB_LIBRARY"
                   test_package() (
                       member=${1#"$PWD/"}
                       echo "Testing $member"

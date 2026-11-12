@@ -88,6 +88,23 @@ The best way to export shared albums is to manually download each shared album:
 
 This will reliably preserve the shared album name and contents.
 
+## Gallery layout {#gallery-layout-section}
+
+### How do I change the gallery layout? {#gallery-layout}
+
+In the Ente Photos mobile app, you can show your photos as square tiles or in a mosaic layout that keeps each photo's original proportions.
+
+1. Open `Settings > Appearance > Gallery`.
+2. Under **Layout**, select **Square photos** or **Photos in original proportions**.
+
+You can also pinch in or out on the gallery to switch layouts. Changing the layout only changes how photos are displayed. It does not crop or edit your photos.
+
+### How do I change how many photos fit on my screen? {#gallery-photos-per-row}
+
+In the Ente Photos mobile app, pinch in or out on the gallery. Pinch in to fit more, smaller photos on your screen, and pinch out to show fewer, larger photos. Pinching out past the largest square grid switches to the mosaic layout. Pinching also works while you are selecting photos.
+
+To set this in Settings, open `Settings > Appearance > Gallery` and change **Photos per row**. This option appears only when **Square photos** is selected.
+
 ## Slideshows {#album-slideshows-section}
 
 ### What does Slideshow do? {#what-is-album-slideshow}
@@ -102,8 +119,9 @@ Album slideshows are available in Ente Photos on iOS and Android for both Ente a
 
 1. Open the **Albums** tab.
 2. Open an Ente album.
-3. Tap the three dots in the top-right corner.
-4. Tap **Slideshow**.
+3. Tap the play button on the album cover at the top of the album.
+
+If you have scrolled down the album, you can instead tap the three dots in the top-right corner and select **Slideshow**.
 
 **On desktop:**
 
@@ -145,7 +163,13 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
-Yes. Open an **On device** album, tap the three dots in the top-right corner, and select **Slideshow**. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+Yes. Open an **On device** album and tap the play button on the album cover. If you have scrolled down, tap the three dots in the top-right corner and select **Slideshow** instead. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+
+### How do I view only my starred or Favorite photos? {#view-favorites}
+
+Use the **Favorites** album. On mobile or desktop, open a photo and tap or click the **star** to add it to Favorites. Open **Albums** and open **Favorites** to see only those photos.
+
+**Likes** (the heart on photos in shared albums and public links) are collaboration reactions. They are not a library filter. There is no way to filter your library to only photos you liked with the heart. See [Comments and Likes](/photos/features/sharing-and-collaboration/comments-and-likes).
 
 ## Uncategorized
 
@@ -162,6 +186,22 @@ Photos appear in Uncategorized when:
 You cannot choose Uncategorized as the destination for mobile automatic backup. Selected device folders back up to corresponding Ente albums. See [how mobile backup maps to albums](/photos/faq/backup-and-sync#automatic-backup).
 
 Learn more in the [Uncategorized feature guide](/photos/features/albums-and-organization/uncategorized).
+
+### Why can't I share the Uncategorized album? {#share-uncategorized-album}
+
+Uncategorized is a special system album. You cannot share it using the regular album **Share** controls or create a public link for it.
+
+If the recipient is on your family plan, you can share Uncategorized on mobile: open `Settings > Family`, select the family member, tap **Share albums**, select Uncategorized, and tap **Share**. It is always shared as Viewer. See [library sharing](/photos/features/sharing-and-collaboration/library-sharing#share-albums).
+
+To share photos with someone outside your family plan or by public link on mobile:
+
+1. If you need a new album, open **Albums > Ente** and tap **Create album**.
+2. Open Uncategorized, select the photos, tap **Add to album**, and choose the album.
+3. Open that album and tap **Share**. Enter the email address of someone with an Ente account, or create a public link for someone without one.
+
+On web or desktop, select photos in Uncategorized and choose **Move** to put them in a regular album. Then open that album and use **Share**.
+
+The photos may still appear in Uncategorized. [Clean Uncategorized](#clean-uncategorized) removes them from that section once they are also in an album you own.
 
 ### Why are photos appearing in Uncategorized? {#why-uncategorized}
 
@@ -310,6 +350,10 @@ A photo may appear in both Hidden and a hidden album if you first add it to Hidd
 ### How do I archive photos in Ente? {#how-to-archive}
 
 Long press to select the photo(s) you want to archive, then select "Archive" from the bottom menu. To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
+
+### Can I hide an album's photos from my timeline? {#album-off-timeline}
+
+Yes. Use **Archive album**, not Hide. Open the album, tap the three dots and select **Archive album**. The photos stay in the album and leave your home timeline. You can view them later in the **Archive** section. See [How do I archive photos in Ente?](#how-to-archive).
 
 ## Storage Management
 
@@ -533,7 +577,7 @@ When a participant leaves or is removed from a shared album, any photos they upl
 
 ### Can I recover photos after deleting my account? {#recover-after-account-deletion}
 
-No. When you delete your Ente account, all your data (including photos in trash) is permanently deleted and cannot be recovered. This is an irreversible operation.
+If you deleted your Ente account by mistake, you can recover it within 7 days using the link in the confirmation email. After 7 days, your data (including photos in trash) is permanently deleted and cannot be recovered. See [I deleted my account by mistake. Can I get it back?](/photos/faq/security-and-privacy#recover-deleted-account).
 
 Before deleting your account, make sure to:
 

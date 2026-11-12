@@ -1,4 +1,4 @@
-part of "smart_memories_service.dart";
+part of "memories/dart_memories_computer.dart";
 
 class TimeMemoriesCalculator {
   static const _recentTimeMemorySelectionSize = 10;
@@ -125,7 +125,7 @@ class TimeMemoriesCalculator {
       if (significantDays.length >= 3) {
         final titleDate = DateTime(significantDays.first, month, day);
         final allPhotos = yearGroups.values.expand((x) => x).toList();
-        final photoSelection = await SmartMemoriesService._bestSelection(
+        final photoSelection = await DartMemoriesComputer._bestSelection(
           allPhotos,
           isLocalGalleryMode: isLocalGalleryMode,
           mlEnabled: mlEnabled,
@@ -147,7 +147,7 @@ class TimeMemoriesCalculator {
         for (final year in significantDays) {
           final date = DateTime(year, month, day);
           final files = yearGroups[year]!;
-          final photoSelection = await SmartMemoriesService._bestSelection(
+          final photoSelection = await DartMemoriesComputer._bestSelection(
             files,
             isLocalGalleryMode: isLocalGalleryMode,
             mlEnabled: mlEnabled,
@@ -179,7 +179,7 @@ class TimeMemoriesCalculator {
           final allPhotos = currentWeekYearGroups.values
               .expand((x) => x)
               .toList();
-          final photoSelection = await SmartMemoriesService._bestSelection(
+          final photoSelection = await DartMemoriesComputer._bestSelection(
             allPhotos,
             isLocalGalleryMode: isLocalGalleryMode,
             mlEnabled: mlEnabled,
@@ -203,7 +203,7 @@ class TimeMemoriesCalculator {
               1,
             ).add(Duration(days: (currentWeek - 1) * 7));
             final files = currentWeekYearGroups[year]!;
-            final photoSelection = await SmartMemoriesService._bestSelection(
+            final photoSelection = await DartMemoriesComputer._bestSelection(
               files,
               isLocalGalleryMode: isLocalGalleryMode,
               mlEnabled: mlEnabled,
@@ -228,15 +228,16 @@ class TimeMemoriesCalculator {
     }
 
     const monthSelectionSize = 20;
+    final startOfNextMonth = DateTime(currentYear, currentMonth + 1);
     final historicalMemoryFileIds = <int>{};
-    SmartMemoriesService._markUsedMemories(
+    DartMemoriesComputer._markUsedMemories(
       historicalMemoryFileIds,
       historicalMemoryResult,
       isLocalGalleryMode: isLocalGalleryMode,
     );
     currentMonthYearGroups.removeWhere((_, memories) {
       memories.removeWhere((memory) {
-        final fileId = SmartMemoriesService._memoryFileIdFromMemory(
+        final fileId = DartMemoriesComputer._memoryFileIdFromMemory(
           memory,
           isLocalGalleryMode: isLocalGalleryMode,
         );
@@ -255,7 +256,7 @@ class TimeMemoriesCalculator {
       if (sortedYearsForCurrentMonth.isEmpty) break;
       final year = sortedYearsForCurrentMonth.removeAt(0);
       final monthYearFiles = currentMonthYearGroups[year]!;
-      final photoSelection = await SmartMemoriesService._bestSelection(
+      final photoSelection = await DartMemoriesComputer._bestSelection(
         monthYearFiles,
         prefferedSize: monthSelectionSize,
         isLocalGalleryMode: isLocalGalleryMode,
@@ -265,17 +266,13 @@ class TimeMemoriesCalculator {
         fileIDToImageEmbedding: fileIDToImageEmbedding,
         clipPositiveTextVector: clipPositiveTextVector,
       );
-      final daysLeftInMonth =
-          DateTime(currentYear, currentMonth + 1, 0).day - currentTime.day + 1;
       historicalMemoryResult.add(
         TimeMemory(
           photoSelection,
           month: DateTime(year, currentMonth),
           yearsAgo: currentTime.year - year,
           currentTime.microsecondsSinceEpoch,
-          currentTime
-              .add(Duration(days: daysLeftInMonth))
-              .microsecondsSinceEpoch,
+          startOfNextMonth.microsecondsSinceEpoch,
         ),
       );
     }
@@ -285,7 +282,7 @@ class TimeMemoriesCalculator {
     final allPhotos = sortedYearsForCurrentMonth
         .expand((year) => currentMonthYearGroups[year]!)
         .toList();
-    final photoSelection = await SmartMemoriesService._bestSelection(
+    final photoSelection = await DartMemoriesComputer._bestSelection(
       allPhotos,
       prefferedSize: monthSelectionSize,
       isLocalGalleryMode: isLocalGalleryMode,
@@ -295,14 +292,12 @@ class TimeMemoriesCalculator {
       fileIDToImageEmbedding: fileIDToImageEmbedding,
       clipPositiveTextVector: clipPositiveTextVector,
     );
-    final daysLeftInMonth =
-        DateTime(currentYear, currentMonth + 1, 0).day - currentTime.day + 1;
     historicalMemoryResult.add(
       TimeMemory(
         photoSelection,
         month: DateTime(currentYear, currentMonth),
         currentTime.microsecondsSinceEpoch,
-        currentTime.add(Duration(days: daysLeftInMonth)).microsecondsSinceEpoch,
+        startOfNextMonth.microsecondsSinceEpoch,
       ),
     );
 
@@ -421,24 +416,12 @@ class TimeMemoriesCalculator {
     DateTime fileDate,
     DateTime currentTime,
   ) {
-    final currentYearDiff = fileDate
-        .copyWith(year: currentTime.year)
-        .difference(currentTime);
-    if (!currentYearDiff.isNegative &&
-        currentYearDiff < kMemoriesUpdateFrequency) {
-      return (dayOffset: currentYearDiff.inDays, targetYear: currentTime.year);
-    }
-
-    final timeTillYearEnd = DateTime(
-      currentTime.year + 1,
-    ).difference(currentTime);
-    if (timeTillYearEnd >= kMemoriesUpdateFrequency) return null;
-
-    final nextYearDiff = fileDate
-        .copyWith(year: currentTime.year + 1)
-        .difference(currentTime);
-    if (!nextYearDiff.isNegative && nextYearDiff < kMemoriesUpdateFrequency) {
-      return (dayOffset: nextYearDiff.inDays, targetYear: currentTime.year + 1);
+    for (final year in [currentTime.year, currentTime.year + 1]) {
+      final occurrence = DateTime.utc(year, fileDate.month, fileDate.day);
+      final dayOffset = _calendarDayDifference(currentTime, occurrence);
+      if (dayOffset >= 0 && dayOffset < kMemoriesUpdateFrequency.inDays) {
+        return (dayOffset: dayOffset, targetYear: year);
+      }
     }
     return null;
   }
@@ -472,11 +455,11 @@ class TimeMemoriesCalculator {
       candidates.add(Memory.fromFile(file, seenTimes));
     }
 
-    if (candidates.length < SmartMemoriesService.minimumMemoryLength) {
+    if (candidates.length < DartMemoriesComputer.minimumMemoryLength) {
       return;
     }
 
-    final photoSelection = await SmartMemoriesService._bestSelection(
+    final photoSelection = await DartMemoriesComputer._bestSelection(
       candidates,
       prefferedSize: _recentTimeMemorySelectionSize,
       distributionOverride: SelectionDistribution.timeBuckets,
@@ -532,7 +515,7 @@ class TimeMemoriesCalculator {
             Memory.fromFile(
               file,
               seenTimes,
-              seenTimeKey: SmartMemoriesService._seenTimeKeyForFile(
+              seenTimeKey: DartMemoriesComputer._seenTimeKeyForFile(
                 file,
                 localIdToIntId,
               ),
@@ -541,7 +524,7 @@ class TimeMemoriesCalculator {
     }
     for (
       var yearAgo = 1;
-      yearAgo <= SmartMemoriesService.yearsBefore;
+      yearAgo <= DartMemoriesComputer.yearsBefore;
       yearAgo++
     ) {
       final memories = yearsAgoToMemories[yearAgo];
@@ -558,17 +541,6 @@ class TimeMemoriesCalculator {
       memoryResults.add(fillerMemory);
     }
     return memoryResults;
-  }
-
-  static int? _onThisDayOffset(DateTime fileDate, DateTime startPoint) {
-    for (final year in [startPoint.year, startPoint.year + 1]) {
-      final occurrence = DateTime.utc(year, fileDate.month, fileDate.day);
-      final dayOffset = _calendarDayDifference(startPoint, occurrence);
-      if (dayOffset >= 0 && dayOffset < kMemoriesUpdateFrequency.inDays) {
-        return dayOffset;
-      }
-    }
-    return null;
   }
 
   static Future<List<OnThisDayMemory>> computeOnThisDayMemories(
@@ -603,7 +575,7 @@ class TimeMemoriesCalculator {
       if (!historicalCandidates.contains(fileDate.month * 100 + fileDate.day)) {
         continue;
       }
-      final dayOffset = _onThisDayOffset(fileDate, startPoint);
+      final dayOffset = _historicalDateMatch(fileDate, startPoint)?.dayOffset;
       if (dayOffset == null) continue;
       daysToMemories
           .putIfAbsent(dayOffset, () => [])
@@ -611,7 +583,7 @@ class TimeMemoriesCalculator {
             Memory.fromFile(
               file,
               seenTimes,
-              seenTimeKey: SmartMemoriesService._seenTimeKeyForFile(
+              seenTimeKey: DartMemoriesComputer._seenTimeKeyForFile(
                 file,
                 localIdToIntId,
               ),

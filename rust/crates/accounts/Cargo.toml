@@ -9,7 +9,7 @@ museum = []
 bip39 = { version = "3.0.0", default-features = false, features = ["std"] }
 ente-core.workspace = true
 getrandom.workspace = true
-hex = "0.4.0"
+hex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

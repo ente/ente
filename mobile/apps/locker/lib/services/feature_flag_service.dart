@@ -5,6 +5,7 @@ import "package:ente_events/models/signed_in_event.dart";
 import "package:ente_events/models/signed_out_event.dart";
 import "package:ente_feature_flag/ente_feature_flag.dart";
 import "package:ente_network/network.dart";
+import "package:locker/services/configuration.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class FeatureFlagService {
@@ -16,7 +17,6 @@ class FeatureFlagService {
   late FlagService _flagService;
 
   bool get internalUser => _flagService.internalUser;
-  bool get multipartUpload => internalUser;
   bool get pdfViewer => internalUser;
   bool get isInternalUserDisabled =>
       _preferences.getBool(_internalUserDisabled) ?? false;
@@ -43,6 +43,10 @@ class FeatureFlagService {
   }
 
   void _reset() {
-    _flagService = FlagService(_preferences, Network.instance.enteDio);
+    _flagService = FlagService(
+      _preferences,
+      Network.instance.enteDio,
+      Configuration.instance.getToken,
+    );
   }
 }

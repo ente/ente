@@ -32,9 +32,13 @@ jobs:
           node "$RUNNER_TEMP/.github/checks/change-approval/check.mjs" HEAD^1
 
       - name: Run workflow security checks
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git show origin/main:.github/checks/workflow-security/check.rb > "$RUNNER_TEMP/workflow-security.rb"
           ruby "$RUNNER_TEMP/workflow-security.rb"
+          gh extension install github/gh-actions-lock --pin v0.4.1
+          gh actions-lock --verify
 
       - run: node --test .github/checks/change-approval/test.mjs
 

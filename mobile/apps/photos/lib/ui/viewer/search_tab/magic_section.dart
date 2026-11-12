@@ -127,23 +127,26 @@ class MagicRecommendation extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipSmoothRect(
-              radius: SmoothBorderRadius(
-                cornerRadius: _cornerRadius,
-                cornerSmoothing: _cornerSmoothing,
-              ),
-              child: SizedBox(
-                width: _thumbnailSize,
-                height: _thumbnailSize,
-                child: magicSearchResult.previewThumbnail() != null
-                    ? Hero(
-                        tag: heroTag,
-                        child: ThumbnailWidget(
+            Hero(
+              tag: heroTag,
+              createRectTween: (begin, end) =>
+                  RectTween(begin: begin, end: end),
+              transitionOnUserGestures: true,
+              child: ClipSmoothRect(
+                radius: SmoothBorderRadius(
+                  cornerRadius: _cornerRadius,
+                  cornerSmoothing: _cornerSmoothing,
+                ),
+                child: SizedBox(
+                  width: _thumbnailSize,
+                  height: _thumbnailSize,
+                  child: magicSearchResult.previewThumbnail() != null
+                      ? ThumbnailWidget(
                           magicSearchResult.previewThumbnail()!,
                           shouldShowSyncStatus: false,
-                        ),
-                      )
-                    : const NoThumbnailWidget(),
+                        )
+                      : const NoThumbnailWidget(),
+                ),
               ),
             ),
             const SizedBox(height: 8),

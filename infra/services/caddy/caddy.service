@@ -3,6 +3,9 @@ Documentation=https://caddyserver.com/docs/running
 Requires=docker.service
 After=docker.service
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
 ExecStartPre=docker pull caddy
 ExecStartPre=-docker stop caddy

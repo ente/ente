@@ -15,6 +15,12 @@ static ICC_PROFILE_CACHE: OnceLock<Mutex<VecDeque<CachedIccProfile>>> = OnceLock
 
 const ICC_PROFILE_CACHE_CAPACITY: usize = 8;
 const MAX_CACHEABLE_ICC_PROFILE_BYTES: usize = 4 * 1024 * 1024;
+const ICC_TAG_TABLE_OFFSET: usize = 128;
+const ICC_TAG_ENTRY_BYTES: usize = 12;
+const LOCALIZED_TEXT_RECORDS_OFFSET: usize = 16;
+const LOCALIZED_TEXT_RECORD_BYTES: usize = 12;
+const MAX_PROFILE_STRINGS: usize = 4096;
+const MAX_PROFILE_TEXT_BYTES: usize = 1024 * 1024;
 
 type U8Transform = Arc<dyn InPlaceTransformExecutor<u8> + Send + Sync>;
 type TransformCache<T> = Vec<(Layout, Result<Arc<T>, String>)>;
@@ -54,7 +60,7 @@ impl<'a> IccConverter<'a> {
         ) {
             Ok(image) => image,
             Err((image, err)) => {
-                eprintln!("[ml][decode] failed to convert embedded ICC profile to sRGB: {err}");
+                log::warn!("failed to convert embedded ICC profile to sRGB: {err}");
                 self.source_profile = None;
                 image
             }
@@ -81,7 +87,7 @@ fn conversion_profile(icc_profile: Option<&[u8]>) -> Option<Arc<ColorProfile>> {
     let source_profile = match cached_color_profile(icc_profile) {
         Ok(profile) => profile,
         Err(err) => {
-            eprintln!("[ml][decode] failed to parse embedded ICC profile: {err}");
+            log::warn!("failed to parse embedded ICC profile: {err}");
             return None;
         }
     };
@@ -91,8 +97,8 @@ fn conversion_profile(icc_profile: Option<&[u8]>) -> Option<Arc<ColorProfile>> {
     }
 
     if profile_uses_hdr_transfer(&source_profile) {
-        eprintln!(
-            "[ml][decode] embedded ICC profile uses PQ/HLG transfer; skipping ICC transform because tone mapping is not implemented"
+        log::warn!(
+            "embedded ICC profile uses PQ/HLG transfer; skipping ICC transform because tone mapping is not implemented"
         );
         return None;
     }
@@ -336,6 +342,9 @@ fn prepared_transform<T: ?Sized>(
 }
 
 fn cached_color_profile(encoded: &[u8]) -> Result<Arc<ColorProfile>, String> {
+    if !profile_text_fits(encoded) {
+        return Err("profile text exceeds the supported size".into());
+    }
     if !profile_is_cacheable(encoded) {
         return ColorProfile::new_from_slice(encoded)
             .map(Arc::new)
@@ -455,6 +464,58 @@ fn profile_has_device_to_pcs_lut(profile: &ColorProfile) -> bool {
     profile.lut_a_to_b_perceptual.is_some()
         || profile.lut_a_to_b_colorimetric.is_some()
         || profile.lut_a_to_b_saturation.is_some()
+}
+
+fn profile_text_fits(profile: &[u8]) -> bool {
+    let tag_count = be_u32(profile, ICC_TAG_TABLE_OFFSET).unwrap_or(0);
+    let entries = profile
+        .get(ICC_TAG_TABLE_OFFSET + 4..)
+        .unwrap_or_default()
+        .as_chunks::<ICC_TAG_ENTRY_BYTES>()
+        .0
+        .iter()
+        .take(tag_count);
+    let mut strings = 0;
+    let mut bytes = 0usize;
+    for entry in entries {
+        let (Some(offset), Some(size)) = (be_u32(entry, 4), be_u32(entry, 8)) else {
+            continue;
+        };
+        let Some(tag) = profile.get(offset..offset.saturating_add(size)) else {
+            continue;
+        };
+        for length in string_lengths(tag) {
+            strings += 1;
+            bytes = bytes.saturating_add(length);
+            if strings > MAX_PROFILE_STRINGS || bytes > MAX_PROFILE_TEXT_BYTES {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+fn string_lengths(tag: &[u8]) -> impl Iterator<Item = usize> + '_ {
+    let plain = (tag.starts_with(b"text") || tag.starts_with(b"desc")).then_some(tag.len());
+    let localized = if tag.starts_with(b"mluc") {
+        be_u32(tag, 8).unwrap_or(0).max(1)
+    } else {
+        0
+    };
+    let records = tag
+        .get(LOCALIZED_TEXT_RECORDS_OFFSET..)
+        .unwrap_or_default()
+        .as_chunks::<LOCALIZED_TEXT_RECORD_BYTES>()
+        .0
+        .iter()
+        .take(localized)
+        .map(|record| be_u32(record, 4).unwrap_or(0));
+    plain.into_iter().chain(records)
+}
+
+fn be_u32(bytes: &[u8], offset: usize) -> Option<usize> {
+    let value = bytes.get(offset..offset.checked_add(4)?)?;
+    usize::try_from(u32::from_be_bytes(value.try_into().ok()?)).ok()
 }
 
 fn profile_is_cacheable(encoded: &[u8]) -> bool {
@@ -618,7 +679,7 @@ fn tone_curve_matches_reference(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use image::{DynamicImage, ImageBuffer};
     use moxcms::{
         ColorProfile, Layout, LutMultidimensionalType, LutWarehouse, Matrix3d, ToneReprCurve,
@@ -626,6 +687,106 @@ mod tests {
     };
 
     use super::{IccConverter, apply_icc_profile_to_srgb, profile_is_effectively_srgb};
+    use crate::memory_budget::MemoryBudget;
+
+    pub(crate) fn profile_with_text(fields: &[[u8; 4]], text: &[u8]) -> Vec<u8> {
+        let base = ColorProfile::new_display_p3().encode().unwrap();
+        let tag_count = u32::from_be_bytes(base[128..132].try_into().unwrap()) as usize;
+        let table_end = 132 + 12 * tag_count;
+        let shift = 12 * fields.len();
+        let mut profile = base[..128].to_vec();
+        profile.extend_from_slice(
+            &u32::try_from(tag_count + fields.len())
+                .unwrap()
+                .to_be_bytes(),
+        );
+        for entry in base[132..table_end].as_chunks::<12>().0 {
+            let offset = u32::from_be_bytes(entry[4..8].try_into().unwrap()) as usize + shift;
+            profile.extend_from_slice(&entry[..4]);
+            profile.extend_from_slice(&u32::try_from(offset).unwrap().to_be_bytes());
+            profile.extend_from_slice(&entry[8..]);
+        }
+        let text_offset = (base.len() + shift).next_multiple_of(4);
+        for field in fields {
+            profile.extend_from_slice(field);
+            profile.extend_from_slice(&u32::try_from(text_offset).unwrap().to_be_bytes());
+            profile.extend_from_slice(&u32::try_from(text.len()).unwrap().to_be_bytes());
+        }
+        profile.extend_from_slice(&base[table_end..]);
+        profile.resize(text_offset, 0);
+        profile.extend_from_slice(text);
+        let size = u32::try_from(profile.len()).unwrap();
+        profile[0..4].copy_from_slice(&size.to_be_bytes());
+        profile
+    }
+
+    pub(crate) fn localized_text(records: u32, text_bytes: u32) -> Vec<u8> {
+        let mut tag = b"mluc\0\0\0\0".to_vec();
+        tag.extend_from_slice(&records.to_be_bytes());
+        tag.extend_from_slice(&12u32.to_be_bytes());
+        let text_offset = 16 + 12 * records;
+        for _ in 0..records {
+            tag.extend_from_slice(b"enUS");
+            tag.extend_from_slice(&text_bytes.to_be_bytes());
+            tag.extend_from_slice(&text_offset.to_be_bytes());
+        }
+        for index in 0..text_bytes / 2 {
+            tag.extend_from_slice(&[0, b'a' + (index % 26) as u8]);
+        }
+        tag
+    }
+
+    fn plain_text(bytes: usize) -> Vec<u8> {
+        let mut tag = b"text\0\0\0\0".to_vec();
+        tag.resize(8 + bytes, b'a');
+        tag
+    }
+
+    fn description(bytes: u32) -> Vec<u8> {
+        let mut tag = b"desc\0\0\0\0".to_vec();
+        tag.extend_from_slice(&bytes.to_be_bytes());
+        tag.resize(tag.len() + bytes as usize, b'a');
+        tag.extend_from_slice(&[0; 8]);
+        tag
+    }
+
+    #[test]
+    fn profile_text_limits_apply_before_parsing() {
+        let fields = [*b"desc", *b"cprt", *b"dmnd", *b"dmdd", *b"vued", *b"targ"];
+        let mut zero_count = localized_text(1, 1 << 19);
+        zero_count[8..12].fill(0);
+        let fitting = [
+            profile_with_text(&[*b"desc"], &localized_text(15, 65_536)),
+            profile_with_text(&[*b"desc"], &localized_text(4000, 2)),
+            profile_with_text(&fields, &plain_text(65_536)),
+            profile_with_text(&fields, &description(65_536)),
+            profile_with_text(&[*b"desc"], &zero_count),
+        ];
+        for (index, profile) in fitting.iter().enumerate() {
+            assert!(
+                IccConverter::new(Some(profile)).source_profile.is_some(),
+                "fitting profile {index}"
+            );
+        }
+        let excessive = [
+            profile_with_text(&[*b"desc"], &localized_text(17, 65_536)),
+            profile_with_text(&[*b"desc"], &localized_text(4097, 2)),
+            profile_with_text(&[*b"desc"], &localized_text(4096, 65_536)),
+            profile_with_text(&fields, &plain_text(1 << 20)),
+            profile_with_text(&fields, &description(1 << 20)),
+            profile_with_text(&[*b"desc", *b"cprt", *b"dmnd"], &zero_count),
+            profile_with_text(&vec![*b"cprt"; 20_000], &plain_text(65_536)),
+        ];
+        for (index, profile) in excessive.iter().enumerate() {
+            let budget = MemoryBudget::new(4 * 1024 * 1024);
+            let converter = budget.enter(|| IccConverter::new(Some(profile)));
+            assert!(!budget.is_exceeded(), "excessive profile {index}");
+            assert!(
+                converter.source_profile.is_none(),
+                "excessive profile {index}"
+            );
+        }
+    }
 
     fn identity_a_to_b_lut() -> LutWarehouse {
         let identity_curve = || ToneReprCurve::Lut(vec![0, u16::MAX]);

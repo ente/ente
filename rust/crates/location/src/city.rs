@@ -197,6 +197,16 @@ impl CityIndex {
         cities
     }
 
+    pub fn country_names(&self) -> impl Iterator<Item = (CountryCode, &str)> {
+        (0..self.layout.country_count).map(|index| (self.country_code(index), self.country(index)))
+    }
+
+    pub fn country_name(&self, code: CountryCode) -> Option<&str> {
+        self.country_names()
+            .find(|&(candidate, _)| candidate == code)
+            .map(|(_, name)| name)
+    }
+
     pub fn match_coordinates(&self, coordinates: &[Coordinate], query: &str) -> Vec<CityMatch> {
         self.match_coordinates_in(coordinates, query, self.tree(), MAX_CATCHMENT_KM)
     }

@@ -128,6 +128,8 @@ impl AuthResponse {
 pub struct SendOtpRequest {
     pub email: String,
     pub purpose: String,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub mobile: bool,
 }
 
 #[derive(Serialize)]
@@ -308,6 +310,7 @@ impl fmt::Debug for EnableTwoFactorRequest {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyTotpRequest {
+    #[serde(rename = "sessionID")]
     pub session_id: String,
     pub code: String,
 }
@@ -326,7 +329,7 @@ pub struct TwoFactorStatusResponse {
     pub status: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TwoFactorType {
     Totp,
@@ -343,8 +346,12 @@ pub struct TwoFactorRecoveryResponse {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveTwoFactorRequest {
+    #[serde(rename = "sessionID")]
     pub session_id: String,
-    pub secret: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proof: Option<String>,
     pub two_factor_type: TwoFactorType,
 }
 
@@ -354,6 +361,22 @@ pub struct TwoFactorAuthorizationResponse {
     pub id: i64,
     pub key_attributes: KeyAttributes,
     pub encrypted_token: String,
+}
+
+impl From<TwoFactorAuthorizationResponse> for AuthResponse {
+    fn from(response: TwoFactorAuthorizationResponse) -> Self {
+        Self {
+            id: response.id,
+            key_attributes: Some(response.key_attributes),
+            encrypted_token: Some(response.encrypted_token),
+            token: None,
+            two_factor_session_id: None,
+            two_factor_session_id_v2: None,
+            passkey_session_id: None,
+            srp_m2: None,
+            accounts_url: None,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

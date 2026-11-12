@@ -47,10 +47,4 @@ class InvalidStateError extends AssertionError {
   InvalidStateError(String super.message);
 }
 
-class SrpSetupNotCompleteError extends Error {}
-
 class AuthenticatorKeyNotFound extends Error {}
-
-class PassKeySessionNotVerifiedError extends Error {}
-
-class PassKeySessionExpiredError extends Error {}

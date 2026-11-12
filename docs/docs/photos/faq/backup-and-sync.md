@@ -36,6 +36,21 @@ Once configured, new photos added to these albums will automatically sync in the
 
 The chooser lists device folders and albums; it is separate from your Ente album list. The count on a folder tile is the total reported for that device folder, not the number waiting to upload. If **Backup only new photos** is enabled, its cutoff still applies even when the tile shows older photos in its total.
 
+### Can I back up only some photos from a folder, not the whole folder? {#backup-selected-photos}
+
+Automatic backup is per device folder (or album), not per individual photo inside that folder.
+
+1. Open `Settings > Backup > Backed up folders`.
+2. Turn backup on only for the folders you want.
+3. Turn backup off for folders you do not want uploaded.
+
+There is no setting to leave a folder selected for backup while excluding specific files inside it from automatic backup.
+
+Options that still help:
+
+- Use **Backup only new photos** under `Settings > Backup > Backup settings` if you want automatic backup to skip older items in selected folders. See [Can I backup only new photos without uploading my existing library?](#backup-only-new-photos).
+- Upload specific photos manually from the app when you need a one-off selection.
+
 ### Does hiding a folder stop Ente Photos from backing it up? {#hidden-folder-backup}
 
 No. Hiding a folder does not change its backup setting. To stop new photos in that folder from backing up:
@@ -139,6 +154,8 @@ No. If you delete a photo from your device's native photos app, it will **not** 
 2. **Platform restrictions**: iOS and Android don't allow apps to automatically delete photos without manual confirmation
 
 If you want to delete a photo from Ente, you must do it manually within the Ente app.
+
+The same applies to Google Photos or any other gallery or cloud app: deleting there doesn't delete the copy in Ente. Photos with a [slashed cloud icon](#slashed-cloud-icon) aren't backed up yet.
 
 ### Understanding Ente's backup vs. sync paradigm {#backup-vs-sync}
 
@@ -358,7 +375,13 @@ Ente backs up a single primary full-resolution image from the Burst. Additional 
 
 ### Why do I see duplicate files in the iOS app when the same photo is in an iCloud Shared Album? {#icloud-shared-album-duplicates}
 
-iCloud Shared Albums store compressed copies, not the original files. Because of this, Ente sees the shared-album copy as a different file, so it gets backed up separately and appears as a duplicate.
+It depends on the version the album was shared from.
+
+On iOS 26, iPadOS 26, and earlier, Shared Albums store a reduced copy, not the original. Photos are reduced to 2,048 pixels on the long edge, and videos are capped at 720p and 15 minutes. Ente sees that copy as a different file, so it is backed up separately and appears as a duplicate. An album created on those versions stays reduced until it is upgraded.
+
+Starting in iOS 27, iPadOS 27, and macOS 27, a new Shared Album stores photos and videos in their original formats at full resolution, and guests can add photos on the web. After an album is upgraded, photos and videos added from then on are full resolution ([Apple Support: Shared Albums limits](https://support.apple.com/en-us/148868)).
+
+Learn more in [Import from Apple Photos](/photos/migration/from-apple-photos/).
 
 ### Why is my Recents count lower in Ente than in the iOS Photos app? {#ios-recents-count-mismatch}
 
@@ -420,6 +443,7 @@ On supported Android devices, yes. After taking a photo, tapping the preview thu
 A few details to keep in mind:
 
 - This depends on your camera app and device supporting the Android handoff that Ente listens for.
+- The default Pixel Camera and Samsung Camera apps don't hand off to other gallery apps, so their thumbnail opens the phone's default gallery instead of Ente.
 - It is for previewing the image you just tapped from the camera app; it does not make Ente the default gallery everywhere else.
 - On iPhone, the camera app still opens Apple Photos for this flow.
 
@@ -602,6 +626,17 @@ If you delete a file from a watched folder on your computer, the corresponding f
 
 If you want to remove it completely from Ente, you'll need to manually delete it from the Uncategorized album.
 
+### Can I delete photos from my computer after a watch folder uploads them? {#delete-after-watch-folder-upload}
+
+Yes, but stop watching the folder first. Watch folders keep Ente in sync with your computer, so if you delete a file while its folder is being watched, Ente removes it from the album and moves it to [Uncategorized](/photos/faq/albums-and-organization#uncategorized).
+
+1. Wait for all uploads to finish.
+2. Click **Watch folders** in the sidebar, then click **Stop watching** next to the folder and confirm with **Yes, stop**. Your uploaded photos stay in Ente.
+3. Delete or reorganise the files on your computer.
+4. To keep syncing new photos, add an empty folder (or the same folder once it's cleared).
+
+For a one-time upload, use **Upload** or drag and drop instead. Files uploaded that way aren't linked to a folder, so deleting them on your computer doesn't affect Ente.
+
 ### Why don't metadata changes to a file in my watched folder show up in Ente? {#watch-folder-edited-files}
 
 Watch folders upload new files and react to deleted files, but they don't pick up changes to a file that has already been uploaded. So a new description or location saved to the file in another app won't reach Ente.
@@ -613,6 +648,28 @@ You can change the description and location in Ente directly, from the photo's i
 Ente treats a renamed file as a deleted file plus a new one. The new file is uploaded, and the old copy is removed from the album and moved to [Uncategorized](/photos/faq/albums-and-organization#uncategorized), not deleted.
 
 You can review and delete those copies in Uncategorized.
+
+### Why are my albums empty after I renamed a folder inside a watched folder? {#rename-folder-in-watched-folder}
+
+When you rename a folder inside a watched folder, the desktop app sees every file in it as deleted and added again. This can remove the photos from their albums and move them to [Uncategorized](/photos/faq/albums-and-organization#uncategorized). Your photos are not deleted.
+
+Do not rename the folder back. That repeats the same process. You can keep the new name.
+
+To restore the photos to albums:
+
+1. Open the desktop app and click **Watch folders** in the sidebar.
+2. Click the **Stop watching** button next to the main watched folder, then **Yes, stop**. This does not delete any photos from Ente.
+3. Click **Add folder** and select the same main folder again.
+4. Choose the same option you used before, for example **Separate albums**.
+5. Wait for the sync to finish.
+
+Ente checks for photos it has already uploaded. When it recognizes a match, it adds the photo to an album without uploading the file again. If you renamed a photo in Ente, it may upload again because its name no longer matches the file on your computer.
+
+With **Separate albums**, each photo goes into an album named after its immediate parent folder. If the renamed folder directly contains photos, they appear in a new album with that folder's new name. The old album is not refilled by those photos. Photos in deeper subfolders can return to their existing albums. Check where the photos appear before deleting any empty album.
+
+To remove leftover entries, open Uncategorized and select the clean icon (broom). This removes only items that are also in another album. Review anything left in Uncategorized before deleting it.
+
+To avoid this next time, stop watching the main folder before you rename a folder inside it, then add the main folder again.
 
 ### Why are my watch folders not syncing? {#watch-folders-not-syncing}
 
@@ -648,8 +705,8 @@ While the app may work with network drives in some cases, we've found that netwo
 
 1. Click "Watch folders" in the sidebar
 2. Find the folder you want to stop watching
-3. Click the three dots next to that folder entry
-4. Select "Stop watching"
+3. Click the **Stop watching** button next to that folder entry
+4. Confirm with **Yes, stop**
 
 The folder will no longer be monitored, but all files that were already uploaded to Ente will remain there. Stopping watch does not delete any photos from Ente.
 

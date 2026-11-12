@@ -15,7 +15,43 @@ import (
 	usercontroller "github.com/ente/museum/pkg/controller/user"
 	"github.com/ente/museum/pkg/repo"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
+
+func TestUserKeyHandlersRejectInvalidAttributes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := &UserHandler{UserController: &usercontroller.UserController{}}
+	for _, test := range []struct {
+		name   string
+		body   string
+		handle gin.HandlerFunc
+	}{
+		{"recovery key", `{}`, handler.SetRecoveryKey},
+		{"password keys", `{
+			"setupID":"00000000-0000-0000-0000-000000000001",
+			"srpM1":"proof",
+			"updatedKeyAttr":{
+				"kekSalt":"AAAAAAAAAAAAAAAAAAAAAA==",
+				"encryptedKey":"invalid",
+				"keyDecryptionNonce":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				"memLimit":134217728,"opsLimit":32
+			}
+		}`, handler.UpdateSrpAndKeyAttributes},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(recorder)
+			ctx.Request = httptest.NewRequest(http.MethodPut, "/", strings.NewReader(test.body))
+			ctx.Request.Header.Set("Content-Type", "application/json")
+			test.handle(ctx)
+			require.Equal(t, http.StatusBadRequest, recorder.Code)
+			var response ente.ApiError
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+			require.Equal(t, ente.BadRequest, response.Code)
+			require.Equal(t, "invalid length", response.Message)
+		})
+	}
+}
 
 func TestGetPublicKeyHandlerUsesEmailLookup(t *testing.T) {
 	handler, db := setupUserHandlerTest(t)

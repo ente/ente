@@ -1,5 +1,6 @@
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:photos/models/ml/face/detection.dart";
+import "package:photos/models/ml/face/face.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 
@@ -9,6 +10,8 @@ class FaceWithoutEmbedding {
   Detection detection;
   final double score;
   final double blur;
+
+  final FileInfo? fileInfo;
 
   bool get isBlurry => blur < kLaplacianHardThreshold;
 
@@ -21,8 +24,9 @@ class FaceWithoutEmbedding {
     this.fileID,
     this.score,
     this.detection,
-    this.blur,
-  );
+    this.blur, {
+    this.fileInfo,
+  });
 
   factory FaceWithoutEmbedding.fromJson(Map<String, dynamic> json) {
     final String faceID = json['faceID'] as String;

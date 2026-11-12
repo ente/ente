@@ -39,6 +39,11 @@ export const useLockerUploads = ({
     refreshData,
     setToast,
 }: UseLockerUploadsProps) => {
+    const completedUploadIDsRef = useRef<number[]>([]);
+    const [uploadedFileIDs, setUploadedFileIDs] = useState<number[]>([]);
+
+    const dismissUploadSharing = useCallback(() => setUploadedFileIDs([]), []);
+
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
     const [prefilledUploadItems, setPrefilledUploadItems] = useState<
@@ -133,21 +138,31 @@ export const useLockerUploads = ({
             if (!masterKey) {
                 throw new Error("No master key");
             }
-            await uploadLockerFile(file, collectionIDs, masterKey, onProgress);
+            const id = await uploadLockerFile(
+                file,
+                collectionIDs,
+                masterKey,
+                onProgress,
+            );
+            completedUploadIDsRef.current.push(id);
         },
         [masterKey],
     );
 
     const handleUploadsFinished = useCallback(
-        async (uploadedCount: number) => {
+        async (uploadedCount: number, selectedFileCount: number) => {
+            const completedIDs = completedUploadIDsRef.current.splice(0);
+            setUploadedFileIDs(selectedFileCount === 1 ? completedIDs : []);
             clearUploadRefreshTimeout();
             clearUploadFollowUpRefreshes();
             await refreshData();
             scheduleUploadFollowUpRefreshes();
             setToast(
-                uploadedCount === 1
-                    ? t("uploadComplete")
-                    : t("uploadMultipleComplete", { count: uploadedCount }),
+                selectedFileCount === 1
+                    ? null
+                    : uploadedCount === 1
+                      ? t("uploadComplete")
+                      : t("uploadMultipleComplete", { count: uploadedCount }),
             );
         },
         [
@@ -174,6 +189,7 @@ export const useLockerUploads = ({
             if (nonEmptyItems.length === 0) {
                 return;
             }
+            setUploadedFileIDs([]);
             setPrefilledUploadItems(nonEmptyItems);
             setCreateDialogOpen(true);
         },
@@ -181,6 +197,7 @@ export const useLockerUploads = ({
     );
 
     const openCreateDialog = useCallback(() => {
+        setUploadedFileIDs([]);
         setPrefilledUploadItems([]);
         setCreateDialogOpen(true);
     }, []);
@@ -274,6 +291,8 @@ export const useLockerUploads = ({
     );
 
     return {
+        uploadedFileIDs,
+        dismissUploadSharing,
         createDialogOpen,
         prefilledUploadItems,
         isDragActive,

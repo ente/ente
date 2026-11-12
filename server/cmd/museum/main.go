@@ -92,7 +92,6 @@ import (
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -109,6 +108,7 @@ func main() {
 
 	viper.SetDefault("apps.public-albums", "https://albums.ente.com")
 	viper.SetDefault("apps.embed-albums", "https://embed.ente.com")
+	viper.SetDefault("apps.photobook", "https://photobook.ente.com")
 	viper.SetDefault("apps.custom-domain.cname", "my.ente.com")
 	viper.SetDefault("apps.public-locker", "https://share.ente.com")
 	viper.SetDefault("apps.public-paste", "https://paste.ente.com")
@@ -378,6 +378,7 @@ func main() {
 		EmailNotificationCtrl: emailNotificationCtrl,
 		CollectionLinkRepo:    collectionLinkRepo,
 		FileLinkRepo:          fileLinkRepo,
+		MemoryShareRepo:       memoryShareRepo,
 		CollectionRepo:        collectionRepo,
 		UserRepo:              userRepo,
 		JwtSecret:             jwtSecretBytes,
@@ -525,9 +526,7 @@ func main() {
 		server.TrustedPlatform = clientIPHeader
 	}
 
-	p := ginprometheus.NewPrometheus("museum")
-	p.ReqCntURLLabelMappingFn = urlSanitizer
-	server.Use(p.HandlerFunc())
+	server.Use(middleware.RequestMetrics(urlSanitizer))
 
 	server.LoadHTMLGlob("web-templates/*")
 	// note: the recover middleware must be in the last
@@ -551,7 +550,11 @@ func main() {
 	storageAPI.Use(middleware.RejectAuthApp())
 
 	adminAPI := server.Group("/admin")
-	adminAPI.Use(authMiddleware.TokenAuthMiddleware(nil), authMiddleware.AdminAuthMiddleware())
+	adminAPI.Use(
+		authMiddleware.TokenAuthMiddleware(nil),
+		authMiddleware.AdminAuthMiddleware(),
+		rateLimiter.AdminRateLimitMiddleware(urlSanitizer),
+	)
 	paymentJwtAuthAPI := server.Group("/")
 	paymentJwtAuthAPI.Use(authMiddleware.TokenAuthMiddleware(jwt.PAYMENT.Ptr()))
 
@@ -677,7 +680,6 @@ func main() {
 
 	storageAPI.GET("/social/diff", socialHandler.UnifiedDiff)
 	storageAPI.GET("/social/anon-profiles", socialHandler.AnonProfiles)
-	storageAPI.GET("/comments-reactions/counts", socialHandler.Counts)
 	storageAPI.GET("/comments-reactions/updated-at", socialHandler.LatestUpdates)
 
 	emergencyCtrl := &emergency.Controller{
@@ -1225,8 +1227,8 @@ func setupDatabase() *sql.DB {
 		panic(err)
 	}
 
-	db.SetMaxIdleConns(30)
-	db.SetMaxOpenConns(60)
+	db.SetMaxIdleConns(50)
+	db.SetMaxOpenConns(80)
 	db.SetConnMaxLifetime(30 * time.Minute)
 	db.SetConnMaxIdleTime(10 * time.Minute)
 
@@ -1317,6 +1319,7 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 	}
 
 	const deletedTokenRetentionDays = 427 // 13-month deletion window (395 days) + 32-day safety buffer
+	const srpSessionCleanupBatchSize = 10_000
 
 	c := cron.New()
 	schedule(c, "@every 1m", func() {
@@ -1408,11 +1411,14 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 
 	scheduleAndRun(c, "@every 24h", func() {
 		emailNotificationCtrl.NudgePaidSubscriberForFamily()
-		deleted, err := userAuthRepo.CleanupOldFakeSessions(context.Background())
+	})
+
+	scheduleAndRun(c, "@every 1m", func() {
+		deleted, err := userAuthRepo.CleanupOldSRPSessions(context.Background(), srpSessionCleanupBatchSize)
 		if err != nil {
-			log.WithError(err).Error("Failed to cleanup old fake SRP sessions")
+			log.WithError(err).Error("Failed to cleanup old SRP sessions")
 		} else if deleted > 0 {
-			log.WithField("count", deleted).Info("Cleaned up old fake SRP sessions")
+			log.WithField("count", deleted).Info("Cleaned up old SRP sessions")
 		}
 	})
 

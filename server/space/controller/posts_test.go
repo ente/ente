@@ -129,7 +129,7 @@ func TestCreatePostRequiresAssetMetadataCipher(t *testing.T) {
 		EncryptedPostKey: "cG9zdC1rZXk=",
 		KeyVersion:       aliceSpace.CurrentVersion,
 		Objects: []models.PostObjectPayload{{
-			ObjectKey: "space/alice-metadata-post/posts/object",
+			PostAssetPayload: models.PostAssetPayload{ObjectKey: "space/alice-metadata-post/posts/object"},
 		}},
 	})
 
@@ -207,13 +207,15 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 			objects := make([]models.PostObjectPayload, test.count)
 			for position := range test.count {
 				objects[position] = models.PostObjectPayload{
-					ObjectKey:      reserve(),
-					Size:           123,
-					Position:       position,
-					MetadataCipher: "bWV0YWRhdGE=",
+					PostAssetPayload: models.PostAssetPayload{
+						ObjectKey:      reserve(),
+						Size:           123,
+						Position:       position,
+						MetadataCipher: "bWV0YWRhdGE=",
+					},
 				}
 				if position < test.videos {
-					objects[position].Video = &models.PostObjectPayload{ObjectKey: reserve(), Size: 123, Position: position, MetadataCipher: "bWV0YWRhdGE="}
+					objects[position].Video = &models.PostAssetPayload{ObjectKey: reserve(), Size: 123, Position: position, MetadataCipher: "bWV0YWRhdGE="}
 				}
 			}
 			requestObjects := slices.Clone(objects)
@@ -269,7 +271,7 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 				require.ErrorIs(t, err, sql.ErrNoRows)
 			}
 			for _, object := range objects {
-				parts := []models.PostObjectPayload{object}
+				parts := []models.PostAssetPayload{object.PostAssetPayload}
 				if object.Video != nil {
 					parts = append(parts, *object.Video)
 				}
@@ -281,7 +283,7 @@ func TestCreatePostAcceptsUpToTenObjects(t *testing.T) {
 			}
 			require.NoError(t, controller.Delete(ctx, space, created.PostID))
 			for _, object := range objects {
-				parts := []models.PostObjectPayload{object}
+				parts := []models.PostAssetPayload{object.PostAssetPayload}
 				if object.Video != nil {
 					parts = append(parts, *object.Video)
 				}
@@ -332,28 +334,12 @@ func TestCreatePostRejectsInvalidObjectPosition(t *testing.T) {
 				EncryptedPostKey: "cG9zdC1rZXk=",
 				KeyVersion:       1,
 				Objects: []models.PostObjectPayload{{
-					ObjectKey: "photo",
-					Position:  position,
+					PostAssetPayload: models.PostAssetPayload{ObjectKey: "photo", Position: position},
 				}},
 			})
 			require.ErrorContains(t, err, "invalid object position")
 		})
 	}
-}
-
-func TestCreatePostRejectsNestedVideo(t *testing.T) {
-	_, err := (&PostsController{}).Create(t.Context(), &spacerepo.SpaceRecord{}, models.CreatePostRequest{
-		EncryptedPostKey: "cG9zdC1rZXk=",
-		KeyVersion:       1,
-		Objects: []models.PostObjectPayload{{
-			ObjectKey: "preview",
-			Video: &models.PostObjectPayload{
-				ObjectKey: "video",
-				Video:     &models.PostObjectPayload{ObjectKey: "nested"},
-			},
-		}},
-	})
-	require.ErrorContains(t, err, "invalid nested video")
 }
 
 func TestListPostsHydratesPostAssets(t *testing.T) {

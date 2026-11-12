@@ -1,6 +1,6 @@
 import { mergeUint8Arrays } from "ente-utils/array";
 import { ensureArrayBufferBacked } from "ente-utils/bytes";
-import sodium from "libsodium-wrappers-sumo";
+import sodium, { type MessageTag } from "libsodium-wrappers-sumo";
 import {
     streamEncryptionChunkSize,
     type BytesOrB64,
@@ -13,7 +13,6 @@ import {
     type EncryptedFile,
     type InitChunkDecryptionResult,
     type InitChunkEncryptionResult,
-    type KeyPair,
     type SodiumStateAddress,
 } from "./types";
 
@@ -286,12 +285,22 @@ export const initChunkDecryption = async (
 export const decryptStreamChunk = async (
     data: Uint8Array,
     pullState: SodiumStateAddress,
+    isFinalChunk?: boolean,
 ): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
     const pullResult = sodium.crypto_secretstream_xchacha20poly1305_pull(
         pullState,
         data,
-    );
+    ) as MessageTag | false;
+    if (!pullResult) throw new Error("Invalid encrypted chunk");
+    if (
+        isFinalChunk !== undefined &&
+        (pullResult.tag ===
+            sodium.crypto_secretstream_xchacha20poly1305_TAG_FINAL) !==
+            isFinalChunk
+    ) {
+        throw new Error("Unexpected encrypted stream final tag");
+    }
     return ensureArrayBufferBacked(pullResult.message);
 };
 
@@ -324,20 +333,6 @@ export const boxSeal = async (data: string, publicKey: string) => {
     await sodium.ready;
     return toB64(
         sodium.crypto_box_seal(await fromB64(data), await fromB64(publicKey)),
-    );
-};
-
-export const boxSealOpenBytes = async (
-    encryptedData: string,
-    { publicKey, privateKey }: KeyPair,
-): Promise<Uint8Array<ArrayBuffer>> => {
-    await sodium.ready;
-    return ensureArrayBufferBacked(
-        sodium.crypto_box_seal_open(
-            await fromB64(encryptedData),
-            await fromB64(publicKey),
-            await fromB64(privateKey),
-        ),
     );
 };
 

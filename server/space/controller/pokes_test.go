@@ -27,4 +27,14 @@ func TestPokesRequireFriendshipAndNotifyOnlyOnce(t *testing.T) {
 	require.Equal(t, []int64{bobID}, event.recipientIDs)
 	require.NoError(t, controller.Create(ctx, alice, bob.SpaceID, request))
 	requireNoSpaceActivity(t, notifier)
+	request.ClientRequestID = "poke-request-2"
+	require.NoError(t, controller.Create(ctx, alice, bob.SpaceID, request))
+	event = requireSpaceActivity(t, notifier)
+	require.Equal(t, spaceActivityPokeSent, event.event)
+	require.Equal(t, []int64{bobID}, event.recipientIDs)
+	require.NoError(t, controller.Create(ctx, alice, bob.SpaceID, request))
+	requireNoSpaceActivity(t, notifier)
+	request.ClientRequestID = "poke-request-1"
+	require.NoError(t, controller.Create(ctx, alice, bob.SpaceID, request))
+	requireNoSpaceActivity(t, notifier)
 }

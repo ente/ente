@@ -20,11 +20,11 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup Linux for Rust
-              uses: ./.github/actions/setup-rust-linux
+              uses: $/.github/actions/setup-rust-linux
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-workspace
@@ -33,7 +33,7 @@ jobs:
                   cache-directories: rust/.cache
 
             - name: Restore Rust target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   shared-key: rust-workspace
 

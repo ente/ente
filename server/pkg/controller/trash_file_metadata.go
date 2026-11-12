@@ -34,7 +34,7 @@ func (t *TrashController) DropFileMetadataCron() {
 			logger.WithError(releaseErr).Error("Error while releasing lock")
 		}
 	}()
-	items, err := t.QueueRepo.GetItemsReadyForDeletion(repo.DropFileEncMedataQueue, 10)
+	items, err := t.QueueRepo.GetItemsReadyForDeletion(repo.DropFileEncMetadataQueue, 10)
 	if err != nil {
 		logger.WithError(err).Error("getItemsReadyForDeletion failed")
 		return
@@ -42,14 +42,14 @@ func (t *TrashController) DropFileMetadataCron() {
 	if len(items) == 0 {
 		logger.Info("add entry for dropping fileMetadata")
 		// insert entry with 0 as the last epochTime till when metadata is dropped.
-		err = t.QueueRepo.InsertItem(context.Background(), repo.DropFileEncMedataQueue, "0")
+		err = t.QueueRepo.InsertItem(context.Background(), repo.DropFileEncMetadataQueue, "0")
 		if err != nil {
 			logger.WithError(err).Error("failed to insert entry")
 		}
 		return
 	}
 	if len(items) > 1 {
-		logger.Error(fmt.Sprintf("queue %s should not have more than one entry", repo.DropFileEncMedataQueue))
+		logger.Error(fmt.Sprintf("queue %s should not have more than one entry", repo.DropFileEncMetadataQueue))
 	}
 	qItem := items[0]
 	droppedMetadataTill, parseErr := strconv.ParseInt(qItem.Item, 10, 64)
@@ -84,7 +84,7 @@ func (t *TrashController) DropFileMetadataCron() {
 		ctxLogger.WithError(err).Error("failed to scrub data")
 		return
 	}
-	updateErr := t.QueueRepo.UpdateItem(ctx, repo.DropFileEncMedataQueue, qItem.Id, strconv.FormatInt(maxUpdatedAt, 10))
+	updateErr := t.QueueRepo.UpdateItem(ctx, repo.DropFileEncMetadataQueue, qItem.Id, strconv.FormatInt(maxUpdatedAt, 10))
 	if updateErr != nil {
 		ctxLogger.WithError(updateErr).Error("failed to update queueItem")
 		return

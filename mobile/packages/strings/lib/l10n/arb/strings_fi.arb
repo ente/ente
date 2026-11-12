@@ -1,8 +1,110 @@
 {
+  "bringMemoriesTogether": "Yhdistä muistosi",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Luo tilini",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "Anna lupa käyttää ja organisoida kuvasi kasvojentunnistuksella, prosessoidaan täysin laitteellasi.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Organisoi kuvasi ja videosi. Jokainen muistosi, yhdessä paikassa.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
+  "wallpaper": "Taustakuva",
+  "setWallpaper": "Aseta taustakuva",
+  "wallpaperHome": "Aloitusnäyttö",
+  "wallpaperLock": "Lukitusnäyttö",
+  "wallpaperBoth": "Aloitus- ja lukitusnäytöt",
+  "wallpaperSet": "Taustakuva asetettu",
+  "wallpaperFailed": "Ei voitu asettaa taustakuvaa",
+  "wallpaperUnavailable": "Taustakuvamuutoksia ei sallita tällä laitteella",
   "about": "Tietoa",
-  "account": "Käyttäjätili",
+  "acceptTrustInvite": "Hyväksy kutsu",
+  "account": "Tili",
   "accountCredentials": "Salaisuus",
+  "accountCredentialsDescription": "Säilytä tilin kirjautumistiedot.",
+  "accountIsAlreadyConfigured": "Tili on jo konfiguroitu.",
+  "accountOwnerPersonAppbarTitle": "{title} (Minä)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "accountRecovery": "Tilin palautus",
+  "accountSetupIncompleteCreateAccount": "Tilin luonti kesken. Luo tili viimeistelläksesi käyttöönoton.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "actionNotSupportedForSharedFiles": "{count, plural, one{Toimintoa ei tueta {count} jaetulle tiedostolle} other{Toimintoa ei tueta {count} jaetuille tiedostoille}}",
+  "@actionNotSupportedForSharedFiles": {
+    "description": "Message when action is not supported for shared files",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "actionNotSupportedOnFavouritesAlbum": "Toimintoa ei tueta Suosikit albumilla",
+  "activeLinksWillShowUpHere": "Aktiiviset linkit näkyvät täällä",
+  "activeSessions": "Aktiiviset istunnot",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "add": "Lisää",
+  "addAlbumWidgetPrompt": "Lisää albumin widget aloitusnäyttöösi muokataksesi sitä tästä.",
+  "addANameAndPhoto": "Lisää nimi ja kuva",
+  "addAnyway": "Lisää silti",
   "addCode": "Lisää koodi",
+  "addedAMemoryTo": "lisätty muisto {albumName}:iin",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "Lisäsi {emailOrName}",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addedFilesToPerson": "{count, plural, one{Lisätty {count} tiedosto {personName}:lle} other{Lisätty {count} tiedostoa {personName}:lle}}",
+  "@addedFilesToPerson": {
+    "description": "Toast shown after manually tagging one or more files to a person.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "personName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "addedNMemoriesTo": "lisätty {count} muistoa {albumName}:iin",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "all": "Kaikki",
   "allTabEmptyHint": "Vielä tyhjää. Paina + lisääksesi koodin tai avaa Roskakori palauttaaksesi sellaisen.",
   "@allTabEmptyHint": {
@@ -17,7 +119,7 @@
   "@cancel": {
     "description": "Cancel button label"
   },
-  "changeEmail": "vaihda sähköpostiosoitteesi",
+  "changeEmail": "Vaihda sähköpostiosoite",
   "@changeEmail": {
     "description": "Change email button label"
   },
@@ -33,7 +135,7 @@
   "@confirmPassword": {
     "description": "Confirm password field label"
   },
-  "contactSupport": "Ota yhteyttä käyttötukeen",
+  "contactSupport": "Ota yhteyttä tukeen",
   "@contactSupport": {
     "description": "Contact support button label"
   },
@@ -41,7 +143,7 @@
   "@continueLabel": {
     "description": "Continue button label"
   },
-  "copied": "Jäljennetty",
+  "copied": "Kopioitu",
   "copiedNextToClipboard": "Seuraava koodi kopioitu leikepöydälle",
   "copiedToClipboard": "Kopioitu leikepöydälle",
   "crashAndErrorReporting": "Kaatumis- ja virheraportointi",
@@ -49,7 +151,7 @@
   "@createAccount": {
     "description": "Create account button label"
   },
-  "credentialName": "Käyttäjätili",
+  "credentialName": "Tili",
   "data": "Tiedot",
   "delete": "Poista",
   "@delete": {

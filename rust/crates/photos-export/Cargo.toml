@@ -8,6 +8,7 @@ anyhow.workspace = true
 chrono = { workspace = true, features = ["std"] }
 ente-collections.workspace = true
 ente-core.workspace = true
+ente-live-photo.workspace = true
 ente-photos.workspace = true
 icu_casemap.workspace = true
 rusqlite.workspace = true
@@ -19,7 +20,9 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
 unicode-normalization.workspace = true
 uuid = { workspace = true, features = ["v4"] }
-zip.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+zip.workspace = true

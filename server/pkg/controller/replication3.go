@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/controller/discord"
 	"github.com/ente/museum/pkg/repo"
 	fileutil "github.com/ente/museum/pkg/utils/file"
@@ -41,8 +42,7 @@ type ReplicationController3 struct {
 	tempStorage       string
 	mUploadSuccess    *prometheus.CounterVec
 	mUploadFailure    *prometheus.CounterVec
-	b2Client          *s3.S3
-	b2Bucket          *string
+	b2Dest            *UploadDestination
 	wasabiDest        *UploadDestination
 	scwDest           *UploadDestination
 }
@@ -59,15 +59,15 @@ type UploadDestination struct {
 
 func (c *ReplicationController3) StartReplication() error {
 	hotDC := c.S3Config.GetHotDataCenter()
-	if hotDC != c.S3Config.GetHotBackblazeDC() {
-		return fmt.Errorf("v3 replication can currently only run when the primary hot data center is Backblaze. Instead, it was %s", hotDC)
+	if hotDC != c.S3Config.GetHotBackblazeDC() && hotDC != c.S3Config.GetHotWasabiDC() {
+		return fmt.Errorf("v3 replication requires Backblaze or Wasabi as the primary hot data center, got %s", hotDC)
 	}
 
 	workerURL := viper.GetString("replication.worker-url")
 	if workerURL == "" {
 		log.Infof("replication.worker-url was not defined, files will downloaded directly during replication")
 	} else {
-		log.Infof("Worker URL to download objects for replication v3 is: %s", workerURL)
+		log.Infof("Worker URL to download Backblaze objects for replication v3 is: %s", workerURL)
 	}
 	c.workerURL = workerURL
 
@@ -141,8 +141,13 @@ func (c *ReplicationController3) createDestinations() {
 
 	b2DC := config.GetHotBackblazeDC()
 	b2Client := config.GetS3Client(b2DC)
-	c.b2Client = &b2Client
-	c.b2Bucket = config.GetBucket(b2DC)
+	c.b2Dest = &UploadDestination{
+		DC:       b2DC,
+		Client:   &b2Client,
+		Uploader: s3manager.NewUploaderWithClient(&b2Client, limitUploadParts),
+		Bucket:   config.GetBucket(b2DC),
+		Label:    "b2",
+	}
 
 	wasabiDC := config.GetHotWasabiDC()
 	wasabiClient := config.GetS3Client(wasabiDC)
@@ -216,13 +221,8 @@ func (c *ReplicationController3) tryReplicate() error {
 
 	logger.Info("Replication attempt start")
 
-	if copies.B2 == nil {
-		err := errors.New("expected B2 copy to be in place before we start replication")
-		return done(stacktrace.Propagate(err, "Sanity check failed"))
-	}
-
-	if !copies.WantWasabi && !copies.WantSCW {
-		err := errors.New("expected at least one of want_wasabi and want_scw to be true when trying to replicate")
+	if !copies.WantB2 && !copies.WantWasabi && !copies.WantSCW {
+		err := errors.New("expected at least one requested replica when trying to replicate")
 		return done(stacktrace.Propagate(err, "Sanity check failed"))
 	}
 
@@ -254,16 +254,11 @@ func (c *ReplicationController3) tryReplicate() error {
 	defer os.Remove(filePath)
 	defer file.Close()
 
-	downloadedSize, err := c.downloadFromB2ViaWorker(objectKey, file, logger)
+	downloadedSize, err := c.downloadObject(copies, file, ob.Size, logger)
 	if err != nil {
-		return done(stacktrace.Propagate(err, "Failed to download object from B2"))
+		return done(stacktrace.Propagate(err, "Failed to download object from hot storage"))
 	}
 	logger.Infof("Downloaded %d bytes to %s", downloadedSize, filePath)
-
-	if downloadedSize != ob.Size {
-		c.notifyDiscord(fmt.Sprintf("⚠️ Replication download size mismatch for %s: got %d bytes, expected %d", objectKey, downloadedSize, ob.Size))
-		return done(stacktrace.NewError("downloaded size (%d) does not match expected size (%d)", downloadedSize, ob.Size))
-	}
 
 	in := &UploadInput{
 		File:         file,
@@ -274,55 +269,94 @@ func (c *ReplicationController3) tryReplicate() error {
 
 	err = nil
 
-	if copies.WantWasabi && copies.Wasabi == nil {
-		werr := c.replicateFile(in, c.wasabiDest, func() error {
-			return c.ObjectCopiesRepo.MarkObjectReplicatedWasabi(objectKey)
+	if copies.WantB2 && copies.B2 == nil {
+		err = c.replicateFile(in, c.b2Dest, func() error {
+			return c.ObjectCopiesRepo.MarkObjectReplicatedB2(objectKey)
 		})
-		err = werr
+	}
+
+	if copies.WantWasabi && copies.Wasabi == nil {
+		err = errors.Join(err, c.replicateFile(in, c.wasabiDest, func() error {
+			return c.ObjectCopiesRepo.MarkObjectReplicatedWasabi(objectKey)
+		}))
 	}
 
 	if copies.WantSCW && copies.SCW == nil {
-		serr := c.replicateFile(in, c.scwDest, func() error {
+		err = errors.Join(err, c.replicateFile(in, c.scwDest, func() error {
 			return c.ObjectCopiesRepo.MarkObjectReplicatedScaleway(objectKey)
-		})
-		if err == nil {
-			err = serr
-		}
+		}))
 	}
 	return done(err)
 }
 
-func (c *ReplicationController3) downloadFromB2ViaWorker(objectKey string, file *os.File, logger *log.Entry) (int64, error) {
-	presignedURL, err := c.getPresignedB2URL(objectKey)
-	if err != nil {
-		return 0, stacktrace.Propagate(err, "Could not create create presigned URL for downloading object")
+func (c *ReplicationController3) downloadObject(copies *ente.ObjectCopies, file *os.File, expectedSize int64, logger *log.Entry) (int64, error) {
+	var sources []*UploadDestination
+	if copies.B2 != nil {
+		sources = append(sources, c.b2Dest)
+	}
+	if copies.Wasabi != nil {
+		if c.S3Config.GetHotDataCenter() == c.wasabiDest.DC {
+			sources = append([]*UploadDestination{c.wasabiDest}, sources...)
+		} else {
+			sources = append(sources, c.wasabiDest)
+		}
+	}
+	if len(sources) == 0 {
+		return 0, errors.New("no recorded hot copy available for replication")
 	}
 
-	presignedEncodedURL := base64.StdEncoding.EncodeToString([]byte(presignedURL))
+	var downloadErrors []error
+	for _, source := range sources {
+		if err := file.Truncate(0); err != nil {
+			return 0, err
+		}
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			return 0, err
+		}
+		n, err := c.downloadFromSource(copies.ObjectKey, file, source)
+		if err == nil && n != expectedSize {
+			err = fmt.Errorf("downloaded size (%d) does not match expected size (%d)", n, expectedSize)
+			c.notifyDiscord(fmt.Sprintf("⚠️ Replication download size mismatch for %s from %s: %s", copies.ObjectKey, source.Label, err))
+		}
+		if err == nil {
+			return n, nil
+		}
+		logger.WithError(err).Warnf("Failed to download from %s", source.Label)
+		downloadErrors = append(downloadErrors, fmt.Errorf("%s: %w", source.Label, err))
+	}
+	return 0, errors.Join(downloadErrors...)
+}
+
+func (c *ReplicationController3) downloadFromSource(objectKey string, file *os.File, source *UploadDestination) (int64, error) {
+	r, _ := source.Client.GetObjectRequest(&s3.GetObjectInput{
+		Bucket: source.Bucket,
+		Key:    &objectKey,
+	})
+	presignedURL, err := r.Presign(PreSignedRequestValidityDuration)
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "Could not create presigned URL for downloading object")
+	}
 
 	client := &http.Client{}
 
-	request, err := http.NewRequest("GET", c.workerURL, nil)
+	request, err := http.NewRequest("GET", presignedURL, nil)
 	if err != nil {
-		return 0, stacktrace.Propagate(err, "Could not create request for worker %s", c.workerURL)
+		return 0, stacktrace.Propagate(err, "Could not create download request")
 	}
 
-	q := request.URL.Query()
-	q.Add("src", presignedEncodedURL)
-	request.URL.RawQuery = q.Encode()
-
-	if c.S3Config.AreLocalBuckets() || c.workerURL == "" {
-		originalURL := request.URL
-		request, err = http.NewRequest("GET", presignedURL, nil)
+	if source.DC == c.S3Config.GetHotBackblazeDC() && !c.S3Config.AreLocalBuckets() && c.workerURL != "" {
+		request, err = http.NewRequest("GET", c.workerURL, nil)
 		if err != nil {
-			return 0, stacktrace.Propagate(err, "Could not create request for URL %s", presignedURL)
+			return 0, stacktrace.Propagate(err, "Could not create request for worker %s", c.workerURL)
 		}
-		logger.Infof("Bypassing workerURL %s and instead directly GETting %s", originalURL, presignedURL)
+		q := request.URL.Query()
+		q.Add("src", base64.StdEncoding.EncodeToString([]byte(presignedURL)))
+		request.URL.RawQuery = q.Encode()
 	}
 
 	response, err := client.Do(request)
 	if err != nil {
-		return 0, stacktrace.Propagate(err, "Call to CF worker failed for object %s", objectKey)
+		return 0, stacktrace.Propagate(err, "Download failed for object %s", objectKey)
 	}
 	defer response.Body.Close()
 
@@ -330,7 +364,7 @@ func (c *ReplicationController3) downloadFromB2ViaWorker(objectKey string, file 
 		if response.StatusCode == http.StatusNotFound {
 			c.notifyDiscord("🔥 Could not find object in HotStorage: " + objectKey)
 		}
-		err = fmt.Errorf("CF Worker GET for object %s failed with HTTP status %s", objectKey, response.Status)
+		err = fmt.Errorf("GET for object %s failed with HTTP status %s", objectKey, response.Status)
 		return 0, stacktrace.Propagate(err, "")
 	}
 
@@ -340,14 +374,6 @@ func (c *ReplicationController3) downloadFromB2ViaWorker(objectKey string, file 
 	}
 
 	return n, nil
-}
-
-func (c *ReplicationController3) getPresignedB2URL(objectKey string) (string, error) {
-	r, _ := c.b2Client.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: c.b2Bucket,
-		Key:    &objectKey,
-	})
-	return r.Presign(PreSignedRequestValidityDuration)
 }
 
 func (c *ReplicationController3) notifyDiscord(message string) {

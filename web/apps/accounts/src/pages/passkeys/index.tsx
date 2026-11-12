@@ -39,6 +39,7 @@ import { useBaseContext } from "ente-base/context";
 import { isNamedError } from "ente-base/error";
 import { formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
+import { httpOrHTTPSURL } from "ente-base/safe-navigation";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
@@ -85,13 +86,16 @@ const Page: React.FC = () => {
         try {
             const { accountsUrl, passkeys } = await getPasskeys(token!);
 
-            const accountsURL = accountsUrl ? new URL(accountsUrl) : undefined;
+            const accountsURL = accountsUrl
+                ? httpOrHTTPSURL(accountsUrl)
+                : undefined;
             if (accountsURL && accountsURL.origin !== window.location.origin) {
                 const redirectURL = new URL(accountsURL.href);
                 if (!redirectURL.pathname.endsWith("/")) {
                     redirectURL.pathname += "/";
                 }
                 redirectURL.pathname += "passkeys";
+                redirectURL.hash = "";
                 redirectURL.search = new URLSearchParams({
                     token: token!,
                 }).toString();

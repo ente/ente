@@ -67,9 +67,9 @@ func (c *PostsController) Create(ctx context.Context, space *repo.SpaceRecord, r
 			return nil, ente.NewBadRequestWithMessage("invalid object position")
 		}
 		positions[object.Position] = true
-		parts := []models.PostObjectPayload{object}
+		parts := []models.PostAssetPayload{object.PostAssetPayload}
 		if object.Video != nil {
-			if object.Video.Video != nil {
+			if object.Video.NestedVideo != nil {
 				return nil, ente.NewBadRequestWithMessage("invalid nested video")
 			}
 			parts = append(parts, *object.Video)

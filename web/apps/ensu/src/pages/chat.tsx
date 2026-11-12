@@ -7,6 +7,8 @@ import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useChatSources } from "@/hooks/use-chat-sources";
 import { useNotesCollections } from "@/hooks/use-notes-collections";
+import type { WithVoiceInput } from "@/hooks/use-voice-input";
+import { abortable } from "@/services/abortable";
 import { handleManualAppUpdateCheck } from "@/services/app-update";
 import {
     buildConversationPath,
@@ -567,6 +569,8 @@ const Page: React.FC = () => {
     const [knowledgeCatalogLoaded, setKnowledgeCatalogLoaded] = useState(false);
     const [isPreparingMessage, setIsPreparingMessage] = useState(false);
     const pendingSendRef = useRef(false);
+    const voiceInputActiveRef = useRef(0);
+    const chatMountedRef = useRef(true);
     const settingsFlowOpenRef = useRef(false);
     const notesWarmupEpochRef = useRef(0);
     const notesIndexingPausedRef = useRef(false);
@@ -1780,7 +1784,8 @@ const Page: React.FC = () => {
         () =>
             pendingSendRef.current ||
             generationActiveRef.current ||
-            sessionSummaryActiveRef.current,
+            sessionSummaryActiveRef.current ||
+            voiceInputActiveRef.current > 0,
         [],
     );
     const notesIdleSchedulerRef = useRef<NotesIndexingIdleScheduler | null>(
@@ -1801,12 +1806,40 @@ const Page: React.FC = () => {
         );
     }
     const notesIdleScheduler = notesIdleSchedulerRef.current;
-    useEffect(
-        () => () => {
+    useEffect(() => {
+        chatMountedRef.current = true;
+        return () => {
+            chatMountedRef.current = false;
             notesWarmupEpochRef.current += 1;
             notesIdleScheduler.cancel();
+        };
+    }, [notesIdleScheduler]);
+    const withVoiceInput = useCallback<WithVoiceInput>(
+        async (operation, signal) => {
+            signal.throwIfAborted();
+            voiceInputActiveRef.current++;
+            notesWarmupEpochRef.current++;
+            notesIdleScheduler.cancel();
+            notesIndexingPausedRef.current = true;
+            setNotesIndexingPaused(true);
+            try {
+                const provider = await abortable(ensureProvider(), signal);
+                signal.throwIfAborted();
+                await abortable(provider.cancelGeneration(-1), signal);
+                return await provider.withVoiceInput(operation, signal);
+            } finally {
+                voiceInputActiveRef.current--;
+                if (
+                    chatMountedRef.current &&
+                    voiceInputActiveRef.current === 0
+                ) {
+                    notesIndexingPausedRef.current = true;
+                    setNotesIndexingPaused(true);
+                    notesIdleScheduler.defer();
+                }
+            }
         },
-        [notesIdleScheduler],
+        [ensureProvider, notesIdleScheduler],
     );
     const handleChatActivity = useCallback(
         () => notesIdleScheduler.activity(),
@@ -2282,7 +2315,8 @@ const Page: React.FC = () => {
             settingsFlowOpenRef.current = open;
             const epoch = ++notesWarmupEpochRef.current;
             if (open) {
-                notesIdleScheduler.resumeNow();
+                if (voiceInputActiveRef.current === 0)
+                    notesIdleScheduler.resumeNow();
                 return;
             }
             notesIdleScheduler.cancel();
@@ -4724,6 +4758,8 @@ const Page: React.FC = () => {
 
                     <ChatComposer
                         ref={composerRef}
+                        destination={`${currentSessionId ?? "draft"}:${editingMessage?.messageUuid ?? "compose"}`}
+                        withVoiceInput={withVoiceInput}
                         showModelGate={showModelGate}
                         showDownloadProgress={showDownloadProgress}
                         downloadStatus={downloadStatus}

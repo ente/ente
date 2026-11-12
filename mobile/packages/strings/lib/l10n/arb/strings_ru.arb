@@ -220,7 +220,7 @@
   "allowDownloads": "Разрешить скачивание",
   "allowJoining": "Разрешить присоединение",
   "allowJoiningAlbum": "Разрешить объединение альбомов",
-  "allowJoiningDescription": "Зрители альбома с аккаунтом Ente могут присоединиться к нему и получать обновления",
+  "allowJoiningDescription": "Пользователи с аккаунтом Ente могут присоединиться к вашему альбому и оставаться в курсе событий",
   "allowPermBody": "Пожалуйста, разрешите доступ к вашим фото через настройки устройства, чтобы Ente мог отображать и сохранять вашу библиотеку.",
   "allowPermTitle": "Разрешить доступ к фото",
   "allPersonGroupingWillReset": "Все группы этого человека будут сброшены, и вы потеряете все предложения для него",
@@ -337,7 +337,7 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
-  "authenticatorCodesCount": "{count, plural, one{{formattedCount} код аутентификатора} few{{formattedCount} кода аутентификатора} many{{formattedCount} кодов аутентификатора} other{{formattedCount} кода аутентификатора}}",
+  "authenticatorCodesCount": "{count, plural, one{{formattedCount} код аутентификатора} other{{formattedCount} коды аутентификатора}}",
   "@authenticatorCodesCount": {
     "description": "Delete impact row for Auth data",
     "placeholders": {
@@ -409,7 +409,7 @@
   "backupFolderLabel": "Папка резервного копирования:",
   "backupLocationChoiceDescription": "Где вы хотите сохранить резервные копии?",
   "backupMode": "Режим резервного копирования",
-  "backupModeBackingUpItems": "Резервное копирование: {count, plural, one{{formattedCount} элемент} few{{formattedCount} элемента} many{{formattedCount} элементов} other{{formattedCount} элемента}}",
+  "backupModeBackingUpItems": "{count, plural, one{Резервное копирование {formattedCount} элемент} other{Резервное копирование {formattedCount} элементов}}",
   "@backupModeBackingUpItems": {
     "placeholders": {
       "count": {
@@ -624,7 +624,7 @@
   "collectionLabel": "Коллекция",
   "collectionRenamedSuccessfully": "Коллекция успешно переименована",
   "collections": "Коллекции",
-  "collectionsDeletedSuccessfully": "{count, plural, one{{count} коллекция успешно удалена} few{{count} коллекции успешно удалены} many{{count} коллекций успешно удалены} other{{count} коллекции успешно удалены}}",
+  "collectionsDeletedSuccessfully": "{count, plural, one{{count} коллекция успешно удалена} other{{count} коллекции успешно удалены}}",
   "@collectionsDeletedSuccessfully": {
     "description": "Success message when collections are deleted",
     "placeholders": {
@@ -811,7 +811,7 @@
     }
   },
   "createKit": "Создать набор",
-  "createLegacyKit": "Создать комплект Legacy",
+  "createLegacyKit": "Создать устаревший набор",
   "createNewTag": "Создать новый тег",
   "createPublicLink": "Создать публичную ссылку",
   "createStream": "Создать прямую трансляцию",
@@ -950,7 +950,7 @@
     }
   },
   "deleteMultipleAlbumsQuestion": "Удалить эти альбомы?",
-  "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} коллекция будет удалена навсегда.} few{{count} коллекции будут удалены навсегда.} many{{count} коллекций будут удалены навсегда.} other{{count} коллекции будут удалены навсегда.}}",
+  "deleteMultipleCollectionsDialogBody": "{count, plural, one{{count} коллекции} other{{count} collections}} будет удалено навсегда.",
   "@deleteMultipleCollectionsDialogBody": {
     "description": "Confirmation message body for deleting multiple collections",
     "placeholders": {
@@ -1435,7 +1435,7 @@
       }
     }
   },
-  "memoryLaneAgeCaption": "{name} в возрасте {count, plural, one{{age} года} few{{age} лет} many{{age} лет} other{{age} года}}",
+  "memoryLaneAgeCaption": "{name} было {count, plural, one{{age} лет назад} other{{age} лет назад}}",
   "@memoryLaneAgeCaption": {
     "description": "Memory Lane age caption. The age placeholder is rendered as a separate, larger text widget; count selects the plural form.",
     "placeholders": {
@@ -1451,7 +1451,7 @@
       }
     }
   },
-  "memoryLaneCaptionYearsAgo": "{name} {count, plural, one{{number} год назад} few{{number} года назад} many{{number} лет назад} other{{number} года назад}}",
+  "memoryLaneCaptionYearsAgo": "{name} {count, plural, one{{number} год назад} other{{number} лет назад}}",
   "@memoryLaneCaptionYearsAgo": {
     "description": "Memory Lane caption in elapsed years. Always keep the number, including for one.",
     "placeholders": {
@@ -1541,7 +1541,7 @@
   },
   "failedToRefreshStripeSubscription": "Не удалось обновить подписку",
   "failedToRenew": "Не удалось продлить",
-  "failedToSaveFilesOffline": "{count, plural, one{Не удалось сохранить {count} файл для доступа без интернета} few{Не удалось сохранить {count} файла для доступа без интернета} many{Не удалось сохранить {count} файлов для доступа без интернета} other{Не удалось сохранить {count} файла для доступа без интернета}}",
+  "failedToSaveFilesOffline": "{count, plural, one{Не удалось сохранить {count} файл в офлайн} other{Не удалось сохранить {count} файлов в офлайн}}",
   "@failedToSaveFilesOffline": {
     "description": "Failure message when files could not be saved offline",
     "placeholders": {
@@ -1629,7 +1629,7 @@
       }
     }
   },
-  "filesAvailableOffline": "{count, plural, one{{count} файл сохранён для доступа без интернета} few{{count} файла сохранено для доступа без интернета} many{{count} файлов сохранено для доступа без интернета} other{{count} файла сохранено для доступа без интернета}}",
+  "filesAvailableOffline": "{count, plural, one{{count} файл сохранен в офлайн} other{{count} файлов сохранено в офлайн}}",
   "@filesAvailableOffline": {
     "description": "Success message when files are saved offline",
     "placeholders": {
@@ -1639,7 +1639,7 @@
       }
     }
   },
-  "filesAvailableOfflinePartial": "{successCount, plural, one{Сохранён {successCount} файл для доступа без интернета} few{Сохранено {successCount} файла для доступа без интернета} many{Сохранено {successCount} файлов для доступа без интернета} other{Сохранено {successCount} файла для доступа без интернета}}, {failureCount, plural, one{не удалось сохранить {failureCount} файл} few{не удалось сохранить {failureCount} файла} many{не удалось сохранить {failureCount} файлов} other{не удалось сохранить {failureCount} файла}}",
+  "filesAvailableOfflinePartial": "{successCount, plural, one{Сохранен {successCount} файл в офлайн} other{Сохранено {successCount} файлов в офлайн}}, {failureCount, plural, one{{failureCount} неудачно} other{{failureCount} неудачно}}",
   "@filesAvailableOfflinePartial": {
     "description": "Partial success message for offline save",
     "placeholders": {
@@ -1835,7 +1835,7 @@
   "importInstruction": "Пожалуйста, выберите файл, содержащий список ваших кодов в следующем формате",
   "importLabel": "Импорт",
   "importLastpassGuide": "Используйте опцию \"Перенести аккаунты\" в настройках Lastpass Authenticator и нажмите на \"Экспортировать учетные записи в файл\". Импортируйте загружённый JSON-файл.",
-  "importOtpAuthGuide": "Экспортируйте зашифрованную резервную копию из OTP Auth, затем выберите полученный файл .otpauthdb или .otpauthdp. Также поддерживаются файлы .otpauth, экспортированные для одной учётной записи.",
+  "importOtpAuthGuide": "Для экспорта зашифрованной резервной копии из OTP Auth выберите файл с расширением .otpauthdb или .otpauthdp. Поддерживается также экспорт файлов .otpauth для одной учетной записи.",
   "importProtonAuthGuide": "Используйте опцию «Экспорт» в настройках Proton Authenticator.\n\nЕсли ваш экспорт защищен паролем, вам потребуется ввести его для расшифровки.",
   "importRaivoGuide": "Используйте опцию «Экспорт OTP-кодов в Zip-архив» в настройках Raivo.\n\nРаспакуйте zip-архив и импортируйте JSON-файл.",
   "importSelectAppExport": "Выбрать файл экспорта {appName}",
@@ -1896,7 +1896,7 @@
   "@invalidEndpoint": {
     "description": "Error message when endpoint is invalid"
   },
-  "invalidEndpointMessage": "Извините, введённый вами адрес сервера недействителен. Пожалуйста, введите действительный адрес сервера и попробуйте снова.",
+  "invalidEndpointMessage": "Извините, введенный вами адрес электронной почты недействителен. Пожалуйста, введите действительный адрес электронной почты и попробуйте снова.",
   "@invalidEndpointMessage": {
     "description": "Detailed error message when endpoint is invalid"
   },
@@ -1944,7 +1944,7 @@
   },
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "На элементах отображается количество дней, оставшихся до их безвозвратного удаления",
   "itemsStored": "Сохранено элементов",
-  "itemsWillBeDeletedFromAllCollections": "{count, plural, one{{count} элемент будет удалён из всех коллекций.} few{{count} элемента будут удалены из всех коллекций.} many{{count} элементов будут удалены из всех коллекций.} other{{count} элемента будут удалены из всех коллекций.}} Восстановление возможно из корзины.",
+  "itemsWillBeDeletedFromAllCollections": "{count, plural, one{Этот элемент будет удален из всех коллекций. Вы можете восстановить его из корзины.} other{Эти элементы будут удалены из всех коллекций. Вы можете восстановить их из корзины.}}",
   "@itemsWillBeDeletedFromAllCollections": {
     "description": "Confirmation message explaining that deleted items leave every collection and remain recoverable from Trash.",
     "placeholders": {
@@ -1992,7 +1992,7 @@
   },
   "leaveSharedAlbum": "Покинуть общий альбом?",
   "left": "Влево",
-  "leftCollectionsSuccessfully": "{count, plural, one{Вы успешно покинули {count} коллекцию} few{Вы успешно покинули {count} коллекции} many{Вы успешно покинули {count} коллекций} other{Вы успешно покинули {count} коллекции}}",
+  "leftCollectionsSuccessfully": "{count, plural, one{Left {count} коллекция завершена} other{Left {count} коллекций завершено}}",
   "@leftCollectionsSuccessfully": {
     "description": "Success message when leaving collections",
     "placeholders": {
@@ -2009,7 +2009,7 @@
   "legacyEmptyStateDescription": "В ваше отсутствие Legacy поможет вашим близким получить доступ к вашей информации в Locker.",
   "legacyIntroCard1": "Мы даем вам 3 карты",
   "legacyIntroCard2": "Поделитесь ими с\n3 человека, которым вы доверяете",
-  "legacyIntroCard3": "Любые 2 из этих 3 человек могут разблокировать вашу информацию в Locker",
+  "legacyIntroCard3": "Любые 2 из 3 действий могут разблокировать вашу информацию в Locker",
   "legacyIntroTitle": "Помогите близким получить доступ к важной информации в ваше отсутствие.",
   "legacyInvite": "{email} пригласил вас стать доверенным контактом",
   "@legacyInvite": {
@@ -2023,9 +2023,9 @@
   "legacyKitAllSetDescription": "Вы можете в любое время настроить Legacy-набор или отозвать доступ.",
   "legacyKitAllSetTitle": "Ваш комплект Legacy полностью готов!",
   "legacyKitEmptyDescription": "Дайте возможность людям, которым вы доверяете, объединиться для восстановления вашего аккаунта",
-  "legacyKitMaxReached": "Вы можете создать до 5 комплектов Legacy.",
+  "legacyKitMaxReached": "Вы можете создать до 5 комплектов для сохранения старых версий.",
   "legacyKitRecoveryAttemptInProgress": "Попытка восстановления в процессе",
-  "legacyKitRecoveryAttemptMessage": "С помощью этого комплекта Legacy было инициировано восстановление. Доступ к учётной записи будет предоставлен {availableAt}.\n\nВы можете отклонить запрос на восстановление в любое время до этого момента.",
+  "legacyKitRecoveryAttemptMessage": "Было инициировано восстановление с использованием этого устаревшего комплекта, и они получат доступ к учетной записи по адресу {availableAt}.\n\nВы можете отклонить запрос на восстановление в любое время до этого момента.",
   "@legacyKitRecoveryAttemptMessage": {
     "placeholders": {
       "availableAt": {
@@ -2035,7 +2035,7 @@
     }
   },
   "legacyKitRecoveryInProgress": "Восстановление в процессе",
-  "legacyKitRecoveryWarning": "Кто-то пытается восстановить доступ к вашей учётной записи с помощью комплекта Legacy",
+  "legacyKitRecoveryWarning": "Кто-то пытается восстановить вашу учетную запись, используя устаревший комплект инструментов",
   "legacyKits": "Наборы наследия",
   "legacyPageDesc": "Наследие позволяет доверенным контактам получить доступ к вашему аккаунту в ваше отсутствие.",
   "legacyPageDesc2": "Доверенные контакты могут начать восстановление аккаунта. Если не отменить это в течение 30 дней, то они смогут сбросить пароль и получить доступ.",
@@ -2087,7 +2087,7 @@
       }
     }
   },
-  "librarySharingAllCurrentAlbumsShared": "Вы уже поделились всеми текущими альбомами",
+  "librarySharingAllCurrentAlbumsShared": "Все ваши текущие альбомы доступны для общего доступа",
   "librarySharingBannerDescription": "Поделитесь всеми своими альбомами",
   "librarySharingDisable": "Отключить",
   "librarySharingDisableDescription": "Альбомы, которыми вы уже поделились, останутся доступными для {recipient}, включая фотографии, которые вы в них добавите. Новые альбомы не будут автоматически становится общими.\n\nЧтобы прекратить общий доступ к альбому, коснитесь его и выберите «{stopSharingLabel}».",
@@ -2114,7 +2114,7 @@
     }
   },
   "librarySharingEnableTitle": "Включить общий доступ к библиотеке?",
-  "librarySharingFailedAlbumCount": "{count, plural, one{Не удалось обновить {count} альбом.} few{Не удалось обновить {count} альбома.} many{Не удалось обновить {count} альбомов.} other{Не удалось обновить {count} альбома.}}",
+  "librarySharingFailedAlbumCount": "{count, plural, one{Не удалось обновить {count} альбом.} other{Не удалось обновить {count} альбомов.}}",
   "@librarySharingFailedAlbumCount": {
     "placeholders": {
       "count": {
@@ -2133,7 +2133,7 @@
   "librarySharingRoles": "Роли",
   "librarySharingShareAlbums": "Поделиться альбомами",
   "librarySharingShareWith": "Поделиться с",
-  "librarySharingSharingWith": "Общий доступ предоставлен",
+  "librarySharingSharingWith": "Поделиться с",
   "librarySharingStopSharing": "Закрыть доступ",
   "librarySharingTitle": "Совместное использование библиотеки",
   "librarySharingUpdateRoles": "Обновить роли",
@@ -2340,7 +2340,6 @@
   "mlConsent": "Включить машинное обучение",
   "mlConsentConfirmation": "Я понимаю и хочу включить машинное обучение",
   "mlConsentDescription": "Если вы включите машинное обучение, Ente будет извлекать информацию такую, как геометрия лица, из файлов, включая те, которыми с вами поделились.\n\nЭтот процесс будет происходить на вашем устройстве, и любая сгенерированная биометрическая информация будет защищена сквозным шифрованием.",
-  "mlConsentPrivacy": "Пожалуйста, нажмите здесь для получения подробностей об этой функции в нашей политике конфиденциальности",
   "mlIndexingDescription": "Обратите внимание, что машинное обучение увеличит использование трафика и батареи, пока все элементы не будут обработаны. Рассмотрите использование приложения для компьютера для более быстрой обработки. Результаты будут автоматически синхронизированы.",
   "mlProcessingIssueReachOut": "Пожалуйста, свяжитесь с нами, чтобы мы могли вам помочь.",
   "@mlProcessingIssueReachOut": {
@@ -2414,7 +2413,7 @@
   "movingFilesToAlbum": "Перемещение файлов в альбом...",
   "muteAudio": "Отключить звук",
   "name": "Имя",
-  "nDays": "{count, plural, one{{count} день} few{{count} дня} many{{count} дней} other{{count} дня}}",
+  "nDays": "{count} дней",
   "@nDays": {
     "placeholders": {
       "count": {
@@ -2443,7 +2442,7 @@
     "description": "Next button label"
   },
   "nextTotpTitle": "далее",
-  "nHours": "{count, plural, one{{count} час} few{{count} часа} many{{count} часов} other{{count} часа}}",
+  "nHours": "{count} часов",
   "@nHours": {
     "placeholders": {
       "count": {
@@ -2725,7 +2724,7 @@
   "peopleWidgetDesc": "Выберите людей, которых хотите видеть на главном экране.",
   "period": "Период",
   "permanentlyDelete": "Удалить безвозвратно",
-  "permanentlyDeleteFilesBody": "{count, plural, one{{count} элемент будет безвозвратно удалён.} few{{count} элемента будут безвозвратно удалены.} many{{count} элементов будут безвозвратно удалены.} other{{count} элемента будут безвозвратно удалены.}} Восстановление невозможно.",
+  "permanentlyDeleteFilesBody": "{count, plural, one{Этот элемент} other{Эти {count} элементы}} будет безвозвратно удалены и не подлежат восстановлению.",
   "@permanentlyDeleteFilesBody": {
     "description": "Confirmation body for permanent deletion from trash",
     "placeholders": {
@@ -2987,7 +2986,7 @@
   "recordNotes": "Заметки",
   "recordNotesHint": "Дополнительная информация о предмете",
   "recordSavedSuccessfully": "Запись успешно сохранена",
-  "recordSavedToMultipleCollections": "Запись успешно сохранена в {count, plural, one{{count} коллекции} few{{count} коллекциях} many{{count} коллекциях} other{{count} коллекции}}",
+  "recordSavedToMultipleCollections": "Запись сохранена в {count, plural, one{{count} коллекция} other{{count} коллекций}} успешно",
   "@recordSavedToMultipleCollections": {
     "description": "Success message when record is saved to multiple collections",
     "placeholders": {
@@ -3064,7 +3063,7 @@
     "description": "Recovery key save description"
   },
   "recoveryKeySaveShortDescription": "Пожалуйста, сохраните этот ключ в безопасном месте.",
-  "recoveryKeySuccessBody": "Отлично! Ваш ключ восстановления действителен. Спасибо за проверку.\n\nНе забудьте сохранить резервную копию ключа восстановления в надёжном месте.",
+  "recoveryKeySuccessBody": "Отлично! Ваш ключ восстановления действителен. Спасибо за проверку.",
   "recoveryKeyVerified": "Ключ восстановления подтверждён",
   "recoveryKeyVerifyReason": "Ключ восстановления — единственный способ восстановить фотографии, если вы забыли пароль. Вы можете найти ключ восстановления в разделе «Настройки» > «Аккаунт».\n\nПожалуйста, введите здесь свой ключ восстановления, чтобы убедиться, что вы сохранили его правильно.",
   "recoveryReady": "Теперь вы можете восстановить аккаунт {email}, установив новый пароль.",
@@ -3083,7 +3082,7 @@
   },
   "recoveryWaitTime": "Ожидание восстановления",
   "recoveryWaitTimeChangeWarning": "Изменение этого параметра приведет к отмене всех текущих попыток.",
-  "recoveryWaitTimeDescription": "Как скоро можно восстановить учётную запись после сканирования комплекта Legacy?",
+  "recoveryWaitTimeDescription": "Как скоро можно восстановить учетную запись после сканирования устаревшего комплекта?",
   "recoveryWarning": "Доверенный контакт пытается получить доступ к вашему аккаунту",
   "recoveryWarningBody": "{email} пытается восстановить ваш аккаунт.",
   "@recoveryWarningBody": {
@@ -3158,7 +3157,7 @@
     "description": "Description for remove contact confirmation dialog"
   },
   "removeContactPhoto": "Удалить фото контакта",
-  "removedItems": "{count, plural, one{Удалён {count} элемент} few{Удалено {count} элемента} many{Удалено {count} элементов} other{Удалено {count} элемента}}",
+  "removedItems": "{count, plural, one{Удален {count} элемент} other{Удалено {count} элементов}}",
   "@removedItems": {
     "placeholders": {
       "count": {
@@ -3276,7 +3275,7 @@
     "description": "Display text for an action which triggers a restore of item from trash",
     "type": "text"
   },
-  "restoredItems": "{count, plural, one{Восстановлен {count} элемент} few{Восстановлено {count} элемента} many{Восстановлено {count} элементов} other{Восстановлено {count} элемента}}",
+  "restoredItems": "{count, plural, one{Восстановлен элемент} other{Восстановлено {count} элементов}}",
   "@restoredItems": {
     "placeholders": {
       "count": {
@@ -3307,7 +3306,7 @@
     }
   },
   "revokeInviteConfirmTitle": "Отозвать приглашение?",
-  "revokeLegacyKit": "Отозвать комплект Legacy",
+  "revokeLegacyKit": "Отозвать устаревший набор",
   "right": "Вправо",
   "ritualAddedToAlbum": "Добавлено в альбом",
   "ritualAddedToAlbumWithName": "Добавлено в {albumName}",
@@ -4527,7 +4526,7 @@
   "yesCancel": "Да, отменить",
   "yesConvertToViewer": "Да, перевести в зрители",
   "yesDelete": "Да, удалить",
-  "yesDeleteCollections": "Да, удалить {count, plural, one{{count} коллекцию} few{{count} коллекции} many{{count} коллекций} other{{count} коллекции}}",
+  "yesDeleteCollections": "Да, удалить {count, plural, one{коллекция} other{коллекций}}",
   "@yesDeleteCollections": {
     "description": "Button label for confirming deletion of one or more collections",
     "placeholders": {
@@ -4603,7 +4602,7 @@
       }
     }
   },
-  "legacyKitSheetIntro": "Если меня когда-нибудь не будет рядом или я потеряю доступ к своему аккаунту, этот лист поможет вам восстановить мои фотографии, документы и многое другое.",
+  "legacyKitSheetIntro": "Если меня когда-нибудь не будет рядом или вы потеряете доступ к моему аккаунту, этот лист поможет вам восстановить мои фотографии, документы и многое другое.",
   "@legacyKitSheetIntro": {
     "description": "Written in the voice of the account owner, addressed to the sheet holder"
   },
@@ -4648,7 +4647,7 @@
   },
   "grantAccess": "Предоставить доступ",
   "sharePhotos": "Поделиться фотографиями",
-  "sharePersonPhotos": "Поделиться фото, на которых есть {name}",
+  "sharePersonPhotos": "Поделиться фотографиями с {name}",
   "@sharePersonPhotos": {
     "placeholders": {
       "name": {
@@ -4675,7 +4674,7 @@
   },
   "personShareFailedTitle": "Не удалось поделиться фотографиями",
   "personShareFailedBody": "Не удалось создать общий альбом. Ваши фотографии и выбранные изображения остались без изменений. Пожалуйста, попробуйте еще раз.",
-  "personShareRollbackFailed": "Публикация не завершилась, и удалить альбом “{name}” не удалось. Он остаётся в разделе «Альбомы» и может содержать активную общедоступную ссылку. Просмотрите или удалите этот альбом там, прежде чем повторять попытку. Ваши исходные фотографии в безопасности.",
+  "personShareRollbackFailed": "Публикация не завершилась, и удалить альбом “{name}” не удалось. Он остается в альбомах и может содержать активную общедоступную ссылку. Просмотрите или удалите её, прежде чем повторять попытку. Ваши исходные фотографии в безопасности.",
   "@personShareRollbackFailed": {
     "placeholders": {
       "name": {

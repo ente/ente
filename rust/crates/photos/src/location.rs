@@ -3,7 +3,7 @@ use std::path::Path;
 use ente_assets::download::CancellationToken;
 use ente_assets::{Asset, AssetFile, AssetStore};
 use ente_location::{
-    CityIndex, CityMatch, Coordinate, CountryIndex, CountryView, UrbanCenterIndex,
+    CityIndex, CityMatch, Coordinate, CountryCode, CountryIndex, CountryView, UrbanCenterIndex,
 };
 
 const ASSET_URL: &str = "https://assets.ente.com/location/v2";
@@ -46,6 +46,10 @@ impl LocationIndex {
         })
     }
 
+    pub fn is_downloaded(asset_root: impl AsRef<Path>) -> bool {
+        asset().is_ok_and(|asset| AssetStore::new(asset_root.as_ref()).is_downloaded(&asset))
+    }
+
     pub fn cities(&self) -> Vec<ente_location::City> {
         self.cities.search("", usize::MAX)
     }
@@ -53,6 +57,33 @@ impl LocationIndex {
     pub fn group_cities(&self, coordinates: &[Coordinate], query: &str) -> Vec<CityMatch> {
         self.urban_centers
             .match_coordinates_with_cities(&self.cities, coordinates, query)
+    }
+
+    pub fn urban_center_ids(&self, coordinates: &[Coordinate]) -> Vec<Option<u32>> {
+        let mut ids = vec![None; coordinates.len()];
+        for group in self.urban_centers.match_coordinates(coordinates, "") {
+            for index in group.coordinate_indices {
+                if let Some(id) = ids.get_mut(index as usize) {
+                    *id = Some(group.city.source_id);
+                }
+            }
+        }
+        ids
+    }
+
+    pub fn country_codes(&self, coordinates: &[Coordinate]) -> Vec<Option<CountryCode>> {
+        let mut codes = vec![None; coordinates.len()];
+        let Ok(groups) = self.group_countries(coordinates, None) else {
+            return codes;
+        };
+        for group in groups {
+            for index in group.coordinate_indices {
+                if let Some(code) = codes.get_mut(index as usize) {
+                    code.get_or_insert(group.country);
+                }
+            }
+        }
+        codes
     }
 
     pub fn group_countries(
@@ -65,6 +96,14 @@ impl LocationIndex {
             None => CountryView::SourceDefault,
         };
         Ok(self.countries.group(coordinates, view)?.countries)
+    }
+
+    pub fn country_names(&self) -> impl Iterator<Item = (CountryCode, &str)> {
+        self.cities.country_names()
+    }
+
+    pub fn country_name(&self, code: CountryCode) -> Option<&str> {
+        self.cities.country_name(code)
     }
 }
 

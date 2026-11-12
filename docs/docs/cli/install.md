@@ -6,8 +6,8 @@ Download the archive for your system from the latest [Ente CLI release](https://
 | ------------------- | ---------------------- |
 | Linux x86_64        | `-linux-amd64.tar.gz`  |
 | Linux ARM64         | `-linux-arm64.tar.gz`  |
-| macOS Intel         | `-darwin-amd64.tar.gz` |
-| macOS Apple silicon | `-darwin-arm64.tar.gz` |
+| macOS Intel         | `-macos-amd64.tar.gz`  |
+| macOS Apple silicon | `-macos-arm64.tar.gz`  |
 | Windows x86_64      | `-windows-amd64.zip`   |
 | Windows ARM64       | `-windows-arm64.zip`   |
 
@@ -26,12 +26,6 @@ tar -xzf ente-cli-vX.Y.Z-linux-amd64.tar.gz -C ~/.local/opt/ente-cli/bin
 Use the name of the archive you downloaded. On Linux, `sha256sum --check --ignore-missing SHA256SUMS` works as well. The check prints `OK` after the archive name, and the last command prints `ente` followed by the version.
 
 On Linux, keep the CLI in its own directory: `/usr/bin/ente` may belong to the Ente Photos desktop app.
-
-On macOS, if you downloaded the archive with a browser, the first run is refused. Remove the quarantine flag, then run it again:
-
-```sh
-xattr -d com.apple.quarantine ~/.local/opt/ente-cli/bin/ente
-```
 
 **On Windows (PowerShell):** download the archive and `SHA256SUMS` from the release page, then:
 

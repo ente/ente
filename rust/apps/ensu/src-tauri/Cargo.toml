@@ -9,7 +9,7 @@ tauri-build = { version = "2.7.1", features = [] }
 [dependencies]
 ente-assets.workspace = true
 ente-core.workspace = true
-ente-ensu.workspace = true
+ente-ensu = { workspace = true, features = ["transcription"] }
 ente-ensu-crypto.workspace = true
 keyring = { workspace = true, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 log.workspace = true

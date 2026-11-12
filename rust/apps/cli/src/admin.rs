@@ -177,7 +177,7 @@ async fn update_subscription(
         if !args.no_limit {
             args.storage = prompt_change(
                 "Storage (MB/GB/TB; leave empty to keep current)",
-                parse_size,
+                parse_storage,
             )?;
             args.expires = prompt_change(
                 "Expiry (date or RFC3339; leave empty to keep current)",
@@ -263,26 +263,47 @@ fn prompt_change(label: &str, parse: fn(&str) -> Result<i64, String>) -> Result<
     }
 }
 
-pub fn parse_size(input: &str) -> Result<i64, String> {
+pub fn parse_storage(input: &str) -> Result<i64, String> {
+    parse_size(
+        input,
+        &[
+            ("MB", 1024_i64.pow(2)),
+            ("GB", 1024_i64.pow(3)),
+            ("TB", 1024_i64.pow(4)),
+        ],
+        "use a size such as 500GB or 1.5TB (MB/GB/TB use powers of 1024)",
+    )
+    .map(|bytes| bytes as i64)
+}
+
+pub fn parse_file_size(input: &str) -> Result<f64, String> {
+    parse_size(
+        input,
+        &[
+            ("KB", 1024_i64),
+            ("MB", 1024_i64.pow(2)),
+            ("GB", 1024_i64.pow(3)),
+        ],
+        "use a size such as 500MB or 1.5GB (KB/MB/GB use powers of 1024)",
+    )
+}
+
+fn parse_size(input: &str, units: &[(&str, i64)], hint: &str) -> Result<f64, String> {
     let input = input.to_ascii_uppercase();
-    let (number, multiplier) = [
-        ("MB", 1024_i64.pow(2)),
-        ("GB", 1024_i64.pow(3)),
-        ("TB", 1024_i64.pow(4)),
-    ]
-    .into_iter()
-    .find_map(|(unit, multiplier)| input.strip_suffix(unit).map(|number| (number, multiplier)))
-    .ok_or("use a size such as 500GB or 1.5TB (MB/GB/TB use powers of 1024)")?;
-    let value = number.parse::<f64>().map_err(|_| "invalid storage size")?;
+    let (number, multiplier) = units
+        .iter()
+        .find_map(|&(unit, multiplier)| input.strip_suffix(unit).map(|number| (number, multiplier)))
+        .ok_or(hint)?;
+    let value = number.parse::<f64>().map_err(|_| "invalid size")?;
     let bytes = value * multiplier as f64;
     if !number.chars().all(|c| c.is_ascii_digit() || c == '.')
         || !bytes.is_finite()
         || bytes < 1.0
         || bytes >= i64::MAX as f64
     {
-        return Err("storage must be positive and fit in a signed 64-bit byte count".into());
+        return Err("size must be positive and fit in a signed 64-bit byte count".into());
     }
-    Ok(bytes as i64)
+    Ok(bytes)
 }
 
 pub fn parse_date(input: &str) -> Result<i64, String> {
@@ -298,7 +319,7 @@ pub fn parse_date(input: &str) -> Result<i64, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_date, parse_size};
+    use super::{parse_date, parse_file_size, parse_storage};
 
     #[test]
     fn storage_uses_go_units_and_dates_use_utc_or_explicit_offsets() {
@@ -307,10 +328,18 @@ mod tests {
             ("1.5gB", 1610612736),
             ("2Tb", 2199023255552),
         ] {
-            assert_eq!(parse_size(input).unwrap(), bytes);
+            assert_eq!(parse_storage(input).unwrap(), bytes);
         }
-        for input in ["0GB", "-1GB", "1e2GB", "1GiB", "NaNGB", "999999999999TB"] {
-            assert!(parse_size(input).is_err(), "{input}");
+        for input in [
+            "0GB",
+            "-1GB",
+            "1e2GB",
+            "1GiB",
+            "NaNGB",
+            "999999999999TB",
+            "500KB",
+        ] {
+            assert!(parse_storage(input).is_err(), "{input}");
         }
         for input in [
             "2030-01-01",
@@ -321,6 +350,22 @@ mod tests {
         }
         for input in ["2030-02-30", "2030-01-01 18:00:00", "2030-01-01T18:00:00"] {
             assert!(parse_date(input).is_err(), "{input}");
+        }
+    }
+
+    #[test]
+    fn file_sizes_use_kb_mb_and_gb() {
+        for (input, bytes) in [
+            ("3KB", 3072.0),
+            ("1.5kb", 1536.0),
+            ("1.1KB", 1126.4),
+            ("5MB", 5242880.0),
+            ("1.5gB", 1610612736.0),
+        ] {
+            assert_eq!(parse_file_size(input).unwrap(), bytes);
+        }
+        for input in ["0KB", "1TB", "1KiB", "100B", "0.0005KB"] {
+            assert!(parse_file_size(input).is_err(), "{input}");
         }
     }
 }

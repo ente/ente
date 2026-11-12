@@ -132,7 +132,7 @@ export interface PublicSpaceLinkSession {
         p256dh: string,
         auth: string,
     ) => Promise<string>;
-    unsubscribeWebPush: (endpoint: string) => Promise<void>;
+    unsubscribeWebPush: (endpoint: string, auth: string) => Promise<void>;
 }
 
 export type SpacePostAssetURLLoader = (
@@ -619,7 +619,8 @@ export const openPublicSpaceLink = async (
             postsCount: response.posts ?? 0,
             subscribeWebPush: (endpoint, p256dh, auth) =>
                 ctx.subscribeWebPush(endpoint, p256dh, auth),
-            unsubscribeWebPush: (endpoint) => ctx.unsubscribeWebPush(endpoint),
+            unsubscribeWebPush: (endpoint, auth) =>
+                ctx.unsubscribeWebPush(endpoint, auth),
         };
     } catch (error) {
         ctx.free();

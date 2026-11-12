@@ -63,6 +63,13 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
 
   static const _duration = Motion.quick;
 
+  double get _expansion {
+    if (_maxExtent <= _minExtent) return 1;
+    if (!_sheetController.isAttached) return 0;
+    return ((_sheetController.size - _minExtent) / (_maxExtent - _minExtent))
+        .clamp(0.0, 1.0);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -225,10 +232,11 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
           640.0,
           availableWidth - (isLandscape ? Spacing.lg * 2 : 0),
         );
-        final minTileWidth =
-            64 *
+        final tileScale =
             media.textScaler.scale(TextStyles.mini.fontSize!) /
             TextStyles.mini.fontSize!;
+        final minTileWidth = 64 * tileScale;
+        final railTileWidth = 84 * tileScale;
         final gridWidth = sheetWidth - Spacing.md * 2;
         final availableColumns =
             isLandscape &&
@@ -240,9 +248,13 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
             : 2;
         final columns = math.min(availableColumns, grid.length);
         final gridRows = (grid.length / columns).ceil();
-        final labelWidth =
+        final usesRail = gridRows > 1;
+        final gridLabelWidth =
             (sheetWidth - Spacing.md * 2 - Spacing.xs * (columns - 1)) /
             columns;
+        final labelWidth = usesRail
+            ? math.min(gridLabelWidth, railTileWidth)
+            : gridLabelWidth;
         var labelHeight = labelLineHeight;
         for (final action in grid) {
           final painter = TextPainter(
@@ -290,16 +302,37 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
           baseHeight + tileHeight + Spacing.sm,
           maxHeight,
         );
-        final peekHeight = math.min(
-          baseHeight +
-              gridHeight +
-              (rows.isEmpty ? Spacing.sm : dividerHeight + rowHeight / 2),
-          maxHeight,
-        );
+        final peekHeight = usesRail
+            ? minHeight
+            : math.min(
+                baseHeight +
+                    gridHeight +
+                    (rows.isEmpty ? Spacing.sm : dividerHeight + rowHeight / 2),
+                maxHeight,
+              );
         _reportMinHeight(minHeight);
         _minExtent = minHeight / availableHeight;
         _maxExtent = maxHeight / availableHeight;
         final peekExtent = peekHeight / availableHeight;
+        Widget rail({required bool withKeys}) => SizedBox(
+          height: tileHeight,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+            itemCount: grid.length,
+            separatorBuilder: (_, _) => const SizedBox(width: Spacing.xs),
+            itemBuilder: (context, index) => SizedBox(
+              width: railTileWidth,
+              child: _SheetAction(
+                key: withKeys ? grid[index].key : null,
+                action: grid[index],
+                height: tileHeight,
+              ),
+            ),
+          ),
+        );
+        final collapsedRail = rail(withKeys: true);
+        final fadingRail = rail(withKeys: false);
 
         return SafeArea(
           top: false,
@@ -380,58 +413,95 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                   ),
                                 ),
                                 SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: Spacing.md,
-                                    ),
-                                    child: Column(
-                                      spacing: gridRowSpacing,
-                                      children: [
-                                        for (
-                                          var start = 0;
-                                          start < grid.length;
-                                          start += columns
-                                        )
-                                          Row(
-                                            spacing: Spacing.xs,
-                                            children: [
-                                              for (final action
-                                                  in grid
-                                                      .skip(start)
-                                                      .take(columns))
-                                                Expanded(
-                                                  child: _SheetAction(
-                                                    key: action.key,
-                                                    action: action,
-                                                    height: tileHeight,
+                                  child: ListenableBuilder(
+                                    listenable: _sheetController,
+                                    builder: (context, gridView) {
+                                      if (!usesRail) return gridView!;
+                                      final collapsed =
+                                          !_sheetController.isAttached ||
+                                          _sheetController.size <=
+                                              _minExtent + 0.001;
+                                      final progress = collapsed
+                                          ? 0.0
+                                          : (_expansion / 0.3).clamp(0.0, 1.0);
+                                      final railOpacity =
+                                          1 -
+                                          const Interval(
+                                            0,
+                                            0.35,
+                                          ).transform(progress);
+                                      return Stack(
+                                        children: [
+                                          if (railOpacity > 0)
+                                            IgnorePointer(
+                                              ignoring: !collapsed,
+                                              child: Opacity(
+                                                opacity: railOpacity,
+                                                child: collapsed
+                                                    ? collapsedRail
+                                                    : fadingRail,
+                                              ),
+                                            ),
+                                          if (!collapsed)
+                                            IgnorePointer(
+                                              ignoring: railOpacity > 0,
+                                              child: Opacity(
+                                                opacity: const Interval(
+                                                  0.35,
+                                                  1,
+                                                  curve: Curves.easeOutCubic,
+                                                ).transform(progress),
+                                                child: gridView,
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: Spacing.md,
+                                      ),
+                                      child: Column(
+                                        spacing: gridRowSpacing,
+                                        children: [
+                                          for (
+                                            var start = 0;
+                                            start < grid.length;
+                                            start += columns
+                                          )
+                                            Row(
+                                              spacing: Spacing.xs,
+                                              children: [
+                                                for (final action
+                                                    in grid
+                                                        .skip(start)
+                                                        .take(columns))
+                                                  Expanded(
+                                                    child: _SheetAction(
+                                                      key: action.key,
+                                                      action: action,
+                                                      height: tileHeight,
+                                                    ),
                                                   ),
-                                                ),
-                                              for (
-                                                var i = grid
-                                                    .skip(start)
-                                                    .take(columns)
-                                                    .length;
-                                                i < columns;
-                                                i++
-                                              )
-                                                const Expanded(
-                                                  child: SizedBox.shrink(),
-                                                ),
-                                            ],
-                                          ),
-                                      ],
+                                                for (
+                                                  var i = grid
+                                                      .skip(start)
+                                                      .take(columns)
+                                                      .length;
+                                                  i < columns;
+                                                  i++
+                                                )
+                                                  const Expanded(
+                                                    child: SizedBox.shrink(),
+                                                  ),
+                                              ],
+                                            ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                                 if (rows.isNotEmpty) ...[
-                                  SliverToBoxAdapter(
-                                    child: DividerComponent(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: Spacing.lg,
-                                        vertical: dividerSpacing,
-                                      ),
-                                    ),
-                                  ),
                                   SliverToBoxAdapter(
                                     child: ListenableBuilder(
                                       listenable: _sheetController,
@@ -445,25 +515,40 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                           ignoring: !enabled,
                                           child: ExcludeSemantics(
                                             excluding: !enabled,
-                                            child: child,
+                                            child: Opacity(
+                                              opacity: usesRail
+                                                  ? _expansion
+                                                  : 1,
+                                              child: child,
+                                            ),
                                           ),
                                         );
                                       },
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: Spacing.xs,
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            for (final action in rows)
-                                              _SheetAction(
-                                                key: action.key,
-                                                action: action,
-                                                height: rowHeight,
-                                                isRow: true,
-                                              ),
-                                          ],
-                                        ),
+                                      child: Column(
+                                        children: [
+                                          DividerComponent(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: Spacing.lg,
+                                              vertical: dividerSpacing,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: Spacing.xs,
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                for (final action in rows)
+                                                  _SheetAction(
+                                                    key: action.key,
+                                                    action: action,
+                                                    height: rowHeight,
+                                                    isRow: true,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),

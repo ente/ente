@@ -29,7 +29,7 @@ func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareReques
 		role = *req.Role
 	}
 
-	collection, err := c.collectionForShareMutation(req.CollectionID, fromUserID)
+	collection, err := c.collectionForShareMutation(ctx, req.CollectionID, fromUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *CollectionController) BatchShare(ctx *gin.Context, shares []ente.AlterS
 		return nil, err
 	}
 	fromUserID := auth.GetUserID(ctx.Request.Header)
-	collection, err := c.collectionForShareMutation(shares[0].CollectionID, fromUserID)
+	collection, err := c.collectionForShareMutation(ctx, shares[0].CollectionID, fromUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (c *CollectionController) BatchShare(ctx *gin.Context, shares []ente.AlterS
 	resolvedShares := make([]repo.CollectionShareItem, 0, len(shares))
 	for _, share := range shares {
 		if err := validateSealedCollectionKey(share.EncryptedKey); err != nil {
-			return nil, ente.NewBadRequestWithMessage(err.Error())
+			return nil, err
 		}
 		role := ente.VIEWER
 		if share.Role != nil {
@@ -229,7 +229,7 @@ func validateBulkShareRecipient(actorUserID, recipientUserID int64) error {
 }
 
 func (c *CollectionController) shareCollectionWithUserID(
-	ctx context.Context,
+	ctx *gin.Context,
 	fromUserID int64,
 	toUserID int64,
 	source ente.CollectionShareSource,
@@ -238,7 +238,7 @@ func (c *CollectionController) shareCollectionWithUserID(
 	if err := validateSealedCollectionKey(item.EncryptedKey); err != nil {
 		return "", false, err
 	}
-	collection, err := c.collectionForShareMutation(item.CollectionID, fromUserID)
+	collection, err := c.collectionForShareMutation(ctx, item.CollectionID, fromUserID)
 	if err != nil {
 		return "", false, err
 	}
@@ -281,10 +281,11 @@ func (c *CollectionController) shareCollectionWithUserID(
 }
 
 func (c *CollectionController) collectionForShareMutation(
+	ctx *gin.Context,
 	collectionID int64,
 	actorUserID int64,
 ) (ente.Collection, error) {
-	collection, err := c.CollectionRepo.Get(collectionID)
+	collection, err := c.getCollectionForApp(ctx, collectionID)
 	if err != nil {
 		return ente.Collection{}, stacktrace.Propagate(err, "")
 	}
@@ -339,7 +340,7 @@ func (c *CollectionController) JoinViaLink(ctx *gin.Context, req ente.JoinCollec
 		return err
 	}
 	userID := auth.GetUserID(ctx.Request.Header)
-	collection, err := c.CollectionRepo.Get(req.CollectionID)
+	collection, err := c.getCollectionForApp(ctx, req.CollectionID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -386,7 +387,7 @@ func (c *CollectionController) JoinViaLink(ctx *gin.Context, req ente.JoinCollec
 }
 
 func (c *CollectionController) UnShare(ctx *gin.Context, cID int64, fromUserID int64, toUserEmail string) ([]ente.CollectionUser, error) {
-	collection, err := c.collectionForShareMutation(cID, fromUserID)
+	collection, err := c.collectionForShareMutation(ctx, cID, fromUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -454,13 +455,13 @@ func (c *CollectionController) BulkUnShare(
 }
 
 func (c *CollectionController) unshareCollectionWithUserID(
-	ctx context.Context,
+	ctx *gin.Context,
 	collectionID int64,
 	fromUserID int64,
 	toUserID int64,
 	source ente.CollectionShareSource,
 ) (ente.CollectionShareStatus, error) {
-	collection, err := c.collectionForShareMutation(collectionID, fromUserID)
+	collection, err := c.collectionForShareMutation(ctx, collectionID, fromUserID)
 	if err != nil {
 		return "", err
 	}
@@ -527,7 +528,7 @@ func shareeIndexForEmail(sharees []ente.CollectionUser, targetEmail string) int 
 
 func (c *CollectionController) Leave(ctx *gin.Context, cID int64) error {
 	userID := auth.GetUserID(ctx.Request.Header)
-	collection, err := c.CollectionRepo.Get(cID)
+	collection, err := c.getCollectionForApp(ctx, cID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -579,7 +580,7 @@ func (c *CollectionController) ShareURL(ctx *gin.Context, userID int64, req ente
 	if err := req.Validate(); err != nil {
 		return ente.PublicURL{}, stacktrace.Propagate(err, "")
 	}
-	collection, err := c.CollectionRepo.Get(req.CollectionID)
+	collection, err := c.getCollectionForApp(ctx, req.CollectionID)
 	if err != nil {
 		return ente.PublicURL{}, stacktrace.Propagate(err, "")
 	}
@@ -615,7 +616,7 @@ func (c *CollectionController) UpdateShareURL(
 	if err := req.Validate(); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	if err := c.verifyOwnership(req.CollectionID, userID); err != nil {
+	if err := c.verifyOwnership(ctx, req.CollectionID, userID); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	err := c.BillingCtrl.HasActiveSelfOrFamilySubscription(userID, true)
@@ -635,8 +636,8 @@ func (c *CollectionController) UpdateShareURL(
 	return &response, nil
 }
 
-func (c *CollectionController) DisableSharedURL(ctx context.Context, userID int64, cID int64) error {
-	if err := c.verifyOwnership(cID, userID); err != nil {
+func (c *CollectionController) DisableSharedURL(ctx *gin.Context, userID int64, cID int64) error {
+	if err := c.verifyOwnership(ctx, cID, userID); err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	err := c.CollectionLinkCtrl.Disable(ctx, cID)

@@ -6,6 +6,10 @@ struct MessageTextView: UIViewRepresentable {
     @Binding var isFocused: Bool
     let moveCursorToEndToken: UUID
     let onSubmit: () -> Void
+    var insertionCaret: Int? = nil
+    var onSelectionChange: ((NSRange, Bool) -> Void)? = nil
+    var readOnly = false
+    var maximumLines: CGFloat = 5
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -32,13 +36,23 @@ struct MessageTextView: UIViewRepresentable {
 
     func updateUIView(_ uiView: UITextView, context: Context) {
         context.coordinator.parent = self
+        uiView.isEditable = !readOnly
         if uiView.text != text {
             uiView.undoManager?.removeAllActions()
             uiView.text = text
+            if readOnly, !uiView.isDragging, !uiView.isDecelerating {
+                let caret = min(
+                    insertionCaret ?? (text as NSString).length, (text as NSString).length)
+                uiView.selectedRange = NSRange(location: caret, length: 0)
+                uiView.scrollRangeToVisible(uiView.selectedRange)
+            }
         }
         if context.coordinator.lastCursorToken != moveCursorToEndToken {
             context.coordinator.lastCursorToken = moveCursorToEndToken
-            uiView.selectedRange = NSRange(location: (text as NSString).length, length: 0)
+            uiView.selectedRange = NSRange(
+                location: min(
+                    insertionCaret ?? (text as NSString).length, (text as NSString).length),
+                length: 0)
         }
         if isFocused != uiView.isFirstResponder {
             DispatchQueue.main.async { [weak uiView, weak coordinator = context.coordinator] in
@@ -55,12 +69,14 @@ struct MessageTextView: UIViewRepresentable {
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize?
     {
         guard let width = proposal.width, width > 0, width.isFinite else { return nil }
-        return CGSize(width: width, height: Self.height(for: text, width: width))
+        return CGSize(
+            width: width,
+            height: Self.height(for: text, width: width, maximumLines: maximumLines))
     }
 
-    private static func height(for text: String, width: CGFloat) -> CGFloat {
+    private static func height(for text: String, width: CGFloat, maximumLines: CGFloat) -> CGFloat {
         let font = UIFont.systemFont(ofSize: 15)
-        let maximumHeight = ceil(font.lineHeight * 5)
+        let maximumHeight = ceil(font.lineHeight * maximumLines)
         let scalars = text.unicodeScalars.prefix(1025)
         guard scalars.count <= 1024 else { return maximumHeight }
         let sample = String(String.UnicodeScalarView(scalars)) + "\u{200B}"
@@ -97,6 +113,11 @@ struct MessageTextView: UIViewRepresentable {
 
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text
+            parent.onSelectionChange?(textView.selectedRange, textView.markedTextRange != nil)
+        }
+
+        func textViewDidChangeSelection(_ textView: UITextView) {
+            parent.onSelectionChange?(textView.selectedRange, textView.markedTextRange != nil)
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {

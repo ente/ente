@@ -1,2 +1,0 @@
-- Unified album and people selection sheets with photo selection and consistent action labels.
-- Prevented swiping between tabs while selecting photos.

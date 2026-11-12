@@ -451,7 +451,7 @@ func (h *CollectionHandler) Rename(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	if err := h.Controller.Rename(auth.GetUserID(c.Request.Header), request.CollectionID, request.EncryptedName, request.NameDecryptionNonce); err != nil {
+	if err := h.Controller.Rename(c, auth.GetUserID(c.Request.Header), request.CollectionID, request.EncryptedName, request.NameDecryptionNonce); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}

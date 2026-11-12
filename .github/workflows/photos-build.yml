@@ -12,7 +12,7 @@ on:
         - cron: "5 21 * * 0-4"
 
 permissions:
-    contents: write
+    contents: read
 
 concurrency:
     group: photos-build
@@ -39,7 +39,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ github.ref_name }}
+                  ref: ${{ github.sha }}
 
             - name: Prepare release
               id: prepare
@@ -83,6 +83,8 @@ jobs:
                   node .github/scripts/release-notes.mjs mobile/apps/photos/changes "${release_tag}" >> "${GITHUB_OUTPUT}"
 
     build-android:
+        permissions:
+            contents: write
         needs: build-metadata
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
@@ -114,7 +116,7 @@ jobs:
                   java-version: "17"
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs photos set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -222,6 +224,7 @@ jobs:
         env:
             BUILD_NUMBER: ${{ needs.build-metadata.outputs.build_number }}
             RELEASE_VERSION: ${{ needs.build-metadata.outputs.release_version }}
+            ARTIFACT_STEM: ${{ needs.build-metadata.outputs.artifact_stem }}
 
         defaults:
             run:
@@ -234,7 +237,7 @@ jobs:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs photos set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
@@ -252,7 +255,7 @@ jobs:
               working-directory: mobile/apps/photos/ios
 
             - name: Import Apple Distribution certificate
-              uses: Apple-Actions/import-codesign-certs@77ba2a2a8f5cfc8c405ebf3159f767c323e238f9 # v7.1.0
+              uses: Apple-Actions/import-codesign-certs@288b8ec97b82c66b6f2a6baaf7acc8dfbcbe331c # v7.2.0
               with:
                   p12-file-base64: ${{ secrets.APPLE_DISTRIBUTION_CERT_BASE64 }}
                   p12-password: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
@@ -282,6 +285,7 @@ jobs:
                       DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
                       APP_STORE_PROFILE_SPECIFIER="Photos App Store" \
                       SHARE_EXTENSION_APP_STORE_PROFILE_SPECIFIER="Photos Share Extension App Store" \
+                      NOTIFICATION_SERVICE_EXTENSION_APP_STORE_PROFILE_SPECIFIER="Photos Notification Service Extension App Store" \
                       ALBUM_WIDGET_APP_STORE_PROFILE_SPECIFIER="Photos Album Widget App Store" \
                       MEMORY_WIDGET_APP_STORE_PROFILE_SPECIFIER="Photos Memory Widget App Store" \
                       PEOPLE_WIDGET_APP_STORE_PROFILE_SPECIFIER="Photos People Widget App Store" \
@@ -297,7 +301,24 @@ jobs:
                       -authenticationKeyID "${ASC_KEY_ID}" \
                       -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
 
+            - name: Package Photos IPA
+              run: |
+                  payload="${RUNNER_TEMP}/photos-qa/Payload"
+                  mkdir -p "${payload}"
+                  ditto build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app "${payload}/Runner.app"
+                  ditto -c -k --norsrc --keepParent "${payload}" "build/ios/${ARTIFACT_STEM}.ipa"
+
+            - name: Upload Photos IPA for release
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: photos-ipa
+                  path: mobile/apps/photos/build/ios/${{ needs.build-metadata.outputs.artifact_stem }}.ipa
+                  compression-level: 0
+                  overwrite: true
+
     finish-build:
+        permissions:
+            contents: write
         needs: [build-metadata, build-android, build-ios]
         if: needs.build-metadata.outputs.should_build == 'true'
         runs-on: ubuntu-latest
@@ -320,6 +341,12 @@ jobs:
             - name: Combine checksums
               run: sort -k2 checksums/SHA256SUMS-* > SHA256SUMS
 
+            - name: Download Photos IPA
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: photos-ipa
+                  path: nightly
+
             - name: Point release tag at the successfully built commit
               env:
                   COMMIT_SHA: ${{ needs.build-metadata.outputs.commit_sha }}
@@ -337,11 +364,16 @@ jobs:
                   repositories: nightly
                   permission-contents: write
 
-            - name: Upload checksum to nightly release
+            - name: Upload IPA and checksums to nightly release
+              working-directory: nightly
               env:
                   GH_TOKEN: ${{ steps.nightly_token.outputs.token }}
                   RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
-              run: gh release upload "${RELEASE_TAG}" SHA256SUMS --clobber --repo ente/nightly
+                  ARTIFACT_STEM: ${{ needs.build-metadata.outputs.artifact_stem }}
+              run: |
+                  sha256sum "${ARTIFACT_STEM}.ipa" > SHA256SUMS-ios
+                  sort -k2 ../SHA256SUMS SHA256SUMS-ios > SHA256SUMS
+                  gh release upload "${RELEASE_TAG}" "${ARTIFACT_STEM}.ipa" SHA256SUMS --clobber --repo ente/nightly
 
             - name: Upload checksum to RC draft
               if: startsWith(github.ref_name, 'release/')

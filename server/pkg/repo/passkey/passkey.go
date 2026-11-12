@@ -203,6 +203,9 @@ func (r *Repository) GetUserPasskeys(userID int64) (passkeys []ente.Passkey, err
 
 		passkeys = append(passkeys, passkey)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read user passkeys")
+	}
 
 	return
 }
@@ -725,6 +728,9 @@ func webAuthnCredentialsFromRows(rows *sql.Rows) (credentials []webauthn.Credent
 		}
 
 		credentials = append(credentials, *cred)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read WebAuthn credentials")
 	}
 
 	return

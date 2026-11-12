@@ -133,6 +133,7 @@
       "count": {}
     }
   },
+  "addItems": "添加项目",
   "addLocation": "添加地点",
   "addLocationButton": "添加",
   "addMember": "添加成员",
@@ -168,6 +169,7 @@
   "addTo": "添加到",
   "addToAlbum": "添加到相册",
   "addToCollection": "添加到集合",
+  "addToCollections": "添加到集合",
   "addToEnte": "添加到 Ente",
   "addToHiddenAlbum": "添加到隐藏相册",
   "addToPerson": "添加到人员",
@@ -435,6 +437,10 @@
   "backupFailed": "备份失败",
   "backupFile": "备份文件",
   "backupFolderLabel": "备份文件夹：",
+  "backupLatestPhotos": "备份最新的照片",
+  "@backupLatestPhotos": {
+    "description": "Button on the photo permission screen that backs up only recent photos"
+  },
   "backupLocationChoiceDescription": "您想将备份保存在何处？",
   "backupMode": "备份模式",
   "backupModeBackingUpItems": "{count, plural, one{正在备份 {formattedCount} 个项目} other{正在备份 {formattedCount} 个项目}}",
@@ -595,6 +601,10 @@
   "checkStatus": "检查状态",
   "@checkStatus": {
     "description": "Check status button label"
+  },
+  "chooseAlbumsToBackup": "选择要备份的相册",
+  "@chooseAlbumsToBackup": {
+    "description": "Button on the photo permission screen that opens album selection for backup"
   },
   "chooseARecoveryTime": "选择恢复时间",
   "chooseBackupLocation": "选择备份位置",
@@ -1084,6 +1094,8 @@
   "disablingTwofactorAuthentication": "正在禁用双重认证...",
   "discardChanges": "放弃",
   "discardEditsQuestion": "要放弃更改吗？",
+  "discardUploadMessage": "您选择的项目将不会被保存。",
+  "discardUploadTitle": "放弃上传？",
   "discover": "发现",
   "@discover": {
     "description": "The text to display for the discover section under which we show receipts, screenshots, sunsets, greenery, etc."
@@ -1811,10 +1823,12 @@
   "@forgotPassword": {
     "description": "Forgot password link label"
   },
+  "forgotPasswordPrompt": "忘记密码？",
   "forgotRecoveryKey": "丢失恢复密钥？",
   "free10GB": "在 <bold-green>ente</bold-green> Photos 上可享 10 GB 免费空间",
   "freeStorageOffer": "购买 <bold-green>ente</bold-green> Photos 可享 10% 折扣",
   "freeStorageOfferDescription": "使用优惠码“AUTH”可享受首年 10% 折扣",
+  "free": "免费",
   "freeTrial": "免费试用",
   "freeUpAmount": "释放 {sizeInMBorGB}",
   "@freeUpAmount": {
@@ -1871,6 +1885,9 @@
   "grantPermissionDesc": "请允许 Ente 访问您的图库，以便我们使用人脸识别进行整理。所有处理均在您的设备上进行。",
   "greenery": "绿色生活",
   "grid": "网格",
+  "photosInOriginalProportions": "原始比例的照片",
+  "squarePhotos": "方形照片",
+  "photosPerRow": "每行照片",
   "groupBy": "分组依据",
   "groupByDay": "天",
   "groupByMonth": "按月",
@@ -2121,6 +2138,7 @@
       }
     }
   },
+  "itemsLabel": "项目",
   "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "项目显示永久删除前剩余的天数",
   "itemsStored": "已存储项目",
   "itemsWillBeDeletedFromAllCollections": "{count, plural, one{此项目将从所有集合中删除。您可以从回收站恢复它。} other{这些项目将从所有集合中删除。您可以从回收站恢复它们。}}",
@@ -2157,9 +2175,6 @@
   "lastYearsTrip": "去年的旅行",
   "layout": "布局",
   "layoutGrouped": "已分组",
-  "layoutJustified": "对齐布局",
-  "layoutJustifiedComfort": "对齐 · 舒适",
-  "layoutJustifiedFlex": "对齐 · 弹性",
   "layoutMasonry": "瀑布流布局",
   "layoutTrip": "旅游",
   "leave": "离开",
@@ -2630,7 +2645,10 @@
   "mlConsent": "启用机器学习",
   "mlConsentConfirmation": "我了解了，并希望启用机器学习",
   "mlConsentDescription": "如果您启用机器学习，Ente 将从文件（包括与您共享的文件）中提取面部几何形状等信息。\n\n这将在您的设备上进行，并且任何生成的生物特征信息都将被端到端加密。",
-  "mlConsentPrivacy": "请点击此处查看我们隐私政策中有关此功能的更多详细信息",
+  "mlConsentPrivacyDetails": "请<policy>点击此处</policy>，了解我们隐私政策中有关此功能的更多详情",
+  "@mlConsentPrivacyDetails": {
+    "description": "Machine learning consent screen sentence; only the text inside the policy tags is tappable and opens the privacy policy"
+  },
   "mlCouldNotProcessItems": "{count, plural, one{无法处理 {count} 个项目} other{无法处理 {count} 个项目}}",
   "@mlCouldNotProcessItems": {
     "description": "Title shown when machine learning could not process one or more items",
@@ -2674,6 +2692,7 @@
   "modifyYourQueryOrTrySearchingFor": "修改您的查询，或尝试搜索",
   "moments": "瞬间",
   "month": "月",
+  "mostPopular": "最受欢迎",
   "monthly": "每月",
   "@monthly": {
     "description": "The text to display for monthly plans",
@@ -2937,6 +2956,7 @@
   "openAlbumInBrowser": "在浏览器中打开相册",
   "openAlbumInBrowserTitle": "请使用网页应用将照片添加到此相册",
   "openFile": "打开文件",
+  "openInAnotherApp": "在其他应用中打开",
   "openLink": "打开链接",
   "openSettings": "打开设置",
   "openstreetmapContributors": "OpenStreetMap 贡献者",
@@ -3022,6 +3042,8 @@
       }
     }
   },
+  "pdfNeedsPassword": "此 PDF 需要密码",
+  "pdfPasswordNotSupportedOnDevice": "此设备无法解锁受密码保护的 PDF。请在其他应用中打开它。",
   "pending": "待处理",
   "pendingSync": "正在等待同步",
   "pendingSyncs": "警告",
@@ -3235,6 +3257,7 @@
     }
   },
   "publicLink": "公开链接",
+  "publicCollectionLinkAccessDescription": "任何拥有该链接的人，无需 Ente 账户即可打开该合集。",
   "publicLinkAccessDescription": "任何人无需 Ente 账户即可通过此链接打开相册。",
   "publicLinkCollectDescription": "任何人都可以通过此链接向您的相册添加照片。",
   "publicLinkEnabled": "公开链接已启用",
@@ -3986,6 +4009,10 @@
   "@send": {
     "description": "Label for send button"
   },
+  "sendACopy": "发送副本",
+  "@sendACopy": {
+    "description": "Share a copy of the current photo or video using the system share sheet, as opposed to sending a viewing link"
+  },
   "sendCountInvites": "{count, plural, =0{发送邀请} other{发送 {count} 个邀请}}",
   "@sendCountInvites": {
     "placeholders": {
@@ -3994,6 +4021,10 @@
         "example": "2"
       }
     }
+  },
+  "sendFileToAnotherApp": "将文件发送到另一个应用",
+  "@sendFileToAnotherApp": {
+    "description": "Subtitle for sending a copy of the current photo or video from the file viewer"
   },
   "sendInvite": "发送邀请",
   "sendLink": "发送链接",
@@ -4105,6 +4136,10 @@
   "shareKey": "共享密钥",
   "shareLegacyDescription": "将每张卡片发送给对应的人。任何单张卡片都无法单独生效。",
   "shareLink": "共享链接",
+  "shareLinkToThisItem": "分享此项目的链接",
+  "@shareLinkToThisItem": {
+    "description": "Subtitle for sending a viewing link to the current photo or video from the file viewer"
+  },
   "shareMemory": "共享回忆",
   "shareMyVerificationID": "这是我的 ente.com 验证 ID：{verificationID}。",
   "@shareMyVerificationID": {
@@ -4248,6 +4283,7 @@
   "sortAToZ": "A-Z",
   "sortNewestFirst": "最新在前",
   "sortOldestFirst": "最旧在前",
+  "sortPhotos": "照片排序",
   "sortZToA": "Z-A",
   "speed": "速度",
   "sportsAction": "开赛时刻",
@@ -4587,6 +4623,7 @@
   "unavailableReferralCode": "此代码已被使用",
   "uncategorized": "未分类",
   "uncategorizedItemsWillShowUpHere": "未分类的项目将显示在此处",
+  "uncategorizedUploadHint": "如果你跳过，项目将归入“未分类”",
   "undo": "撤销",
   "unhide": "取消隐藏",
   "unhideToAlbum": "取消隐藏到相册",
@@ -4597,6 +4634,7 @@
   "@unlock": {
     "description": "Short action label used as the system authentication reason when unlocking the app"
   },
+  "unlockPdf": "解锁",
   "unnamedCollection": "未命名集合",
   "unnamedPeopleDoingSomethingTogether": "一起做一件事",
   "unnamedPeopleSpotlight": "一张熟悉的面孔",
@@ -4685,6 +4723,7 @@
     }
   },
   "uploadingSingleMemory": "正在保存 1 个回忆...",
+  "uploadItemsRemoved": "没有待上传的项目",
   "uploadIsIgnoredDueToIgnorereason": "由于 {ignoreReason}，上传被忽略",
   "@uploadIsIgnoredDueToIgnorereason": {
     "placeholders": {
@@ -4722,6 +4761,10 @@
   "@useRecoveryKey": {
     "description": "Use recovery key button label"
   },
+  "useTwoFactorInstead": "改用 2FA",
+  "@useTwoFactorInstead": {
+    "description": "Link on the passkey verification screen to verify with an authenticator code instead"
+  },
   "username": "用户名",
   "usernameHint": "登录 ID 或电子邮件",
   "useSelectedPhoto": "使用所选照片",
@@ -4733,6 +4776,10 @@
         "example": "20 GB"
       }
     }
+  },
+  "validEmailAddress": "有效的电子邮件地址",
+  "@validEmailAddress": {
+    "description": "Success message under the email field once the address is valid"
   },
   "validTill": "有效期至 {endDate}",
   "@validTill": {
@@ -4867,6 +4914,10 @@
     "placeholders": {
       "count": {}
     }
+  },
+  "year": "年",
+  "@year": {
+    "description": "Billing period suffix on the pricing page (/year)"
   },
   "yearShort": "年",
   "@yearShort": {

@@ -1,4 +1,4 @@
-part of "smart_memories_service.dart";
+part of "memories/dart_memories_computer.dart";
 
 class _LocationCluster {
   final List<EnteFile> files;
@@ -150,6 +150,7 @@ class TripMemoriesCalculatorV2 {
     final analysis = analyze(
       allFiles,
       allFileIdsToFile,
+      currentTime,
       isLocalGalleryMode: isLocalGalleryMode,
       seenTimes: seenTimes,
       citySearchIndex: citySearchIndex,
@@ -174,7 +175,8 @@ class TripMemoriesCalculatorV2 {
 
   static TripMemoriesAnalysis analyze(
     Iterable<EnteFile> allFiles,
-    Map<int, EnteFile> allFileIdsToFile, {
+    Map<int, EnteFile> allFileIdsToFile,
+    DateTime currentTime, {
     required bool isLocalGalleryMode,
     required Map<int, int> seenTimes,
     required CitySearchIndex citySearchIndex,
@@ -191,6 +193,7 @@ class TripMemoriesCalculatorV2 {
       ..sort((a, b) => a.creationTime!.compareTo(b.creationTime!));
     final baseLocations = _detectBaseLocations(
       filesWithLocation,
+      currentTime,
       isLocalGalleryMode: isLocalGalleryMode,
     );
     final baseCountriesToExclude = _baseCountriesToExcludeFromTripTitles(
@@ -334,7 +337,8 @@ class TripMemoriesCalculatorV2 {
   }
 
   static List<BaseLocation> _detectBaseLocations(
-    List<EnteFile> filesWithLocation, {
+    List<EnteFile> filesWithLocation,
+    DateTime currentTime, {
     required bool isLocalGalleryMode,
   }) {
     final smallRadiusClusters = _mergeNearbyLocationClusters(
@@ -354,13 +358,13 @@ class TripMemoriesCalculatorV2 {
         creationTimes.last,
       );
       final bool isCurrent = lastCreationTime.isAfter(
-        DateTime.now().subtract(const Duration(days: 90)),
+        currentTime.subtract(const Duration(days: 90)),
       );
       baseLocations.add(
         BaseLocation(
           files
               .map(
-                (file) => SmartMemoriesService._memoryFileId(
+                (file) => DartMemoriesComputer._memoryFileId(
                   file,
                   isLocalGalleryMode: isLocalGalleryMode,
                 ),
@@ -519,15 +523,18 @@ class TripMemoriesCalculatorV2 {
   }
 
   static bool _isValidTrip(
-    List<EnteFile> files,
+    List<EnteFile> sortedFiles,
     Location location,
     List<BaseLocation> bases,
   ) {
-    if (files.length < _minTripPhotos) return false;
+    if (sortedFiles.length < _minTripPhotos) return false;
 
-    final times = files.map((f) => f.creationTime!).toList()..sort();
-    final first = DateTime.fromMicrosecondsSinceEpoch(times.first);
-    final last = DateTime.fromMicrosecondsSinceEpoch(times.last);
+    final first = DateTime.fromMicrosecondsSinceEpoch(
+      sortedFiles.first.creationTime!,
+    );
+    final last = DateTime.fromMicrosecondsSinceEpoch(
+      sortedFiles.last.creationTime!,
+    );
     final days = last.difference(first).inDays;
     if (days < _minTripDays) return false;
 
@@ -932,7 +939,7 @@ class TripMemoriesCalculatorV2 {
       final files = baseLocation.fileIDs
           .map((fileID) => allFileIdsToFile[fileID]!)
           .toList();
-      final String? locationName = SmartMemoriesService._tryFindLocationName(
+      final String? locationName = DartMemoriesComputer._tryFindLocationName(
         Memory.fromFiles(files, seenTimes),
         citySearchIndex,
         base: true,
@@ -955,12 +962,12 @@ class TripMemoriesCalculatorV2 {
       final year = DateTime.fromMicrosecondsSinceEpoch(
         trip.averageCreationTime(),
       ).year;
-      final String? locationName = SmartMemoriesService._tryFindLocationName(
+      final String? locationName = DartMemoriesComputer._tryFindLocationName(
         trip.memories,
         citySearchIndex,
         excludedCountryNames: baseCountriesToExclude,
       );
-      final photoSelection = await SmartMemoriesService._bestSelection(
+      final photoSelection = await DartMemoriesComputer._bestSelection(
         List<Memory>.of(trip.memories),
         isLocalGalleryMode: isLocalGalleryMode,
         mlEnabled: mlEnabled,
@@ -1104,12 +1111,12 @@ class TripMemoriesCalculatorV2 {
       final year = DateTime.fromMicrosecondsSinceEpoch(
         trip.averageCreationTime(),
       ).year;
-      final String? locationName = SmartMemoriesService._tryFindLocationName(
+      final String? locationName = DartMemoriesComputer._tryFindLocationName(
         trip.memories,
         citySearchIndex,
         excludedCountryNames: baseCountriesToExclude,
       );
-      final photoSelection = await SmartMemoriesService._bestSelection(
+      final photoSelection = await DartMemoriesComputer._bestSelection(
         List<Memory>.of(trip.memories),
         isLocalGalleryMode: isLocalGalleryMode,
         mlEnabled: mlEnabled,
@@ -1147,7 +1154,7 @@ class TripMemoriesCalculatorV2 {
         continue;
       }
 
-      final countryName = SmartMemoriesService._tryFindCountryName(
+      final countryName = DartMemoriesComputer._tryFindCountryName(
         Memory.fromFiles(files, seenTimes),
         citySearchIndex,
       );
@@ -1155,7 +1162,7 @@ class TripMemoriesCalculatorV2 {
         continue;
       }
 
-      final normalizedCountry = SmartMemoriesService._normalizePlaceName(
+      final normalizedCountry = DartMemoriesComputer._normalizePlaceName(
         countryName,
       );
       if (normalizedCountry.isNotEmpty) {

@@ -1,3 +1,11 @@
+import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
+
+const slideArrowSVG = (icon: typeof ArrowLeft01Icon) =>
+    `<svg class="pswp__icn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon.map(([, attributes]) => `<path d="${attributes.d}" />`).join("")}</svg>`;
+
+export const slideArrowPrevSVG = slideArrowSVG(ArrowLeft01Icon);
+export const slideArrowNextSVG = slideArrowSVG(ArrowRight01Icon);
+
 // PhotoSwipe requires raw SVG markup; named entries came from the matching MUI icons.
 // Transforms are local alignment adjustments, not part of the MUI paths.
 const paths = {

@@ -94,6 +94,11 @@ jobs:
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'server-lint') }}
         uses: ./.github/workflows/server-lint.yml
 
+    web-e2e:
+        needs: select
+        if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'web-e2e') }}
+        uses: ./.github/workflows/web-e2e.yml
+
     web-lint:
         needs: select
         if: ${{ contains(fromJSON(needs.select.outputs.jobs), 'web-lint') }}
@@ -118,6 +123,7 @@ jobs:
             - rust-lint
             - rust-test
             - server-lint
+            - web-e2e
             - web-lint
         runs-on: ubuntu-latest
         steps:

@@ -2,7 +2,7 @@ use super::*;
 use anyhow::{Result, bail};
 use ente_core::{Session, crypto::SecretKey, http::ApiConfig};
 use ente_photos::{collections, files, source::Documents};
-use ente_photos_export::{CollectionEntry, Export, FileEntry, Options, Source, Summary};
+use ente_photos_export::{CollectionEntry, Export, FileEntry, Options, Report, Source, Summary};
 use std::{collections::BTreeMap, path::PathBuf};
 use tokio::sync::watch;
 
@@ -150,32 +150,41 @@ impl Engine {
     }
 
     pub fn prepare(&mut self, options: Options) -> Result<Export> {
+        self.prepare_with_report(options, &|report| eprintln!("{report:?}"))
+    }
+
+    pub fn prepare_with_report(
+        &mut self,
+        options: Options,
+        report: &(dyn Fn(Report<'_>) + Sync),
+    ) -> Result<Export> {
         let mut export = Export::open(&self.root(), &self.session, options)?;
         let (_send, mut cancel) = watch::channel(false);
         let db = self.db();
         tokio::runtime::Runtime::new()?.block_on(export.prepare(
             db,
-            |path| {
-                let db = rusqlite::Connection::open(path)?;
+            || {
+                let directory = tempfile::tempdir_in(self.directory.path())?;
+                let db = rusqlite::Connection::open(directory.path().join("index.db"))?;
                 db.pragma_update(None, "key", b64::encode(Key::generate().as_bytes()))?;
-                Ok(db)
+                Ok((directory, db))
             },
             &mut self.catalog,
             &self.session,
             &mut cancel,
-            &|line| eprintln!("{line}"),
+            report,
         ))?;
         Ok(export)
     }
 
     pub fn execute(&self, export: Export) -> Result<Summary> {
-        self.execute_with_report(export, &|line| eprintln!("{line}"))
+        self.execute_with_report(export, &|report| eprintln!("{report:?}"))
     }
 
     pub fn execute_with_report(
         &self,
         mut export: Export,
-        report: &(dyn Fn(&str) + Sync),
+        report: &(dyn Fn(Report<'_>) + Sync),
     ) -> Result<Summary> {
         let (send, cancel) = watch::channel(false);
         tokio::runtime::Runtime::new()?

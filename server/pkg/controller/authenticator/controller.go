@@ -1,4 +1,4 @@
-package authenticaor
+package authenticator
 
 import (
 	"errors"

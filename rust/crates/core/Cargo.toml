@@ -10,7 +10,7 @@ crypto_secretbox = { version = "0.1.0", default-features = false, features = ["a
 crypto_secretstream = "=0.2.0"
 getrandom.workspace = true
 hmac.workspace = true
-hpke = { version = "0.14.1", default-features = false, features = ["alloc", "chacha", "getrandom", "mlkem", "x25519"] }
+hpke = { version = "0.15.1", default-features = false, features = ["alloc", "chacha", "getrandom", "mlkem", "x25519"] }
 log.workspace = true
 md-5.workspace = true
 rand_core_06 = { package = "rand_core", version = "0.6.0", features = ["getrandom"] }

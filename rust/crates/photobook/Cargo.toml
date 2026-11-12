@@ -1,0 +1,10 @@
+[package]
+name = "ente-photobook"
+edition.workspace = true
+
+[dependencies]
+jpeg-encoder.workspace = true
+moxcms.workspace = true
+
+[lints]
+workspace = true

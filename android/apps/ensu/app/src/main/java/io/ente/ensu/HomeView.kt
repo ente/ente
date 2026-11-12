@@ -2,8 +2,6 @@
 
 package io.ente.ensu
 
-import android.annotation.SuppressLint
-import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -42,8 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.core.content.OnTrimMemoryProvider
-import androidx.core.util.Consumer
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -102,6 +98,24 @@ fun HomeView(
         var imagePreviewAttachment by remember { mutableStateOf<Attachment?>(null) }
         val whatsNewService = remember(context) { WhatsNewService(context.applicationContext) }
         var pendingWhatsNew by remember { mutableStateOf<PendingWhatsNew?>(null) }
+
+        LaunchedEffect(store) {
+            store.openedNotification.collect { opened ->
+                if (opened != null) {
+                    deleteSessionTarget = null
+                    imagePreviewAttachment = null
+                    showLogShareDialog = false
+                    showSignInComingSoon = false
+                    pendingWhatsNew = null
+                    navController.navigate(HomeRoute.Chat) {
+                        popUpTo(HomeRoute.Chat) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    store.acknowledgeOpenedNotification(opened)
+                    drawerState.close()
+                }
+            }
+        }
 
         val handleSignInRequest: () -> Unit = { showSignInComingSoon = true }
 
@@ -192,6 +206,7 @@ fun HomeView(
             }
 
         BackHandler(enabled = !isChatRoute) {
+            store.cancelNotificationNavigation()
             if (!navController.popBackStack()) {
                 navController.navigate(HomeRoute.Chat) { launchSingleTop = true }
             }
@@ -214,15 +229,16 @@ fun HomeView(
                 } else if (event == Lifecycle.Event.ON_STOP) {
                     latestStore.notesStore.setForeground(false)
                     latestStore.setChatActive(false)
-                    latestStore.setAppForeground(false)
+                    if ((context as? android.app.Activity)?.isChangingConfigurations != true)
+                        latestStore.setAppForeground(false)
                 }
             }
             latestStore.notesStore.setForeground(
                 lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
             )
-            latestStore.setAppForeground(
-                lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-            )
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                latestStore.setAppForeground(true)
+            }
             lifecycleOwner.lifecycle.addObserver(observer)
             latestStore.setChatActive(
                 isChatRoute &&
@@ -230,28 +246,18 @@ fun HomeView(
             )
             onDispose {
                 latestStore.setChatActive(false)
-                latestStore.setAppForeground(false)
+                if ((context as? android.app.Activity)?.isChangingConfigurations != true)
+                    latestStore.setAppForeground(false)
                 lifecycleOwner.lifecycle.removeObserver(observer)
             }
         }
 
         LaunchedEffect(isChatRoute, lifecycleOwner) {
+            if (!isChatRoute) latestStore.voiceController.interrupt()
             latestStore.setChatActive(
                 isChatRoute &&
                     lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             )
-        }
-
-        DisposableEffect(lifecycleOwner) {
-            val callbacks = lifecycleOwner as? OnTrimMemoryProvider
-            val listener =
-                Consumer<Int> { level ->
-                    if (level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-                        latestStore.handleMemoryPressure()
-                    }
-                }
-            callbacks?.addOnTrimMemoryListener(listener)
-            onDispose { callbacks?.removeOnTrimMemoryListener(listener) }
         }
 
         LaunchedEffect(whatsNewService) {
@@ -302,6 +308,7 @@ fun HomeView(
                     },
                     onDeleteSession = { session -> deleteSessionTarget = session },
                     onOpenSettings = {
+                        store.cancelNotificationNavigation()
                         navController.navigate(HomeRoute.Settings) {
                             launchSingleTop = true
                             restoreState = true
@@ -505,12 +512,9 @@ private fun buildAttachmentFromUri(
             FileOutputStream(destination).use { output -> output.write(compressedBytes) }
             finalName = normalizedJpegAttachmentName(name ?: safeName)
         } else {
-            // Lint misses the close performed by use.
-            @SuppressLint("Recycle")
-            val inputStream = resolver.openInputStream(uri) ?: return@runCatching null
-            inputStream.use { input ->
+            resolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(destination).use { output -> input.copyTo(output) }
-            }
+            } ?: return@runCatching null
             finalName = name ?: safeName
         }
 
@@ -581,26 +585,23 @@ private fun openAttachment(context: Context, attachment: Attachment) {
     }
 }
 
-// Lint misses the close performed by use.
-@SuppressLint("Recycle")
 private fun queryDisplayName(resolver: android.content.ContentResolver, uri: Uri): String? {
-    resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+    val cursor =
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null) ?: return null
+    return cursor.use {
         if (cursor.moveToFirst()) {
             val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (index >= 0) return cursor.getString(index)
-        }
+            if (index >= 0) cursor.getString(index) else null
+        } else null
     }
-    return null
 }
 
-// Lint misses the close performed by use.
-@SuppressLint("Recycle")
 private fun querySize(resolver: android.content.ContentResolver, uri: Uri): Long? {
-    resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+    val cursor = resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null) ?: return null
+    return cursor.use {
         if (cursor.moveToFirst()) {
             val index = cursor.getColumnIndex(OpenableColumns.SIZE)
-            if (index >= 0) return cursor.getLong(index)
-        }
+            if (index >= 0) cursor.getLong(index) else null
+        } else null
     }
-    return null
 }

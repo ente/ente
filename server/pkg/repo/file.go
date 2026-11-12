@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/dbmetrics"
 	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/ente/museum/pkg/utils/time"
 	"github.com/lib/pq"
@@ -28,6 +29,11 @@ type FileRepository struct {
 	ObjectCopiesRepo  *ObjectCopiesRepository
 }
 
+type FileObjectBuckets struct {
+	File      string
+	Thumbnail string
+}
+
 func (repo *FileRepository) Create(
 	file ente.File,
 	fileSize int64,
@@ -35,20 +41,22 @@ func (repo *FileRepository) Create(
 	usageDiff int64,
 	collectionOwnerID int64,
 	app ente.App,
+	buckets FileObjectBuckets,
 ) (ente.File, int64, error) {
-	hotDC := repo.S3Config.GetHotDataCenter()
-	dcsForNewEntry := pq.StringArray{hotDC}
 	if file.OwnerID != collectionOwnerID {
 		return file, -1, stacktrace.Propagate(errors.New("both file and collection should belong to same owner"), "")
 	}
 
 	ctx := context.Background()
+	finishPhase := dbmetrics.Start(dbmetrics.FileCreate, "begin_with_checkout")
 	tx, err := repo.DB.BeginTx(ctx, nil)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
 	var fileID int64
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_file")
 	err = tx.QueryRowContext(ctx, `INSERT INTO files
 			(owner_id, app, encrypted_metadata,
 			file_decryption_header, thumbnail_decryption_header, metadata_decryption_header,
@@ -56,34 +64,43 @@ func (repo *FileRepository) Create(
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING file_id`,
 		file.OwnerID, app, file.Metadata.EncryptedData, file.File.DecryptionHeader,
 		file.Thumbnail.DecryptionHeader, file.Metadata.DecryptionHeader,
-		file.MagicMetadata, file.PubicMagicMetadata, file.Info,
+		file.MagicMetadata, file.PublicMagicMetadata, file.Info,
 		file.UpdationTime).Scan(&fileID)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 	file.ID = fileID
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_membership")
 	_, err = tx.ExecContext(ctx, `INSERT INTO collection_files
 			(collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8)`, file.CollectionID, file.ID,
 		file.EncryptedKey, file.KeyDecryptionNonce, false, file.UpdationTime, file.OwnerID, collectionOwnerID)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_collection")
 	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 			WHERE collection_id = $2`, file.UpdationTime, file.CollectionID)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_original_object")
 	_, err = tx.ExecContext(ctx, `INSERT INTO object_keys(file_id, o_type, object_key, size, datacenters)
-			VALUES($1, $2, $3, $4, $5)`, fileID, ente.FILE, file.File.ObjectKey, fileSize, dcsForNewEntry)
+			VALUES($1, $2, $3, $4, $5)`, fileID, ente.FILE, file.File.ObjectKey, fileSize, pq.StringArray{buckets.File})
+	finishPhase(err)
 	if err != nil {
 		if err.Error() == "pq: duplicate key value violates unique constraint \"object_keys_object_key_key\"" {
 			return file, -1, ente.ErrDuplicateFileObjectFound
 		}
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_thumbnail_object")
 	_, err = tx.ExecContext(ctx, `INSERT INTO object_keys(file_id, o_type, object_key, size, datacenters)
-			VALUES($1, $2, $3, $4, $5)`, fileID, ente.THUMBNAIL, file.Thumbnail.ObjectKey, thumbnailSize, dcsForNewEntry)
+			VALUES($1, $2, $3, $4, $5)`, fileID, ente.THUMBNAIL, file.Thumbnail.ObjectKey, thumbnailSize, pq.StringArray{buckets.Thumbnail})
+	finishPhase(err)
 	if err != nil {
 		if err.Error() == "pq: duplicate key value violates unique constraint \"object_keys_object_key_key\"" {
 			return file, -1, ente.ErrDuplicateThumbnailObjectFound
@@ -91,25 +108,38 @@ func (repo *FileRepository) Create(
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 
-	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.File.ObjectKey, file.OwnerID, app)
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "consume_original_upload")
+	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.File.ObjectKey, file.OwnerID, app, buckets.File)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
-	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.Thumbnail.ObjectKey, file.OwnerID, app)
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "consume_thumbnail_upload")
+	err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, file.Thumbnail.ObjectKey, file.OwnerID, app, buckets.Thumbnail)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_usage")
 	usage, err := repo.updateUsageForFileCreation(ctx, tx, file.OwnerID, usageDiff, app)
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 
-	err = repo.markAsNeedingReplication(ctx, tx, file, hotDC)
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "mark_replication")
+	err = repo.markObjectAsNeedingReplication(ctx, tx, file.File.ObjectKey, buckets.File, ente.FILE)
+	if err == nil {
+		err = repo.markObjectAsNeedingReplication(ctx, tx, file.Thumbnail.ObjectKey, buckets.Thumbnail, ente.THUMBNAIL)
+	}
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "commit")
 	err = tx.Commit()
+	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
@@ -143,7 +173,7 @@ func (repo *FileRepository) CreateMetaFile(
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING file_id`,
 		metaFile.OwnerID, app, metaFile.Metadata.EncryptedData, "",
 		"", metaFile.Metadata.DecryptionHeader,
-		metaFile.MagicMetadata, metaFile.PubicMagicMetadata, info,
+		metaFile.MagicMetadata, metaFile.PublicMagicMetadata, info,
 		metaFile.UpdationTime).Scan(&fileID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -171,95 +201,51 @@ func (repo *FileRepository) CreateMetaFile(
 		return nil, stacktrace.Propagate(err, "")
 	}
 	var file ente.File = ente.File{
-		ID:                 fileID,
-		UpdationTime:       metaFile.UpdationTime,
-		OwnerID:            metaFile.OwnerID,
-		Metadata:           metaFile.Metadata,
-		PubicMagicMetadata: metaFile.PubicMagicMetadata,
-		MagicMetadata:      metaFile.MagicMetadata,
-		EncryptedKey:       metaFile.EncryptedKey,
-		KeyDecryptionNonce: metaFile.KeyDecryptionNonce,
-		Info:               info,
-		CollectionID:       metaFile.CollectionID,
+		ID:                  fileID,
+		UpdationTime:        metaFile.UpdationTime,
+		OwnerID:             metaFile.OwnerID,
+		Metadata:            metaFile.Metadata,
+		PublicMagicMetadata: metaFile.PublicMagicMetadata,
+		MagicMetadata:       metaFile.MagicMetadata,
+		EncryptedKey:        metaFile.EncryptedKey,
+		KeyDecryptionNonce:  metaFile.KeyDecryptionNonce,
+		Info:                info,
+		CollectionID:        metaFile.CollectionID,
 	}
 	return &file, stacktrace.Propagate(err, "")
 }
 
-// The controller first verifies the object in hotDC. This prevents recording an
-// upload against another bucket if hot storage changes after the client receives
-// its presigned URL.
-func (repo *FileRepository) markAsNeedingReplication(ctx context.Context, tx *sql.Tx, file ente.File, hotDC string) error {
-	if hotDC == repo.S3Config.GetHotBackblazeDC() {
-		err := repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, file.File.ObjectKey, true, true)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, file.Thumbnail.ObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else if hotDC == repo.S3Config.GetHotWasabiDC() {
-		err := repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, file.File.ObjectKey, true, true)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, file.Thumbnail.ObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else {
-		err := fmt.Errorf("only B2 and Wasabi DCs can be used for as the primary hot storage; instead, it was %s", hotDC)
-		return stacktrace.Propagate(err, "")
+func (repo *FileRepository) markObjectAsNeedingReplication(ctx context.Context, tx *sql.Tx, objectKey string, bucket string, objectType ente.ObjectType) error {
+	switch bucket {
+	case repo.S3Config.GetHotBackblazeDC():
+		return repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, objectKey, true, objectType == ente.FILE)
+	case repo.S3Config.GetHotWasabiDC():
+		return repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, objectKey, true, objectType == ente.FILE)
+	default:
+		return stacktrace.NewError("unsupported upload bucket: %s", bucket)
 	}
 }
 
-func (repo *FileRepository) markThumbnailAsNeedingReplication(ctx context.Context, tx *sql.Tx, thumbnailObjectKey string, hotDC string) error {
-	if hotDC == repo.S3Config.GetHotBackblazeDC() {
-		err := repo.ObjectCopiesRepo.CreateNewB2Object(ctx, tx, thumbnailObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else if hotDC == repo.S3Config.GetHotWasabiDC() {
-		err := repo.ObjectCopiesRepo.CreateNewWasabiObject(ctx, tx, thumbnailObjectKey, true, false)
-		return stacktrace.Propagate(err, "")
-	} else {
-		err := fmt.Errorf("only B2 and Wasabi DCs can be used for as the primary hot storage; instead, it was %s", hotDC)
+func (repo *FileRepository) ResetObjectReplication(objectKey string, bucket string, objectType ente.ObjectType) error {
+	var err error
+	switch bucket {
+	case repo.S3Config.GetHotBackblazeDC():
+		err = repo.ObjectCopiesRepo.ResetNeedsWasabiReplication(objectKey)
+	case repo.S3Config.GetHotWasabiDC():
+		err = repo.ObjectCopiesRepo.ResetNeedsB2Replication(objectKey)
+	default:
+		return stacktrace.NewError("unsupported upload bucket: %s", bucket)
+	}
+	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-}
-
-func (repo *FileRepository) ResetNeedsReplication(file ente.File, hotDC string) error {
-	if hotDC == repo.S3Config.GetHotBackblazeDC() {
-		err := repo.ObjectCopiesRepo.ResetNeedsWasabiReplication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.ResetNeedsScalewayReplication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-
-		err = repo.ObjectCopiesRepo.ResetNeedsWasabiReplication(file.Thumbnail.ObjectKey)
-		return stacktrace.Propagate(err, "")
-	} else if hotDC == repo.S3Config.GetHotWasabiDC() {
-		err := repo.ObjectCopiesRepo.ResetNeedsB2Replication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		err = repo.ObjectCopiesRepo.ResetNeedsScalewayReplication(file.File.ObjectKey)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-
-		err = repo.ObjectCopiesRepo.ResetNeedsB2Replication(file.Thumbnail.ObjectKey)
-		return stacktrace.Propagate(err, "")
-	} else {
-		err := fmt.Errorf("only B2 and Wasabi DCs can be used for as the primary hot storage; instead, it was %s", hotDC)
-		return stacktrace.Propagate(err, "")
+	if objectType == ente.FILE {
+		return repo.ObjectCopiesRepo.ResetNeedsScalewayReplication(objectKey)
 	}
+	return nil
 }
 
-func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, stagedObjects []string, app ente.App) error {
-	hotDC := repo.S3Config.GetHotDataCenter()
-	dcsForNewEntry := pq.StringArray{hotDC}
-	// iOS may retry after backgrounding before receiving a successful response.
-	// Only matching object keys and total size make the update a duplicate.
-	isDuplicateRequest := len(stagedObjects) == 0 && usageDiff == 0
-
+func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize int64, usageDiff int64, oldObjects []string, stagedObjects []string, app ente.App, buckets FileObjectBuckets) error {
 	ctx := context.Background()
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -305,7 +291,7 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 			SET object_key = $1, size = $2,
 				datacenters = CASE WHEN object_key = $1 THEN datacenters ELSE $3 END
 			WHERE file_id = $4 AND o_type = $5`,
-		file.File.ObjectKey, fileSize, dcsForNewEntry, file.ID, ente.FILE)
+		file.File.ObjectKey, fileSize, pq.StringArray{buckets.File}, file.ID, ente.FILE)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -313,7 +299,7 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 			SET object_key = $1, size = $2,
 				datacenters = CASE WHEN object_key = $1 THEN datacenters ELSE $3 END
 			WHERE file_id = $4 AND o_type = $5`,
-		file.Thumbnail.ObjectKey, thumbnailSize, dcsForNewEntry, file.ID, ente.THUMBNAIL)
+		file.Thumbnail.ObjectKey, thumbnailSize, pq.StringArray{buckets.Thumbnail}, file.ID, ente.THUMBNAIL)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -322,16 +308,14 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 		return stacktrace.Propagate(err, "")
 	}
 	for _, objectKey := range stagedObjects {
-		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, objectKey, file.OwnerID, app); err != nil {
+		bucket, objectType := buckets.File, ente.FILE
+		if objectKey == file.Thumbnail.ObjectKey {
+			bucket, objectType = buckets.Thumbnail, ente.THUMBNAIL
+		}
+		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, objectKey, file.OwnerID, app, bucket); err != nil {
 			return stacktrace.Propagate(err, "")
 		}
-	}
-	if isDuplicateRequest {
-		// Re-inserting object_copies on a duplicate request violates its primary
-		// key and leaves the transaction uncommittable.
-		log.Infof("Skipping update of object_copies for a duplicate request to update file %d", file.ID)
-	} else {
-		err = repo.markAsNeedingReplication(ctx, tx, file, hotDC)
+		err = repo.markObjectAsNeedingReplication(ctx, tx, objectKey, bucket, objectType)
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
@@ -402,10 +386,7 @@ func (repo *FileRepository) UpdateMagicAttributes(
 	return tx.Commit()
 }
 
-func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, userID int64, thumbnail ente.FileAttributes, thumbnailSize int64, usageDiff int64, oldThumbnailObject *string, app ente.App) error {
-	hotDC := repo.S3Config.GetHotDataCenter()
-	dcsForNewEntry := pq.StringArray{hotDC}
-
+func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, userID int64, thumbnail ente.FileAttributes, thumbnailSize int64, usageDiff int64, oldThumbnailObject *string, app ente.App, bucket string) error {
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -449,8 +430,10 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 		}
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE object_keys 
-			SET object_key = $1, size = $2, datacenters = $3 WHERE file_id = $4 AND o_type = $5`,
-		thumbnail.ObjectKey, thumbnailSize, dcsForNewEntry, fileID, ente.THUMBNAIL)
+			SET object_key = $1, size = $2,
+				datacenters = CASE WHEN object_key = $1 THEN datacenters ELSE $3 END
+			WHERE file_id = $4 AND o_type = $5`,
+		thumbnail.ObjectKey, thumbnailSize, pq.StringArray{bucket}, fileID, ente.THUMBNAIL)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -460,15 +443,13 @@ func (repo *FileRepository) UpdateThumbnail(ctx context.Context, fileID int64, u
 	}
 
 	if oldThumbnailObject != nil {
-		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, thumbnail.ObjectKey, userID, app); err != nil {
+		if err = repo.ObjectCleanupRepo.ConsumeFileUpload(ctx, tx, thumbnail.ObjectKey, userID, app, bucket); err != nil {
 			return stacktrace.Propagate(err, "")
 		}
-	}
-	err = repo.markThumbnailAsNeedingReplication(ctx, tx, thumbnail.ObjectKey, hotDC)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	if oldThumbnailObject != nil {
+		err = repo.markObjectAsNeedingReplication(ctx, tx, thumbnail.ObjectKey, bucket, ente.THUMBNAIL)
+		if err != nil {
+			return stacktrace.Propagate(err, "")
+		}
 		err = repo.QueueRepo.AddItems(ctx, tx, OutdatedObjectsQueue, []string{*oldThumbnailObject})
 		if err != nil {
 			return stacktrace.Propagate(err, "")
@@ -508,7 +489,7 @@ func (repo *FileRepository) GetOwnerToFileCountMap(ctx context.Context, fileIDs 
 		}
 		result[ownerID] = count
 	}
-	return result, nil
+	return result, stacktrace.Propagate(rows.Err(), "failed to read file owner counts")
 }
 
 func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []int64) (map[int64][]int64, error) {
@@ -529,6 +510,9 @@ func (repo *FileRepository) GetOwnerToFileIDsMap(ctx context.Context, fileIDs []
 		} else {
 			result[ownerID] = []int64{fileID}
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file ownership")
 	}
 	return result, nil
 }
@@ -648,7 +632,7 @@ func (repo *FileRepository) GetFileAttributesForCopy(fileIDs []int64) ([]ente.Fi
 	defer rows.Close()
 	for rows.Next() {
 		var file ente.File
-		err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PubicMagicMetadata)
+		err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PublicMagicMetadata)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
@@ -660,7 +644,7 @@ func (repo *FileRepository) GetFileAttributesForCopy(fileIDs []int64) ([]ente.Fi
 func (repo *FileRepository) GetFileAttributes(fileID int64) (*ente.File, error) {
 	rows := repo.DB.QueryRow(`SELECT file_id, owner_id, file_decryption_header, thumbnail_decryption_header, metadata_decryption_header, encrypted_metadata, pub_magic_metadata, info FROM files WHERE file_id = $1`, fileID)
 	var file ente.File
-	err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PubicMagicMetadata, &file.Info)
+	err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader, &file.Metadata.EncryptedData, &file.PublicMagicMetadata, &file.Info)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -681,6 +665,9 @@ func (repo *FileRepository) DropFilesMetadata(ctx context.Context, fileIDs []int
 			return stacktrace.Propagate(err, "")
 		}
 		fileIdsNotDeleted = append(fileIdsNotDeleted, fileID)
+	}
+	if err := rows.Err(); err != nil {
+		return stacktrace.Propagate(err, "failed to check remaining file objects")
 	}
 	if len(fileIdsNotDeleted) > 0 {
 		return stacktrace.Propagate(fmt.Errorf("fileIDs %v are still present in object_keys", fileIdsNotDeleted), "")
@@ -751,7 +738,7 @@ func convertRowsToFiles(rows *sql.Rows) ([]ente.File, error) {
 			&file.EncryptedKey, &file.KeyDecryptionNonce,
 			&file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader,
 			&file.Metadata.DecryptionHeader,
-			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PubicMagicMetadata,
+			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PublicMagicMetadata,
 			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt)
 		if err != nil {
 			return files, stacktrace.Propagate(err, "")

@@ -1,1 +1,0 @@
-- Improved adding photos from your device with gallery selection controls and a preview of selected items.

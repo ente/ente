@@ -1,6 +1,7 @@
 import {
     Box,
     Divider,
+    Slider,
     Stack,
     styled,
     Typography,
@@ -206,19 +207,31 @@ export const RowSwitch: React.FC<RowSwitchProps> = ({
     onClick,
 }) => (
     <Stack
+        component="label"
         direction="row"
-        sx={{
+        sx={(theme) => ({
             flex: 1,
             justifyContent: "space-between",
             alignItems: "center",
-            px: "16px",
-            pr: "12px",
-        }}
+            p: "14px 16px",
+            gap: 1,
+            cursor: "pointer",
+            borderRadius: "8px",
+            "&:hover": { bgcolor: "fill.faintHover" },
+            "&:has(:focus-visible)": {
+                outline: `1px solid ${theme.vars.palette.stroke.base}`,
+                outlineOffset: "2px",
+            },
+        })}
     >
-        <Typography sx={{ py: "14px", px: "2px", fontWeight: "medium" }}>
+        <Typography component="span" sx={{ fontWeight: "medium" }}>
             {label}
         </Typography>
-        <EnteSwitch {...{ checked, onClick }} />
+        <EnteSwitch
+            checked={checked}
+            onChange={onClick}
+            sx={{ flexShrink: 0 }}
+        />
     </Stack>
 );
 
@@ -249,4 +262,68 @@ export const RowLabel: React.FC<RowLabelProps> = ({ startIcon, label }) => (
 
 export const RowButtonEndActivityIndicator: React.FC = () => (
     <ActivityIndicator size="20px" sx={{ color: "stroke.muted" }} />
+);
+
+interface RowSliderProps {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    unit?: string;
+    onChange: (value: number) => void;
+}
+
+export const RowSlider: React.FC<RowSliderProps> = ({
+    label,
+    value,
+    min,
+    max,
+    step,
+    unit = "",
+    onChange,
+}) => (
+    <Stack sx={{ px: 2, pt: 1.75, pb: 1, gap: 0.5 }}>
+        <Stack
+            direction="row"
+            sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 1,
+            }}
+        >
+            <Typography sx={{ fontWeight: "medium", color: "text.base" }}>
+                {label}
+            </Typography>
+            <Typography
+                variant="small"
+                sx={{ color: "text.muted", fontVariantNumeric: "tabular-nums" }}
+            >
+                {value}
+                {unit}
+            </Typography>
+        </Stack>
+        <Slider
+            aria-label={label}
+            value={value}
+            min={min}
+            max={max}
+            step={step}
+            valueLabelDisplay="auto"
+            sx={{
+                width: "calc(100% - 16px)",
+                mx: 1,
+                height: 4,
+                color: "accent.main",
+                "& .MuiSlider-thumb": {
+                    width: 18,
+                    height: 18,
+                    bgcolor: "common.white",
+                },
+            }}
+            onChange={(_, next) =>
+                onChange(typeof next === "number" ? next : next[0])
+            }
+        />
+    </Stack>
 );

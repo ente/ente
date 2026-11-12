@@ -2,6 +2,7 @@ import "dart:async";
 import 'dart:io';
 
 import "package:android_intent_plus/android_intent.dart";
+import "package:flutter/services.dart";
 import "package:flutter/widgets.dart";
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import "package:flutter_timezone/flutter_timezone.dart";
@@ -40,6 +41,7 @@ class NotificationService {
   void init(SharedPreferences preferences) {
     _preferences = preferences;
     unawaited(preferences.remove("notification_permission_granted"));
+    unawaited(_shareNotificationPreferencesWithNSE());
   }
 
   Future<void> handlePushNotification(
@@ -59,7 +61,10 @@ class NotificationService {
     }
     if (event == null) {
       await _preferences.reload();
-      if (_preferences.getString(Configuration.tokenKey) == null) return;
+      if (!_preferences.containsKey(Configuration.hasSecureTokenKey) &&
+          !_preferences.containsKey(Configuration.tokenKey)) {
+        return;
+      }
       if (shouldShowNotificationsForSharedPhotosAndAlbums()) {
         final strings = await LanguageService.locals;
         await showNotification(
@@ -277,11 +282,14 @@ class NotificationService {
     return result ?? true;
   }
 
-  Future<void> setShouldShowNotificationsForSharedPhotosAndAlbums(bool value) {
-    return _preferences.setBool(
+  Future<void> setShouldShowNotificationsForSharedPhotosAndAlbums(
+    bool value,
+  ) async {
+    await _preferences.setBool(
       keyShouldShowNotificationsForSharedPhotos,
       value,
     );
+    await _shareNotificationPreferencesWithNSE();
   }
 
   bool shouldShowSocialNotifications() {
@@ -289,8 +297,20 @@ class NotificationService {
     return result ?? true;
   }
 
-  Future<void> setShouldShowSocialNotifications(bool value) {
-    return _preferences.setBool(keyShouldShowSocialNotifications, value);
+  Future<void> setShouldShowSocialNotifications(bool value) async {
+    await _preferences.setBool(keyShouldShowSocialNotifications, value);
+    await _shareNotificationPreferencesWithNSE();
+  }
+
+  Future<void> _shareNotificationPreferencesWithNSE() async {
+    if (!Platform.isIOS) return;
+    try {
+      await const MethodChannel(
+        'io.ente.frame.notifications',
+      ).invokeMethod<void>('sharePreferences');
+    } on PlatformException catch (e, s) {
+      _logger.warning('Could not share notification preferences', e, s);
+    }
   }
 
   Future<void> showNotification(
@@ -356,7 +376,7 @@ class NotificationService {
     );
   }
 
-  Future<void> scheduleNotification(
+  Future<bool> scheduleNotification(
     String title, {
     String? message,
     required int id,
@@ -413,6 +433,7 @@ class NotificationService {
           "Scheduled notification with: $title, $message, $channelID, $channelName, $payload for $dateTime",
         );
       }
+      return true;
     } catch (e, s) {
       // Notification failures must not interrupt memory or ritual updates.
       _logger.severe(
@@ -420,6 +441,7 @@ class NotificationService {
         e,
         s,
       );
+      return false;
     }
   }
 

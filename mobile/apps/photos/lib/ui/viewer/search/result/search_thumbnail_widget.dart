@@ -4,12 +4,13 @@ import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
+import "package:photos/ui/viewer/file/hero_image.dart";
 import 'package:photos/ui/viewer/file/no_thumbnail_widget.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/people/person_face_widget.dart';
 import "package:photos/ui/viewer/search/contact_avatar_widget.dart";
 
-class SearchThumbnailWidget extends StatelessWidget {
+class SearchThumbnailWidget extends StatefulWidget {
   final EnteFile? file;
   final SearchResult? searchResult;
   final String tagPrefix;
@@ -26,31 +27,53 @@ class SearchThumbnailWidget extends StatelessWidget {
   });
 
   @override
+  State<SearchThumbnailWidget> createState() => _SearchThumbnailWidgetState();
+}
+
+class _SearchThumbnailWidgetState extends State<SearchThumbnailWidget> {
+  late final _heroChildKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
     final isLocation =
-        searchResult?.type() == ResultType.location ||
-        searchResult?.type() == ResultType.locationSuggestion;
+        widget.searchResult?.type() == ResultType.location ||
+        widget.searchResult?.type() == ResultType.locationSuggestion;
+    final result = widget.searchResult;
+    final isPerson =
+        result is GenericSearchResult && result.type() == ResultType.faces;
+    final hasCover =
+        isLocation || isPerson || result?.type() == ResultType.magic;
     return Hero(
-      tag: isLocation ? tagPrefix : tagPrefix + (file?.tag ?? ""),
-      createRectTween: isLocation
+      tag: isPerson
+          ? PersonFaceWidget.coverHeroTag(
+              tagPrefix: "people_search",
+              personId: result.params[kPersonParamID],
+              clusterID: result.params[kClusterParamId],
+            )
+          : isLocation
+          ? widget.tagPrefix
+          : widget.tagPrefix + (widget.file?.tag ?? ""),
+      createRectTween: hasCover
           ? (begin, end) => RectTween(begin: begin, end: end)
           : null,
-      transitionOnUserGestures: isLocation,
+      transitionOnUserGestures: hasCover,
+      placeholderBuilder: isPerson ? imageHeroPlaceholderBuilder : null,
       child: SizedBox(
-        height: size,
-        width: size,
+        key: isPerson ? _heroChildKey : null,
+        height: widget.size,
+        width: widget.size,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: file != null
-              ? (searchResult != null &&
-                        searchResult!.type() == ResultType.faces)
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          child: widget.file != null
+              ? (widget.searchResult != null &&
+                        widget.searchResult!.type() == ResultType.faces)
                     ? PersonFaceWidget(
-                        personId: (searchResult as GenericSearchResult)
+                        personId: (widget.searchResult as GenericSearchResult)
                             .params[kPersonParamID],
-                        clusterID: (searchResult as GenericSearchResult)
+                        clusterID: (widget.searchResult as GenericSearchResult)
                             .params[kClusterParamId],
                       )
-                    : ThumbnailWidget(file!)
+                    : ThumbnailWidget(widget.file!)
               : const NoThumbnailWidget(addBorder: false),
         ),
       ),

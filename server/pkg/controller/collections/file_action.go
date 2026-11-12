@@ -6,7 +6,6 @@ import (
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []ente.CollectionFileItem, cID int64) error {
@@ -65,20 +64,16 @@ func (c *CollectionController) RestoreFiles(ctx *gin.Context, userID int64, cID 
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to verify collection access")
 	}
+	fileIDs := make([]int64, 0, len(files))
 	for _, file := range files {
-		// todo #perf find owners of all files
-		ownerID, err := c.FileRepo.GetOwnerID(file.ID)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		if ownerID != userID {
-			log.WithFields(log.Fields{
-				"file_id":  file.ID,
-				"owner_id": ownerID,
-				"user_id":  userID,
-			}).Error("invalid ops: can't add file which isn't owned by user")
-			return stacktrace.Propagate(ente.ErrPermissionDenied, "")
-		}
+		fileIDs = append(fileIDs, file.ID)
+	}
+	err = c.AccessCtrl.VerifyFileOwnership(ctx, &access.VerifyFileOwnershipParams{
+		ActorUserId: userID,
+		FileIDs:     fileIDs,
+	})
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to verify file ownership")
 	}
 	err = c.CollectionRepo.RestoreFiles(ctx.Request.Context(), userID, cID, files)
 	if err != nil {
@@ -181,7 +176,7 @@ func (c *CollectionController) RemoveFilesV3(ctx *gin.Context, actorUserID int64
 			if err := c.CollectionRepo.SuggestAction(ctx, req.CollectionID, actorUserID, filesOwnedByCollectionOwner, ente.ActionRemove); err != nil {
 				return stacktrace.Propagate(err, "failed to set remove action for owner's files")
 			}
-			if err := c.CollectionActionsRepo.CreateBulk(ctx, collectionOwnerID, actorUserID, req.CollectionID, filesOwnedByCollectionOwner, nil, ente.ActionRemove, true); err != nil {
+			if err := c.CollectionActionsRepo.CreateBulk(ctx, collectionOwnerID, actorUserID, req.CollectionID, ente.App(accessResp.Collection.App), filesOwnedByCollectionOwner, nil, ente.ActionRemove, true); err != nil {
 				return stacktrace.Propagate(err, "failed to create collection action REMOVE")
 			}
 		} else {
@@ -232,7 +227,7 @@ func (c *CollectionController) SuggestDeleteInSharedCollection(ctx *gin.Context,
 	}
 
 	for uid, fids := range ownerMap {
-		if err := c.CollectionActionsRepo.CreateBulk(ctx, uid, actorUserID, req.CollectionID, fids, nil, ente.ActionDeleteSuggested, true); err != nil {
+		if err := c.CollectionActionsRepo.CreateBulk(ctx, uid, actorUserID, req.CollectionID, ente.App(accessResp.Collection.App), fids, nil, ente.ActionDeleteSuggested, true); err != nil {
 			return stacktrace.Propagate(err, "failed to create collection actions for owner files")
 		}
 	}

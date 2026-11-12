@@ -276,7 +276,9 @@ func (c *StripeController) handleCustomerSubscriptionUpdated(event stripe.Event,
 	}
 	// Other events update subscription state when the product is unchanged.
 	if currentSubscription.ProductID != newSubscription.ProductID {
-		c.BillingRepo.ReplaceSubscription(currentSubscription.ID, newSubscription)
+		if err := c.BillingRepo.ReplaceSubscription(currentSubscription.ID, newSubscription); err != nil {
+			return ente.StripeEventLog{}, stacktrace.Propagate(err, "failed to update subscription from Stripe webhook")
+		}
 	}
 
 	fullStripeSub, err := c.getStripeSubscriptionWithPaymentMethod(currentSubscription)

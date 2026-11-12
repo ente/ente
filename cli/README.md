@@ -1,5 +1,9 @@
 # Ente CLI
 
+> [!NOTE]
+>
+> This Go CLI is deprecated in favor of the [new Ente CLI](https://ente.com/help/cli/). It remains supported during the transition, but new development happens only in the new CLI. Follow the [migration guide](https://ente.com/help/cli/migration) to switch and adopt your existing exports.
+
 The Ente CLI is a Command Line Utility for exporting data from [Ente](https://ente.com). It also does a few more things, for example, you can use it to decrypt the export from Ente Auth.
 
 ## Install

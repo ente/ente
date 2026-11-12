@@ -390,12 +390,25 @@ fn export_adopts_relocated_output_and_verifies_later_selections() -> TestResult 
             fs::rename(&root, &relocated)?;
             let fresh = TestHome::new();
             login(&fresh, "photos", &email, &["--host", origin]);
+            let abandoned = fresh
+                .dir
+                .path()
+                .join("accounts")
+                .join(
+                    fresh.read_vault()["accounts"][0]["storage_id"]
+                        .as_str()
+                        .unwrap(),
+                )
+                .join("exports/adoption");
+            fs::create_dir_all(&abandoned)?;
+            fs::write(abandoned.join("index.db"), b"abandoned index")?;
             assert!(
                 failure(&fresh.run(&["photos", "export", relocated.to_str().unwrap()]))
                     .contains("--adopt")
             );
             let reads = objects.reads();
             export(&fresh, &relocated, &["--adopt", "--album", "Travel"]);
+            assert!(!abandoned.exists());
             assert_eq!(objects.reads(), reads);
             assert_eq!(fs::read(relocated.join("export.json"))?, root_bytes);
             fs::write(relocated.join("Work/Work.jpg"), b"xxxx")?;
@@ -415,7 +428,10 @@ fn export_adopts_relocated_output_and_verifies_later_selections() -> TestResult 
             assert_eq!(fs::read(relocated.join("Work/Work.jpg"))?, b"xxxx");
             assert_eq!(objects.reads(), reads);
             fs::remove_file(relocated.join("Work/Work.jpg"))?;
+            fs::create_dir_all(&abandoned)?;
+            fs::write(abandoned.join("index.db"), b"abandoned index")?;
             export(&fresh, &relocated, &["--album", "Work"]);
+            assert!(!abandoned.exists());
             assert_eq!(objects.reads(), reads + 1);
             assert_eq!(fs::read(relocated.join("Work/Work.jpg"))?, b"work");
             Ok(())
@@ -1066,8 +1082,6 @@ fn export_excludes_another_writer_while_downloads_are_running() -> TestResult {
                 "--json",
             ]))?;
             held.wait_for(2);
-            std::thread::sleep(Duration::from_millis(500));
-            assert_eq!(objects.reads() - reads, 2);
             let second = ExportChild::spawn(&mut other.command(&[
                 "photos",
                 "export",
@@ -1075,6 +1089,7 @@ fn export_excludes_another_writer_while_downloads_are_running() -> TestResult {
                 "--adopt",
             ]))?;
             assert!(failure(&second.wait_with_output()?).contains("another writer"));
+            assert_eq!(objects.reads() - reads, 2);
             drop(held);
             let result: Value = serde_json::from_slice(&success(child.wait_with_output()?).stdout)?;
             assert_eq!(result["copies"]["completed"], 4);
@@ -1247,6 +1262,45 @@ fn read_json(path: &Path) -> Value {
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
 }
 
+fn verify_layout(root: &Path) {
+    fn visit(root: &Path, directory: &Path) {
+        for entry in fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            let relative = path.strip_prefix(root).unwrap();
+            let parts: Vec<&str> = relative.iter().map(|part| part.to_str().unwrap()).collect();
+            let album = match parts.as_slice() {
+                ["export.json"] => continue,
+                ["Trash", album @ ..] => album,
+                album => album,
+            };
+            let valid = if path.is_dir() {
+                visit(root, &path);
+                match album {
+                    [] | [_, "metadata"] => true,
+                    [_] => path.join("metadata.json").is_file(),
+                    _ => false,
+                }
+            } else {
+                match album {
+                    [_, "metadata.json"] => true,
+                    [_, "metadata", json] => json
+                        .strip_suffix(".json")
+                        .is_some_and(|name| path.parent().unwrap().with_file_name(name).is_file()),
+                    [_, name] => path
+                        .parent()
+                        .unwrap()
+                        .join("metadata")
+                        .join(format!("{name}.json"))
+                        .is_file(),
+                    _ => false,
+                }
+            };
+            assert!(valid, "unexpected export entry {}", relative.display());
+        }
+    }
+    visit(root, root);
+}
+
 fn export_database(home: &TestHome) -> rusqlite::Connection {
     let state = home.read_vault();
     let account = &state["accounts"][0];
@@ -1295,7 +1349,7 @@ async fn request(
         response.text().await.unwrap()
     );
 }
-async fn place(
+pub(super) async fn place(
     origin: &str,
     account: &AuthenticatedAccount,
     album: i64,
@@ -1324,7 +1378,7 @@ async fn move_file(
     )
     .await;
 }
-async fn edit_file(
+pub(super) async fn edit_file(
     origin: &str,
     account: &AuthenticatedAccount,
     file: i64,
@@ -1443,12 +1497,13 @@ fn export_names_are_portable_and_stable() -> TestResult {
             export(&fresh, &root, &[])["changes"],
             json!({"exported":0,"metadataUpdated":0,"renamed":0,"movedToTrash":0})
         );
+        verify_layout(&root);
         Ok(())
     })
 }
 
 #[test]
-fn export_allocates_live_pairs_from_their_actual_extensions() -> TestResult {
+fn export_accepts_live_directories_and_uses_actual_extensions() -> TestResult {
     Museum::run(|museum| {
         tokio::runtime::Runtime::new()?.block_on(async {
             let origin = museum.endpoint();
@@ -1728,6 +1783,8 @@ async fn upload_live_parts(
     parts: [(&str, &[u8]); 2],
 ) -> i64 {
     let mut zip = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    zip.add_directory("ignored/", zip::write::SimpleFileOptions::default())
+        .unwrap();
     for (role, (extension, bytes)) in ["image", "video"].into_iter().zip(parts) {
         zip.start_file(
             format!("{role}{extension}"),
@@ -1821,6 +1878,7 @@ fn export_adopts_go_and_desktop_fixtures_with_a_real_source_account() -> TestRes
                     read_json(&root.join("Family/metadata/Photo.jpg.json"))["ente"]["fileID"],
                     file.to_string()
                 );
+                verify_layout(&root);
             }
             Ok(())
         })

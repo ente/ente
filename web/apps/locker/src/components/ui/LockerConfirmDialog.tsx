@@ -25,12 +25,15 @@ import React, { useId } from "react";
 interface LockerConfirmDialogProps {
     open: boolean;
     illustration: string;
+    illustrationSize?: number;
+    compactIllustration?: boolean;
     title: string;
     body: React.ReactNode;
     confirmLabel: string;
     cancelLabel?: string;
     tone?: "critical" | "primary";
     loading?: boolean;
+    confirmDisabled?: boolean;
     error?: string;
     checkbox?: {
         label: string;
@@ -44,12 +47,15 @@ interface LockerConfirmDialogProps {
 export function LockerConfirmDialog({
     open,
     illustration,
+    illustrationSize = 80,
+    compactIllustration = false,
     title,
     body,
     confirmLabel,
     cancelLabel,
     tone = "critical",
     loading,
+    confirmDisabled,
     error,
     checkbox,
     onClose,
@@ -110,21 +116,27 @@ export function LockerConfirmDialog({
                     src={illustration}
                     alt=""
                     style={{
-                        width: 80,
-                        height: 80,
+                        width: illustrationSize,
+                        height: compactIllustration ? "auto" : illustrationSize,
+                        maxWidth: "100%",
                         objectFit: "contain",
                         display: "block",
-                        margin: "4px auto 0",
+                        margin: compactIllustration ? "0 auto" : "4px auto 0",
                     }}
                 />
                 <Typography
                     id={titleID}
-                    sx={{ ...lockerTextH2Sx, textAlign: "center", mt: 2.5 }}
+                    sx={{
+                        ...lockerTextH2Sx,
+                        textAlign: "center",
+                        mt: compactIllustration ? 1 : 2.5,
+                    }}
                 >
                     {title}
                 </Typography>
                 <Typography
                     id={bodyID}
+                    component="div"
                     sx={(theme) => ({
                         ...lockerTextBodySx,
                         textAlign: "center",
@@ -178,6 +190,7 @@ export function LockerConfirmDialog({
                     fullWidth
                     color={tone}
                     loading={loading}
+                    disabled={confirmDisabled}
                     onClick={onConfirm}
                     sx={(theme) => ({
                         ...confirmButtonTypography,
@@ -200,9 +213,12 @@ export function LockerConfirmDialog({
                         },
                         "&.Mui-disabled": {
                             ...lockerColorSx(theme, {
-                                backgroundColor:
-                                    tone === "critical" ? "warning" : "primary",
-                                color: "specialWhite",
+                                backgroundColor: loading
+                                    ? tone === "critical"
+                                        ? "warning"
+                                        : "primary"
+                                    : "fillDark",
+                                color: loading ? "specialWhite" : "textLighter",
                             }),
                         },
                     })}

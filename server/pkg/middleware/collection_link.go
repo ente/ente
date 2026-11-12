@@ -231,11 +231,6 @@ func (m *CollectionLinkMiddleware) validateOwnersSubscription(c *gin.Context, cI
 
 func (m *CollectionLinkMiddleware) isDeviceLimitReached(ctx context.Context,
 	collectionSummary ente.PublicCollectionSummary, ip string, ua string) (bool, error) {
-	// skip deviceLimit check & record keeping for requests via CF worker
-	if network.IsCFWorkerIP(ip) {
-		return false, nil
-	}
-
 	sharedID := collectionSummary.ID
 	hasAccessedInPast, err := m.CollectionLinkRepo.AccessedInPast(ctx, sharedID, ip, ua)
 	if err != nil {
@@ -294,6 +289,7 @@ func (m *CollectionLinkMiddleware) validateOrigin(c *gin.Context, ownerID int64)
 		// origin to embed.ente.com. Custom embed origins should not inherit this.
 		(embedAlbumsOrigin == "https://embed.ente.com" && origin == "https://embed.ente.io") ||
 		origin == viper.GetString("apps.public-locker") ||
+		origin == viper.GetString("apps.photobook") ||
 		network.IsLoopbackOrigin(origin) {
 		return nil
 	}

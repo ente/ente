@@ -22,6 +22,7 @@ import {
     Box,
     Button,
     CircularProgress,
+    Divider,
     IconButton,
     Link,
     Stack,
@@ -35,6 +36,7 @@ import { LinkButtonUndecorated } from "ente-base/components/LinkButton";
 import type { ButtonishProps } from "ente-base/components/mui";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { SidebarDrawer } from "ente-base/components/mui/SidebarDrawer";
+import { EllipsizedTypography } from "ente-base/components/Typography";
 import {
     useModalVisibility,
     type ModalVisibilityProps,
@@ -258,29 +260,25 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     return (
         <FileInfoSidebar open={open} onClose={handleClose}>
             <FileInfoHeader>
-                <IconButton
-                    aria-label={t("go_back")}
-                    onClick={handleClose}
-                    sx={{ width: 24, height: 40, flexShrink: 0, p: 0 }}
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
+                <IconButton aria-label={t("go_back")} onClick={handleClose}>
+                    <HugeiconsIcon
+                        icon={ArrowLeft01Icon}
+                        size={20}
+                        strokeWidth={1.8}
+                    />
                 </IconButton>
                 <Typography
                     component="h2"
-                    sx={{
-                        flex: 1,
-                        fontSize: 20,
-                        lineHeight: "28px",
-                        fontWeight: 600,
-                    }}
+                    variant="h5"
+                    sx={{ flex: 1, lineHeight: "28px" }}
                 >
                     {t("details")}
                 </Typography>
                 <IconButton aria-label={t("close")} onClick={handleClose}>
-                    <HugeiconsIcon icon={Cancel01Icon} size={18} />
+                    <HugeiconsIcon icon={Cancel01Icon} size={20} />
                 </IconButton>
             </FileInfoHeader>
-            <Stack sx={{ pb: 2.5, gap: 2.5 }}>
+            <Stack sx={{ pb: 3, gap: 2 }}>
                 <Caption
                     {...{
                         file,
@@ -334,6 +332,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                                             size={18}
                                         />
                                     }
+                                    captionVariant="small"
                                     caption={
                                         !mapEnabled || !allowMap ? (
                                             <Link
@@ -407,7 +406,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                         )}
                     </FileInfoSection>
                 )}
-                <FileInfoDivider />
+                <Divider sx={{ borderColor: "stroke.faint" }} />
                 <InfoItem
                     icon={<HugeiconsIcon icon={CameraLensIcon} size={18} />}
                     title={t("exif")}
@@ -517,7 +516,8 @@ const FileInfoNavigationHint: React.FC = () => (
             pb: 3,
             px: 0,
             color: "text.muted",
-            opacity: 0.24,
+            fontSize: 12,
+            lineHeight: "20px",
         }}
     >
         <Trans
@@ -646,7 +646,6 @@ const FileInfoSidebar = styled(
         <SidebarDrawer
             {...props}
             maxWidth="425px"
-            disableAppTitlebarBackdrop
             anchor="right"
             // Avoid MUI's aria-hidden focus warning when this closes.
             disableRestoreFocus={true}
@@ -660,35 +659,64 @@ const FileInfoSidebar = styled(
         },
     }),
     ".MuiDrawer-paper": {
+        "--mui-palette-background-paper": "#FFFFFF",
+        "--mui-palette-text-muted": "#666666",
+        "--mui-palette-stroke-faint": "#EBEBEB",
+        ...theme.applyStyles("dark", {
+            "--mui-palette-background-paper": "#212121",
+            "--mui-palette-text-muted": "#999999",
+            "--mui-palette-stroke-faint": "#2A2A2A",
+        }),
+        backgroundColor: theme.vars.palette.background.paper,
+        backgroundImage: "none",
+        boxShadow: "none",
+        border: 0,
+        letterSpacing: 0,
+        "& .MuiTypography-root, & .MuiButton-root, & .MuiInputBase-root": {
+            letterSpacing: 0,
+        },
+        "& h2.MuiTypography-root": {
+            fontFamily: '"Outfit Variable", Outfit, sans-serif',
+        },
+        "& .MuiIconButton-root": {
+            width: 38,
+            height: 38,
+            padding: 9,
+            flexShrink: 0,
+            borderRadius: 12,
+            "& > .MuiSvgIcon-root": { fontSize: 20 },
+            "&:hover": {
+                backgroundColor: `color-mix(in srgb, ${theme.vars.palette.text.base} 8%, ${theme.vars.palette.background.paper})`,
+            },
+        },
+        "& .MuiIconButton-root.Mui-focusVisible": {
+            outline: "1px solid #08C225",
+            outlineOffset: 2,
+        },
         display: "flex",
         flexDirection: "column",
-        top: "calc(env(titlebar-area-height, 0px) + 12px)",
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+        top: "calc(env(titlebar-area-height, 0px) + 11px)",
+        right: "calc(env(safe-area-inset-right, 0px) + 11px)",
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 11px)",
+        width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 22px)",
         height: "auto",
         borderRadius: 20,
         [theme.breakpoints.down("sm")]: {
-            bottom: 0,
-            borderRadius: "20px 20px 0 0",
+            top: "calc(env(titlebar-area-height, 0px) + 8px)",
+            right: "calc(env(safe-area-inset-right, 0px) + 8px)",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)",
+            width: "calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px)",
         },
     },
     ".MuiDrawer-paper > .MuiBox-root": {
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        padding: "0 clamp(28px, 6vw, 30px)",
+        padding: "0 20px",
         minWidth: 0,
         [theme.breakpoints.down("sm")]: {
-            paddingInline: "20px",
+            paddingInline: "16px",
             paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        },
-    },
-    [theme.breakpoints.down("sm")]: {
-        "& .MuiIconButton-root": {
-            width: 44,
-            height: 44,
-            flexShrink: 0,
-            padding: 12,
-            "& > svg": { width: 20, height: 20 },
         },
     },
 }));
@@ -697,6 +725,7 @@ interface InfoItemProps {
     icon: React.ReactNode;
     title?: string;
     caption?: React.ReactNode;
+    captionVariant?: "mini" | "small";
     trailingButton?: React.ReactNode;
 }
 
@@ -707,34 +736,19 @@ const FileInfoHeader = styled(Stack)(({ theme }) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    minHeight: 92,
-    paddingTop: 18,
-    [theme.breakpoints.down("sm")]: {
-        minHeight: 64,
-        paddingTop: 0,
-        gap: 4,
-        "& .MuiIconButton-root:first-of-type": { marginLeft: -12 },
-        "& .MuiIconButton-root:last-of-type": { marginRight: -12 },
-    },
+    minHeight: 76,
+    paddingBlock: 16,
+    [theme.breakpoints.down("sm")]: { minHeight: 68, paddingBlock: 12 },
     flexShrink: 0,
     backgroundColor: theme.vars.palette.background.paper,
     "& .MuiIconButton-root": { color: theme.vars.palette.text.base },
-}));
-const FileInfoDivider = styled("hr")(({ theme }) => ({
-    width: "100%",
-    margin: 0,
-    border: 0,
-    borderTop: `1px solid ${theme.vars.palette.stroke.faint}`,
-    ...theme.applyStyles("dark", {
-        borderColor: `color-mix(in srgb, ${theme.vars.palette.stroke.faint} 55%, transparent)`,
-    }),
 }));
 const FileInfoSection: React.FC<React.PropsWithChildren<{ title: string }>> = ({
     title,
     children,
 }) => (
-    <Stack component="section" sx={{ gap: 1.75 }}>
-        <FileInfoDivider sx={{ mb: 0.75 }} />
+    <Stack component="section" sx={{ gap: 2, minWidth: 0 }}>
+        <Divider sx={{ borderColor: "stroke.faint" }} />
         <Typography
             component="h3"
             sx={{ fontSize: 18, lineHeight: "24px", fontWeight: 600 }}
@@ -769,6 +783,7 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
     icon,
     title,
     caption,
+    captionVariant = "mini",
     trailingButton,
     children,
 }) => (
@@ -777,8 +792,8 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
         sx={{
             alignItems: "center",
             minHeight: 56,
-            gap: { xs: "8px", sm: "10px" },
-            p: { xs: "8px 0", sm: "8px 10px" },
+            gap: "12px",
+            p: "8px 0",
             minWidth: 0,
         }}
     >
@@ -799,12 +814,12 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
                     </Typography>
                 )}
                 <Typography
-                    variant="mini"
+                    variant={captionVariant}
                     {...(typeof caption != "string" && { component: "div" })}
                     sx={{
                         color: "text.muted",
-                        fontSize: 12,
-                        lineHeight: "16px",
+                        lineHeight:
+                            captionVariant === "small" ? "20px" : "16px",
                     }}
                 >
                     {caption}
@@ -815,18 +830,14 @@ const InfoItem: React.FC<React.PropsWithChildren<InfoItemProps>> = ({
     </Stack>
 );
 const InfoItemIconContainer = styled("div")(({ theme }) => ({
-    width: 34,
-    height: 34,
+    width: 38,
+    height: 38,
     flexShrink: 0,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     color: theme.vars.palette.text.muted,
-    "& > svg": { width: 18, height: 18 },
-    [theme.breakpoints.down("sm")]: {
-        width: 32,
-        "& > svg": { width: 20, height: 20 },
-    },
+    "& > svg": { width: 20, height: 20, strokeWidth: 1.8 },
 }));
 type EditButtonProps = ButtonishProps & { loading?: boolean };
 const EditButton: React.FC<EditButtonProps> = ({ onClick, loading }) => (
@@ -835,12 +846,12 @@ const EditButton: React.FC<EditButtonProps> = ({ onClick, loading }) => (
         onClick={onClick}
         disabled={!!loading}
         color="secondary"
-        sx={{ width: 40, height: 40, flexShrink: 0, color: "text.muted" }}
+        sx={{ color: "text.muted" }}
     >
         {!loading ? (
-            <HugeiconsIcon icon={Edit02Icon} size={18} />
+            <HugeiconsIcon icon={Edit02Icon} size={16} />
         ) : (
-            <CircularProgress size={18} color="inherit" />
+            <CircularProgress size={16} color="inherit" />
         )}
     </IconButton>
 );
@@ -899,7 +910,7 @@ const Caption: React.FC<CaptionProps> = ({
     }, [onEditStateChange, editState]);
 
     if (!caption.length && !allowEdits) {
-        return <Box sx={{ minHeight: 2 }}></Box>;
+        return null;
     }
 
     return (
@@ -952,7 +963,7 @@ const CaptionForm = styled("form")(({ theme }) => ({
     "& .MuiFilledInput-root": {
         backgroundColor: "transparent",
         borderRadius: 12,
-        padding: "6px 0",
+        padding: "10px 12px",
         fontSize: 14,
         lineHeight: "20px",
         color: theme.vars.palette.text.muted,
@@ -1176,9 +1187,18 @@ const MapBox: React.FC<MapBoxProps> = ({ location, mapEnabled }) => {
         <MapBoxContainer ref={mapBoxContainerRef} />
     ) : (
         <MapBoxEnableContainer>
-            <ChipButton onClick={() => updateMapEnabled(true)}>
+            <Button
+                color="secondary"
+                onClick={() => updateMapEnabled(true)}
+                sx={{
+                    minHeight: 38,
+                    px: 2,
+                    borderRadius: "20px",
+                    bgcolor: "secondary.main",
+                }}
+            >
                 {t("enable_map")}
-            </ChipButton>
+            </Button>
         </MapBoxEnableContainer>
     );
 };
@@ -1244,28 +1264,13 @@ const RawExif: React.FC<RawExifProps> = ({ open, onClose, tags }) => {
     return (
         <FileInfoSidebar open={open} onClose={onClose}>
             <FileInfoHeader>
-                <IconButton
-                    aria-label={t("go_back")}
-                    onClick={onClose}
-                    sx={{
-                        width: 40,
-                        height: 40,
-                        flexShrink: 0,
-                        p: 0,
-                        ml: -1.25,
-                        borderRadius: "50%",
-                    }}
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
+                <IconButton aria-label={t("go_back")} onClick={onClose}>
+                    <HugeiconsIcon icon={ArrowLeft01Icon} size={20} />
                 </IconButton>
                 <Typography
                     component="h2"
-                    sx={{
-                        flex: 1,
-                        fontSize: 20,
-                        lineHeight: "28px",
-                        fontWeight: 600,
-                    }}
+                    variant="h5"
+                    sx={{ flex: 1, lineHeight: "28px" }}
                 >
                     {t("exif")}
                 </Typography>
@@ -1354,34 +1359,49 @@ const Albums: React.FC<AlbumsProps> = ({
                     const isHiddenCollection =
                         hiddenCollectionIDs?.has(collectionID);
                     return (
-                        <ChipButton
+                        <AlbumButton
                             key={collectionID}
+                            title={
+                                isHiddenCollection
+                                    ? t("section_hidden")
+                                    : collectionNameByID.get(collectionID)
+                            }
+                            disabled={isHiddenCollection}
                             onClick={() => {
                                 if (!isHiddenCollection) {
                                     onSelectCollection(collectionID);
                                 }
                             }}
                         >
-                            {isHiddenCollection
-                                ? t("section_hidden")
-                                : collectionNameByID.get(collectionID)}
-                        </ChipButton>
+                            <EllipsizedTypography
+                                variant="inherit"
+                                variantMapping={{ inherit: "span" }}
+                                sx={{ flex: 1, minWidth: 0 }}
+                            >
+                                {isHiddenCollection
+                                    ? t("section_hidden")
+                                    : collectionNameByID.get(collectionID)}
+                            </EllipsizedTypography>
+                        </AlbumButton>
                     );
                 })}
         </Stack>
     </FileInfoSection>
 );
 
-const ChipButton = styled((props: ButtonProps) => (
+const AlbumButton = styled((props: ButtonProps) => (
     <Button color="secondary" {...props} />
 ))(({ theme }) => ({
     ...theme.typography.mini,
+    lineHeight: "16px",
     minHeight: 38,
+    minWidth: 0,
+    maxWidth: "100%",
     padding: "10px 16px",
     borderRadius: 24,
     color: theme.vars.palette.text.muted,
-    backgroundColor: theme.vars.palette.fill.fainter,
-    textTransform: "none",
-    overflowWrap: "anywhere",
-    maxWidth: "100%",
+    "&.Mui-focusVisible": {
+        outline: `2px solid ${theme.vars.palette.text.base}`,
+        outlineOffset: -2,
+    },
 }));

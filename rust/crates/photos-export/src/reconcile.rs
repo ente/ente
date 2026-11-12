@@ -7,7 +7,7 @@ use std::{
     sync::Mutex,
 };
 
-use crate::{metadata::Role, snapshot::FileSnapshot};
+use crate::{Report, metadata::Role, snapshot::FileSnapshot};
 use anyhow::{Context, Result, ensure};
 use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
@@ -28,7 +28,7 @@ pub struct Run<'a> {
     pub hardlinks: bool,
     pub store: &'a Mutex<Store>,
     pub cancel: &'a watch::Receiver<bool>,
-    pub report: &'a (dyn Fn(&str) + Sync),
+    pub report: &'a (dyn Fn(Report<'_>) + Sync),
 }
 
 impl Run<'_> {
@@ -97,7 +97,7 @@ impl Run<'_> {
             let store = store::lock(self.store)?;
             super::record_outcome(&store, unit, error)?;
         }
-        (self.report)(&format!("{unit}: {error:#}"));
+        (self.report)(Report::Failure { unit, error });
         Ok(())
     }
 
@@ -385,7 +385,9 @@ impl Run<'_> {
                 } else {
                     disk::create_dir_all(&destination)?;
                     ensure!(
-                        disk::read_dir(&destination)?.next().is_none(),
+                        disk::read_dir(&destination)?.all(|entry| {
+                            entry.is_ok_and(|entry| crate::is_finder_metadata_entry(&entry))
+                        }),
                         super::Conflict(format!(
                             "at {}: unrelated directory contents",
                             destination.display()

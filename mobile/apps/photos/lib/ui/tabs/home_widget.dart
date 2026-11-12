@@ -71,6 +71,7 @@ import "package:photos/ui/home/home_gallery_widget.dart";
 import "package:photos/ui/home/landing_page_widget.dart";
 import "package:photos/ui/home/loading_photos_widget.dart";
 import "package:photos/ui/notification/update/change_log_page.dart";
+import "package:photos/ui/rewind/entry/rewind_entry.dart";
 import "package:photos/ui/rituals/ritual_camera_page.dart";
 import "package:photos/ui/rituals/ritual_page.dart";
 import "package:photos/ui/rituals/ritual_privacy.dart";
@@ -1124,6 +1125,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                           selectedTabIndex,
                           AlbumsTab(
                             selectedAlbums: _selectedAlbums,
+                            isActive: selectedTabIndex == 1,
                             isSearchActiveNotifier:
                                 _isAlbumsSearchActiveNotifier,
                             shouldConsumeBackNotifier:
@@ -1308,6 +1310,10 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (payload != null) {
       debugPrint('notification payload: $payload');
       final uri = Uri.tryParse(payload);
+      if (uri != null && uri.host.toLowerCase() == "rewind") {
+        await RewindEntry.openWhenReady(context);
+        return;
+      }
       if (uri != null &&
           (uri.host.toLowerCase() == "ritual" ||
               uri.host.toLowerCase() == "camera")) {

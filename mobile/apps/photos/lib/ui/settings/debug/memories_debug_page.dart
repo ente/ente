@@ -18,7 +18,18 @@ import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
 class MemoriesDebugPage extends StatefulWidget {
-  const MemoriesDebugPage({super.key});
+  final String title;
+  final Future<List<SmartMemory>> Function(DateTime calculationTime)
+  loadMemories;
+
+  const MemoriesDebugPage({
+    super.key,
+    this.title = "Memories Debug",
+    this.loadMemories = _loadAllMemories,
+  });
+
+  static Future<List<SmartMemory>> _loadAllMemories(DateTime calculationTime) =>
+      memoriesCacheService.debugGetAllMemories(calcTime: calculationTime);
 
   @override
   State<MemoriesDebugPage> createState() => _MemoriesDebugPageState();
@@ -67,7 +78,7 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
         backgroundColor: colorScheme.backgroundColour,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: Text("Memories Debug", style: textTheme.largeBold),
+        title: Text(widget.title, style: textTheme.largeBold),
         actions: [
           IconButton(
             tooltip: "Change calculation date",
@@ -208,9 +219,7 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
   Future<_MemoriesDebugLoadResult> _loadMemories() async {
     final stopwatch = Stopwatch()..start();
     final calculationTime = _calculationTime;
-    final memories = await memoriesCacheService.debugGetAllMemories(
-      calcTime: calculationTime,
-    );
+    final memories = await widget.loadMemories(calculationTime);
     stopwatch.stop();
     return _MemoriesDebugLoadResult(
       memories: memories,

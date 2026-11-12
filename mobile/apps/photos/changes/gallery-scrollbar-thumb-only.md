@@ -1,1 +1,0 @@
-- Prevent accidental scrolling when tapping above or below the gallery scrollbar handle.

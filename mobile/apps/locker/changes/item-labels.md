@@ -1,0 +1,1 @@
+- Fixed singular item counts and localized the Add item button's accessibility label.

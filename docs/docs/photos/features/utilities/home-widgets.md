@@ -145,7 +145,7 @@ Widget improvements are released regularly. Keep the Ente app updated for the be
 
 ### Add Favorite Photos
 
-The Albums widget defaults to your Favorites album. Add photos to Favorites by tapping the heart icon on any photo. This ensures your most cherished photos appear on your home screen.
+The Albums widget defaults to your Favorites album. Add photos to Favorites by tapping the star icon on any photo. This ensures your most cherished photos appear on your home screen.
 
 ## Platform Availability
 

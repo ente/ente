@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:ente_components/ente_components.dart" as components;
 import "package:ente_components/theme/text_styles.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -9,9 +11,11 @@ import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/viewer/actions/large_selection_confirmation.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/layout_settings.dart";
+import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 
 class GroupHeaderWidget extends StatefulWidget {
   final String title;
@@ -89,6 +93,8 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
     final double verticalPadding = widget.gridSize < photoGridSizeMax
         ? 12.0
         : 14.0;
+    final isActionBarSelection =
+        SelectionState.maybeOf(context)?.selectedFiles == widget.selectedFiles;
 
     return SizedBox(
       height: widget.height,
@@ -136,12 +142,7 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
                       },
                     ),
                   ),
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    widget.selectedFiles?.toggleGroupSelection(
-                      widget.filesInGroup.toSet(),
-                    );
-                  },
+                  onTap: () => _toggleGroupSelection(isActionBarSelection),
                 )
               : const SizedBox.shrink(),
           widget.showGalleryLayoutSettingCTA
@@ -189,6 +190,23 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
     _areAllFromGroupSelectedNotifier.value = _areAllFromGroupSelected();
   }
 
+  Future<void> _toggleGroupSelection(bool isActionBarSelection) async {
+    unawaited(HapticFeedback.selectionClick());
+    final selectedFiles = widget.selectedFiles;
+    if (selectedFiles == null) return;
+    final groupFiles = widget.filesInGroup
+        .where((file) => file is! DummyFile)
+        .toSet();
+    if (isActionBarSelection && !selectedFiles.files.containsAll(groupFiles)) {
+      final confirmed = await confirmIfLargeSelection(
+        context,
+        groupFiles.length,
+      );
+      if (!confirmed || !mounted) return;
+    }
+    selectedFiles.toggleGroupSelection(groupFiles);
+  }
+
   Widget _buildSelectionIcon(bool isSelected) {
     return _fadeInTrailingIcon(
       SelectAllStatusIcon(
@@ -229,10 +247,13 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   void _showLayoutSettingsOverflowMenu(BuildContext context) {
+    final gallery = context.findAncestorStateOfType<GalleryState>();
     components.showBottomSheetComponent<void>(
       context: context,
       builder: (BuildContext context) {
-        return const GalleryLayoutSettings();
+        return GalleryLayoutSettings(
+          onPreviewVisibilityChanged: gallery?.setLayoutPreviewVisibility,
+        );
       },
     );
   }

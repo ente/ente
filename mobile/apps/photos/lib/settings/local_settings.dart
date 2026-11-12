@@ -98,8 +98,6 @@ class LocalSettings {
       "ls.bg_debug_notifications_enabled";
   static const _kCFUploadProxyEnabled = "ls.cf_upload_proxy_enabled";
   static const _kSharedPhotoFeedCutoffTime = "ls.shared_photo_feed_cutoff_time";
-  static const _kWrapped2025ResumeIndex = "ls.wrapped_2025_resume_index";
-  static const _kWrapped2025Complete = "ls.wrapped_2025_complete";
   static const _memoryLaneSeenKey = "faces_timeline_seen_person_ids";
   static const _kChristmasBannerEnabled = "ls.christmas_banner_enabled";
   static const _kPetRecognitionEnabled = "ls.pet_recognition_enabled";
@@ -108,9 +106,6 @@ class LocalSettings {
       "ml_debug.default_clustering_distance";
   static const _kRunMLDuringInteractionOverride =
       "ml_debug.run_ml_during_interaction";
-  static const _kSemanticSearchExactInRustEnabled =
-      "ml_debug.semantic_search_exact_in_rust";
-  static const _kRustMlDbOverride = "ls.rust_ml_db_override";
   static const _kAppMode = "ls.app_mode";
   static const _kShowLocalGalleryModeOption = "ls.show_offline_mode_option";
   static const _kLocalGalleryOnboardingPending =
@@ -422,19 +417,6 @@ class LocalSettings {
     await _prefs.setBool(_kRunMLDuringInteractionOverride, value);
   }
 
-  bool get semanticSearchExactInRustEnabled =>
-      _prefs.getBool(_kSemanticSearchExactInRustEnabled) ?? false;
-
-  Future<void> setSemanticSearchExactInRustEnabled(bool value) async {
-    await _prefs.setBool(_kSemanticSearchExactInRustEnabled, value);
-  }
-
-  bool get rustMlDbOverride => _prefs.getBool(_kRustMlDbOverride) ?? false;
-
-  Future<void> setRustMlDbOverride(bool value) async {
-    await _prefs.setBool(_kRustMlDbOverride, value);
-  }
-
   Future<bool> setSmartMemories(bool value) async {
     await _prefs.setBool(kCuratedMemoriesEnabled, value);
     return value;
@@ -619,26 +601,6 @@ class LocalSettings {
     final cutoff = DateTime.now().microsecondsSinceEpoch;
     _prefs.setInt(_kSharedPhotoFeedCutoffTime, cutoff).ignore();
     return cutoff;
-  }
-
-  int wrapped2025ResumeIndex() {
-    return _prefs.getInt(_kWrapped2025ResumeIndex) ?? 0;
-  }
-
-  Future<void> setWrapped2025ResumeIndex(int index) async {
-    await _prefs.setInt(_kWrapped2025ResumeIndex, index);
-  }
-
-  bool wrapped2025Complete() {
-    return _prefs.getBool(_kWrapped2025Complete) ?? false;
-  }
-
-  Future<void> setWrapped2025Complete() async {
-    await _prefs.setBool(_kWrapped2025Complete, true);
-  }
-
-  Future<void> resetWrapped2025Complete() async {
-    await _prefs.setBool(_kWrapped2025Complete, false);
   }
 
   bool get isChristmasBannerEnabled =>

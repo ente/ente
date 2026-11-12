@@ -1,3 +1,4 @@
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/cupertino.dart";
@@ -49,15 +50,19 @@ class _PersonClustersPageState extends State<PersonClustersPage> {
                 final List<EnteFile> files = clusters[clusterID]!;
                 return InkWell(
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ClusterPage(
-                          files,
-                          personID: widget.person,
+                    routeToPage(
+                      context,
+                      ClusterPage(
+                        files,
+                        personID: widget.person,
+                        clusterID: clusterID,
+                        coverHeroTag: PersonFaceWidget.coverHeroTag(
+                          tagPrefix: "person_clusters",
                           clusterID: clusterID,
-                          showNamingBanner: false,
                         ),
+                        showNamingBanner: false,
                       ),
+                      useFadeTransition: true,
                     );
                   },
                   child: Container(
@@ -68,6 +73,10 @@ class _PersonClustersPageState extends State<PersonClustersPage> {
                           width: 100,
                           height: 100,
                           child: FaceThumbnailSquircleClip(
+                            heroTag: PersonFaceWidget.coverHeroTag(
+                              tagPrefix: "person_clusters",
+                              clusterID: clusterID,
+                            ),
                             child: files.isNotEmpty
                                 ? PersonFaceWidget(clusterID: clusterID)
                                 : const NoThumbnailWidget(addBorder: false),
@@ -281,15 +290,19 @@ class __ClusterWrapperForGirdState extends State<_ClusterWrapperForGird> {
       },
       child: GestureDetector(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ClusterPage(
-                widget.files,
-                personID: widget.person,
+          routeToPage(
+            context,
+            ClusterPage(
+              widget.files,
+              personID: widget.person,
+              clusterID: widget.clusterID,
+              coverHeroTag: PersonFaceWidget.coverHeroTag(
+                tagPrefix: "person_clusters",
                 clusterID: widget.clusterID,
-                showNamingBanner: false,
               ),
+              showNamingBanner: false,
             ),
+            useFadeTransition: true,
           );
         },
         child: _isVisible
@@ -304,6 +317,10 @@ class __ClusterWrapperForGirdState extends State<_ClusterWrapperForGird> {
                       fit: StackFit.expand,
                       children: [
                         FaceThumbnailSquircleClip(
+                          heroTag: PersonFaceWidget.coverHeroTag(
+                            tagPrefix: "person_clusters",
+                            clusterID: widget.clusterID,
+                          ),
                           child: widget.files.isNotEmpty
                               ? PersonFaceWidget(clusterID: widget.clusterID)
                               : const NoThumbnailWidget(addBorder: false),

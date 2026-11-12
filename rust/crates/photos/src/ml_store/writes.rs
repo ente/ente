@@ -73,6 +73,21 @@ impl MlStore {
         })
     }
 
+    pub(super) fn assign_face_clusters(
+        &self,
+        face_id_to_cluster_id: &HashMap<String, String>,
+        summary: &HashMap<String, ClusterSummary>,
+    ) -> Result<()> {
+        if face_id_to_cluster_id.is_empty() {
+            return Ok(());
+        }
+        let _mutations = self.lock_mutations();
+        self.upsert(Index::ClusterCentroid, &centroid_batch(summary), || {
+            self.db
+                .update_face_clusters_and_summaries(face_id_to_cluster_id, summary)
+        })
+    }
+
     pub fn delete_cluster_summary(&self, cluster_id: &str) -> Result<()> {
         let _mutations = self.lock_mutations();
         self.db.delete_cluster_summary_row(cluster_id)?;
@@ -90,9 +105,7 @@ impl MlStore {
 
     pub fn clear_all(&self) -> Result<()> {
         let _mutations = self.lock_mutations();
-        self.db.clear_non_pet_tables()?;
-        self.db.clear_pet_tables()?;
-        self.db.clear_meta()?;
+        self.db.clear_all_tables()?;
         for slot in &self.indexes {
             slot.purge()?;
         }
@@ -125,7 +138,7 @@ impl MlStore {
         }
     }
 
-    fn index_write<T>(
+    pub(super) fn index_write<T>(
         &self,
         index: Index,
         operation: impl Fn(&VecDb) -> IndexResult<T>,
@@ -133,6 +146,9 @@ impl MlStore {
         let outcome = self.with_index(index, operation);
         if let Err(Error::Index(_)) = &outcome {
             state::mark_stale(&self.db, index)?;
+            if let Err(error) = self.indexes[index.position()].purge() {
+                log::warn!("could not purge the stale {} index: {error}", index.name());
+            }
         }
         outcome.map(drop)
     }
@@ -177,6 +193,7 @@ mod tests {
 
     use ente_vecdb::{OpenCost, SearchParams, VecDb, VecDbError};
 
+    use crate::db::Connection;
     use crate::ml_db::tests::deny_cluster_summary_inserts_after;
     use crate::ml_db::vector_encoding::encode_evector;
     use crate::ml_db::{CLIP_EMBEDDING_DIMENSIONS, ClusterSummary};
@@ -184,7 +201,9 @@ mod tests {
         DB_FILE, centroid, clips, empty, hot_position, index_path, live_count, meta, nearest,
         one_hot, open, open_with_unusable_clip_index,
     };
-    use crate::ml_store::{Error, FillOutcome, FillState, Index};
+    #[cfg(unix)]
+    use crate::ml_store::tests::{degrade_clip_index_through_a_failed_compaction, open_in};
+    use crate::ml_store::{Error, FillOutcome, FillState, Index, MlStore};
 
     #[test]
     fn put_clip_round_trips_through_sql_and_index() {
@@ -541,6 +560,119 @@ mod tests {
     }
 
     #[test]
+    fn clear_all_rolls_back_when_pet_clear_fails() {
+        assert_clear_all_rolls_back("pet_face_vector_id_map");
+    }
+
+    #[test]
+    fn clear_all_rolls_back_when_metadata_clear_fails() {
+        assert_clear_all_rolls_back("ml_store_meta");
+    }
+
+    fn assert_clear_all_rolls_back(table: &str) {
+        let (directory, store) = open();
+        let path = directory.path().join(DB_FILE);
+        store.put_clip(&clips([1])).unwrap();
+        store
+            .cluster_summary_update(&HashMap::from([centroid("c1", 1)]))
+            .unwrap();
+        store.fill_clip_index(false).unwrap();
+        store.fill_cluster_centroid_index(false).unwrap();
+        store
+            .db()
+            .put_repeated_text_embedding_cache("dog", &[0.5])
+            .unwrap();
+        store
+            .db()
+            .put_face_id_cached_for_person_or_cluster("p1", "1_0")
+            .unwrap();
+        let connection = Connection::open(&path).unwrap();
+        connection
+            .execute_batch(
+                "INSERT INTO pet_faces (file_id, pet_face_id, detection, species, score)
+             VALUES (1, 'pet_face', '{}', 1, 0.9);
+             INSERT INTO pet_bodies (file_id, pet_body_id, detection, species, score)
+             VALUES (1, 'pet_body', '{}', 1, 0.9);
+             INSERT INTO pet_face_vector_id_map (pet_face_id) VALUES ('pet_face');
+             INSERT INTO pet_body_vector_id_map (pet_body_id) VALUES ('pet_body');",
+            )
+            .unwrap();
+        let pet_rows = || {
+            connection
+                .query_row(
+                    "SELECT (SELECT COUNT(*) FROM pet_faces)
+                      + (SELECT COUNT(*) FROM pet_bodies)
+                      + (SELECT COUNT(*) FROM pet_face_vector_id_map)
+                      + (SELECT COUNT(*) FROM pet_body_vector_id_map)",
+                    (),
+                    |row| Ok(row.get::<_, i64>(0)?),
+                )
+                .unwrap()
+        };
+        connection
+            .execute_batch(&format!(
+                "CREATE TRIGGER fail_clear BEFORE DELETE ON {table}
+             BEGIN SELECT RAISE(ABORT, 'injected clear failure'); END;"
+            ))
+            .unwrap();
+
+        let error = store.clear_all().unwrap_err();
+        assert!(matches!(error, Error::Database(_)));
+        assert!(error.to_string().contains("injected clear failure"));
+        assert_eq!(store.db().count_clip_rows().unwrap(), 1);
+        assert_eq!(store.db().count_cluster_summaries().unwrap(), 1);
+        assert_eq!(pet_rows(), 4);
+        for index in Index::ALL {
+            assert_eq!(store.fill_state(index).unwrap(), FillState::Filled);
+            assert_eq!(live_count(&store, index), 1);
+        }
+        drop(store);
+
+        let reopened = MlStore::open(&path).unwrap();
+        assert_eq!(reopened.db().count_clip_rows().unwrap(), 1);
+        assert_eq!(reopened.db().count_cluster_summaries().unwrap(), 1);
+        assert_eq!(
+            reopened.fill_clip_index(false).unwrap().outcome,
+            FillOutcome::AlreadyFilled
+        );
+        assert_eq!(
+            reopened.fill_cluster_centroid_index(false).unwrap().outcome,
+            FillOutcome::AlreadyFilled
+        );
+        for (index, key) in [(Index::Clip, "1"), (Index::ClusterCentroid, "c1")] {
+            assert_eq!(nearest(&reopened, index, &one_hot(index.dims(), 1)), key);
+        }
+
+        connection.execute_batch("DROP TRIGGER fail_clear").unwrap();
+        reopened.clear_all().unwrap();
+        assert_eq!(reopened.db().count_clip_rows().unwrap(), 0);
+        assert_eq!(reopened.db().count_cluster_summaries().unwrap(), 0);
+        assert_eq!(pet_rows(), 0);
+        assert_eq!(
+            reopened
+                .db()
+                .get_repeated_text_embedding_cache("dog")
+                .unwrap(),
+            Some(vec![0.5])
+        );
+        assert_eq!(
+            reopened
+                .db()
+                .get_face_id_used_for_person_or_cluster("p1")
+                .unwrap()
+                .as_deref(),
+            Some("1_0")
+        );
+        drop(reopened);
+
+        let cleared = MlStore::open(&path).unwrap();
+        for index in Index::ALL {
+            assert_eq!(cleared.fill_state(index).unwrap(), FillState::Stale);
+            assert_eq!(live_count(&cleared, index), 0);
+        }
+    }
+
+    #[test]
     fn index_write_failure_marks_the_index_stale() {
         let (_directory, store) = open_with_unusable_clip_index();
         store.db().set_meta("clip.fill", "filled").unwrap();
@@ -553,5 +685,76 @@ mod tests {
         assert_eq!(meta(&store, "clip.fill"), None);
         store.put_clip(&clips([2])).unwrap();
         assert_eq!(store.db().count_clip_rows().unwrap(), 2);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn failed_index_writes_leave_no_vectors_of_rows_deleted_while_stale() {
+        let (directory, store) = open();
+        let other = open_in(&directory);
+        store.fill_clip_index(false).unwrap();
+        assert_eq!(other.fill_state(Index::Clip).unwrap(), FillState::Filled);
+        degrade_clip_index_through_a_failed_compaction(&directory, &store);
+        assert!(other.contains(Index::Clip, "66").unwrap());
+
+        assert!(matches!(
+            store.delete_clip(&[66]),
+            Err(Error::Index(VecDbError::ReadOnly))
+        ));
+        store.delete_clip(&[67]).unwrap();
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        assert_eq!(store.db().count_clip_rows().unwrap(), 3);
+        let query = one_hot(CLIP_EMBEDDING_DIMENSIONS, 66);
+        let params = SearchParams {
+            max_distance: Some(0.5),
+            exact: true,
+            ..SearchParams::default()
+        };
+        for reader in [&store, &other] {
+            assert!(!reader.contains(Index::Clip, "66").unwrap());
+            assert!(!reader.contains(Index::Clip, "67").unwrap());
+            assert!(
+                reader
+                    .search(Index::Clip, &query, &params)
+                    .unwrap()
+                    .is_empty()
+            );
+            assert_eq!(live_count(reader, Index::Clip), 0);
+        }
+
+        let refill = store.fill_clip_index(false).unwrap();
+        assert_eq!(
+            (refill.outcome, refill.indexed),
+            (FillOutcome::Completed, 3)
+        );
+        assert_eq!(other.fill_state(Index::Clip).unwrap(), FillState::Filled);
+        assert_eq!(live_count(&other, Index::Clip), 3);
+        assert!(other.contains(Index::Clip, "65").unwrap());
+        assert!(!other.contains(Index::Clip, "66").unwrap());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn failed_fill_resets_leave_no_vectors_of_rows_deleted_while_stale() {
+        let (directory, store) = open();
+        store.fill_clip_index(false).unwrap();
+        degrade_clip_index_through_a_failed_compaction(&directory, &store);
+
+        assert!(matches!(
+            store.fill_clip_index(true),
+            Err(Error::Index(VecDbError::ReadOnly))
+        ));
+        assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+        store.delete_clip(&[66]).unwrap();
+        assert!(!store.contains(Index::Clip, "66").unwrap());
+        assert_eq!(live_count(&store, Index::Clip), 0);
+
+        let refill = store.fill_clip_index(false).unwrap();
+        assert_eq!(
+            (refill.outcome, refill.indexed),
+            (FillOutcome::Completed, 4)
+        );
+        assert!(store.contains(Index::Clip, "65").unwrap());
+        assert!(!store.contains(Index::Clip, "66").unwrap());
     }
 }

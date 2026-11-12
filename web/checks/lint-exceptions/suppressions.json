@@ -14,7 +14,7 @@
     "web/apps/photos/src/components/collections/CollectionShare.tsx": [
         "@typescript-eslint/no-unnecessary-condition"
     ],
-    "web/apps/photos/src/components/collections/GalleryBarAndListHeader.tsx": [
+    "web/apps/photos/src/components/collections/AlbumContentHeader.tsx": [
         "react-hooks/exhaustive-deps"
     ],
     "web/apps/photos/src/components/PlanSelector.tsx": [
@@ -32,7 +32,6 @@
     "web/apps/photos/src/components/sidebar/WatchFolder.tsx": [
         "react-hooks/exhaustive-deps"
     ],
-    "web/apps/photos/src/pages/gallery.tsx": ["react-hooks/exhaustive-deps"],
     "web/apps/photos/src/services/export.ts": [
         "@typescript-eslint/no-non-null-asserted-optional-chain",
         "@typescript-eslint/no-unnecessary-condition"
@@ -71,9 +70,7 @@
         "react-hooks/exhaustive-deps"
     ],
     "web/packages/new/photos/components/ImageEditorOverlay.tsx": [
-        "@typescript-eslint/no-floating-promises",
         "@typescript-eslint/no-unnecessary-condition",
-        "@typescript-eslint/prefer-promise-reject-errors",
         "react-hooks/exhaustive-deps"
     ],
     "web/packages/new/photos/services/search/worker.ts": [

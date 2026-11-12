@@ -1,0 +1,930 @@
+import { useBook } from "@/context/book";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { usePageDrag } from "@/hooks/usePageDrag";
+import { usePhotoDrag } from "@/hooks/usePhotoDrag";
+import { useSpreads } from "@/hooks/useSpreads";
+import { isRequiredBlankPage } from "@/lib/bookPages";
+import type { PhotoDestination } from "@/lib/photoPlacement";
+import { getSpreadPageIndices } from "@/lib/spreads";
+import type { TextBlock } from "@/lib/types";
+import { toolbarColors, toolbarShadow, uiColors } from "@/theme/colors";
+import {
+    Alert,
+    Backdrop,
+    Box,
+    CircularProgress,
+    Snackbar,
+    Typography,
+    useMediaQuery,
+} from "@mui/material";
+import React, {
+    memo,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+    type RefCallback,
+} from "react";
+import AddPageDialog from "./AddPageDialog";
+import AddPhotosDialog from "./AddPhotosDialog";
+import BookHeader from "./BookHeader";
+import BookSidebar from "./BookSidebar";
+import EditorActions, { EditorPreviewButton } from "./EditorActions";
+import type { PageInsertPosition } from "./PageMenu";
+import PrinterBlankPage from "./PrinterBlankPage";
+import SpreadPage, { PICKER_WIDTH } from "./SpreadPage";
+import {
+    EDITOR_CANVAS_PADDING,
+    EDITOR_PANEL_BOTTOM_INSET,
+    EDITOR_PANEL_INSET,
+    EDITOR_PANEL_SX,
+    EDITOR_SCROLLBAR_SX,
+    LARGE_DESKTOP_QUERY,
+    MAX_DISPLAY_PAGE_SIZE,
+} from "./editorLayout";
+
+const PAGE_GAP = 2;
+
+function EditPage({
+    sidebarOpen,
+    onToggleSidebar,
+}: {
+    sidebarOpen: boolean;
+    onToggleSidebar: () => void;
+}) {
+    const largeDesktop = useMediaQuery(LARGE_DESKTOP_QUERY);
+    const {
+        book,
+        currentSpreadIndex,
+        setCurrentSpreadIndex,
+        addPage,
+        addPhotos,
+        removeSlot,
+        updateTextBlock,
+        removeTextBlock,
+        undo,
+        redo,
+        processingPhotos,
+        processingProgress,
+    } = useBook(
+        "book",
+        "currentSpreadIndex",
+        "setCurrentSpreadIndex",
+        "addPage",
+        "addPhotos",
+        "removeSlot",
+        "updateTextBlock",
+        "removeTextBlock",
+        "undo",
+        "redo",
+        "processingPhotos",
+        "processingProgress",
+    );
+
+    const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+    const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+    const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
+
+    const [editingTextId, setEditingTextId] = useState<string | null>(null);
+    const [insertedPageId, setInsertedPageId] = useState<string | null>(null);
+    const [addPageDialogOpen, setAddPageDialogOpen] = useState(false);
+    const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
+    const [photoImportError, setPhotoImportError] = useState<string | null>(
+        null,
+    );
+    const [showPhotoImportProgress, setShowPhotoImportProgress] =
+        useState(false);
+    const pagePhotoImportBusy =
+        processingPhotos && !pendingFiles && book.pages.length > 0;
+
+    useEffect(() => {
+        if (!pagePhotoImportBusy) {
+            setShowPhotoImportProgress(false);
+            return;
+        }
+        const timeout = window.setTimeout(
+            () => setShowPhotoImportProgress(true),
+            300,
+        );
+        return () => window.clearTimeout(timeout);
+    }, [pagePhotoImportBusy]);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const photoInputRef = useRef<HTMLInputElement>(null);
+    const photoDestinationRef = useRef<string | undefined>(undefined);
+
+    const [containerWidth, setContainerWidth] = useState(0);
+
+    const pages = book.pages;
+    const totalPages = pages.length;
+    const frontCoverId = pages[0]?.id;
+
+    const autoScroll = useAutoScroll(containerRef);
+    const photoDrag = usePhotoDrag(containerRef, autoScroll);
+    const pageDrag = usePageDrag();
+
+    const spreads = useSpreads(pages.length);
+
+    const [visibleSpreads, setVisibleSpreads] = useState<Set<number>>(
+        () => new Set([0, 1, 2]),
+    );
+    const spreadElsRef = useRef<Map<number, Element>>(new Map());
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    useEffect(() => {
+        const root = containerRef.current;
+        if (!root) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                setVisibleSpreads((prev) => {
+                    const next = new Set(prev);
+                    for (const entry of entries) {
+                        const idx = Number(
+                            (entry.target as HTMLElement).dataset.spreadIndex,
+                        );
+                        if (!isNaN(idx)) {
+                            if (entry.isIntersecting) next.add(idx);
+                            else next.delete(idx);
+                        }
+                    }
+                    if (
+                        next.size === prev.size &&
+                        [...next].every((v) => prev.has(v))
+                    )
+                        return prev;
+                    return next;
+                });
+            },
+            { root, rootMargin: "600px 0px" },
+        );
+        observerRef.current = observer;
+
+        spreadElsRef.current.forEach((el) => observer.observe(el));
+
+        return () => {
+            observer.disconnect();
+            observerRef.current = null;
+        };
+    }, [spreads.length]);
+
+    const spreadRefs = useMemo(
+        () =>
+            spreads.map((_, idx): RefCallback<HTMLDivElement> => (el) => {
+                const prev = spreadElsRef.current.get(idx);
+                if (prev && observerRef.current)
+                    observerRef.current.unobserve(prev);
+
+                if (el) {
+                    spreadElsRef.current.set(idx, el);
+                    if (observerRef.current) observerRef.current.observe(el);
+                } else {
+                    spreadElsRef.current.delete(idx);
+                }
+            }),
+        [spreads],
+    );
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target;
+            if (
+                e.defaultPrevented ||
+                e.isComposing ||
+                processingPhotos ||
+                (target instanceof HTMLElement &&
+                    (target.isContentEditable ||
+                        target.closest(
+                            'input, textarea, select, [role="textbox"], [role="dialog"], [role="menu"], [role="listbox"], [role="combobox"]',
+                        )))
+            )
+                return;
+            if (
+                (e.key === "Delete" || e.key === "Backspace") &&
+                !e.metaKey &&
+                !e.ctrlKey &&
+                !e.altKey &&
+                !e.shiftKey &&
+                !e.repeat
+            ) {
+                const slot = pages
+                    .find((page) => page.id === selectedPageId)
+                    ?.slots.find((slot) => slot.id === selectedSlotId);
+                if (selectedPageId && slot?.photoId) {
+                    e.preventDefault();
+                    removeSlot(selectedPageId, slot.id);
+                    setSelectedSlotId(null);
+                    setSelectedPageId(null);
+                    setSelectedTextId(null);
+                    setEditingTextId(null);
+                }
+                return;
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    redo();
+                } else {
+                    undo();
+                }
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [
+        undo,
+        redo,
+        processingPhotos,
+        pages,
+        selectedPageId,
+        selectedSlotId,
+        removeSlot,
+    ]);
+
+    useLayoutEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const measureWidth = () => setContainerWidth(el.clientWidth);
+        measureWidth();
+        const observer = new ResizeObserver(measureWidth);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    const { pageWidth, pageHeight } = useMemo(() => {
+        const availW =
+            containerWidth -
+            EDITOR_CANVAS_PADDING * 2 -
+            PAGE_GAP -
+            PICKER_WIDTH * 2;
+        const size = Math.round(
+            Math.max(
+                200,
+                Math.min(
+                    availW / 2,
+                    largeDesktop ? MAX_DISPLAY_PAGE_SIZE : 500,
+                ),
+            ),
+        );
+
+        return { pageWidth: size, pageHeight: size };
+    }, [containerWidth, largeDesktop]);
+
+    const scrollRafRef = useRef<number | null>(null);
+    const handleMainScroll = useCallback(() => {
+        if (scrollRafRef.current !== null) return;
+        scrollRafRef.current = requestAnimationFrame(() => {
+            scrollRafRef.current = null;
+            const main = containerRef.current;
+            if (!main) return;
+
+            const maxMainScroll = main.scrollHeight - main.clientHeight;
+            if (maxMainScroll <= 0) return;
+
+            const fraction = main.scrollTop / maxMainScroll;
+
+            const visibleIdx = Math.round(
+                fraction * Math.max(0, spreads.length - 1),
+            );
+            const spread = spreads.at(visibleIdx);
+            if (spread) {
+                const newIndex =
+                    getSpreadPageIndices(spread)[0] ??
+                    (visibleIdx < spreads.length / 2 ? 0 : pages.length - 1);
+                if (newIndex !== currentSpreadIndex) {
+                    setCurrentSpreadIndex(newIndex);
+                }
+            }
+        });
+    }, [spreads, currentSpreadIndex, setCurrentSpreadIndex, pages.length]);
+
+    useEffect(() => {
+        return () => {
+            if (scrollRafRef.current !== null) {
+                cancelAnimationFrame(scrollRafRef.current);
+                scrollRafRef.current = null;
+            }
+        };
+    }, []);
+
+    const handleSidebarSpreadClick = useCallback((spreadIdx: number) => {
+        const main = containerRef.current;
+        if (!main) return;
+        const spreadEl = main.querySelector(
+            `[data-spread-index="${spreadIdx}"]`,
+        );
+        if (spreadEl) {
+            spreadEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    }, []);
+
+    const handleSlotClick = useCallback((pageId: string, slotId: string) => {
+        setSelectedSlotId(slotId);
+        setSelectedPageId(pageId);
+        setSelectedTextId(null);
+    }, []);
+
+    const handleTextClick = useCallback((pageId: string, textId: string) => {
+        setSelectedTextId(textId);
+        setSelectedPageId(pageId);
+        setSelectedSlotId(null);
+    }, []);
+
+    const handleTextDblClick = useCallback((pageId: string, textId: string) => {
+        setEditingTextId(textId);
+        setSelectedTextId(textId);
+        setSelectedPageId(pageId);
+    }, []);
+
+    const clearSelection = useCallback(() => {
+        setSelectedSlotId(null);
+        setSelectedPageId(null);
+        setSelectedTextId(null);
+        setEditingTextId(null);
+    }, []);
+
+    const handleWorkspaceClick = useCallback(
+        (e: React.MouseEvent<HTMLDivElement>) => {
+            if (!(e.target as Element).closest("[data-book-page]"))
+                clearSelection();
+        },
+        [clearSelection],
+    );
+
+    const handleInsertPage = useCallback(
+        (pageIndex: number, position: PageInsertPosition) => {
+            clearSelection();
+            const pageId = addPage(
+                position === "before" ? pageIndex - 1 : pageIndex,
+            );
+            setInsertedPageId(pageId);
+        },
+        [addPage, clearSelection],
+    );
+
+    const handleAddPhotos = useCallback(
+        (pageId?: string) => {
+            const input = photoInputRef.current;
+            if (!input || processingPhotos) return;
+            setPhotoImportError(null);
+            photoDestinationRef.current = pageId;
+            input.multiple = !pageId || pageId !== frontCoverId;
+            input.click();
+        },
+        [frontCoverId, processingPhotos],
+    );
+
+    const importPhotos = useCallback(
+        async (files: File[], destination: PhotoDestination) => {
+            const pageId = await addPhotos(files, {
+                replace: pages.length === 0,
+                destination,
+            });
+            clearSelection();
+            if (pageId) setInsertedPageId(pageId);
+        },
+        [addPhotos, pages.length, clearSelection],
+    );
+
+    useEffect(() => {
+        if (!insertedPageId) return;
+        const pageIndex = pages.findIndex((page) => page.id === insertedPageId);
+        if (pageIndex < 0) return;
+        const spreadIndex = spreads.findIndex(
+            (spread) => spread.left === pageIndex || spread.right === pageIndex,
+        );
+        const row = containerRef.current?.querySelector(
+            `[data-spread-index="${spreadIndex}"]`,
+        );
+        if (!row) return;
+        setCurrentSpreadIndex(pageIndex);
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        setInsertedPageId(null);
+    }, [insertedPageId, pages, spreads, setCurrentSpreadIndex]);
+
+    const handleTextUpdate = useCallback(
+        (pageId: string, blockId: string, updates: Partial<TextBlock>) => {
+            updateTextBlock(pageId, blockId, updates);
+        },
+        [updateTextBlock],
+    );
+
+    const handleTextDelete = useCallback(
+        (pageId: string, blockId: string) => {
+            removeTextBlock(pageId, blockId);
+            setSelectedTextId(null);
+            setEditingTextId(null);
+        },
+        [removeTextBlock],
+    );
+
+    const handleTextEditEnd = useCallback(() => {
+        setEditingTextId(null);
+    }, []);
+
+    return (
+        <Box
+            sx={{
+                display: "flex",
+                flexDirection: "column",
+                height: "100dvh",
+                px: EDITOR_PANEL_INSET,
+                bgcolor: uiColors.background,
+            }}
+        >
+            <BookHeader
+                showBookControls={pages.length > 0}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={onToggleSidebar}
+                center={
+                    <Box
+                        component="nav"
+                        aria-label="Photobook tools"
+                        sx={{
+                            "--toolbar-radius": "20px",
+                            "--toolbar-inset": "6px",
+                            bgcolor: toolbarColors.background,
+                            width: "max-content",
+                            maxWidth: "100%",
+                            p: "var(--toolbar-inset)",
+                            borderRadius: "var(--toolbar-radius)",
+                            boxShadow: toolbarShadow,
+                        }}
+                    >
+                        <EditorActions
+                            onAddPage={() => setAddPageDialogOpen(true)}
+                            onAddPhotos={() => handleAddPhotos()}
+                        />
+                    </Box>
+                }
+            >
+                <EditorPreviewButton />
+            </BookHeader>
+
+            <Box
+                sx={{
+                    display: "flex",
+                    flex: 1,
+                    minHeight: 0,
+                    gap: EDITOR_PANEL_INSET,
+                    mb: EDITOR_PANEL_BOTTOM_INSET,
+                }}
+            >
+                {sidebarOpen && pages.length > 0 && (
+                    <BookSidebar onSpreadClick={handleSidebarSpreadClick} />
+                )}
+
+                <Box
+                    component="main"
+                    aria-label="Photobook editor"
+                    sx={{
+                        ...EDITOR_PANEL_SX,
+                        bgcolor:
+                            pages.length > 0
+                                ? EDITOR_PANEL_SX.bgcolor
+                                : "transparent",
+                        borderRadius: "20px",
+                        flex: 1,
+                        minWidth: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden",
+                    }}
+                >
+                    <Box
+                        ref={containerRef}
+                        onScroll={handleMainScroll}
+                        onClick={handleWorkspaceClick}
+                        onDragOver={
+                            pages.length > 0
+                                ? photoDrag.handleContainerDragOver
+                                : undefined
+                        }
+                        onDragEnd={photoDrag.handleDragEnd}
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            minHeight: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            overflow: "auto",
+                            scrollbarGutter:
+                                pages.length > 0 ? "stable" : "auto",
+                            ...EDITOR_SCROLLBAR_SX,
+                        }}
+                    >
+                        {containerWidth > 0 && (
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    px: `${EDITOR_CANVAS_PADDING}px`,
+                                    py: 4,
+                                    gap: 8,
+                                }}
+                            >
+                                {spreads.map((spread, spreadIdx) => {
+                                    const leftIndex =
+                                        typeof spread.left === "number"
+                                            ? spread.left
+                                            : null;
+                                    const rightIndex =
+                                        typeof spread.right === "number"
+                                            ? spread.right
+                                            : null;
+                                    const lp =
+                                        leftIndex !== null
+                                            ? pages[leftIndex]
+                                            : null;
+                                    const rp =
+                                        rightIndex !== null
+                                            ? pages[rightIndex]
+                                            : null;
+
+                                    const isVisible =
+                                        visibleSpreads.has(spreadIdx) ||
+                                        (selectedPageId !== null &&
+                                            (lp?.id === selectedPageId ||
+                                                rp?.id === selectedPageId));
+
+                                    return (
+                                        <Box
+                                            key={spreadIdx}
+                                            ref={spreadRefs[spreadIdx]}
+                                            data-spread-index={spreadIdx}
+                                            sx={{
+                                                display: "flex",
+                                                gap: `${PAGE_GAP}px`,
+                                                alignItems: "start",
+                                                width:
+                                                    PICKER_WIDTH +
+                                                    pageWidth * 2 +
+                                                    PAGE_GAP +
+                                                    PICKER_WIDTH,
+                                                justifyContent:
+                                                    spread.left !== null
+                                                        ? "flex-start"
+                                                        : "flex-end",
+                                                minHeight: pageHeight,
+                                            }}
+                                        >
+                                            {isVisible &&
+                                                spread.left ===
+                                                    "printer-blank" && (
+                                                    <Box
+                                                        sx={{
+                                                            pl: `${PICKER_WIDTH}px`,
+                                                        }}
+                                                    >
+                                                        <PrinterBlankPage
+                                                            width={pageWidth}
+                                                            height={pageHeight}
+                                                            showLabel
+                                                        />
+                                                    </Box>
+                                                )}
+                                            {isVisible && lp && (
+                                                <SpreadPage
+                                                    page={lp}
+                                                    pageIndex={leftIndex!}
+                                                    pickerSide="left"
+                                                    pageWidth={pageWidth}
+                                                    pageHeight={pageHeight}
+                                                    totalPages={totalPages}
+                                                    requiredBlank={isRequiredBlankPage(
+                                                        pages,
+                                                        lp.id,
+                                                    )}
+                                                    selectedSlotId={
+                                                        selectedPageId === lp.id
+                                                            ? selectedSlotId
+                                                            : null
+                                                    }
+                                                    selectedPageId={
+                                                        selectedPageId === lp.id
+                                                            ? selectedPageId
+                                                            : null
+                                                    }
+                                                    selectedTextId={
+                                                        selectedPageId === lp.id
+                                                            ? selectedTextId
+                                                            : null
+                                                    }
+                                                    editingTextId={
+                                                        selectedPageId === lp.id
+                                                            ? editingTextId
+                                                            : null
+                                                    }
+                                                    onSlotClick={
+                                                        handleSlotClick
+                                                    }
+                                                    onTextClick={
+                                                        handleTextClick
+                                                    }
+                                                    onTextDblClick={
+                                                        handleTextDblClick
+                                                    }
+                                                    onTextUpdate={
+                                                        handleTextUpdate
+                                                    }
+                                                    onTextDelete={
+                                                        handleTextDelete
+                                                    }
+                                                    onTextEditEnd={
+                                                        handleTextEditEnd
+                                                    }
+                                                    onClearSelection={
+                                                        clearSelection
+                                                    }
+                                                    onInsertPage={
+                                                        handleInsertPage
+                                                    }
+                                                    onAddPhotos={
+                                                        handleAddPhotos
+                                                    }
+                                                    dragSourceInfo={
+                                                        photoDrag.dragSourceInfo
+                                                    }
+                                                    dragOverInfo={
+                                                        photoDrag.dragOverInfo
+                                                    }
+                                                    dragOverPageId={
+                                                        photoDrag.dragOverPageId
+                                                    }
+                                                    onPhotoDragStart={
+                                                        photoDrag.handleDragStart
+                                                    }
+                                                    onSlotDragOver={
+                                                        photoDrag.handleSlotDragOver
+                                                    }
+                                                    onPhotoDrop={
+                                                        photoDrag.handleDrop
+                                                    }
+                                                    onPhotoDragEnd={
+                                                        photoDrag.handleDragEnd
+                                                    }
+                                                    onPageDragOver={
+                                                        photoDrag.handlePageDragOver
+                                                    }
+                                                    onPageDrop={
+                                                        photoDrag.handlePageDrop
+                                                    }
+                                                    pageDragSource={
+                                                        pageDrag.pageDragSource
+                                                    }
+                                                    pageDragTarget={
+                                                        pageDrag.pageDragTarget
+                                                    }
+                                                    pageDragSourceRef={
+                                                        pageDrag.pageDragSourceRef
+                                                    }
+                                                    onPageDragStart={
+                                                        pageDrag.handlePageDragStart
+                                                    }
+                                                    onPageDragOverPage={
+                                                        pageDrag.handlePageDragOverPage
+                                                    }
+                                                    onPageDropOnPage={
+                                                        pageDrag.handlePageDropOnPage
+                                                    }
+                                                    onPageDragEndCleanup={
+                                                        pageDrag.handlePageDragEndCleanup
+                                                    }
+                                                />
+                                            )}
+                                            {isVisible && rp && (
+                                                <SpreadPage
+                                                    page={rp}
+                                                    pageIndex={rightIndex!}
+                                                    pickerSide="right"
+                                                    pageWidth={pageWidth}
+                                                    pageHeight={pageHeight}
+                                                    totalPages={totalPages}
+                                                    requiredBlank={isRequiredBlankPage(
+                                                        pages,
+                                                        rp.id,
+                                                    )}
+                                                    selectedSlotId={
+                                                        selectedPageId === rp.id
+                                                            ? selectedSlotId
+                                                            : null
+                                                    }
+                                                    selectedPageId={
+                                                        selectedPageId === rp.id
+                                                            ? selectedPageId
+                                                            : null
+                                                    }
+                                                    selectedTextId={
+                                                        selectedPageId === rp.id
+                                                            ? selectedTextId
+                                                            : null
+                                                    }
+                                                    editingTextId={
+                                                        selectedPageId === rp.id
+                                                            ? editingTextId
+                                                            : null
+                                                    }
+                                                    onSlotClick={
+                                                        handleSlotClick
+                                                    }
+                                                    onTextClick={
+                                                        handleTextClick
+                                                    }
+                                                    onTextDblClick={
+                                                        handleTextDblClick
+                                                    }
+                                                    onTextUpdate={
+                                                        handleTextUpdate
+                                                    }
+                                                    onTextDelete={
+                                                        handleTextDelete
+                                                    }
+                                                    onTextEditEnd={
+                                                        handleTextEditEnd
+                                                    }
+                                                    onClearSelection={
+                                                        clearSelection
+                                                    }
+                                                    onInsertPage={
+                                                        handleInsertPage
+                                                    }
+                                                    onAddPhotos={
+                                                        handleAddPhotos
+                                                    }
+                                                    dragSourceInfo={
+                                                        photoDrag.dragSourceInfo
+                                                    }
+                                                    dragOverInfo={
+                                                        photoDrag.dragOverInfo
+                                                    }
+                                                    dragOverPageId={
+                                                        photoDrag.dragOverPageId
+                                                    }
+                                                    onPhotoDragStart={
+                                                        photoDrag.handleDragStart
+                                                    }
+                                                    onSlotDragOver={
+                                                        photoDrag.handleSlotDragOver
+                                                    }
+                                                    onPhotoDrop={
+                                                        photoDrag.handleDrop
+                                                    }
+                                                    onPhotoDragEnd={
+                                                        photoDrag.handleDragEnd
+                                                    }
+                                                    onPageDragOver={
+                                                        photoDrag.handlePageDragOver
+                                                    }
+                                                    onPageDrop={
+                                                        photoDrag.handlePageDrop
+                                                    }
+                                                    pageDragSource={
+                                                        pageDrag.pageDragSource
+                                                    }
+                                                    pageDragTarget={
+                                                        pageDrag.pageDragTarget
+                                                    }
+                                                    pageDragSourceRef={
+                                                        pageDrag.pageDragSourceRef
+                                                    }
+                                                    onPageDragStart={
+                                                        pageDrag.handlePageDragStart
+                                                    }
+                                                    onPageDragOverPage={
+                                                        pageDrag.handlePageDragOverPage
+                                                    }
+                                                    onPageDropOnPage={
+                                                        pageDrag.handlePageDropOnPage
+                                                    }
+                                                    onPageDragEndCleanup={
+                                                        pageDrag.handlePageDragEndCleanup
+                                                    }
+                                                />
+                                            )}
+                                            {isVisible &&
+                                                spread.right ===
+                                                    "printer-blank" && (
+                                                    <Box
+                                                        sx={{
+                                                            pr: `${PICKER_WIDTH}px`,
+                                                        }}
+                                                    >
+                                                        <PrinterBlankPage
+                                                            width={pageWidth}
+                                                            height={pageHeight}
+                                                            showLabel
+                                                        />
+                                                    </Box>
+                                                )}
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        )}
+                    </Box>
+                </Box>
+            </Box>
+
+            <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+                multiple
+                style={{ display: "none" }}
+                onChange={async (event) => {
+                    const files = Array.from(event.currentTarget.files ?? []);
+                    const pageId = photoDestinationRef.current;
+                    event.currentTarget.value = "";
+                    if (files.length === 0) return;
+                    if (!pageId) {
+                        setPendingFiles(files);
+                        return;
+                    }
+                    try {
+                        await importPhotos(files, { kind: "page", pageId });
+                    } catch (error) {
+                        setPhotoImportError(
+                            error instanceof Error
+                                ? error.message
+                                : "Couldn't add these photos. Please try again.",
+                        );
+                    }
+                }}
+            />
+            {pendingFiles && (
+                <AddPhotosDialog
+                    pages={pages}
+                    photoCount={pendingFiles.length}
+                    busy={processingPhotos}
+                    progress={processingProgress}
+                    onClose={() => setPendingFiles(null)}
+                    onAdd={(destination) =>
+                        importPhotos(pendingFiles, destination)
+                    }
+                />
+            )}
+            <Backdrop
+                open={pagePhotoImportBusy}
+                invisible={!showPhotoImportProgress}
+                transitionDuration={0}
+                sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
+            >
+                {pagePhotoImportBusy && showPhotoImportProgress && (
+                    <Box
+                        role="status"
+                        aria-live="polite"
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            bgcolor: uiColors.surface,
+                            color: uiColors.text,
+                            p: 3,
+                            borderRadius: 3,
+                        }}
+                    >
+                        <CircularProgress size={24} sx={{ color: "#08C225" }} />
+                        <Typography>
+                            {"Adding photos… "}
+                            {processingProgress}%
+                        </Typography>
+                    </Box>
+                )}
+            </Backdrop>
+            <Snackbar
+                open={!!photoImportError}
+                onClose={() => setPhotoImportError(null)}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            >
+                <Alert
+                    severity="error"
+                    onClose={() => setPhotoImportError(null)}
+                >
+                    {photoImportError}
+                </Alert>
+            </Snackbar>
+
+            {addPageDialogOpen && (
+                <AddPageDialog
+                    pages={pages}
+                    initialPageId={
+                        selectedPageId ?? pages[currentSpreadIndex]?.id
+                    }
+                    disabled={processingPhotos}
+                    onClose={() => setAddPageDialogOpen(false)}
+                    onInsert={handleInsertPage}
+                />
+            )}
+
+            <canvas
+                ref={photoDrag.dragGhostRef}
+                style={{ position: "fixed", left: -9999 }}
+            />
+        </Box>
+    );
+}
+
+export default memo(EditPage);

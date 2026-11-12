@@ -1,5 +1,6 @@
 use super::engine::{Catalog, Engine};
 use super::*;
+use ente_photos_export::Report;
 use std::collections::BTreeMap;
 
 fn new_engine(server: &mockito::ServerGuard, key: Key, record: Value) -> Engine {
@@ -22,6 +23,37 @@ fn run(engine: &mut Engine, complete: bool) -> Value {
     let result = engine.run(false, &[]).unwrap();
     assert_eq!(result.complete, complete);
     result.json
+}
+
+#[test]
+fn engine_export_tolerates_finder_sidecars_in_destination() {
+    let mut server = mockito::Server::new();
+    let key = Key::generate();
+    let (record, bytes) = source(10, &key, b"original", "._Photo.jpg");
+    let id = record["id"].as_i64().unwrap();
+    let downloaded = download(&mut server, id, &bytes, 1);
+    let mut engine = new_engine(&server, key, record);
+    let root = engine.root();
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("._export.json"), b"sidecar").unwrap();
+    fs::write(root.join(".DS_Store"), b"finder").unwrap();
+    let summary = engine.run(false, &[]).unwrap();
+    assert!(summary.complete);
+    assert_eq!(
+        fs::read(root.join("First/._Photo.jpg")).unwrap(),
+        b"original"
+    );
+    assert_eq!(
+        fs::read(root.join("Second/._Photo.jpg")).unwrap(),
+        b"original"
+    );
+    assert!(root.join("export.json").is_file());
+    let summary = engine.run(false, &["First"]).unwrap();
+    assert!(summary.complete);
+    fs::write(root.join("First/metadata/._._Photo.jpg.json"), b"finder").unwrap();
+    engine.database = "recovered.db".into();
+    assert!(engine.run(true, &[]).unwrap().complete);
+    downloaded.assert();
 }
 
 #[test]
@@ -986,9 +1018,14 @@ fn engine_rechecks_link_source_before_completion() {
     let blocked = root.join("Third/metadata/Photo.jpg.json");
     fs::remove_file(&blocked).unwrap();
     fs::create_dir(&blocked).unwrap();
-    let result = engine.execute_with_report(export, &|line| {
-        eprintln!("{line}");
-        if line.starts_with("file:3:10:") && line.contains("expected a regular file") {
+    let result = engine.execute_with_report(export, &|report| {
+        eprintln!("{report:?}");
+        if let Report::Failure {
+            unit: "file:3:10",
+            error,
+        } = report
+            && format!("{error:#}").contains("expected a regular file")
+        {
             assert!(linked(&root, "First/Photo.jpg", "Second/Photo.jpg"));
             assert_eq!(fs::metadata(&first).unwrap().modified().unwrap(), modified);
             fs::write(&first, b"modified").unwrap();

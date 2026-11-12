@@ -1,7 +1,7 @@
 import "dart:math";
 
 import "package:ente_sharing/models/user.dart";
-import "package:ente_sharing/user_avator_widget.dart";
+import "package:ente_sharing/user_avatar_widget.dart";
 import "package:flutter/material.dart";
 import "package:locker/services/configuration.dart";
 import "package:locker/ui/sharing/more_count_badge.dart";

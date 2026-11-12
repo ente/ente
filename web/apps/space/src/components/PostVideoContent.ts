@@ -12,11 +12,13 @@ export const createSpaceVideoContent = (
     load?: SpacePostAssetURLLoader,
     {
         inline = false,
+        showDuration = false,
         onPlay,
         onPause,
         onTogglePlayback,
     }: {
         inline?: boolean;
+        showDuration?: boolean;
         onPlay?: () => Promise<void> | void;
         onPause?: () => void;
         onTogglePlayback?: (play: boolean) => void;
@@ -128,6 +130,16 @@ export const createSpaceVideoContent = (
         element.append(cover);
     }
     element.append(button, loading, errorMessage);
+    if (showDuration) {
+        const duration = Math.ceil(
+            (media.end ?? media.durationMs / 1000) - (media.start ?? 0),
+        );
+        const badge = document.createElement("span");
+        badge.className = "space-video-duration";
+        badge.textContent = `${duration}s`;
+        badge.setAttribute("aria-label", `Video duration: ${duration} seconds`);
+        element.append(badge);
+    }
     const cacheReadController = new AbortController();
     let generation = 0;
     let sourceGeneration = 0;

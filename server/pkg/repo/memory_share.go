@@ -188,6 +188,39 @@ func (r *MemoryShareRepository) GetFiles(ctx context.Context, shareID int64) ([]
 	return files, nil
 }
 
+func (r *MemoryShareRepository) GetPublicFiles(ctx context.Context, shareID int64) ([]ente.PublicMemoryShareFile, error) {
+	rows, err := r.DB.QueryContext(ctx, `
+		SELECT f.file_id, f.owner_id, f.file_decryption_header, f.thumbnail_decryption_header,
+		       f.metadata_decryption_header, f.encrypted_metadata, f.pub_magic_metadata, f.info,
+		       m.position, m.file_enc_key, m.file_key_decryption_nonce
+		FROM memory_share_files m
+		JOIN files f ON f.file_id = m.file_id
+		WHERE m.memory_share_id = $1 AND f.encrypted_metadata <> '-'
+		  AND EXISTS (SELECT 1 FROM collection_files cf WHERE cf.file_id = f.file_id AND cf.is_deleted = false)
+		ORDER BY m.position, m.id`, shareID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to query public memory files")
+	}
+	defer rows.Close()
+
+	files := make([]ente.PublicMemoryShareFile, 0)
+	for rows.Next() {
+		var item ente.PublicMemoryShareFile
+		file := &item.File
+		if err := rows.Scan(&file.ID, &file.OwnerID, &file.File.DecryptionHeader,
+			&file.Thumbnail.DecryptionHeader, &file.Metadata.DecryptionHeader,
+			&file.Metadata.EncryptedData, &file.PublicMagicMetadata, &file.Info,
+			&item.Position, &item.EncryptedKey, &item.KeyDecryptionNonce); err != nil {
+			return nil, stacktrace.Propagate(err, "failed to scan public memory file")
+		}
+		files = append(files, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read public memory files")
+	}
+	return files, nil
+}
+
 func (r *MemoryShareRepository) GetFileIDs(ctx context.Context, shareID int64) ([]int64, error) {
 	rows, err := r.DB.QueryContext(ctx, `
 		SELECT file_id
@@ -253,6 +286,14 @@ func (r *MemoryShareRepository) Delete(ctx context.Context, shareID int64, userI
 		return stacktrace.Propagate(ente.ErrNotFound, "memory share not found or not owned by user")
 	}
 	return nil
+}
+
+func (r *MemoryShareRepository) DeleteForUser(ctx context.Context, userID int64) error {
+	_, err := r.DB.ExecContext(ctx, `
+		UPDATE memory_shares SET is_deleted = true, updated_at = $1
+		WHERE user_id = $2 AND is_deleted = false`,
+		time.Microseconds(), userID)
+	return stacktrace.Propagate(err, "failed to delete memory shares for user")
 }
 
 func (r *MemoryShareRepository) GetFileOwnerMap(ctx context.Context, shareID int64) (map[int64]int64, error) {

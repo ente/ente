@@ -15,8 +15,24 @@ import (
 	"github.com/ente/museum/pkg/utils/auth"
 	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
+
+func TestCollectionLinkAllowsConfiguredPhotobookOrigin(t *testing.T) {
+	previousOrigin := viper.Get("apps.photobook")
+	t.Cleanup(func() { viper.Set("apps.photobook", previousOrigin) })
+
+	for _, origin := range []string{"https://photobook.ente.com", "https://photobook.example.org"} {
+		t.Run(origin, func(t *testing.T) {
+			viper.Set("apps.photobook", origin)
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = httptest.NewRequest(http.MethodGet, "/public-collection/info", nil)
+			c.Request.Header.Set("Origin", origin)
+			require.NoError(t, (&CollectionLinkMiddleware{}).validateOrigin(c, 1))
+		})
+	}
+}
 
 func TestCollectionLinkCacheIsScopedToOrigin(t *testing.T) {
 	const (

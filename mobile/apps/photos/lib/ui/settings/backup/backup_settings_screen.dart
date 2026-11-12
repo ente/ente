@@ -162,7 +162,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
   }
 
   Future<bool> _ensurePhotoPermissions(BuildContext context) async {
-    final state = await permissionService.requestPhotoMangerPermissions();
+    final state = await permissionService.requestPhotoManagerPermissions();
     if (state == PermissionState.authorized ||
         state == PermissionState.limited) {
       await permissionService.onUpdatePermission(state);

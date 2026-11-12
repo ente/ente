@@ -7,6 +7,8 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
+  ente_frb:
+    path: ../frb
   flutter:
     sdk: flutter
 

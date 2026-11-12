@@ -1,5 +1,149 @@
 {
+  "bringMemoriesTogether": "તમારી યાદોને એકસાથે લાવો",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "મારું એકાઉન્ટ બનાવો",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "localGalleryPermissionDesc": "તમારા ફોટાને એક્સેસ કરવાની અને ચહેરાની ઓળખ દ્વારા તેને વ્યવસ્થિત કરવાની પરવાનગી આપો; આ પ્રક્રિયા સંપૂર્ણપણે તમારા ઉપકરણ પર જ થાય છે.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "તમારા ફોટા અને વીડિયોને વ્યવસ્થિત કરો. દરેક યાદ, એક જ જગ્યાએ.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
+  "wallpaper": "વોલપેપર",
+  "setWallpaper": "વોલપેપર સેટ કરો",
+  "wallpaperHome": "હોમ સ્ક્રીન",
+  "wallpaperLock": "લોક સ્ક્રીન",
+  "wallpaperBoth": "હોમ અને લૉક સ્ક્રીન",
+  "wallpaperSet": "વોલપેપર સેટ",
+  "wallpaperFailed": "વોલપેપર સેટ કરી શકાયું નહીં",
+  "wallpaperUnavailable": "આ ઉપકરણ પર વૉલપેપર બદલવાની અનુમતિ નથી",
+  "about": "વિશે",
+  "acceptTrustInvite": "આમંત્રણ સ્વીકારો",
   "account": "ખાતું",
+  "accountCredentials": "ગોપનીય",
+  "accountCredentialsDescription": "ખાતાના ઓળખપત્રો સાચવો.",
+  "accountIsAlreadyConfigured": "એકાઉન્ટ પહેલેથી જ કન્ફિગર થયેલું છે.",
+  "accountOwnerPersonAppbarTitle": "{title} (હું)",
+  "@accountOwnerPersonAppbarTitle": {
+    "description": "Title of appbar for account owner person",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "accountRecovery": "એકાઉન્ટ પુનઃપ્રાપ્તિ",
+  "accountSetupIncompleteCreateAccount": "એકાઉન્ટ સેટઅપ અધૂરું છે. સેટઅપ પૂર્ણ કરવા માટે એકાઉન્ટ બનાવો.",
+  "@accountSetupIncompleteCreateAccount": {
+    "description": "Error shown when account exists but signup is incomplete"
+  },
+  "actionNotSupportedOnFavouritesAlbum": "મનપસંદ આલ્બમ પર આ ક્રિયા સમર્થિત નથી",
+  "activeSessions": "સક્રિય સત્રો",
+  "@activeSessions": {
+    "description": "Title for active sessions page"
+  },
+  "add": "ઉમેરો",
+  "addAlbumWidgetPrompt": "તમારી હોમ સ્ક્રીનને કસ્ટમાઇઝ કરવા માટે તેમાં આલ્બમ વિજેટ ઉમેરો.",
+  "addANameAndPhoto": "નામ અને ફોટો ઉમેરો",
+  "addAnyway": "કોઈપણ રીતે ઉમેરો",
+  "addedAMemoryTo": "{albumName} માં એક મેમરી ઉમેરી",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedBy": "{emailOrName} દ્વારા ઉમેરવામાં આવ્યું",
+  "@addedBy": {
+    "placeholders": {
+      "emailOrName": {}
+    }
+  },
+  "addEmail": "ઈમેલ ઉમેરો",
+  "addLocationButton": "ઉમેરો",
+  "addMember": "સભ્ય ઉમેરો",
+  "addMore": "વધુ ઉમેરો",
+  "addName": "નામ ઉમેરો",
+  "addNew": "નવું ઉમેરો",
+  "@addNew": {
+    "description": "Text to add a new item (location tag, album, caption etc)"
+  },
+  "addNewEmail": "નવું ઈમેલ ઉમેરો",
+  "addOnPageSubtitle": "વધારાની સુવિધાઓની વિગતો",
+  "addOns": "વધારાની સુવિધાઓ",
+  "addPage": "પૃષ્ઠ ઉમેરો",
+  "@addPage": {
+    "description": "Button to capture another page in the document scanner"
+  },
+  "addPeopleWidgetPrompt": "તમારી હોમ સ્ક્રીનને કસ્ટમાઇઝ કરવા માટે તેમાં પીપલ વિજેટ ઉમેરો.",
+  "addPerson": "વ્યક્તિ ઉમેરો",
+  "@addPerson": {
+    "description": "Title for the manual tagging flow where user selects a person to tag files with."
+  },
+  "admiringThem": "{name} ની પ્રશંસા કરવી",
+  "@admiringThem": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "advanced": "અદ્યતન",
+  "after1Day": "૧ દિવસ પછી",
+  "after1Hour": "૧ કલાક પછી",
+  "after1Month": "૧ મહિના પછી",
+  "after1Week": "૧ અઠવાડિયા પછી",
+  "after1Year": "૧ વર્ષ પછી",
+  "albumDescriptionHint": "આ આલ્બમ માટે વર્ણન દાખલ કરો",
+  "albumEditsWillNotBeSaved": "આ આલ્બમમાં તમે કરેલા ફેરફારો સચવાશે નહીં.",
+  "albumsOnDevicePermissionDescription": "તમારા ફોટા તમારા ઉપકરણ પર જ, ચહેરા ઓળખવાની સુવિધા દ્વારા વ્યવસ્થિત થઈ જાય છે.",
+  "@albumsOnDevicePermissionDescription": {
+    "description": "Body of the on-device albums empty state shown before photo access is granted"
+  },
+  "albumsOnEnteEmptyDescription": "તેમને કોઈપણ ઉપકરણ પર મેળવો અને તમારા પ્રિયજનો સાથે શેર કરો.",
+  "@albumsOnEnteEmptyDescription": {
+    "description": "Body of the Ente albums empty state, under the title 'Back up your memories'"
+  },
+  "albumsOnEnteEmptyTitle": "તમારી યાદોનો બેકઅપ લો",
+  "albumsReceivedEmptyDescription": "તમારી સાથે શેર કરવામાં આવેલા આલ્બમ અહીં દેખાય છે, જે જોવા અને સાચવવા માટે તૈયાર છે.",
+  "@albumsReceivedEmptyDescription": {
+    "description": "Body of the received albums empty state"
+  },
+  "albumsReceivedEmptyTitle": "તમારી સાથે વહેંચાયેલી યાદો",
+  "albumsSharedEmptyDescription": "સ્વજનો એકાઉન્ટ વગર જોઈ શકે છે, પ્રતિક્રિયા આપી શકે છે અને ટિપ્પણીઓ ઉમેરી શકે છે.",
+  "@albumsSharedEmptyDescription": {
+    "description": "Body of the shared albums and feed empty states, under the title 'Share your memories'"
+  },
+  "albumsSharedEmptyTitle": "તમારી યાદો શેર કરો",
+  "albumsWidgetDesc": "તમારી હોમ સ્ક્રીન પર તમે જે આલ્બમ્સ જોવા માંગો છો તે પસંદ કરો.",
+  "albumTitle": "આલ્બમનું શીર્ષક",
+  "albumUpdated": "આલ્બમ અપડેટ કરવામાં આવ્યું",
+  "align": "હારબંધ ગોઠવવું",
+  "all": "તમામ",
+  "allowJoiningDescription": "Ente એકાઉન્ટ ધરાવતા દર્શકો તમારા આલ્બમમાં જોડાઈ શકે છે અને અપડેટ રહી શકે છે",
+  "allowPermBody": "કૃપા કરીને સેટિંગ્સ માંથી તમારા ફોટાની ઍક્સેસ આપો, જેથી Ente તમારી લાઇબ્રેરીને પ્રદર્શિત કરી શકે અને તેનો બેકઅપ લઈ શકે.",
+  "allowPermTitle": "ફોટાઓનો એક્સેસ આપો",
+  "allPersonGroupingWillReset": "આ વ્યક્તિ માટેના તમામ જૂથો રીસેટ થઈ જશે, અને આ વ્યક્તિ માટે આપવામાં આવેલા તમામ સૂચનો તમે ગુમાવી દેશો",
+  "allTabEmptyHint": "અહીં હજુ કંઈ નથી. કોડ ઉમેરવા માટે + પર ટેપ કરો અથવા કોડ પાછો મેળવવા માટે ટ્રેશ ખોલો.",
+  "@allTabEmptyHint": {
+    "description": "Shown when the All tab has no active codes but Trash contains codes"
+  },
+  "allWillShiftRangeBasedOnFirst": "આ જૂથમાંનો પ્રથમ ફોટો છે. અન્ય પસંદ કરેલા ફોટા આ નવી તારીખના આધારે આપમેળે ખસી જશે",
+  "almostDone": "લગભગ પૂરું...",
+  "alreadyAdded": "પહેલેથી જ ઉમેરી દીધું છે",
+  "alreadyHaveAnAccount": "શું તમારી પાસે પહેલેથી જ એકાઉન્ટ છે?",
+  "analysis": "વિશ્લેષણ",
+  "and1Other": "અને અન્ય ૧",
+  "androidBiometricHint": "ઓળખ ચકાસો",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
   "androidCancelButton": "રદ કરો",
   "@androidCancelButton": {
     "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
@@ -8,33 +152,374 @@
   "@androidSignInTitle": {
     "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
+  "andXOthers": "અને અન્ય {count} વ્યક્તિઓ",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "applePhotosUnsupportedResource": "આ ફાઇલને એપલ ફોટોઝમાં સેવ કરી શકાઈ નથી. તમે તેને હજુ પણ એન્ટેમાં જોઈ શકો છો.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
+  "appLockDescription": "તમારા ઉપકરણની ડિફોલ્ટ લૉક સ્ક્રીન અથવા પિન કે પાસવર્ડ ધરાવતી કસ્ટમ લૉક સ્ક્રીનમાંથી પસંદગી કરો.",
+  "@appLockDescription": {
+    "description": "Description of app lock feature"
+  },
+  "appLockOfflineModeWarning": "તમે બેકઅપ લીધા વિના આગળ વધવાનું પસંદ કર્યું છે. જો તમે તમારો એપ લૉક ભૂલી જશો, તો તમે તમારા ડેટાને એક્સેસ કરી શકશો નહીં.",
+  "areThey": "શું તેઓ છે ",
+  "areYouSure": "શું તમને ખાતરી છે?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "areYouSureDeleteFiles": "શું તમે ખાતરીપૂર્વક આ ફાઇલોને ડિલીટ કરવા માંગો છો?",
+  "areYouSureRemoveThisFaceFromPerson": "શું તમે ખાતરીપૂર્વક આ વ્યક્તિમાંથી આ ચહેરો દૂર કરવા માંગો છો?",
+  "areYouSureRemoveThisPersonTag": "શું તમે ખરેખર આ વ્યક્તિ ટેગને દૂર કરવા માંગો છો?",
+  "areYouSureThatYouWantToLeaveTheFamily": "શું તમને ખાતરી છે કે તમે ફેમિલી પ્લાન છોડવા માંગો છો?",
+  "areYouSureYouWantToCancel": "શું તમે ખરેખર રદ કરવા માંગો છો?",
+  "areYouSureYouWantToChangeYourPlan": "શું તમે ખરેખર તમારો પ્લાન બદલવા માંગો છો?",
+  "areYouSureYouWantToExit": "શું તમે ખરેખર બહાર નીકળવા માંગો છો?",
+  "areYouSureYouWantToIgnoreThesePersons": "શું તમે ખરેખર આ વ્યક્તિઓને અવગણવા માંગો છો?",
+  "areYouSureYouWantToIgnoreThisPerson": "શું તમે ખરેખર આ વ્યક્તિને અવગણવા માંગો છો?",
+  "areYouSureYouWantToLogout": "શું તમે ખરેખર લોગઆઉટ કરવા માંગો છો?",
+  "@areYouSureYouWantToLogout": {
+    "description": "Confirmation message before logout"
+  },
+  "areYouSureYouWantToRenew": "શું તમે ખરેખર રિન્યૂ કરવા માંગો છો?",
+  "areYouSureYouWantToResetThisPerson": "શું તમે ખરેખર આ વ્યક્તિને રીસેટ કરવા માંગો છો?",
+  "areYouSureYouWantToShowThesePeopleInPeopleSectionAgain": "શું તમે ખરેખર આ લોકોને 'પીપલ' વિભાગમાં ફરીથી બતાવવા માંગો છો?",
+  "areYouSureYouWantToShowThisPersonInPeopleSectionAgain": "શું તમે ખરેખર આ વ્યક્તિને 'લોકો' વિભાગમાં ફરીથી બતાવવા માંગો છો?",
+  "askAQuestion": "પ્રશ્ન પૂછો",
+  "askCancelReason": "તમારું સબ્સ્ક્રિપ્શન રદ કરવામાં આવ્યું છે. શું તમે તેનું કારણ જણાવવા માંગો છો?",
+  "authToChangeEmailVerificationSetting": "ઇમેઇલ ચકાસણી બદલવા માટે કૃપા કરીને પ્રમાણિત કરો",
+  "authToChangeLockscreenSetting": "લોકસ્ક્રીન સેટિંગ બદલવા માટે કૃપા કરીને પ્રમાણીકરણ કરો",
+  "authToChangeYourEmail": "તમારું ઈમેલ બદલવા માટે કૃપા કરીને પ્રમાણીકરણ કરો",
+  "authToChangeYourPassword": "તમારો પાસવર્ડ બદલવા માટે કૃપા કરીને પ્રમાણીકરણ કરો",
+  "authToConfigureTwofactorAuthentication": "બે-પરિબળ પ્રમાણીકરણ ગોઠવવા માટે કૃપા કરીને પ્રમાણીકરણ કરો",
+  "authToExportCodes": "તમારા કોડ્સ એક્સપોર્ટ કરવા માટે કૃપા કરીને પ્રમાણીકરણ કરો",
+  "authToInitiateAccountDeletion": "તમારું એકાઉન્ટ ડિલીટ કરવા માટે અનલોક કરો",
+  "authToInitiateSignIn": "બેકઅપ માટે સાઇન-ઇન પ્રક્રિયા શરૂ કરવા કૃપા કરીને પ્રમાણીકરણ કરો.",
+  "authToManageLegacy": "તમારા વિશ્વાસુ સંપર્કોનું સંચાલન કરવા માટે કૃપા કરીને પ્રમાણીકરણ કરો",
+  "autoLogoutMessage": "તકનીકી ખામીને કારણે, તમને સિસ્ટમમાંથી લોગ આઉટ કરવામાં આવ્યા છે. થયેલી અસુવિધા બદલ અમે ક્ષમા ચાહીએ છીએ.",
+  "backupModeNoBackupInProgressDescription": "બેકઅપ શરૂ કરો, ત્યારબાદ બેકઅપ મોડમાં પાછા ફરો.",
+  "backupModePlugInPhone": "તમારો ફોન પ્લગ-ઇન કરો. બેકઅપ લેતી વખતે બેટરી વપરાય છે.",
+  "backupModePreservingYourMemories": "તમારી યાદોને સાચવી રાખવી",
+  "backupModeScreenDimmingDescription": "બેટરી બચાવવા માટે સ્ક્રીન ઝાંખી થઈ જાય છે. ફરી પાછા આવવા માટે ગમે ત્યારે તેના પર ટેપ કરો.",
+  "backupModeScreenWillDim": "બેટરી બચાવવા માટે સ્ક્રીન આપમેળે ઝાંખી થઈ જશે",
+  "backupModeSettingsDescription": "તમારો બેકઅપ પૂર્ણ કરવા માટે એપને ખુલ્લી રાખો",
+  "backupModeStart": "બેકઅપ મોડ શરૂ કરો",
+  "birthday": "જન્મદિવસ",
+  "birthdays": "જન્મદિવસો",
+  "black": "કાળું",
   "blog": "બ્લોગ",
   "bothIssuerAndAccountCanNotBeEmpty": "રજૂકર્તા અને ખાતું બંને ખાલી હોઈ શકતા નથી",
   "cancel": "રદ કરો",
+  "back": "પાછું",
   "@cancel": {
     "description": "Cancel button label"
   },
+  "cancelInvite": "આમંત્રણ રદ કરો",
+  "@cancelInvite": {
+    "description": "Title for cancel invite confirmation dialog"
+  },
+  "cancelInviteDesc": "જો તમે આ આમંત્રણ કાઢી નાખશો, તો તમારો વિચાર બદલાય તો તમારે નવું આમંત્રણ મોકલવું પડશે.",
+  "@cancelInviteDesc": {
+    "description": "Description for cancel invite confirmation dialog"
+  },
+  "cancelOtherSubscription": "કૃપા કરીને પહેલા {paymentProvider} પરથી તમારું હાલનું સબ્સ્ક્રિપ્શન રદ કરો",
+  "@cancelOtherSubscription": {
+    "description": "The text to display when the user has an existing subscription from a different payment provider",
+    "type": "text",
+    "placeholders": {
+      "paymentProvider": {
+        "example": "Apple",
+        "type": "String"
+      }
+    }
+  },
+  "cancelRecovery": "રિકવરી રદ કરો",
+  "cancelRecoveryDesc": "શું તમે ખાતરીપૂર્વક {email} ના એકાઉન્ટની રિકવરી રદ કરવા માંગો છો?",
+  "@cancelRecoveryDesc": {
+    "description": "Description for cancel recovery confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelSubscription": "સબ્સ્ક્રિપ્શન રદ કરો",
+  "candidLaughter": "ખડખડાટ હાસ્ય",
+  "cannotAddMoreFilesAfterBecomingViewer": "{name} જોનાર બન્યા પછી કલેક્શનમાં વસ્તુઓ ઉમેરી શકશે નહીં.",
+  "@cannotAddMoreFilesAfterBecomingViewer": {
+    "description": "Warning message when changing a collaborator to viewer",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "John"
+      }
+    }
+  },
+  "cannotDeleteSharedFiles": "શેર કરેલી ફાઇલો કાઢી શકાતી નથી",
+  "cannotMoveToSharedAlbums": "શેર કરેલા આલ્બમ્સમાં ખસેડી શકાતું નથી",
+  "cannotMoveToSharedAlbumsMessage": "આઈટમ્સને શેર કરેલા આલ્બમ્સમાં માત્ર ઉમેરી શકાય છે, ખસેડી શકાતી નથી. શું તમે તેને ઉમેરવા માંગો છો?",
+  "canNotOpenBody": "ક્ષમા કરશો, આ આલ્બમ એપમાં ખોલી શકાતું નથી.",
+  "canNotOpenTitle": "આ આલ્બમ ખોલી શકાતું નથી",
+  "cannotUpdateRecoveryTime": "રિકવરી સમય અપડેટ કરી શકાતો નથી",
+  "cannotUpdateRecoveryTimeMessage": "જ્યારે રિકવરી સેશન સક્રિય હોય ત્યારે રિકવરીનો સમય બદલી શકાતો નથી. કૃપા કરીને રિકવરીને અસ્વીકાર કરો અથવા તે પૂર્ણ થાય ત્યાં સુધી રાહ જુઓ.",
+  "cat": "બિલાડી",
+  "centerPoint": "કેન્દ્રબિંદુ",
   "changeEmail": "ઈ - મેઈલ બદલો",
   "@changeEmail": {
     "description": "Change email button label"
   },
   "changePassword": "પાસવર્ડ બદલો",
+  "changePasswordTitle": "પાસવર્ડ બદલો",
+  "@changePasswordTitle": {
+    "description": "Change password title"
+  },
+  "checking": "તપાસી રહ્યા છીએ...",
+  "checkingModels": "મોડેલ્સ તપાસી રહ્યા છીએ...",
+  "checkStatus": "સ્થિતિ તપાસો",
+  "@checkStatus": {
+    "description": "Check status button label"
+  },
+  "city": "શહેરમાં",
+  "close": "બંધ કરો",
+  "closeBy": "બંધ કરો",
+  "@closeBy": {
+    "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
+  },
+  "closeFamilyConfirmBody": "તમામ સભ્યોની શેર કરેલા સ્ટોરેજ સુધીની પહોંચ સમાપ્ત થઈ જશે. આ પ્રક્રિયાને પૂર્વવત કરી શકાશે નહીં.",
+  "closeFamilyPlan": "નજીકના પરિવાર માટેની યોજના",
+  "closest": "સૌથી નજીકનું",
+  "cloudOnly": "ઓફલાઇન દૂર કરો",
   "codeIssuerHint": "રજૂકર્તા",
+  "collaborator": "સહયોગી",
+  "collectionLabel": "સંગ્રહ",
+  "collectionRenamedSuccessfully": "સંગ્રહનું નામ સફળતાપૂર્વક બદલાયું",
+  "collections": "સંગ્રહો",
+  "color": "રંગ",
+  "confirm": "પુષ્ટિ કરો",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+  "confirmPassword": "પાસવર્ડની પુષ્ટિ કરો",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+  "confirmPlanChange": "પ્લાનમાં ફેરફારની પુષ્ટિ કરો",
+  "contactName": "સંપર્કનું નામ",
+  "contactNotes": "સંપર્ક માટેનો સંદેશ",
+  "contacts": "સંપર્કો",
   "contactSupport": "સહાયતા માટે સંપર્ક કરો",
   "@contactSupport": {
     "description": "Contact support button label"
   },
+  "contactUs": "અમારો સંપર્ક કરો",
+  "@contactUs": {
+    "description": "Button label for contacting Ente support"
+  },
+  "continueInMailApp": "મેઇલ એપમાં ચાલુ રાખો",
+  "continueLabel": "ચાલુ રાખો",
+  "@continueLabel": {
+    "description": "Continue button label"
+  },
+  "continueWithoutAccount": "એકાઉન્ટ વિના આગળ વધો",
+  "copied": "નકલ કરેલ",
+  "copyLink": "લિંક કોપી કરો",
   "crashAndErrorReporting": "ભાંગી પડવાની અને ભૂલની જાણ કરવી",
+  "createAlbumActionHint": "ફોટા પસંદ કરવા માટે લાંબો સમય દબાવો અને આલ્બમ બનાવવા માટે + પર ક્લિક કરો",
+  "cropAndRotate": "કાપવું અને ફેરવવું",
+  "darkTheme": "ઘેરું",
   "data": "માહિતી",
+  "day": "દિવસ",
+  "dayToday": "આજે",
+  "dayYesterday": "ગઈકાલે",
   "delete": "કાઢી નાખો",
   "@delete": {
     "description": "Delete button label"
   },
+  "deleteAccount": "એકાઉન્ટ ડિલીટ કરો",
+  "@deleteAccount": {
+    "description": "Delete account button label"
+  },
+  "deleteAlbum": "આલ્બમ ડિલીટ કરો",
+  "deleteAlbumDialog": "શું આ આલ્બમમાં રહેલા ફોટા (અને વીડિયો) અન્ય <bold>તમામ</bold> આલ્બમમાંથી પણ ડિલીટ કરવા છે, જેમાં તેઓ સામેલ છે?",
+  "deleteAlbumQuestion": "શું આ આલ્બમ ડિલીટ કરવું છે?",
+  "deleteAll": "બધું કાઢી નાખો",
   "deleteCodeMessage": "શું તમે ખરેખર આ કોડ કાઢી નાખવા માંગો છો? આ ક્રિયા બદલી શકાય તેવી નથી.",
   "deleteCodeTitle": "કોડ કાઢી નાખીએ?",
+  "deleteLegacyKitMessage": "શેર કરેલી શીટ્સનો ઉપયોગ હવે રિકવરી માટે કરી શકાશે નહીં",
+  "deleteMemoryLinkMessage": "જે લોકો સાથે તમે આ લિંક શેર કરી હતી, તેઓ આ લિંક ડિલીટ થયા પછી તેને એક્સેસ કરી શકશે નહીં.",
+  "deleteMultipleAlbumDialog": "શું આ {count} આલ્બમ્સમાં રહેલા ફોટા (અને વીડિયો) ને તે અન્ય <bold>તમામ</bold> આલ્બમ્સમાંથી પણ ડિલીટ કરવા, જેનો તેઓ ભાગ છે?",
+  "@deleteMultipleAlbumDialog": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteProgress": "{currentlyDeleting} / {totalCount} ડિલીટ કરી રહ્યા છીએ",
+  "@deleteProgress": {
+    "placeholders": {
+      "currentlyDeleting": {},
+      "totalCount": {}
+    }
+  },
+  "deleteReasonBehaviour": "એપ અથવા કોઈ ફીચર હું અપેક્ષા રાખું છું તે રીતે કામ કરતું નથી",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "મને બીજી એક સેવા મળી છે જે મને વધુ ગમે છે",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonMissingFeature": "તેમાં મને જરૂરી હોય તેવી એક મુખ્ય સુવિધા ખૂટે છે",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteSharedAlbumDialogBody": "આ આલ્બમ દરેક માટે ડિલીટ થઈ જશે\n\nઆ આલ્બમમાં રહેલા એવા ફોટા, જે અન્ય લોકોના છે, તેને જોવાની તમારી સુવિધા સમાપ્ત થઈ જશે",
+  "deleteShareLinkConfirmation": "આ લિંક ધરાવતા લોકો હવે આ આઇટમનો ઉપયોગ કરી શકશે નહીં.",
+  "deleteUnparseableCodeMessage": "આનાથી Auth માંથી આ કોડ કાયમી ધોરણે ડિલીટ થઈ જશે. તે ટ્રેશ માં જશે નહીં.",
+  "deviceLockEnablePreSteps": "ડિવાઇસ લૉક સક્રિય કરવા માટે, કૃપા કરીને તમારી સિસ્ટમ સેટિંગ્સમાં ડિવાઇસ પાસકોડ અથવા સ્ક્રીન લૉક સેટ કરો.",
+  "@deviceLockEnablePreSteps": {
+    "description": "Instructions for enabling device lock"
+  },
+  "deviceNotFound": "ઉપકરણ મળ્યું નથી",
+  "didYouKnow": "શું તમને ખબર છે?",
+  "digits": "અંકો",
+  "disableBackup": "બેકઅપ નિષ્ક્રિય કરો",
+  "disableDownloadWarningBody": "જોનારાઓ હજુ પણ બાહ્ય સાધનોનો ઉપયોગ કરીને તમારા ફોટાના સ્ક્રીનશોટ લઈ શકે છે અથવા તેની નકલ સાચવી શકે છે",
+  "disableDownloadWarningTitle": "મહેરબાની કરીને નોંધ લો",
+  "disableLinkMessage": "આ \"{albumName}\" ને એક્સેસ કરવા માટેની સાર્વજનિક લિંકને દૂર કરશે.",
+  "@disableLinkMessage": {
+    "placeholders": {
+      "albumName": {}
+    }
+  },
+  "disableTwofactor": "ટુ-ફેક્ટર નિષ્ક્રિય કરો",
+  "disablingTwofactorAuthentication": "ટુ-ફેક્ટર ઓથેન્ટિકેશન નિષ્ક્રિય કરી રહ્યા છીએ...",
+  "discardChanges": "રદ કરો",
+  "discardEditsQuestion": "ફેરફારો રદ કરો?",
+  "discardUploadMessage": "તમે પસંદ કરેલી વસ્તુઓ સચવાશે નહીં.",
+  "discardUploadTitle": "અપલોડ રદ કરવું છે?",
+  "discover_babies": "બાળકો",
+  "discover_celebrations": "ઉજવણીઓ",
+  "discover_food": "આહાર",
+  "distanceInKMUnit": "કિમી",
+  "@distanceInKMUnit": {
+    "description": "Unit for distance in km"
+  },
+  "documentSearchHint": "તમારા દસ્તાવેજો શોધો",
+  "documentsHint": "દસ્તાવેજો",
+  "doesGroupContainMultiplePeople": "શું આ જૂથમાં એકથી વધુ વ્યક્તિઓ છે?",
+  "dog": "કૂતરો",
+  "done": "પૂર્ણ",
+  "dontShowAgain": "ફરી બતાવશો નહીં",
+  "@dontShowAgain": {
+    "description": "Checkbox label for hiding an informational notice after confirming the action"
+  },
+  "doNotSignOut": "સાઇન આઉટ કરશો નહીં",
+  "@doNotSignOut": {
+    "description": "Do not sign out button label"
+  },
+  "dontHaveAnAccount": "શું તમારી પાસે ખાતું નથી?",
+  "dontSave": "સેવ કરશો નહીં",
+  "doubleTapToViewHiddenCode": "કોડ જોવા માટે તમે એન્ટ્રી પર બે વાર ટેપ કરી શકો છો",
+  "download": "ડાઉનલોડ કરો",
+  "downloadApplicationUpdate": "અપડેટ ડાઉનલોડ કરો",
+  "downloadDecryptionFailedMessage": "આ આઇટમ ડાઉનલોડ કરી શકાઈ નથી. કૃપા કરીને અમારો સંપર્ક કરો, જેથી અમે મદદ કરી શકીએ.",
+  "@downloadDecryptionFailedMessage": {
+    "description": "Message shown in the viewer when a downloaded item cannot be decrypted"
+  },
+  "downloadFailed": "ડાઉનલોડ નિષ્ફળ ગયું",
+  "downloading": "ડાઉનલોડ કરો...",
+  "downloadingProgress": "ડાઉનલોડ થઈ રહ્યું છે... {percentage}%",
+  "@downloadingProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percentage": {
+        "type": "int",
+        "example": "75"
+      }
+    }
+  },
+  "downloadPhotos": "ફોટા ડાઉનલોડ કરો",
+  "downloadSkippedAlreadyAvailableOnDevice": "{fileName} તમારા ઉપકરણ પરના {albumName} આલ્બમમાં પહેલેથી જ ઉપલબ્ધ છે",
+  "@downloadSkippedAlreadyAvailableOnDevice": {
+    "description": "Toast shown in single-file download flow when the file already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSkippedInSelectionMultipleFiles": "{fileCount} ફાઇલોનું ડાઉનલોડ છોડી દેવામાં આવ્યું છે, કારણ કે તે પહેલેથી જ તમારા ઉપકરણ પર છે",
+  "@downloadSkippedInSelectionMultipleFiles": {
+    "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
+    "placeholders": {
+      "fileCount": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSkippedInSelectionSingleFile": "{fileName} નું ડાઉનલોડ છોડી દેવામાં આવ્યું છે, કારણ કે તે તમારા ઉપકરણ પરના {albumName} આલ્બમમાં પહેલેથી જ ઉપલબ્ધ છે",
+  "@downloadSkippedInSelectionSingleFile": {
+    "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      },
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadUpdate": "ડાઉનલોડ કરો",
+  "doYouWantToDiscardTheEditsYouHaveMade": "શું તમે કરેલા ફેરફારોને કાઢી નાખવા માંગો છો?",
+  "draw": "દોરો",
+  "dropSupportEmail": "કૃપા કરીને તમારા રજિસ્ટર્ડ ઈમેલ સરનામા પરથી {supportEmail} પર એક ઈમેલ મોકલો",
+  "@dropSupportEmail": {
+    "placeholders": {
+      "supportEmail": {
+        "description": "The support email address",
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
+  "duplicateCodes": "ડુપ્લિકેટ કોડ્સ",
+  "duplicateItemsGroup": "{count} ફાઇલો, દરેક {formattedSize}",
+  "@duplicateItemsGroup": {
+    "description": "Display the number of duplicate files and their size",
+    "type": "text",
+    "placeholders": {
+      "count": {
+        "example": "12",
+        "type": "int"
+      },
+      "formattedSize": {
+        "example": "2.3 MB",
+        "type": "String"
+      }
+    }
+  },
+  "editEmailAlreadyLinked": "આ ઈમેલ પહેલેથી જ {name} સાથે જોડાયેલ છે.",
+  "@editEmailAlreadyLinked": {
+    "placeholders": {
+      "name": {}
+    }
+  },
   "email": "ઇમેઇલ",
   "@email": {
     "description": "Email field label"
+  },
+  "emailAlreadyRegistered": "ઈમેલ પહેલેથી જ રજિસ્ટર્ડ છે.",
+  "@emailAlreadyRegistered": {
+    "description": "Error message when email is already registered"
   },
   "emailUsMessage": "કૃપા કરીને અમને {email} ઇમેઇલ કરો",
   "@emailUsMessage": {
@@ -45,42 +530,272 @@
     }
   },
   "encrypted": "એનક્રિપ્ટ થયેલ",
+  "enterAppLockPassword": "એપ લૉક પાસવર્ડ દાખલ કરો",
+  "@enterAppLockPassword": {
+    "description": "Enter App lock password prompt for lock screen"
+  },
+  "enterAppLockPin": "એપ લૉક પિન દાખલ કરો",
+  "@enterAppLockPin": {
+    "description": "Enter App lock PIN prompt for lock screen"
+  },
+  "enterAValidEmailAddress": "માન્ય ઈમેલ સરનામું દાખલ કરો",
+  "enterCodeDescription": "તમારા અને તમારા મિત્ર બંને માટે મફત સ્ટોરેજ મેળવવા માટે, તમારા મિત્ર દ્વારા આપવામાં આવેલો કોડ દાખલ કરો",
+  "enterCodeHint": "તમારી ઓથેન્ટિકેટર એપમાંથી\n૬-અંકનો કોડ દાખલ કરો",
+  "@enterCodeHint": {
+    "description": "Hint for entering 2FA code"
+  },
   "enterPassword": "પાસવર્ડ દાખલ કરો",
   "@enterPassword": {
     "description": "Enter password field label"
   },
+  "enterPasswordToEncrypt": "એવો પાસવર્ડ દાખલ કરો જેનો ઉપયોગ અમે તમારા ડેટાને એનક્રિપ્ટ કરવા માટે કરી શકીએ",
+  "@enterPasswordToEncrypt": {
+    "description": "Prompt to enter password for encryption"
+  },
+  "enterThe6digitCodeFromnyourAuthenticatorApp": "તમારી ઓથેન્ટિકેટર એપમાંથી\n૬-અંકનો કોડ દાખલ કરો",
+  "enterValidEmailDetailed": "તે ઈમેલ માન્ય હોય તેમ લાગતું નથી. કૃપા કરીને માન્ય ઈમેલ સરનામું દાખલ કરો",
+  "expiredLinkInfo": "આ લિંક સમાપ્ત થઈ ગઈ છે. કૃપા કરીને સમાપ્તિનો નવો સમય પસંદ કરો અથવા લિંકની સમાપ્તિ સુવિધા નિષ્ક્રિય કરો.",
   "export": "નિકાસ કરો",
   "exportLogs": "લોગ નિકાસ કરો",
   "@exportLogs": {
     "description": "Button to export logs"
   },
+  "exportWarningDesc": "નિકાસ કરેલી ફાઇલમાં સંવેદનશીલ માહિતી છે. કૃપા કરીને તેને સુરક્ષિત રીતે રાખો.",
+  "failedToFetchOriginalForEdit": "સંપાદન માટે મૂળ ફાઇલ મેળવવામાં નિષ્ફળતા",
+  "failedToFetchReferralDetails": "રેફરલ વિગતો મેળવી શકાઈ નથી. કૃપા કરીને પછી ફરી પ્રયાસ કરો.",
+  "failedToInvite": "{email} ને આમંત્રિત કરી શકાયા નહીં",
+  "@failedToInvite": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "someone@example.com"
+      }
+    }
+  },
+  "failedToInviteCount": "{count} સભ્યોને આમંત્રિત કરી શકાયા નહીં",
+  "@failedToInviteCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "family": "પરિવાર",
+  "familyMoments": "પરિવાર સાથેનો સમય",
+  "faq": "વારંવાર પૂછાતા પ્રશ્નો",
+  "@faq": {
+    "description": "FAQ link label"
+  },
+  "faqs": "વારંવાર પૂછાતા પ્રશ્નો",
+  "featurePassAutomatically": "કટોકટીના સમયે તેને આપમેળે આગળ મોકલો",
+  "featureSaveImportant": "તમારા મહત્વપૂર્ણ દસ્તાવેજો અને પ્રમાણપત્રો સાચવી રાખો",
+  "free10GB": "<bold-green>ente</bold-green> ફોટા પર ૧૦GB મફત",
+  "freeStorageOffer": "<bold-green>ente</bold-green> ફોટા પર 10% છૂટ",
   "general": "સામાન્ય",
   "generatingEncryptionKeysTitle": "એન્ક્રિપ્શન ચાવીઓ જનરેટ કરી રહ્યાં છીએ...",
   "@generatingEncryptionKeysTitle": {
     "description": "Generating encryption keys title"
   },
   "getStarted": "શરૂ કરો",
+  "grantFullAccessPrompt": "સેટિંગ્સ એપમાં તમામ ફોટાઓ માટે પ્રવેશ આપો",
+  "grantGalleryPermissionDesc": "ચહેરાની ઓળખ દ્વારા ફોટાને એક્સેસ કરવાની અને તેને વ્યવસ્થિત કરવાની પરવાનગી આપો. તમામ પ્રક્રિયા તમારા ઉપકરણ પર જ થાય છે.",
+  "grantPermissionDesc": "કૃપા કરીને Ente ને તમારી લાઇબ્રેરી એક્સેસ કરવાની મંજૂરી આપો, જેથી અમે ચહેરાની ઓળખ દ્વારા તેને વ્યવસ્થિત કરી શકીએ. તમામ પ્રક્રિયા તમારા ઉપકરણ પર જ થાય છે.",
+  "groupByDay": "દિવસ",
+  "groupByYear": "વર્ષ",
+  "groupSelfies": "આપણે બધા",
+  "guestView": "અતિથિ દૃષ્ટિકોણ",
+  "guestViewEnablePreSteps": "ગેસ્ટ વ્યૂ સક્ષમ કરવા માટે, કૃપા કરીને તમારી સિસ્ટમ સેટિંગ્સમાં ડિવાઇસ પાસકોડ અથવા સ્ક્રીન લૉક સેટ કરો.",
+  "happyBirthday": "જન્મદિવસની શુભકામનાઓ! 🥳",
+  "hearUsWhereOptionalTitle": "તમે Ente વિશે કેવી રીતે જાણ્યું? (વૈકલ્પિક)",
+  "@hearUsWhereOptionalTitle": {
+    "description": "Title asking how user heard about Ente"
+  },
+  "hearUsWhereTitle": "તમે Ente વિશે કેવી રીતે જાણ્યું?",
+  "help": "મદદ",
+  "helpAndSupport": "મદદ અને સહાય",
+  "hidden": "છુપાયેલું",
+  "howToViewShareeVerificationID": "તેમને સેટિંગ્સ સ્ક્રીન પર તેમના ઈમેલ એડ્રેસને લાંબો સમય દબાવી રાખવા માટે કહો, અને ખાતરી કરો કે બંને ઉપકરણો પરના ID એકસરખા છે.",
+  "imageEditorGreen": "લીલો",
+  "imageEditorHue": "રંગ",
+  "imageEditorItalic": "ઢળતું",
+  "imageEditorNoBackground": "કોઈ પૃષ્ઠભૂમિ નહીં",
+  "@imageEditorNoBackground": {
+    "description": "Text background style with no visible background"
+  },
+  "imageEditorOrange": "નારંગી",
+  "imageEditorPink": "ગુલાબી",
+  "imageEditorPurple": "જાંબલી",
   "importAccountPageTitle": "એકાઉન્ટ વિગતો દાખલ કરો",
+  "importBitwardenGuide": "Bitwarden Tools માં \"Export vault\" વિકલ્પનો ઉપયોગ કરો અને અનએન્ક્રિપ્ટેડ JSON ફાઇલને ઇમ્પોર્ટ કરો.",
+  "importCodeDelimiterInfo": "કોડને અલ્પવિરામ અથવા નવી લાઇન દ્વારા અલગ કરી શકાય છે",
   "importCodes": "કોડ્સ આયાત કરો",
   "importEnterSetupKey": "સેટઅપ કી દાખલ કરો",
+  "importFileTooLarge": "પસંદ કરેલી ફાઇલ ખૂબ મોટી છે. મહત્તમ કદ: {size}.",
+  "@importFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "10 MiB"
+      }
+    }
+  },
+  "importGoogleAuthGuide": "\"એકાઉન્ટ્સ ટ્રાન્સફર કરો\" વિકલ્પનો ઉપયોગ કરીને Google Authenticator માંથી તમારા એકાઉન્ટ્સને QR કોડમાં એક્સપોર્ટ કરો. ત્યારબાદ, તે QR કોડને સ્કેન કરો અથવા કોઈ ઈમેજમાંથી તેને ઈમ્પોર્ટ કરો.",
+  "importInstruction": "કૃપા કરીને એવી ફાઇલ પસંદ કરો જેમાં નીચેના ફોર્મેટમાં તમારા કોડની સૂચિ હોય",
+  "importLabel": "આયાત",
+  "importLastpassGuide": "LastPass Authenticator સેટિંગ્સમાં \"એકાઉન્ટ્સ ટ્રાન્સફર કરો\" વિકલ્પનો ઉપયોગ કરો અને \"એકાઉન્ટ્સને ફાઇલમાં નિકાસ કરો\" પર દબાવો. ડાઉનલોડ કરેલી JSON ફાઇલને ઇમ્પોર્ટ કરો.",
+  "importOpenAuthenticatorGuide": "Open Authenticator ના સેટિંગ્સમાં \"Backups\" હેઠળના વિકલ્પોનો ઉપયોગ કરીને બેકઅપ બનાવો, અને પછી તેને શેર અથવા એક્સપોર્ટ કરો.\n\nબેકઅપ બનાવતી વખતે તમે જે પાસવર્ડ સેટ કર્યો હતો, તે તમારે અહીં દાખલ કરવો પડશે.",
+  "importOtpAuthGuide": "OTP Auth માંથી એનક્રિપ્ટેડ બેકઅપ એક્સપોર્ટ કરો, અને પછી .otpauthdb અથવા .otpauthdp ફાઇલ પસંદ કરો. સિંગલ-એકાઉન્ટ .otpauth એક્સપોર્ટ પણ સપોર્ટેડ છે.",
+  "importProtonAuthGuide": "તમારા કોડ્સને એક્સપોર્ટ કરવા માટે Proton Authenticator સેટિંગ્સમાં \"Export\" વિકલ્પનો ઉપયોગ કરો.\n\nજો તમારું એક્સપોર્ટ પાસવર્ડ દ્વારા સુરક્ષિત હોય, તો તેને ડિક્રિપ્ટ કરવા માટે તમારે પાસવર્ડ દાખલ કરવો પડશે.",
+  "importSelectAppExport": "{appName} નિકાસ ફાઇલ પસંદ કરો",
+  "@importSelectAppExport": {
+    "placeholders": {
+      "appName": {}
+    }
+  },
+  "importSuccessDesc": "તમે {count} કોડ્સ આયાત કર્યા છે!",
+  "@importSuccessDesc": {
+    "placeholders": {
+      "count": {
+        "description": "The number of codes imported",
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
   "importTypeEnteEncrypted": "એન્ટે એન્ક્રિપ્ટેડ નિકાસ",
   "incorrectDetails": "ખોટી વિગતો",
   "incorrectPasswordTitle": "ખોટો પાસવર્ડ",
   "@incorrectPasswordTitle": {
     "description": "Title for incorrect password error"
   },
+  "incorrectRecoveryKey": "ખોટી રિકવરી કી",
+  "@incorrectRecoveryKey": {
+    "description": "Error message when recovery key is incorrect"
+  },
+  "incorrectRecoveryKeyBody": "તમે દાખલ કરેલી રિકવરી કી ખોટી છે",
+  "incorrectRecoveryKeyTitle": "ખોટી રિકવરી કી",
+  "indexingPausedStatusDescription": "પ્રક્રિયા થોભાવી છે. જ્યારે ઉપકરણ તૈયાર હોય ત્યારે તે આપમેળે ફરી શરૂ થશે. જ્યારે તેનું બેટરી સ્તર, બેટરી આરોગ્ય અને થર્મલ સ્થિતિ તંદુરસ્ત શ્રેણીમાં હોય ત્યારે ઉપકરણને તૈયાર માનવામાં આવે છે.",
+  "invalidRecoveryKey": "તમે દાખલ કરેલી રિકવરી કી માન્ય નથી. કૃપા કરીને ખાતરી કરો કે તેમાં ૨૪ શબ્દો છે, અને દરેક શબ્દના સ્પેલિંગ તપાસો.\n\nજો તમે જૂનો રિકવરી કોડ દાખલ કર્યો હોય, તો ખાતરી કરો કે તે ૬૪ અક્ષરો લાંબો છે, અને તે દરેક અક્ષરને તપાસો.",
+  "invalidReferralCode": "અમાન્ય કોડ",
+  "invite": "આમંત્રણ",
+  "itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion": "આ વસ્તુઓ કાયમી ધોરણે ડિલીટ થવા પહેલાં બાકી રહેલા દિવસોની સંખ્યા દર્શાવે છે",
+  "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "કંઈક ખોટું થયું હોય તેવું લાગે છે. કૃપા કરીને થોડા સમય પછી ફરી પ્રયાસ કરો. જો સમસ્યા યથાવત રહે, તો કૃપા કરીને અમારી સપોર્ટ ટીમનો સંપર્ક કરો.",
+  "@itLooksLikeSomethingWentWrongPleaseRetryAfterSome": {
+    "description": "Generic error message for temporary issues"
+  },
+  "joinAlbumConfirmationDialogBody": "કોઈ આલ્બમમાં જોડાવાથી તમારું ઈમેલ તેના સહભાગીઓને દેખાશે.",
+  "legacyCongratulationsMessage": "તમે સફળતાપૂર્વક તમારું લેગસી સેટપ કરી લીધું છે.\nતમારી મહત્વપૂર્ણ માહિતી સાચવવાનું શરૂ કરો.",
+  "legacyEmptyStateDescription": "તમારી ગેરહાજરીમાં, લેગસી તમારા પ્રિયજનોને લોકર પરની તમારી માહિતી મેળવવામાં મદદ કરે છે.",
+  "legacyKitEmptyDescription": "તમારા વિશ્વાસુ લોકોને તમારા એકાઉન્ટને પુનઃપ્રાપ્ત કરવા માટે ભેગા થવા સક્ષમ બનાવો",
+  "legacyKitRecoveryWarning": "કોઈ લેગસી કીટનો ઉપયોગ કરીને તમારા એકાઉન્ટને પુનઃપ્રાપ્ત કરવાનો પ્રયાસ કરી રહ્યું છે",
+  "legacyPageDesc2": "વિશ્વસનીય સંપર્કો એકાઉન્ટ પુનઃપ્રાપ્તિ શરૂ કરી શકે છે, અને જો ૩૦ દિવસની અંદર બ્લોક ન કરવામાં આવે, તો તમારો પાસવર્ડ રીસેટ કરો અને તમારા એકાઉન્ટને ઍક્સેસ કરો.",
+  "letsTryThatAgain": "ચાલો, તે ફરીથી પ્રયાસ કરીએ",
+  "librarySharingDisableDescription": "તમે અગાઉ શેર કરેલા આલ્બમ્સ {recipient} સાથે શેર કરેલા જ રહેશે; તેમાં તમે ઉમેરતા નવા ફોટા પણ સામેલ હશે. નવા આલ્બમ્સ આપમેળે શેર થશે નહીં.\n\nકોઈ આલ્બમ શેર કરવાનું બંધ કરવા માટે, તેના પર ટૅપ કરો અને '{stopSharingLabel}' પસંદ કરો.",
+  "@librarySharingDisableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      },
+      "stopSharingLabel": {
+        "type": "String",
+        "example": "Stop sharing"
+      }
+    }
+  },
+  "librarySharingEnableDescription": "તમારા હાલના આલ્બમ્સ અને ભવિષ્યમાં તમે જે પણ આલ્બમ્સ બનાવશો, તે આપમેળે {recipient} સાથે શેર કરવામાં આવશે.",
+  "@librarySharingEnableDescription": {
+    "placeholders": {
+      "recipient": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "limit": "સીમા",
+  "localBackupDailyManualCopy": "જ્યારે તમે એપ ખોલો છો, ત્યારે તે દિવસનું એક લોકલ બેકઅપ બનાવે છે. મેન્યુઅલ બેકઅપ લેવા માટે \"હમણાં બેકઅપ લો\" નો ઉપયોગ કરો. બેકઅપની મહત્તમ ૫ ફાઇલો સાચવી રાખવામાં આવે છે.",
+  "localSyncErrorMessage": "કંઈક ગડબડ થઈ હોય તેવું લાગે છે, કારણ કે સ્થાનિક ફોટાઓનું સિંક થવામાં અપેક્ષા કરતાં વધુ સમય લાગી રહ્યો છે. કૃપા કરીને અમારી સપોર્ટ ટીમનો સંપર્ક કરો",
   "loggingOut": "લૉગ આઉટ થઈ રહ્યું છે...",
   "@loggingOut": {
     "description": "Message shown while logging out"
   },
+  "logsDialogBody": "આનાથી અમને તમારી સમસ્યાનું નિરાકરણ કરવામાં મદદ મળે તેવા લોગ્સ મોકલવામાં આવશે. કૃપા કરીને નોંધ લો કે ચોક્કસ ફાઇલોને લગતી સમસ્યાઓને ટ્રેક કરવામાં મદદ મળે તે માટે ફાઇલના નામોનો પણ સમાવેશ કરવામાં આવશે.",
+  "@logsDialogBody": {
+    "description": "Body text for the logs dialog explaining what will be sent"
+  },
+  "map": "નકશો",
+  "@map": {
+    "description": "Label for the map view"
+  },
+  "maps": "નકશાઓ",
+  "mapsPrivacyNotice": "નકશો અને સ્થાન દર્શાવવા માટે, OpenStreetMap જેવા ગોપનીયતા પ્રત્યે સભાન ત્રીજા પક્ષોને અંદાજિત નિર્દેશાંકો મોકલવામાં આવશે.",
   "merchandise": "વેપારી વસ્તુઓ",
+  "mlConsentDescription": "જો તમે મશીન લર્નિંગ સક્રિય કરો છો, તો Ente ફાઇલોમાંથી — જેમાં તમારી સાથે શેર કરવામાં આવેલી ફાઇલોનો પણ સમાવેશ થાય છે — ચહેરાની ભૂમિતિ જેવી માહિતી તારવી લેશે.\n\nઆ પ્રક્રિયા તમારા ઉપકરણ પર જ થશે, અને તેમાંથી તૈયાર થતી કોઈપણ બાયોમેટ્રિક માહિતી એન્ડ-ટુ-એન્ડ એન્ક્રિપ્ટેડ હશે.",
   "nextTotpTitle": "આગળ",
   "no": "ના",
+  "noRecoveryKeyNoDecryption": "અમારા એન્ડ-ટુ-એન્ડ એન્ક્રિપ્શન પ્રોટોકોલની પ્રકૃતિને કારણે, તમારા પાસવર્ડ અથવા રિકવરી કી વિના તમારો ડેટા ડિક્રિપ્ટ કરી શકાતો નથી",
+  "@noRecoveryKeyNoDecryption": {
+    "description": "Explanation that data cannot be decrypted without password or recovery key"
+  },
+  "noSuggestionsForPerson": "{personName} માટે કોઈ સૂચનો નથી",
+  "@noSuggestionsForPerson": {
+    "placeholders": {
+      "personName": {
+        "type": "String",
+        "example": "Alice"
+      }
+    }
+  },
+  "offlineModeWarning": "તમે બેકઅપ લીધા વિના આગળ વધવાનું પસંદ કર્યું છે. તમારા કોડ સુરક્ષિત રહે તે સુનિશ્ચિત કરવા માટે કૃપા કરીને મેન્યુઅલ બેકઅપ લો.",
+  "onEnte": "<branding>ente</branding> પર",
+  "@onEnte": {
+    "description": "The text displayed above albums backed up to Ente",
+    "type": "text"
+  },
+  "onlyFamilyAdminCanChangeCode": "તમારો કોડ બદલવા માટે કૃપા કરીને {familyAdminEmail} નો સંપર્ક કરો.",
+  "@onlyFamilyAdminCanChangeCode": {
+    "placeholders": {
+      "familyAdminEmail": {}
+    }
+  },
   "passwordEmptyError": "પાસવર્ડ ખાલી ન હોઈ શકે",
   "passwordForDecryptingExport": "નિકાસને ડિક્રિપ્ટ કરવા માટે પાસવર્ડ",
   "passwordToEncryptExport": "નિકાસને એન્ક્રિપ્ટ કરવા માટે પાસવર્ડ",
+  "pendingSyncsWarningBody": "તમારા કેટલાક કોડ્સનો બેકઅપ લેવામાં આવ્યો નથી.\n\nમહેરબાની કરીને ખાતરી કરો કે લોગઆઉટ કરતા પહેલા તમારી પાસે આ કોડ્સનો બેકઅપ છે.",
+  "personalNoteDescription": "વિચારો અને સૂચનાઓ લખી લો.",
+  "personIsAge": "{name} {age} વર્ષના છે!",
+  "@personIsAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
+  "personTurningAge": "{name} ટૂંક સમયમાં {age} વર્ષના થશે",
+  "@personTurningAge": {
+    "placeholders": {
+      "age": {},
+      "name": {}
+    }
+  },
   "plainText": "સાદુ લખાણ",
+  "pleaseCheckYourInternetConnectionAndTryAgain": "કૃપા કરીને તમારું ઇન્ટરનેટ કનેક્શન તપાસો અને ફરી પ્રયાસ કરો.",
+  "@pleaseCheckYourInternetConnectionAndTryAgain": {
+    "description": "Message asking user to check internet connection"
+  },
+  "pleaseContactSupportAndWeWillBeHappyToHelp": "કૃપા કરીને support@ente.com પર સંપર્ક કરો, અમને મદદ કરવામાં આનંદ થશે!",
+  "pleaseContactSupportIfTheProblemPersists": "જો સમસ્યા યથાવત રહે, તો કૃપા કરીને સપોર્ટનો સંપર્ક કરો",
   "pleaseLoginAgain": "કૃપા કરીને ફરી લોગિન કરો",
+  "pleaseSendTheLogsTo": "કૃપા કરીને લોગ\n{toEmail} પર મોકલો",
+  "@pleaseSendTheLogsTo": {
+    "description": "Message asking user to send logs to email address",
+    "placeholders": {
+      "toEmail": {
+        "type": "String",
+        "description": "Email address to send logs to"
+      }
+    }
+  },
   "pleaseVerifyDetails": "કૃપા કરીને વિગતો ચકાસો અને ફરી પ્રયાસ કરો",
   "pleaseWait": "કૃપા કરીને રાહ જુવો...",
   "@pleaseWait": {
@@ -97,20 +812,103 @@
   "@recoveryKey": {
     "description": "Recovery key label"
   },
+  "recoveryKeyOnForgotPassword": "જો તમે તમારો પાસવર્ડ ભૂલી જાઓ, તો તમારો ડેટા પાછો મેળવવાનો એકમાત્ર રસ્તો આ કી છે.",
+  "@recoveryKeyOnForgotPassword": {
+    "description": "Recovery key importance explanation"
+  },
+  "recoveryKeySuccessBody": "સરસ! તમારી રિકવરી કી માન્ય છે. ચકાસણી કરવા બદલ આભાર.\n\nમહેરબાની કરીને તમારી રિકવરી કીનો સુરક્ષિત બેકઅપ રાખવાનું યાદ રાખશો.",
+  "recoveryKeyVerifyReason": "જો તમે તમારો પાસવર્ડ ભૂલી જાઓ, તો તમારા ફોટા પાછા મેળવવાનો એકમાત્ર રસ્તો તમારી રિકવરી કી છે. તમે તમારી રિકવરી કી સેટિંગ્સ > એકાઉન્ટ માં જોઈ શકો છો.\n\nતમે તમારી રિકવરી કી યોગ્ય રીતે સાચવી છે કે નહીં તેની ખાતરી કરવા માટે, કૃપા કરીને તેને અહીં દાખલ કરો.",
+  "recoveryReady": "તમે હવે નવો પાસવર્ડ સેટ કરીને {email} નું એકાઉન્ટ પુનઃપ્રાપ્ત કરી શકો છો.",
+  "@recoveryReady": {
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "me@example.com"
+      }
+    }
+  },
+  "recreatePasswordBody": "વર્તમાન ઉપકરણ તમારો પાસવર્ડ ચકાસવા માટે પૂરતું સક્ષમ નથી, પરંતુ અમે તેને એવી રીતે ફરીથી જનરેટ કરી શકીએ છીએ જે તમામ ઉપકરણો પર કામ કરે.\n\nકૃપા કરીને તમારી રિકવરી કી નો ઉપયોગ કરીને લોગિન કરો અને તમારો પાસવર્ડ ફરીથી જનરેટ કરો (જો તમે ઈચ્છો તો, તમે તે જ પાસવર્ડ ફરીથી વાપરી શકો છો).",
+  "@recreatePasswordBody": {
+    "description": "Body text for recreate password dialog"
+  },
   "recreatePasswordTitle": "પાસવર્ડ ફરીથી બનાવો",
   "@recreatePasswordTitle": {
     "description": "Title for recreate password dialog"
+  },
+  "referralStorageInfo": "પેઇડ સબ્સ્ક્રાઇબર્સને રેફર કરવાથી બોનસ સ્ટોરેજ મળે છે.\n\nતમે તમારા પ્લાનની મર્યાદા સુધી સ્ટોરેજનો ઉપયોગ કરી શકો છો. તમે મેળવેલા બાકીના સ્ટોરેજનો ઉપયોગ કરવા માટે અપગ્રેડ કરો.",
+  "removeAccess": "ઍક્સેસ દૂર કરો",
+  "removeCollectionParticipantBody": "{userEmail} ને આ શેર કરેલા સંગ્રહમાંથી દૂર કરવામાં આવશે\n\nતેમના દ્વારા ઉમેરવામાં આવેલી કોઈપણ વસ્તુઓ પણ આ સંગ્રહમાંથી દૂર કરવામાં આવશે",
+  "@removeCollectionParticipantBody": {
+    "placeholders": {
+      "userEmail": {}
+    }
+  },
+  "removeContact": "સંપર્ક દૂર કરો",
+  "@removeContact": {
+    "description": "Button label to remove a trusted contact"
+  },
+  "removeContactDesc": "જો તમે આ સંપર્કને કાઢી નાખશો, તો તમારે નવું આમંત્રણ મોકલવું પડશે અને તે સંપર્કે તેને ફરીથી સ્વીકારવું પડશે.",
+  "@removeContactDesc": {
+    "description": "Description for remove contact confirmation dialog"
+  },
+  "removeMemberConfirmTitle": "સભ્યને દૂર કરો?",
+  "removeParticipant": "સહભાગીને દૂર કરો",
+  "@removeParticipant": {
+    "description": "menuSectionTitle for removing a participant"
+  },
+  "removeShareItemsWarning": "પસંદ કરેલા ફોટા, તેના માલિકો સિવાય, આ આલ્બમના અન્ય કોઈ પણ દર્શકને જોવા મળશે નહીં.",
+  "removeYourselfDesc": "જો તમે તમારી જાતને વિશ્વાસપાત્ર સંપર્ક તરીકે દૂર કરશો, તો {email} ના ખાતામાં તેમની નિષ્ક્રિયતાના સમયગાળા પછી તમને મળતી પહોંચ સમાપ્ત થઈ જશે.",
+  "@removeYourselfDesc": {
+    "description": "Description for remove yourself as trusted contact confirmation dialog",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   },
   "reportABug": "બગની જાણ કરો",
   "@reportABug": {
     "description": "Label for reporting a bug"
   },
+  "ritualAlbumMissing": "રિચ્યુઅલ આલ્બમ ખૂટે છે. આલ્બમ સેટ કરવા માટે રિચ્યુઅલમાં ફેરફાર કરો.",
   "save": "સાચવો",
   "@save": {
     "description": "Label for save button"
   },
+  "saveOnlyDescription": "શું તમે આને તમારા સ્ટોરેજમાં (ડિફોલ્ટ રૂપે ડાઉનલોડ્સ ફોલ્ડરમાં) સેવ કરવા માંગો છો?",
+  "@saveOnlyDescription": {
+    "description": "Description text asking user if they want to save to storage (for platforms that don't support sharing)"
+  },
+  "saveOrSendDescription": "શું તમે આને તમારા સ્ટોરેજમાં સાચવવા માંગો છો (ડિફૉલ્ટ રૂપે ફોલ્ડર ડાઉનલોડ કરે છે) અથવા તેને અન્ય એપ્સ પર મોકલવા માંગો છો?",
+  "@saveOrSendDescription": {
+    "description": "Description text asking user if they want to save to storage or share with other apps"
+  },
   "scanAQrCode": "QR કોડ સ્કેન કરો",
+  "searchSectionsLengthMismatch": "વિભાગોની લંબાઈમાં અસંગતતા: {snapshotLength} != {searchLength}",
+  "@searchSectionsLengthMismatch": {
+    "description": "Appears in search tab page",
+    "placeholders": {
+      "searchLength": {
+        "type": "int",
+        "example": "2"
+      },
+      "snapshotLength": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
   "secretCanNotBeEmpty": "રહસ્ય ખાલી ન હોઈ શકે",
+  "selectedFilesBackedUpToEnte": "આ આઈટમો તમામ આલ્બમ્સમાંથી ડિલીટ થઈ જશે. તમે તેને 'ટ્રેશ' માંથી પાછી મેળવી શકો છો.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "selectedFilesSavedOnDeviceOnly": "જે આઇટમ્સનો બેકઅપ લેવાયો નથી. શું તેને ઉપકરણમાંથી કાયમી ધોરણે કાઢી નાખવાં?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "પસંદ કરેલી વસ્તુઓ કાયમી ધોરણે કાઢી નાખવામાં આવશે અને તેને પુનઃપ્રાપ્ત કરી શકાશે નહીં.",
+  "selectedItemsWillBeRemovedFromThisPerson": "પસંદ કરેલી વસ્તુઓ આ વ્યક્તિ પાસેથી દૂર કરવામાં આવશે, પરંતુ તમારી લાઇબ્રેરીમાંથી કાઢી નાખવામાં આવશે નહીં.",
   "selectFile": "ફાઇલ પસંદ કરો",
   "sendLogsDescription": "આ તમારી સમસ્યાને ડીબગ કરવામાં અમને મદદ કરવા માટે અમને લોગ મોકલશે. જ્યારે સંવેદનશીલ માહિતી લૉગ ન થાય તેની ખાતરી કરવા માટે અમે સાવચેતી રાખીએ છીએ, અમે તમને આ લોગ મોકલતા પહેલા જોવા માટે પ્રોત્સાહિત કરીએ છીએ.",
   "sessionExpired": "સત્ર સમાપ્ત થયુ",
@@ -134,5 +932,18 @@
     "description": "Verify password button label"
   },
   "viewLogsAction": "લોગ જુઓ",
-  "yes": "હા"
+  "yes": "હા",
+  "youHaveNoFileSuggestedForDeletion": "તમારી પાસે એવી કોઈ ફાઇલો નથી કે જેને કાઢી નાખવા માટે સૂચવવામાં આવી હોય",
+  "yourPlanSupportsFamily": "તમારી યોજના પહેલેથી જ પરિવારને આવરી લે છે",
+  "yourSubscriptionWasUpdatedSuccessfully": "તમારું સબ્સ્ક્રિપ્શન સફળતાપૂર્વક અપડેટ થયું",
+  "cameraPermissionSettings": "કેમેરા એક્સેસ બંધ છે. આગળ વધવા માટે તેને સેટિંગ્સમાં સક્ષમ કરો.",
+  "legacyKitSheetIntro": "જો હું ક્યારેય હાજર ન હોઉં, અથવા મારા એકાઉન્ટની ઍક્સેસ ગુમાવી બેસું, તો આ શીટ તમને મારા ફોટા, દસ્તાવેજો અને અન્ય સામગ્રી પાછી મેળવવામાં મદદ કરશે.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "noEnteAccountWithThisEmail": "આ ઈમેલ સાથે કોઈ Ente એકાઉન્ટ નથી.",
+  "shareALinkInline": "એક લિંક શેર કરો.",
+  "personAlreadyHasAccess": "આ વ્યક્તિ પાસે પહેલેથી જ એક્સેસ છે.",
+  "notEnoughStorageTitle": "પૂરતી સ્ટોરેજ નથી",
+  "notEnoughStorageBody": "Ente પર નવા ફોટા ઉમેરવા માટે તમારી પાસે પૂરતી ખાલી જગ્યા નથી. વધુ ફોટા ઉમેરવાનું ચાલુ રાખવા માટે જગ્યા ખાલી કરો અથવા અપગ્રેડ કરો."
 }

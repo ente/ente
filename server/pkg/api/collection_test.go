@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +11,48 @@ import (
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/controller/collections"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCollectionHandlersRejectInvalidKeys(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	handler := &CollectionHandler{Controller: &collections.CollectionController{}}
+	router.POST("/collections", handler.Create)
+	router.POST("/collections/share", handler.Share)
+
+	for _, test := range []struct {
+		name string
+		path string
+		body any
+	}{
+		{"create invalid base64", "/collections", ente.Collection{
+			EncryptedKey:       strings.Repeat("!", base64.StdEncoding.EncodedLen(48)),
+			KeyDecryptionNonce: base64.StdEncoding.EncodeToString(make([]byte, 24)),
+			Type:               "album",
+			Attributes:         ente.CollectionAttributes{Version: 1},
+		}},
+		{"share incorrect length", "/collections/share", ente.AlterShareRequest{
+			CollectionID: 1,
+			Email:        "sharee@example.com",
+			EncryptedKey: base64.StdEncoding.EncodeToString(make([]byte, 79)),
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			body, err := json.Marshal(test.body)
+			require.NoError(t, err)
+			request := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(string(body)))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("X-Auth-User-ID", "1")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, request)
+			require.Equal(t, http.StatusBadRequest, recorder.Code, recorder.Body.String())
+			var response ente.ApiError
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+			require.Equal(t, ente.BadRequest, response.Code)
+		})
+	}
+}
 
 func TestBatchShareHandlerValidatesEachShare(t *testing.T) {
 	gin.SetMode(gin.TestMode)

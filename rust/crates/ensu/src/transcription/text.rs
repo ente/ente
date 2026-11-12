@@ -1,31 +1,10 @@
-use regex::{Regex, regex};
-use std::sync::LazyLock;
-
-const FILLER_WORDS: &[&str] = &[
-    "uh", "um", "uhm", "umm", "uhh", "uhhh", "ah", "eh", "hmm", "hm", "mmm", "mm", "mh", "ha",
-    "ehh",
-];
-
-#[expect(
-    clippy::expect_used,
-    reason = "Filler words are escaped before insertion into the fixed regex"
-)]
-static FILLER_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    FILLER_WORDS
-        .iter()
-        .map(|word| {
-            Regex::new(&format!(r"(?i)\b{}\b[,.]?", regex::escape(word)))
-                .expect("escaped filler word forms a valid regex")
-        })
-        .collect()
-});
+use regex::regex;
 
 pub fn filter_transcription_output(text: &str) -> String {
-    let mut filtered = text.to_string();
-
-    for pattern in FILLER_PATTERNS.iter() {
-        filtered = pattern.replace_all(&filtered, "").to_string();
-    }
+    let mut filtered =
+        regex!(r"(?i)\b(?:uh|um|uhm|umm|uhh|uhhh|ah|eh|hmm|hm|mmm|mm|mh|ha|ehh)\b[,.]?")
+            .replace_all(text, "")
+            .to_string();
 
     filtered = collapse_stutters(&filtered);
     filtered = regex!(r"\s{2,}").replace_all(&filtered, " ").to_string();
@@ -71,6 +50,24 @@ mod tests {
         assert_eq!(
             filter_transcription_output("um hello uh world"),
             "hello world"
+        );
+    }
+
+    #[test]
+    fn removes_all_filler_variants_with_case_and_punctuation() {
+        assert_eq!(
+            filter_transcription_output(
+                "UH, Um. uhm umm uhh uhhh ah eh hmm hm mmm mm mh ha ehh hello"
+            ),
+            "hello"
+        );
+    }
+
+    #[test]
+    fn preserves_filler_substrings_inside_words() {
+        assert_eq!(
+            filter_transcription_output("umbrella humming hammer Muhammad ähm uhé"),
+            "umbrella humming hammer Muhammad ähm uhé"
         );
     }
 

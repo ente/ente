@@ -1,7 +1,4 @@
-import {
-    generatePasskeyRecovery,
-    recoveryKeyMnemonic,
-} from "@/services/recovery-key";
+import { recoveryKeyMnemonic } from "@/services/recovery-key";
 import { Box, Stack } from "@mui/material";
 import { RecoveryKey } from "ente-accounts/components/RecoveryKey";
 import { updateSavedLocalUser } from "ente-accounts/services/accounts-db";
@@ -211,7 +208,7 @@ export const Account: React.FC<AccountProps> = ({
         if (isDesktop) {
             suppressAutoLockOnBlurForTrustedPrompt();
         }
-        await openAccountsManagePasskeysPage(generatePasskeyRecovery);
+        await openAccountsManagePasskeysPage(recoveryKeyMnemonic);
     }, [onRootClose]);
 
     const handleActiveSessions = useCallback(async () => {

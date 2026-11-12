@@ -97,6 +97,7 @@ func TestResetUserAccessRevokesSpaceSessionCreatedDuringReset(t *testing.T) {
 					CollectionLinkCtrl: &public.CollectionLinkController{
 						CollectionLinkRepo: &publicrepo.CollectionLinkRepo{DB: db},
 						FileLinkRepo:       &publicrepo.FileLinkRepository{DB: db},
+						MemoryShareRepo:    repo.NewMemoryShareRepository(db),
 					},
 				},
 				FamilyController: &family.Controller{

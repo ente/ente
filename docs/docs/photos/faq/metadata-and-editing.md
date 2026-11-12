@@ -99,6 +99,32 @@ For photos already in Ente, you can select the affected items in the desktop app
 
 If an import is still running, [stop the upload](/photos/migration/from-local-hard-disk#stop-and-resume-an-upload) before cleanup. Files still present in the selected source can be uploaded again during that import or a later retry.
 
+## Editing Photos
+
+### What editing tools are available on mobile? {#mobile-photo-editor}
+
+In the Ente Photos mobile app, open a photo, tap the overflow menu (⋮) and select **Edit**. The editor has these tools:
+
+- **Crop & rotate**: **Crop**, **Straighten** a tilted photo, **Rotate**, or **Flip** it.
+- **Filter**: Apply a filter to the photo.
+- **Adjust**: Change **Brightness**, **Contrast**, **Saturation**, **Exposure**, **Hue**, **Temperature**, **Tint**, and **Fade**.
+- **Draw**: Draw on the photo.
+- **Text**: Add text, then choose its font, text color, background, and alignment.
+- **Sticker**: Add stickers.
+
+To change an added text, sticker, or drawing, tap it and select **Edit**, **Duplicate**, or **Delete**.
+
+Text you add becomes part of the edited image. To add searchable text without changing the image, [add a description](#add-descriptions) instead.
+
+When you are finished, tap **Save copy**. Ente saves the edit as a separate copy and leaves your original untouched. Learn more about [how saving edits affects the copy](#saving-photo-edits).
+
+### How do I straighten a tilted photo? {#straighten-photo}
+
+1. Open the photo, tap the overflow menu (⋮) and select **Edit**.
+2. Tap **Crop & rotate**, then select **Straighten**.
+3. Drag the slider until the photo is level.
+4. Tap **Done**, then **Save copy**.
+
 ## Editing Metadata
 
 ### What metadata is preserved when I edit a photo? {#metadata-preserved-after-edit}

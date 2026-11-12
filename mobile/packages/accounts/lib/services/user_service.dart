@@ -1,16 +1,10 @@
 import 'dart:async';
-import "dart:convert";
 import "dart:io";
-import "dart:math";
 
-import 'package:bip39/bip39.dart' as bip39;
 import 'package:dio/dio.dart';
 import 'package:ente_accounts/models/errors.dart';
 import 'package:ente_accounts/models/sessions.dart';
-import 'package:ente_accounts/models/set_keys_request.dart';
 import 'package:ente_accounts/models/set_recovery_key_request.dart';
-import 'package:ente_accounts/models/srp.dart';
-import 'package:ente_accounts/models/two_factor.dart';
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/pages/login_page.dart';
 import 'package:ente_accounts/pages/ott_verification_page.dart';
@@ -21,10 +15,9 @@ import 'package:ente_accounts/pages/recovery_page.dart';
 import 'package:ente_accounts/pages/two_factor_authentication_page.dart';
 import 'package:ente_accounts/pages/two_factor_recovery_page.dart';
 import 'package:ente_accounts/services/install_source_handler.dart';
+import 'package:ente_base/models/accounts.dart';
 import 'package:ente_base/models/key_attributes.dart';
-import 'package:ente_base/models/key_gen_result.dart';
 import 'package:ente_configuration/base_configuration.dart';
-import 'package:ente_configuration/constants.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_events/models/user_details_changed_event.dart';
@@ -38,11 +31,6 @@ import 'package:ente_ui/utils/toast_util.dart';
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import "package:pointycastle/export.dart";
-import "package:pointycastle/srp/srp6_client.dart";
-import "package:pointycastle/srp/srp6_standard_groups.dart";
-import "package:pointycastle/srp/srp6_util.dart";
-import "package:pointycastle/srp/srp6_verifier_generator.dart";
 import 'package:shared_preferences/shared_preferences.dart';
 import "package:uuid/uuid.dart";
 
@@ -52,7 +40,6 @@ class UserService {
   static const kReferralSource = "referral_source";
   static const kCanDisableEmailMFA = "can_disable_email_mfa";
   static const kIsEmailMFAEnabled = "is_email_mfa_enabled";
-  final SRP6GroupParameters kDefaultSrpGroup = SRP6StandardGroups.rfc5054_4096;
   final _dio = Network.instance.getDio();
   final _enteDio = Network.instance.enteDio;
   final _logger = Logger((UserService).toString());
@@ -60,6 +47,9 @@ class UserService {
   late ValueNotifier<String?> emailValueNotifier;
   late BaseConfiguration _config;
   late BaseHomePage _homePage;
+  late CreateAccountsClient _createAccountsClient;
+  AccountsClient? _accountsClient;
+  String? _accountsClientOrigin;
   InstallSourceHandler? _installSourceHandler;
 
   UserService._privateConstructor();
@@ -69,10 +59,13 @@ class UserService {
   Future<void> init(
     BaseConfiguration config,
     BaseHomePage homePage, {
+    required CreateAccountsClient createAccountsClient,
     InstallSourceHandler? installSourceHandler,
   }) async {
     _config = config;
     _homePage = homePage;
+    _createAccountsClient = createAccountsClient;
+    _accountsClient = null;
     _installSourceHandler = installSourceHandler;
     emailValueNotifier = ValueNotifier<String?>(config.getEmail());
     _preferences = await SharedPreferences.getInstance();
@@ -91,90 +84,59 @@ class UserService {
         : null;
     await dialog?.show();
     try {
-      final response = await _dio.post(
-        "${_config.getHttpEndpoint()}/users/ott",
-        data: {
-          "email": email,
-          "purpose": isChangeEmail ? "change" : purpose ?? "",
-          "mobile": Platform.isIOS || Platform.isAndroid,
-        },
+      await _withAccountsClient(
+        (client) => client.sendOtp(
+          email: email,
+          purpose: isChangeEmail ? "change" : purpose ?? "",
+          mobile: Platform.isIOS || Platform.isAndroid,
+        ),
       );
       await dialog?.hide();
       if (context == null || !context.mounted) {
         return;
       }
-      if (response.statusCode == 200) {
-        unawaited(
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return OTTVerificationPage(
-                  email,
-                  isChangeEmail: isChangeEmail,
-                  isCreateAccountScreen: isCreateAccountScreen,
-                  isResetPasswordScreen: isResetPasswordScreen,
-                );
-              },
-            ),
+      unawaited(
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return OTTVerificationPage(
+                email,
+                isChangeEmail: isChangeEmail,
+                isCreateAccountScreen: isCreateAccountScreen,
+                isResetPasswordScreen: isResetPasswordScreen,
+              );
+            },
           ),
-        );
-        return;
-      }
-      unawaited(showGenericErrorDialog(context: context, error: null));
-    } on DioException catch (e) {
+        ),
+      );
+      return;
+    } catch (e, s) {
       await dialog?.hide();
-      _logger.info(e);
-      if (context == null || !context.mounted) {
-        return;
-      }
-      final responseData = e.response?.data;
-      final Object? enteErrCode = responseData is Map
-          ? responseData["code"]
-          : null;
-      if (enteErrCode != null && enteErrCode == "USER_ALREADY_REGISTERED") {
-        unawaited(
-          showAlertBottomSheet(
-            context,
-            title: context.strings.oops,
-            message: context.strings.emailAlreadyRegistered,
-            assetPath: 'assets/warning-grey.png',
-          ),
-        );
-      } else if (enteErrCode != null && enteErrCode == "USER_NOT_REGISTERED") {
-        unawaited(
-          showAlertBottomSheet(
-            context,
-            title: context.strings.oops,
-            message: context.strings.emailNotRegistered,
-            assetPath: 'assets/warning-grey.png',
-          ),
-        );
-      } else if (enteErrCode == "USER_SIGNUP_INCOMPLETE") {
-        unawaited(
-          showAlertBottomSheet(
-            context,
-            title: context.strings.oops,
-            message: context.strings.accountSetupIncompleteCreateAccount,
-            assetPath: 'assets/warning-grey.png',
-          ),
-        );
-      } else if (e.response != null && e.response!.statusCode == 403) {
-        unawaited(
-          showAlertBottomSheet(
-            context,
-            title: context.strings.oops,
-            message: context.strings.thisEmailIsAlreadyInUse,
-            assetPath: 'assets/warning-grey.png',
-          ),
-        );
+      if (context == null || !context.mounted) return;
+      final message = switch (e) {
+        const AccountsError.alreadyRegistered() =>
+          context.strings.emailAlreadyRegistered,
+        const AccountsError.notRegistered() =>
+          context.strings.emailNotRegistered,
+        const AccountsError.signupIncomplete() =>
+          context.strings.accountSetupIncompleteCreateAccount,
+        const AccountsError.emailAlreadyInUse() =>
+          context.strings.thisEmailIsAlreadyInUse,
+        _ => null,
+      };
+      if (message == null) {
+        _logger.warning("Failed to send OTT", e, s);
+        unawaited(showGenericErrorDialog(context: context, error: e));
       } else {
-        unawaited(showGenericErrorDialog(context: context, error: e));
-      }
-    } catch (e) {
-      await dialog?.hide();
-      _logger.severe(e);
-      if (context != null && context.mounted) {
-        unawaited(showGenericErrorDialog(context: context, error: e));
+        _logger.info(e);
+        unawaited(
+          showAlertBottomSheet(
+            context,
+            title: context.strings.oops,
+            message: message,
+            assetPath: 'assets/warning-grey.png',
+          ),
+        );
       }
     }
   }
@@ -318,6 +280,7 @@ class UserService {
   }
 
   Future<void> _logoutLocally(BuildContext? context) async {
+    _accountsClient = null;
     await _config.logout();
     if (context == null || !context.mounted) {
       return;
@@ -327,30 +290,20 @@ class UserService {
     );
   }
 
-  Future<dynamic> getTokenForPasskeySession(String sessionID) async {
-    try {
-      final response = await _dio.get(
-        "${_config.getHttpEndpoint()}/users/two-factor/passkeys/get-token",
-        queryParameters: {"sessionID": sessionID},
-      );
-      return response.data;
-    } on DioException catch (e) {
-      if (e.response != null) {
-        if (e.response!.statusCode == 404 || e.response!.statusCode == 410) {
-          throw PassKeySessionExpiredError();
-        }
-        if (e.response!.statusCode == 400) {
-          throw PassKeySessionNotVerifiedError();
-        }
-      }
-      rethrow;
-    } catch (e, s) {
-      _logger.severe("unexpected error", e, s);
-      rethrow;
-    }
+  Future<Map<String, dynamic>?> getTokenForPasskeySession(
+    String sessionID,
+  ) async {
+    final response = await _withAccountsClient(
+      (client) => client.pollPasskey(sessionId: sessionID),
+    );
+    return response?.toMap();
   }
 
-  Future<void> onPassKeyVerified(BuildContext? context, Map response) async {
+  Future<void> onPassKeyVerified(
+    BuildContext? context,
+    Map response, {
+    Uint8List? keyEncryptionKey,
+  }) async {
     final ProgressDialog? dialog = context != null && context.mounted
         ? createProgressDialog(context, context.strings.pleaseWait)
         : null;
@@ -376,9 +329,10 @@ class UserService {
       } else {
         Widget page;
         if (_config.getEncryptedToken() != null) {
-          await _config.decryptSecretsAndGetKeyEncKey(
+          await unlockAccount(
             userPassword,
             _config.getKeyAttributes()!,
+            keyEncryptionKey: keyEncryptionKey,
           );
           unawaited(autoAttributePendingSource());
           _config.resetVolatilePassword();
@@ -416,72 +370,64 @@ class UserService {
   }) async {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
-    final verifyData = {"email": _config.getEmail(), "ott": ott};
-    if (!_config.isLoggedIn()) {
-      verifyData["source"] =
-          '${_config.appIdentity.referralSourcePrefix}:${_getRefSource()}';
-    }
     try {
-      final response = await _dio.post(
-        "${_config.getHttpEndpoint()}/users/verify-email",
-        data: verifyData,
+      final response = await _withAccountsClient(
+        (client) => client.verifyEmail(
+          email: _config.getEmail()!,
+          code: ott,
+          source: !_config.isLoggedIn()
+              ? '${_config.appIdentity.referralSourcePrefix}:${_getRefSource()}'
+              : null,
+        ),
       );
       await dialog.hide();
-      if (response.statusCode == 200) {
-        Widget page;
-        final responseData = response.data;
-        final String passkeySessionID = responseData["passkeySessionID"] ?? "";
-        String twoFASessionID = responseData["twoFactorSessionID"] ?? "";
-        if (twoFASessionID.isEmpty &&
-            responseData["twoFactorSessionIDV2"] != null) {
-          twoFASessionID = responseData["twoFactorSessionIDV2"];
-        }
-        if (passkeySessionID.isNotEmpty) {
-          final accountsUrl = responseData["accountsUrl"] as String;
-          page = PasskeyPage(
-            _config,
-            passkeySessionID,
-            totp2FASessionID: twoFASessionID,
-            accountsUrl: accountsUrl,
-            redirectUrl: _config.appIdentity.passkeyRedirectUrl,
-            clientPackage: _config.appIdentity.clientPackageName,
-          );
-        } else if (twoFASessionID.isNotEmpty) {
-          page = TwoFactorAuthenticationPage(twoFASessionID);
-        } else {
-          await _saveConfiguration(response);
-          if (_config.getEncryptedToken() != null) {
-            if (isResettingPasswordScreen) {
-              page = RecoveryPage(_config, _homePage);
-            } else {
-              page = PasswordReentryPage(_config, _homePage);
-            }
-          } else {
-            page = PasswordEntryPage(_config, PasswordEntryMode.set, _homePage);
-          }
-        }
-        if (!context.mounted) {
-          return;
-        }
-        // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return page;
-            },
-          ),
-          (route) => route.isFirst,
-        );
-      } else {
-        throw Exception("unexpected response during email verification");
+      Widget page;
+      final String passkeySessionID = response.passkeySessionId ?? "";
+      String twoFASessionID = response.twoFactorSessionId ?? "";
+      if (twoFASessionID.isEmpty) {
+        twoFASessionID = response.twoFactorSessionIdV2 ?? "";
       }
-    } on DioException catch (e) {
-      _logger.info(e);
-      await dialog.hide();
+      if (passkeySessionID.isNotEmpty) {
+        final accountsUrl = response.accountsUrl!;
+        page = PasskeyPage(
+          _config,
+          passkeySessionID,
+          totp2FASessionID: twoFASessionID,
+          accountsUrl: accountsUrl,
+          redirectUrl: _config.appIdentity.passkeyRedirectUrl,
+          clientPackage: _config.appIdentity.clientPackageName,
+        );
+      } else if (twoFASessionID.isNotEmpty) {
+        page = TwoFactorAuthenticationPage(twoFASessionID);
+      } else {
+        await _saveConfiguration(response.toMap());
+        if (_config.getEncryptedToken() != null) {
+          if (isResettingPasswordScreen) {
+            page = RecoveryPage(_config, _homePage);
+          } else {
+            page = PasswordReentryPage(_config, _homePage);
+          }
+        } else {
+          page = PasswordEntryPage(_config, PasswordEntryMode.set, _homePage);
+        }
+      }
       if (!context.mounted) {
         return;
       }
-      if (e.response != null && e.response!.statusCode == 410) {
+      // ignore: unawaited_futures
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (BuildContext context) {
+            return page;
+          },
+        ),
+        (route) => route.isFirst,
+      );
+    } catch (e) {
+      await dialog.hide();
+      _logger.severe(e);
+      if (!context.mounted) return;
+      if (e == const AccountsError.emailCodeExpired()) {
         await showAlertBottomSheet(
           context,
           title: context.strings.oops,
@@ -491,7 +437,7 @@ class UserService {
         if (context.mounted) {
           Navigator.of(context).pop();
         }
-      } else {
+      } else if (e == const AccountsError.incorrectEmailCode()) {
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -499,13 +445,8 @@ class UserService {
           message: context.strings.sorryTheCodeYouveEnteredIsIncorrect,
           assetPath: 'assets/warning-grey.png',
         );
-      }
-    } catch (e) {
-      await dialog.hide();
-      _logger.severe(e);
-      if (context.mounted) {
-        // ignore: unawaited_futures
-        showAlertBottomSheet(
+      } else {
+        await showAlertBottomSheet(
           context,
           title: context.strings.oops,
           message: context.strings.verificationFailedPleaseTryAgain,
@@ -588,132 +529,69 @@ class UserService {
     }
   }
 
-  Future<void> setAttributes(KeyGenResult result) async {
-    try {
-      await _enteDio.put(
-        "/users/attributes",
-        data: {"keyAttributes": result.keyAttributes.toMap()},
-      );
-      await _config.setKey(result.privateKeyAttributes.key);
-      await _config.setSecretKey(result.privateKeyAttributes.secretKey);
-      await _config.setKeyAttributes(result.keyAttributes);
-      try {
-        await registerOrUpdateSrp(result.loginKey);
-      } catch (_) {
-        // Keys are stored; password reentry after OTT login retries SRP setup.
-        _logger.warning("Continuing signup after SRP setup failure");
-      }
-    } catch (e) {
-      _logger.severe(e);
-      rethrow;
-    }
+  Future<SignupKeys> generateKey(String password) {
+    return _withAccountsClient(
+      (client) => client.generateSignupKeys(
+        password: password,
+        srpUserId: const Uuid().v4(),
+      ),
+    );
   }
 
-  Future<SrpAttributes> getSrpAttributes(String email) async {
-    try {
-      final response = await _dio.get(
-        "${_config.getHttpEndpoint()}/users/srp/attributes",
-        queryParameters: {"email": email},
-      );
-      if (response.statusCode == 200) {
-        return SrpAttributes.fromMap(response.data);
-      } else {
-        throw Exception("get-srp-attributes action failed");
-      }
-    } on DioException catch (e) {
-      if (e.response != null && e.response!.statusCode == 404) {
-        throw SrpSetupNotCompleteError();
-      }
-      rethrow;
-    } catch (e) {
-      rethrow;
-    }
+  Future<void> setAttributes(SignupKeys result) async {
+    await _withAccountsClient(
+      (client) => client.completeSignup(
+        email: _config.getEmail()!,
+        token: _config.getToken()!,
+        keyAttributes: result.keyAttributes,
+        srp: result.srp,
+      ),
+    );
+    await _config.setKey(result.masterKey);
+    await _config.setSecretKey(result.secretKey);
+    await _config.setKeyAttributes(
+      KeyAttributes.fromMap(result.keyAttributes.toMap()),
+    );
   }
 
-  Future<void> registerOrUpdateSrp(
-    Uint8List loginKey, {
-    SetKeysRequest? setKeysRequest,
-    bool logOutOtherDevices = false,
+  Future<SrpAttributes> getSrpAttributes(String email) {
+    return _withAccountsClient(
+      (client) => client.getSrpAttributes(email: email),
+    );
+  }
+
+  Future<Uint8List> unlockAccount(
+    String password,
+    KeyAttributes attributes, {
+    Uint8List? keyEncryptionKey,
   }) async {
-    try {
-      final String username = const Uuid().v4().toString();
-      final SecureRandom random = _getSecureRandom();
-      final Uint8List identity = Uint8List.fromList(utf8.encode(username));
-      final Uint8List password = loginKey;
-      final Uint8List salt = random.nextBytes(16);
-      final gen = SRP6VerifierGenerator(
-        group: kDefaultSrpGroup,
-        digest: Digest('SHA-256'),
-      );
-      final v = gen.generateVerifier(salt, identity, password);
-
-      final client = SRP6Client(
-        group: kDefaultSrpGroup,
-        digest: Digest('SHA-256'),
-        random: random,
-      );
-
-      final A = client.generateClientCredentials(salt, identity, password);
-      final request = SetupSRPRequest(
-        srpUserID: username,
-        srpSalt: base64Encode(salt),
-        srpVerifier: base64Encode(SRP6Util.encodeBigInt(v)),
-        srpA: base64Encode(SRP6Util.getPadded(A!, 512)),
-        isUpdate: false,
-      );
-      final response = await _enteDio.post(
-        "/users/srp/setup",
-        data: request.toMap(),
-      );
-      if (response.statusCode == 200) {
-        final SetupSRPResponse setupSRPResponse = SetupSRPResponse.fromJson(
-          response.data,
-        );
-        final serverB = SRP6Util.decodeBigInt(
-          base64Decode(setupSRPResponse.srpB),
-        );
-        // ignore: unused_local_variable
-        final clientS = client.calculateSecret(serverB);
-        final clientM = client.calculateClientEvidenceMessage();
-
-        if (setKeysRequest == null) {
-          await _enteDio.post(
-            "/users/srp/complete",
-            data: {
-              'setupID': setupSRPResponse.setupID,
-              'srpM1': base64Encode(SRP6Util.getPadded(clientM!, 32)),
-            },
-          );
-        } else {
-          await _enteDio.post(
-            "/users/srp/update",
-            data: {
-              'setupID': setupSRPResponse.setupID,
-              'srpM1': base64Encode(SRP6Util.getPadded(clientM!, 32)),
-              'updatedKeyAttr': setKeysRequest.toMap(),
-              'logOutOtherDevices': logOutOtherDevices,
-            },
-          );
-        }
-      } else {
-        throw Exception("register-srp action failed");
-      }
-    } catch (e, s) {
-      _logger.severe("failed to register srp", e, s);
-      rethrow;
-    }
+    final result = await _withAccountsClient(
+      (client) => client.unlock(
+        response: AuthResponse(
+          id: _config.getUserID()!,
+          keyAttributes: accountsKeyAttributes(attributes.toMap()),
+          encryptedToken: _config.getEncryptedToken(),
+          token: _config.getEncryptedToken() == null
+              ? _config.getToken()
+              : null,
+        ),
+        password: password,
+        keyEncryptionKey: keyEncryptionKey,
+      ),
+    );
+    await _config.setKey(result.masterKey);
+    await _config.setSecretKey(result.secretKey);
+    await _config.setToken(result.token);
+    return result.loginKey;
   }
 
-  SecureRandom _getSecureRandom() {
-    final List<int> seeds = [];
-    final random = Random.secure();
-    for (int i = 0; i < 32; i++) {
-      seeds.add(random.nextInt(255));
-    }
-    final secureRandom = FortunaRandom();
-    secureRandom.seed(KeyParameter(Uint8List.fromList(seeds)));
-    return secureRandom;
-  }
+  Future<void> setupSrp(Uint8List loginKey) => _withAccountsClient(
+    (client) => client.setupSrp(
+      token: _config.getToken()!,
+      srpUserId: const Uuid().v4(),
+      loginKey: loginKey,
+    ),
+  );
 
   Future<void> verifyEmailViaPassword(
     BuildContext? context,
@@ -721,134 +599,113 @@ class UserService {
     String userPassword,
     ProgressDialog dialog,
   ) async {
-    late Uint8List keyEncryptionKey;
-    _logger.finest('Start deriving key');
-    keyEncryptionKey = await CryptoUtil.deriveKey(
-      utf8.encode(userPassword),
-      CryptoUtil.base642bin(srpAttributes.kekSalt),
-      srpAttributes.memLimit,
-      srpAttributes.opsLimit,
+    final result = await _withAccountsClient(
+      (client) => client.loginWithPassword(
+        attributes: srpAttributes,
+        password: userPassword,
+      ),
     );
-    _logger.finest('keyDerivation done, derive LoginKey');
-    final loginKey = await CryptoUtil.deriveLoginKey(keyEncryptionKey);
-    final Uint8List identity = Uint8List.fromList(
-      utf8.encode(srpAttributes.srpUserID),
-    );
-    _logger.finest('longinKey derivation done');
-    final Uint8List salt = base64Decode(srpAttributes.srpSalt);
-    final Uint8List password = loginKey;
-    final SecureRandom random = _getSecureRandom();
-
-    final client = SRP6Client(
-      group: kDefaultSrpGroup,
-      digest: Digest('SHA-256'),
-      random: random,
-    );
-
-    final A = client.generateClientCredentials(salt, identity, password);
-    final createSessionResponse = await _dio.post(
-      "${_config.getHttpEndpoint()}/users/srp/create-session",
-      data: {
-        "srpUserID": srpAttributes.srpUserID,
-        "srpA": base64Encode(SRP6Util.getPadded(A!, 512)),
-      },
-    );
-    final String sessionID = createSessionResponse.data["sessionID"];
-    final String srpB = createSessionResponse.data["srpB"];
-
-    final serverB = SRP6Util.decodeBigInt(base64Decode(srpB));
-
-    // ignore: unused_local_variable
-    final clientS = client.calculateSecret(serverB);
-    final clientM = client.calculateClientEvidenceMessage();
-    final response = await _dio.post(
-      "${_config.getHttpEndpoint()}/users/srp/verify-session",
-      data: {
-        "sessionID": sessionID,
-        "srpUserID": srpAttributes.srpUserID,
-        "srpM1": base64Encode(SRP6Util.getPadded(clientM!, 32)),
-      },
-    );
-    if (response.statusCode == 200) {
-      Widget? page;
-      final responseData = response.data;
-      final String passkeySessionID = responseData["passkeySessionID"] ?? "";
-      String twoFASessionID = responseData["twoFactorSessionID"] ?? "";
-      if (twoFASessionID.isEmpty &&
-          responseData["twoFactorSessionIDV2"] != null) {
-        twoFASessionID = responseData["twoFactorSessionIDV2"];
-      }
-      _config.setVolatilePassword(userPassword);
-      if (passkeySessionID.isNotEmpty) {
-        final accountsUrl = responseData["accountsUrl"] as String;
-        page = PasskeyPage(
-          _config,
-          passkeySessionID,
-          totp2FASessionID: twoFASessionID,
-          accountsUrl: accountsUrl,
-          redirectUrl: _config.appIdentity.passkeyRedirectUrl,
-          clientPackage: _config.appIdentity.clientPackageName,
-        );
-      } else if (twoFASessionID.isNotEmpty) {
-        page = TwoFactorAuthenticationPage(twoFASessionID);
-      } else {
-        await _saveConfiguration(response);
-        if (_config.getEncryptedToken() != null) {
-          await _config.decryptSecretsAndGetKeyEncKey(
-            userPassword,
-            _config.getKeyAttributes()!,
-            keyEncryptionKey: keyEncryptionKey,
-          );
-          unawaited(autoAttributePendingSource());
-          _config.resetVolatilePassword();
-          page = _homePage;
-        } else {
-          throw Exception("unexpected response during email verification");
-        }
-      }
-      await dialog.hide();
-      if (context != null && context.mounted) {
-        // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return page!;
-            },
-          ),
-          identical(page, _homePage)
-              ? (route) => false
-              : (route) => route.isFirst,
-        );
-      }
+    final keyEncryptionKey = result.keyEncryptionKey;
+    Widget page;
+    final response = result.response;
+    final String passkeySessionID = response.passkeySessionId ?? "";
+    String twoFASessionID = response.twoFactorSessionId ?? "";
+    if (twoFASessionID.isEmpty) {
+      twoFASessionID = response.twoFactorSessionIdV2 ?? "";
+    }
+    _config.setVolatilePassword(userPassword);
+    if (passkeySessionID.isNotEmpty) {
+      final accountsUrl = response.accountsUrl!;
+      page = PasskeyPage(
+        _config,
+        passkeySessionID,
+        totp2FASessionID: twoFASessionID,
+        accountsUrl: accountsUrl,
+        keyEncryptionKey: keyEncryptionKey,
+        redirectUrl: _config.appIdentity.passkeyRedirectUrl,
+        clientPackage: _config.appIdentity.clientPackageName,
+      );
+    } else if (twoFASessionID.isNotEmpty) {
+      page = TwoFactorAuthenticationPage(
+        twoFASessionID,
+        keyEncryptionKey: keyEncryptionKey,
+      );
     } else {
-      throw Exception("unexpected response during email verification");
+      await _saveConfiguration(response.toMap());
+      if (_config.getEncryptedToken() != null) {
+        await unlockAccount(
+          userPassword,
+          _config.getKeyAttributes()!,
+          keyEncryptionKey: keyEncryptionKey,
+        );
+        unawaited(autoAttributePendingSource());
+        _config.resetVolatilePassword();
+        page = _homePage;
+      } else {
+        throw Exception("unexpected response during email verification");
+      }
+    }
+    await dialog.hide();
+    if (context != null && context.mounted) {
+      // ignore: unawaited_futures
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (BuildContext context) {
+            return page;
+          },
+        ),
+        identical(page, _homePage)
+            ? (route) => false
+            : (route) => route.isFirst,
+      );
     }
   }
 
-  Future<void> updateKeyAttributes(
-    KeyAttributes keyAttributes,
-    Uint8List loginKey, {
+  Future<void> changePassword(
+    String password, {
     required bool logoutOtherDevices,
   }) async {
-    try {
-      final setKeyRequest = SetKeysRequest(
-        kekSalt: keyAttributes.kekSalt,
-        encryptedKey: keyAttributes.encryptedKey,
-        keyDecryptionNonce: keyAttributes.keyDecryptionNonce,
-        memLimit: keyAttributes.memLimit,
-        opsLimit: keyAttributes.opsLimit,
-      );
-      await registerOrUpdateSrp(
-        loginKey,
-        setKeysRequest: setKeyRequest,
+    final attributes = await _withAccountsClient(
+      (client) => client.changePassword(
+        token: _config.getToken()!,
+        password: password,
+        masterKey: _config.getKey()!,
+        keyAttributes: accountsKeyAttributes(
+          _config.getKeyAttributes()!.toMap(),
+        ),
         logOutOtherDevices: logoutOtherDevices,
-      );
-      await _config.setKeyAttributes(keyAttributes);
-    } catch (e) {
-      _logger.severe(e);
-      rethrow;
-    }
+      ),
+    );
+    await _config.setKeyAttributes(KeyAttributes.fromMap(attributes.toMap()));
   }
+
+  Future<void> recoverAccount(String recoveryKey) async {
+    final result = await _withAccountsClient(
+      (client) => client.recoverAccount(
+        response: AuthResponse(
+          id: _config.getUserID()!,
+          keyAttributes: accountsKeyAttributes(
+            _config.getKeyAttributes()!.toMap(),
+          ),
+          encryptedToken: _config.getEncryptedToken(),
+          token: _config.getEncryptedToken() == null
+              ? _config.getToken()
+              : null,
+        ),
+        recoveryKey: recoveryKey,
+      ),
+    );
+    await _config.setKey(result.masterKey);
+    await _config.setSecretKey(result.secretKey);
+    await _config.setToken(result.token);
+  }
+
+  Future<String> passkeyManagementUrl() => _withAccountsClient(
+    (client) => client.passkeyManagementUrl(
+      token: _config.getToken()!,
+      recoveryKey: CryptoUtil.bin2hex(_config.getRecoveryKey()),
+    ),
+  );
 
   Future<void> setRecoveryKey(KeyAttributes keyAttributes) async {
     try {
@@ -872,38 +729,38 @@ class UserService {
   Future<void> verifyTwoFactor(
     BuildContext context,
     String sessionID,
-    String code,
-  ) async {
+    String code, {
+    Uint8List? keyEncryptionKey,
+  }) async {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
     try {
-      final response = await _dio.post(
-        "${_config.getHttpEndpoint()}/users/two-factor/verify",
-        data: {"sessionID": sessionID, "code": code},
+      final response = await _withAccountsClient(
+        (client) => client.verifyTotp(sessionId: sessionID, code: code),
       );
       await dialog.hide();
-      if (response.statusCode == 200) {
-        await _saveConfiguration(response);
-        if (context.mounted) {
-          showShortToast(context, context.strings.authenticationSuccessful);
-          // ignore: unawaited_futures
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return PasswordReentryPage(_config, _homePage);
-              },
-            ),
-            (route) => route.isFirst,
-          );
-        }
+      await _saveConfiguration(response.toMap());
+      if (context.mounted) {
+        showShortToast(context, context.strings.authenticationSuccessful);
+        // ignore: unawaited_futures
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return PasswordReentryPage(
+                _config,
+                _homePage,
+                keyEncryptionKey: keyEncryptionKey,
+              );
+            },
+          ),
+          (route) => route.isFirst,
+        );
       }
-    } on DioException catch (e) {
+    } catch (e) {
       await dialog.hide();
       _logger.severe(e);
-      if (!context.mounted) {
-        return;
-      }
-      if (e.response != null && e.response!.statusCode == 404) {
+      if (!context.mounted) return;
+      if (e == const AccountsError.sessionExpired()) {
         showToast(context, "Session expired");
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
@@ -914,7 +771,7 @@ class UserService {
           ),
           (route) => route.isFirst,
         );
-      } else {
+      } else if (e == const AccountsError.incorrectTotp()) {
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -922,13 +779,8 @@ class UserService {
           message: context.strings.authenticationFailedPleaseTryAgain,
           assetPath: 'assets/warning-grey.png',
         );
-      }
-    } catch (e) {
-      await dialog.hide();
-      _logger.severe(e);
-      if (context.mounted) {
-        // ignore: unawaited_futures
-        showAlertBottomSheet(
+      } else {
+        await showAlertBottomSheet(
           context,
           title: context.strings.oops,
           message: context.strings.authenticationFailedPleaseTryAgain,
@@ -936,6 +788,36 @@ class UserService {
         );
       }
     }
+  }
+
+  Future<T> _withAccountsClient<T>(
+    Future<T> Function(AccountsClient client) request,
+  ) async {
+    final client = _getAccountsClient();
+    final email = _config.getEmail();
+    final result = await request(client);
+    if (client != _getAccountsClient() || email != _config.getEmail()) {
+      throw const AccountsError.sessionExpired();
+    }
+    return result;
+  }
+
+  AccountsClient _getAccountsClient() {
+    final origin = _config.getHttpEndpoint();
+    if (_accountsClient == null || _accountsClientOrigin != origin) {
+      final headers = _enteDio.options.headers;
+      final client = _createAccountsClient(
+        config: AccountsClientConfig(
+          origin: origin,
+          clientPackage: headers['X-Client-Package'] as String,
+          clientVersion: headers['X-Client-Version'] as String,
+          userAgent: headers[HttpHeaders.userAgentHeader] as String,
+        ),
+      );
+      _accountsClient = client;
+      _accountsClientOrigin = origin;
+    }
+    return _accountsClient!;
   }
 
   Future<void> recoverTwoFactor(
@@ -946,39 +828,30 @@ class UserService {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
     try {
-      final response = await _dio.get(
-        "${_config.getHttpEndpoint()}/users/two-factor/recover",
-        queryParameters: {
-          "sessionID": sessionID,
-          "twoFactorType": twoFactorTypeToString(type),
-        },
+      final client = _getAccountsClient();
+      final response = await client.getTwoFactorRecovery(
+        sessionId: sessionID,
+        twoFactorType: type,
       );
       await dialog.hide();
-      if (response.statusCode == 200) {
-        if (context.mounted) {
-          // ignore: unawaited_futures
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return TwoFactorRecoveryPage(
-                  type,
-                  sessionID,
-                  response.data["encryptedSecret"],
-                  response.data["secretDecryptionNonce"],
-                );
-              },
-            ),
-            (route) => route.isFirst,
-          );
-        }
+      if (context.mounted) {
+        // ignore: unawaited_futures
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return TwoFactorRecoveryPage(client, type, sessionID, response);
+            },
+          ),
+          (route) => route.isFirst,
+        );
       }
-    } on DioException catch (e) {
+    } catch (e) {
       await dialog.hide();
       _logger.severe(e);
       if (!context.mounted) {
         return;
       }
-      if (e.response != null && e.response!.statusCode == 404) {
+      if (e == const AccountsError.sessionExpired()) {
         showToast(context, context.strings.sessionExpired);
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
@@ -998,18 +871,6 @@ class UserService {
           assetPath: 'assets/warning-grey.png',
         );
       }
-    } catch (e) {
-      await dialog.hide();
-      _logger.severe(e);
-      if (context.mounted) {
-        // ignore: unawaited_futures
-        showAlertBottomSheet(
-          context,
-          title: context.strings.oops,
-          message: context.strings.somethingWentWrongPleaseTryAgain,
-          assetPath: 'assets/warning-grey.png',
-        );
-      }
     } finally {
       await dialog.hide();
     }
@@ -1017,79 +878,61 @@ class UserService {
 
   Future<void> removeTwoFactor(
     BuildContext context,
+    AccountsClient client,
     TwoFactorType type,
     String sessionID,
     String recoveryKey,
-    String encryptedSecret,
-    String secretDecryptionNonce,
+    TwoFactorRecoveryResponse recoveryResponse,
   ) async {
     final dialog = createProgressDialog(context, context.strings.pleaseWait);
     await dialog.show();
-    String secret;
     try {
-      if (recoveryKey.contains(' ')) {
-        if (recoveryKey.split(' ').length != mnemonicKeyWordCount) {
-          throw AssertionError(
-            'recovery code should have $mnemonicKeyWordCount words',
-          );
-        }
-        recoveryKey = bip39.mnemonicToEntropy(recoveryKey);
+      if (client != _getAccountsClient()) {
+        throw const AccountsError.sessionExpired();
       }
-      secret = CryptoUtil.bin2base64(
-        await CryptoUtil.decrypt(
-          CryptoUtil.base642bin(encryptedSecret),
-          CryptoUtil.hex2bin(recoveryKey.trim()),
-          CryptoUtil.base642bin(secretDecryptionNonce),
-        ),
+      final response = await client.recoverTwoFactor(
+        twoFactorType: type,
+        sessionId: sessionID,
+        recoveryResponse: recoveryResponse,
+        recoveryKey: recoveryKey,
       );
+      if (client != _getAccountsClient()) {
+        throw const AccountsError.sessionExpired();
+      }
+      await _saveConfiguration(response.toMap());
+      await dialog.hide();
+      if (context.mounted) {
+        showShortToast(
+          context,
+          context.strings.twofactorAuthenticationSuccessfullyReset,
+        );
+        // ignore: unawaited_futures
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return PasswordReentryPage(_config, _homePage);
+            },
+          ),
+          (route) => route.isFirst,
+        );
+      }
     } catch (e) {
-      await dialog.hide();
-      if (!context.mounted) {
-        return;
-      }
-      await showAlertBottomSheet(
-        context,
-        title: context.strings.incorrectRecoveryKey,
-        message: context.strings.theRecoveryKeyYouEnteredIsIncorrect,
-        assetPath: 'assets/warning-grey.png',
-      );
-      return;
-    }
-    try {
-      final response = await _dio.post(
-        "${_config.getHttpEndpoint()}/users/two-factor/remove",
-        data: {
-          "sessionID": sessionID,
-          "secret": secret,
-          "twoFactorType": twoFactorTypeToString(type),
-        },
-      );
-      await dialog.hide();
-      if (response.statusCode == 200) {
-        await _saveConfiguration(response);
-        if (context.mounted) {
-          showShortToast(
-            context,
-            context.strings.twofactorAuthenticationSuccessfullyReset,
-          );
-          // ignore: unawaited_futures
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return PasswordReentryPage(_config, _homePage);
-              },
-            ),
-            (route) => route.isFirst,
-          );
-        }
-      }
-    } on DioException catch (e) {
       await dialog.hide();
       _logger.severe(e);
       if (!context.mounted) {
         return;
       }
-      if (e.response != null && e.response!.statusCode == 404) {
+      if (e == const AccountsError.incorrectRecoveryKey() ||
+          e == const AccountsError.malformedRecoveryKey()) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.incorrectRecoveryKey,
+          message: e == const AccountsError.malformedRecoveryKey()
+              ? context.strings.invalidRecoveryKey
+              : context.strings.theRecoveryKeyYouEnteredIsIncorrect,
+          assetPath: 'assets/warning-grey.png',
+        );
+      } else if (e == const AccountsError.sessionExpired()) {
         showToast(context, "Session expired");
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
@@ -1109,27 +952,12 @@ class UserService {
           assetPath: 'assets/warning-grey.png',
         );
       }
-    } catch (e) {
-      await dialog.hide();
-      _logger.severe(e);
-      if (context.mounted) {
-        // ignore: unawaited_futures
-        showAlertBottomSheet(
-          context,
-          title: context.strings.oops,
-          message: context.strings.somethingWentWrongPleaseTryAgain,
-          assetPath: 'assets/warning-grey.png',
-        );
-      }
     } finally {
       await dialog.hide();
     }
   }
 
-  Future<void> _saveConfiguration(dynamic response) async {
-    final responseData = response is Map ? response : response.data as Map?;
-    if (responseData == null) return;
-
+  Future<void> _saveConfiguration(Map responseData) async {
     await _config.setUserID(responseData["id"]);
     if (responseData["encryptedToken"] != null) {
       await _config.setEncryptedToken(responseData["encryptedToken"]);

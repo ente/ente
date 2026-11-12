@@ -4,7 +4,7 @@ import "package:flutter/material.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/services/collections_service.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/sharing/user_avatar_widget.dart";
 import "package:photos/utils/avatar_util.dart";
 
 class AddedByWidget extends StatelessWidget {

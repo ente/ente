@@ -7,10 +7,10 @@ After=docker.service
 WantedBy=multi-user.target
 
 [Service]
-ExecStartPre=docker pull louislam/uptime-kuma:1
+ExecStartPre=docker pull louislam/uptime-kuma:2
 ExecStartPre=-docker stop uptime-kuma
 ExecStartPre=-docker rm uptime-kuma
 ExecStart=docker run --name uptime-kuma \
     -p 3001:3001 \
     -v /root/uptime-kuma:/app/data \
-    louislam/uptime-kuma:1
+    louislam/uptime-kuma:2

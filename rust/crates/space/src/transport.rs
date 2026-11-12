@@ -458,6 +458,7 @@ pub(crate) struct WebPushSubscriptionRequest {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct WebPushUnsubscriptionRequest {
     pub(crate) endpoint: String,
+    pub(crate) auth: String,
 }
 
 #[derive(Deserialize)]

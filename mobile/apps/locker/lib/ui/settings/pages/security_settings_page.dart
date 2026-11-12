@@ -184,22 +184,6 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       if (!buildContext.mounted || !hasAuthenticated) {
         return;
       }
-      final isPassKeyResetEnabled = await PasskeyService.instance
-          .isPasskeyRecoveryEnabled();
-      if (!isPassKeyResetEnabled) {
-        final Uint8List recoveryKey = Configuration.instance.getRecoveryKey();
-        final resetKey = CryptoUtil.generateKey();
-        final resetKeyBase64 = CryptoUtil.bin2base64(resetKey);
-        final encryptionResult = CryptoUtil.encryptSync(resetKey, recoveryKey);
-        await PasskeyService.instance.configurePasskeyRecovery(
-          resetKeyBase64,
-          CryptoUtil.bin2base64(encryptionResult.encryptedData!),
-          CryptoUtil.bin2base64(encryptionResult.nonce!),
-        );
-      }
-      if (!buildContext.mounted) {
-        return;
-      }
       await PasskeyService.instance.openPasskeyPage(buildContext);
     } catch (e, s) {
       _logger.severe("failed to open passkey page", e, s);
@@ -232,7 +216,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
                   final Uint8List loginKey = await CryptoUtil.deriveLoginKey(
                     keyEncryptionKey,
                   );
-                  await UserService.instance.registerOrUpdateSrp(loginKey);
+                  await UserService.instance.setupSrp(loginKey);
                 },
               );
             },

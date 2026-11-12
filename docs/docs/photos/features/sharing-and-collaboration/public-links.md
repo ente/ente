@@ -19,8 +19,8 @@ Share an entire album via a public link:
 
 1. Open the album you want to share
 2. Tap the Share icon
-3. Select "Create link" or "Share link"
-4. Tap "Manage link" to configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
+3. Tap "Create public link"
+4. On the "Link settings" screen, configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Tap "Copy link" and share it
 
 ![Create public link highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-share-create-link-callout.png){width=320px}

@@ -32,10 +32,10 @@ jobs:
                   cache: false
 
             - name: Setup Linux for Rust
-              uses: ./.github/actions/setup-rust-linux
+              uses: $/.github/actions/setup-rust-linux
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-workspace
@@ -44,7 +44,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-workspace
@@ -98,7 +98,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-cli
@@ -106,7 +106,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-cli
@@ -138,10 +138,10 @@ jobs:
                   submodules: recursive
 
             - name: Install Flutter
-              uses: ./.github/actions/setup-flutter
+              uses: $/.github/actions/setup-flutter
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-flutter
@@ -149,12 +149,14 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-flutter
 
             - run: cargo codegen frb
+
+            - run: cargo clippy -p ente-auth-frb --features flutter --all-targets --locked
 
             - run: cargo clippy -p ente-photos-frb --features flutter --all-targets --locked
 
@@ -200,7 +202,7 @@ jobs:
                   cache-dependency-path: "web/package-lock.json"
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: rust-wasm
@@ -208,7 +210,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: rust-wasm
@@ -265,7 +267,7 @@ jobs:
               working-directory: desktop
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: photos-desktop-ensu-android
@@ -273,10 +275,13 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: photos-desktop-ensu-android
+
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
 
             - name: Install Vulkan build dependencies
               run: |
@@ -322,7 +327,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup Rust cache
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
                   workspaces: rust
                   shared-key: ensu-ios
@@ -330,7 +335,7 @@ jobs:
 
             - name: Check Rust target cache
               id: rust-target
-              uses: ./.github/actions/restore-rust-target
+              uses: $/.github/actions/restore-rust-target
               with:
                   lookup-only: true
                   shared-key: ensu-ios

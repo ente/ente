@@ -1,6 +1,6 @@
 name: ente_auth
 description: ente two-factor authenticator
-version: 4.4.27+1007
+version: 4.4.28+1007
 publish_to: none
 
 resolution: workspace
@@ -14,7 +14,6 @@ dependencies:
   backup_exclusion:
     path: ../../packages/backup_exclusion
   base32: 2.1.3
-  bip39: 1.0.6
   clipboard: 0.1.3
   collection: 1.19.1
   confetti: 0.8.0
@@ -29,6 +28,8 @@ dependencies:
     path: ../../packages/account_deletion
   ente_accounts:
     path: ../../packages/accounts
+  ente_auth_frb:
+    path: rust_builder
   ente_base:
     path: ../../packages/base
   ente_components:
@@ -41,6 +42,8 @@ dependencies:
     path: ../../packages/ente_crypto_dart_adapter
   ente_events:
     path: ../../packages/events
+  ente_frb:
+    path: ../../packages/frb
   ente_lock_screen:
     path: ../../packages/lock_screen
   ente_logging:
@@ -78,6 +81,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_native_splash: 2.4.7
+  flutter_rust_bridge: 2.13.0
   # Version 9.2.4 leaves lock-screen keys behind after an app reinstall.
   # Upgrade only after this is fixed or with a migration.
   # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870#issuecomment-2777447937
@@ -86,6 +90,7 @@ dependencies:
   flutter_staggered_grid_view: 0.7.0
   flutter_svg: 2.3.0
   fluttertoast: 8.2.14
+  freezed_annotation: 3.1.0
   gradient_borders: 1.0.1
   http: 1.6.0
   hugeicons: 1.1.7
@@ -138,9 +143,11 @@ dependencies:
   xdg_directories: 1.1.0
 
 dev_dependencies:
+  build_runner: 2.13.1
   flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
+  freezed: 3.2.3
   qr: 3.0.2
   shared_preferences_platform_interface: 2.4.2
 

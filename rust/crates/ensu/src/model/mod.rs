@@ -167,7 +167,9 @@ pub(crate) fn trimmed(value: Option<&str>) -> Option<&str> {
 
 pub fn display_progress(progress: &AssetDownloadProgress) -> ModelDownloadDisplay {
     let total = progress.batch_total_bytes.filter(|total| *total > 0);
-    let status = if let Some(total) = total {
+    let status = if progress.queued {
+        "Download queued".to_string()
+    } else if let Some(total) = total {
         format!(
             "Downloading... {} / {}",
             format_bytes(progress.batch_downloaded_bytes),

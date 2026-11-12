@@ -170,7 +170,7 @@ class FavoritesService {
 
         Collection? targetCollection;
         for (final col in currentCollections) {
-          if (col.id != favCollection.id) {
+          if (_isAutoMoveCandidate(favCollection.id, col, currentUserID)) {
             targetCollection = col;
             break;
           }
@@ -221,7 +221,7 @@ class FavoritesService {
 
       Collection? targetCollection;
       for (final col in currentCollections) {
-        if (col.id != favCollection.id) {
+        if (_isAutoMoveCandidate(favCollection.id, col, _config.getUserID()!)) {
           targetCollection = col;
           break;
         }
@@ -234,6 +234,20 @@ class FavoritesService {
     }
 
     _updateFavoriteFilesCache([file], favFlag: false);
+  }
+
+  bool _isAutoMoveCandidate(
+    int fromCollectionID,
+    Collection toCollection,
+    int userID,
+  ) {
+    if (fromCollectionID == toCollection.id) {
+      return false;
+    }
+    if (toCollection.isDeleted || !toCollection.isOwner(userID)) {
+      return false;
+    }
+    return true;
   }
 
   Future<Collection?> getFavoritesCollection() async {

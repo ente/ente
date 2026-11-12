@@ -53,10 +53,10 @@ class PhotoSelector {
     List<Memory> memories,
     SelectionConfig config,
   ) async {
-    if (memories.length < config.targetSize) return memories;
-    if (memories.length == config.targetSize &&
-        config.distribution != SelectionDistribution.yearRoundRobin) {
-      return memories;
+    if (memories.length < config.targetSize ||
+        (memories.length == config.targetSize &&
+            config.distribution != SelectionDistribution.yearRoundRobin)) {
+      return _sortResult(List.of(memories), config.sort);
     }
 
     final List<Memory> result;
@@ -304,13 +304,16 @@ class PhotoSelector {
     final selectedCreationTimes = <int>[];
     int round = 0;
     int skipped = 0;
+    final nextIndexByYear = <int, int>{};
 
     outerLoop:
     while (selected.length + skipped < fileCount) {
       for (final year in years) {
         final yearFiles = yearToFiles[year]!;
-        if (yearFiles.isEmpty) continue;
-        final candidate = yearFiles.removeAt(0);
+        final nextIndex = nextIndexByYear[year] ?? 0;
+        if (nextIndex >= yearFiles.length) continue;
+        final candidate = yearFiles[nextIndex];
+        nextIndexByYear[year] = nextIndex + 1;
         final creationTime = candidate.file.creationTime;
 
         if (isTooCloseInTime(creationTime, selectedCreationTimes)) {
@@ -380,18 +383,21 @@ class PhotoSelector {
         return candidates.first;
 
       case SelectionPick.geographicFarthest:
-        double globalMaxMinDistance = 0;
+        final selectedLocations = alreadySelected
+            .where((selected) => selected.file.hasLocation)
+            .map((selected) => selected.file.location!)
+            .toList(growable: false);
+        if (selectedLocations.isEmpty) return candidates.first;
+        double globalMaxMinDistance = -1;
         int bestIdx = 0;
         for (var i = 0; i < candidates.length; i++) {
           final mem = candidates[i];
+          if (!mem.file.hasLocation) continue;
           double minDistance = double.infinity;
-          for (final selected in alreadySelected) {
-            if (selected.file.location == null || mem.file.location == null) {
-              continue;
-            }
+          for (final selectedLocation in selectedLocations) {
             final distance = calculateDistance(
               mem.file.location!,
-              selected.file.location!,
+              selectedLocation,
             );
             if (distance < minDistance) {
               minDistance = distance;
@@ -467,7 +473,6 @@ class PhotoSelector {
     try {
       final w = (kDebugMode ? EnteWatch('getPeopleResults') : null)?..start();
       final int targetSize = prefferedSize ?? 10;
-      if (memories.length <= targetSize) return memories;
 
       final Map<int, double> scores = {};
       for (final mem in memories) {
@@ -521,7 +526,9 @@ class PhotoSelector {
   }) async {
     final fileCount = memories.length;
     int targetSize = prefferedSize ?? 10;
-    if (fileCount <= targetSize) return memories;
+    if (fileCount <= targetSize) {
+      return _sortResult(List.of(memories), SelectionSort.chronological);
+    }
 
     if (!mlEnabled) {
       return _bestSelectionNoMl(
@@ -598,7 +605,9 @@ class PhotoSelector {
     } else {
       if (prefferedSize == null && (allYears.length * 2) > 10) {
         targetSize = allYears.length * 3;
-        if (fileCount < targetSize) return memories;
+        if (fileCount < targetSize) {
+          return _sortResult(List.of(memories), SelectionSort.chronological);
+        }
       }
 
       return select(
@@ -626,7 +635,9 @@ class PhotoSelector {
     final withCreationTime = memories
         .where((m) => m.file.creationTime != null)
         .toList();
-    if (withCreationTime.length <= targetSize) return withCreationTime;
+    if (withCreationTime.length <= targetSize) {
+      return _sortResult(withCreationTime, SelectionSort.chronological);
+    }
 
     final random = Random();
     final allYears = withCreationTime
@@ -652,7 +663,7 @@ class PhotoSelector {
     if (distributionOverride == null && (allYears.length * 2) > 10) {
       effectiveTargetSize = allYears.length * 3;
       if (withCreationTime.length < effectiveTargetSize) {
-        return withCreationTime;
+        return _sortResult(withCreationTime, SelectionSort.chronological);
       }
     }
 
@@ -672,13 +683,16 @@ class PhotoSelector {
     final selectedCreationTimes = <int>[];
     final fileCount = withCreationTime.length;
     int skipped = 0;
+    final nextIndexByYear = <int, int>{};
 
     outerLoop:
     while (selected.length + skipped < fileCount) {
       for (final year in years) {
         final yearFiles = yearToFiles[year]!;
-        if (yearFiles.isEmpty) continue;
-        final candidate = yearFiles.removeAt(0);
+        final nextIndex = nextIndexByYear[year] ?? 0;
+        if (nextIndex >= yearFiles.length) continue;
+        final candidate = yearFiles[nextIndex];
+        nextIndexByYear[year] = nextIndex + 1;
         final creationTime = candidate.file.creationTime;
         if (isTooCloseInTime(creationTime, selectedCreationTimes)) {
           skipped++;

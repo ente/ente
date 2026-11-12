@@ -8,7 +8,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart"
 import "package:photos/utils/share_util.dart";
 
 void main() {
-  testWidgets("opens a preview, collapses on gallery scroll, and expands", (
+  testWidgets("scrolls a collapsed row and expands it into a grid", (
     tester,
   ) async {
     final gallery = ScrollController();
@@ -33,33 +33,71 @@ void main() {
       find.byType(DraggableScrollableSheet),
     );
     final controller = sheet.controller!;
-    expect(controller.size, sheet.initialChildSize);
-    gallery.jumpTo(30);
-    await tester.pumpAndSettle();
-    expect(controller.size, sheet.initialChildSize);
+    final rail = find.byWidgetPredicate(
+      (widget) =>
+          widget is ListView && widget.scrollDirection == Axis.horizontal,
+    );
+    expect(controller.size, sheet.minChildSize);
+    expect(
+      tester.getTopLeft(find.text("Add to album")).dy,
+      tester.getTopLeft(find.text("Share")).dy,
+    );
     await tester.tapAt(const Offset(180, 660));
     expect(tapped, isEmpty);
     await tester.tap(find.text("Share"));
     expect(tapped, "Share");
-    await tester.dragFrom(const Offset(180, 200), const Offset(0, -100));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(gallery.offset, greaterThan(0));
-    expect(controller.size, sheet.minChildSize);
+    await tester.drag(rail, const Offset(-400, 0));
     await tester.pumpAndSettle();
-    await tester.fling(
-      find.byType(CustomScrollView),
-      const Offset(0, -100),
-      2000,
+    expect(controller.size, sheet.minChildSize);
+    await tester.tap(find.text("Download"));
+    expect(tapped, "Download");
+    final download = tester.getCenter(find.text("Download"));
+    controller.jumpTo(
+      sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.03,
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(controller.size, closeTo(sheet.initialChildSize, 0.001));
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -320));
+    tapped = "";
+    await tester.tapAt(download);
+    expect(tapped, isEmpty);
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.bySemanticsLabel("More")),
+    );
+    await gesture.moveBy(const Offset(0, -20));
+    await gesture.moveBy(const Offset(0, -40));
+    await tester.pump();
+    final fades = tester
+        .widgetList<Opacity>(
+          find.ancestor(
+            of: find.text("Download"),
+            matching: find.byType(Opacity),
+          ),
+        )
+        .map((widget) => widget.opacity);
+    expect(fades, isNotEmpty);
+    expect(fades, everyElement(lessThan(1)));
+    await gesture.moveBy(const Offset(0, -320));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(controller.size, sheet.maxChildSize);
+    expect(
+      tester.getTopLeft(find.text("Add to album")).dy,
+      greaterThan(tester.getTopLeft(find.text("Share")).dy),
+    );
+    gallery.jumpTo(30);
     await tester.pumpAndSettle();
     expect(controller.size, sheet.maxChildSize);
     await tester.tap(find.text("Guest view"));
     expect(tapped, "Guest view");
+    await tester.dragFrom(const Offset(180, 30), const Offset(0, -100));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(gallery.offset, greaterThan(30));
+    expect(controller.size, sheet.minChildSize);
+    await tester.pumpAndSettle();
+    expect(rail, findsOneWidget);
+    await tester.tap(find.bySemanticsLabel("More"));
+    await tester.pumpAndSettle();
+    expect(controller.size, sheet.maxChildSize);
     swipeActive.value = true;
     gallery.jumpTo(gallery.offset + 50);
     await tester.pumpAndSettle();
@@ -124,10 +162,12 @@ void main() {
       if (sheet.controller!.isAttached) {
         sheet.controller!.jumpTo(sheet.maxChildSize);
       }
-      final scrollable = find.descendant(
-        of: find.byType(CustomScrollView),
-        matching: find.byType(Scrollable),
-      );
+      final scrollable = find
+          .descendant(
+            of: find.byType(CustomScrollView),
+            matching: find.byType(Scrollable),
+          )
+          .first;
       tester.state<ScrollableState>(scrollable).position.jumpTo(0);
       await tester.pumpAndSettle();
       final material = find.descendant(

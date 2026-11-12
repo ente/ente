@@ -4,7 +4,7 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { useAlbumNavigationData } from "../src/components/gallery/use-album-navigation-data";
+import { useAlbumNavigationData } from "../src/components/gallery/sections/albums/use-album-navigation-data";
 
 vi.mock("@/utils/album-filters", () => import("../src/utils/album-filters"));
 
@@ -32,6 +32,7 @@ const navigationData = (
     const Gallery = () => {
         result = useAlbumNavigationData({
             mode: "albums",
+            collectionsSortBy: "updation-time-desc",
             collectionSummaries: new Map(summaries.map((cs) => [cs.id, cs])),
             uncategorizedCollectionSummaryID: 99,
             albumFilter: "ente",
@@ -54,7 +55,6 @@ describe("album navigation data", () => {
             album(3),
         ];
         const data = navigationData(summaries);
-        expect(data.collectionsSortBy).toBe("updation-time-desc");
         expect(ids(data.sidebarCollectionSummaries)).toEqual([2, 3, 1]);
         expect(ids(data.overviewAlbums)).toEqual([2, 3, 1]);
         expect(ids(summaries)).toEqual([1, 2, 3]);

@@ -29,7 +29,7 @@ pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestAccount {
             .with_user_agent(USER_AGENT),
     )
     .unwrap();
-    client.send_otp(&email, "signup").await.unwrap();
+    client.send_otp(&email, "signup", false).await.unwrap();
     let verification = client
         .verify_email(&email, HARDCODED_OTT, Some("testAccount"))
         .await

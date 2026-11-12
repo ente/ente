@@ -1,1 +1,0 @@
-- Fixed captions opening file details in Guest view.

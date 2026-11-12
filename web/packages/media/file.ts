@@ -27,6 +27,7 @@ export interface EnteFile {
     thumbnail: FileObjectAttributes;
     info?: FileInfo;
     updationTime: number;
+    collectionAddedAt?: number;
     metadata: FileMetadata;
     // Private to the owner; never visible to sharees.
     magicMetadata?: MagicMetadata<FilePrivateMagicMetadataData>;
@@ -73,6 +74,7 @@ export const RemoteEnteFile = z.looseObject({
     thumbnail: RemoteFileObjectAttributes,
     info: RemoteFileInfo.nullish().transform(nullToUndefined),
     updationTime: z.number(),
+    collectionAddedAt: z.number().nullish().transform(nullToUndefined),
     isDeleted: z.boolean().nullish().transform(nullToUndefined),
     metadata: RemoteFileMetadata,
     magicMetadata: RemoteMagicMetadata.nullish().transform(nullToUndefined),

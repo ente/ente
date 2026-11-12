@@ -31,6 +31,7 @@ const UPSERT_FACE_CLUSTER: &str = r#"
     VALUES (?, ?)
     ON CONFLICT (face_id) DO UPDATE SET
         cluster_id = excluded.cluster_id
+    WHERE face_clusters.cluster_id IS NOT excluded.cluster_id
 "#;
 const UPSERT_CLUSTER_SUMMARY: &str = r#"
     INSERT INTO cluster_summary (cluster_id, avg, count)
@@ -99,6 +100,28 @@ impl MlDb {
         Ok(group_into(rows))
     }
 
+    pub fn get_cluster_to_indexed_face_ids(
+        &self,
+        cluster_ids: &HashSet<String>,
+    ) -> Result<HashMap<String, Vec<String>>> {
+        if cluster_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+        let cluster_id_list: Vec<&String> = cluster_ids.iter().collect();
+        let rows: Vec<(String, String)> = self.read_chunked_in(
+            r#"
+                SELECT fc.cluster_id, fc.face_id
+                FROM face_clusters fc
+                INNER JOIN faces fe
+                    ON fc.face_id = fe.face_id
+                WHERE fc.cluster_id IN ({})
+                "#,
+            &cluster_id_list,
+            pair,
+        )?;
+        Ok(group_into(rows))
+    }
+
     pub fn get_cluster_id_for_face_id(&self, face_id: &str) -> Result<Option<String>> {
         self.read_optional(
             "SELECT cluster_id FROM face_clusters WHERE face_id = ?",
@@ -109,6 +132,16 @@ impl MlDb {
 
     pub fn get_all_cluster_id_to_face_ids(&self) -> Result<HashMap<String, Vec<String>>> {
         self.read_grouped("SELECT cluster_id, face_id FROM face_clusters", ())
+    }
+
+    pub(crate) fn for_each_cluster_face_id(
+        &self,
+        mut visit: impl FnMut(String, String),
+    ) -> Result<()> {
+        self.read_each("SELECT cluster_id, face_id FROM face_clusters", (), |row| {
+            visit(row.get(0)?, row.get(1)?);
+            Ok(())
+        })
     }
 
     pub fn get_face_ids_for_cluster(&self, cluster_id: &str) -> Result<Vec<String>> {
@@ -135,24 +168,6 @@ impl MlDb {
                 "#,
             (cluster_id, limit),
         )
-    }
-
-    pub fn get_blur_values_for_cluster(&self, cluster_id: &str) -> Result<Vec<f64>> {
-        let blur_values: Vec<f64> = self.read_column(
-            r#"
-            SELECT faces.blur
-            FROM faces
-            JOIN face_clusters
-                ON faces.face_id = face_clusters.face_id
-            WHERE face_clusters.cluster_id = ?
-            "#,
-            [cluster_id],
-        )?;
-        let mut seen = HashSet::new();
-        Ok(blur_values
-            .into_iter()
-            .filter(|blur| seen.insert(blur.to_bits()))
-            .collect())
     }
 
     pub fn get_face_ids_to_cluster_ids(
@@ -263,6 +278,24 @@ impl MlDb {
         )
     }
 
+    pub fn update_face_clusters_and_summaries(
+        &self,
+        face_id_to_cluster_id: &HashMap<String, String>,
+        summary: &HashMap<String, ClusterSummary>,
+    ) -> Result<()> {
+        self.write_transaction(|transaction| {
+            let mut assign = transaction.prepare_cached(UPSERT_FACE_CLUSTER)?;
+            for assignment in face_id_to_cluster_id {
+                assign.execute(assignment)?;
+            }
+            let mut summarize = transaction.prepare_cached(UPSERT_CLUSTER_SUMMARY)?;
+            for (cluster_id, summary) in summary {
+                summarize.execute((cluster_id, &summary.avg, summary.count))?;
+            }
+            Ok(())
+        })
+    }
+
     pub fn delete_cluster_summary_row(&self, cluster_id: &str) -> Result<()> {
         self.execute(
             "DELETE FROM cluster_summary WHERE cluster_id = ?",
@@ -294,11 +327,11 @@ impl MlDb {
         &self,
         cluster_ids: &[String],
     ) -> Result<HashMap<String, ClusterSummary>> {
-        let sql = format!(
+        self.read_chunked_in(
             "SELECT * FROM cluster_summary WHERE cluster_id IN ({})",
-            bind_placeholders(cluster_ids.len())
-        );
-        self.read_all(&sql, params_from_iter(cluster_ids), read_cluster_summary)
+            cluster_ids,
+            read_cluster_summary,
+        )
     }
 
     pub fn count_cluster_summaries(&self) -> Result<i64> {
@@ -532,13 +565,6 @@ pub(in crate::ml_db) mod tests {
                 "c1 files": vec![1, 2] => |db| db.get_file_ids_of_cluster_id("c1").map(sorted),
             ],
         );
-        check(
-            &db,
-            &cases![
-                "c1 blur deduplicated": vec![300.0] => |db| db.get_blur_values_for_cluster("c1"),
-                "c9 blur": vec![20.0] => |db| db.get_blur_values_for_cluster("c9"),
-            ],
-        );
     }
 
     #[test]
@@ -721,6 +747,37 @@ pub(in crate::ml_db) mod tests {
 
         assert!(db.upsert_cluster_summary_rows(&rows).is_err());
         assert_eq!(db.count_cluster_summaries().unwrap(), 0);
+    }
+
+    #[test]
+    fn face_clusters_and_summaries_are_written_in_one_transaction() {
+        let (directory, db) = open();
+        db.update_face_clusters_and_summaries(
+            &map([("1_0", "c1"), ("2_0", "c1")]),
+            &summaries([("c1", 2)]),
+        )
+        .unwrap();
+        deny_cluster_summary_inserts_after(&directory.path().join("ente.ml.db"), 1);
+
+        assert!(
+            db.update_face_clusters_and_summaries(
+                &map([("2_0", "c2"), ("3_0", "c2")]),
+                &summaries([("c2", 2)]),
+            )
+            .is_err()
+        );
+        assert_eq!(
+            db.get_face_ids_to_cluster_ids(&strings(["1_0", "2_0", "3_0"]))
+                .unwrap(),
+            HashMap::from([
+                ("1_0".to_string(), Some("c1".to_string())),
+                ("2_0".to_string(), Some("c1".to_string())),
+            ])
+        );
+        assert_eq!(
+            db.get_all_cluster_summary(None).unwrap(),
+            summaries([("c1", 2)])
+        );
     }
 
     #[test]

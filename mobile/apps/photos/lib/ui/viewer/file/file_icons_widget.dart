@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
 import 'package:photos/models/file/trash_file.dart';
-import 'package:photos/ui/sharing/user_avator_widget.dart';
+import 'package:photos/ui/sharing/user_avatar_widget.dart';
 import "package:photos/utils/avatar_util.dart";
 
 class ThumbnailPlaceHolder extends StatelessWidget {

@@ -1527,7 +1527,6 @@
   "mlConsent": "Schakel machine learning in",
   "mlConsentConfirmation": "Ik begrijp het, en wil machine learning inschakelen",
   "mlConsentDescription": "Als u machine learning inschakelt, zal Ente informatie zoals gezichtsgeometrie uit bestanden extraheren, inclusief degenen die met u gedeeld worden.\n\nDit gebeurt op uw apparaat, en alle gegenereerde biometrische informatie zal end-to-end versleuteld worden.",
-  "mlConsentPrivacy": "Klik hier voor meer details over deze functie in ons privacybeleid.",
   "mlProgressBannerDescription": "Je foto's worden op je apparaat verwerkt om gezichten, objecten en meer te detecteren.",
   "mlProgressBannerTitle": "Hou vol!",
   "moderateStrength": "Matig",

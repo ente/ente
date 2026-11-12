@@ -1,7 +1,8 @@
 use super::engine::{Catalog, Engine};
 use super::*;
 use ente_photos::files;
-use std::{collections::BTreeMap, path::PathBuf};
+use ente_photos_export::Report;
+use std::{collections::BTreeMap, path::PathBuf, sync::Mutex};
 
 const USER: i64 = 1580559962386471;
 const FAMILY: i64 = 1580559962386473;
@@ -361,6 +362,34 @@ fn adoption_preflight_refuses_corrupt_media_scope_and_metadata_blockers_without_
         let (mut engine, _) = new_engine(&server, producer);
         let root = engine.root();
         let before = snapshot(&root);
+        let name = engine.catalog.albums.remove(&FAMILY).unwrap();
+        let mut options = engine.options(true, &[]);
+        options.exclude_shared = true;
+        options.exclude_hidden = true;
+        let unknown = Mutex::new(Vec::new());
+        let error = engine
+            .prepare_with_report(options, &|report| {
+                if let Report::UnknownAlbum {
+                    id,
+                    shared_unknown,
+                    hidden_unknown,
+                } = report
+                {
+                    unknown
+                        .lock()
+                        .unwrap()
+                        .push((id, shared_unknown, hidden_unknown));
+                }
+            })
+            .err()
+            .unwrap();
+        assert!(error.to_string().contains("exactly"));
+        assert_eq!(
+            unknown.into_inner().unwrap(),
+            [(FAMILY, producer == "desktop", true)]
+        );
+        assert_eq!(snapshot(&root), before);
+        engine.catalog.albums.insert(FAMILY, name);
         assert!(
             engine
                 .run(true, &["Family"])
@@ -817,6 +846,11 @@ fn adoption_preserves_unknown_meta_files_and_records_empty_go_albums() {
     let server = mockito::Server::new();
     let (mut engine, _) = new_engine(&server, "go");
     let root = engine.root();
+    fs::rename(
+        root.join("Family/.meta/Photo.jpg.json"),
+        root.join("Family/.meta/._Photo.jpg.json"),
+    )
+    .unwrap();
     fs::create_dir(root.join("Personal")).unwrap();
     fs::write(root.join("Personal/.meta"), b"keep unrelated file").unwrap();
     fs::create_dir_all(root.join("Empty/.meta")).unwrap();
@@ -829,8 +863,11 @@ fn adoption_preserves_unknown_meta_files_and_records_empty_go_albums() {
     )
     .unwrap();
     fs::write(root.join("Empty/.meta/user.txt"), b"keep").unwrap();
+    let finder_metadata = root.join("Empty/.meta/._album_meta.json");
+    fs::write(&finder_metadata, b"finder").unwrap();
     engine.catalog.albums.insert(77, "Empty".into());
     assert!(engine.run(true, &[]).unwrap().complete);
+    assert_eq!(fs::read(finder_metadata).unwrap(), b"finder");
     assert_eq!(
         read_json(&root.join("Empty/metadata.json"))["ente"]["albumID"],
         "77"
@@ -925,6 +962,8 @@ fn adoption_recovers_native_paths_and_live_ownership_with_an_unchanged_manifest(
     fs::remove_file(root.join("Renamed/metadata/Photo.mov.json")).unwrap();
     let path = root.join("Renamed/metadata/Live.mov.json");
     fs::write(path, b"unfinished legacy common JSON").unwrap();
+    let finder_metadata = root.join("Renamed/metadata/._Photo.jpg.json");
+    fs::write(&finder_metadata, b"finder").unwrap();
     engine.catalog.files.remove(&(FAMILY, 90));
     engine.database = "recovered.db".into();
     assert!(
@@ -940,6 +979,7 @@ fn adoption_recovers_native_paths_and_live_ownership_with_an_unchanged_manifest(
         .collect();
     assert!(engine.run(true, &[]).unwrap().complete);
     assert_eq!(fs::read(root.join("Renamed/Photo.jpg")).unwrap(), original);
+    assert_eq!(fs::read(finder_metadata).unwrap(), b"finder");
     assert_eq!(
         read_json(&root.join("Renamed/metadata/Photo.mov.json"))["ente"]["fileID"],
         PAIR.to_string()

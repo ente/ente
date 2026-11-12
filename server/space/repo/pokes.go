@@ -29,7 +29,7 @@ func (r *PokesRepository) Create(ctx context.Context, senderSpaceID, recipientSp
         SELECT friend_space_id FROM space_friend_shares
         WHERE space_id = $2 AND friend_space_id = $1
           AND (SELECT COUNT(*) FROM locked_spaces) = 2
-        FOR SHARE
+        FOR UPDATE
     `, senderSpaceID, recipientSpaceID).Scan(&friendSpaceID); err != nil {
 		return false, stacktrace.Propagate(err, "")
 	}
@@ -48,6 +48,12 @@ func (r *PokesRepository) Create(ctx context.Context, senderSpaceID, recipientSp
 	}
 	if count == 0 {
 		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx, `
+        DELETE FROM space_notifications
+        WHERE actor_space_id = $1 AND recipient_space_id = $2 AND kind = 'poke'
+    `, senderSpaceID, recipientSpaceID); err != nil {
+		return false, stacktrace.Propagate(err, "")
 	}
 	if _, err := tx.ExecContext(ctx, `
         INSERT INTO space_notifications (notification_id, recipient_space_id, actor_space_id, kind, poke_id, created_at)

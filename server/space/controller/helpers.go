@@ -86,8 +86,8 @@ func toSpaceKeyResponse(space *spacerepo.SpaceRecord) *models.SpaceKeyResponse {
 	}
 }
 
-func toPostObjectPayload(asset spacerepo.SpacePostAssetRecord) models.PostObjectPayload {
-	resp := models.PostObjectPayload{
+func toPostAssetPayload(asset spacerepo.SpacePostAssetRecord) models.PostAssetPayload {
+	resp := models.PostAssetPayload{
 		ObjectKey: asset.ObjectKey,
 		Position:  asset.Position,
 	}
@@ -116,10 +116,10 @@ func toPostResponse(post *spacerepo.SpacePostRecord, assets []spacerepo.SpacePos
 	}
 	if len(assets) > 0 {
 		resp.Objects = make([]models.PostObjectPayload, 0, len(assets))
-		videos := make(map[int]*models.PostObjectPayload)
+		videos := make(map[int]*models.PostAssetPayload)
 		for _, asset := range assets {
 			if asset.Role == "video" {
-				video := toPostObjectPayload(asset)
+				video := toPostAssetPayload(asset)
 				videos[asset.Position] = &video
 			}
 		}
@@ -127,8 +127,10 @@ func toPostResponse(post *spacerepo.SpacePostRecord, assets []spacerepo.SpacePos
 			if asset.Role == "video" {
 				continue
 			}
-			object := toPostObjectPayload(asset)
-			object.Video = videos[asset.Position]
+			object := models.PostObjectPayload{
+				PostAssetPayload: toPostAssetPayload(asset),
+				Video:            videos[asset.Position],
+			}
 			resp.Objects = append(resp.Objects, object)
 		}
 	}

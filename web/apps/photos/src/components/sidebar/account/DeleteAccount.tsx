@@ -1,3 +1,4 @@
+import { ensureAuthenticatedSession } from "@/services/authenticated-session";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import {
@@ -8,7 +9,6 @@ import {
     DialogTitle,
     FormControlLabel,
     IconButton,
-    Link,
     Stack,
     TextField,
     Typography,
@@ -19,7 +19,6 @@ import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconB
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
-import { isHTTPErrorWithStatus } from "ente-base/http";
 import log from "ente-base/log";
 import {
     uploadSheetMediaQuery,
@@ -28,17 +27,14 @@ import {
 } from "ente-gallery/components/upload-progress/bottom-sheet";
 import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
 import {
-    decryptDeleteAccountChallenge,
     deleteAccount,
     getAccountDeleteChallenge,
     getAccountDeletionSummary,
     type AccountDeletionSummary,
-} from "ente-new/photos/services/user";
-import { initiateEmail } from "ente-new/photos/utils/web";
+} from "ente-photos-wasm";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import React, { useState } from "react";
-import { Trans } from "react-i18next";
 import { DropdownInput, type DropdownOption } from "../DropdownInput";
 import { EnteAuthIcon, EnteLockerIcon, EntePhotosIcon } from "../EnteAppIcon";
 
@@ -107,7 +103,7 @@ export const DeleteAccount: React.FC<DeleteAccountProps> = ({
 const DeleteAccountDialogContents: React.FC<
     Omit<DeleteAccountProps, "open">
 > = ({ onClose, onAuthenticateUser }) => {
-    const { logout, showMiniDialog, onGenericError } = useBaseContext();
+    const { logout, onGenericError } = useBaseContext();
 
     const [step, setStep] = useState<"reason" | "confirmation">("reason");
     const [acceptDataDeletion, setAcceptDataDeletion] = useState(false);
@@ -120,17 +116,16 @@ const DeleteAccountDialogContents: React.FC<
     const loadSummary = async () => {
         setSummaryPhase("loading");
         try {
-            setSummary(await getAccountDeletionSummary());
+            setSummary(
+                await getAccountDeletionSummary(
+                    await ensureAuthenticatedSession(),
+                ),
+            );
             setSummaryPhase("ready");
         } catch (e) {
             setSummary(undefined);
-            if (isHTTPErrorWithStatus(e, 404)) {
-                log.info("Account deletion summary is not supported by museum");
-                setSummaryPhase("ready");
-            } else {
-                log.warn("Failed to load account deletion summary", e);
-                setSummaryPhase("failed");
-            }
+            log.warn("Failed to load account deletion summary", e);
+            setSummaryPhase("failed");
         }
     };
 
@@ -166,52 +161,27 @@ const DeleteAccountDialogContents: React.FC<
 
             try {
                 setLoading(true);
-                const { allowDelete, encryptedChallenge } =
-                    await getAccountDeleteChallenge();
+                const encryptedChallenge = await getAccountDeleteChallenge(
+                    await ensureAuthenticatedSession(),
+                );
 
-                if (allowDelete && encryptedChallenge) {
-                    if (!(await onAuthenticateUser())) {
-                        setLoading(false);
-                        return;
-                    }
-                    const decryptedChallenge =
-                        await decryptDeleteAccountChallenge(encryptedChallenge);
-                    await deleteAccount(
-                        decryptedChallenge,
-                        reason,
-                        feedback.trim(),
-                    );
-                    logout();
-                } else {
+                if (!(await onAuthenticateUser())) {
                     setLoading(false);
-                    askToMailForDeletion();
+                    return;
                 }
+                await deleteAccount(
+                    await ensureAuthenticatedSession(),
+                    encryptedChallenge,
+                    reason,
+                    feedback.trim(),
+                );
+                logout();
             } catch (e) {
                 onGenericError(e);
                 setLoading(false);
             }
         },
     });
-
-    const askToMailForDeletion = () => {
-        const emailID = "account-deletion@ente.com";
-
-        showMiniDialog({
-            title: t("delete_account"),
-            message: (
-                <Trans
-                    i18nKey="delete_account_manually_message"
-                    components={{ a: <Link href={`mailto:${emailID}`} /> }}
-                    values={{ emailID }}
-                />
-            ),
-            continue: {
-                text: t("delete"),
-                color: "critical",
-                action: () => initiateEmail(emailID),
-            },
-        });
-    };
 
     const handleBack = () => {
         setAcceptDataDeletion(false);

@@ -1,3 +1,4 @@
+import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
 import { sidebarTheme } from "@/components/sidebar/theme";
 import {
     groupSearchOptions,
@@ -66,15 +67,10 @@ import AsyncSelect from "react-select/async";
 export interface SearchBarProps {
     isInSearchMode: boolean;
     isSettingsOpen: boolean;
-    onSelectSearchOption: (
-        o: SearchOption | undefined,
-        options?: { shouldExitSearchMode?: boolean },
-    ) => void;
-    onSelectPeople: (onNavigate: () => void) => void;
-    onSelectPerson: (personID: string) => void;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = (props) => {
+    const { selectSearchOption } = usePhotosNavigation();
     const isSmallWidth = useIsSmallWidth();
     const [open, setOpen] = useState(false);
     const [searchResetKey, setSearchResetKey] = useState(0);
@@ -95,7 +91,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
     const showSearch = () => setOpen(true);
     const closeSearch = () => setOpen(false);
     const clearSearch = () => {
-        props.onSelectSearchOption(undefined, { shouldExitSearchMode: true });
+        selectSearchOption(undefined, { shouldExitSearchMode: true });
         setOpen(false);
     };
 
@@ -169,7 +165,7 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
                                 width: "621px",
                                 maxWidth: "calc(100% - 24px)",
                                 m: "12px",
-                                maxHeight: "calc(100dvh - 24px)",
+                                maxHeight: "calc(100% - 24px)",
                                 p: "20px",
                                 borderRadius: "20px",
                                 bgcolor: "background.default",
@@ -196,13 +192,12 @@ export const SearchBar: React.FC<SearchBarProps> = (props) => {
 
 const SearchInput: React.FC<
     SearchBarProps & { open: boolean; onClose: () => void }
-> = ({
-    onSelectSearchOption,
-    onSelectPeople,
-    onSelectPerson,
-    open,
-    onClose,
-}) => {
+> = ({ open, onClose }) => {
+    const {
+        selectSearchOption: onSelectSearchOption,
+        showPeople: onSelectPeople,
+        selectPerson: onSelectPerson,
+    } = usePhotosNavigation();
     const selectRef = useRef<SelectInstance<SearchOption> | null>(null);
     // undefined makes react-select switch from controlled to uncontrolled.
     const [value, setValue] = useState<SearchOption | null>(null);
@@ -579,8 +574,10 @@ const createSelectStyles = (
     }),
     menuList: (style) => ({
         ...style,
-        minHeight: "clamp(120px, calc(100dvh - 280px), 320px)",
-        maxHeight: "clamp(120px, calc(100dvh - 280px), 320px)",
+        minHeight:
+            "clamp(120px, calc(100dvh - 280px - env(titlebar-area-height, 0px)), 320px)",
+        maxHeight:
+            "clamp(120px, calc(100dvh - 280px - env(titlebar-area-height, 0px)), 320px)",
         display: "flex",
         flexDirection: "column",
         gap: "8px",
@@ -699,9 +696,10 @@ const Input: React.FC<InputProps<SearchOption, false>> = (props) => (
     />
 );
 
-const EmptyState: React.FC<
-    Pick<SearchBarProps, "onSelectPerson"> & { onSelectPeople: () => void }
-> = ({ onSelectPeople, onSelectPerson }) => {
+const EmptyState: React.FC<{
+    onSelectPerson: (personID: string) => void;
+    onSelectPeople: () => void;
+}> = ({ onSelectPeople, onSelectPerson }) => {
     const mlStatus = useMLStatusSnapshot();
     const people = usePeopleStateSnapshot()?.visiblePeople;
     const vpStatus = useHLSGenerationStatusSnapshot();

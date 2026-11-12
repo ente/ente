@@ -1189,7 +1189,14 @@ mod export_process;
 
 mod export_sources;
 
+mod feedback;
+
 mod files;
+
+mod duplicates;
+
+#[cfg(feature = "museum")]
+mod mail;
 
 #[cfg(feature = "museum")]
 mod museum;

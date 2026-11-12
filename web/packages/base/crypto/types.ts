@@ -49,11 +49,6 @@ export interface InitChunkDecryptionResult {
     decryptionChunkSize: number;
 }
 
-export interface KeyPair {
-    publicKey: string;
-    privateKey: string;
-}
-
 export interface DerivedKey {
     key: string;
     salt: string;

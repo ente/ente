@@ -236,7 +236,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
 
   Future<void> _onTapOnlyNewPhotos() async {
     try {
-      final state = await permissionService.requestPhotoMangerPermissions();
+      final state = await permissionService.requestPhotoManagerPermissions();
       _logger.info("Permission state: $state");
       if (state == PermissionState.authorized ||
           state == PermissionState.limited) {
@@ -257,7 +257,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
 
   Future<void> _onTapSelectFolders() async {
     try {
-      final state = await permissionService.requestPhotoMangerPermissions();
+      final state = await permissionService.requestPhotoManagerPermissions();
       _logger.info("Permission state: $state");
       if (state == PermissionState.authorized ||
           state == PermissionState.limited) {
@@ -279,7 +279,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
           await permissionService.getPermissionState() !=
               PermissionState.notDetermined;
       await localSettings.setLocalGalleryOnboardingPending(true);
-      final state = await permissionService.requestPhotoMangerPermissions();
+      final state = await permissionService.requestPhotoManagerPermissions();
       _logger.info("Offline permission state: $state");
       if (state.hasAccess) {
         if (WidgetsBinding.instance.lifecycleState ==
