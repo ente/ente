@@ -97,40 +97,17 @@ impl Places {
     }
 
     pub(super) fn cities(&self, members: &[Located]) -> Vec<CityPhotos<'_>> {
-        let counts = self.place_counts(members);
-        let absorbs = |town: usize, place: usize| {
-            let (town_photos, place_photos) = (counts[&town], counts[&place]);
-            let (town, place) = (&self.places[town], &self.places[place]);
-            let distance = distance_km(town.location, place.location);
+        let places = self.fold(self.place_counts(members), |town, place, _, _| {
             town.city == place.city
-                || (town.rank > place.rank
-                    && distance <= NEARBY_TOWN_KM
-                    && town_photos * TOWN_MAX_PHOTO_RATIO >= place_photos)
-                || (town.rank == place.rank && distance <= DUPLICATE_PLACE_KM)
-        };
-        let mut smallest_first: Vec<usize> = counts.keys().copied().collect();
-        smallest_first
-            .sort_by_key(|&place| (self.places[place].rank, counts[&place], Reverse(place)));
-        let mut folded_into: HashMap<usize, usize> = HashMap::new();
-        for (position, &place) in smallest_first.iter().enumerate() {
-            if let Some(town) = smallest_first[position + 1..]
-                .iter()
-                .copied()
-                .filter(|&town| absorbs(town, place))
-                .max_by_key(|&town| (self.places[town].rank, counts[&town]))
-            {
-                folded_into.insert(place, town);
-            }
-        }
-        let mut photos: HashMap<usize, usize> = HashMap::new();
-        for (&place, &count) in &counts {
-            let mut town = place;
-            while let Some(&bigger) = folded_into.get(&town) {
-                town = bigger;
-            }
-            *photos.entry(town).or_default() += count;
-        }
-        let mut cities: Vec<CityPhotos> = photos
+                || (town.rank == place.rank
+                    && distance_km(town.location, place.location) <= DUPLICATE_PLACE_KM)
+        });
+        let towns = self.fold(places, |town, place, town_photos, place_photos| {
+            town.rank > place.rank
+                && distance_km(town.location, place.location) <= NEARBY_TOWN_KM
+                && town_photos * TOWN_MAX_PHOTO_RATIO >= place_photos
+        });
+        let mut cities: Vec<CityPhotos> = towns
             .into_iter()
             .map(|(town, photos)| CityPhotos {
                 name: &self.places[town].city,
@@ -140,6 +117,36 @@ impl Places {
             .collect();
         cities.sort_by_key(|city| (Reverse(city.photos), city.name));
         cities
+    }
+
+    fn fold(
+        &self,
+        own_photos: HashMap<usize, usize>,
+        absorbs: impl Fn(&Place, &Place, usize, usize) -> bool,
+    ) -> HashMap<usize, usize> {
+        let mut smallest_first: Vec<usize> = own_photos.keys().copied().collect();
+        smallest_first
+            .sort_by_key(|&place| (self.places[place].rank, own_photos[&place], Reverse(place)));
+        let mut photos = own_photos.clone();
+        for (position, &place) in smallest_first.iter().enumerate() {
+            if let Some(town) = smallest_first[position + 1..]
+                .iter()
+                .copied()
+                .filter(|&town| {
+                    absorbs(
+                        &self.places[town],
+                        &self.places[place],
+                        own_photos[&town],
+                        photos[&place],
+                    )
+                })
+                .max_by_key(|&town| (self.places[town].rank, own_photos[&town]))
+                && let Some(folded) = photos.remove(&place)
+            {
+                *photos.entry(town).or_default() += folded;
+            }
+        }
+        photos
     }
 
     fn place_counts(&self, members: &[Located]) -> HashMap<usize, usize> {
