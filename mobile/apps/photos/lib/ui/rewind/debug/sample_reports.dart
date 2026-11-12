@@ -8,7 +8,9 @@ final rewindSampleReports = {
   "Top 10%, four places": _topTenYear,
   "Three places, no distance": _threePlacesYear,
   "Sparse year": _sparseYear,
-  "One file": const rust.RewindReport(totals: rust.Totals(files: 1)),
+  "One file": rust.RewindReport(
+    totals: rust.Totals(files: 1, fileIds: _ids(100000, 1)),
+  ),
   "No chapters": const rust.RewindReport(),
 };
 
@@ -21,7 +23,7 @@ rust.RewindCity _city(String name, int photoCount, int firstFileId) =>
       name: name,
       country: "",
       photoCount: photoCount,
-      fileIds: _ids(firstFileId, 3),
+      fileIds: _ids(firstFileId, 9),
     );
 
 List<String> _faceIds(int firstFileId, int count) => [
@@ -30,7 +32,7 @@ List<String> _faceIds(int firstFileId, int count) => [
 ];
 
 final _busyYear = rust.RewindReport(
-  totals: const rust.Totals(files: 15059, topPerMille: 10),
+  totals: rust.Totals(files: 15059, topPerMille: 10, fileIds: _ids(100000, 24)),
   colour: rust.ColourOfTheYear(
     colour: rust.RewindColour.cherryBomb,
     percent: 19,
@@ -42,37 +44,37 @@ final _busyYear = rust.RewindReport(
         name: "Goa",
         country: "India",
         photoCount: 212,
-        fileIds: _ids(100200, 3),
+        fileIds: _ids(100200, 9),
       ),
       rust.RewindCity(
         name: "Oslo",
         country: "Norway",
         photoCount: 118,
-        fileIds: _ids(100210, 3),
+        fileIds: _ids(100210, 9),
       ),
       rust.RewindCity(
         name: "Mumbai",
         country: "India",
         photoCount: 96,
-        fileIds: _ids(100220, 3),
+        fileIds: _ids(100220, 9),
       ),
       rust.RewindCity(
         name: "Tromsø",
         country: "Norway",
         photoCount: 64,
-        fileIds: _ids(100230, 3),
+        fileIds: _ids(100230, 9),
       ),
       rust.RewindCity(
         name: "Kochi",
         country: "India",
         photoCount: 54,
-        fileIds: _ids(100240, 3),
+        fileIds: _ids(100240, 9),
       ),
       rust.RewindCity(
         name: "Delhi",
         country: "India",
         photoCount: 47,
-        fileIds: _ids(100250, 3),
+        fileIds: _ids(100250, 9),
       ),
     ],
     distanceKm: 9120,
@@ -184,7 +186,12 @@ final _busyYear = rust.RewindReport(
     ],
   ),
   favourites: rust.Favourites(photoCount: 128, fileIds: _ids(100700, 12)),
-  weeklyHabit: const rust.WeeklyHabit(weekday: 7, hour: 18, percent: 23),
+  weeklyHabit: rust.WeeklyHabit(
+    weekday: 7,
+    hour: 18,
+    percent: 23,
+    fileIds: _ids(100800, 36),
+  ),
   crowdFavourite: const rust.CrowdFavourite(
     photos: [
       rust.LikedPhoto(fileId: 100800, likeCount: 48),
@@ -197,7 +204,7 @@ final _busyYear = rust.RewindReport(
 );
 
 final _sparseYear = rust.RewindReport(
-  totals: const rust.Totals(files: 180),
+  totals: rust.Totals(files: 180, fileIds: _ids(200000, 24)),
   busiestDay: rust.BusiestDay(
     month: 3,
     day: 2,
@@ -205,13 +212,18 @@ final _sparseYear = rust.RewindReport(
     fileIds: _ids(200100, 6),
   ),
   favourites: rust.Favourites(photoCount: 4, fileIds: _ids(200200, 4)),
-  weeklyHabit: const rust.WeeklyHabit(weekday: 6, hour: 11, percent: 31),
+  weeklyHabit: rust.WeeklyHabit(
+    weekday: 6,
+    hour: 11,
+    percent: 31,
+    fileIds: _ids(200700, 7),
+  ),
   badge: const rust.Badge(id: rust.RewindBadge.limitedEdition),
   scrapbook: rust.Scrapbook(fileIds: _ids(200300, 6)),
 );
 
 final _topTenYear = rust.RewindReport(
-  totals: const rust.Totals(files: 4916, topPerMille: 100),
+  totals: rust.Totals(files: 4916, topPerMille: 100, fileIds: _ids(300000, 24)),
   colour: rust.ColourOfTheYear(
     colour: rust.RewindColour.lemonDrop,
     percent: 17,
@@ -232,7 +244,7 @@ final _topTenYear = rust.RewindReport(
 );
 
 final _threePlacesYear = rust.RewindReport(
-  totals: const rust.Totals(files: 2765),
+  totals: rust.Totals(files: 2765, fileIds: _ids(400000, 24)),
   colour: rust.ColourOfTheYear(
     colour: rust.RewindColour.marshmallow,
     percent: 41,

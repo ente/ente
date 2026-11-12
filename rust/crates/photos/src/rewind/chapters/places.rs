@@ -10,7 +10,7 @@ use crate::rewind::report::{Places, RewindCity};
 const PLACES_MINIMUM_LOCATED: usize = 20;
 const PLACES_MINIMUM_CITIES: usize = 3;
 const PLACES_CITIES: usize = 6;
-const PLACES_CITY_CANDIDATES: usize = 3;
+const PLACES_CITY_CANDIDATES: usize = 9;
 const PLACES_MINIMUM_VISIT_PHOTOS: usize = 2;
 
 struct City<'l, 'r> {
@@ -219,7 +219,8 @@ pub(in crate::rewind) mod tests {
         assert_eq!(names, ["Amsterdam", "Rotterdam", "Utrecht", "Groningen"]);
         assert_eq!(places.cities[3].photo_count, 3);
         assert_eq!(places.cities[0].photo_count, 12);
-        assert_eq!(places.cities[0].file_ids, [1, 12, 2]);
+        assert_eq!(places.cities[0].file_ids[..3], [1, 12, 2]);
+        assert_eq!(places.cities[0].file_ids.len(), 9);
         let [amsterdam, utrecht, rotterdam] = [(52.37, 4.90), (52.09, 5.12), (51.92, 4.48)]
             .map(|(latitude, longitude)| Coordinate::new(latitude, longitude));
         let expected = distance_km(amsterdam, utrecht) + distance_km(utrecht, rotterdam);

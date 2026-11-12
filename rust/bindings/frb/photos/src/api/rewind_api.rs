@@ -120,6 +120,7 @@ pub struct _RewindReport {
 pub struct _Totals {
     pub files: u32,
     pub top_per_mille: Option<u32>,
+    pub file_ids: Vec<i64>,
 }
 
 #[frb(mirror(ColourOfTheYear))]
@@ -211,6 +212,7 @@ pub struct _WeeklyHabit {
     pub weekday: u32,
     pub hour: u32,
     pub percent: u32,
+    pub file_ids: Vec<i64>,
 }
 
 #[frb(mirror(CrowdFavourite))]
