@@ -13,6 +13,10 @@ import io.ente.native_video_editor.core.VideoEditResult
 import io.ente.native_video_editor.core.VideoFrameExtractionResult
 import io.ente.native_video_editor.core.VideoFramePolicy
 import io.ente.native_video_editor.core.VideoFrameRequest
+import io.ente.native_video_editor.core.SlideshowExportRequest
+import io.ente.native_video_editor.core.SlideshowItem
+import io.ente.native_video_editor.core.SlideshowMotion
+import io.ente.native_video_editor.core.SlideshowMusic
 import io.ente.native_video_editor.core.VideoMetadata
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
@@ -72,6 +76,7 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             "extractTimeline" -> extractTimeline(call, result, pluginScope)
             "cancelFrameExtraction" -> cancelFrameExtraction(call, result, pluginScope)
             "processVideo" -> processVideo(call, result, pluginScope)
+            "exportSlideshow" -> exportSlideshow(call, result, pluginScope)
             "cancelProcessing" -> cancelProcessing(result, pluginScope)
             else -> result.notImplemented()
         }
@@ -251,6 +256,37 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
         job.start()
     }
 
+    private fun exportSlideshow(call: MethodCall, result: Result, pluginScope: CoroutineScope) {
+        if (currentExportJob?.isActive == true) {
+            result.error("CONCURRENT_EXPORT", "A video export is already active", null)
+            return
+        }
+        val request = parseSlideshowRequest(call)
+        if (request == null) {
+            result.error("INVALID_ARGS", "Invalid slideshow arguments", null)
+            return
+        }
+
+        val job = pluginScope.launch(start = CoroutineStart.LAZY) {
+            try {
+                val outputPath = videoExporter.exportSlideshow(request) { progress ->
+                    if (canReply(pluginScope)) progressEventSink?.success(progress)
+                }
+                if (canReply(pluginScope)) result.success(mapOf("outputPath" to outputPath))
+            } catch (error: LinkageError) {
+                replyError(result, "PROCESS_LINKAGE_ERROR", "Export slideshow", error, pluginScope)
+            } catch (error: CancellationException) {
+                replyError(result, "PROCESS_CANCELLED", "Export slideshow", error, pluginScope)
+            } catch (error: Exception) {
+                replyError(result, "PROCESS_ERROR", "Export slideshow", error, pluginScope)
+            } finally {
+                if (currentExportJob == coroutineContext[Job]) currentExportJob = null
+            }
+        }
+        currentExportJob = job
+        job.start()
+    }
+
     private fun cancelProcessing(result: Result, pluginScope: CoroutineScope) {
         val job = currentExportJob
         if (job == null) {
@@ -309,6 +345,49 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             rotateDegrees = call.argument<Int>("rotateDegrees"),
             crop = crop,
             speed = call.argument<Number>("speed")?.toFloat() ?: 1f
+        )
+    }.getOrNull()
+
+    private fun parseSlideshowRequest(call: MethodCall): SlideshowExportRequest? = runCatching {
+        val items = requireNotNull(call.argument<List<Map<String, Any?>>>("items")).map { value ->
+            val path = requireNotNull(value["path"] as? String)
+            when (value["type"]) {
+                "photo" -> SlideshowItem.Photo(
+                    path = path,
+                    durationMs = requireNotNull(value["durationMs"] as? Number).toLong(),
+                    motion = SlideshowMotion(
+                        startScale = requireNotNull(value["startScale"] as? Number).toFloat(),
+                        endScale = requireNotNull(value["endScale"] as? Number).toFloat(),
+                        startX = requireNotNull(value["startX"] as? Number).toFloat(),
+                        startY = requireNotNull(value["startY"] as? Number).toFloat(),
+                        endX = requireNotNull(value["endX"] as? Number).toFloat(),
+                        endY = requireNotNull(value["endY"] as? Number).toFloat()
+                    )
+                )
+
+                "video" -> SlideshowItem.Video(
+                    path = path,
+                    isMuted = value["isMuted"] as? Boolean ?: false
+                )
+
+                else -> error("Invalid slideshow item type")
+            }
+        }
+        val music = call.argument<Map<String, Any?>>("music")?.let { value ->
+            SlideshowMusic(
+                path = requireNotNull(value["path"] as? String),
+                fadeInMs = requireNotNull(value["fadeInMs"] as? Number).toLong(),
+                fadeOutMs = requireNotNull(value["fadeOutMs"] as? Number).toLong()
+            )
+        }
+        SlideshowExportRequest(
+            outputPath = requireNotNull(call.argument<String>("outputPath")),
+            width = requireNotNull(call.argument<Int>("width")),
+            height = requireNotNull(call.argument<Int>("height")),
+            frameRate = requireNotNull(call.argument<Int>("frameRate")),
+            crossfadeMs = requireNotNull(call.argument<Number>("crossfadeMs")).toLong(),
+            items = items,
+            music = music
         )
     }.getOrNull()
 
