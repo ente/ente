@@ -1,4 +1,4 @@
-/** A hold selects people; moving/scrolling must never turn into a row click. */
+// A hold selects people; moving/scrolling must never turn into a row click.
 export const createPeoplePress = (onHold: () => void) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let origin: { x: number; y: number } | undefined;
