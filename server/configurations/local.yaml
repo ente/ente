@@ -400,3 +400,6 @@ jobs:
         # Number of go routines to spawn for object cleanup
         # Optional, default value is indicated here.
         worker-count: 1
+    prune-object-copies:
+        batch-size: 1000
+        batch-interval: 1s

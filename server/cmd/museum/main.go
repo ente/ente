@@ -292,6 +292,7 @@ func main() {
 		objectRepo,
 		s3Config,
 	)
+	objectCopiesCleanupController := controller.NewObjectCopiesCleanupController(objectCopiesRepo)
 
 	usageController := &controller.UsageController{
 		BillingCtrl:       billingController,
@@ -1107,7 +1108,7 @@ func main() {
 	publicAPI.POST("/discount/claim", discountCouponHandler.ClaimCoupon)
 	adminAPI.POST("/discount/add-coupons", discountCouponHandler.AddCoupons)
 
-	setupAndStartBackgroundJobs(objectCleanupController, replicationController3, fileDataCtrl, contactController, spaceModule)
+	setupAndStartBackgroundJobs(objectCleanupController, replicationController3, fileDataCtrl, contactController, spaceModule, objectCopiesCleanupController)
 	time.AfterFunc(10*time.Minute, func() {
 		if err := remoteStoreRepository.MigrateCustomDomainCanonicalValues(context.Background()); err != nil {
 			log.WithError(err).Error("Failed to backfill custom domain canonical values")
@@ -1268,6 +1269,7 @@ func setupAndStartBackgroundJobs(
 	fileDataCtrl *filedata.Controller,
 	contactController *contactCtrl.Controller,
 	spaceModule *spacecontroller.Module,
+	objectCopiesCleanupController *controller.ObjectCopiesCleanupController,
 ) {
 	isReplicationEnabled := viper.GetBool("replication.enabled")
 	if isReplicationEnabled {
@@ -1296,6 +1298,7 @@ func setupAndStartBackgroundJobs(
 	contactController.StartDataDeletion()
 	objectCleanupController.StartRemovingUnreportedObjects()
 	spaceModule.Cleanup.StartRemovingUnreportedObjects()
+	objectCopiesCleanupController.StartCleanup()
 }
 
 func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRepo *public.CollectionLinkRepo,
