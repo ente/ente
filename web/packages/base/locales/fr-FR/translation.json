@@ -539,6 +539,8 @@
     "photos_count": "{{count, number}} souvenirs",
     "terms_and_conditions": "J'accepte les <a>conditions</a> et la <b>politique de confidentialité</b>",
     "people": "Visages",
+    "add_more_people": "",
+    "only_them": "",
     "people_count_one": "",
     "people_count_other": "",
     "people_photo_count_one": "",
