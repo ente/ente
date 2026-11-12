@@ -66,11 +66,13 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 
 ### Unhide album
 
-![Unhide album option highlighted in the overflow menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-overflow-unhide-callout.png){width=720px}
-
 - Open the hidden album
 - Click the overflow menu (three dots)
 - Select **Unhide album**
+
+![Unhide album option highlighted in the overflow menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-overflow-unhide-callout.png){width=720px}
+
+![Mobile: Hidden with the Sports album highlighted, then the overflow menu (three dots) highlighted on the Sports album, then Unhide highlighted in the menu on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-hidden-unhide-album-steps.png){width=560px}
 
 ### Unhide photo
 
@@ -78,7 +80,7 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 - Tap/click **Unhide** from the selection menu
 - Select the album to restore the photo to
 
-![Hidden items gallery with real photos on Ente Photos web](https://docs-assets.ente.com/screenshots/web-hidden-hub-populated.png){width=720px}
+![Mobile: hidden photo selected in Hidden, then Unhide highlighted in the selection menu, then the Unhide to album picker on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-hidden-unhide-photo-steps.png){width=560px}
 
 ### Clean up hidden (mobile only)
 

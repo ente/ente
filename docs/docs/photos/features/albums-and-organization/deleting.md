@@ -51,6 +51,8 @@ The selected photos will be moved to Trash.
 - Tap "Select all" to select all visible photos
 - Tap the trash icon and confirm
 
+![Delete action with several selected highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-selection-bulk-delete-callout.png){width=320px}
+
 **On web/desktop:**
 
 - Click the first photo
@@ -189,6 +191,8 @@ To free up storage space immediately, you can permanently delete items from Tras
 
 All items in the selected trash will be permanently deleted and storage space will be freed immediately.
 
+![Empty trash button highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-empty-callout.png){width=320px}
+
 ### Deleting specific items permanently
 
 **On mobile and web/desktop:**
@@ -202,11 +206,11 @@ All items in the selected trash will be permanently deleted and storage space wi
 
 Only the selected items will be permanently deleted.
 
+![Delete permanently action highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-delete-permanently-callout.png){width=320px}
+
 ## Special Deletion Scenarios
 
 ### Deleting albums
-
-![Delete album confirmation dialog on Ente Photos web with Keep photos Delete photos and Cancel](https://docs-assets.ente.com/screenshots/web-delete-album-confirm.png){width=720px}
 
 When you delete an album in Ente, you'll be given two options:
 
@@ -222,6 +226,10 @@ When you delete an album in Ente, you'll be given two options:
 - Photos will be permanently deleted after 30 days unless restored
 
 Choose carefully based on whether you want to keep the photos or remove them entirely.
+
+![Delete album confirmation dialog on Ente Photos web with Keep photos Delete photos and Cancel](https://docs-assets.ente.com/screenshots/web-delete-album-confirm.png){width=720px}
+
+![Mobile: album overflow menu (three dots) highlighted, then Delete, then the Delete this album? dialog with Keep photos and Delete photos highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-delete-album-steps.png){width=560px}
 
 ### Deleting from collaborative albums
 

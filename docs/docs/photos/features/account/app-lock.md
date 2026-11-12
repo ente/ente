@@ -11,6 +11,8 @@ App lock adds a local protection layer to Ente Photos, so the app requires authe
 
 **On mobile:** Open `Settings > Security > App lock`, then turn on **App lock**.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Security, then App lock](https://docs-assets.ente.com/screenshots/phone-settings-security-app-lock-path.png){width=560px}
+
 ![App lock toggle highlighted on the App lock settings screen in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-app-lock-toggle-callout.png){width=320px}
 
 **On desktop:** Open `Settings > Preferences > App lock`, then turn on **App lock**.

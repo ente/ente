@@ -37,7 +37,7 @@ Family members keep separate libraries by default. To share the albums you own w
 
 You can share existing albums in one action and enable [library sharing](/photos/features/sharing-and-collaboration/library-sharing) to automatically share new albums as you create them.
 
-![Family members list with face avatars and readable names for James (admin), Dad, Maya, and Mom on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-family-members.png){width=320px}
+![Mobile: home with Settings menu (three bars) highlighted, then Family, then the Family page](https://docs-assets.ente.com/screenshots/phone-settings-family-path.png){width=560px}
 
 ![Library sharing toggle ON on Sharing with Maya with loaded album thumbs on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-albums.png){width=320px}
 

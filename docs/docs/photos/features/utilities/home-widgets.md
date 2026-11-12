@@ -73,12 +73,12 @@ Open `Settings > Widgets` in the Ente app to configure your widgets.
 
 ### Configuring the Albums Widget
 
-![Select albums for the home screen Albums widget on Ente Photos mobile with Travel Maps highlighted](https://docs-assets.ente.com/screenshots/phone-widgets-albums-callout.png){width=320px}
-
 1. Open `Settings > Widgets > Albums widget`
 2. Select which albums you want to display on your home screen
 3. By default, the **Favorites** album is selected
 4. You can select multiple albums to include more variety
+
+![Ente Photos on Android: Settings path to Albums widget picker with Travel Maps ringed](https://docs-assets.ente.com/screenshots/phone-settings-widgets-albums-path.png){width=560px}
 
 ### Configuring the People Widget
 
@@ -94,13 +94,13 @@ Open `Settings > Widgets` in the Ente app to configure your widgets.
 
 ### Configuring the Memories Widget
 
-![Memories widget settings on Ente Photos mobile with On this day memories highlighted](https://docs-assets.ente.com/screenshots/phone-widgets-memories-callout.png){width=320px}
-
 1. Open `Settings > Widgets > Memories widget`
 2. Toggle which memory types to include:
     - **On This Day**: Photos from this date in previous years
     - **Past Years**: Yearly memories
     - **Smart Memories**: AI-curated memorable moments
+
+![Ente Photos on Android: Settings path to Memories widget with On this day memories ringed](https://docs-assets.ente.com/screenshots/phone-settings-widgets-memories-path.png){width=560px}
 
 ## How Widgets Work
 

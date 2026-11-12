@@ -16,12 +16,13 @@ The recipient must be an active member of your [family plan](/photos/features/ac
 ## Share albums
 
 1. Open `Settings > Family`.
+
+   ![Mobile: home with Settings menu (three bars) highlighted, then Family, then the Family page](https://docs-assets.ente.com/screenshots/phone-settings-family-path.png){width=560px}
+
 2. Select a family member and tap **Share albums**.
 3. Select the albums to share, or tap **Select all**.
 4. Choose Viewer, Collaborator, or Admin for the selection. You can also assign roles per album.
 5. Tap the **Share** button.
-
-![Family members list with face avatars and readable names for James (admin), Dad, Maya, and Mom on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-family-members.png){width=320px}
 
 ![Share albums action highlighted on Maya partner member sheet with family faces visible on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-library-share-albums-entry-callout.png){width=320px}
 

@@ -32,6 +32,8 @@ The map feature can be enabled or disabled in your app settings.
 
 Open `Settings` and use the toggle switch to turn the map feature on or off.
 
+![Mobile: home with Settings menu (three bars) highlighted, then the Maps toggle highlighted in Settings on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-settings-map-path.png){width=560px}
+
 **On desktop:**
 
 Open `Settings > Preferences > Advanced > Map` and toggle the map settings on or off.

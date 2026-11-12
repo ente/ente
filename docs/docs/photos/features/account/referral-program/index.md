@@ -13,6 +13,8 @@ Your friend gets an extra 10 GB immediately after applying your referral code. Y
 
 You can find your referral code under `Settings > Referrals`.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Referrals, then the Get free storage referrals page](https://docs-assets.ente.com/screenshots/phone-settings-referrals-path.png){width=560px}
+
 <div align="center">
 
 ![Get free storage / Referrals on Ente Photos mobile and web showing your referral code](https://docs-assets.ente.com/screenshots/duo-referral-claim-storage.png){width=900px}
@@ -31,6 +33,10 @@ As a new user, you get an extra 10 GB as soon as you apply a referral code. No p
 
 </div>
 
+![Apply code row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-referrals-apply-code-callout.png){width=320px}
+
+![Apply code sheet highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-referrals-apply-code-sheet-callout.png){width=320px}
+
 ## Customize your referral code
 
 You can personalize your referral code to make it easier to share. To change your code, go to `Settings > Referrals` and tap on your current code.
@@ -41,6 +47,8 @@ Requirements for custom referral codes:
 - Must contain only letters and numbers (alphanumeric)
 
 Note: You can change your referral code up to **3 times**.
+
+![Current code highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-referrals-edit-code-callout.png){width=320px}
 
 ## Related FAQs
 

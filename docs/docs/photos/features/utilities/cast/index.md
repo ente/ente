@@ -19,6 +19,8 @@ With Ente Cast, you can play a slideshow of your favourite albums on your Google
 
 ![Play album on TV highlighted in the album overflow menu on Ente Photos web](https://docs-assets.ente.com/screenshots/web-cast-album-menu-callout.png){width=720px}
 
+![Album overflow menu (three dots) and Cast album highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-cast-callout.png){width=320px}
+
 </div>
 
 4. Choose how you want to pair your device with your large screen device.
@@ -30,6 +32,12 @@ With Ente Cast, you can play a slideshow of your favourite albums on your Google
     </div>
 
     In the mobile app, **Auto Pair** discovers compatible Cast devices on your local network. Select a device from the list to connect. On iOS, allow the local network permission when prompted so Ente can discover devices.
+
+    <div align="center">
+
+    ![Cast album sheet with Auto pair and Pair using code on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-cast-pair-options.png){width=320px}
+
+    </div>
 
     On Google Chrome and other Chromium browsers, **Auto Pair** prompts you to select a Chromecast-supported device on your local network. This option requires connecting to Google servers to load necessary dependencies, but does not transmit sensitive data such as your photos through Google servers.
 

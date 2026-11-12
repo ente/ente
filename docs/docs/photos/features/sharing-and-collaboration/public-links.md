@@ -23,7 +23,7 @@ Share an entire album via a public link:
 4. On the "Link settings" screen, configure optional [link features](#link-features) like album layout, password protection, link expiry, allow adding photos, etc
 5. Tap "Copy link" and share it
 
-![Create public link highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-album-share-create-link-callout.png){width=320px}
+![From an album > On mobile, steps 2-4 screen on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-public-link-steps-2-4.png){width=560px}
 
 **On web/desktop:**
 
@@ -87,6 +87,8 @@ Choose how recipients view your public links with these layout options:
 >
 > Trip layout public links are not supported on custom domains yet. When someone tries to access such a link, they will be redirected to the Trip layout public link on the default `albums.ente.com` domain. Other layouts will work perfectly on your custom domain.
 
+![Album layout row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-album-layout-callout.png){width=320px}
+
 ### Password protection
 
 Add a password to your link for an extra layer of security. Recipients must enter the correct password to view photos.
@@ -105,6 +107,8 @@ Add a password to your link for an extra layer of security. Recipients must ente
 
 ![Password lock toggle highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-password-callout.png){width=720px}
 
+![Password toggle row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-password-callout.png){width=320px}
+
 ### Link expiry
 
 Set an expiration date for your link. After this time, the link automatically stops working.
@@ -122,6 +126,8 @@ Set an expiration date for your link. After this time, the link automatically st
 - Can be extended or changed later
 
 ![Link expiry row highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-expiry-callout.png){width=720px}
+
+![Link expiry row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-expiry-callout.png){width=320px}
 
 ### Device limits
 
@@ -143,6 +149,8 @@ A "device" is determined by the combination of IP address and browser/app (User-
 - Adding accountability to sharing
 
 ![Device limit row highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-device-limit-callout.png){width=720px}
+
+![Device limit row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-device-limit-callout.png){width=320px}
 
 ### Download control {#prevent-downloads}
 
@@ -210,6 +218,8 @@ When this option is enabled, the link becomes a "collect link". All photos added
 
 Learn more in the [Collaboration guide](/photos/features/sharing-and-collaboration/collaboration).
 
+![Allow adding photos toggle row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-allow-adding-callout.png){width=320px}
+
 ### Custom domains
 
 Use your own domain instead of `albums.ente.com` for your public links.
@@ -245,6 +255,8 @@ Learn more in the [Custom domains guide](/photos/features/sharing-and-collaborat
 
 Open the album, tap the **Share icon**, and manage its public link.
 
+![Link icon in the quick-link album header highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-quick-link-settings-entry-callout.png){width=320px}
+
 **On web/desktop:**
 
 Open the album, click the **share icon**, and choose **Manage link**. Change the existing link's settings, including **Allow downloads**, password, expiry, or device limit.
@@ -261,6 +273,8 @@ Turning off **Download photos** or **Allow downloads** hides Ente's download con
 Deleting a link makes it immediately inaccessible. The photos in the album remain in your account.
 
 ![Remove link highlighted in Manage link on Ente Photos web](https://docs-assets.ente.com/screenshots/web-album-manage-link-remove-callout.png){width=720px}
+
+![Remove link row highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-link-settings-remove-link-callout.png){width=320px}
 
 ### Convert quick link to regular album
 
