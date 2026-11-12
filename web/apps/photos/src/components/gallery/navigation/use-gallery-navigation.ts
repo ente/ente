@@ -102,6 +102,10 @@ export const useGalleryNavigation = (
         (personID: string) => send({ type: "togglePerson", personID }),
         [],
     );
+    const togglePeopleOnlyThem = useCallback(
+        () => send({ type: "togglePeopleOnlyThem" }),
+        [],
+    );
     const retainPeople = useCallback(
         (personIDs: string[], extraVisiblePersonIDs: string[]) =>
             send({ type: "retainPeople", personIDs, extraVisiblePersonIDs }),
@@ -127,6 +131,7 @@ export const useGalleryNavigation = (
             showPeople,
             selectPerson,
             togglePerson,
+            togglePeopleOnlyThem,
             backToPeople,
             showLinksOverview,
             showLibraryMap,
@@ -148,6 +153,7 @@ export const useGalleryNavigation = (
         showPeople,
         selectPerson,
         togglePerson,
+        togglePeopleOnlyThem,
         backToPeople,
         showLinksOverview,
         showLibraryMap,

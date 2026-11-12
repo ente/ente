@@ -15,7 +15,8 @@ export const useSelectionShortcuts = ({
     clearSelection: () => void;
     disabled: boolean;
 }) => {
-    const { files, mode, activeCollectionID, activePersonIDs } = source;
+    const { files, mode, activeCollectionID, activePersonIDs, peopleOnlyThem } =
+        source;
     const selectAll = useCallback(() => {
         if (userID === undefined || !files.length) return;
         const selected: SelectedState = {
@@ -24,7 +25,11 @@ export const useSelectionShortcuts = ({
             collectionID: activeCollectionID,
             context:
                 mode === "people"
-                    ? { mode: "people", personIDs: activePersonIDs ?? [] }
+                    ? {
+                          mode: "people",
+                          personIDs: activePersonIDs ?? [],
+                          onlyThem: peopleOnlyThem || undefined,
+                      }
                     : {
                           mode: mode as
                               "albums" | "hidden-albums" | "archive-albums",
@@ -38,7 +43,15 @@ export const useSelectionShortcuts = ({
             if (file.ownerID === userID) selected.ownCount++;
         }
         setSelected(selected);
-    }, [files, mode, activeCollectionID, activePersonIDs, userID, setSelected]);
+    }, [
+        files,
+        mode,
+        activeCollectionID,
+        activePersonIDs,
+        peopleOnlyThem,
+        userID,
+        setSelected,
+    ]);
     const handleKey = useEffectEvent((event: KeyboardEvent) => {
         if (
             disabled ||

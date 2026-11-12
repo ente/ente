@@ -497,6 +497,8 @@
     "sharing_user_does_not_exist": "Could not find a user with that email",
     "search": "Search",
     "search_settings": "Search in Settings",
+    "only_them": "Only them",
+    "people_only_them_empty": "No photos with only the selected people",
     "people_all_empty": "No photos with all selected people",
     "people_search_hint": "Search people",
     "search_results": "Search results",

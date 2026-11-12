@@ -94,6 +94,8 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
         people: [small, named],
         visiblePeople: [named],
         personByFaceID: new Map(),
+        personIDsByFileID: new Map(),
+        unassignedFaceFileIDs: new Set(),
     };
     const selected = derivePeopleView(
         people,

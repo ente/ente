@@ -17,27 +17,24 @@ import {
     useRef,
     useState,
     type MouseEventHandler,
+    type ReactNode,
 } from "react";
 import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 
 export const PeopleFilterRow = ({
     people,
-    selectedPersonIDs,
+    activePeople,
+    onlyThem,
 }: {
     people: Person[];
-    selectedPersonIDs: string[];
+    activePeople: Person[];
+    onlyThem: boolean;
 }) => {
-    const { togglePerson } = usePhotosNavigation();
+    const { togglePerson, togglePeopleOnlyThem } = usePhotosNavigation();
+    const selectedPersonIDs = activePeople.map((person) => person.id);
+    const canShowOnlyThem = activePeople.length > 0 && activePeople.length <= 4;
     const [showFilters, setShowFilters] = useState(false);
     const titleID = useId();
-    // Mobile shows applied filters first and up to 14 recommendations in the
-    // app bar; the filter sheet contains the complete list.
-    const rowPeople = [
-        ...people.filter((person) => selectedPersonIDs.includes(person.id)),
-        ...people
-            .filter((person) => !selectedPersonIDs.includes(person.id))
-            .slice(0, 14),
-    ];
     const pendingChip = useRef<HTMLButtonElement | null>(null);
     useEffect(() => {
         pendingChip.current?.scrollIntoView({
@@ -45,8 +42,57 @@ export const PeopleFilterRow = ({
             inline: "nearest",
         });
         pendingChip.current = null;
-    }, [selectedPersonIDs]);
-    if (!people.length) return null;
+    }, [activePeople]);
+    const renderFilters = (avatarSize: number, limit?: number) => {
+        const selected = people.filter((person) =>
+            selectedPersonIDs.includes(person.id),
+        );
+        const suggestions = people.filter(
+            (person) => !selectedPersonIDs.includes(person.id),
+        );
+        // The badge replaces the applied face chips, as on mobile.
+        const filters: (Person | "only-them")[] = onlyThem
+            ? ["only-them"]
+            : [
+                  ...selected,
+                  ...(canShowOnlyThem ? ["only-them" as const] : []),
+                  ...suggestions.slice(0, limit),
+              ];
+        return filters.map((filter) =>
+            filter === "only-them" ? (
+                <PeopleFilterChip
+                    key="only-them"
+                    name={t("only_them")}
+                    label={t("only_them")}
+                    selected={onlyThem}
+                    avatarSize={avatarSize}
+                    onClick={() => {
+                        togglePeopleOnlyThem();
+                        setShowFilters(false);
+                    }}
+                >
+                    <PeopleFaceCollage people={activePeople} />
+                </PeopleFilterChip>
+            ) : (
+                <FaceFilter
+                    key={`person:${filter.id}`}
+                    person={filter}
+                    selected={selectedPersonIDs.includes(filter.id)}
+                    avatarSize={avatarSize}
+                    onClick={(event) => {
+                        if (
+                            avatarSize === 32 &&
+                            !selectedPersonIDs.includes(filter.id)
+                        )
+                            pendingChip.current = event.currentTarget;
+                        togglePerson(filter.id);
+                        setShowFilters(false);
+                    }}
+                />
+            ),
+        );
+    };
+    if (!people.length && !canShowOnlyThem) return null;
     return (
         <>
             <Stack
@@ -64,6 +110,7 @@ export const PeopleFilterRow = ({
                 }}
             >
                 <FilterButton
+                    disableRipple
                     aria-label={t("filters")}
                     aria-haspopup="dialog"
                     aria-expanded={showFilters}
@@ -71,18 +118,7 @@ export const PeopleFilterRow = ({
                 >
                     <HugeiconsIcon icon={Menu08Icon} size={16} />
                 </FilterButton>
-                {rowPeople.map((person) => (
-                    <FaceFilter
-                        key={person.id}
-                        person={person}
-                        selected={selectedPersonIDs.includes(person.id)}
-                        onClick={(event) => {
-                            if (!selectedPersonIDs.includes(person.id))
-                                pendingChip.current = event.currentTarget;
-                            togglePerson(person.id);
-                        }}
-                    />
-                ))}
+                {renderFilters(32, canShowOnlyThem ? 13 : 14)}
             </Stack>
             <Dialog
                 open={showFilters}
@@ -130,6 +166,7 @@ export const PeopleFilterRow = ({
                         {t("filters")}
                     </Typography>
                     <FilterButton
+                        disableRipple
                         aria-label={t("close")}
                         onClick={() => setShowFilters(false)}
                         sx={{ borderRadius: "50%" }}
@@ -145,18 +182,7 @@ export const PeopleFilterRow = ({
                         direction="row"
                         sx={{ flexWrap: "wrap", gap: "12px 8px" }}
                     >
-                        {people.map((person) => (
-                            <FaceFilter
-                                key={person.id}
-                                person={person}
-                                selected={selectedPersonIDs.includes(person.id)}
-                                avatarSize={48}
-                                onClick={() => {
-                                    togglePerson(person.id);
-                                    setShowFilters(false);
-                                }}
-                            />
-                        ))}
+                        {renderFilters(48)}
                     </Stack>
                 </Box>
             </Dialog>
@@ -164,21 +190,43 @@ export const PeopleFilterRow = ({
     );
 };
 
-// Match mobile's FaceFilterChip and FilterChipComponent: face-only, with an
-// inverse surface and a small dismiss icon for applied filters.
 const FaceFilter = ({
     person,
-    selected,
-    avatarSize = 32,
-    onClick,
+    ...props
 }: {
     person: Person;
     selected: boolean;
     avatarSize?: number;
     onClick: MouseEventHandler<HTMLButtonElement>;
 }) => (
+    <PeopleFilterChip name={person.name || t("unnamed_person")} {...props}>
+        <ItemCard
+            TileComponent={FaceThumbnail}
+            coverFile={person.displayFaceFile}
+            coverFaceID={person.displayFaceID}
+        />
+    </PeopleFilterChip>
+);
+
+// Match mobile's FilterChipComponent, including the labeled Only them badge.
+const PeopleFilterChip = ({
+    name,
+    label,
+    selected,
+    avatarSize = 32,
+    onClick,
+    children,
+}: {
+    name: string;
+    label?: string;
+    selected: boolean;
+    avatarSize?: number;
+    onClick: MouseEventHandler<HTMLButtonElement>;
+    children: ReactNode;
+}) => (
     <ButtonBase
-        aria-label={person.name || t("unnamed_person")}
+        disableRipple
+        aria-label={name}
         aria-pressed={selected}
         onClick={onClick}
         sx={(theme) => ({
@@ -188,10 +236,10 @@ const FaceFilter = ({
             height: avatarSize + 8,
             gap: "4px",
             p: "4px",
-            pr: selected ? "8px" : "4px",
+            pr: selected ? "8px" : label ? "18px" : "4px",
             borderRadius: `${(avatarSize + 8) / 2}px`,
             bgcolor: selected ? "#161616" : "#fff",
-            color: "#fff",
+            color: selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
             transition: "background-color 120ms ease-in-out",
             "&.Mui-focusVisible": {
                 outline: "2px solid",
@@ -201,17 +249,19 @@ const FaceFilter = ({
             "@media (prefers-reduced-motion: reduce)": { transition: "none" },
             ...theme.applyStyles("dark", {
                 bgcolor: selected ? "#f4f4f4" : "#212121",
-                color: "#000",
+                color: selected ? "#000" : "rgba(255, 255, 255, 0.7)",
             }),
         })}
     >
-        <Box aria-hidden>
-            <ItemCard
-                TileComponent={FaceThumbnail}
-                coverFile={person.displayFaceFile}
-                coverFaceID={person.displayFaceID}
-            />
-        </Box>
+        <Box aria-hidden>{children}</Box>
+        {label && (
+            <Typography
+                component="span"
+                sx={{ fontSize: 12, lineHeight: "16px", whiteSpace: "nowrap" }}
+            >
+                {label}
+            </Typography>
+        )}
         {selected && (
             <HugeiconsIcon icon={Cancel01Icon} size={14} aria-hidden />
         )}
@@ -231,6 +281,58 @@ const FaceThumbnail = styled("div")({
         display: "block",
     },
 });
+
+const PeopleFaceCollage = ({ people }: { people: Person[] }) => (
+    <Box
+        sx={{
+            width: "var(--people-face-size)",
+            height: "var(--people-face-size)",
+            borderRadius: "50%",
+            overflow: "hidden",
+            display: "grid",
+            gap: "1px",
+            gridTemplateColumns: people.length > 1 ? "1fr 1fr" : "1fr",
+            gridTemplateRows: people.length > 2 ? "1fr 1fr" : "1fr",
+        }}
+    >
+        {people.map((person, index) => (
+            <Box
+                key={person.id}
+                sx={{
+                    minWidth: 0,
+                    minHeight: 0,
+                    overflow: "hidden",
+                    gridRow:
+                        people.length === 3 && index === 0
+                            ? "span 2"
+                            : undefined,
+                    borderRadius:
+                        people.length === 3
+                            ? ["0", "0 0 0 3px", "3px 0 0 0"][index]
+                            : people.length === 4
+                              ? [
+                                    "0 0 3px 0",
+                                    "0 0 0 3px",
+                                    "0 3px 0 0",
+                                    "3px 0 0 0",
+                                ][index]
+                              : 0,
+                    "& > div": {
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: 0,
+                    },
+                }}
+            >
+                <ItemCard
+                    TileComponent={FaceThumbnail}
+                    coverFile={person.displayFaceFile}
+                    coverFaceID={person.displayFaceID}
+                />
+            </Box>
+        ))}
+    </Box>
+);
 
 const FilterButton = styled(ButtonBase)(({ theme }) => ({
     width: 36,

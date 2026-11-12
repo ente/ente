@@ -19,6 +19,7 @@ export type GalleryMediaSource = Pick<
     | "activeCollectionID"
     | "activeCollectionSummary"
     | "activePersonIDs"
+    | "peopleOnlyThem"
     | "disableGrouping"
 > & { activeCollection?: Collection | undefined };
 

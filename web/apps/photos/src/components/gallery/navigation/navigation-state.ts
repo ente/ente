@@ -11,6 +11,7 @@ export interface GalleryDestination {
     collectionID?: number;
     albumFilter?: AlbumFilter;
     personIDs?: string[];
+    peopleOnlyThem?: boolean;
     extraVisiblePersonIDs?: string[];
     collectionMap?: boolean;
 }
@@ -55,6 +56,7 @@ export type NavigationAction =
     | { type: "showPeople" }
     | { type: "showPerson"; personID: string }
     | { type: "togglePerson"; personID: string }
+    | { type: "togglePeopleOnlyThem" }
     | {
           type: "retainPeople";
           personIDs: string[];
@@ -146,8 +148,23 @@ export const navigationReducer = (
             const personIDs = previous.includes(action.personID)
                 ? previous.filter((id) => id !== action.personID)
                 : [...previous, action.personID];
-            return navigate({ ...destination, personIDs });
+            return navigate({
+                ...destination,
+                personIDs,
+                peopleOnlyThem: undefined,
+            });
         }
+        case "togglePeopleOnlyThem":
+            if (
+                destination.section !== "people" ||
+                !destination.personIDs?.length ||
+                destination.personIDs.length > 4
+            )
+                return state;
+            return navigate({
+                ...destination,
+                peopleOnlyThem: !destination.peopleOnlyThem,
+            });
         case "retainPeople":
             return destination.section !== "people" ||
                 (JSON.stringify(destination.personIDs ?? []) ===
@@ -160,6 +177,11 @@ export const navigationReducer = (
                       destination: {
                           ...destination,
                           personIDs: action.personIDs,
+                          peopleOnlyThem:
+                              JSON.stringify(destination.personIDs) ===
+                              JSON.stringify(action.personIDs)
+                                  ? destination.peopleOnlyThem
+                                  : undefined,
                           extraVisiblePersonIDs: action.extraVisiblePersonIDs,
                       },
                   };

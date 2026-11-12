@@ -47,6 +47,10 @@ export const derivePeopleView = (
             ...extraVisiblePersonIDs.map((id) => byID.get(id)!),
         ],
         activePeople,
+        personIDsByFileID:
+            peopleState?.personIDsByFileID ?? new Map<number, Set<string>>(),
+        unassignedFaceFileIDs:
+            peopleState?.unassignedFaceFileIDs ?? new Set<number>(),
     };
     return { view, extraVisiblePersonIDs };
 };
@@ -56,15 +60,22 @@ export const derivePeopleFilteredFiles = (
     hiddenFileIDs: GalleryState["hiddenFileIDs"],
     view: Extract<GalleryView, { type: "people" }>,
     currentUserID: number | undefined,
+    onlyThem = false,
 ) => {
     const sets = view.activePeople.map((person) => new Set(person.fileIDs));
+    const selectedIDs = new Set(view.activePeople.map((person) => person.id));
     return uniqueFilesByID(
         suppressSharedFilesSavedByUser(
             collectionFiles.filter(
                 (file) =>
                     sets.length > 0 &&
                     !hiddenFileIDs.has(file.id) &&
-                    sets.every((ids) => ids.has(file.id)),
+                    sets.every((ids) => ids.has(file.id)) &&
+                    (!onlyThem ||
+                        (!view.unassignedFaceFileIDs.has(file.id) &&
+                            [
+                                ...(view.personIDsByFileID.get(file.id) ?? []),
+                            ].every((id) => selectedIDs.has(id)))),
             ),
             currentUserID,
             undefined,
@@ -104,7 +115,15 @@ export const resolvePeopleDestination = (
             destination.extraVisiblePersonIDs?.length
     )
         return destination;
-    return { ...destination, personIDs, extraVisiblePersonIDs };
+    return {
+        ...destination,
+        personIDs,
+        extraVisiblePersonIDs,
+        peopleOnlyThem:
+            personIDs?.length === destination.personIDs?.length
+                ? destination.peopleOnlyThem
+                : undefined,
+    };
 };
 
 // Keep applied filters available even when their intersection becomes empty.

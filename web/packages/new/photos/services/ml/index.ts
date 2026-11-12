@@ -309,7 +309,13 @@ export const peopleStateSubscribe = (onChange: () => void): (() => void) => {
 const resetPeopleStateSnapshot = () =>
     setPeopleStateSnapshot(
         _state.isMLEnabled
-            ? { people: [], visiblePeople: [], personByFaceID: new Map() }
+            ? {
+                  people: [],
+                  visiblePeople: [],
+                  personByFaceID: new Map(),
+                  personIDsByFileID: new Map(),
+                  unassignedFaceFileIDs: new Set(),
+              }
             : undefined,
     );
 

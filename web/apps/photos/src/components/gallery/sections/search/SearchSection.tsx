@@ -51,6 +51,7 @@ export const SearchSection = ({
                 library.hiddenFileIDs,
                 view,
                 library.user?.id,
+                destination.peopleOnlyThem,
             );
         }
         return [];
@@ -106,6 +107,7 @@ export const SearchSection = ({
                             ? collectionView.activeCollectionSummary
                             : undefined,
                     activePersonIDs,
+                    peopleOnlyThem: destination.peopleOnlyThem,
                     disableGrouping: suggestion?.type == "clip",
                 }}
             />

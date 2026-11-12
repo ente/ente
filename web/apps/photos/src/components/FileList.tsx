@@ -137,6 +137,7 @@ export interface FileListProps {
     selected: SelectedState;
     activeCollectionID: number | undefined;
     activePersonIDs?: string[] | undefined;
+    peopleOnlyThem?: boolean | undefined;
     favoriteFileIDs?: Set<number>;
     emailByUserID?: Map<number, string>;
     onItemClick: (index: number) => void;
@@ -193,6 +194,7 @@ export const FileList: React.FC<FileListProps> = ({
     setSelected,
     activeCollectionID,
     activePersonIDs,
+    peopleOnlyThem,
     favoriteFileIDs,
     emailByUserID,
     onItemClick,
@@ -467,8 +469,16 @@ export const FileList: React.FC<FileListProps> = ({
                 user?.id,
                 activeCollectionID,
                 activePersonIDs,
+                peopleOnlyThem,
             ),
-        [setSelected, mode, user?.id, activeCollectionID, activePersonIDs],
+        [
+            setSelected,
+            mode,
+            user?.id,
+            activeCollectionID,
+            activePersonIDs,
+            peopleOnlyThem,
+        ],
     );
 
     const onChangeSelectAllCheckBox = useCallback(
@@ -502,8 +512,16 @@ export const FileList: React.FC<FileListProps> = ({
                 activeCollectionID,
                 activePersonIDs,
                 setRangeStartIndex,
+                peopleOnlyThem,
             ),
-        [setSelected, mode, user?.id, activeCollectionID, activePersonIDs],
+        [
+            setSelected,
+            mode,
+            user?.id,
+            activeCollectionID,
+            activePersonIDs,
+            peopleOnlyThem,
+        ],
     );
 
     const isSelectionContextMatching = useMemo(() => {
@@ -512,11 +530,12 @@ export const FileList: React.FC<FileListProps> = ({
         if (selected.context.mode === "people") {
             return (
                 JSON.stringify(selected.context.personIDs) ===
-                JSON.stringify(activePersonIDs ?? [])
+                    JSON.stringify(activePersonIDs ?? []) &&
+                !!selected.context.onlyThem === !!peopleOnlyThem
             );
         }
         return selected.context.collectionID === activeCollectionID;
-    }, [activeCollectionID, activePersonIDs, mode, selected]);
+    }, [activeCollectionID, activePersonIDs, peopleOnlyThem, mode, selected]);
 
     const isFileSelected = useCallback(
         (file: EnteFile) => {
@@ -658,6 +677,7 @@ export const FileList: React.FC<FileListProps> = ({
                         ? {
                               mode: "people" as const,
                               personIDs: activePersonIDs ?? [],
+                              onlyThem: peopleOnlyThem || undefined,
                           }
                         : {
                               mode: (mode ?? "albums") as
@@ -688,6 +708,7 @@ export const FileList: React.FC<FileListProps> = ({
             user,
             activeCollectionID,
             activePersonIDs,
+            peopleOnlyThem,
             mode,
         ],
     );
@@ -907,7 +928,7 @@ export const FileList: React.FC<FileListProps> = ({
             if (!activePersonIDs) {
                 assertionFailed();
             } else {
-                key = JSON.stringify(activePersonIDs);
+                key = JSON.stringify([activePersonIDs, !!peopleOnlyThem]);
             }
         }
     }

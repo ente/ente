@@ -55,6 +55,7 @@ export type FileListWithViewerProps = {
     | "setSelected"
     | "activeCollectionID"
     | "activePersonIDs"
+    | "peopleOnlyThem"
     | "favoriteFileIDs"
     | "emailByUserID"
     | "listBorderRadius"
@@ -101,6 +102,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     setSelected,
     activeCollectionID,
     activePersonIDs,
+    peopleOnlyThem,
     activeCollectionSummary,
     favoriteFileIDs,
     emailByUserID,
@@ -232,6 +234,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                             setSelected,
                             activeCollectionID,
                             activePersonIDs,
+                            peopleOnlyThem,
                             favoriteFileIDs,
                             emailByUserID,
                             listBorderRadius,

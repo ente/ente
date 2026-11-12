@@ -12,6 +12,7 @@ export const handleSelectCreator =
         activeCollectionID: number | undefined,
         activePersonIDs: string[] | undefined,
         setRangeStartIndex: (index: number | undefined) => void,
+        peopleOnlyThem = false,
     ) =>
     ({ id, ownerID }: { id: number; ownerID: number }, index?: number) =>
     (checked: boolean) => {
@@ -28,6 +29,7 @@ export const handleSelectCreator =
                 activeCollectionID,
                 activePersonIDs,
                 _selected,
+                peopleOnlyThem,
             );
 
             const handleCounterChange = (count: number) => {
@@ -68,6 +70,7 @@ export const handleSelectCreatorMulti =
         userID: number | undefined,
         activeCollectionID: number | undefined,
         activePersonIDs: string[] | undefined,
+        peopleOnlyThem = false,
     ) =>
     (files: { id: number; ownerID: number }[]) =>
     (checked: boolean) => {
@@ -77,6 +80,7 @@ export const handleSelectCreatorMulti =
                 activeCollectionID,
                 activePersonIDs,
                 _selected,
+                peopleOnlyThem,
             );
 
             const newSelected = { ...selected };
@@ -117,6 +121,7 @@ const createSelectedAndContext = (
     activeCollectionID: number | undefined,
     activePersonIDs: string[] | undefined,
     selected: SelectedState,
+    peopleOnlyThem: boolean,
 ) => {
     if (mode == "links") {
         return {
@@ -144,7 +149,11 @@ const createSelectedAndContext = (
             ...selected,
             context:
                 mode == "people"
-                    ? { mode, personIDs: activePersonIDs ?? [] }
+                    ? {
+                          mode,
+                          personIDs: activePersonIDs ?? [],
+                          onlyThem: peopleOnlyThem || undefined,
+                      }
                     : { mode, collectionID: activeCollectionID },
         };
     } else {
@@ -155,14 +164,19 @@ const createSelectedAndContext = (
                 collectionID: 0,
                 context:
                     mode == "people"
-                        ? { mode, personIDs: activePersonIDs ?? [] }
+                        ? {
+                              mode,
+                              personIDs: activePersonIDs ?? [],
+                              onlyThem: peopleOnlyThem || undefined,
+                          }
                         : { mode, collectionID: activeCollectionID },
             };
         } else {
             if (selected.context.mode == "people") {
                 if (
                     JSON.stringify(selected.context.personIDs) !==
-                    JSON.stringify(activePersonIDs ?? [])
+                        JSON.stringify(activePersonIDs ?? []) ||
+                    !!selected.context.onlyThem !== peopleOnlyThem
                 ) {
                     selected = {
                         ownCount: 0,
@@ -171,6 +185,7 @@ const createSelectedAndContext = (
                         context: {
                             mode: selected.context.mode,
                             personIDs: activePersonIDs ?? [],
+                            onlyThem: peopleOnlyThem || undefined,
                         },
                     };
                 }
@@ -193,7 +208,11 @@ const createSelectedAndContext = (
     const newContext: SelectionContext | undefined = !mode
         ? undefined
         : mode == "people"
-          ? { mode, personIDs: activePersonIDs ?? [] }
+          ? {
+                mode,
+                personIDs: activePersonIDs ?? [],
+                onlyThem: peopleOnlyThem || undefined,
+            }
           : { mode, collectionID: activeCollectionID };
 
     return { selected, newContext };

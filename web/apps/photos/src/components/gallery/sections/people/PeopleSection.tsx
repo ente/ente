@@ -22,8 +22,11 @@ export const PeopleSection = ({
     preferences,
     presentation,
 }: GallerySectionProps) => {
-    const { personIDs, extraVisiblePersonIDs: retainedPersonIDs } =
-        navigation.destination;
+    const {
+        personIDs,
+        peopleOnlyThem = false,
+        extraVisiblePersonIDs: retainedPersonIDs,
+    } = navigation.destination;
     const { view, extraVisiblePersonIDs } = useMemo(
         () =>
             derivePeopleView(
@@ -48,12 +51,14 @@ export const PeopleSection = ({
                 library.hiddenFileIDs,
                 view,
                 library.user?.id,
+                peopleOnlyThem,
             ),
         [
             library.collectionFiles,
             library.hiddenFileIDs,
             view,
             library.user?.id,
+            peopleOnlyThem,
         ],
     );
     const { retainPeople } = navigation;
@@ -110,11 +115,13 @@ export const PeopleSection = ({
                             <PeopleFilterRow
                                 key={activePerson.id}
                                 people={filterPeople}
-                                selectedPersonIDs={activePersonIDs}
+                                activePeople={view.activePeople}
+                                onlyThem={peopleOnlyThem}
                             />
                         </Box>
                     )}
-                    {view.activePeople.length > 1 && !files.length ? (
+                    {(view.activePeople.length > 1 || peopleOnlyThem) &&
+                    !files.length ? (
                         <Typography
                             role="status"
                             sx={{
@@ -123,7 +130,11 @@ export const PeopleSection = ({
                                 color: "text.muted",
                             }}
                         >
-                            {t("people_all_empty")}
+                            {t(
+                                peopleOnlyThem
+                                    ? "people_only_them_empty"
+                                    : "people_all_empty",
+                            )}
                         </Typography>
                     ) : (
                         <GalleryMedia
@@ -134,6 +145,7 @@ export const PeopleSection = ({
                                 files,
                                 activeCollectionID: undefined,
                                 activePersonIDs,
+                                peopleOnlyThem,
                                 activeCollectionSummary: undefined,
                                 disableGrouping: false,
                             }}

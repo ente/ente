@@ -29,6 +29,8 @@ const peopleState: PeopleState = {
     people,
     visiblePeople: people.filter((p) => p.name),
     personByFaceID: new Map(),
+    personIDsByFileID: new Map(),
+    unassignedFaceFileIDs: new Set(),
 };
 const collectionFiles = [1, 2, 3, 4, 5, 6, 2].map((id) => ({
     id,

@@ -25,6 +25,7 @@ export interface PhotosNavigationActions {
     showPeople: (onNavigate?: () => void) => boolean;
     selectPerson: (id: string) => void;
     togglePerson: (id: string) => void;
+    togglePeopleOnlyThem: () => void;
     backToPeople: () => void;
     selectSearchOption: (
         option: SearchOption | undefined,

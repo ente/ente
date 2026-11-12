@@ -16,4 +16,6 @@ export type GalleryView =
           visiblePeople: Person[];
           people: Person[];
           activePeople: Person[];
+          personIDsByFileID: Map<number, Set<string>>;
+          unassignedFaceFileIDs: Set<number>;
       };

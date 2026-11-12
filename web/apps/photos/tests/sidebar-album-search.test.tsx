@@ -138,6 +138,7 @@ const renderSearch = (
         showPeople: vi.fn(() => true),
         selectPerson: vi.fn(),
         togglePerson: vi.fn(),
+        togglePeopleOnlyThem: vi.fn(),
         backToPeople: vi.fn(),
         selectSearchOption: vi.fn(),
         showCleanupView: vi.fn(),

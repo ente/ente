@@ -17,6 +17,7 @@ import {
     saveRejectedClustersForCGroup,
 } from "./kvdb";
 import { dotProduct } from "./math";
+import { peopleFileMembership } from "./people-membership";
 
 // Only cgroups sync; interacting with a local cluster promotes it.
 export interface CGroupUserEntityData {
@@ -61,6 +62,8 @@ export interface PeopleState {
     people: Person[];
     visiblePeople: Person[];
     personByFaceID: Map<string, Person>;
+    personIDsByFileID: Map<number, Set<string>>;
+    unassignedFaceFileIDs: Set<number>;
 }
 
 export const reconstructPeopleState = async (): Promise<PeopleState> => {
@@ -224,7 +227,12 @@ export const reconstructPeopleState = async (): Promise<PeopleState> => {
         }
     }
 
-    return { people, visiblePeople, personByFaceID };
+    return {
+        people,
+        visiblePeople,
+        personByFaceID,
+        ...peopleFileMembership(people, faceIndexes, cgroups),
+    };
 };
 
 // Older mobile clients stored avatarFileID in this field.
