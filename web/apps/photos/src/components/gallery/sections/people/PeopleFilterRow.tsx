@@ -43,55 +43,44 @@ export const PeopleFilterRow = ({
         });
         pendingChip.current = null;
     }, [activePeople]);
-    const renderFilters = (avatarSize: number, limit?: number) => {
-        const selected = people.filter((person) =>
-            selectedPersonIDs.includes(person.id),
-        );
-        const suggestions = people.filter(
-            (person) => !selectedPersonIDs.includes(person.id),
-        );
-        // The badge replaces the applied face chips, as on mobile.
-        const filters: (Person | "only-them")[] = onlyThem
-            ? ["only-them"]
-            : [
-                  ...selected,
-                  ...(canShowOnlyThem ? ["only-them" as const] : []),
-                  ...suggestions.slice(0, limit),
-              ];
-        return filters.map((filter) =>
-            filter === "only-them" ? (
-                <PeopleFilterChip
-                    key="only-them"
-                    name={t("only_them")}
-                    label={t("only_them")}
-                    selected={onlyThem}
-                    avatarSize={avatarSize}
-                    onClick={() => {
-                        togglePeopleOnlyThem();
-                        setShowFilters(false);
-                    }}
-                >
-                    <PeopleFaceCollage people={activePeople} />
-                </PeopleFilterChip>
-            ) : (
-                <FaceFilter
-                    key={`person:${filter.id}`}
-                    person={filter}
-                    selected={selectedPersonIDs.includes(filter.id)}
-                    avatarSize={avatarSize}
-                    onClick={(event) => {
-                        if (
-                            avatarSize === 32 &&
-                            !selectedPersonIDs.includes(filter.id)
-                        )
-                            pendingChip.current = event.currentTarget;
-                        togglePerson(filter.id);
-                        setShowFilters(false);
-                    }}
-                />
-            ),
-        );
-    };
+    const selected = people.filter((person) =>
+        selectedPersonIDs.includes(person.id),
+    );
+    const suggestions = people.filter(
+        (person) => !selectedPersonIDs.includes(person.id),
+    );
+    // The badge replaces the applied face chips, as on mobile.
+    const filters: (Person | "only-them")[] = onlyThem
+        ? ["only-them"]
+        : [
+              ...selected,
+              ...(canShowOnlyThem ? ["only-them" as const] : []),
+              ...suggestions.slice(0, canShowOnlyThem ? 13 : 14),
+          ];
+    const rowFilters = filters.map((filter) =>
+        filter === "only-them" ? (
+            <PeopleFilterChip
+                key="only-them"
+                name={t("only_them")}
+                label={t("only_them")}
+                selected={onlyThem}
+                onClick={togglePeopleOnlyThem}
+            >
+                <PeopleFaceCollage people={activePeople} />
+            </PeopleFilterChip>
+        ) : (
+            <FaceFilter
+                key={`person:${filter.id}`}
+                person={filter}
+                selected={selectedPersonIDs.includes(filter.id)}
+                onClick={(event) => {
+                    if (!selectedPersonIDs.includes(filter.id))
+                        pendingChip.current = event.currentTarget;
+                    togglePerson(filter.id);
+                }}
+            />
+        ),
+    );
     if (!people.length && !canShowOnlyThem) return null;
     return (
         <>
@@ -109,19 +98,21 @@ export const PeopleFilterRow = ({
                     "&::-webkit-scrollbar": { display: "none" },
                 }}
             >
-                <FilterButton
-                    disableRipple
-                    aria-label={t("filters")}
-                    aria-haspopup="dialog"
-                    aria-expanded={showFilters}
-                    onClick={() => setShowFilters(true)}
-                >
-                    <HugeiconsIcon icon={Menu08Icon} size={16} />
-                </FilterButton>
-                {renderFilters(32, canShowOnlyThem ? 13 : 14)}
+                {people.length > 0 && (
+                    <FilterButton
+                        disableRipple
+                        aria-label={t("filters")}
+                        aria-haspopup="dialog"
+                        aria-expanded={showFilters}
+                        onClick={() => setShowFilters(true)}
+                    >
+                        <HugeiconsIcon icon={Menu08Icon} size={16} />
+                    </FilterButton>
+                )}
+                {rowFilters}
             </Stack>
             <Dialog
-                open={showFilters}
+                open={showFilters && people.length > 0}
                 onClose={() => setShowFilters(false)}
                 aria-labelledby={titleID}
                 maxWidth={false}
@@ -182,7 +173,18 @@ export const PeopleFilterRow = ({
                         direction="row"
                         sx={{ flexWrap: "wrap", gap: "12px 8px" }}
                     >
-                        {renderFilters(48)}
+                        {people.map((person) => (
+                            <FaceFilter
+                                key={person.id}
+                                person={person}
+                                selected={selectedPersonIDs.includes(person.id)}
+                                avatarSize={48}
+                                onClick={() => {
+                                    togglePerson(person.id);
+                                    setShowFilters(false);
+                                }}
+                            />
+                        ))}
                     </Stack>
                 </Box>
             </Dialog>
