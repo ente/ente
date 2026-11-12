@@ -66,6 +66,8 @@ To use Backup mode:
 2. Open `Settings > Backup > Backup settings > Backup mode`.
 3. Tap **Start backup mode** and keep Ente open on screen. Switching apps pauses Backup mode.
 
+Backup mode keeps an upload that is already running going. It doesn't start one by itself. If Backup mode says **No backup in progress**, Ente isn't uploading right now, even if photos are still waiting. Return to the home screen and wait until uploads are moving, then open Backup mode. See [Why does Backup mode say "No backup in progress"?](/photos/faq/backup-and-sync#backup-mode-no-backup).
+
 You only need Backup mode for large uploads. New photos will continue to back up in the background afterwards.
 
 The progress shown during Backup mode relates to the current upload session. It may restart when a new session begins. A reset counter alone does not mean your entire library is uploading again.

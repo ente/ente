@@ -13,6 +13,8 @@ Once you select which albums to backup in your mobile app settings, Ente automat
 
 Each selected device folder or album backs up to a corresponding Ente album. Mobile automatic backup does not offer **Uncategorized** as a destination. You can browse local folders under **Albums > Device** and backed-up Ente albums under **Albums > Ente**.
 
+Mobile backup uploads photos stored on your phone. It doesn't import your Google Photos library. If only some of your photos appeared, see [Why didn't Ente bring over all my Google Photos on my phone?](/photos/faq/migration#google-photos-not-imported).
+
 **Key features:**
 
 - Background sync runs automatically
@@ -90,6 +92,16 @@ Learn more in the [Backup only new photos](/photos/features/backup-and-sync/#bac
 
 No. Backup mode progress relates to the current upload session. The counter can restart when a new session begins. A reset alone does not mean your entire library is uploading again. Check [Backup status](#check-backup-status) for pending items.
 
+### Why does Backup mode say "No backup in progress"? {#backup-mode-no-backup}
+
+Backup mode keeps an upload that is already running going. It doesn't start one by itself. "No backup in progress" means Ente isn't uploading right now, even if photos are still waiting.
+
+1. Check `Settings > Backup > Backed up folders` and make sure the folders you want are turned on.
+2. Return to the home screen and wait until the top of the screen shows that photos are uploading. If it says it's waiting for Wi-Fi or for the network, connect to Wi-Fi first.
+3. Then open Backup mode and tap **Start backup mode**. Keep Ente open on screen, with your iPhone plugged in.
+
+If uploads still don't start, email [support@ente.com](mailto:support@ente.com).
+
 ### Can I backup over mobile data or only WiFi? {#mobile-data}
 
 By default, Ente only backs up photos over WiFi to save mobile data and battery. However, you can change this setting:
@@ -116,6 +128,7 @@ If the app is slow or crashes while backing up a large library, temporarily turn
 **On iOS:**
 
 - Open [Backup mode](/photos/features/backup-and-sync/#backup-mode-ios) under `Settings > Backup > Backup settings` and tap **Start backup mode**
+- Backup mode keeps an upload that is already running going. If you see **No backup in progress**, see [Why does Backup mode say "No backup in progress"?](#backup-mode-no-backup)
 - Keep Ente open on screen. Switching apps pauses Backup mode
 - Keep your phone connected to power and stable WiFi until the backup finishes
 
@@ -566,6 +579,17 @@ Watch folders allow the Ente desktop app to automatically monitor specific direc
 
 Learn more in the [Watch folders feature guide](/photos/features/backup-and-sync/watch-folders).
 
+### Why does Ente upload photos again after I download or export them on desktop? {#download-into-watched-folder}
+
+Watch folders upload every new file that appears in a watched folder, including files you've just downloaded or exported from Ente. If you save photos from Ente into a folder that Ente is watching, they are uploaded again, which can create duplicates or keep the upload going.
+
+To save your photos to your computer without this:
+
+1. Open `Watch folders` in the desktop app. If the folder you're saving into is listed, click **Stop watching**. This only stops automatic uploads from that folder. It doesn't delete anything from your computer or from Ente.
+2. Use **Export data** and choose a destination folder that is not listed under Watch folders.
+
+Keep the folders you watch for uploads and the folders you export or download into separate. See [Can I do a 2-way sync with exports?](/photos/faq/advanced-features#export-two-way-sync) and [Export your data](/photos/migration/export/).
+
 ### Does Ente keep my phone and PC folders in sync with each other? {#folder-sync-phone-pc}
 
 Ente backs up photos from your phone and computer to Ente's servers, making them available across all your Ente apps. However, Ente is not a two-way folder sync service - it won't automatically mirror a folder on your PC and your phone's local storage with each other.
@@ -788,6 +812,8 @@ Yes! On desktop, you have two options:
 - Going to `Settings > Backup` and toggling off specific albums
 
 To resume, simply turn connectivity back on or re-enable the albums.
+
+To stop a backup you started by mistake, for example your whole library on the free plan, open `Settings > Backup > Backed up folders` and turn off the folders you don't want. Photos that already uploaded stay in Ente.
 
 **On desktop:**
 

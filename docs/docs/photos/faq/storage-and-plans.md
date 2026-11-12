@@ -384,6 +384,8 @@ Once we've verified your enrollment, we'll reply with a personal coupon code for
 
 Please note that these discounts are valid for a year, after which you may reapply to reclaim the discount.
 
+The discount works on monthly and yearly plans. On a monthly plan, enter the code once at checkout and it applies to each monthly payment for 12 months.
+
 **Already subscribed?**
 
 Contact [students@ente.com](mailto:students@ente.com) before your next renewal invoice is generated so we can review your eligibility and help renew the discount on your existing subscription. Include the email address registered with Ente if it differs from your institute email.
@@ -576,12 +578,12 @@ Contact [support@ente.com](mailto:support@ente.com) if you want to return to the
 
 If your usage is above the free allowance, contact support about your options. Keep a verified export of anything you want to retain before removing files.
 
-**What about subscriptions purchased through app stores?**
+**What about subscriptions purchased through the App Store?**
 
-If you have a subscription through the Apple App Store or Google Play:
+If you have a subscription through the Apple App Store:
 
-- Manage your subscription through the respective app store
-- Cancellation policies follow the app store's terms
+- Manage your subscription in your Apple ID subscription settings
+- Cancellation policies follow Apple's terms
 - The same timeline applies after expiration
 
 ### What happens when I upgrade my plan? {#upgrade-plan}
@@ -723,15 +725,19 @@ We send this email when we try to renew your subscription but the payment doesn'
 
 Your photos and files are safe, but new uploads stop until the renewal is paid.
 
-If your subscription is through the Apple App Store or Google Play, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+If your subscription is through the Apple App Store, update your payment details in your Apple ID subscription settings. App Store payments cannot be retried from an Ente invoice.
 
 If you pay Ente directly:
 
+We retry a failed renewal automatically over the next few days. If the problem was temporary, for example your bank blocked the payment and has now unblocked it, you don't need to do anything. You'll see the renewal under `Settings > Account > Manage subscription` once it goes through.
+
+If your card has expired or been replaced:
+
 1. Open `Settings > Account > Manage subscription > Manage payment method` in the app, or on [photos.ente.com](https://photos.ente.com).
 2. Add your new card or update the expired one.
-3. In the invoices list on the same page, open the unpaid invoice and retry the payment.
+3. To pay straight away instead of waiting for the next retry, open the unpaid invoice in the invoices list on the same page and retry the payment.
 
-Updating your card does not retry the failed payment on its own, so make sure to complete step 3.
+Want to switch to a smaller plan? Pay the current renewal first, then change plans. Any difference is credited to your account. See [What happens when I downgrade my plan?](#downgrade-plan)
 
 If you don't see an unpaid invoice, or want to change your plan at the same time, reply to the email or contact [support@ente.com](mailto:support@ente.com) and we'll help you renew.
 
@@ -741,7 +747,7 @@ If the renewal isn't paid, your plan expires. See [What happens when my subscrip
 
 For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-For a subscription purchased through the Apple App Store or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
+For a subscription purchased through the Apple App Store, cancel renewal in your Apple ID subscription settings. Check the end date Apple shows; cancelling renewal does not necessarily end the current paid period immediately.
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 

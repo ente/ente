@@ -29,6 +29,8 @@ The trusted contact must accept your request. They can open `Settings > Legacy` 
 
 </div>
 
+Once you accept, there's nothing else to do. You only need to start account recovery if the person who added you can no longer get into their account.
+
 ## Recovering an account as a trusted contact
 
 As a trusted contact, open `Settings > Legacy` in the Ente Photos mobile app and tap the account you want to recover.
