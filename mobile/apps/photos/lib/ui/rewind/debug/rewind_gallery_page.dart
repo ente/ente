@@ -23,8 +23,6 @@ const rewindTopPercentPages = <RewindPage>[
   TopPercentPage(perMille: 10, count: 15059),
   TopPercentPage(perMille: 50, count: 8063),
   TopPercentPage(perMille: 100, count: 4916),
-  TopPercentPage(perMille: 250, count: 2765),
-  TopPercentPage(perMille: 500, count: 985),
 ];
 
 final rewindColourChapters = [
@@ -73,8 +71,11 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
     void open(List<RewindPage> pages) =>
         Navigator.of(context).push(RewindViewer(pages: pages).route());
 
-    void openStory(Future<RewindStory> story) =>
-        Navigator.of(context).push(RewindStoryView(story: story).route());
+    Future<void> openStory(Future<RewindStory> story) async {
+      final ready = await story;
+      if (!context.mounted) return;
+      await Navigator.of(context).push(RewindStoryView(story: ready).route());
+    }
 
     return ListView(
       children: [
@@ -86,7 +87,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
         ),
         ListTile(
           title: const Text("Top % bands"),
-          subtitle: const Text("0.1%, 1%, 5%, 10%, 25% and 50%"),
+          subtitle: const Text("0.1%, 1%, 5% and 10%"),
           trailing: const Icon(Icons.chevron_right_outlined),
           onTap: () => open(rewindTopPercentPages),
         ),

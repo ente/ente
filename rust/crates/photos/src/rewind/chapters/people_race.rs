@@ -10,7 +10,7 @@ use crate::rewind::report::{PeopleRace, RacePerson};
 const RACE_PEOPLE: usize = 3;
 const RACE_MINIMUM_PHOTOS: usize = 10;
 const RACE_FACES: usize = 5;
-const RACE_CANDIDATES: usize = 8;
+const RACE_CANDIDATES: usize = 12;
 const BOOTH_FACE_AREA: f64 = 0.06;
 
 pub(in crate::rewind) fn people_race(
@@ -74,7 +74,7 @@ fn monthly_counts(files: &[&YearFile<'_>]) -> Vec<u32> {
     counts
 }
 
-fn by_prominence<'l, 'r>(
+pub(super) fn by_prominence<'l, 'r>(
     person: &Entity,
     people: &People,
     library: &'l Library<'r>,
@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(alice.photo_count, 12);
         assert_eq!(alice.monthly_counts, vec![12; 12]);
         assert_eq!(race.people[2].monthly_counts[..3], [0, 10, 10]);
-        assert_eq!(alice.file_ids, [7, 1, 2, 4, 6, 8, 9, 10]);
+        assert_eq!(alice.file_ids, [7, 1, 2, 4, 6, 8, 9, 10, 11, 3, 5]);
         assert_eq!(
             alice.face_ids,
             ["7_alice", "10_alice", "11_alice", "1_alice", "2_alice"]

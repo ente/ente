@@ -85,8 +85,14 @@ func (pcr *FileLinkRepository) Insert(
 		req.EncryptedShareKey,
 	)
 	if err != nil {
-		if err.Error() == "pq: duplicate key value violates unique constraint \"public_active_file_link_unique_idx\"" {
-			return nil, ente.ErrActiveLinkAlreadyExists
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code.Name() == "unique_violation" {
+			switch pgErr.Constraint {
+			case "public_file_token_unique_idx", "public_file_token_unconditional_unique_idx":
+				return nil, ente.ErrAccessTokenInUse
+			case "public_active_file_link_unique_idx":
+				return nil, ente.ErrActiveLinkAlreadyExists
+			}
 		}
 		return nil, stacktrace.Propagate(err, "failed to insert")
 	}

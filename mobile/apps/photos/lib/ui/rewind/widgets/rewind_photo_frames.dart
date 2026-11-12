@@ -236,6 +236,7 @@ class RewindBoothStrip extends StatelessWidget {
   const RewindBoothStrip({required this.photos, super.key});
 
   static const size = Size(224, 451);
+  static const frames = 4;
 
   final List<Widget> photos;
 
@@ -248,7 +249,7 @@ class RewindBoothStrip extends StatelessWidget {
         size: size,
         child: Stack(
           children: [
-            for (var i = 0; i < min(photos.length, 4); i++)
+            for (var i = 0; i < min(photos.length, frames); i++)
               Positioned(
                 left: 12.6,
                 top: 6 + 110.0 * i,

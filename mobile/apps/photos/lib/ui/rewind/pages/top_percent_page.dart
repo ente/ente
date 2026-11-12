@@ -31,14 +31,7 @@ class TopPercentPage extends RewindPage {
     <= 10 => const [
       (RewindAssets.crowdHeroTop1, Rect.fromLTWH(141, 152, 113, 118)),
     ],
-    <= 100 => const [
-      (RewindAssets.crowdHeroLeft, Rect.fromLTWH(78, 188, 82, 112)),
-      (RewindAssets.crowdHeroMiddle, Rect.fromLTWH(139, 188, 98, 112)),
-      (RewindAssets.crowdHeroRight, Rect.fromLTWH(223, 183, 88, 113)),
-    ],
     _ => const [
-      (RewindAssets.crowdHeroBackLeft, Rect.fromLTWH(111, 138, 99, 110)),
-      (RewindAssets.crowdHeroBackRight, Rect.fromLTWH(190, 138, 93, 112)),
       (RewindAssets.crowdHeroLeft, Rect.fromLTWH(78, 188, 82, 112)),
       (RewindAssets.crowdHeroMiddle, Rect.fromLTWH(139, 188, 98, 112)),
       (RewindAssets.crowdHeroRight, Rect.fromLTWH(223, 183, 88, 113)),

@@ -60,8 +60,12 @@ class _RewindWaveRevealState extends State<RewindWaveReveal>
       child: widget.child,
       builder: (context, child) {
         final progress = Curves.easeInOutCubic.transform(_controller.value);
-        if (progress >= 1) return child!;
-        return ClipPath(clipper: RewindWaveClipper(progress), child: child);
+        final revealed = progress >= 1;
+        return ClipPath(
+          clipper: revealed ? null : RewindWaveClipper(progress),
+          clipBehavior: revealed ? Clip.none : Clip.antiAlias,
+          child: child,
+        );
       },
     );
   }

@@ -27,8 +27,6 @@ abstract final class RewindAssets {
   static const crowdHeroTop1 = "$_images/crowd-hero-top1.webp";
   static const crowdBack = "$_images/crowd-back.webp";
   static const crowdFront = "$_images/crowd-front.webp";
-  static const crowdHeroBackLeft = "$_images/crowd-hero-b0.webp";
-  static const crowdHeroBackRight = "$_images/crowd-hero-b1.webp";
   static const crowdHeroLeft = "$_images/crowd-hero-left.webp";
   static const crowdHeroMiddle = "$_images/crowd-hero-mid.webp";
   static const crowdHeroRight = "$_images/crowd-hero-right.webp";

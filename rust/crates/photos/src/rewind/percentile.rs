@@ -3,7 +3,7 @@ struct Threshold {
     minimum_files: u32,
 }
 
-const TOP_PERCENT_THRESHOLDS: [Threshold; 6] = [
+const TOP_PERCENT_THRESHOLDS: [Threshold; 4] = [
     Threshold {
         top_per_mille: 1,
         minimum_files: 39_123,
@@ -19,14 +19,6 @@ const TOP_PERCENT_THRESHOLDS: [Threshold; 6] = [
     Threshold {
         top_per_mille: 100,
         minimum_files: 4_916,
-    },
-    Threshold {
-        top_per_mille: 250,
-        minimum_files: 2_765,
-    },
-    Threshold {
-        top_per_mille: 500,
-        minimum_files: 985,
     },
 ];
 
@@ -62,7 +54,7 @@ mod tests {
         assert_eq!(top_per_mille(39_123), Some(1));
         assert_eq!(top_per_mille(39_122), Some(10));
         assert_eq!(top_per_mille(5_347), Some(100));
-        assert_eq!(top_per_mille(985), Some(500));
-        assert_eq!(top_per_mille(984), None);
+        assert_eq!(top_per_mille(4_916), Some(100));
+        assert_eq!(top_per_mille(4_915), None);
     }
 }

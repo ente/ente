@@ -53,6 +53,7 @@ Jump to a category:
 - [How do I reset my password if I lost it?](/photos/faq/account-creation#reset-password)
 - [Can I change my password later?](/photos/faq/account-creation#change-password-later)
 - [Does Ente support two-factor authentication (2FA)?](/photos/faq/account-creation#2fa)
+- [Why does Ente reject my codes when I set up two-factor authentication?](/photos/faq/account-creation#2fa-setup-code-rejected)
 - [Can I use passkeys instead of passwords?](/photos/faq/account-creation#use-passkeys)
 - [What happens if I lose my passkey?](/photos/faq/account-creation#lost-passkey)
 - [I'm not receiving the verification code email](/photos/faq/account-creation#verification-code)
@@ -66,6 +67,7 @@ Jump to a category:
 ### Albums
 
 - [How do I change an album's cover or description?](/photos/faq/albums-and-organization#edit-album-details)
+- [Can I sort my home timeline oldest first?](/photos/faq/albums-and-organization#timeline-sort)
 - [Can Ente albums be nested?](/photos/faq/albums-and-organization#nested-albums)
 - [What happens when I upload a nested folder structure?](/photos/faq/albums-and-organization#nested-folders)
 - [Can I sync a folder with multiple subfolders?](/photos/faq/albums-and-organization#sync-subfolders)
@@ -142,6 +144,7 @@ Jump to a category:
 - [Can I back up only some photos from a folder, not the whole folder?](/photos/faq/backup-and-sync#backup-selected-photos)
 - [Can I backup over mobile data or only WiFi?](/photos/faq/backup-and-sync#mobile-data)
 - [Why is my initial backup taking so long?](/photos/faq/backup-and-sync#initial-backup-slow)
+- [Why does Backup mode say "No backup in progress"?](/photos/faq/backup-and-sync#backup-mode-no-backup)
 - [What happens if my backup is interrupted?](/photos/faq/backup-and-sync#backup-interrupted)
 - [Do deleted photos on my device also delete from Ente?](/photos/faq/backup-and-sync#deletion-sync)
 - [Understanding Ente's backup vs. sync paradigm](/photos/faq/backup-and-sync#backup-vs-sync)
@@ -168,6 +171,7 @@ Jump to a category:
 ### Desktop Backup (Watch Folders)
 
 - [How do watch folders work?](/photos/faq/backup-and-sync#how-watch-folders-work)
+- [Why does Ente upload photos again after I download or export them on desktop?](/photos/faq/backup-and-sync#download-into-watched-folder)
 - [What are watch folders?](/photos/faq/backup-and-sync#what-are-watch-folders)
 - [How do I set up watch folders?](/photos/faq/backup-and-sync#set-up-watch-folders)
 - [Can I watch multiple folders at once?](/photos/faq/backup-and-sync#watch-multiple-folders)
@@ -253,6 +257,7 @@ Jump to a category:
 
 ### Importing from Google Photos
 
+- [Why didn't Ente bring over all my Google Photos on my phone?](/photos/faq/migration#google-photos-not-imported)
 - [Can I import Google Takeout on my phone or on the web?](/photos/faq/migration#takeout-desktop-only)
 - [How much Ente storage do I need when importing my Google Photos Takeout?](/photos/faq/migration#google-takeout-storage)
 - [I imported Google Takeout, but the same photos are on my Android phone. How do I avoid uploading them again?](/photos/faq/migration#takeout-android-existing-photos)

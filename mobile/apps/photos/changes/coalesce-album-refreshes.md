@@ -1,1 +1,0 @@
-- Improved backup performance for large photo libraries.

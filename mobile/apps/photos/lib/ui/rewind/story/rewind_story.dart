@@ -51,6 +51,8 @@ class RewindStory {
     return pages.firstWhereOrNull((page) => later.contains(page.key))?.key;
   }
 
+  int resumeIndex(String? key) => indexOf(resumeAt(key));
+
   void preloadFrom(int index) {
     for (var i = index; i < min(pages.length, index + _lookahead); i++) {
       if (_preloaded.add(_photos[i])) _photos[i].forEach(preloadRewindPhoto);
