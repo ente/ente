@@ -385,20 +385,17 @@ mod tests {
     const TRIER: (f64, f64) = (49.7499, 6.6371);
     const FLORENCE: (f64, f64) = (43.7696, 11.2558);
     const TIVOLI: (f64, f64) = (41.9634, 12.7983);
-    const PUDUCHERRY: (f64, f64) = (11.9416, 79.8083);
-    const PUDUCHERRY_NORTH: (f64, f64) = (11.95, 79.8);
-    const MANAVELI: (f64, f64) = (11.87, 79.82);
-    const MANAVELI_SOUTH: (f64, f64) = (11.865, 79.82);
-    const AUROVILLE: (f64, f64) = (12.006, 79.81);
-    const HAMPI: (f64, f64) = (15.335, 76.46);
-    const ANEGUNDI: (f64, f64) = (15.351, 76.493);
-    const KAMALAPURA: (f64, f64) = (15.3, 76.475);
-    const HOSAPETE: (f64, f64) = (15.2689, 76.3909);
-    const CANACONA: (f64, f64) = (15.0086, 74.0466);
-    const KANKON: (f64, f64) = (15.0186, 74.0466);
-    const AGONDA: (f64, f64) = (15.0436, 73.9867);
-    const HONG_KONG_ISLAND: (f64, f64) = (22.2783, 114.1747);
-    const HONG_KONG_NEW_TERRITORIES: (f64, f64) = (22.3964, 114.1095);
+    const COAST_TOWN: (f64, f64) = (11.9416, 76.8083);
+    const COAST_TOWN_NORTH: (f64, f64) = (11.95, 76.8);
+    const BEACH_VILLAGE: (f64, f64) = (11.87, 76.82);
+    const BEACH_VILLAGE_SOUTH: (f64, f64) = (11.865, 76.82);
+    const HILL_VILLAGE: (f64, f64) = (12.006, 76.81);
+    const TEMPLE_VILLAGE: (f64, f64) = (15.335, 73.46);
+    const RIVER_VILLAGE: (f64, f64) = (15.3485, 73.46);
+    const MARKET_TOWN: (f64, f64) = (15.3, 73.475);
+    const DISTRICT_TOWN: (f64, f64) = (15.2689, 73.3909);
+    const HARBOUR_TOWN: (f64, f64) = (22.2783, 111.1747);
+    const HARBOUR_TOWN_WEST: (f64, f64) = (22.3964, 111.1095);
     const FRENCH_TOWNS: [(f64, f64); 6] = [
         (45.764, 4.8357),
         (45.1885, 5.7245),
@@ -430,7 +427,7 @@ mod tests {
 
     struct Atlas;
 
-    const CITIES: [(&str, [u8; 2], (f64, f64)); 40] = [
+    const CITIES: [(&str, [u8; 2], (f64, f64)); 37] = [
         ("Amsterdam", *b"NL", AMSTERDAM),
         ("Berlin", *b"DE", BERLIN),
         ("Los Angeles", *b"US", DOWNTOWN_LOS_ANGELES),
@@ -457,20 +454,17 @@ mod tests {
         ("Trier", *b"DE", TRIER),
         ("Florence", *b"IT", FLORENCE),
         ("Tivoli", *b"IT", TIVOLI),
-        ("Puducherry", *b"IN", PUDUCHERRY),
-        ("Puducherry", *b"IN", PUDUCHERRY_NORTH),
-        ("Manaveli", *b"IN", MANAVELI),
-        ("Manaveli", *b"IN", MANAVELI_SOUTH),
-        ("Auroville", *b"IN", AUROVILLE),
-        ("Hampi", *b"IN", HAMPI),
-        ("Anegundi", *b"IN", ANEGUNDI),
-        ("Kamalapura", *b"IN", KAMALAPURA),
-        ("Hosapete", *b"IN", HOSAPETE),
-        ("Canacona", *b"IN", CANACONA),
-        ("Kānkon", *b"IN", KANKON),
-        ("Agonda", *b"IN", AGONDA),
-        ("Hong Kong", *b"HK", HONG_KONG_ISLAND),
-        ("Hong Kong", *b"HK", HONG_KONG_NEW_TERRITORIES),
+        ("Coast Town", *b"IN", COAST_TOWN),
+        ("Coast Town", *b"IN", COAST_TOWN_NORTH),
+        ("Beach Village", *b"IN", BEACH_VILLAGE),
+        ("Beach Village", *b"IN", BEACH_VILLAGE_SOUTH),
+        ("Hill Village", *b"IN", HILL_VILLAGE),
+        ("Temple Village", *b"IN", TEMPLE_VILLAGE),
+        ("River Village", *b"IN", RIVER_VILLAGE),
+        ("Market Town", *b"IN", MARKET_TOWN),
+        ("District Town", *b"IN", DISTRICT_TOWN),
+        ("Porto Belém", *b"IN", HARBOUR_TOWN),
+        ("Porto Belem", *b"IN", HARBOUR_TOWN_WEST),
     ];
 
     fn nearest_city(coordinate: Coordinate) -> usize {
@@ -501,9 +495,9 @@ mod tests {
                             latitude,
                             longitude,
                             rank: match name {
-                                "Puducherry" => 4,
-                                "Hosapete" => 3,
-                                "Kamalapura" => 1,
+                                "Coast Town" => 4,
+                                "District Town" => 3,
+                                "Market Town" => 1,
                                 _ => 0,
                             },
                         },
@@ -1292,35 +1286,30 @@ mod tests {
 
     #[test]
     fn a_village_next_to_a_town_is_named_after_the_town_only_when_you_photographed_the_town_too() {
-        let mut first = stay(1000, "2024-01-10T09:00:00", 20, 240, MANAVELI);
-        first.extend(stay(1100, "2024-01-11T10:00:00", 8, 60, PUDUCHERRY));
-        let mut second = stay(2000, "2025-01-10T09:00:00", 20, 240, MANAVELI);
-        second.extend(stay(2100, "2025-01-11T10:00:00", 2, 60, PUDUCHERRY));
+        let mut first = stay(1000, "2024-01-10T09:00:00", 20, 240, BEACH_VILLAGE);
+        first.extend(stay(1100, "2024-01-11T10:00:00", 8, 60, COAST_TOWN));
+        let mut second = stay(2000, "2025-01-10T09:00:00", 20, 240, BEACH_VILLAGE);
+        second.extend(stay(2100, "2025-01-11T10:00:00", 2, 60, COAST_TOWN));
         let files = library(vec![first, second], &AMSTERDAM_HOME);
-
-        assert_eq!(trips(files), named(&[(1, "Puducherry"), (2, "Manaveli")]));
-    }
-
-    #[test]
-    fn two_entries_for_one_town_count_as_one_town_but_neighbouring_villages_stay_apart() {
-        let mut goa = stay(1000, "2024-02-10T09:00:00", 8, 240, CANACONA);
-        goa.extend(stay(1100, "2024-02-12T09:00:00", 7, 240, KANKON));
-        goa.extend(stay(1200, "2024-02-14T09:00:00", 9, 240, AGONDA));
-        let mut hong_kong = stay(2000, "2024-08-10T09:00:00", 5, 240, HONG_KONG_ISLAND);
-        hong_kong.extend(stay(
-            2100,
-            "2024-08-11T09:00:00",
-            5,
-            240,
-            HONG_KONG_NEW_TERRITORIES,
-        ));
-        let mut villages = stay(3000, "2025-02-10T09:00:00", 10, 240, HAMPI);
-        villages.extend(stay(3100, "2025-02-12T09:00:00", 10, 240, ANEGUNDI));
-        let files = library(vec![goa, hong_kong, villages], &AMSTERDAM_HOME);
 
         assert_eq!(
             trips(files),
-            named(&[(1, "Canacona"), (2, "Hong Kong"), (3, "Anegundi & Hampi")])
+            named(&[(1, "Coast Town"), (2, "Beach Village")])
+        );
+    }
+
+    #[test]
+    fn entries_spelled_alike_count_as_one_place_but_neighbouring_villages_stay_apart() {
+        let mut harbour = stay(1000, "2024-08-10T09:00:00", 5, 240, HARBOUR_TOWN);
+        harbour.extend(stay(1100, "2024-08-11T09:00:00", 4, 240, HARBOUR_TOWN_WEST));
+        harbour.extend(stay(1200, "2024-08-12T09:00:00", 3, 240, HILL_VILLAGE));
+        let mut villages = stay(2000, "2025-02-10T09:00:00", 10, 240, TEMPLE_VILLAGE);
+        villages.extend(stay(2100, "2025-02-12T09:00:00", 10, 240, RIVER_VILLAGE));
+        let files = library(vec![harbour, villages], &AMSTERDAM_HOME);
+
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Porto Belém"), (2, "River Village & Temple Village")])
         );
     }
 
@@ -1372,32 +1361,38 @@ mod tests {
 
     #[test]
     fn towns_and_villages_split_across_entries_are_measured_as_whole_places() {
-        let mut split_village = stay(1000, "2024-03-10T09:00:00", 10, 120, MANAVELI);
-        split_village.extend(stay(1100, "2024-03-11T09:00:00", 10, 120, MANAVELI_SOUTH));
-        split_village.extend(stay(1200, "2024-03-12T09:00:00", 4, 60, PUDUCHERRY));
-        let mut chain = stay(2000, "2025-03-10T09:00:00", 30, 120, HAMPI);
-        chain.extend(stay(2100, "2025-03-13T09:00:00", 10, 60, KAMALAPURA));
-        chain.extend(stay(2200, "2025-03-14T09:00:00", 4, 60, HOSAPETE));
-        let mut split_town = stay(3000, "2026-03-10T09:00:00", 15, 120, MANAVELI);
-        split_town.extend(stay(3100, "2026-03-12T09:00:00", 3, 60, PUDUCHERRY));
-        split_town.extend(stay(3200, "2026-03-12T14:00:00", 3, 60, PUDUCHERRY_NORTH));
+        let mut split_village = stay(1000, "2024-03-10T09:00:00", 10, 120, BEACH_VILLAGE);
+        split_village.extend(stay(
+            1100,
+            "2024-03-11T09:00:00",
+            10,
+            120,
+            BEACH_VILLAGE_SOUTH,
+        ));
+        split_village.extend(stay(1200, "2024-03-12T09:00:00", 4, 60, COAST_TOWN));
+        let mut chain = stay(2000, "2025-03-10T09:00:00", 30, 120, TEMPLE_VILLAGE);
+        chain.extend(stay(2100, "2025-03-13T09:00:00", 10, 60, MARKET_TOWN));
+        chain.extend(stay(2200, "2025-03-14T09:00:00", 4, 60, DISTRICT_TOWN));
+        let mut split_town = stay(3000, "2026-03-10T09:00:00", 15, 120, BEACH_VILLAGE);
+        split_town.extend(stay(3100, "2026-03-12T09:00:00", 3, 60, COAST_TOWN));
+        split_town.extend(stay(3200, "2026-03-12T14:00:00", 3, 60, COAST_TOWN_NORTH));
         let files = library(vec![split_village, chain, split_town], &AMSTERDAM_HOME);
 
         assert_eq!(
             trips(files),
-            named(&[(1, "Manaveli"), (2, "Kamalapura"), (3, "Puducherry")])
+            named(&[(1, "Beach Village"), (2, "Market Town"), (3, "Coast Town")])
         );
     }
 
     #[test]
     fn a_town_takes_in_a_village_only_with_photos_of_its_own() {
-        let mut trip = stay(1000, "2024-05-10T09:00:00", 12, 120, MANAVELI);
-        trip.extend(stay(1100, "2024-05-12T09:00:00", 6, 120, AUROVILLE));
-        trip.extend(stay(1200, "2024-05-13T09:00:00", 3, 60, PUDUCHERRY));
+        let mut trip = stay(1000, "2024-05-10T09:00:00", 12, 120, BEACH_VILLAGE);
+        trip.extend(stay(1100, "2024-05-12T09:00:00", 6, 120, HILL_VILLAGE));
+        trip.extend(stay(1200, "2024-05-13T09:00:00", 3, 60, COAST_TOWN));
 
         assert_eq!(
             trips(library(vec![trip], &AMSTERDAM_HOME)),
-            named(&[(1, "Manaveli")])
+            named(&[(1, "Beach Village")])
         );
     }
 }

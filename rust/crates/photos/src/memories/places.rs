@@ -1,14 +1,13 @@
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
 
-use ente_location::{Coordinate, CountryCode};
+use ente_location::{Coordinate, CountryCode, normalize_search_text};
 
 use super::geo::{Located, distance_km};
 use super::input::CityLookup;
 
 const NEARBY_TOWN_KM: f64 = 10.0;
 const TOWN_MAX_PHOTO_RATIO: usize = 3;
-const DUPLICATE_PLACE_KM: f64 = 3.0;
 
 #[derive(Debug)]
 struct Place {
@@ -98,9 +97,7 @@ impl Places {
 
     pub(super) fn cities(&self, members: &[Located]) -> Vec<CityPhotos<'_>> {
         let places = self.fold(self.place_counts(members), |town, place, _, _| {
-            town.city == place.city
-                || (town.rank == place.rank
-                    && distance_km(town.location, place.location) <= DUPLICATE_PLACE_KM)
+            normalize_search_text(&town.city) == normalize_search_text(&place.city)
         });
         let towns = self.fold(places, |town, place, town_photos, place_photos| {
             town.rank > place.rank
