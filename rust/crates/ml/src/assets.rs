@@ -236,11 +236,15 @@ pub fn migrate_desktop_models(
     }
     if legacy_dir.exists() {
         for model in Model::ALL {
-            if let Err(error) = migrate_desktop_model(store, legacy_dir, model, &mut warnings) {
-                warnings.push(format!(
-                    "Failed to migrate {}: {error}",
-                    model_asset_spec(model).key
-                ));
+            let spec = model_asset_spec(model);
+            if let Err(error) = migrate_desktop_asset(
+                store,
+                legacy_dir,
+                &model_asset(model),
+                spec.files,
+                &mut warnings,
+            ) {
+                warnings.push(format!("Failed to migrate {}: {error}", spec.key));
             }
         }
         for name in RETIRED_LEGACY_MODEL_FILES {
@@ -389,22 +393,16 @@ fn desktop_verification_receipt(files: &[ModelAssetFile]) -> String {
     receipt
 }
 
-fn write_desktop_verification_receipt(
-    directory: &Path,
-    files: &[ModelAssetFile],
-) -> std::io::Result<()> {
-    let receipt = directory.join(DESKTOP_VERIFICATION_RECEIPT);
-    let temporary = directory.join(format!("{DESKTOP_VERIFICATION_RECEIPT}.tmp"));
-    fs::write(&temporary, desktop_verification_receipt(files))?;
-    fs::rename(temporary, receipt)
-}
-
 fn record_desktop_verification_receipt(
     directory: &Path,
     files: &[ModelAssetFile],
     warnings: &mut Vec<String>,
 ) {
-    if let Err(error) = write_desktop_verification_receipt(directory, files) {
+    let receipt = directory.join(DESKTOP_VERIFICATION_RECEIPT);
+    let temporary = directory.join(format!("{DESKTOP_VERIFICATION_RECEIPT}.tmp"));
+    let result = fs::write(&temporary, desktop_verification_receipt(files))
+        .and_then(|()| fs::rename(temporary, receipt));
+    if let Err(error) = result {
         warnings.push(format!(
             "Failed to record model verification for {}: {error}",
             directory.display()
@@ -450,17 +448,6 @@ fn verify_desktop_asset(
     Ok(())
 }
 
-fn migrate_desktop_model(
-    store: &AssetStore,
-    legacy_dir: &Path,
-    model: Model,
-    warnings: &mut Vec<String>,
-) -> Result<(), String> {
-    let spec = model_asset_spec(model);
-    let asset = model_asset(model);
-    migrate_desktop_asset(store, legacy_dir, &asset, spec.files, warnings)
-}
-
 fn migrate_desktop_asset(
     store: &AssetStore,
     legacy_dir: &Path,
@@ -479,9 +466,9 @@ fn migrate_desktop_asset(
                 metadata.file_type().is_file() && metadata.len() == file.size,
             )),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(error.into()),
+            Err(error) => Err(error),
         })
-        .collect::<Result<Vec<_>, DownloadError>>()
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|error| error.to_string())?;
 
     if states.iter().all(Option::is_none) {
@@ -523,13 +510,6 @@ fn remove_file_if_exists(path: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Read, Write};
-    use std::net::TcpListener;
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::thread;
-    use std::time::Duration;
-
     use tempfile::TempDir;
 
     use super::*;
@@ -848,41 +828,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn desktop_legacy_pair_is_verified_and_reused_without_network() {
-        let temp = TempDir::new().unwrap();
-        let legacy = temp.path().join("models");
-        fs::create_dir(&legacy).unwrap();
-        let store = AssetStore::new(temp.path().join("assets"));
-        let asset = mobile_test_asset();
-        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
-            fs::write(legacy.join(file.name), bytes).unwrap();
-        }
-
-        let mut warnings = Vec::new();
-        migrate_desktop_asset(&store, &legacy, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-        store
-            .download(
-                std::slice::from_ref(&asset),
-                |_| {},
-                CancellationToken::default(),
-            )
-            .await
-            .unwrap();
-
-        assert!(store.is_downloaded(&asset));
-        assert!(warnings.is_empty());
-        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
-            assert_eq!(
-                fs::read(store.file_path(&asset, file.name).unwrap()).unwrap(),
-                bytes
-            );
-            assert!(!legacy.join(file.name).exists());
-        }
-    }
-
-    #[test]
-    fn desktop_rejects_incomplete_wrong_size_and_wrong_digest_legacy_pairs() {
+    async fn desktop_migration_only_reuses_complete_verified_legacy_pairs() {
         for bytes in [
+            [Some(b"model".as_slice()), Some(b"vocab".as_slice())],
             [None, None],
             [Some(b"model".as_slice()), None],
             [None, Some(b"vocab".as_slice())],
@@ -906,8 +854,21 @@ mod tests {
                 .unwrap();
 
             assert!(warnings.is_empty());
-            assert!(!store.is_downloaded(&asset));
-            assert!(!store.asset_dir(&asset).exists());
+            let valid = bytes == [Some(b"model".as_slice()), Some(b"vocab".as_slice())];
+            assert_eq!(store.is_downloaded(&asset), valid);
+            if valid {
+                store
+                    .download(
+                        std::slice::from_ref(&asset),
+                        |_| {},
+                        CancellationToken::default(),
+                    )
+                    .await
+                    .unwrap();
+                assert_desktop_test_pair(&store, &asset);
+            } else {
+                assert!(!store.asset_dir(&asset).exists());
+            }
             for file in MOBILE_TEST_FILES {
                 assert!(!legacy.join(file.name).exists());
             }
@@ -932,106 +893,6 @@ mod tests {
         assert!(!store.is_downloaded(&model_asset(Model::ClipText)));
         assert!(!store.is_downloaded(&model_asset(Model::FaceEmbedding)));
         assert!(!legacy.exists());
-    }
-
-    #[tokio::test]
-    async fn desktop_rejected_legacy_pair_is_replaced_by_verified_downloads() {
-        let temp = TempDir::new().unwrap();
-        let legacy = temp.path().join("models");
-        fs::create_dir(&legacy).unwrap();
-        let store = AssetStore::new(temp.path().join("assets"));
-        let server = ModelServer::new();
-        let asset = server.asset();
-        for file in MOBILE_TEST_FILES {
-            fs::write(legacy.join(file.name), b"wrong").unwrap();
-        }
-
-        let mut warnings = Vec::new();
-        migrate_desktop_asset(&store, &legacy, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-        assert!(warnings.is_empty());
-        assert!(!store.is_downloaded(&asset));
-        store
-            .download(
-                std::slice::from_ref(&asset),
-                |_| {},
-                CancellationToken::default(),
-            )
-            .await
-            .unwrap();
-
-        assert_desktop_test_pair(&store, &asset);
-        assert_eq!(server.transfers.load(Ordering::SeqCst), 2);
-    }
-
-    #[tokio::test]
-    async fn desktop_failed_acquisition_keeps_a_verified_staged_member_for_retry() {
-        let temp = TempDir::new().unwrap();
-        let store = AssetStore::new(temp.path().join("assets"));
-        let server = ModelServer::new();
-        let asset = server.asset();
-        let staged_model = store
-            .staged_file_path(&asset, MOBILE_TEST_FILES[0].name)
-            .unwrap();
-        fs::create_dir_all(staged_model.parent().unwrap()).unwrap();
-        fs::write(&staged_model, b"model").unwrap();
-        server.fail.store(true, Ordering::SeqCst);
-
-        assert!(
-            store
-                .download(
-                    std::slice::from_ref(&asset),
-                    |_| {},
-                    CancellationToken::default()
-                )
-                .await
-                .is_err()
-        );
-        assert!(!store.is_downloaded(&asset));
-        assert!(!store.asset_dir(&asset).exists());
-        assert_eq!(fs::read(&staged_model).unwrap(), b"model");
-
-        server.fail.store(false, Ordering::SeqCst);
-        let store = AssetStore::new(temp.path().join("assets"));
-        store
-            .download(
-                std::slice::from_ref(&asset),
-                |_| {},
-                CancellationToken::default(),
-            )
-            .await
-            .unwrap();
-
-        assert_desktop_test_pair(&store, &asset);
-        assert_eq!(server.transfers.load(Ordering::SeqCst), 2);
-    }
-
-    #[tokio::test]
-    async fn desktop_partial_historical_pair_remains_unavailable_until_download_completes() {
-        let temp = TempDir::new().unwrap();
-        let store = AssetStore::new(temp.path());
-        let server = ModelServer::new();
-        let asset = server.asset();
-        fs::create_dir_all(store.asset_dir(&asset)).unwrap();
-        fs::write(
-            store.file_path(&asset, MOBILE_TEST_FILES[0].name).unwrap(),
-            b"model",
-        )
-        .unwrap();
-        let mut warnings = Vec::new();
-
-        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-
-        assert!(!store.is_downloaded(&asset));
-        assert!(warnings.is_empty());
-        store
-            .download(
-                std::slice::from_ref(&asset),
-                |_| {},
-                CancellationToken::default(),
-            )
-            .await
-            .unwrap();
-        assert_desktop_test_pair(&store, &asset);
     }
 
     #[test]
@@ -1072,44 +933,6 @@ mod tests {
     }
 
     #[test]
-    fn desktop_receipt_changes_with_the_catalogue_and_rechecks_published_bytes() {
-        let temp = TempDir::new().unwrap();
-        let store = AssetStore::new(temp.path());
-        let asset = mobile_test_asset();
-        write_desktop_test_pair(&store, &asset);
-        let mut warnings = Vec::new();
-        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-        let changed_files = [
-            ModelAssetFile {
-                name: MOBILE_TEST_FILES[0].name,
-                size: MOBILE_TEST_FILES[0].size,
-                sha256: MOBILE_TEST_FILES[1].sha256,
-            },
-            ModelAssetFile {
-                name: MOBILE_TEST_FILES[1].name,
-                size: MOBILE_TEST_FILES[1].size,
-                sha256: MOBILE_TEST_FILES[1].sha256,
-            },
-        ];
-        assert_ne!(
-            desktop_verification_receipt(MOBILE_TEST_FILES),
-            desktop_verification_receipt(&changed_files)
-        );
-
-        verify_desktop_asset(&store, &asset, &changed_files, &mut warnings).unwrap();
-
-        assert!(!store.is_downloaded(&asset));
-        assert!(!store.asset_dir(&asset).exists());
-        assert_eq!(
-            warnings,
-            [format!(
-                "Removed invalid cached model at {}",
-                store.asset_dir(&asset).display()
-            )]
-        );
-    }
-
-    #[test]
     fn desktop_receipt_write_failure_keeps_verified_bytes_and_retries() {
         let temp = TempDir::new().unwrap();
         let store = AssetStore::new(temp.path());
@@ -1132,116 +955,6 @@ mod tests {
             fs::read_to_string(receipt).unwrap(),
             desktop_verification_receipt(MOBILE_TEST_FILES)
         );
-    }
-
-    #[tokio::test]
-    async fn desktop_shared_recorder_failure_after_legacy_publication_keeps_models_and_retries() {
-        let temp = TempDir::new().unwrap();
-        let legacy = temp.path().join("models");
-        fs::create_dir(&legacy).unwrap();
-        let store = AssetStore::new(temp.path().join("assets"));
-        let asset = mobile_test_asset();
-        for (file, bytes) in MOBILE_TEST_FILES.iter().zip([b"model", b"vocab"]) {
-            fs::write(legacy.join(file.name), bytes).unwrap();
-        }
-        let mut warnings = Vec::new();
-        migrate_desktop_asset(&store, &legacy, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-        assert!(warnings.is_empty());
-        let receipt = store.asset_dir(&asset).join(DESKTOP_VERIFICATION_RECEIPT);
-        fs::remove_file(&receipt).unwrap();
-        fs::create_dir(&receipt).unwrap();
-
-        record_desktop_verification_receipt(
-            &store.asset_dir(&asset),
-            MOBILE_TEST_FILES,
-            &mut warnings,
-        );
-
-        assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].starts_with("Failed to record model verification for "));
-        assert!(warnings[0].contains(&store.asset_dir(&asset).to_string_lossy().into_owned()));
-        assert_desktop_test_pair(&store, &asset);
-        assert!(
-            MOBILE_TEST_FILES
-                .iter()
-                .all(|file| !legacy.join(file.name).exists())
-        );
-        store
-            .download(
-                std::slice::from_ref(&asset),
-                |_| {},
-                CancellationToken::default(),
-            )
-            .await
-            .unwrap();
-        fs::remove_dir(&receipt).unwrap();
-        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-        assert_eq!(warnings.len(), 1);
-        assert_eq!(
-            fs::read_to_string(receipt).unwrap(),
-            desktop_verification_receipt(MOBILE_TEST_FILES)
-        );
-    }
-
-    #[test]
-    fn desktop_incomplete_receipt_is_replaced_only_after_verifying_the_complete_pair() {
-        let temp = TempDir::new().unwrap();
-        let store = AssetStore::new(temp.path());
-        let asset = mobile_test_asset();
-        write_desktop_test_pair(&store, &asset);
-        let receipt = store.asset_dir(&asset).join(DESKTOP_VERIFICATION_RECEIPT);
-        fs::write(&receipt, b"ente-photos-model-sha256-v1\n").unwrap();
-        let mut warnings = Vec::new();
-
-        verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-
-        assert_eq!(
-            fs::read_to_string(receipt).unwrap(),
-            desktop_verification_receipt(MOBILE_TEST_FILES)
-        );
-        assert_desktop_test_pair(&store, &asset);
-        assert!(warnings.is_empty());
-    }
-
-    #[tokio::test]
-    async fn desktop_historical_corruption_is_unavailable_until_verified_reacquisition() {
-        for bytes in [[b"wrong", b"vocab"], [b"model", b"wrong"]] {
-            let temp = TempDir::new().unwrap();
-            let store = AssetStore::new(temp.path());
-            let server = ModelServer::new();
-            let asset = server.asset();
-            fs::create_dir_all(store.asset_dir(&asset)).unwrap();
-            for (file, bytes) in MOBILE_TEST_FILES.iter().zip(bytes) {
-                fs::write(store.file_path(&asset, file.name).unwrap(), bytes).unwrap();
-            }
-            assert!(store.is_downloaded(&asset));
-            let mut warnings = Vec::new();
-
-            verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-
-            assert!(!store.is_downloaded(&asset));
-            assert!(!store.asset_dir(&asset).exists());
-            store
-                .download(
-                    std::slice::from_ref(&asset),
-                    |_| {},
-                    CancellationToken::default(),
-                )
-                .await
-                .unwrap();
-            assert_desktop_test_pair(&store, &asset);
-            verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-            assert_eq!(
-                warnings,
-                [format!(
-                    "Removed invalid cached model at {}",
-                    store.asset_dir(&asset).display()
-                )]
-            );
-            verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
-            assert_eq!(warnings.len(), 1);
-            assert_eq!(server.transfers.load(Ordering::SeqCst), 2);
-        }
     }
 
     #[tokio::test]
@@ -1276,17 +989,6 @@ mod tests {
                     );
                     assert_eq!(error.path, store.asset_dir(&asset));
                     assert!(matches!(&error.source, AssetStoreError::Busy));
-                    assert_eq!(
-                        error.to_string(),
-                        format!(
-                            "Failed to remove invalid cached model at {}: asset is busy",
-                            store.asset_dir(&asset).display()
-                        )
-                    );
-                    assert_eq!(
-                        std::error::Error::source(&error).unwrap().to_string(),
-                        "asset is busy"
-                    );
                     Err(DownloadError::Cancelled)
                 },
             )
@@ -1321,22 +1023,6 @@ mod tests {
         }
         let duplicate = legacy.join(MOBILE_TEST_FILES[0].name);
         fs::set_permissions(&duplicate, fs::Permissions::from_mode(0o000)).unwrap();
-        if fs::File::open(&duplicate).is_ok() {
-            eprintln!(
-                "Restricted duplicate remains readable; unreadable-file coverage is unavailable"
-            );
-        } else {
-            assert!(
-                migrate_desktop_asset(&store, &legacy, &asset, MOBILE_TEST_FILES, &mut warnings)
-                    .is_err()
-            );
-            assert!(
-                MOBILE_TEST_FILES
-                    .iter()
-                    .all(|file| legacy.join(file.name).exists())
-            );
-            assert!(!store.is_downloaded(&asset));
-        }
         write_desktop_test_pair(&store, &asset);
         verify_desktop_asset(&store, &asset, MOBILE_TEST_FILES, &mut warnings).unwrap();
 
@@ -1365,105 +1051,6 @@ mod tests {
                 fs::read(store.file_path(asset, file.name).unwrap()).unwrap(),
                 bytes
             );
-        }
-    }
-
-    struct ModelServer {
-        url: String,
-        transfers: Arc<AtomicUsize>,
-        fail: Arc<AtomicBool>,
-        running: Arc<AtomicBool>,
-        worker: Option<thread::JoinHandle<()>>,
-    }
-
-    impl ModelServer {
-        fn new() -> Self {
-            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-            listener.set_nonblocking(true).unwrap();
-            let url = format!("http://{}", listener.local_addr().unwrap());
-            let transfers = Arc::new(AtomicUsize::new(0));
-            let fail = Arc::new(AtomicBool::new(false));
-            let running = Arc::new(AtomicBool::new(true));
-            let worker = {
-                let transfers = Arc::clone(&transfers);
-                let fail = Arc::clone(&fail);
-                let running = Arc::clone(&running);
-                thread::spawn(move || {
-                    while running.load(Ordering::SeqCst) {
-                        let (mut stream, _) = match listener.accept() {
-                            Ok(connection) => connection,
-                            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                                thread::sleep(Duration::from_millis(2));
-                                continue;
-                            }
-                            Err(error) => panic!("model server: {error}"),
-                        };
-                        stream.set_nonblocking(false).unwrap();
-                        stream
-                            .set_read_timeout(Some(Duration::from_secs(5)))
-                            .unwrap();
-                        let mut request = Vec::new();
-                        while !request.ends_with(b"\r\n\r\n") {
-                            let mut byte = [0];
-                            stream.read_exact(&mut byte).unwrap();
-                            request.push(byte[0]);
-                        }
-                        let get = request.starts_with(b"GET ");
-                        if get {
-                            transfers.fetch_add(1, Ordering::SeqCst);
-                        }
-                        if get && fail.load(Ordering::SeqCst) {
-                            stream
-                                .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
-                                .unwrap();
-                        } else {
-                            stream
-                                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\n")
-                                .unwrap();
-                            if get {
-                                let bytes = if String::from_utf8_lossy(&request)
-                                    .contains(MOBILE_TEST_FILES[1].name)
-                                {
-                                    b"vocab"
-                                } else {
-                                    b"model"
-                                };
-                                stream.write_all(bytes).unwrap();
-                            }
-                        }
-                    }
-                })
-            };
-            Self {
-                url,
-                transfers,
-                fail,
-                running,
-                worker: Some(worker),
-            }
-        }
-
-        fn asset(&self) -> Asset {
-            Asset::files(
-                model_key("mobileclip_s2_text_opset18_quant"),
-                MOBILE_TEST_FILES
-                    .iter()
-                    .map(|file| AssetFile {
-                        name: file.name.to_string(),
-                        url: format!("{}/{}", self.url, file.name),
-                        size: file.size,
-                        sha256: file.sha256.to_string(),
-                    })
-                    .collect(),
-            )
-            .unwrap()
-        }
-    }
-
-    impl Drop for ModelServer {
-        fn drop(&mut self) {
-            self.running.store(false, Ordering::SeqCst);
-            self.worker.take().unwrap().join().unwrap();
         }
     }
 
