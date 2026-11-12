@@ -1015,6 +1015,7 @@ func (c *FileController) onExistingObjectsReplaced(ctx *gin.Context, file ente.F
 		if err := c.rollbackObject(item.key, bucketID); err != nil {
 			logger.WithField("object_key", item.key).WithError(err).Error("Error rolling back latest object")
 			revertErr = true
+			continue
 		}
 		if err := c.FileRepo.ResetObjectReplication(item.key, bucketID, item.kind); err != nil {
 			logger.WithField("object_key", item.key).WithError(err).Error("Error resetting needs replication")

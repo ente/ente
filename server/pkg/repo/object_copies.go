@@ -100,21 +100,20 @@ func (repo *ObjectCopiesRepository) DelayNextAttemptByDays(ctx context.Context, 
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCopiesRepository) ResetNeedsB2Replication(objectKey string) error {
-	_, err := repo.DB.Exec(`UPDATE object_copies SET b2 = null WHERE object_key = $1`,
-		objectKey)
-	return stacktrace.Propagate(err, "")
-}
-
-func (repo *ObjectCopiesRepository) ResetNeedsWasabiReplication(objectKey string) error {
-	_, err := repo.DB.Exec(`UPDATE object_copies SET wasabi = null WHERE object_key = $1`,
-		objectKey)
-	return stacktrace.Propagate(err, "")
-}
-
-func (repo *ObjectCopiesRepository) ResetNeedsScalewayReplication(objectKey string) error {
-	_, err := repo.DB.Exec(`UPDATE object_copies SET scw = null WHERE object_key = $1`,
-		objectKey)
+func (repo *ObjectCopiesRepository) ResetReplication(objectKey string, sourceIsB2 bool, wantScaleway bool) error {
+	_, err := repo.DB.Exec(`
+	INSERT INTO object_copies (object_key, b2, wasabi, want_b2, want_wasabi, want_scw)
+	VALUES ($1, CASE WHEN $2 THEN now_utc_micro_seconds() END,
+		CASE WHEN NOT $2 THEN now_utc_micro_seconds() END, true, true, $3)
+	ON CONFLICT (object_key) DO UPDATE SET
+		b2 = EXCLUDED.b2,
+		wasabi = EXCLUDED.wasabi,
+		scw = NULL,
+		want_b2 = true,
+		want_wasabi = true,
+		want_scw = EXCLUDED.want_scw,
+		last_attempt = 0
+	`, objectKey, sourceIsB2, wantScaleway)
 	return stacktrace.Propagate(err, "")
 }
 

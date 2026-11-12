@@ -56,6 +56,62 @@ func TestObjectCopiesReplicationQueue(t *testing.T) {
 	}
 }
 
+func TestObjectCopiesResetReplication(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		sourceIsB2   bool
+		wantScaleway bool
+	}{
+		{name: "b2 file", sourceIsB2: true, wantScaleway: true},
+		{name: "wasabi file", wantScaleway: true},
+		{name: "b2 thumbnail", sourceIsB2: true},
+		{name: "wasabi thumbnail"},
+	} {
+		for _, state := range []string{"retained", "pruned"} {
+			t.Run(tc.name+"/"+state, func(t *testing.T) {
+				db := setupFileUsageTest(t)
+				ownerID := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 1, Email: "replication-reset@example.com", CreationTime: 1})
+				fileID := insertObjectTestFile(t, db, ownerID)
+				objectType := ente.THUMBNAIL
+				locations := []string{"wasabi-eu-central-2-v3", "b2-eu-cen"}
+				if tc.sourceIsB2 {
+					locations[0], locations[1] = locations[1], locations[0]
+				}
+				if tc.wantScaleway {
+					objectType = ente.FILE
+					locations = append(locations, "scw-eu-fr-v3")
+				}
+				const objectKey = "replication-reset"
+				insertObjectTestKey(t, db, fileID, objectType, objectKey, 100, locations)
+				_, err := db.Exec(`INSERT INTO object_copies (object_key, b2, wasabi, scw, want_b2, want_wasabi, want_scw, last_attempt)
+					VALUES ($1, 1, 1, CASE WHEN $2 THEN 1 END, true, true, $2, now_utc_micro_seconds())`, objectKey, tc.wantScaleway)
+				require.NoError(t, err)
+				if state == "pruned" {
+					_, err = db.Exec(`DELETE FROM object_copies WHERE object_key = $1`, objectKey)
+					require.NoError(t, err)
+				}
+
+				repository := &ObjectCopiesRepository{DB: db}
+				require.NoError(t, repository.ResetReplication(objectKey, tc.sourceIsB2, tc.wantScaleway))
+				copies, err := repository.GetAndLockUnreplicatedObject(t.Context())
+				require.NoError(t, err)
+				require.Equal(t, objectKey, copies.ObjectKey)
+				require.True(t, copies.WantB2)
+				require.True(t, copies.WantWasabi)
+				require.Equal(t, tc.wantScaleway, copies.WantSCW)
+				require.Nil(t, copies.SCW)
+				source, destination := copies.Wasabi, copies.B2
+				if tc.sourceIsB2 {
+					source, destination = copies.B2, copies.Wasabi
+				}
+				require.NotNil(t, source)
+				require.Positive(t, *source)
+				require.Nil(t, destination)
+			})
+		}
+	}
+}
+
 func TestObjectCopiesReplicationDestinationRotation(t *testing.T) {
 	db := setupFileUsageTest(t)
 	insertReplicationQueueObjects(t, db)
