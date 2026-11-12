@@ -316,10 +316,10 @@ func TestVideoPreviewRegistrationUsesStagedBucket(t *testing.T) {
 				assertPreviewRegistrationStorageRequests(t, storage.requestsSnapshot(), providerSwitch.initial, objectKey, fileID, userID, upload.ObjectID)
 
 				var latestBucket, registeredObjectID string
-				var registeredObjectSize, registeredSize int64
-				require.NoError(t, db.QueryRow(`SELECT latest_bucket, obj_id, obj_size, size
+				var registeredObjectSize, registeredSize, registeredUpdatedAt int64
+				require.NoError(t, db.QueryRow(`SELECT latest_bucket, obj_id, obj_size, size, updated_at
 				FROM file_data WHERE file_id = $1 AND data_type = $2`, fileID, ente.PreviewVideo).
-					Scan(&latestBucket, &registeredObjectID, &registeredObjectSize, &registeredSize))
+					Scan(&latestBucket, &registeredObjectID, &registeredObjectSize, &registeredSize, &registeredUpdatedAt))
 				require.Equal(t, providerSwitch.initial, latestBucket)
 				require.Equal(t, upload.ObjectID, registeredObjectID)
 				require.Equal(t, objectSize, registeredObjectSize)
@@ -332,6 +332,16 @@ func TestVideoPreviewRegistrationUsesStagedBucket(t *testing.T) {
 				retryResponse := performPreviewRegistration(t, router, userID, registrationBody)
 				require.Equal(t, http.StatusOK, retryResponse.Code, retryResponse.Body.String())
 				require.Empty(t, storage.requestsSnapshot())
+				var retryLatestBucket, retryObjectID string
+				var retryObjectSize, retrySize, retryUpdatedAt int64
+				require.NoError(t, db.QueryRow(`SELECT latest_bucket, obj_id, obj_size, size, updated_at
+				FROM file_data WHERE file_id = $1 AND data_type = $2`, fileID, ente.PreviewVideo).
+					Scan(&retryLatestBucket, &retryObjectID, &retryObjectSize, &retrySize, &retryUpdatedAt))
+				require.Equal(t, latestBucket, retryLatestBucket)
+				require.Equal(t, registeredObjectID, retryObjectID)
+				require.Equal(t, registeredObjectSize, retryObjectSize)
+				require.Equal(t, registeredSize, retrySize)
+				require.Equal(t, registeredUpdatedAt, retryUpdatedAt)
 			})
 		}
 	}
