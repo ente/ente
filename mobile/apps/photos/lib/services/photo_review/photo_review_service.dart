@@ -8,16 +8,22 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/core/user_config.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/photo_review_db.dart";
+import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/photo_review_updated_event.dart";
+import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
+import "package:photos/services/ignored_files_service.dart";
 
 class PhotoReviewService {
-  PhotoReviewService._privateConstructor();
+  PhotoReviewService._privateConstructor() {
+    Bus.instance.on<FilesUpdatedEvent>().listen((_) => _overviewFuture = null);
+    Bus.instance.on<UserLoggedOutEvent>().listen((_) => _overviewFuture = null);
+  }
 
   static final PhotoReviewService instance =
       PhotoReviewService._privateConstructor();
@@ -25,6 +31,10 @@ class PhotoReviewService {
   static final _logger = Logger("PhotoReviewService");
 
   final PhotoReviewDB _db = PhotoReviewDB.instance;
+  Future<ReviewOverview>? _overviewFuture;
+  (int, bool)? _overviewScope;
+  Set<int> _overviewIgnoredCollections = {};
+  Set<String> _overviewIgnoredFiles = {};
 
   static String fileKey(EnteFile file) {
     if (file.uploadedFileID != null) return "u:${file.uploadedFileID}";
@@ -33,6 +43,42 @@ class PhotoReviewService {
   }
 
   Future<ReviewOverview> loadOverview() async {
+    final ignoredFiles =
+        (await IgnoredFilesService.instance.idToIgnoreReasonMap).keys.toSet();
+    final scope = (
+      Configuration.instance.getUserIDV2(),
+      backupPreferenceService.hasSelectedAllFoldersForBackup ||
+          isLocalGalleryMode,
+    );
+    final ignoredCollections = CollectionsService.instance
+        .archivedOrHiddenCollectionIds();
+    if (_overviewScope != scope ||
+        !const SetEquality<int>().equals(
+          _overviewIgnoredCollections,
+          ignoredCollections,
+        ) ||
+        !const SetEquality<String>().equals(
+          _overviewIgnoredFiles,
+          ignoredFiles,
+        )) {
+      _overviewFuture = null;
+      _overviewScope = scope;
+      _overviewIgnoredCollections = ignoredCollections;
+      _overviewIgnoredFiles = ignoredFiles;
+    }
+    final cached = _overviewFuture;
+    if (cached != null) return cached;
+    final future = _loadOverview();
+    _overviewFuture = future;
+    try {
+      return await future;
+    } catch (_) {
+      if (identical(_overviewFuture, future)) _overviewFuture = null;
+      rethrow;
+    }
+  }
+
+  Future<ReviewOverview> _loadOverview() async {
     final files = await _loadFiles(galleryLoadStartTime, galleryLoadEndTime);
     final decisions = await _db.getAllDecisions();
     final months = await _db.getMonthRecords();
@@ -312,6 +358,7 @@ class PhotoReviewService {
   }
 
   void _notifyUpdated(Iterable<ReviewMonthKey> monthKeys) {
+    _overviewFuture = null;
     Bus.instance.fire(PhotoReviewUpdatedEvent(monthKeys));
   }
 
