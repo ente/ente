@@ -1,6 +1,6 @@
 import type { EnteFile } from "ente-media/file";
 import type { PeopleState, Person } from "ente-new/photos/services/ml/people";
-import { afterEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import { emptySelection } from "../src/components/gallery/media/file-selection";
 import {
     initialNavigationState,
@@ -10,9 +10,9 @@ import { initialGalleryState } from "../src/components/gallery/reducer";
 import {
     derivePeopleFilteredFiles,
     derivePeopleView,
+    peopleFilterSuggestions,
     resolvePeopleDestination,
 } from "../src/components/gallery/sections/people/people-files";
-import { createPeoplePress } from "../src/components/gallery/sections/people/people-press";
 import type { SelectedState, SetSelectedState } from "../src/utils/file";
 import {
     handleSelectCreator,
@@ -90,7 +90,6 @@ test("selection survives loading and rename, prunes missing people after refresh
     const destination = {
         section: "people" as const,
         personIDs: ["john", "alice"],
-        peopleSelectionMode: true,
     };
     expect(
         resolvePeopleDestination(
@@ -114,10 +113,7 @@ test("selection survives loading and rename, prunes missing people after refresh
         { ...library, peopleState: { ...peopleState, people: [people[0]!] } },
         destination,
     );
-    expect(removed).toMatchObject({
-        personIDs: ["john"],
-        peopleSelectionMode: false,
-    });
+    expect(removed).toMatchObject({ personIDs: ["john"] });
     expect(
         resolvePeopleDestination(
             { ...library, peopleState: { ...peopleState, people: [] } },
@@ -126,109 +122,82 @@ test("selection survives loading and rename, prunes missing people after refresh
     ).toEqual([]);
 });
 
-test("holds retain the current person; toggles apply immediately; Escape preserves results", () => {
+test("row clicks toggle additional people, while sidebar navigation replaces the base person", () => {
     let state = navigationReducer(initialNavigationState, {
         type: "showPerson",
         personID: "john",
-    });
-    state = navigationReducer(state, {
-        type: "beginPeopleSelection",
-        personID: "john",
-    });
-    expect(state.destination).toMatchObject({
-        personIDs: ["john"],
-        peopleSelectionMode: true,
     });
     state = navigationReducer(state, {
         type: "togglePerson",
         personID: "alice",
     });
     expect(state.destination.personIDs).toEqual(["john", "alice"]);
-    state = navigationReducer(state, { type: "exitPeopleSelection" });
-    expect(state.destination).toMatchObject({
-        personIDs: ["john", "alice"],
-        peopleSelectionMode: false,
+    state = navigationReducer(state, {
+        type: "togglePerson",
+        personID: "john",
     });
+    expect(state.destination.personIDs).toEqual(["john", "alice"]);
+    state = navigationReducer(state, {
+        type: "togglePerson",
+        personID: "alice",
+    });
+    expect(state.destination.personIDs).toEqual(["john"]);
     state = navigationReducer(state, { type: "showPerson", personID: "alice" });
     expect(state.destination.personIDs).toEqual(["alice"]);
-    state = navigationReducer(state, {
-        type: "beginPeopleSelection",
-        personID: "john",
-    });
-    state = navigationReducer(state, {
-        type: "togglePerson",
-        personID: "john",
-    });
-    expect(state.destination).toMatchObject({
-        personIDs: ["alice"],
-        peopleSelectionMode: false,
-    });
-    state = navigationReducer(state, {
-        type: "beginPeopleSelection",
-        personID: "alice",
-    });
-    state = navigationReducer(state, {
-        type: "togglePerson",
-        personID: "alice",
-    });
-    expect(state.destination.personIDs).toEqual([]);
     state = navigationReducer(state, { type: "showPeople" });
     expect(state.destination).toEqual({ section: "people" });
+    expect(
+        navigationReducer(state, { type: "togglePerson", personID: "john" }),
+    ).toBe(state);
 });
 
-test("retaining a newly visible unnamed cluster does not end the initial hold mode", () => {
-    let state = navigationReducer(initialNavigationState, {
-        type: "beginPeopleSelection",
-        personID: "unnamed",
-    });
-    state = navigationReducer(state, {
-        type: "retainPeople",
-        personIDs: ["unnamed"],
-        extraVisiblePersonIDs: ["unnamed"],
-    });
-    expect(state.destination.peopleSelectionMode).toBe(true);
+test("filter row recommends only people in visible results and retains applied filters on empty results", () => {
+    const { view } = derivePeopleView(peopleState, new Set(), new Set(), [
+        "john",
+    ]);
+    const files = derivePeopleFilteredFiles(
+        collectionFiles,
+        library.hiddenFileIDs,
+        view,
+        1,
+    );
+    expect(
+        peopleFilterSuggestions(view.people, view.activePeople, files).map(
+            (p) => p.id,
+        ),
+    ).toEqual(["alice", "unnamed"]);
+    expect(
+        peopleFilterSuggestions(view.people, [people[0]!, people[1]!], []).map(
+            (p) => p.id,
+        ),
+    ).toEqual(["alice"]);
+    expect(peopleFilterSuggestions(view.people, [], files)).toEqual([]);
+    const ignored = { ...people[2]!, type: "cgroup", isHidden: true } as Person;
+    expect(
+        peopleFilterSuggestions([people[0]!, ignored], [people[0]!], files),
+    ).toEqual([]);
 });
 
-afterEach(() => vi.useRealTimers());
-test("hold fires at 450ms and consumes exactly one release click", () => {
-    vi.useFakeTimers();
-    const hold = vi.fn();
-    const press = createPeoplePress(hold);
-    press.start(0, 0);
-    vi.advanceTimersByTime(449);
-    expect(hold).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
-    expect(hold).toHaveBeenCalledOnce();
-    press.end();
-    expect(press.consumeClick()).toBe(true);
-    expect(press.consumeClick()).toBe(false);
-});
-test.each(["move", "cancel", "end"] as const)(
-    "%s cancels a pending hold",
-    (action) => {
-        vi.useFakeTimers();
-        const hold = vi.fn();
-        const press = createPeoplePress(hold);
-        press.start(0, 0);
-        if (action === "move") press.move(9, 0);
-        else press[action]();
-        vi.advanceTimersByTime(500);
-        expect(hold).not.toHaveBeenCalled();
-        expect(press.consumeClick()).toBe(action !== "end");
-    },
-);
-test("small pointer jitter does not cancel a hold; a new press resets cancellation", () => {
-    vi.useFakeTimers();
-    const hold = vi.fn();
-    const press = createPeoplePress(hold);
-    press.start(0, 0);
-    press.move(4, 4);
-    vi.advanceTimersByTime(450);
-    expect(hold).toHaveBeenCalledOnce();
-    press.cancel();
-    press.start(0, 0);
-    press.end();
-    expect(press.consumeClick()).toBe(false);
+test("removing the base person returns to the overview instead of opening an additional filter", () => {
+    const changed = {
+        ...library,
+        peopleState: { ...peopleState, people: [people[1]!] },
+    };
+    const destination = {
+        section: "people" as const,
+        personIDs: ["john", "alice"],
+    };
+    expect(resolvePeopleDestination(changed, destination).personIDs).toEqual(
+        [],
+    );
+    expect(
+        derivePeopleView(
+            changed.peopleState,
+            new Set(),
+            new Set(),
+            destination.personIDs,
+        ).view.activePeople,
+    ).toEqual([]);
 });
 
 test("photo selection is scoped to the whole combination, including date/range selection", () => {

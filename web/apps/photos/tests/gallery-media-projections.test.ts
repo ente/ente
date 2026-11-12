@@ -147,10 +147,5 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
                 extraVisiblePersonIDs: ["small"],
             },
         ),
-    ).toEqual({
-        section: "people",
-        personIDs: [],
-        extraVisiblePersonIDs: [],
-        peopleSelectionMode: false,
-    });
+    ).toEqual({ section: "people", personIDs: [], extraVisiblePersonIDs: [] });
 });

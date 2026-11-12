@@ -98,16 +98,8 @@ export const useGalleryNavigation = (
         (personID: string) => send({ type: "showPerson", personID }),
         [],
     );
-    const beginPeopleSelection = useCallback(
-        (personID: string) => send({ type: "beginPeopleSelection", personID }),
-        [],
-    );
     const togglePerson = useCallback(
         (personID: string) => send({ type: "togglePerson", personID }),
-        [],
-    );
-    const exitPeopleSelection = useCallback(
-        () => send({ type: "exitPeopleSelection" }),
         [],
     );
     const retainPeople = useCallback(
@@ -134,9 +126,7 @@ export const useGalleryNavigation = (
             changeMode,
             showPeople,
             selectPerson,
-            beginPeopleSelection,
             togglePerson,
-            exitPeopleSelection,
             backToPeople,
             showLinksOverview,
             showLibraryMap,
@@ -157,9 +147,7 @@ export const useGalleryNavigation = (
         changeMode,
         showPeople,
         selectPerson,
-        beginPeopleSelection,
         togglePerson,
-        exitPeopleSelection,
         backToPeople,
         showLinksOverview,
         showLibraryMap,

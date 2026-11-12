@@ -12,7 +12,6 @@ export interface GalleryDestination {
     albumFilter?: AlbumFilter;
     personIDs?: string[];
     extraVisiblePersonIDs?: string[];
-    peopleSelectionMode?: boolean;
     collectionMap?: boolean;
 }
 
@@ -55,9 +54,7 @@ export type NavigationAction =
       }
     | { type: "showPeople" }
     | { type: "showPerson"; personID: string }
-    | { type: "beginPeopleSelection"; personID: string }
     | { type: "togglePerson"; personID: string }
-    | { type: "exitPeopleSelection" }
     | {
           type: "retainPeople";
           personIDs: string[];
@@ -138,34 +135,19 @@ export const navigationReducer = (
                 personIDs: [action.personID],
                 extraVisiblePersonIDs: destination.extraVisiblePersonIDs,
             });
-        case "beginPeopleSelection":
-            return navigate({
-                ...destination,
-                section: "people",
-                personIDs: [
-                    ...new Set([
-                        ...(destination.personIDs ?? []),
-                        action.personID,
-                    ]),
-                ],
-                peopleSelectionMode: true,
-            });
         case "togglePerson": {
             const previous = destination.personIDs ?? [];
+            if (
+                destination.section !== "people" ||
+                !previous.length ||
+                previous[0] === action.personID
+            )
+                return state;
             const personIDs = previous.includes(action.personID)
                 ? previous.filter((id) => id !== action.personID)
                 : [...previous, action.personID];
-            return navigate({
-                ...destination,
-                personIDs,
-                peopleSelectionMode: personIDs.length > 1,
-            });
+            return navigate({ ...destination, personIDs });
         }
-        case "exitPeopleSelection":
-            return {
-                ...state,
-                destination: { ...destination, peopleSelectionMode: false },
-            };
         case "retainPeople":
             return destination.section !== "people" ||
                 (JSON.stringify(destination.personIDs ?? []) ===
@@ -179,11 +161,6 @@ export const navigationReducer = (
                           ...destination,
                           personIDs: action.personIDs,
                           extraVisiblePersonIDs: action.extraVisiblePersonIDs,
-                          peopleSelectionMode:
-                              destination.peopleSelectionMode &&
-                              (action.personIDs.length > 1 ||
-                                  JSON.stringify(destination.personIDs) ===
-                                      JSON.stringify(action.personIDs)),
                       },
                   };
         case "enterSearchMode":

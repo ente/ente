@@ -102,11 +102,13 @@ import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 interface PeopleHeaderProps {
     people: Person[];
     person: Person;
+    fileCount?: number;
 }
 
 export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
     people,
     person,
+    fileCount,
 }) => {
     const { backToPeople } = usePhotosNavigation();
     return (
@@ -131,12 +133,22 @@ export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
             <SpacedRow sx={{ gap: 2, flex: 1, minWidth: 0 }}>
                 {person.type == "cgroup" ? (
                     person.isHidden ? (
-                        <IgnoredPersonHeader person={person} />
+                        <IgnoredPersonHeader
+                            person={person}
+                            fileCount={fileCount}
+                        />
                     ) : (
-                        <CGroupPersonHeader person={person} />
+                        <CGroupPersonHeader
+                            person={person}
+                            fileCount={fileCount}
+                        />
                     )
                 ) : (
-                    <ClusterPersonHeader person={person} people={people} />
+                    <ClusterPersonHeader
+                        person={person}
+                        people={people}
+                        fileCount={fileCount}
+                    />
                 )}
             </SpacedRow>
         </GalleryItemsHeaderAdapter>
@@ -145,8 +157,9 @@ export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
 
 const PersonHeaderSummary = ({
     person,
+    fileCount = person.fileIDs.length,
     ...summaryProps
-}: { person: Person } & Pick<
+}: { person: Person; fileCount?: number } & Pick<
     React.ComponentProps<typeof GalleryItemsSummary>,
     "name" | "nameProps" | "onNameClick"
 >) => {
@@ -171,7 +184,7 @@ const PersonHeaderSummary = ({
             )}
             <GalleryItemsSummary
                 {...summaryProps}
-                fileCount={person.fileIDs.length}
+                fileCount={fileCount}
                 nameProps={{
                     ...summaryProps.nameProps,
                     sx: { overflowWrap: "anywhere" },
@@ -183,9 +196,13 @@ const PersonHeaderSummary = ({
 
 interface CGroupPersonHeaderProps {
     person: CGroupPerson;
+    fileCount?: number;
 }
 
-const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({ person }) => {
+const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({
+    person,
+    fileCount,
+}) => {
     const cgroup = person.cgroup;
 
     const { showMiniDialog } = useBaseContext();
@@ -216,7 +233,11 @@ const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({ person }) => {
 
     return (
         <>
-            <PersonHeaderSummary person={person} name={name} />
+            <PersonHeaderSummary
+                person={person}
+                name={name}
+                fileCount={fileCount}
+            />
             <OverflowMenu ariaID="person-options">
                 <OverflowMenuOption
                     startIcon={<ListAltOutlinedIcon />}
@@ -273,10 +294,12 @@ const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({ person }) => {
 
 interface IgnoredPersonHeaderProps {
     person: CGroupPerson;
+    fileCount?: number;
 }
 
 const IgnoredPersonHeader: React.FC<IgnoredPersonHeaderProps> = ({
     person,
+    fileCount,
 }) => {
     const cgroup = person.cgroup;
 
@@ -286,6 +309,7 @@ const IgnoredPersonHeader: React.FC<IgnoredPersonHeaderProps> = ({
         <>
             <PersonHeaderSummary
                 person={person}
+                fileCount={fileCount}
                 name={person.name?.trim() || t("ignored")}
                 nameProps={{ color: "text.muted" }}
             />
@@ -301,13 +325,15 @@ const IgnoredPersonHeader: React.FC<IgnoredPersonHeaderProps> = ({
     );
 };
 
-type ClusterPersonHeaderProps = Pick<PeopleHeaderProps, "people"> & {
-    person: ClusterPerson;
-};
+type ClusterPersonHeaderProps = Pick<
+    PeopleHeaderProps,
+    "people" | "fileCount"
+> & { person: ClusterPerson };
 
 const ClusterPersonHeader: React.FC<ClusterPersonHeaderProps> = ({
     people,
     person,
+    fileCount,
 }) => {
     const cluster = person.cluster;
 
@@ -331,6 +357,7 @@ const ClusterPersonHeader: React.FC<ClusterPersonHeaderProps> = ({
         <>
             <PersonHeaderSummary
                 person={person}
+                fileCount={fileCount}
                 name={person.name?.trim() || t("unnamed_person")}
                 nameProps={{ color: "text.muted" }}
                 onNameClick={showAddPerson}

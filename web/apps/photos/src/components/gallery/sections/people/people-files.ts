@@ -1,4 +1,5 @@
 import { uniqueFilesByID } from "ente-gallery/utils/file";
+import type { Person } from "ente-new/photos/services/ml/people";
 import { suppressSharedFilesSavedByUser } from "../../media/media-files";
 import type { GalleryDestination } from "../../navigation/navigation-state";
 import type { GalleryState } from "../../reducer";
@@ -30,7 +31,11 @@ export const derivePeopleView = (
     const extraVisiblePersonIDs = [
         ...new Set([...retainedPersonIDs, ...selectedPersonIDs]),
     ].filter((id) => byID.has(id) && !visibleIDs.has(id));
-    const activePeople = [...new Set(selectedPersonIDs)].flatMap((id) => {
+    const activePeople = (
+        selectedPersonIDs[0] && byID.has(selectedPersonIDs[0])
+            ? [...new Set(selectedPersonIDs)]
+            : []
+    ).flatMap((id) => {
         const person = byID.get(id);
         return person ? [person] : [];
     });
@@ -84,9 +89,12 @@ export const resolvePeopleDestination = (
             )
             .map((person) => person.id),
     );
-    const personIDs = destination.personIDs?.filter((id) =>
-        existingIDs.has(id),
-    );
+    const personIDs =
+        destination.personIDs?.[0] && existingIDs.has(destination.personIDs[0])
+            ? destination.personIDs.filter((id) => existingIDs.has(id))
+            : destination.personIDs
+              ? []
+              : undefined;
     const extraVisiblePersonIDs = destination.extraVisiblePersonIDs?.filter(
         (id) => existingIDs.has(id),
     );
@@ -96,11 +104,36 @@ export const resolvePeopleDestination = (
             destination.extraVisiblePersonIDs?.length
     )
         return destination;
-    return {
-        ...destination,
-        personIDs,
-        extraVisiblePersonIDs,
-        peopleSelectionMode:
-            !!destination.peopleSelectionMode && (personIDs?.length ?? 0) > 1,
-    };
+    return { ...destination, personIDs, extraVisiblePersonIDs };
+};
+
+// Keep applied filters available even when their intersection becomes empty.
+export const peopleFilterSuggestions = (
+    people: Person[],
+    activePeople: Person[],
+    files: GalleryState["collectionFiles"],
+): Person[] => {
+    const primaryID = activePeople[0]?.id;
+    if (!primaryID) return [];
+    const selected = activePeople.slice(1);
+    const selectedIDs = new Set(activePeople.map((person) => person.id));
+    const fileIDs = new Set(files.map((file) => file.id));
+    const suggestions = people
+        .filter(
+            (person) =>
+                !selectedIDs.has(person.id) &&
+                (person.type !== "cgroup" || !person.isHidden),
+        )
+        .map((person) => ({
+            person,
+            count: new Set(person.fileIDs.filter((id) => fileIDs.has(id))).size,
+        }))
+        .filter(({ count }) => count > 0)
+        .sort(
+            (a, b) =>
+                b.count - a.count ||
+                (a.person.name ?? "").localeCompare(b.person.name ?? "") ||
+                a.person.id.localeCompare(b.person.id),
+        );
+    return [...selected, ...suggestions.map(({ person }) => person)];
 };
