@@ -202,7 +202,7 @@ class _MemoryShareSelectionSheetState
                   ),
                   const SizedBox(height: Spacing.md),
                 ],
-                if (flagService.internalUser) ...[
+                if (flagService.memoryVideoExportEnabled) ...[
                   _buildAction(
                     l10n.shareAsVideo,
                     MemoryShareSheetAction.shareVideo,
