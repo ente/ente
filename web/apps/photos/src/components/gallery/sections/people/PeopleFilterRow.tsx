@@ -238,8 +238,14 @@ const PeopleFilterChip = ({
             p: "4px",
             pr: selected ? "8px" : label ? "18px" : "4px",
             borderRadius: `${(avatarSize + 8) / 2}px`,
-            bgcolor: selected ? "#161616" : "#fff",
-            color: selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
+            bgcolor: label
+                ? selected
+                    ? "#d6d6d6"
+                    : "#e8e8e8"
+                : selected
+                  ? "#161616"
+                  : "#fff",
+            color: label ? "#161616" : selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
             transition: "background-color 120ms ease-in-out",
             "&.Mui-focusVisible": {
                 outline: "2px solid",
@@ -248,8 +254,18 @@ const PeopleFilterChip = ({
             },
             "@media (prefers-reduced-motion: reduce)": { transition: "none" },
             ...theme.applyStyles("dark", {
-                bgcolor: selected ? "#f4f4f4" : "#212121",
-                color: selected ? "#000" : "rgba(255, 255, 255, 0.7)",
+                bgcolor: label
+                    ? selected
+                        ? "#d6d6d6"
+                        : "#e8e8e8"
+                    : selected
+                      ? "#f4f4f4"
+                      : "#212121",
+                color: label
+                    ? "#161616"
+                    : selected
+                      ? "#000"
+                      : "rgba(255, 255, 255, 0.7)",
             }),
         })}
     >
