@@ -42,9 +42,11 @@ void main() {
   });
 
   test("photo memories load and play their assigned tracks", () async {
+    expect(controller.activeTrack, isNull);
     await controller.activateMemory("memory-1", currentItemIsVideo: false);
 
     expect(player.playing, isTrue);
+    expect(controller.activeTrack?.id, "track-1");
 
     await controller.activateMemory("memory-2", currentItemIsVideo: false);
 
@@ -136,6 +138,7 @@ void main() {
     player.failedTrackIDs.add("track-1");
 
     await controller.activateMemory("memory-1", currentItemIsVideo: false);
+    expect(controller.activeTrack?.id, "track-2");
     await controller.activateMemory("memory-2", currentItemIsVideo: false);
     await controller.activateMemory("memory-1", currentItemIsVideo: false);
 
