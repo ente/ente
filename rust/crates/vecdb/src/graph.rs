@@ -181,6 +181,7 @@ pub(crate) struct Graph {
     upper: Vec<UpperLevel>,
     entry_point: Option<u32>,
     insert_ordinal: u64,
+    indexed_slots: usize,
 }
 
 impl Graph {
@@ -192,15 +193,35 @@ impl Graph {
             upper: Vec::new(),
             entry_point: None,
             insert_ordinal: 0,
+            indexed_slots: 0,
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn rebuild(arena: &VectorArena) -> Self {
         let mut graph = Self::new();
-        for slot in arena.live_slots() {
-            graph.insert(slot, arena);
-        }
+        graph.index_slots_until(arena, arena.slot_count());
         graph
+    }
+
+    pub(crate) fn indexed_slots(&self) -> usize {
+        self.indexed_slots
+    }
+
+    pub(crate) fn index_slots_until(&mut self, arena: &VectorArena, end: usize) {
+        let end = end.min(arena.slot_count());
+        for slot in self.indexed_slots as u32..end as u32 {
+            if arena.is_alive(slot) && self.level_of(slot).is_none() {
+                self.insert(slot, arena);
+            }
+        }
+        self.indexed_slots = self.indexed_slots.max(end);
+    }
+
+    pub(crate) fn resume_from_first_unindexed(&mut self, arena: &VectorArena) {
+        self.indexed_slots = (0..arena.slot_count() as u32)
+            .find(|&slot| arena.is_alive(slot) && self.level_of(slot).is_none())
+            .map_or(arena.slot_count(), |slot| slot as usize);
     }
 
     pub(crate) fn from_parts(
@@ -275,6 +296,7 @@ impl Graph {
         let mut graph = Self::new();
         graph.entry_point = entry_point;
         graph.insert_ordinal = insert_ordinal;
+        graph.indexed_slots = capacity;
         graph.reserve_slots(capacity);
         for part in parts {
             graph.attach_empty_node(part.slot, part.level as usize);
@@ -784,6 +806,14 @@ fn search_from(
             stored_slot,
         ),
     }
+}
+
+pub(crate) fn uses_graph(params: &SearchParams) -> bool {
+    !params.exact
+        && params
+            .allowed_keys
+            .as_ref()
+            .is_none_or(|keys| keys.len() > small_filter_cap(params.limit))
 }
 
 fn small_filter_cap(limit: Option<usize>) -> usize {
