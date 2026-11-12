@@ -493,6 +493,7 @@ class RealSlideshowService: ObservableObject {
         guard currentFileIndex >= 0, currentFileIndex < allFiles.count,
             let payload = storedCastPayload
         else { return }
+        let file = allFiles[currentFileIndex]
 
         await MainActor.run {
             currentSlideIndex = currentFileIndex
@@ -500,14 +501,16 @@ class RealSlideshowService: ObservableObject {
         }
 
         do {
-            let file = allFiles[currentFileIndex]
             await MainActor.run { slideLoadingProgress = 0.5 }
 
             let media = try await downloadAndDecryptFileContent(
                 castPayload: payload,
                 file: file,
             )
-            guard storedCastPayload == payload else { return }
+            guard storedCastPayload == payload,
+                allFiles.indices.contains(currentFileIndex),
+                allFiles[currentFileIndex] == file
+            else { return }
 
             prefetchedFileIDs.insert(file.id)
 
@@ -516,8 +519,13 @@ class RealSlideshowService: ObservableObject {
 
             startPrefetching()
 
+        } catch is CancellationError {
+            return
         } catch {
-            guard storedCastPayload == payload else { return }
+            guard storedCastPayload == payload,
+                allFiles.indices.contains(currentFileIndex),
+                allFiles[currentFileIndex] == file
+            else { return }
             logger.error(
                 "Failed to load slideshow item: \(error.localizedDescription, privacy: .public)")
 
@@ -527,7 +535,10 @@ class RealSlideshowService: ObservableObject {
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 Task {
-                    guard self.storedCastPayload == payload else { return }
+                    guard self.storedCastPayload == payload,
+                        self.allFiles.indices.contains(self.currentFileIndex),
+                        self.allFiles[self.currentFileIndex] == file
+                    else { return }
                     await self.skipToNextSlide()
                 }
             }
