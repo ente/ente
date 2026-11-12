@@ -14,6 +14,7 @@ use std::time::Instant;
 
 use super::context::LocalContext;
 use super::event::{EventSink, FinishReason, GenerationEvent, GenerationSummary, JobId};
+use super::execution::{ExecutionContext, ExecutionState, MIN_GPU_PROMPT_TOKENS, MultimodalPrompt};
 use super::template::build_chat_prompt;
 use super::{Error, format_error, lock};
 
@@ -39,7 +40,7 @@ fn cancel_all() {
     }
 }
 
-fn check_cancelled(cancel_flag: &AtomicBool) -> Result<(), Error> {
+pub(super) fn check_cancelled(cancel_flag: &AtomicBool) -> Result<(), Error> {
     if cancel_flag.load(Ordering::Relaxed) {
         Err(Error::Cancelled)
     } else {
@@ -222,6 +223,50 @@ impl StreamDecoder {
     }
 }
 
+pub(super) fn token_batch(
+    tokens: &[LlamaToken],
+    start: i32,
+    last_logits: bool,
+    op: &'static str,
+) -> Result<LlamaBatch<'static>, Error> {
+    let mut batch = LlamaBatch::new(tokens.len(), 1);
+    for (index, token) in tokens.iter().enumerate() {
+        batch
+            .add(
+                *token,
+                start + index as i32,
+                &[0],
+                last_logits && index + 1 == tokens.len(),
+            )
+            .map_err(|err| Error::Llama {
+                op,
+                message: err.to_string(),
+            })?;
+    }
+    Ok(batch)
+}
+
+pub(super) fn decode_batch(
+    ctx: &mut LlamaContext,
+    batch: &mut LlamaBatch,
+    synchronize: bool,
+    op: &'static str,
+) -> Result<(), Error> {
+    ctx.decode(batch).map_err(|err| Error::Llama {
+        op,
+        message: err.to_string(),
+    })?;
+    if synchronize {
+        let _ = ctx.get_logits();
+    }
+    Ok(())
+}
+
+struct GenerationCache<'a> {
+    tokens: &'a mut Vec<LlamaToken>,
+    multimodal: Option<MultimodalPrompt<'a>>,
+}
+
 struct GenerationJob<'a> {
     cancel_flag: &'a AtomicBool,
     sink: &'a mut dyn EventSink,
@@ -236,9 +281,9 @@ struct GenerationJob<'a> {
 impl GenerationJob<'_> {
     fn run(
         &mut self,
-        ctx: &mut LlamaContext,
+        ctx: &mut ExecutionContext,
         sampler: &mut LlamaSampler,
-        mut cached_tokens: Option<&mut Vec<LlamaToken>>,
+        cache: GenerationCache<'_>,
         mut pos: i32,
         mut logits_index: i32,
     ) -> Result<(), Error> {
@@ -250,7 +295,7 @@ impl GenerationJob<'_> {
         for sample_index in 0..self.max_tokens {
             check_cancelled(self.cancel_flag)?;
 
-            let token = sampler.sample(ctx, logits_index);
+            let token = sampler.sample(ctx.get()?, logits_index);
             check_cancelled(self.cancel_flag)?;
 
             if ctx.model.vocab().is_eog(token) {
@@ -282,26 +327,25 @@ impl GenerationJob<'_> {
                 break;
             }
 
-            let mut step_batch = LlamaBatch::new(1, 1);
-            step_batch
-                .add(token, pos, &[0], true)
-                .map_err(|err| Error::Llama {
-                    op: "Failed to add token",
-                    message: err.to_string(),
-                })?;
-            if let Err(err) = ctx.decode(&mut step_batch) {
+            let mut step_batch = token_batch(&[token], pos, true, "Failed to add token")?;
+            let allow_gpu = ctx.can_checkpoint_partially();
+            if let Err(err) = ctx.run(
+                allow_gpu,
+                ExecutionState::Replay {
+                    tokens: cache.tokens,
+                    multimodal: cache.multimodal,
+                    cancelled: self.cancel_flag,
+                },
+                |ctx, _, synchronize| {
+                    check_cancelled(self.cancel_flag)?;
+                    decode_batch(ctx, &mut step_batch, synchronize, "Decode failed")
+                },
+            ) {
                 ctx.clear_kv_cache();
-                if let Some(cached) = cached_tokens.as_deref_mut() {
-                    cached.clear();
-                }
-                return Err(Error::Llama {
-                    op: "Decode failed",
-                    message: err.to_string(),
-                });
+                cache.tokens.clear();
+                return Err(err);
             }
-            if let Some(cached) = cached_tokens.as_deref_mut() {
-                cached.push(token);
-            }
+            cache.tokens.push(token);
 
             logits_index = 0;
             pos += 1;
@@ -408,14 +452,14 @@ impl LocalContext {
                 "Text measurement does not count image positions",
             ));
         }
-        self.with_context_and_cache_mut(|ctx, _| {
+        self.with_model(|model| {
             let prompt = build_chat_prompt(
-                ctx.model,
+                model,
                 request.messages.clone(),
                 request.template_override.clone(),
                 request.add_assistant.unwrap_or(true),
             )?;
-            Ok(tokenize_text_prompt(ctx.model, &prompt)?.len())
+            Ok(tokenize_text_prompt(model, &prompt)?.len())
         })
     }
 
@@ -599,53 +643,78 @@ fn generate_chat_stream(
                     return Err(Error::InvalidInput("Context batch size is 0".to_string()));
                 }
 
-                let keep = append_only_prefix_len(cached_tokens, &prompt_tokens);
+                let keep = prepare_prompt_cache(ctx.get_mut()?, cached_tokens, &prompt_tokens);
+                let allow_gpu = !cfg!(target_os = "ios")
+                    || ctx.can_checkpoint_partially()
+                    || prompt_tokens.len() - keep >= MIN_GPU_PROMPT_TOKENS;
 
-                if keep == 0 {
-                    ctx.clear_kv_cache();
-                    cached_tokens.clear();
-                }
-
+                job.sink.add(GenerationEvent::PromptProgress {
+                    job_id,
+                    processed_tokens: keep as i32,
+                    total_tokens: job.prompt_tokens,
+                });
                 let mut token_offset = keep;
                 let mut logits_index: i32 = 0;
                 while token_offset < prompt_tokens.len() {
                     check_cancelled(&cancel_flag)?;
-                    let end = (token_offset + n_batch).min(prompt_tokens.len());
+                    let decoded = ctx.run(
+                        allow_gpu,
+                        ExecutionState::Replay {
+                            tokens: cached_tokens,
+                            multimodal: None,
+                            cancelled: &cancel_flag,
+                        },
+                        |ctx, batch_size, synchronize| {
+                            check_cancelled(&cancel_flag)?;
+                            let end = (token_offset + batch_size).min(prompt_tokens.len());
+                            let chunk = &prompt_tokens[token_offset..end];
+                            let mut batch = token_batch(
+                                chunk,
+                                token_offset as i32,
+                                end == prompt_tokens.len() || synchronize,
+                                "Failed to add prompt token",
+                            )?;
+                            decode_batch(ctx, &mut batch, synchronize, "Prompt decode failed")?;
+                            check_cancelled(&cancel_flag)?;
+                            Ok(end)
+                        },
+                    );
+                    let end = match decoded {
+                        Ok(end) => end,
+                        Err(err) => {
+                            ctx.clear_kv_cache();
+                            cached_tokens.clear();
+                            return Err(err);
+                        }
+                    };
                     let chunk = &prompt_tokens[token_offset..end];
-                    let mut batch = LlamaBatch::new(chunk.len(), 1);
-                    for (idx, token) in chunk.iter().enumerate() {
-                        let pos = (token_offset + idx) as i32;
-                        let logits = token_offset + idx + 1 == prompt_tokens.len();
-                        batch
-                            .add(*token, pos, &[0], logits)
-                            .map_err(|err| Error::Llama {
-                                op: "Failed to add prompt token",
-                                message: err.to_string(),
-                            })?;
-                    }
-
-                    if let Err(err) = ctx.decode(&mut batch) {
-                        ctx.clear_kv_cache();
-                        cached_tokens.clear();
-                        return Err(Error::Llama {
-                            op: "Prompt decode failed",
-                            message: err.to_string(),
-                        });
-                    }
-
                     cached_tokens.extend_from_slice(chunk);
 
                     if end == prompt_tokens.len() {
                         logits_index = (chunk.len() - 1) as i32;
                     }
                     token_offset = end;
+                    job.sink.add(GenerationEvent::PromptProgress {
+                        job_id,
+                        processed_tokens: end as i32,
+                        total_tokens: job.prompt_tokens,
+                    });
                 }
 
                 let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
                 sampler.accept_many(prompt_tokens.iter());
 
                 let pos = prompt_tokens.len() as i32;
-                job.run(ctx, &mut sampler, Some(cached_tokens), pos, logits_index)?;
+                job.run(
+                    ctx,
+                    &mut sampler,
+                    GenerationCache {
+                        tokens: cached_tokens,
+                        multimodal: None,
+                    },
+                    pos,
+                    logits_index,
+                )?;
 
                 return Ok(());
             }
@@ -722,12 +791,22 @@ fn generate_chat_stream(
             cached_tokens.clear();
             check_cancelled(&cancel_flag)?;
 
-            let n_past = chunks
-                .eval_chunks(&mtmd_ctx, ctx, 0, 0, n_batch, true)
-                .map_err(|err| Error::Llama {
-                    op: "Failed to evaluate multimodal prompt",
-                    message: err.to_string(),
-                })?;
+            let multimodal = MultimodalPrompt {
+                context: &mtmd_ctx,
+                chunks: &chunks,
+            };
+            let n_past = ctx.run(
+                true,
+                ExecutionState::Replay {
+                    tokens: &[],
+                    multimodal: None,
+                    cancelled: &cancel_flag,
+                },
+                |ctx, batch_size, synchronize| {
+                    check_cancelled(&cancel_flag)?;
+                    multimodal.eval(ctx, batch_size, synchronize)
+                },
+            )?;
             check_cancelled(&cancel_flag)?;
 
             let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
@@ -741,7 +820,16 @@ fn generate_chat_stream(
             }
             sampler.accept_many(prompt_tokens.iter());
 
-            job.run(ctx, &mut sampler, None, n_past, -1)?;
+            job.run(
+                ctx,
+                &mut sampler,
+                GenerationCache {
+                    tokens: &mut Vec::new(),
+                    multimodal: Some(multimodal),
+                },
+                n_past,
+                -1,
+            )?;
 
             Ok(())
         })
@@ -765,11 +853,41 @@ fn generate_chat_stream(
     Ok(summary)
 }
 
-fn append_only_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken]) -> usize {
-    if !cached.is_empty() && cached.len() < prompt.len() && prompt.starts_with(cached) {
-        cached.len()
-    } else {
+fn prepare_prompt_cache(
+    ctx: &mut LlamaContext,
+    cached: &mut Vec<LlamaToken>,
+    prompt: &[LlamaToken],
+) -> usize {
+    let can_rewind =
+        !ctx.model.is_recurrent() && !ctx.model.is_hybrid() && ctx.kv_cache_seq_pos_min(0) == 0;
+    let mut keep = reusable_prefix_len(cached, prompt, can_rewind);
+    if keep > 0
+        && keep < cached.len()
+        && !matches!(
+            ctx.clear_kv_cache_seq(Some(0), Some(keep as u32), None),
+            Ok(true)
+        )
+    {
+        keep = 0;
+    }
+    if keep == 0 {
+        ctx.clear_kv_cache();
+    }
+    cached.truncate(keep);
+    keep
+}
+
+fn reusable_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken], can_rewind: bool) -> usize {
+    let keep = cached
+        .iter()
+        .zip(prompt)
+        .take_while(|(cached, prompt)| cached == prompt)
+        .count()
+        .min(prompt.len().saturating_sub(1));
+    if !can_rewind && keep < cached.len() {
         0
+    } else {
+        keep
     }
 }
 
@@ -785,7 +903,7 @@ pub fn cancel(job_id: JobId) {
 
 #[cfg(test)]
 mod tests {
-    use super::{StreamDecoder, append_only_prefix_len};
+    use super::{StreamDecoder, reusable_prefix_len};
     use llama_cpp_2::token::LlamaToken;
 
     fn tokens(ids: &[i32]) -> Vec<LlamaToken> {
@@ -853,23 +971,154 @@ mod tests {
     }
 
     #[test]
-    fn only_strict_extensions_reuse_cache() {
-        assert_eq!(append_only_prefix_len(&[], &tokens(&[1])), 0);
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 2])),
-            0
+    #[ignore = "requires ENSU_TEST_SWA_MODEL"]
+    fn restored_sliding_window_cache_only_reuses_retained_history() {
+        use super::{prepare_prompt_cache, token_batch};
+        use crate::llm::execution::{ExecutionContext, ExecutionState};
+        use crate::llm::{ExecutionControl, ExecutionParams, Model, ModelLoadParams, backend};
+        use llama_cpp_2::context::{params::LlamaContextParams, session::LlamaStateSeqFlags};
+        use std::num::NonZeroU32;
+        use std::sync::{Arc, atomic::AtomicBool};
+
+        let model = Model::load(ModelLoadParams {
+            model_path: std::env::var("ENSU_TEST_SWA_MODEL").unwrap(),
+            n_gpu_layers: Some(0),
+            use_mmap: None,
+            use_mlock: None,
+        })
+        .unwrap();
+        assert!(!model.model().is_hybrid() && !model.model().is_recurrent());
+        let params = LlamaContextParams::default()
+            .with_n_ctx(NonZeroU32::new(2048))
+            .with_n_threads(4)
+            .with_n_threads_batch(4)
+            .with_n_batch(512)
+            .with_n_ubatch(512)
+            .with_op_offload(false)
+            .with_offload_kqv(false);
+        let mut context = model
+            .model()
+            .new_context(backend().unwrap(), params.clone())
+            .unwrap();
+        let phrase = model.model().vocab().tokenize(
+            b"The quick brown fox jumped over the lazy dog. ",
+            true,
+            true,
         );
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2, 3]), &tokens(&[1, 2])),
-            0
-        );
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 3, 4])),
-            0
-        );
-        assert_eq!(
-            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 2, 3])),
-            2
-        );
+        let mut cached: Vec<_> = phrase.into_iter().cycle().take(1024).collect();
+        for (offset, chunk) in cached.chunks(512).enumerate() {
+            let mut batch = token_batch(
+                chunk,
+                (offset * 512) as i32,
+                true,
+                "Failed to add test token",
+            )
+            .unwrap();
+            context.decode(&mut batch).unwrap();
+        }
+        let snapshot = context
+            .state_seq_get(0, LlamaStateSeqFlags::empty())
+            .unwrap();
+        let mut restored = model
+            .model()
+            .new_context(backend().unwrap(), params.clone())
+            .unwrap();
+        for (prefix, expected) in [(100, 0), (1024, 1024)] {
+            restored.state_seq_set(&snapshot, 0).unwrap();
+            assert!(restored.kv_cache_seq_pos_min(0) > 0);
+            let mut prompt = cached[..prefix].to_vec();
+            prompt.push(LlamaToken(cached[prefix % cached.len()].0 + 1));
+            let mut reused = cached.clone();
+            assert_eq!(
+                prepare_prompt_cache(&mut restored, &mut reused, &prompt),
+                expected
+            );
+            assert_eq!(reused.len(), expected);
+            if expected == 0 {
+                assert_eq!(restored.kv_cache_seq_pos_max(0), -1);
+            }
+        }
+
+        let full = context
+            .state_seq_get(-1, LlamaStateSeqFlags::empty())
+            .unwrap();
+        restored.state_seq_set(&full, 0).unwrap();
+        let mut switching = ExecutionContext::new(restored, params, false);
+        let control = Arc::new(ExecutionControl::new(|| u64::MAX));
+        control
+            .set_params(ExecutionParams {
+                allow_gpu: false,
+                n_threads: 4,
+                n_threads_generation: 4,
+                batch_size: 256,
+            })
+            .unwrap();
+        switching.control = Some(control);
+        let cancelled = AtomicBool::new(false);
+        switching
+            .run(
+                false,
+                ExecutionState::Replay {
+                    tokens: &cached,
+                    multimodal: None,
+                    cancelled: &cancelled,
+                },
+                |_, _, _| Ok(()),
+            )
+            .unwrap();
+        assert_eq!(switching.get().unwrap().kv_cache_seq_pos_min(0), 0);
+        let start = cached.len();
+        for position in start..start + 8 {
+            let token = cached[position % start];
+            let mut batch =
+                token_batch(&[token], position as i32, true, "Failed to add test token").unwrap();
+            context.decode(&mut batch).unwrap();
+            switching
+                .run(
+                    false,
+                    ExecutionState::Replay {
+                        tokens: &cached,
+                        multimodal: None,
+                        cancelled: &cancelled,
+                    },
+                    |ctx, _, _| {
+                        ctx.decode(&mut batch).unwrap();
+                        Ok(())
+                    },
+                )
+                .unwrap();
+            assert!(
+                context
+                    .get_logits()
+                    .iter()
+                    .zip(switching.get().unwrap().get_logits())
+                    .all(|(a, b)| (a - b).abs() < 1e-5)
+            );
+            cached.push(token);
+        }
+    }
+
+    #[test]
+    fn reuses_only_supported_prompt_prefixes() {
+        for (cached, prompt, rewind, append_only) in [
+            (vec![], vec![1], 0, 0),
+            (vec![1, 2], vec![], 0, 0),
+            (vec![1], vec![1], 0, 0),
+            (vec![1, 2], vec![1], 0, 0),
+            (vec![1, 2], vec![1, 2], 1, 0),
+            (vec![1, 2, 3], vec![1, 2], 1, 0),
+            (vec![1, 2, 3], vec![1, 2, 4, 5], 2, 0),
+            (vec![1, 2], vec![1, 3, 4], 1, 0),
+            (vec![1, 2], vec![1, 2, 3], 2, 2),
+            (vec![1, 2], vec![9, 2, 3], 0, 0),
+        ] {
+            for (can_rewind, expected) in [(true, rewind), (false, append_only)] {
+                assert_eq!(
+                    reusable_prefix_len(&tokens(&cached), &tokens(&prompt), can_rewind),
+                    expected,
+                    "cached={cached:?}, prompt={prompt:?}, can_rewind={can_rewind}"
+                );
+            }
+        }
     }
 }

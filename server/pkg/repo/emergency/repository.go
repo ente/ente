@@ -79,6 +79,9 @@ func (r *Repository) GetActiveContactForUser(ctx context.Context, userID int64) 
 		}
 		contacts = append(contacts, &c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read emergency contacts")
+	}
 	return contacts, nil
 }
 

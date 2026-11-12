@@ -181,6 +181,7 @@ func (r *Repository) GetFDForUser(ctx context.Context, userID int64, lastUpdated
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	defer rows.Close()
 	var fdStatuses []filedata.FDStatus
 	for rows.Next() {
 		var status filedata.FDStatus
@@ -189,6 +190,9 @@ func (r *Repository) GetFDForUser(ctx context.Context, userID int64, lastUpdated
 			return nil, stacktrace.Propagate(scanErr, "")
 		}
 		fdStatuses = append(fdStatuses, status)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file data statuses")
 	}
 	return fdStatuses, nil
 }
@@ -323,6 +327,7 @@ func (r *Repository) DeleteFileData(ctx context.Context, row filedata.Row) error
 }
 
 func convertRowsToFilesData(rows *sql.Rows) ([]filedata.Row, error) {
+	defer rows.Close()
 	var filesData []filedata.Row
 	for rows.Next() {
 		var fileData filedata.Row
@@ -331,6 +336,9 @@ func convertRowsToFilesData(rows *sql.Rows) ([]filedata.Row, error) {
 			return nil, stacktrace.Propagate(err, "")
 		}
 		filesData = append(filesData, fileData)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read file data")
 	}
 	return filesData, nil
 }

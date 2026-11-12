@@ -1,9 +1,11 @@
 import "dart:async";
 import "dart:io" show File, Platform;
 
+import "package:ente_photos_platform/ente_photos_platform.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/widgets.dart" show AppLifecycleState, WidgetsBinding;
 import "package:logging/logging.dart";
+import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/base.dart";
@@ -12,6 +14,8 @@ import "package:photos/db/ml/rust_db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/compute_control_event.dart";
+import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/main.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
@@ -918,6 +922,10 @@ class MLService {
       final String format = instruction.file.displayName.split('.').last;
       final int? size = instruction.file.fileSize;
       final fileType = instruction.file.fileType;
+      if (e is CouldNotRetrieveAnyFileData &&
+          await _removeMissingLocalFileReference(instruction)) {
+        return false;
+      }
       if (e is RustCorruptModelException) {
         stopActiveRun(MlStopReason.corruptModel);
         _logger.severe(
@@ -979,6 +987,52 @@ class MLService {
         }
         await _evictRemoteCacheAfterMLProcessing(instruction.file);
       }
+    }
+  }
+
+  Future<bool> _removeMissingLocalFileReference(
+    FileMLInstruction instruction,
+  ) async {
+    final file = instruction.file;
+    final localID = file.localID;
+    if (!Platform.isAndroid ||
+        !instruction.isLocalGallery ||
+        !isLocalGalleryMode ||
+        localID == null ||
+        localID.isEmpty ||
+        file.isSharedMediaToAppSandbox) {
+      return false;
+    }
+    try {
+      if (await permissionService.getPermissionState() !=
+          PermissionState.authorized) {
+        return false;
+      }
+      if (await LocalMediaClient.instance.assetExists(localID) != false) {
+        _logger.info("Retaining localID $localID: absence is not confirmed");
+        return false;
+      }
+      if (await permissionService.getPermissionState() !=
+              PermissionState.authorized ||
+          !isLocalGalleryMode ||
+          file.localID != localID ||
+          (file.uploadedFileID != null && file.uploadedFileID != -1)) {
+        return false;
+      }
+      await FilesDB.instance.deleteLocalFile(file);
+      SearchService.instance.invalidateFileCaches();
+      Bus.instance.fire(
+        LocalPhotosUpdatedEvent(
+          [file],
+          type: EventType.deletedFromDevice,
+          source: "mlMissingLocalFile",
+        ),
+      );
+      _logger.info("Removed missing Android local file reference $localID");
+      return true;
+    } catch (e, s) {
+      _logger.warning("Could not clean up missing localID $localID", e, s);
+      return false;
     }
   }
 

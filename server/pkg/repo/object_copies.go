@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/stacktrace"
@@ -12,6 +13,8 @@ import (
 
 type ObjectCopiesRepository struct {
 	DB *sql.DB
+
+	nextReplicationDestination atomic.Uint32
 }
 
 func (repo *ObjectCopiesRepository) GetAndLockUnreplicatedObject(ctx context.Context) (*ente.ObjectCopies, error) {
@@ -21,40 +24,46 @@ func (repo *ObjectCopiesRepository) GetAndLockUnreplicatedObject(ctx context.Con
 	}
 	defer tx.Rollback()
 
-	row := tx.QueryRowContext(ctx, `
+	predicates := [...]string{
+		"b2 IS NULL AND want_b2 = true",
+		"wasabi IS NULL AND want_wasabi = true",
+		"scw IS NULL AND want_scw = true",
+	}
+	start := (repo.nextReplicationDestination.Add(1) - 1) % uint32(len(predicates))
+	for i := range predicates {
+		predicate := predicates[(int(start)+i)%len(predicates)]
+		row := tx.QueryRowContext(ctx, fmt.Sprintf(`
 	SELECT object_key, want_b2, b2, want_wasabi, wasabi, want_scw, scw
 	FROM object_copies
-	WHERE (
-		(
-			(wasabi IS NULL AND want_wasabi = true) OR
-			(scw IS NULL AND want_scw = true)
-		) AND last_attempt < (now_utc_micro_seconds() - (24::BIGINT * 60 * 60 * 1000 * 1000))
-	)
+	WHERE %s
+		AND last_attempt < (now_utc_micro_seconds() - (24::BIGINT * 60 * 60 * 1000 * 1000))
 	LIMIT 1
 	FOR UPDATE SKIP LOCKED
-	`)
+	`, predicate))
 
-	var r ente.ObjectCopies
-	err = row.Scan(&r.ObjectKey, &r.WantB2, &r.B2, &r.WantWasabi, &r.Wasabi,
-		&r.WantSCW, &r.SCW)
+		var r ente.ObjectCopies
+		err = row.Scan(&r.ObjectKey, &r.WantB2, &r.B2, &r.WantWasabi, &r.Wasabi,
+			&r.WantSCW, &r.SCW)
 
-	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			continue
 		}
-		return nil, stacktrace.Propagate(err, "")
-	}
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
 
-	err = repo.RegisterReplicationAttempt(tx, ctx, r.ObjectKey)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "failed to register replication attempt")
-	}
+		err = repo.RegisterReplicationAttempt(tx, ctx, r.ObjectKey)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to register replication attempt")
+		}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
+		err = tx.Commit()
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		return &r, nil
 	}
-	return &r, nil
+	return nil, sql.ErrNoRows
 }
 
 func (repo *ObjectCopiesRepository) CreateNewB2Object(ctx context.Context, tx *sql.Tx, objectKey string, wantWasabi bool, wantScaleway bool) error {
@@ -116,6 +125,13 @@ func (repo *ObjectCopiesRepository) UnmarkFromReplication(objectKey string) erro
 	WHERE object_key = $1
 	`, objectKey)
 	return stacktrace.Propagate(err, "")
+}
+
+func (repo *ObjectCopiesRepository) MarkObjectReplicatedB2(objectKey string) error {
+	return repo.markObjectReplicated(`
+	UPDATE object_copies SET b2 = now_utc_micro_seconds()
+	WHERE object_key = $1
+	`, objectKey)
 }
 
 func (repo *ObjectCopiesRepository) MarkObjectReplicatedWasabi(objectKey string) error {

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -38,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import io.ente.ensu.EnsuApplication
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuCornerRadius
 import io.ente.ensu.designsystem.EnsuSpacing
@@ -66,6 +68,18 @@ fun SettingsScreen(
     val allItems =
         remember(context, onOpenLogs, onOpenKnowledge, onOpenNotes, onSignIn) {
             buildList {
+                add(
+                    SettingsItem(
+                        title = "Notifications",
+                        iconVector = Icons.Outlined.Notifications,
+                        onClick = {
+                            val permissions =
+                                (context.applicationContext as EnsuApplication)
+                                    .notificationPermissions
+                            permissions.openSettings(context)
+                        },
+                    )
+                )
                 add(
                     SettingsItem(
                         title = "About",

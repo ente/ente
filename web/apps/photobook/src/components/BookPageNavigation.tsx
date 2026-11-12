@@ -55,6 +55,7 @@ export default function BookPageNavigation({
             MenuProps={dialogSelectMenuProps}
             sx={{
                 ...dialogSelectSx,
+                bgcolor: "#202020",
                 width: 136,
                 maxWidth: "calc(100vw - 48px)",
                 height: 42,

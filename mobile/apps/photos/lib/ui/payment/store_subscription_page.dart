@@ -7,6 +7,7 @@ import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:ente_ui/components/subscription/plan_card.dart';
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:logging/logging.dart';
 import "package:photos/core/constants.dart";
@@ -24,7 +25,6 @@ import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import 'package:photos/ui/common/progress_dialog.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/dialog_widget.dart';
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
@@ -102,6 +102,10 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
             final previousSubscription = _currentSubscription;
             _currentSubscription = newSubscription;
             _hasActiveSubscription = _currentSubscription!.isValid();
+            _hideCurrentPlanSelection =
+                newSubscription.attributes?.isCancelled ?? false;
+            _selectedProductID = newSubscription.productID;
+            if (_hasLoadedData) _syncSelection();
             Bus.instance.fire(SubscriptionPurchasedEvent());
             if (mounted) {
               String text = l10n.thankYouForSubscribing;
@@ -221,14 +225,23 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
                 : const EnteLoadingWidget())
           : _getBody(),
       actions: [
-        if (widget.isOnboarding && _hasLoadedData)
+        if (_hasLoadedData)
           SubscriptionContinueButton(
             label: _continueLabel(),
-            isDisabled: _selectedProductID == null,
-            onTap: _selectedProductID == null ? null : _onOnboardingContinueTap,
+            isDisabled: !_canContinue,
+            onTap: _canContinue ? _onContinueTap : null,
           ),
       ],
     );
+  }
+
+  bool get _canContinue {
+    final selected = _selectedProductID;
+    return selected != null &&
+        (widget.isOnboarding ||
+            (selected != freeProductID &&
+                (!_hasActiveSubscription ||
+                    _currentSubscription?.productID != selected)));
   }
 
   String _continueLabel() {
@@ -256,7 +269,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
             isYearly: showYearlyPlan,
             onToggle: _onToggleBillingPeriod,
           ),
-          const SizedBox(height: Spacing.lg),
+          const SizedBox(height: Spacing.md),
         ],
         SubscriptionPlanList(
           children: _isActiveStripeSubscriber
@@ -339,7 +352,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         _plans = _plans.where((plan) => plan.period != 'year').toList();
       }
       _freePlan = billingPlans.freePlan;
-      _syncOnboardingSelection();
+      _syncSelection();
       _hasLoadedData = true;
       if (mounted) {
         setState(() {});
@@ -367,7 +380,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     if (hasYearlyPlans) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: Spacing.lg),
+          padding: const EdgeInsets.only(bottom: Spacing.md),
           child: SubscriptionToggle(
             isYearly: showYearlyPlan,
             onToggle: _onToggleBillingPeriod,
@@ -414,13 +427,12 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         widgets.add(
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
-            child: MenuItemWidgetNew(
+            child: NavigationCardComponent(
               title: context.strings.managePaymentMethod,
-              menuItemColor: colorScheme.fillFaint,
-              pressedColor: colorScheme.fillFaintPressed,
-              trailingWidget: Icon(
-                Icons.chevron_right_outlined,
-                color: colorScheme.strokeBase,
+              leading: HugeIcon(
+                icon: HugeIcons.strokeRoundedCreditCard,
+                size: NavigationCardComponent.leadingSize,
+                color: context.componentColors.textLight,
               ),
               onTap: () async {
                 _onPlatformRestrictedPaymentDetailsClick();
@@ -531,7 +543,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     } else {
       _plans = _plans.where((plan) => plan.period != 'year').toList();
     }
-    _syncOnboardingSelection();
+    _syncSelection();
     setState(() {});
   }
 
@@ -547,30 +559,16 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
           _currentSubscription!.productID == productID;
       planWidgets.add(
         GestureDetector(
-          onTap: () async {
-            if (widget.isOnboarding) {
-              setState(() {
-                _selectedProductID = productID;
-              });
-              return;
-            }
-            if (isActive) {
-              return;
-            }
-            // ignore: unawaited_futures
-            showErrorDialog(
-              context,
-              context.strings.sorry,
-              context.strings.visitWebToManage(webUrl: kPhotosWebDomain),
-            );
+          onTap: () {
+            setState(() {
+              _selectedProductID = productID;
+            });
           },
           child: SubscriptionPlanWidget(
             storage: plan.storage,
             price: plan.price,
             period: plan.period,
-            isActive: widget.isOnboarding
-                ? _selectedProductID == productID
-                : isActive && !_hideCurrentPlanSelection,
+            isActive: _selectedProductID == productID,
             isCurrentPlan: isActive && !_hideCurrentPlanSelection,
             isPopular: _isPopularPlan(plan),
             monthlyPrice: _monthlyPriceFor(plan),
@@ -587,9 +585,6 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       planWidgets.add(
         GestureDetector(
           onTap: () {
-            if (!widget.isOnboarding) {
-              return;
-            }
             setState(() {
               _selectedProductID = freeProductID;
             });
@@ -598,9 +593,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
             storage: _freePlan.storage,
             price: "",
             period: context.strings.freeTrial,
-            isActive: widget.isOnboarding
-                ? _selectedProductID == freeProductID
-                : _isFreePlanUser(),
+            isActive: _selectedProductID == freeProductID,
             isCurrentPlan: _isFreePlanUser(),
           ),
         ),
@@ -613,79 +606,16 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
           _currentSubscription!.productID == productID;
       planWidgets.add(
         GestureDetector(
-          onTap: () async {
-            if (widget.isOnboarding) {
-              setState(() {
-                _selectedProductID = productID;
-              });
-              return;
-            }
-            if (isActive) {
-              return;
-            }
-            final int addOnBonus =
-                _userDetails.bonusData?.totalAddOnBonus() ?? 0;
-            if (_userDetails.getFamilyOrPersonalUsage() >
-                (plan.storage + addOnBonus)) {
-              _logger.warning(
-                " familyUsage ${convertBytesToReadableFormat(_userDetails.getFamilyOrPersonalUsage())}"
-                " plan storage ${convertBytesToReadableFormat(plan.storage)} "
-                "addOnBonus ${convertBytesToReadableFormat(addOnBonus)},"
-                "overshooting by ${convertBytesToReadableFormat(_userDetails.getFamilyOrPersonalUsage() - (plan.storage + addOnBonus))}",
-              );
-              // ignore: unawaited_futures
-              showErrorDialog(
-                context,
-                context.strings.sorry,
-                context.strings.youCannotDowngradeToThisPlan,
-              );
-              return;
-            }
-            await _dialog.show();
-            final ProductDetailsResponse response = await InAppPurchase.instance
-                .queryProductDetails({productID});
-            if (response.notFoundIDs.isNotEmpty) {
-              final errMsg =
-                  "Could not find products: " + response.notFoundIDs.toString();
-              _logger.severe(errMsg);
-              await _dialog.hide();
-              if (!mounted) return;
-              await showGenericErrorDialog(
-                context: context,
-                error: Exception(errMsg),
-              );
-              return;
-            }
-            final isCrossGradingOnAndroid =
-                Platform.isAndroid &&
-                _hasActiveSubscription &&
-                _currentSubscription!.productID != freeProductID &&
-                _currentSubscription!.productID != plan.androidID;
-            if (isCrossGradingOnAndroid) {
-              await _dialog.hide();
-              if (!mounted) return;
-              // ignore: unawaited_futures
-              showErrorDialog(
-                context,
-                context.strings.couldNotUpdateSubscription,
-                context.strings.pleaseContactSupportAndWeWillBeHappyToHelp,
-              );
-              return;
-            } else {
-              await InAppPurchase.instance.buyNonConsumable(
-                purchaseParam: PurchaseParam(
-                  productDetails: response.productDetails[0],
-                ),
-              );
-            }
+          onTap: () {
+            setState(() {
+              _selectedProductID = productID;
+            });
           },
           child: SubscriptionPlanWidget(
             storage: plan.storage,
             price: plan.price,
             period: plan.period,
-            isActive: widget.isOnboarding
-                ? _selectedProductID == productID
-                : isActive,
+            isActive: _selectedProductID == productID,
             isCurrentPlan: isActive && !_hideCurrentPlanSelection,
             isPopular: _isPopularPlan(plan),
             monthlyPrice: _monthlyPriceFor(plan),
@@ -708,10 +638,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         : plan.iosID;
   }
 
-  void _syncOnboardingSelection() {
-    if (!widget.isOnboarding) {
-      return;
-    }
+  void _syncSelection() {
     final visibleProductIDs = _plans
         .map(_getPlanProductID)
         .where((id) => id.isNotEmpty)
@@ -725,6 +652,13 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         visibleProductIDs.contains(_selectedProductID)) {
       return;
     }
+    final currentProductID = _currentSubscription?.productID;
+    if (!widget.isOnboarding &&
+        currentProductID != null &&
+        visibleProductIDs.contains(currentProductID)) {
+      _selectedProductID = currentProductID;
+      return;
+    }
     if (hasFreeOptionVisible) {
       _selectedProductID = freeProductID;
       return;
@@ -734,7 +668,8 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         : null;
   }
 
-  Future<void> _onOnboardingContinueTap() async {
+  Future<void> _onContinueTap() async {
+    if (!_canContinue) return;
     final selectedProductID = _selectedProductID;
     if (selectedProductID == null) {
       return;

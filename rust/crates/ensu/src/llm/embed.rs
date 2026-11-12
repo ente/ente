@@ -2,6 +2,7 @@ use llama_cpp_2::llama_batch::LlamaBatch;
 
 use super::Error;
 use super::context::LocalContext;
+use super::execution::ExecutionState;
 
 impl LocalContext {
     pub fn embed(&self, query: &str) -> Result<Vec<f32>, Error> {
@@ -71,15 +72,17 @@ impl LocalContext {
                         message: err.to_string(),
                     })?;
             }
-            context.encode(&mut batch).map_err(|err| Error::Llama {
-                op: "Embedding encode failed",
-                message: err.to_string(),
-            })?;
-            let native = context.embeddings_seq_ith(0).map_err(|err| Error::Llama {
-                op: "Failed to read pooled embedding",
-                message: err.to_string(),
-            })?;
-            normalize_matryoshka(native, source_dim, dim)
+            context.run(true, ExecutionState::Stateless, |context, _, _| {
+                context.encode(&mut batch).map_err(|err| Error::Llama {
+                    op: "Embedding encode failed",
+                    message: err.to_string(),
+                })?;
+                let native = context.embeddings_seq_ith(0).map_err(|err| Error::Llama {
+                    op: "Failed to read pooled embedding",
+                    message: err.to_string(),
+                })?;
+                normalize_matryoshka(native, source_dim, dim)
+            })
         })
     }
 }

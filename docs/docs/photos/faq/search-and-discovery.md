@@ -223,9 +223,17 @@ Open `Settings > Preferences > Machine learning`, enable "Face recognition", and
 
 Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning).
 
+### Does face recognition or Magic search include photos from albums shared with me? {#ml-shared-albums}
+
+Yes. When Machine learning is on, face recognition and Magic search index photos in albums shared with you and in collaborative albums, as well as photos you uploaded. You do not need to copy those photos into an album you own first.
+
+Indexing runs on your devices. If local indexing is off on a phone, that phone uses indexes built on another of your devices (for example desktop). A device with local indexing on still needs to process newly shared photos before they show up in People or Magic search there.
+
+Names you give people and face labels stay on your account only. They are not shared with other members of the album. See [Are people names and face labels shared with other members?](/photos/faq/sharing-and-collaboration#shared-face-labels).
+
 ### Can I search my library by text that appears inside images? {#search-text-in-images}
 
-Only partially. Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
+Only partially (this includes what people often call OCR). Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
 
 ### Can I merge or de-merge persons recognized by the app? {#merge-persons}
 
@@ -387,6 +395,16 @@ This can happen for a couple of reasons:
 
 Open `Settings > Machine learning` on mobile and enable local indexing. This lets your phone index the files itself instead of relying on indexes from a device that skipped them.
 
+### Why does Machine Learning stay just below 100%? {#ml-stuck-below-100}
+
+A percentage such as 99.9% means a small number of files are still in the pending count. If local indexing is off on mobile, some files may be waiting for another device to process them. See [why mobile and desktop can show different percentages](#ml-percentage-mismatch-across-platforms) for what to check.
+
+Some files may also be too large, damaged, or in a format the app cannot process yet. Those files can stay in the pending count, so the total does not reach 100%.
+
+Everything else is still indexed. Face search and magic search keep working for the files that succeeded.
+
+You do not need to do anything if search works for you. If you want help identifying the files still pending, please contact [support@ente.com](mailto:support@ente.com) and [share your logs](/photos/faq/troubleshooting#sharing-logs).
+
 ### Why does my desktop app show different unnamed people than my phone? {#unnamed-people-differ}
 
 People you name and people you ignore sync across all your devices. Unnamed groupings don't sync. Each device works them out on its own, so the list of unnamed people can look different on desktop and on your phone, even when both show 100% indexed.
@@ -452,6 +470,8 @@ To watch a memory without music in the mobile app:
 2. Tap the speaker icon to mute the music.
 
 Tap the speaker icon again to turn the music back on.
+
+Ente remembers this choice the next time you open a memory on the same device.
 
 ## General Search
 

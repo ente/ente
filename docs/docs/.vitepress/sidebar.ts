@@ -50,6 +50,10 @@ export const sidebar = [
                         link: "/photos/migration/from-amazon-photos",
                     },
                     {
+                        text: "From Proton Drive",
+                        link: "/photos/migration/from-proton-drive",
+                    },
+                    {
                         text: "From your hard disk",
                         link: "/photos/migration/from-local-hard-disk",
                     },

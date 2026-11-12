@@ -120,7 +120,8 @@ impl Export {
             root_lock.is_some()
                 || adopting
                 || !destination.try_exists()?
-                || std::fs::read_dir(&destination)?.next().is_none(),
+                || std::fs::read_dir(&destination)?
+                    .all(|entry| { entry.is_ok_and(|entry| is_finder_metadata_entry(&entry)) }),
             "nonempty destination has no recognized export.json"
         );
         Ok(Self {
@@ -445,6 +446,11 @@ fn open_root(destination: &Path, expected: &Root) -> Result<Option<RootLock>> {
     Ok(Some(lock))
 }
 
+fn is_finder_metadata_entry(entry: &std::fs::DirEntry) -> bool {
+    entry.file_type().is_ok_and(|file_type| file_type.is_file())
+        && names::is_finder_metadata(&entry.file_name())
+}
+
 fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<RootLock> {
     std::fs::create_dir_all(destination)?;
     let path = names::check(destination, "export.json")?;
@@ -459,8 +465,11 @@ fn initialize(destination: &Path, root: &Root, legacy: bool) -> Result<RootLock>
         let mut lock = RootLock(file);
         ensure!(
             legacy
-                || std::fs::read_dir(destination)?
-                    .all(|entry| entry.is_ok_and(|entry| entry.file_name() == "export.json")),
+                || std::fs::read_dir(destination)?.all(|entry| {
+                    entry.is_ok_and(|entry| {
+                        entry.file_name() == "export.json" || is_finder_metadata_entry(&entry)
+                    })
+                }),
             "destination became nonempty during initialization"
         );
         serde_json::to_writer_pretty(&mut lock.0, root)?;
@@ -964,6 +973,68 @@ fn canonical_id(selector: &str) -> rusqlite::types::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn initialization_ignores_finder_metadata() {
+        let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("._export.json"), b"sidecar").unwrap();
+        std::fs::write(directory.path().join(".DS_Store"), b"finder").unwrap();
+        drop(initialize(directory.path(), &root, false).unwrap());
+        assert!(directory.path().join("export.json").exists());
+        assert!(open_root(directory.path(), &root).unwrap().is_some());
+    }
+
+    #[test]
+    fn initialization_rejects_non_file_sidecar_names() {
+        let root = Root::new(&ente_core::crypto::Key::generate(), 1).unwrap();
+        for name in ["._Photos", ".DS_Store"] {
+            let directory = tempfile::tempdir().unwrap();
+            std::fs::create_dir(directory.path().join(name)).unwrap();
+            let error = initialize(directory.path(), &root, false).err().unwrap();
+            assert!(
+                error.to_string().contains("destination became nonempty"),
+                "{name}"
+            );
+            assert!(!directory.path().join("export.json").exists());
+        }
+        #[cfg(unix)]
+        {
+            let directory = tempfile::tempdir().unwrap();
+            let target = tempfile::NamedTempFile::new().unwrap();
+            std::os::unix::fs::symlink(target.path(), directory.path().join(".DS_Store")).unwrap();
+            let error = initialize(directory.path(), &root, false).err().unwrap();
+            assert!(error.to_string().contains("destination became nonempty"));
+            assert!(!directory.path().join("export.json").exists());
+        }
+    }
+
+    #[test]
+    fn open_rejects_non_file_sidecar_names() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::create_dir(directory.path().join("._Photos")).unwrap();
+        let session = ente_core::Session::new(
+            ente_core::http::ApiConfig::new("http://127.0.0.1:1".into()),
+            1,
+            ente_core::crypto::Key::generate(),
+            ente_core::crypto::Key::generate(),
+            ente_core::crypto::SecretKey::generate(),
+        )
+        .unwrap();
+        let options = Options {
+            albums: Vec::new(),
+            exclude_albums: Vec::new(),
+            exclude_shared: false,
+            exclude_hidden: false,
+            adopt: false,
+            hardlinks: false,
+            jobs: std::num::NonZeroUsize::new(1).unwrap(),
+        };
+        let error = Export::open(directory.path(), &session, options)
+            .err()
+            .unwrap();
+        assert!(error.to_string().contains("nonempty destination"));
+    }
 
     #[test]
     fn initialization_removes_its_marker_on_failure_and_retries() {

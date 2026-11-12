@@ -24,6 +24,7 @@ func (r *Repository) GetDatacenters(ctx context.Context, fileID int64) ([]string
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	defer rows.Close()
 	uniqueDatacenters := make(map[string]struct{})
 	for rows.Next() {
 		var datacenters []string
@@ -34,6 +35,9 @@ func (r *Repository) GetDatacenters(ctx context.Context, fileID int64) ([]string
 		for _, dc := range datacenters {
 			uniqueDatacenters[dc] = struct{}{}
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read embedding datacenters")
 	}
 	datacenters := make([]string, 0, len(uniqueDatacenters))
 	for dc := range uniqueDatacenters {

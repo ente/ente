@@ -1,4 +1,4 @@
-import { toolbarColors, uiColors } from "./colors";
+import { toolbarColors, toolbarShadow, uiColors } from "./colors";
 
 export const accentGreen = "#08C225";
 export const accentGreenHover = "#07AE22";
@@ -24,18 +24,20 @@ export const editorButtonSx = {
 
 export const headerButtonSx = {
     ...editorButtonSx,
-    "@media (max-width: 959px)": { height: 44, minWidth: 44 },
     flexShrink: 0,
-    minWidth: { xs: 38, sm: 0 },
+    minWidth: { xs: 38, sm: 140 },
     width: "auto",
-    height: { xs: 38, sm: 40 },
-    px: { xs: "10px", sm: "16px" },
-    py: 0,
-    borderRadius: { xs: "12px", sm: "14px" },
+    height: { xs: 38, sm: 52 },
+    p: { xs: 0, sm: "18px 24px" },
+    borderRadius: { xs: "12px", sm: "20px" },
+    border: 0,
     lineHeight: "20px",
     gap: { xs: 0, sm: "8px" },
+    "&, &:hover, &:active, &.Mui-focusVisible, &.Mui-disabled": {
+        boxShadow: toolbarShadow,
+    },
     "& .MuiButton-startIcon": { m: 0 },
-    "& .MuiSvgIcon-root": { fontSize: 18 },
+    "& .MuiSvgIcon-root": { fontSize: 20 },
 } as const;
 
 export const secondaryButtonSx = {

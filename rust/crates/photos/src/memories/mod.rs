@@ -18,11 +18,12 @@ mod trips;
 mod vectors;
 
 use std::collections::HashSet;
+use std::time::Instant;
 
 pub use calendar::LocalDate;
 pub use input::{
     CachedTrip, CityLookup, ClipVectors, MemoriesRequest, MemoryFile, MemoryPerson, MlInputs,
-    PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownTrip, UnnamedCluster,
+    PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownTrip, TripDetection, UnnamedCluster,
 };
 pub use output::{
     BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryBoundary, MemoryKind,
@@ -58,7 +59,7 @@ pub fn compute_smart_memories(
     let places = Places::new(&located, cities);
     let analysis = periods
         .first()
-        .map(|period| trips::analyze(&located, period.now, &places));
+        .map(|&period| trips::v3::analyze(&photos, &located, period, &places, cities));
     let mut trip_history = TripHistory::new(&request.shown_trips, &request.cached_trips);
     let mut clip_history = ClipHistory::new(&request.shown_clip_memories);
     let signals = ml.map(Signals::load).transpose()?;
@@ -152,6 +153,30 @@ pub fn compute_simple_memories(request: &MemoriesRequest, period: Period) -> Vec
     memories
 }
 
+pub fn compute_all_trip_memories(
+    request: &MemoriesRequest,
+    period: Period,
+    cities: Option<&dyn CityLookup>,
+    detection: TripDetection,
+) -> Vec<Memory> {
+    let started = Instant::now();
+    let photos = photo::prepare(&request.files);
+    let located = geo::located(&photos);
+    let places = Places::new(&located, cities);
+    let analysis = match detection {
+        TripDetection::Legacy => trips::analyze(&located, period.now, &places),
+        TripDetection::Improved => trips::v3::analyze(&photos, &located, period, &places, cities),
+    };
+    let memories = trips::all_memories(&analysis, &places, period);
+    log::info!(
+        "computed {} {detection:?} trip memories for {} files in {} ms",
+        memories.len(),
+        request.files.len(),
+        started.elapsed().as_millis()
+    );
+    memories
+}
+
 fn unused_photos<'p>(
     photos: impl IntoIterator<Item = &'p Photo>,
     memories: &[Memory],
@@ -190,6 +215,7 @@ mod tests {
             utc_offset_seconds: 0,
             collection_id: None,
             location: None,
+            shared: false,
         }
     }
 

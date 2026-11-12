@@ -335,8 +335,6 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
   Map<String, FaceBox> faceBoxeMap, {
   bool useFullFile = true,
 }) async {
-  final completer = Completer<Map<String, Uint8List>?>();
-
   late final TaskQueue relevantTaskQueue;
   late final String taskId;
   if (useFullFile) {
@@ -347,16 +345,15 @@ Future<Map<String, Uint8List>?> _getFaceCropsUsingHeapPriorityQueue(
     taskId = await _faceCropTaskId(file, useFullFile: false);
   }
 
+  Map<String, Uint8List>? faceCrops;
   await relevantTaskQueue.addTask(taskId, () async {
-    final faceCrops = await _getFaceCrops(
+    faceCrops = await _getFaceCrops(
       file,
       faceBoxeMap,
       useFullFile: useFullFile,
     );
-    completer.complete(faceCrops);
   });
-
-  return completer.future;
+  return faceCrops;
 }
 
 Future<String> _faceCropTaskId(

@@ -190,7 +190,16 @@ type ObjectState struct {
 	Size          int64
 }
 
+type TempObjectCleanupState string
+
+const (
+	TempObjectUploading   TempObjectCleanupState = ""
+	TempObjectReleaseHold TempObjectCleanupState = "release_hold"
+	TempObjectDelete      TempObjectCleanupState = "delete"
+)
+
 type TempObject struct {
+	CleanupState  TempObjectCleanupState
 	ObjectKey     string
 	IsMultipart   bool
 	UploadID      string

@@ -1,6 +1,5 @@
 import "dart:async";
 import "dart:io";
-import "dart:math" as math;
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
@@ -28,9 +27,17 @@ import "package:photos/utils/dialog_util.dart";
 enum _ReviewMonthView { swipe, queue, done }
 
 class ReviewMonthPage extends StatefulWidget {
-  const ReviewMonthPage({required this.monthKey, super.key});
+  const ReviewMonthPage({
+    required this.monthKey,
+    this.onReviewChanged,
+    this.pendingWritesForMonth,
+    super.key,
+  });
 
   final ReviewMonthKey monthKey;
+  final void Function(ReviewMonthKey, ReviewMonthSummary?, Future<void>)?
+  onReviewChanged;
+  final Future<void> Function(ReviewMonthKey)? pendingWritesForMonth;
 
   @override
   State<ReviewMonthPage> createState() => _ReviewMonthPageState();
@@ -59,16 +66,24 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   final List<EnteFile> _undecided = [];
   final List<(EnteFile, ReviewSwipeDirection)> _history = [];
   ReviewMonthRecord? _record;
-  Future<void> _lastWrite = Future.value();
+  late Future<void> _lastWrite;
+  int _lastReviewedAt = 0;
+  int _queuedCount = 0;
   int _loadGeneration = 0;
+  int _filesRevision = 0;
+  int _loadedFilesRevision = -1;
   bool _loaded = false;
   bool _deleting = false;
+  bool _leaving = false;
+  bool _reviewChanged = false;
   bool _reportingWriteFailure = false;
   _ReviewMonthView _view = _ReviewMonthView.swipe;
 
   @override
   void initState() {
     super.initState();
+    _lastWrite =
+        widget.pendingWritesForMonth?.call(widget.monthKey) ?? Future.value();
     _filesSubscription = Bus.instance.on<FilesUpdatedEvent>().listen(
       _onFilesUpdated,
     );
@@ -83,6 +98,8 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   }
 
   void _write(String action, Future<void> Function() operation) {
+    _reviewChanged = true;
+    _lastReviewedAt = DateTime.now().microsecondsSinceEpoch;
     _lastWrite = _lastWrite.then((_) => operation()).catchError((
       Object e,
       StackTrace s,
@@ -90,6 +107,29 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       _logger.severe("Failed to $action", e, s);
       unawaited(_recoverFromWriteFailure(e));
     });
+    if (_leaving) _publishReviewChanged();
+  }
+
+  void _publishReviewChanged() {
+    _leaving = true;
+    if (!_reviewChanged) return;
+    _reviewChanged = false;
+    final summary =
+        !_loaded ||
+            _files.isEmpty ||
+            _deleting ||
+            _loadedFilesRevision != _filesRevision
+        ? null
+        : ReviewMonthSummary(
+            key: widget.monthKey,
+            cover: _files.first,
+            totalCount: _files.length,
+            decidedCount: _decidedCount,
+            queuedCount: _queuedCount,
+            markedReviewed: _record?.markedReviewed ?? false,
+            lastReviewedAt: _lastReviewedAt,
+          );
+    widget.onReviewChanged?.call(widget.monthKey, summary, _lastWrite);
   }
 
   Future<void> _recoverFromWriteFailure(Object error) async {
@@ -108,9 +148,12 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     try {
       ReviewMonthData data;
       Future<void> settled;
+      int filesRevision;
       do {
         settled = _lastWrite;
         await settled;
+        if (!mounted || generation != _loadGeneration) return;
+        filesRevision = _filesRevision;
         data = await _service.loadMonth(widget.monthKey);
       } while (!identical(settled, _lastWrite));
       if (!mounted || generation != _loadGeneration) return;
@@ -120,8 +163,10 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           ..clear()
           ..addAll(data.decisions);
         _record = data.record;
+        _lastReviewedAt = data.record?.updatedAt ?? 0;
+        _loadedFilesRevision = filesRevision;
         _loaded = true;
-        _rebuildUndecided();
+        _rebuildReviewState();
         _history
           ..clear()
           ..addAll([
@@ -135,7 +180,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           ]);
         if (resetView ||
             _view == _ReviewMonthView.done ||
-            (_view == _ReviewMonthView.queue && _queued.isEmpty) ||
+            (_view == _ReviewMonthView.queue && _queuedCount == 0) ||
             (_view == _ReviewMonthView.swipe && !_canSwipe)) {
           _view = _resolveView();
         }
@@ -150,6 +195,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   }
 
   void _onFilesUpdated(FilesUpdatedEvent event) {
+    _filesRevision++;
     if (_deleting) return;
     _reloadDebouncer.run(() => _load(resetView: false));
   }
@@ -161,14 +207,28 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
             loaded.uploadedFileID == file.uploadedFileID),
   );
 
-  void _rebuildUndecided() {
-    _undecided
-      ..clear()
-      ..addAll(
-        _files.where(
-          (file) => !_decisions.containsKey(PhotoReviewService.fileKey(file)),
-        ),
-      );
+  void _rebuildReviewState() {
+    _undecided.clear();
+    _queuedCount = 0;
+    for (final file in _files) {
+      final decision = _decisions[PhotoReviewService.fileKey(file)];
+      if (decision == null) {
+        _undecided.add(file);
+      } else if (decision == ReviewDecision.queued) {
+        _queuedCount++;
+      }
+    }
+  }
+
+  void _setDecision(EnteFile file, ReviewDecision? decision) {
+    final key = PhotoReviewService.fileKey(file);
+    if (_decisions[key] == ReviewDecision.queued) _queuedCount--;
+    if (decision == null) {
+      _decisions.remove(key);
+    } else {
+      _decisions[key] = decision;
+      if (decision == ReviewDecision.queued) _queuedCount++;
+    }
   }
 
   bool get _canSwipe =>
@@ -176,7 +236,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
 
   _ReviewMonthView _resolveView() {
     if (_canSwipe) return _ReviewMonthView.swipe;
-    if (_queued.isNotEmpty) return _ReviewMonthView.queue;
+    if (_queuedCount > 0) return _ReviewMonthView.queue;
     return _ReviewMonthView.done;
   }
 
@@ -194,7 +254,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final file = _loadedFile(swiped);
     if (file == null) return;
     setState(() {
-      _decisions[PhotoReviewService.fileKey(file)] = direction.decision;
+      _setDecision(file, direction.decision);
       _undecided.remove(file);
       _history.add((file, direction));
       if (!_canSwipe) _view = _resolveView();
@@ -215,7 +275,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     if (!_files.contains(file)) return;
     unawaited(HapticFeedback.lightImpact());
     setState(() {
-      _decisions.remove(PhotoReviewService.fileKey(file));
+      _setDecision(file, null);
       _undecided.insert(0, file);
       _view = _ReviewMonthView.swipe;
     });
@@ -231,11 +291,11 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     final record = _record;
     final unmark = record != null && record.markedReviewed;
     setState(() {
-      _decisions.remove(PhotoReviewService.fileKey(file));
+      _setDecision(file, null);
       _undecided.insert(0, file);
       _history.removeWhere((entry) => entry.$1 == file);
       if (unmark) _record = record.copyWith(markedReviewed: false);
-      if (_queued.isEmpty) _view = _resolveView();
+      if (_queuedCount == 0) _view = _resolveView();
     });
     _write(
       "return queued file to the deck",
@@ -343,7 +403,12 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
       Navigator.of(context).pop();
       return;
     }
-    final page = ReviewMonthPage(monthKey: next);
+    _publishReviewChanged();
+    final page = ReviewMonthPage(
+      monthKey: next,
+      onReviewChanged: widget.onReviewChanged,
+      pendingWritesForMonth: widget.pendingWritesForMonth,
+    );
     if (Platform.isIOS) {
       unawaited(
         Navigator.of(context).pushReplacement(
@@ -364,7 +429,11 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     return PopScope(
       canPop: !canReturnToSwipe,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _view = _ReviewMonthView.swipe);
+        if (didPop) {
+          _publishReviewChanged();
+        } else {
+          setState(() => _view = _ReviewMonthView.swipe);
+        }
       },
       child: Scaffold(
         backgroundColor: colors.backgroundBase,
@@ -380,7 +449,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
   Widget _buildSwipeView(BuildContext context, String title) {
     final colors = context.componentColors;
     final l10n = context.strings;
-    final queuedCount = _queued.length;
+    final queuedCount = _queuedCount;
     final padding = MediaQuery.paddingOf(context);
     final landscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
@@ -451,7 +520,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
     );
     final Widget body;
     if (landscape) {
-      final bottom = math.max(padding.bottom, Spacing.xl);
+      final bottom = padding.bottom + Spacing.xl;
       body = Stack(
         children: [
           Padding(
@@ -461,7 +530,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
           Positioned(
             top: Spacing.sm,
             bottom: bottom,
-            right: math.max(padding.right, Spacing.xl),
+            right: padding.right + Spacing.xl,
             width: _actionButtonSize,
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -494,7 +563,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
               ],
             ],
           ),
-          SizedBox(height: math.max(padding.bottom, _bottomActionInset)),
+          SizedBox(height: padding.bottom + _bottomActionInset),
         ],
       );
     }
@@ -798,48 +867,57 @@ class _QueuedTile extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: Semantics(
-            button: true,
-            label: file.displayName,
-            child: GestureDetector(
-              onTap: onTap,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(Radii.button),
-                child: ThumbnailWidget(
-                  file,
-                  key: Key("review_queue_${file.tag}"),
-                  shouldShowSyncStatus: false,
-                  placeholderColor: colors.fillDark,
+          child: Padding(
+            padding: const EdgeInsets.only(top: Spacing.sm, right: Spacing.sm),
+            child: Semantics(
+              button: true,
+              label: file.displayName,
+              child: GestureDetector(
+                onTap: onTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.button),
+                  child: ThumbnailWidget(
+                    file,
+                    key: Key("review_queue_${file.tag}"),
+                    shouldShowSyncStatus: false,
+                    placeholderColor: colors.fillDark,
+                  ),
                 ),
               ),
             ),
           ),
         ),
         Positioned(
-          top: -5 - Spacing.sm,
-          right: -6 - Spacing.sm,
+          top: 0,
+          right: 0,
           child: Semantics(
             button: true,
             label: context.strings.reviewAgain,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onRemove,
-              child: Padding(
-                padding: const EdgeInsets.all(Spacing.sm),
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: colors.warning,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colors.specialWhite, width: 1.5),
-                  ),
-                  child: HugeIcon(
-                    icon: HugeIcons.strokeRoundedCancel01,
-                    size: 12,
-                    strokeWidth: 3,
-                    color: colors.specialWhite,
+              child: SizedBox.square(
+                dimension: kMinInteractiveDimension,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: colors.warning,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colors.specialWhite,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      size: 12,
+                      strokeWidth: 3,
+                      color: colors.specialWhite,
+                    ),
                   ),
                 ),
               ),

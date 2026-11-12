@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:name=".EnsuApplication"
         android:label="@string/app_name"
@@ -37,6 +41,9 @@
             android:name=".assets.AssetDownloadJobService"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service android:name=".notifications.GenerationService"
+            android:exported="false" android:foregroundServiceType="shortService" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

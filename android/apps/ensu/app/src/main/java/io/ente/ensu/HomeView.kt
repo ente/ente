@@ -2,7 +2,6 @@
 
 package io.ente.ensu
 
-import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -41,8 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.core.content.OnTrimMemoryProvider
-import androidx.core.util.Consumer
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -101,6 +98,24 @@ fun HomeView(
         var imagePreviewAttachment by remember { mutableStateOf<Attachment?>(null) }
         val whatsNewService = remember(context) { WhatsNewService(context.applicationContext) }
         var pendingWhatsNew by remember { mutableStateOf<PendingWhatsNew?>(null) }
+
+        LaunchedEffect(store) {
+            store.openedNotification.collect { opened ->
+                if (opened != null) {
+                    deleteSessionTarget = null
+                    imagePreviewAttachment = null
+                    showLogShareDialog = false
+                    showSignInComingSoon = false
+                    pendingWhatsNew = null
+                    navController.navigate(HomeRoute.Chat) {
+                        popUpTo(HomeRoute.Chat) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    store.acknowledgeOpenedNotification(opened)
+                    drawerState.close()
+                }
+            }
+        }
 
         val handleSignInRequest: () -> Unit = { showSignInComingSoon = true }
 
@@ -191,6 +206,7 @@ fun HomeView(
             }
 
         BackHandler(enabled = !isChatRoute) {
+            store.cancelNotificationNavigation()
             if (!navController.popBackStack()) {
                 navController.navigate(HomeRoute.Chat) { launchSingleTop = true }
             }
@@ -244,18 +260,6 @@ fun HomeView(
             )
         }
 
-        DisposableEffect(lifecycleOwner) {
-            val callbacks = lifecycleOwner as? OnTrimMemoryProvider
-            val listener =
-                Consumer<Int> { level ->
-                    if (level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-                        latestStore.handleMemoryPressure()
-                    }
-                }
-            callbacks?.addOnTrimMemoryListener(listener)
-            onDispose { callbacks?.removeOnTrimMemoryListener(listener) }
-        }
-
         LaunchedEffect(whatsNewService) {
             delay(600)
             pendingWhatsNew = whatsNewService.getPendingWhatsNew()
@@ -304,6 +308,7 @@ fun HomeView(
                     },
                     onDeleteSession = { session -> deleteSessionTarget = session },
                     onOpenSettings = {
+                        store.cancelNotificationNavigation()
                         navController.navigate(HomeRoute.Settings) {
                             launchSingleTop = true
                             restoreState = true

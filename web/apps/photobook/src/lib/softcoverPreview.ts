@@ -1,4 +1,17 @@
 import type { PageFlip } from "page-flip";
+import type { PrintBinding } from "./printProducts";
+
+export function setPreviewPageDensity(
+    element: Pick<HTMLElement, "dataset">,
+    binding: PrintBinding,
+    index: number,
+    pageCount: number,
+) {
+    element.dataset.density =
+        binding === "Hardcover" && (index < 2 || index >= pageCount - 2)
+            ? "hard"
+            : "soft";
+}
 
 export function clipSoftcoverInsidePages(book: PageFlip): () => void {
     const count = book.getPageCount();

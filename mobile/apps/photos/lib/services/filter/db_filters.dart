@@ -72,5 +72,22 @@ Future<List<EnteFile>> applyDBFilters(
       filterFiles.add(file);
     }
   }
+  if (options.dedupeUploadID) {
+    return _hidePendingLocalDuplicates(filterFiles);
+  }
   return filterFiles;
+}
+
+List<EnteFile> _hidePendingLocalDuplicates(List<EnteFile> files) {
+  final uploadedLocalIDs = {
+    for (final file in files)
+      if (file.isUploaded && file.localID != null) file.localID!,
+  };
+  final seenPendingLocalIDs = <String>{};
+  return files.where((file) {
+    final localID = file.localID;
+    if (file.isUploaded || localID == null) return true;
+    return !uploadedLocalIDs.contains(localID) &&
+        seenPendingLocalIDs.add(localID);
+  }).toList();
 }

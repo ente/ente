@@ -440,6 +440,7 @@ order by updated_at ASC limit $2
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	defer rows.Close()
 	var fileWithUpdatedAt []FileWithUpdatedAt
 	for rows.Next() {
 		var fileID, updatedAt int64
@@ -450,6 +451,9 @@ order by updated_at ASC limit $2
 			FileID:    fileID,
 			UpdatedAt: updatedAt,
 		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read files for metadata deletion")
 	}
 
 	if len(fileWithUpdatedAt) == 0 {

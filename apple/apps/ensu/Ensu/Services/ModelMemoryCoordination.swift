@@ -18,8 +18,10 @@ struct ModelMemoryPressureState {
         max(0, retryAfter - now)
     }
 
-    func requiresCleanup(appForeground: Bool, now: TimeInterval) -> Bool {
-        !appForeground || suppressesOptionalWork(now: now)
+    func requiresCleanup(
+        appForeground: Bool, retainingResponse: Bool = false, now: TimeInterval
+    ) -> Bool {
+        (!appForeground && !retainingResponse) || suppressesOptionalWork(now: now)
     }
 
     mutating func didCleanUp() {

@@ -91,7 +91,7 @@ class FlagService {
 
   bool get rustMemories => internalUser;
 
-  bool get rewind => false;
+  bool get rewind => internalUser;
 
   String get castUrl => flags.castUrl;
 
@@ -102,6 +102,8 @@ class FlagService {
   bool get useNativeVideoEditor => true;
 
   bool get videoEditorSpeedEnabled => internalUser;
+
+  bool get memoryVideoExportEnabled => internalUser;
 
   bool get progressiveOriginalVideoPlayback => internalUser;
 

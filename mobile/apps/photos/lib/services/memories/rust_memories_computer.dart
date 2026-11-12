@@ -95,6 +95,29 @@ class RustMemoriesComputer implements MemoriesComputer {
     return memories.map(inputs.smartMemory).toList();
   }
 
+  Future<List<SmartMemory>> computeAllTrips(
+    DateTime now, {
+    required bool improved,
+  }) async {
+    final inputs = await _loadInputs(mlEnabled: false, surfaceAll: true);
+    final detection = improved
+        ? rust.TripDetection.improved
+        : rust.TripDetection.legacy;
+    _logger.info(
+      "Computing all ${detection.name} trip memories over "
+      "${inputs.files.length} files",
+    );
+    final memories = await rust.computeAllTripMemories(
+      request: inputs.request,
+      period: _period(now),
+      cities: await locationService.getLocationIndex(),
+      detection: detection,
+    );
+    return memories
+        .map((memory) => inputs.smartMemory(memory, capMemories: false))
+        .toList();
+  }
+
   Future<List<MemoriesResult>?> _compute(
     List<DateTime> periods,
     MemoriesCache oldCache, {
@@ -158,9 +181,13 @@ class RustMemoriesComputer implements MemoriesComputer {
         : persons.firstWhereOrNull(
             (person) => person.data.email == currentUserEmail,
           );
+    final currentUserID = isLocalGalleryMode
+        ? null
+        : Configuration.instance.getUserID();
     final request = rust.MemoriesRequest(
       files: [
-        for (final entry in files.entries) _memoryFile(entry.key, entry.value),
+        for (final entry in files.entries)
+          _memoryFile(entry.key, entry.value, currentUserID),
       ],
       excludedCollectionIds: Int64List.fromList(
         collectionIDsToExclude.toList(),
@@ -218,7 +245,11 @@ class RustMemoriesComputer implements MemoriesComputer {
     );
   }
 
-  static rust.MemoryFile _memoryFile(int id, EnteFile file) {
+  static rust.MemoryFile _memoryFile(
+    int id,
+    EnteFile file,
+    int? currentUserID,
+  ) {
     final creationTime = file.creationTime!;
     return rust.MemoryFile(
       id: id,
@@ -229,6 +260,10 @@ class RustMemoriesComputer implements MemoriesComputer {
       ).timeZoneOffset.inSeconds,
       collectionId: file.collectionID,
       location: file.hasLocation ? _coordinate(file.location!) : null,
+      shared:
+          currentUserID != null &&
+          file.ownerID != null &&
+          file.ownerID != currentUserID,
     );
   }
 
@@ -286,7 +321,7 @@ class _Inputs {
     required this.persons,
   });
 
-  SmartMemory smartMemory(rust.Memory memory) {
+  SmartMemory smartMemory(rust.Memory memory, {bool capMemories = true}) {
     final memories = [
       for (final fileID in memory.fileIds.inner)
         if (files[fileID] case final file?) Memory.fromFile(file, seenTimes),
@@ -309,6 +344,7 @@ class _Inputs {
         locationName: trip.locationName,
         tripYear: trip.year,
         tripKey: trip.key,
+        capMemories: capMemories,
       ),
       rust.MemoryKind_Base(field0: final base) => TripMemory(
         memories,
@@ -316,6 +352,7 @@ class _Inputs {
         last,
         RustMemoriesComputer._location(base.location),
         locationName: _baseName(base),
+        capMemories: capMemories,
       ),
       rust.MemoryKind_Clip(field0: final clipType) => ClipMemory(
         memories,

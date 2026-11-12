@@ -1,3 +1,4 @@
+import { isDesktop } from "ente-base/app";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
 import { useRouter } from "next/router";
@@ -12,6 +13,7 @@ import { sectionDefinition, type GallerySectionID } from "../sections/registry";
 import { useSearchNavigation } from "../sections/search/use-search-navigation";
 import type { PhotosNavigationActions } from "./PhotosNavigationContext";
 import type { PhotosNavigationShellHandle } from "./PhotosNavigationShell";
+import { createGalleryHistory } from "./gallery-history";
 import {
     activeSectionID,
     initialNavigationState,
@@ -171,8 +173,34 @@ export const useGalleryNavigation = (
         }
     }, [joinedCollectionID, library]);
     const router = useRouter();
+    const history = useMemo(createGalleryHistory, []);
+    const webDestination = isDesktop ? undefined : destination;
+    useEffect(() => {
+        if (!webDestination) return;
+        router.beforePopState(({ as }) => {
+            history.restore(
+                as,
+                webDestination,
+                library,
+                (collectionSummaryID) =>
+                    send({
+                        type: "showCollectionSummary",
+                        collectionSummaryID,
+                        library,
+                    }),
+            );
+            return true;
+        });
+        return () => router.beforePopState(() => true);
+    }, [router, history, webDestination, library]);
     const overview = destination.albumFilter !== undefined;
     useEffect(() => {
+        if (
+            webDestination &&
+            (router.pathname !== "/gallery" ||
+                history.isRestoring(router.asPath, webDestination))
+        )
+            return;
         if (
             !library.user ||
             (!overview && activeCollectionID === undefined) ||
@@ -186,7 +214,14 @@ export const useGalleryNavigation = (
         const href = `/gallery${query}`;
         if (router.asPath !== href)
             void router.push(href, undefined, { shallow: true });
-    }, [activeCollectionID, overview, router, library.user]);
+    }, [
+        activeCollectionID,
+        overview,
+        router,
+        library.user,
+        history,
+        webDestination,
+    ]);
     return {
         state,
         sectionID,

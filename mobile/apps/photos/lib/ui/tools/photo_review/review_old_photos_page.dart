@@ -17,6 +17,7 @@ import "package:photos/ui/tools/photo_review/review_month_page.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_banner.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_selection_bar.dart";
 import "package:photos/ui/tools/photo_review/widgets/review_year_section.dart";
+import "package:photos/ui/viewer/gallery/scrollbar/scroll_bar_with_use_notifier.dart";
 import "package:photos/utils/dialog_util.dart";
 
 class ReviewOldPhotosPage extends StatefulWidget {
@@ -30,6 +31,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
     with RouteAware {
   static final _logger = Logger("ReviewOldPhotosPage");
   static const _horizontalPadding = Spacing.xl;
+  static const _yearSpacing = 44.0;
 
   final _service = PhotoReviewService.instance;
   final _reloadDebouncer = Debouncer(const Duration(seconds: 2));
@@ -40,23 +42,36 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   Object? _error;
   final Set<ReviewMonthKey> _selected = {};
   final Set<int> _expandedYears = {};
+  final Set<ReviewMonthKey> _dirtyMonths = {};
+  final Map<ReviewMonthKey, Future<void>> _pendingMonthWrites = {};
   final _selectionBarKey = GlobalKey();
+  final _scrollController = ScrollController();
+  final _showScrollThumb = ValueNotifier(false);
+  final _scrollThumbInUse = ValueNotifier(false);
   double _selectionBarHeight = 0;
   int _loadGeneration = 0;
+  bool _loading = false;
+  bool _fullReloadRequired = true;
   bool _covered = false;
-  bool _reloadWhenUncovered = false;
 
   bool get _selectionMode => _selected.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    _filesSubscription = Bus.instance.on<FilesUpdatedEvent>().listen(
-      (_) => _scheduleReload(debounce: true),
-    );
-    _reviewSubscription = Bus.instance.on<PhotoReviewUpdatedEvent>().listen(
-      (_) => _scheduleReload(debounce: false),
-    );
+    _filesSubscription = Bus.instance.on<FilesUpdatedEvent>().listen((_) {
+      _fullReloadRequired = true;
+      _loadGeneration++;
+      _scheduleReload(debounce: true);
+    });
+    _reviewSubscription = Bus.instance.on<PhotoReviewUpdatedEvent>().listen((
+      event,
+    ) {
+      _dirtyMonths.addAll(event.monthKeys);
+      if (event.monthKeys.length > 1) _fullReloadRequired = true;
+      _loadGeneration++;
+      _scheduleReload(debounce: false);
+    });
     unawaited(_load());
   }
 
@@ -72,19 +87,13 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   @override
   void didPushNext() {
     _covered = true;
-    if (_reloadDebouncer.isActive()) {
-      _reloadDebouncer.cancelDebounce();
-      _reloadWhenUncovered = true;
-    }
+    _reloadDebouncer.cancelDebounce();
   }
 
   @override
   void didPopNext() {
     _covered = false;
-    if (_reloadWhenUncovered) {
-      _reloadWhenUncovered = false;
-      unawaited(_load());
-    }
+    unawaited(_load());
   }
 
   @override
@@ -93,7 +102,111 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
     _filesSubscription.cancel();
     _reviewSubscription.cancel();
     _reloadDebouncer.cancelDebounceTimer();
+    _scrollController.dispose();
+    _showScrollThumb.dispose();
+    _scrollThumbInUse.dispose();
     super.dispose();
+  }
+
+  Widget _withScrollbar(
+    Widget Function(BuildContext context, double yearWidth) buildChild,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padding = MediaQuery.paddingOf(context);
+        final header = SliverAppBarComponent.resolveGeometry(context);
+        final collapseExtent = header.maxExtent - header.minExtent;
+        final child = buildChild(
+          context,
+          constraints.maxWidth - padding.horizontal - _horizontalPadding * 2,
+        );
+        return NotificationListener<ScrollMetricsNotification>(
+          onNotification: (notification) {
+            final metrics = notification.metrics;
+            if (notification.depth == 0 && metrics.axis == Axis.vertical) {
+              _showScrollThumb.value =
+                  metrics.viewportDimension > 0 &&
+                  metrics.maxScrollExtent - metrics.minScrollExtent >
+                      collapseExtent + 1;
+            }
+            return false;
+          },
+          child: ValueListenableBuilder<bool>(
+            valueListenable: _showScrollThumb,
+            child: child,
+            builder: (context, showThumb, child) => ScrollbarWithUseNotifer(
+              controller: _scrollController,
+              inUseNotifier: _scrollThumbInUse,
+              interactive: showThumb,
+              showThumb: showThumb,
+              thumbVisibility: showThumb,
+              minScrollbarLength: 36,
+              thickness: 8,
+              radius: const Radius.circular(4),
+              scrollbarPadding: EdgeInsets.only(
+                top: header.minExtent,
+                bottom: _selectionMode ? _selectionBarHeight : padding.bottom,
+                right: 3,
+              ),
+              child: child!,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildYearList(
+    BuildContext context,
+    ReviewOverview overview,
+    double width,
+  ) {
+    final extents = <double>[];
+    for (final year in overview.years) {
+      if (extents.isNotEmpty) extents.add(_yearSpacing);
+      extents.add(
+        ReviewYearSection.heightFor(
+          context,
+          year: year,
+          expanded: _expandedYears.contains(year.year),
+          width: width,
+        ),
+      );
+    }
+    return SliverList(
+      delegate: _ReviewYearListDelegate(
+        (context, index) {
+          if (index.isOdd) return const SizedBox(height: _yearSpacing);
+          final year = overview.years[index ~/ 2];
+          return ReviewYearSection(
+            key: ValueKey(year.year),
+            year: year,
+            selectedMonths: _selected,
+            expanded: _expandedYears.contains(year.year),
+            onMonthTap: (month) => _selectionMode
+                ? _toggleMonth(month.key)
+                : _openMonth(month.key),
+            onMonthLongPress: (month) => _toggleMonth(month.key),
+            onYearToggle: () => _toggleYear(year),
+            onExpandedChanged: (expanded) => setState(() {
+              if (expanded) {
+                _expandedYears.add(year.year);
+              } else {
+                _expandedYears.remove(year.year);
+              }
+            }),
+          );
+        },
+        extents: extents,
+        findChildIndexCallback: (key) {
+          if (key is! ValueKey<int>) return null;
+          final index = overview.years.indexWhere(
+            (year) => year.year == key.value,
+          );
+          return index < 0 ? null : index * 2;
+        },
+      ),
+    );
   }
 
   void _measureSelectionBar(Duration _) {
@@ -106,39 +219,123 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   }
 
   void _scheduleReload({required bool debounce}) {
-    if (_covered) {
-      _reloadWhenUncovered = true;
-    } else if (debounce) {
+    if (_covered) return;
+    if (debounce) {
       _reloadDebouncer.run(_load);
     } else {
+      _reloadDebouncer.cancelDebounce();
       unawaited(_load());
     }
   }
 
   Future<void> _load() async {
-    if (_covered) {
-      _reloadWhenUncovered = true;
-      return;
-    }
-    final generation = ++_loadGeneration;
+    if (_loading || _covered) return;
+    _loading = true;
     try {
-      final overview = await _service.loadOverview();
-      if (!mounted || generation != _loadGeneration) return;
-      final existingKeys = overview.months.map((month) => month.key).toSet();
-      setState(() {
-        _overview = overview;
-        _error = null;
-        _selected.retainAll(existingKeys);
-      });
-    } catch (e, s) {
-      _logger.severe("Failed to load review overview", e, s);
-      if (!mounted) return;
-      setState(() => _error = e);
+      while (mounted &&
+          !_covered &&
+          !_reloadDebouncer.isActive() &&
+          (_fullReloadRequired || _dirtyMonths.isNotEmpty)) {
+        final generation = _loadGeneration;
+        try {
+          await Future.wait(_pendingMonthWrites.values.toList());
+          if (!mounted || _covered) return;
+          if (generation != _loadGeneration) continue;
+          final ReviewOverview overview;
+          if (_fullReloadRequired || _overview == null) {
+            overview = await _service.loadOverview();
+          } else {
+            final updates = <ReviewMonthKey, ReviewMonthSummary?>{};
+            for (final key in _dirtyMonths.toList()) {
+              updates[key] = await _service.loadMonthSummary(key);
+              if (!mounted || _covered || generation != _loadGeneration) {
+                break;
+              }
+            }
+            if (!mounted || _covered) return;
+            if (generation != _loadGeneration) continue;
+            overview = _mergeMonths(updates);
+          }
+          if (!mounted || _covered) return;
+          if (generation != _loadGeneration) continue;
+          _fullReloadRequired = false;
+          _dirtyMonths.clear();
+          _pendingMonthWrites.clear();
+          _applyOverview(overview);
+        } catch (e, s) {
+          _logger.severe("Failed to load review overview", e, s);
+          if (!mounted) return;
+          if (generation != _loadGeneration) continue;
+          setState(() => _error = e);
+          return;
+        }
+      }
+    } finally {
+      _loading = false;
+    }
+  }
+
+  ReviewOverview _mergeMonths(
+    Map<ReviewMonthKey, ReviewMonthSummary?> updates,
+  ) => PhotoReviewService.buildOverviewFromMonths([
+    for (final month in _overview!.months)
+      if (!updates.containsKey(month.key)) month,
+    for (final month in updates.values) ?month,
+  ]);
+
+  void _applyOverview(ReviewOverview overview) {
+    final existingKeys = overview.months.map((month) => month.key).toSet();
+    setState(() {
+      _overview = overview;
+      _error = null;
+      _selected.retainAll(existingKeys);
+    });
+  }
+
+  void _onMonthChanged(
+    ReviewMonthKey key,
+    ReviewMonthSummary? summary,
+    Future<void> pendingWrites,
+  ) {
+    if (!mounted) return;
+    _dirtyMonths.add(key);
+    _pendingMonthWrites[key] = pendingWrites;
+    _loadGeneration++;
+    if (summary != null && _overview != null) {
+      _applyOverview(_mergeMonths({key: summary}));
+    }
+    _scheduleReload(debounce: false);
+  }
+
+  Future<void> _writesForMonth(ReviewMonthKey key) =>
+      _pendingMonthWrites[key] ?? Future.value();
+
+  Future<void> _waitForMonthWrites(List<ReviewMonthKey> keys) async {
+    while (mounted) {
+      final writes = [for (final key in keys) _pendingMonthWrites[key]];
+      await Future.wait([for (final write in writes) ?write]);
+      var settled = true;
+      for (var i = 0; i < keys.length; i++) {
+        if (!identical(writes[i], _pendingMonthWrites[keys[i]])) {
+          settled = false;
+          break;
+        }
+      }
+      if (settled) return;
     }
   }
 
   void _openMonth(ReviewMonthKey key) {
-    unawaited(routeToPage(context, ReviewMonthPage(monthKey: key)));
+    unawaited(
+      routeToPage(
+        context,
+        ReviewMonthPage(
+          monthKey: key,
+          onReviewChanged: _onMonthChanged,
+          pendingWritesForMonth: _writesForMonth,
+        ),
+      ),
+    );
   }
 
   void _toggleMonth(ReviewMonthKey key) {
@@ -178,6 +375,8 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
         .toList();
     unawaited(HapticFeedback.mediumImpact());
     try {
+      await _waitForMonthWrites(keys);
+      if (!mounted) return;
       await _service.markMonthsReviewed(keys);
     } catch (e, s) {
       _logger.severe("Failed to mark months as reviewed", e, s);
@@ -194,6 +393,8 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
         .toList();
     unawaited(HapticFeedback.mediumImpact());
     try {
+      await _waitForMonthWrites(keys);
+      if (!mounted) return;
       await _service.resetMonths(keys);
     } catch (e, s) {
       _logger.severe("Failed to reset months", e, s);
@@ -209,10 +410,10 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
     final colors = context.componentColors;
     final l10n = context.strings;
     final overview = _overview;
-    final canMarkReviewed = _selectedSummaries.any(
-      (month) => !month.isCompleted,
-    );
-    final canReviewAgain = _selectedSummaries.any((month) => month.hasProgress);
+    final canMarkReviewed =
+        _selectionMode && _selectedSummaries.any((month) => !month.isCompleted);
+    final canReviewAgain =
+        _selectionMode && _selectedSummaries.any((month) => month.hasProgress);
     final allSelected =
         overview != null &&
         overview.months.isNotEmpty &&
@@ -227,87 +428,63 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
         backgroundColor: colors.backgroundBase,
         body: Stack(
           children: [
-            AppBarComponent(
-              title: l10n.reviewOldPhotos,
-              slivers: [
-                if (overview == null)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: _error == null
-                          ? const LoadingComponent()
-                          : Padding(
-                              padding: const EdgeInsets.all(Spacing.xxl),
-                              child: Text(
-                                l10n.somethingWentWrong,
-                                textAlign: TextAlign.center,
-                                style: TextStyles.body.copyWith(
-                                  color: colors.textLight,
+            _withScrollbar(
+              (context, yearWidth) => AppBarComponent(
+                title: l10n.reviewOldPhotos,
+                controller: _scrollController,
+                slivers: [
+                  if (overview == null)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: _error == null
+                            ? const LoadingComponent()
+                            : Padding(
+                                padding: const EdgeInsets.all(Spacing.xxl),
+                                child: Text(
+                                  l10n.somethingWentWrong,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyles.body.copyWith(
+                                    color: colors.textLight,
+                                  ),
                                 ),
                               ),
-                            ),
-                    ),
-                  )
-                else if (overview.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _EmptyReviewState(),
-                  )
-                else ...[
-                  if (overview.bannerMonths.isNotEmpty)
-                    SliverPadding(
-                      padding: const EdgeInsets.only(top: Spacing.xxl),
-                      sliver: SliverToBoxAdapter(
-                        child: ReviewBannerCarousel(
-                          months: overview.bannerMonths,
-                          horizontalPadding: _horizontalPadding,
-                          onTap: (month) => _openMonth(month.key),
+                      ),
+                    )
+                  else if (overview.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyReviewState(),
+                    )
+                  else ...[
+                    if (overview.bannerMonths.isNotEmpty)
+                      SliverPadding(
+                        padding: const EdgeInsets.only(top: Spacing.xxl),
+                        sliver: SliverToBoxAdapter(
+                          child: ReviewBannerCarousel(
+                            months: overview.bannerMonths,
+                            horizontalPadding: _horizontalPadding,
+                            onTap: (month) => _openMonth(month.key),
+                          ),
                         ),
                       ),
-                    ),
-                  SliverSafeArea(
-                    top: false,
-                    sliver: SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        _horizontalPadding,
-                        Spacing.xxl,
-                        _horizontalPadding,
-                        _selectionMode
-                            ? _selectionBarHeight + Spacing.xxl
-                            : Spacing.xxl,
-                      ),
-                      sliver: SliverList.list(
-                        children: [
-                          for (var i = 0; i < overview.years.length; i++) ...[
-                            if (i > 0) const SizedBox(height: 44),
-                            ReviewYearSection(
-                              year: overview.years[i],
-                              selectedMonths: _selected,
-                              expanded: _expandedYears.contains(
-                                overview.years[i].year,
-                              ),
-                              onMonthTap: (month) => _selectionMode
-                                  ? _toggleMonth(month.key)
-                                  : _openMonth(month.key),
-                              onMonthLongPress: (month) =>
-                                  _toggleMonth(month.key),
-                              onYearToggle: () =>
-                                  _toggleYear(overview.years[i]),
-                              onExpandedChanged: (expanded) => setState(() {
-                                if (expanded) {
-                                  _expandedYears.add(overview.years[i].year);
-                                } else {
-                                  _expandedYears.remove(overview.years[i].year);
-                                }
-                              }),
-                            ),
-                          ],
-                        ],
+                    SliverSafeArea(
+                      top: false,
+                      sliver: SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          _horizontalPadding,
+                          Spacing.xxl,
+                          _horizontalPadding,
+                          _selectionMode
+                              ? _selectionBarHeight + Spacing.xxl
+                              : Spacing.xxl,
+                        ),
+                        sliver: _buildYearList(context, overview, yearWidth),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
             Align(
               alignment: Alignment.bottomCenter,
@@ -346,6 +523,36 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
       ),
     );
   }
+}
+
+class _ReviewYearListDelegate extends SliverChildBuilderDelegate {
+  _ReviewYearListDelegate(
+    super.builder, {
+    required List<double> extents,
+    required super.findChildIndexCallback,
+  }) : _remainingExtents = _suffixExtents(extents),
+       super(
+         childCount: extents.length,
+         semanticIndexCallback: (_, index) => index.isEven ? index ~/ 2 : null,
+       );
+
+  final List<double> _remainingExtents;
+
+  static List<double> _suffixExtents(List<double> extents) {
+    final remaining = List<double>.filled(extents.length + 1, 0);
+    for (var index = extents.length - 1; index >= 0; index--) {
+      remaining[index] = remaining[index + 1] + extents[index];
+    }
+    return remaining;
+  }
+
+  @override
+  double estimateMaxScrollOffset(
+    int firstIndex,
+    int lastIndex,
+    double leadingScrollOffset,
+    double trailingScrollOffset,
+  ) => trailingScrollOffset + _remainingExtents[lastIndex + 1];
 }
 
 class _EmptyReviewState extends StatelessWidget {

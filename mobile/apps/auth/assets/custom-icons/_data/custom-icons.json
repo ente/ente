@@ -1414,6 +1414,11 @@
       "color": "00CC00"
     },
     {
+      "title": "KRAFTON",
+      "slug": "krafton",
+      "hex": "F9423A"
+    },
+    {
       "title": "Kraken"
     },
     {
@@ -1784,6 +1789,10 @@
       "slug": "netim"
     },
     {
+      "title": "Netlen",
+      "slug": "netlen"
+    },
+    {
       "title": "Newgrounds",
       "slug": "newgrounds"
     },
@@ -2066,6 +2075,10 @@
     },
     {
       "title": "Poloniex"
+    },
+    {
+      "title": "Polymarket",
+      "hex": "2E5CFF"
     },
     {
       "title": "Porkbun"

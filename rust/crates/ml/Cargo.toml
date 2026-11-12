@@ -22,7 +22,7 @@ plsfix = "0.1.8"
 rayon.workspace = true
 regex.workspace = true
 thiserror.workspace = true
-usearch = { version = "=2.26.5", optional = true }
+usearch = { version = "=2.26.6", optional = true }
 
 # Cargokit sets ORT_LIB_PATH to Ente's verified iOS archive.
 [target.'cfg(target_os = "ios")'.dependencies]

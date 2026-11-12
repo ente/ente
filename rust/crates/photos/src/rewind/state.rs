@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use super::Result;
 use super::input::RewindRequest;
 use super::library::Library;
 use super::report::RewindReport;
+use crate::memories::CityLookup;
+use crate::ml_store::MlStore;
 
 pub const REWIND_VERSION: u32 = 1;
 
@@ -23,7 +26,7 @@ pub struct RewindState {
 pub enum RewindStatus {
     WaitingForMl,
     NothingToShow,
-    Ready { report: RewindReport },
+    Ready { report: Box<RewindReport> },
 }
 
 impl RewindState {
@@ -36,25 +39,33 @@ impl RewindState {
     pub(super) fn evaluate(
         request: &RewindRequest,
         library: &Library<'_>,
+        store: Option<&MlStore>,
+        cities: Option<&dyn CityLookup>,
         ml_coverage: Option<f32>,
         was_ready: bool,
-    ) -> Self {
+        showed_ml_chapters: bool,
+    ) -> Result<Self> {
         let ml_ready = ml_coverage.is_none_or(|coverage| coverage >= REQUIRED_ML_COVERAGE);
         let shows_without_ml =
             library.year_has_ended() && request.installed_at < request.season_start;
         let status = if was_ready || ml_ready || shows_without_ml {
-            let report = RewindReport::of(library);
+            let ml_chapters = ml_ready || showed_ml_chapters;
+            let report = RewindReport::of(request, library, store, ml_chapters, cities)?;
             if report.is_empty() {
                 RewindStatus::NothingToShow
             } else {
-                RewindStatus::Ready { report }
+                RewindStatus::Ready {
+                    report: Box::new(report),
+                }
             }
         } else {
             RewindStatus::WaitingForMl
         };
-        let is_final =
-            ml_ready && library.year_has_ended() && matches!(status, RewindStatus::Ready { .. });
-        Self {
+        let is_final = ml_ready
+            && cities.is_some()
+            && library.year_has_ended()
+            && matches!(status, RewindStatus::Ready { .. });
+        Ok(Self {
             year: request.year,
             version: REWIND_VERSION,
             computed_at: request.now,
@@ -62,6 +73,6 @@ impl RewindState {
             ml_coverage,
             is_final,
             status,
-        }
+        })
     }
 }

@@ -21,6 +21,10 @@ Ente does not currently support dragging photos and videos into a custom order w
 2. Open the three-dot menu.
 3. Select **Sort by** and choose an option.
 
+### Can I sort my home timeline oldest first? {#timeline-sort}
+
+No. The home timeline always shows your newest photos first, by the date each photo was taken. To see photos oldest first, open an album, open the three-dot menu, select **Sort by** and choose **Oldest first**.
+
 ### Can Ente albums be nested? {#nested-albums}
 
 No, Ente albums cannot be nested currently. When you upload a nested folder structure using the "Separate albums" option, Ente will create a separate album for each nested folder, but these albums themselves will not be nested - they will all appear as top-level albums.
@@ -164,6 +168,12 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
 Yes. Open an **On device** album and tap the play button on the album cover. If you have scrolled down, tap the three dots in the top-right corner and select **Slideshow** instead. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+
+### How do I view only my starred or Favorite photos? {#view-favorites}
+
+Use the **Favorites** album. On mobile or desktop, open a photo and tap or click the **star** to add it to Favorites. Open **Albums** and open **Favorites** to see only those photos.
+
+**Likes** (the heart on photos in shared albums and public links) are collaboration reactions. They are not a library filter. There is no way to filter your library to only photos you liked with the heart. See [Comments and Likes](/photos/features/sharing-and-collaboration/comments-and-likes).
 
 ## Uncategorized
 
@@ -344,6 +354,10 @@ A photo may appear in both Hidden and a hidden album if you first add it to Hidd
 ### How do I archive photos in Ente? {#how-to-archive}
 
 Long press to select the photo(s) you want to archive, then select "Archive" from the bottom menu. To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
+
+### Can I hide an album's photos from my timeline? {#album-off-timeline}
+
+Yes. Use **Archive album**, not Hide. Open the album, tap the three dots and select **Archive album**. The photos stay in the album and leave your home timeline. You can view them later in the **Archive** section. See [How do I archive photos in Ente?](#how-to-archive).
 
 ## Storage Management
 

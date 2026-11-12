@@ -24,6 +24,9 @@ jobs:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/local/lib/android
+
             - name: Setup Linux for Rust
               uses: $/.github/actions/setup-rust-linux
 

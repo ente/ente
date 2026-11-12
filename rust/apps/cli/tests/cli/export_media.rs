@@ -26,6 +26,37 @@ fn run(engine: &mut Engine, complete: bool) -> Value {
 }
 
 #[test]
+fn engine_export_tolerates_finder_sidecars_in_destination() {
+    let mut server = mockito::Server::new();
+    let key = Key::generate();
+    let (record, bytes) = source(10, &key, b"original", "._Photo.jpg");
+    let id = record["id"].as_i64().unwrap();
+    let downloaded = download(&mut server, id, &bytes, 1);
+    let mut engine = new_engine(&server, key, record);
+    let root = engine.root();
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("._export.json"), b"sidecar").unwrap();
+    fs::write(root.join(".DS_Store"), b"finder").unwrap();
+    let summary = engine.run(false, &[]).unwrap();
+    assert!(summary.complete);
+    assert_eq!(
+        fs::read(root.join("First/._Photo.jpg")).unwrap(),
+        b"original"
+    );
+    assert_eq!(
+        fs::read(root.join("Second/._Photo.jpg")).unwrap(),
+        b"original"
+    );
+    assert!(root.join("export.json").is_file());
+    let summary = engine.run(false, &["First"]).unwrap();
+    assert!(summary.complete);
+    fs::write(root.join("First/metadata/._._Photo.jpg.json"), b"finder").unwrap();
+    engine.database = "recovered.db".into();
+    assert!(engine.run(true, &[]).unwrap().complete);
+    downloaded.assert();
+}
+
+#[test]
 fn engine_category_filters_preserve_history_and_reuse_excluded_originals() {
     let mut server = mockito::Server::new();
     let key = Key::generate();

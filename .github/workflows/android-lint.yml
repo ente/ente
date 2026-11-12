@@ -14,6 +14,12 @@ jobs:
               with:
                   persist-credentials: false
 
+            - name: Setup JDK 17
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+              with:
+                  distribution: "temurin"
+                  java-version: "17"
+
             - name: Restore Rust cache
               uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:

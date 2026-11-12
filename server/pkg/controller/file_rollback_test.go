@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDeleteObjectVersionFromHotStorage(t *testing.T) {
+func TestDeleteObjectVersionUsesUploadBucket(t *testing.T) {
 	const objectKey = "1/file"
 	const versionID = "new-version"
 
@@ -38,10 +38,12 @@ func TestDeleteObjectVersionFromHotStorage(t *testing.T) {
 			viper.Set("s3.b2-eu-cen.region", "us-east-1")
 			viper.Set("s3.b2-eu-cen.bucket", "test-bucket")
 			viper.Set("s3.use_path_style_urls", true)
+			viper.Set("s3.hot_storage.primary", "wasabi-eu-central-2-v3")
+			viper.Set("s3.hot_storage.secondary", "b2-eu-cen")
 
 			var deletedVersions, checkedVersions []string
 			s3Config := s3config.NewS3Config()
-			client := s3Config.GetHotS3Client()
+			client := s3Config.GetS3Client("b2-eu-cen")
 			client.Config.SleepDelay = func(time.Duration) {}
 			client.Config.HTTPClient = &http.Client{
 				Transport: rollbackTestTransport(func(r *http.Request) (*http.Response, error) {
@@ -72,7 +74,7 @@ func TestDeleteObjectVersionFromHotStorage(t *testing.T) {
 			}
 
 			controller := &FileController{S3Config: s3Config}
-			err := controller.deleteObjectVersionFromHotStorage(objectKey, versionID)
+			err := controller.deleteObjectVersion(objectKey, versionID, "b2-eu-cen")
 			if tt.wantError {
 				require.Error(t, err)
 			} else {
@@ -90,7 +92,7 @@ func TestDeleteObjectVersionFromHotStorage(t *testing.T) {
 			if !tt.wantError {
 				require.Len(t, checkedVersions, 1)
 				head, err := client.HeadObject(&s3.HeadObjectInput{
-					Bucket: s3Config.GetHotBucket(),
+					Bucket: s3Config.GetBucket("b2-eu-cen"),
 					Key:    aws.String(objectKey),
 				})
 				require.NoError(t, err)

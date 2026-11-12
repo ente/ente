@@ -1,8 +1,14 @@
+import { openAsBlob } from "node:fs";
+import { mkdtemp, rm, unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
+    copySpacePostImageFile,
     prepareSpaceAvatarImageFromCrop,
     prepareSpaceCoverImageFromCrop,
     prepareSpacePostImageFromEdit,
+    spacePostImageErrorMessage,
 } from "../src/utils/post-image";
 
 vi.mock("ente-media/heic-convert", () => ({ heicToJPEG: vi.fn() }));
@@ -49,6 +55,42 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.unstubAllGlobals();
+});
+
+test("keeps the draft photo readable after the picked file becomes unavailable", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "space-post-"));
+    try {
+        const path = join(dir, file.name);
+        await writeFile(path, "original photo");
+        const picked = new File([await openAsBlob(path)], file.name, file);
+        const draft = await copySpacePostImageFile(picked);
+
+        await unlink(path);
+        await expect(picked.arrayBuffer()).rejects.toHaveProperty(
+            "name",
+            "NotReadableError",
+        );
+        await expect(draft.text()).resolves.toBe("original photo");
+        expect(draft).toMatchObject({
+            name: picked.name,
+            type: picked.type,
+            lastModified: picked.lastModified,
+        });
+    } finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+
+test("asks the user to reselect a photo that is unreadable during preview", async () => {
+    const picked = new File(["photo"], file.name, file);
+    vi.spyOn(picked, "arrayBuffer").mockRejectedValue(
+        new DOMException("Unavailable", "NotReadableError"),
+    );
+    await expect(
+        copySpacePostImageFile(picked).catch(spacePostImageErrorMessage),
+    ).resolves.toBe(
+        "Couldn't read this photo. Save a copy to your device and choose it again.",
+    );
 });
 
 test.each([

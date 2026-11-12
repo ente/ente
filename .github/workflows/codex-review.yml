@@ -17,7 +17,7 @@ jobs:
             github.repository == 'ente/ente' &&
             !github.event.pull_request.draft &&
             github.run_attempt == 1
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 40
         permissions:
             actions: read

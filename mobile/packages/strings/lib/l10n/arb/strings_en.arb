@@ -3258,6 +3258,7 @@
     }
   },
   "preparingLogs": "Preparing logs...",
+  "preparingVideo": "Preparing video...",
   "preserveMore": "Preserve more",
   "pressAndHoldToPlayVideoDetailed": "Press and hold on the image to  play video",
   "preview": "Preview",
@@ -3677,7 +3678,7 @@
   "@reviewPickUpAgain": {
     "description": "Caption above the month name on the Review old photos banner when a month is partly reviewed."
   },
-  "reviewProgressCount": "{reviewed}/{total} reviewed",
+  "reviewProgressCount": "{reviewed} / {total} reviewed",
   "@reviewProgressCount": {
     "placeholders": {
       "reviewed": {
@@ -4004,6 +4005,18 @@
     "description": "Instruction for liking video"
   },
   "selectAll": "Select all",
+  "selectAllConfirmationBody": "Anything you do next, like deleting, will apply to all of them.",
+  "selectAllConfirmationTitle": "{count, plural, one{Select all {count} item?} other{Select all {count} items?}}",
+  "@selectAllConfirmationTitle": {
+    "description": "Title of the confirmation shown before selecting more than 100 photos at once, either with All or with the checkmark on a date header",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "12546"
+      }
+    }
+  },
   "selectAllShort": "All",
   "@selectAllShort": {
     "description": "Text that appears in bottom right when you start to select multiple photos. When clicked, it selects all photos."
@@ -4213,6 +4226,7 @@
   "setupYourLegacy": "Setup your Legacy",
   "share": "Share",
   "shareALink": "Share a link",
+  "shareAsVideo": "Share as video",
   "shareAnAlbum": "Share an album",
   "shareCodeEarnStorage": "Double your storage on Ente",
   "shareCodes": "Share codes",
@@ -4490,6 +4504,19 @@
   "subscriptionCurrentPlan": "Current plan",
   "subscriptionFaqDescription": "Your questions, answered",
   "subscriptionFamilyDescription": "Share your plan with your family",
+  "subscriptionPaidPlansLockerNote": "All paid plans include {count} items on {appName}.",
+  "@subscriptionPaidPlansLockerNote": {
+    "description": "Note below Photos subscription plans. The Locker app name is styled as a link.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
   "subscriptionContinueWithPlan": "Continue with {storage} plan",
   "@subscriptionContinueWithPlan": {
     "description": "Continue button on the Photos plan picker with the selected storage allowance",

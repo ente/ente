@@ -611,6 +611,16 @@ Disable your content blocker or add `photos.ente.com` to your allowlist. Wait 15
 
 **Known issue with AdGuard:** AdGuard's basic filter blocks videos in Ente when using AdGuard Mini on Safari. This has been [reported to AdGuard filter developers](https://github.com/AdguardTeam/AdguardFilters/issues/216424).
 
+### Why does a video play with sound but a black screen on desktop? {#video-black-screen}
+
+The desktop app can't play every video format, even if the same video plays on your phone. Turn on streamable videos so Ente creates a version that plays everywhere. Your original file stays unchanged.
+
+1. Open `Settings > Preferences > Streamable videos` and turn it on
+2. Keep Ente open and online while it prepares the videos
+3. Reopen the video. If the player has a gear icon, choose **Auto**
+
+If the screen is still black, email [support@ente.com](mailto:support@ente.com) and [send your desktop logs](#sharing-logs).
+
 ### Why do some of my videos stutter or freeze when I play them on iOS? {#ios-video-stutter-playback}
 
 This is an iOS-specific issue: for some videos, Apple Photos rejects the file and doesn't store it on your device, even though Ente backed it up successfully. Since the video isn't fully available locally, playback in the Ente app can stutter or freeze. The video itself is still safely stored in Ente - nothing is lost.

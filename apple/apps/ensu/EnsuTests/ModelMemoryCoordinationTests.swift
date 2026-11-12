@@ -47,7 +47,14 @@ final class ModelMemoryCoordinationTests: XCTestCase {
 
     func testOptionalWorkWaitsForBothCleanupAndCooldown() {
         var pressure = ModelMemoryPressureState()
+        for active in [false, true] {
+            XCTAssertEqual(
+                pressure.requiresCleanup(appForeground: false, retainingResponse: active, now: 10),
+                !active)
+        }
         pressure.recordPressure(now: 10)
+        XCTAssertTrue(
+            pressure.requiresCleanup(appForeground: false, retainingResponse: true, now: 100))
         XCTAssertTrue(pressure.suppressesOptionalWork(now: 100))
         XCTAssertTrue(pressure.requiresCleanup(appForeground: true, now: 100))
         pressure.didCleanUp()
@@ -58,6 +65,10 @@ final class ModelMemoryCoordinationTests: XCTestCase {
         pressure.didCleanUp()
         XCTAssertTrue(pressure.suppressesOptionalWork(now: 129.9))
         XCTAssertFalse(pressure.suppressesOptionalWork(now: 130))
+        XCTAssertTrue(
+            pressure.requiresCleanup(appForeground: false, retainingResponse: true, now: 129.9))
+        XCTAssertFalse(
+            pressure.requiresCleanup(appForeground: false, retainingResponse: true, now: 130))
         XCTAssertTrue(pressure.requiresCleanup(appForeground: false, now: 130))
     }
 
