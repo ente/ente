@@ -27,7 +27,7 @@ import { ItemCard } from "ente-new/photos/components/Tiles";
 import { thumbnailGridPadding } from "ente-new/photos/components/utils/thumbnail-grid-layout";
 import type { Person } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { GalleryMedia } from "../../media/GalleryMedia";
 import type { GallerySectionProps } from "../types";
 import type { GalleryView } from "../view-types";
@@ -317,7 +317,11 @@ const PersonFilterButton = ({
             title={name}
             onClick={onClick}
         >
-            <FaceStrip people={[person]} size={showName ? 52 : 32} />
+            <FaceStrip
+                people={[person]}
+                size={showName ? 52 : 32}
+                deferLoading={showName}
+            />
             {showName && (
                 <Typography
                     component="span"
@@ -342,29 +346,53 @@ const PersonFilterButton = ({
 const FaceStrip = ({
     people,
     size = 32,
+    deferLoading = false,
 }: {
     people: Person[];
     size?: number;
-}) => (
-    <Box
-        component="span"
-        aria-hidden
-        sx={{
-            display: "flex",
-            "& > span": { width: size, height: size },
-            "& > :not(:first-of-type)": { ml: -1 },
-        }}
-    >
-        {people.map((person) => (
-            <ItemCard
-                key={person.id}
-                TileComponent={FilterPortrait}
-                coverFile={person.displayFaceFile}
-                coverFaceID={person.displayFaceID}
-            />
-        ))}
-    </Box>
-);
+    deferLoading?: boolean;
+}) => {
+    const stripRef = useRef<HTMLSpanElement>(null);
+    const [hasBeenVisible, setHasBeenVisible] = useState(false);
+    const loadPortraits = !deferLoading || hasBeenVisible;
+
+    useEffect(() => {
+        const strip = stripRef.current;
+        if (!strip || loadPortraits) return;
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (!entry?.isIntersecting) return;
+            setHasBeenVisible(true);
+            observer.disconnect();
+        });
+        observer.observe(strip);
+        return () => observer.disconnect();
+    }, [loadPortraits]);
+
+    return (
+        <Box
+            component="span"
+            ref={stripRef}
+            aria-hidden
+            sx={{
+                display: "flex",
+                "& > span": { width: size, height: size },
+                "& > :not(:first-of-type)": { ml: -1 },
+            }}
+        >
+            {people.map((person) => (
+                <ItemCard
+                    key={person.id}
+                    TileComponent={FilterPortrait}
+                    coverFile={
+                        loadPortraits ? person.displayFaceFile : undefined
+                    }
+                    coverFaceID={person.displayFaceID}
+                />
+            ))}
+        </Box>
+    );
+};
 
 const FaceButton = styled(ButtonBase, {
     shouldForwardProp: (prop) => prop !== "showName",
