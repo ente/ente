@@ -1,1 +1,0 @@
-- Improved backup preparation speed for libraries with many folders.

@@ -1,1 +1,0 @@
-- Animated the illustrations for empty album search, trash, archive, and links.
