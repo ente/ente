@@ -10,7 +10,6 @@ import {
     screen,
     type WebContents,
 } from "electron/main";
-import serveNextAt from "next-electron-server";
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -22,16 +21,14 @@ import {
 } from "./main/ipc";
 import log, { initLogging } from "./main/log";
 import { createApplicationMenu, createTrayContextMenu } from "./main/menu";
+import { registerRendererProtocol, rendererURL } from "./main/renderer";
 import { setupAutoUpdater } from "./main/services/app-update";
 import autoLauncher from "./main/services/auto-launcher";
 import { shouldHideDockIcon } from "./main/services/store";
 import { createWatcher } from "./main/services/watch";
 import { userPreferences } from "./main/stores/user-preferences";
 import { registerStreamProtocol } from "./main/stream";
-import { wait } from "./main/utils/common";
 import { isDev } from "./main/utils/electron";
-
-const rendererURL = "ente://app";
 
 // Closing normally hides the window so exports and folder watches keep running.
 // Quit paths set this flag to close it for real.
@@ -54,9 +51,6 @@ const main = () => {
     logStartupBanner();
     registerForEnteLinks();
 
-    // Electron keeps the last privileged-scheme registration. This must follow
-    // next-electron-server's registration so both "ente" and "stream" survive.
-    setupRendererServer();
     registerPrivilegedSchemes();
 
     const handleOpenEnteURLEnsuringWindow = (url: string) => {
@@ -79,32 +73,29 @@ const main = () => {
 
     void app.whenReady().then(() => {
         attachProcessHandlers();
+        registerRendererProtocol();
 
-        void (async () => {
-            if (isDev) await waitForRendererDevServer();
+        mainWindow = createMainWindow();
 
-            mainWindow = createMainWindow();
+        const watcher = createWatcher(mainWindow);
+        attachIPCHandlers();
+        attachMainWindowIPCHandlers(mainWindow);
+        attachFSWatchIPCHandlers(watcher);
+        attachLogoutIPCHandler(watcher);
+        registerStreamProtocol(mainWindow);
 
-            const watcher = createWatcher(mainWindow);
-            attachIPCHandlers();
-            attachMainWindowIPCHandlers(mainWindow);
-            attachFSWatchIPCHandlers(watcher);
-            attachLogoutIPCHandler(watcher);
-            registerStreamProtocol(mainWindow);
+        const webContents = mainWindow.webContents;
+        setDownloadPath(webContents);
+        allowExternalLinks(webContents);
+        handleBackOnStripeCheckout(mainWindow);
+        allowAllCORSOrigins(webContents);
+        allowOpenStreetMapRequestIdentification(webContents);
 
-            const webContents = mainWindow.webContents;
-            setDownloadPath(webContents);
-            allowExternalLinks(webContents);
-            handleBackOnStripeCheckout(mainWindow);
-            allowAllCORSOrigins(webContents);
-            allowOpenStreetMapRequestIdentification(webContents);
+        void mainWindow.loadURL(rendererURL);
 
-            void mainWindow.loadURL(rendererURL);
-
-            Menu.setApplicationMenu(createApplicationMenu(mainWindow));
-            setupTrayItem(mainWindow);
-            setupAutoUpdater(mainWindow);
-        })();
+        Menu.setApplicationMenu(createApplicationMenu(mainWindow));
+        setupTrayItem(mainWindow);
+        setupAutoUpdater(mainWindow);
     });
 
     app.on("activate", () => mainWindow?.show());
@@ -126,8 +117,6 @@ const logStartupBanner = () => {
     const systemVersion = process.getSystemVersion();
     log.info("Running on", { platform, osRelease, systemVersion });
 };
-
-const setupRendererServer = () => serveNextAt(rendererURL, { port: 3008 });
 
 const registerPrivilegedSchemes = () => {
     protocol.registerSchemesAsPrivileged([
@@ -159,9 +148,6 @@ const attachProcessHandlers = () => {
     // Electron's default SIGINT shutdown can lose recent storage writes in dev.
     process.on("SIGINT", () => app.quit());
 };
-
-// loadURL does not retry if the Next dev server returns ERR_CONNECTION_REFUSED.
-const waitForRendererDevServer = () => wait(1000);
 
 const createMainWindow = () => {
     const icon = nativeImage.createFromPath(

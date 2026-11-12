@@ -2,8 +2,7 @@ import { useRouter } from "next/router";
 import React, { useEffect } from "react";
 
 const Page: React.FC = () => {
-    // next-electron-server serves 404.html when a refreshed URL has a query.
-    // Return to the SPA root instead of leaving desktop stranded here.
+    // Return to the app root when a route is unavailable.
     const router = useRouter();
 
     useEffect(() => {
