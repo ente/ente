@@ -1,1 +1,0 @@
-- Fixed the App Store version showing as "Runner" instead of "Ente Auth" on macOS.

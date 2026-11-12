@@ -1,12 +1,14 @@
 import "dart:async";
 import "dart:math";
 
+import "package:flutter/gestures.dart" show DragStartBehavior;
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -36,9 +38,16 @@ class PlacesQuizPage extends RewindPage {
   final List<PlaceStamp> stamps;
   final List<_Slot> _board;
   int? _guess;
+  var _played = false;
 
   @override
   String get key => pageKey;
+
+  @override
+  void resetAnswer() {
+    _guess = null;
+    _played = false;
+  }
 
   static List<_Slot> _shuffledBoard(Iterable<String> names) {
     final count = min(names.length, _Slot.fillOrder.length);
@@ -119,12 +128,13 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   static const _crownMs = _rankMs + 3 * _rankGapMs + 700;
   static const _doneMs = _rankMs + 3 * _rankGapMs + 1300;
 
-  late var _phase = widget.page._guess == null ? _Phase.pick : _Phase.done;
+  late var _phase = widget.page._played ? _Phase.done : _Phase.pick;
   late final _replayed = _phase == _Phase.done;
   final _timers = <Timer>[];
   Timer? _invite;
   var _wiggles = 0;
   var _wiggling = -1;
+  var _swipe = 0.0;
 
   List<PlaceStamp> get _stamps => widget.page.stamps;
 
@@ -179,7 +189,9 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   void _pick(int rank) {
     if (_phase != _Phase.pick) return;
     unawaited(HapticFeedback.selectionClick());
-    widget.page._guess = rank;
+    widget.page
+      .._guess = rank
+      .._played = true;
     setState(() => _phase = _Phase.picked);
     _syncInvite();
     _later(_revealMs, () => setState(() => _phase = _Phase.reveal));
@@ -193,15 +205,38 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     _later(_revealMs + _doneMs, () => setState(() => _phase = _Phase.done));
   }
 
+  void _skip() {
+    if (_phase != _Phase.pick) return;
+    widget.page._played = true;
+    setState(() => _phase = _Phase.reveal);
+    _syncInvite();
+    _later(_doneMs, () => setState(() => _phase = _Phase.done));
+  }
+
+  void _endSwipe() {
+    if (_swipe < 0) {
+      _skip();
+    } else if (_swipe > 0) {
+      RewindPageScope.navigatorOf(context)?.previous();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final revealed = _phase == _Phase.reveal || _phase == _Phase.done;
+    final picking = widget.isActive && _phase == _Phase.pick;
     final podium = RewindStage(children: _podium(revealed));
     return RewindShareable(
       enabled: _phase == _Phase.done,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        dragStartBehavior: DragStartBehavior.down,
         onTap: _phase == _Phase.done ? null : () {},
+        onVerticalDragStart: picking ? (_) => _swipe = 0 : null,
+        onVerticalDragUpdate: picking
+            ? (details) => _swipe += details.primaryDelta ?? 0
+            : null,
+        onVerticalDragEnd: picking ? (_) => _endSwipe() : null,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -387,7 +422,11 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
       child: RewindStamp(
         photo: photo == null
             ? const ColoredBox(color: Color(0xFFD9D9D9))
-            : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
+            : RewindPhoto(
+                photo,
+                placeholder: const Color(0xFFD9D9D9),
+                zoomable: _phase == _Phase.done,
+              ),
         label: _stamps[rank].city.name,
         portrait: slot.portrait,
         width: size.width,

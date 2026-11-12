@@ -8,6 +8,7 @@ import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
@@ -25,18 +26,19 @@ class RewindMedia {
   static const _eyeLine = 0.4;
 
   static Future<RewindMedia> load() async {
-    return RewindMedia._(await _showableFiles(), await _namedPeople());
+    final people = await _namedPeople();
+    return RewindMedia._(await _showableFiles(people.values), people);
   }
 
   static Future<RewindMedia> sampled() async {
-    final files = await _showableFiles();
+    final people = await _namedPeople();
+    final files = await _showableFiles(people.values);
     final photos = files.entries
         .where((entry) => entry.value.fileType != FileType.video)
         .sortedBy<num>((entry) => -(entry.value.creationTime ?? 0))
         .map((entry) => entry.key)
         .take(400)
         .toList();
-    final people = await _namedPeople();
     return RewindMedia._(
       files,
       people,
@@ -47,20 +49,31 @@ class RewindMedia {
     );
   }
 
-  static Future<Map<int, EnteFile>> _showableFiles() =>
-      getFilesAndMapForMemories(
-        useLocalIntIds: isLocalGalleryMode,
-        requireLocalId: isLocalGalleryMode,
+  static Future<Map<int, EnteFile>> _showableFiles(
+    Iterable<PersonEntity> people,
+  ) async {
+    final files = await getFilesAndMapForMemories(
+      useLocalIntIds: isLocalGalleryMode,
+      requireLocalId: isLocalGalleryMode,
+    );
+    for (final person in people) {
+      if (!person.data.hideFromMemories) continue;
+      for (final fileId in person.data.manuallyAssigned) {
+        files.remove(fileId);
+      }
+      final faceIds = await MLDataDB.instance.getFaceIDsForPerson(
+        person.remoteID,
       );
+      for (final faceId in faceIds) {
+        files.remove(tryGetFileIdFromFaceId(faceId));
+      }
+    }
+    return files;
+  }
 
   static Future<Map<String, PersonEntity>> _namedPeople() async {
     if (isLocalGalleryMode) return const {};
-    try {
-      return await PersonService.instance.getPersonsMap();
-    } catch (error, stackTrace) {
-      _logger.warning("Could not load people", error, stackTrace);
-      return const {};
-    }
+    return PersonService.instance.getPersonsMap();
   }
 
   static bool _isShown(PersonEntity person) =>
@@ -81,6 +94,10 @@ class RewindMedia {
   List<EnteFile> photos(Int64List ids, int slots) => _pick(ids.inner, slots);
 
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
+
+  List<EnteFile> extraPhotos(Int64List ids, int slots) => [
+    for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
+  ].take(slots).toList();
 
   List<EnteFile> _pick(Iterable<int> ids, int slots) {
     final fresh = <int>[];
@@ -211,19 +228,29 @@ class RewindMedia {
         final faces = await _ml.getFacesForGivenFileID(fileId);
         final face = faces?.firstWhereOrNull((face) => face.faceID == faceId);
         if (face == null) continue;
-        final crops = await getCachedFaceCrops(
-          file,
-          [face],
-          useFullFile: false,
-          useTempCache: false,
-        );
-        final crop = crops?[faceId];
+        final crop =
+            await _cropFrom(file, face, useFullFile: true) ??
+            await _cropFrom(file, face, useFullFile: false);
         if (crop != null) return crop;
       } catch (error, stackTrace) {
         _logger.warning("No crop for face $faceId", error, stackTrace);
       }
     }
     return null;
+  }
+
+  static Future<Uint8List?> _cropFrom(
+    EnteFile file,
+    FaceWithoutEmbedding face, {
+    required bool useFullFile,
+  }) async {
+    final crops = await getCachedFaceCrops(
+      file,
+      [face],
+      useFullFile: useFullFile,
+      useTempCache: false,
+    );
+    return crops?[face.faceID];
   }
 }
 

@@ -37,6 +37,9 @@ class PeopleRacePage extends RewindPage {
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
 
+  @override
+  void resetAnswer() => _pick = null;
+
   static List<int> _startOrder(List<RaceRunner> runners) {
     final seed = runners.map((runner) => runner.person.personId).join("|");
     return List.generate(runners.length, (i) => i)

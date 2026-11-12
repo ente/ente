@@ -72,6 +72,16 @@ When you have a large library, free up space album by album instead. Open **On d
 
 Smaller batches usually work more reliably.
 
+### Can I free up space for one device folder only? {#free-up-one-folder}
+
+Yes. Free up space album by album instead of clearing everything at once.
+
+1. Open **On device** (device albums).
+2. Open the folder or album you want to clear from the device.
+3. Tap the three-dot menu and select **Free up device space**.
+
+That removes local copies for photos already backed up in that device album, without requiring a separate multi-folder picker. See also [Why is "Free up device space" taking so long?](#free-up-space-slow).
+
 ### Do items in trash count against my storage? {#trash-storage-count}
 
 Items in Ente Trash count toward your Ente storage quota. Photos in Android's system trash use storage on your device. To free up Ente storage, you can:
@@ -205,6 +215,15 @@ If you manage the family plan, you can see shared storage and members. From ther
 If you are a member, you cannot manage invitations, members, or storage limits. On mobile, `Settings > Family` shows family storage and active members. Use the top-right menu there to **Leave family plan**. On web and desktop, open **Manage subscription** or the storage card to see the managing account and **Leave family plan**.
 
 Each member's photos stay private unless they choose to share them.
+
+### Where do I manage Family in the apps? {#where-is-family}
+
+The Family entry is not in the same place on every platform.
+
+- **Mobile (Android and iOS):** Open `Settings > Family`. This item appears when you are signed in. It is not shown in gallery mode.
+- **Web and desktop:** There is no separate **Family** row in Settings. Open `Settings > Account > Manage subscription`, then **Manage family**. You can also open your subscription from the storage card at the top of Settings.
+
+For invites, limits, and leaving a family, see [Where do I manage my family plan?](#manage-family-plan).
 
 ### How many family members can I add to my plan? {#family-members-limit}
 
@@ -361,6 +380,8 @@ To apply for this discount, please verify your enrollment status in a school / c
 
 In case you do not have access to such an email address, please send us proof (such as your institute's identity card) that verifies your identity as a student.
 
+Once we've verified your enrollment, we'll reply with a personal coupon code for 30% off. The code can be used by one person only, so please keep it to yourself. Enter it in the **Apply discount code** field before you complete your purchase. See [how to apply a discount code](#apply-discount-code) for the steps.
+
 Please note that these discounts are valid for a year, after which you may reapply to reclaim the discount.
 
 **Already subscribed?**
@@ -381,7 +402,7 @@ If you have a discount code (e.g., from partnerships like Kagi Friends 25% off),
 
 **Step-by-step process:**
 
-1. **Do NOT purchase through the Apple App Store or Google Play**, as store purchases do not support Ente discount codes
+1. Do not purchase through a mobile app store. Discount codes are only available when you buy on [photos.ente.com](https://photos.ente.com) or the desktop app
 2. Go to [photos.ente.com](https://photos.ente.com) on a desktop or laptop computer
 3. Log in to your Ente account
 4. Open `Settings > Account > Manage subscription`
@@ -465,7 +486,7 @@ We support **annual** subscriptions over PayPal.
 **How to purchase with PayPal:**
 
 1. Email **paypal@ente.com** from your registered Ente email address
-2. In your email, mention the [storage plan](https://ente.com#pricing) of your choice (e.g., "100 GB annual plan")
+2. In your email, mention the [storage plan](https://ente.com#pricing) of your choice (for example, "200 GB annual plan")
 3. We will send you an invoice with a PayPal payment link
 4. Complete the payment through PayPal
 5. Your account will be upgraded once payment is confirmed
@@ -529,6 +550,8 @@ The date in the email is several months after your plan expires.
 - ❌ Your Ente Photos and Ente Locker data is scheduled for deletion
 - ❌ Signing in to Ente Photos and Ente Locker is restricted
 - ❌ Recovery is not possible once the data is deleted
+
+This applies to Ente Photos and Ente Locker data. Ente Auth codes stored in the same account are not deleted when a Photos subscription expires.
 
 If you need more time or are having trouble paying, reply to a warning email if you received one, or contact [support@ente.com](mailto:support@ente.com) as soon as possible.
 

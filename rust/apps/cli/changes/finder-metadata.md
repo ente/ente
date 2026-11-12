@@ -1,1 +1,0 @@
-- Fixed Photos exports and adoption failing when macOS adds hidden metadata files to the destination (@Yovach).

@@ -36,6 +36,21 @@ Once configured, new photos added to these albums will automatically sync in the
 
 The chooser lists device folders and albums; it is separate from your Ente album list. The count on a folder tile is the total reported for that device folder, not the number waiting to upload. If **Backup only new photos** is enabled, its cutoff still applies even when the tile shows older photos in its total.
 
+### Can I back up only some photos from a folder, not the whole folder? {#backup-selected-photos}
+
+Automatic backup is per device folder (or album), not per individual photo inside that folder.
+
+1. Open `Settings > Backup > Backed up folders`.
+2. Turn backup on only for the folders you want.
+3. Turn backup off for folders you do not want uploaded.
+
+There is no setting to leave a folder selected for backup while excluding specific files inside it from automatic backup.
+
+Options that still help:
+
+- Use **Backup only new photos** under `Settings > Backup > Backup settings` if you want automatic backup to skip older items in selected folders. See [Can I backup only new photos without uploading my existing library?](#backup-only-new-photos).
+- Upload specific photos manually from the app when you need a one-off selection.
+
 ### Does hiding a folder stop Ente Photos from backing it up? {#hidden-folder-backup}
 
 No. Hiding a folder does not change its backup setting. To stop new photos in that folder from backing up:
@@ -139,6 +154,8 @@ No. If you delete a photo from your device's native photos app, it will **not** 
 2. **Platform restrictions**: iOS and Android don't allow apps to automatically delete photos without manual confirmation
 
 If you want to delete a photo from Ente, you must do it manually within the Ente app.
+
+The same applies to Google Photos or any other gallery or cloud app: deleting there doesn't delete the copy in Ente. Photos with a [slashed cloud icon](#slashed-cloud-icon) aren't backed up yet.
 
 ### Understanding Ente's backup vs. sync paradigm {#backup-vs-sync}
 
@@ -426,6 +443,7 @@ On supported Android devices, yes. After taking a photo, tapping the preview thu
 A few details to keep in mind:
 
 - This depends on your camera app and device supporting the Android handoff that Ente listens for.
+- The default Pixel Camera and Samsung Camera apps don't hand off to other gallery apps, so their thumbnail opens the phone's default gallery instead of Ente.
 - It is for previewing the image you just tapped from the camera app; it does not make Ente the default gallery everywhere else.
 - On iPhone, the camera app still opens Apple Photos for this flow.
 

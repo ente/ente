@@ -6,7 +6,7 @@ import "package:photos/src/rust/api/rewind_api.dart" as rust;
 final rewindSampleReports = {
   "Busy year": _busyYear,
   "Top 10%, four places": _topTenYear,
-  "Top 25%, three places, no distance": _topQuarterYear,
+  "Three places, no distance": _threePlacesYear,
   "Sparse year": _sparseYear,
   "One file": const rust.RewindReport(totals: rust.Totals(files: 1)),
   "No chapters": const rust.RewindReport(),
@@ -151,12 +151,36 @@ final _busyYear = rust.RewindReport(
   newFaces: rust.NewFaces(
     count: 6,
     faces: [
-      rust.NewFace(personId: "person_ana", faceIds: _faceIds(100600, 3)),
-      rust.NewFace(personId: "person_ravi", faceIds: _faceIds(100610, 3)),
-      rust.NewFace(clusterId: "cluster_one", faceIds: _faceIds(100620, 3)),
-      rust.NewFace(clusterId: "cluster_two", faceIds: _faceIds(100630, 3)),
-      rust.NewFace(clusterId: "cluster_three", faceIds: _faceIds(100640, 3)),
-      rust.NewFace(clusterId: "cluster_four", faceIds: _faceIds(100650, 3)),
+      rust.NewFace(
+        personId: "person_ana",
+        faceIds: _faceIds(100600, 3),
+        fileIds: _ids(100600, 9),
+      ),
+      rust.NewFace(
+        personId: "person_ravi",
+        faceIds: _faceIds(100610, 3),
+        fileIds: _ids(100610, 9),
+      ),
+      rust.NewFace(
+        clusterId: "cluster_one",
+        faceIds: _faceIds(100620, 3),
+        fileIds: _ids(100620, 9),
+      ),
+      rust.NewFace(
+        clusterId: "cluster_two",
+        faceIds: _faceIds(100630, 3),
+        fileIds: _ids(100630, 9),
+      ),
+      rust.NewFace(
+        clusterId: "cluster_three",
+        faceIds: _faceIds(100640, 3),
+        fileIds: _ids(100640, 9),
+      ),
+      rust.NewFace(
+        clusterId: "cluster_four",
+        faceIds: _faceIds(100650, 3),
+        fileIds: _ids(100650, 9),
+      ),
     ],
   ),
   favourites: rust.Favourites(photoCount: 128, fileIds: _ids(100700, 12)),
@@ -207,8 +231,8 @@ final _topTenYear = rust.RewindReport(
   scrapbook: rust.Scrapbook(fileIds: _ids(300900, 12)),
 );
 
-final _topQuarterYear = rust.RewindReport(
-  totals: const rust.Totals(files: 2765, topPerMille: 250),
+final _threePlacesYear = rust.RewindReport(
+  totals: const rust.Totals(files: 2765),
   colour: rust.ColourOfTheYear(
     colour: rust.RewindColour.marshmallow,
     percent: 41,
