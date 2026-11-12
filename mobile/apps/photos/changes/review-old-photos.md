@@ -1,0 +1,1 @@
+- (i) Improve old photo review reopening, completion animation, and scrollbar placement.
