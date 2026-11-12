@@ -8,6 +8,7 @@ use crate::rewind::report::WeeklyHabit;
 const WEEKLY_HABIT_MINIMUM_PHOTOS: usize = 100;
 const WEEKLY_HABIT_MINIMUM_DATES: usize = 8;
 const WEEKLY_HABIT_CANDIDATES: usize = 36;
+const WEEKLY_HABIT_HOUR_PHOTOS: usize = 3;
 
 pub(in crate::rewind) fn weekly_habit(
     library: &Library<'_>,
@@ -35,20 +36,25 @@ pub(in crate::rewind) fn weekly_habit(
         .by_quality(at_hour)
         .into_iter()
         .chain(ranking.by_quality(other_hours));
-    let file_ids = ranking.pick(ranked, Spread::Days, WEEKLY_HABIT_CANDIDATES);
-    let led_by_the_hour = file_ids
-        .first()
-        .and_then(|&id| library.get(id))
-        .is_some_and(|file| file.hour == hour);
+    let mut hour_file_ids = Vec::new();
+    let mut file_ids = Vec::new();
+    for id in ranking.pick(ranked, Spread::Days, WEEKLY_HABIT_CANDIDATES) {
+        let at_hour = library.get(id).is_some_and(|file| file.hour == hour);
+        if at_hour && hour_file_ids.len() < WEEKLY_HABIT_HOUR_PHOTOS {
+            hour_file_ids.push(id);
+        } else {
+            file_ids.push(id);
+        }
+    }
+    if hour_file_ids.is_empty() {
+        file_ids.clear();
+    }
     Some(WeeklyHabit {
         weekday,
         hour,
         percent,
-        file_ids: if led_by_the_hour {
-            file_ids
-        } else {
-            Vec::new()
-        },
+        hour_file_ids,
+        file_ids,
     })
 }
 
@@ -127,16 +133,18 @@ mod tests {
         let habit_request = request(files);
         let library = Library::of_year(&habit_request).unwrap();
 
-        let WeeklyHabit { file_ids, .. } =
-            weekly_habit(&library, &Ranking::new(None, None)).unwrap();
+        let WeeklyHabit {
+            hour_file_ids,
+            file_ids,
+            ..
+        } = weekly_habit(&library, &Ranking::new(None, None)).unwrap();
 
+        assert_eq!(hour_file_ids, [1, 6, 11]);
         assert_eq!(
-            file_ids[..16],
-            [
-                1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 2000, 2001, 2002, 2003, 2, 7
-            ]
+            file_ids[..13],
+            [16, 21, 26, 31, 36, 41, 46, 2000, 2001, 2002, 2003, 2, 7]
         );
-        assert_eq!(file_ids.len(), 36);
+        assert_eq!(file_ids.len(), 33);
     }
 
     #[test]
@@ -156,6 +164,7 @@ mod tests {
         let habit = weekly_habit(&library, &Ranking::new(None, None)).unwrap();
 
         assert_eq!((habit.weekday, habit.hour), (7, 18));
+        assert!(habit.hour_file_ids.is_empty());
         assert!(habit.file_ids.is_empty());
     }
 

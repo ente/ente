@@ -496,6 +496,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   Widget _podiumStamp(int rank, Rect rect, bool revealed) {
     final slot = _Slot.podium[rank];
     final reach = _fanReach(rank, rect.size);
+    final stamp = Offset(reach.left, reach.top) & rect.size;
     return Positioned.fromRect(
       rect: reach.inflateRect(rect),
       child: _leave(
@@ -507,21 +508,30 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           curve: const Cubic(0.2, 0.9, 0.3, 1.25),
           poses: const [RewindPose(0, scale: 1.14, turn: -4), RewindPose(1)],
           child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
             onTap: _opensGallery(rank) ? () => _showGallery(rank) : null,
-            child: Padding(
-              padding: reach,
-              child: Transform.rotate(
-                angle: slot.turn * pi / 180,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    for (final (i, photo)
-                        in _stamps[rank].extras.indexed.toList().reversed)
-                      _fannedStamp(photo, rank, i, slot, rect.size, revealed),
-                    _stamp(rank, slot, rect.size, 4),
-                  ],
-                ),
+            child: Transform.rotate(
+              angle: slot.turn * pi / 180,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  for (final (i, photo)
+                      in _stamps[rank].extras.indexed.toList().reversed)
+                    Positioned.fromRect(
+                      rect: stamp,
+                      child: _fannedStamp(
+                        photo,
+                        rank,
+                        i,
+                        slot,
+                        rect.size,
+                        revealed,
+                      ),
+                    ),
+                  Positioned.fromRect(
+                    rect: stamp,
+                    child: _stamp(rank, slot, rect.size, 4),
+                  ),
+                ],
               ),
             ),
           ),

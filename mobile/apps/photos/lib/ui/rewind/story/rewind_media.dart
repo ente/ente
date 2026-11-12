@@ -93,12 +93,6 @@ class RewindMedia {
 
   List<EnteFile> photos(Int64List ids, int slots) => _pick(ids.inner, slots);
 
-  List<EnteFile> photosLedByFirst(Int64List ids, int slots) {
-    final lead = ids.inner.map(_fileId).firstOrNull;
-    if (lead == null || !_files.containsKey(lead)) return const [];
-    return _pick(ids.inner, slots, lead: lead);
-  }
-
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
 
   List<EnteFile> extraPhotos(Int64List ids, int slots) => [
@@ -111,12 +105,12 @@ class RewindMedia {
     return files;
   }
 
-  List<EnteFile> _pick(Iterable<int> ids, int slots, {int? lead}) {
+  List<EnteFile> _pick(Iterable<int> ids, int slots) {
     final fresh = <int>[];
     final repeats = <int>[];
     for (final id in ids.map(_fileId).toSet()) {
       if (!_files.containsKey(id)) continue;
-      (id != lead && _used.contains(id) ? repeats : fresh).add(id);
+      (_used.contains(id) ? repeats : fresh).add(id);
     }
     final picked = [...fresh, ...repeats].take(slots).toList();
     _used.addAll(picked);

@@ -212,6 +212,7 @@ pub struct _WeeklyHabit {
     pub weekday: u32,
     pub hour: u32,
     pub percent: u32,
+    pub hour_file_ids: Vec<i64>,
     pub file_ids: Vec<i64>,
 }
 

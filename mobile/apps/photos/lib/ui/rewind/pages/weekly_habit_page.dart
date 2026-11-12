@@ -34,13 +34,15 @@ String _clockHour(int hour) {
 }
 
 class WeeklyHabitPage extends RewindPage {
-  const WeeklyHabitPage(this.habit, this.photos);
+  const WeeklyHabitPage(this.habit, this.hourPhotos, this.ringPhotos);
 
-  static const maxPhotos = 36;
+  static const maxHourPhotos = 3;
+  static const maxRingPhotos = 3 * (_Dial._maxSlots - 1);
   static const _tilesTop = 476.0;
 
   final rust.WeeklyHabit habit;
-  final List<EnteFile> photos;
+  final List<EnteFile> hourPhotos;
+  final List<EnteFile> ringPhotos;
 
   @override
   String get key => "weekly_habit";
@@ -80,7 +82,8 @@ class WeeklyHabitPage extends RewindPage {
                       position: position,
                       centerY: _Dial.center.dy,
                       child: _Dial(
-                        photos: photos,
+                        hourPhotos: hourPhotos,
+                        ringPhotos: ringPhotos,
                         hour: habit.hour,
                         label: hour,
                         active: isActive,
@@ -186,7 +189,8 @@ class WeeklyHabitPage extends RewindPage {
 
 class _Dial extends StatelessWidget {
   const _Dial({
-    required this.photos,
+    required this.hourPhotos,
+    required this.ringPhotos,
     required this.hour,
     required this.label,
     required this.active,
@@ -224,7 +228,8 @@ class _Dial extends StatelessWidget {
     3.0,
   ];
 
-  final List<EnteFile> photos;
+  final List<EnteFile> hourPhotos;
+  final List<EnteFile> ringPhotos;
   final int hour;
   final String label;
   final bool active;
@@ -232,20 +237,24 @@ class _Dial extends StatelessWidget {
 
   double get _heroTurn => (hour % 12) * pi / 6;
 
-  int get _slots => min(_maxSlots, photos.length);
+  int get _slots =>
+      hourPhotos.isEmpty ? 0 : min(_maxSlots, 1 + ringPhotos.length);
 
   double _slotTurn(int slot) => _heroTurn + slot * 2 * pi / _slots;
 
   @override
   Widget build(BuildContext context) {
     final count = _slots;
-    final frames = [
-      for (final (i, file) in photos.indexed)
-        _DialPhoto(
-          key: ValueKey(i),
-          file: file,
-          caption: i % count == 0 ? label : null,
-        ),
+    final faces = [
+      [
+        for (final (i, file) in hourPhotos.indexed)
+          _DialPhoto(key: ValueKey(-1 - i), file: file, caption: label),
+      ],
+      for (var slot = 1; slot < count; slot++)
+        [
+          for (var i = slot - 1; i < ringPhotos.length; i += count - 1)
+            _DialPhoto(key: ValueKey(i), file: ringPhotos[i]),
+        ],
     ];
     return RewindElapsed(
       active: active && !paused,
@@ -254,9 +263,9 @@ class _Dial extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           for (var slot = count - 1; slot >= 1; slot--)
-            _ringPhoto(_face(frames, slot, ms), slot, ms),
+            _ringPhoto(_face(faces[slot], slot, ms), slot, ms),
           _clock(ms),
-          if (count > 0) _hero(_face(frames, 0, ms), ms),
+          if (count > 0) _hero(_face(faces[0], 0, ms), ms),
         ],
       ),
     );
@@ -319,13 +328,10 @@ class _Dial extends StatelessWidget {
 
   int _step(double ms) => ((ms - _tickFromMs) / _tickEveryMs).floor();
 
-  Widget _face(List<Widget> frames, int slot, double ms) {
-    final faces = [
-      for (var i = slot; i < frames.length; i += _slots) frames[i],
-    ];
+  Widget _face(List<Widget> faces, int slot, double ms) {
     final step = _step(ms);
     final first = (slot - 1) % _slots;
-    if (faces.length == 1 || ms < _tickFromMs || step < first) {
+    if (faces.length == 1 || _slots < 2 || ms < _tickFromMs || step < first) {
       return faces.first;
     }
     final ticks = (step - first) ~/ _slots + 1;

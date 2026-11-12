@@ -190,7 +190,8 @@ final _busyYear = rust.RewindReport(
     weekday: 7,
     hour: 18,
     percent: 23,
-    fileIds: _ids(100800, 36),
+    hourFileIds: _ids(100800, 3),
+    fileIds: _ids(100803, 33),
   ),
   crowdFavourite: const rust.CrowdFavourite(
     photos: [
@@ -216,7 +217,8 @@ final _sparseYear = rust.RewindReport(
     weekday: 6,
     hour: 11,
     percent: 31,
-    fileIds: _ids(200700, 7),
+    hourFileIds: _ids(200700, 1),
+    fileIds: _ids(200701, 6),
   ),
   badge: const rust.Badge(id: rust.RewindBadge.limitedEdition),
   scrapbook: rust.Scrapbook(fileIds: _ids(200300, 6)),

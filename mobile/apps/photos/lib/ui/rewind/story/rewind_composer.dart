@@ -207,16 +207,20 @@ RewindChapter _favourites(rust.Favourites? favourites) {
 }
 
 RewindChapter _weeklyHabit(rust.WeeklyHabit? habit) {
-  return RewindChapter.revealed(
-    ritualSetupPage,
-    "weekly_habit",
-    (media) => habit == null
-        ? null
-        : WeeklyHabitPage(
-            habit,
-            media.photosLedByFirst(habit.fileIds, WeeklyHabitPage.maxPhotos),
-          ),
-  );
+  return RewindChapter.revealed(ritualSetupPage, "weekly_habit", (media) {
+    if (habit == null) return null;
+    final hourPhotos = media.photos(
+      habit.hourFileIds,
+      WeeklyHabitPage.maxHourPhotos,
+    );
+    return WeeklyHabitPage(
+      habit,
+      hourPhotos,
+      hourPhotos.isEmpty
+          ? const []
+          : media.photos(habit.fileIds, WeeklyHabitPage.maxRingPhotos),
+    );
+  });
 }
 
 RewindChapter _crowdFavourite(rust.CrowdFavourite? crowd) {
