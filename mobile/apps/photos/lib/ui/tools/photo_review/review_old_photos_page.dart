@@ -32,6 +32,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   static final _logger = Logger("ReviewOldPhotosPage");
   static const _horizontalPadding = Spacing.xl;
   static const _yearSpacing = 44.0;
+  static const _minScrollbarLength = 36.0;
 
   final _service = PhotoReviewService.instance;
   final _reloadDebouncer = Debouncer(const Duration(seconds: 2));
@@ -116,6 +117,18 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
         final padding = MediaQuery.paddingOf(context);
         final header = SliverAppBarComponent.resolveGeometry(context);
         final collapseExtent = header.maxExtent - header.minExtent;
+        final scrollbarTop = _overview?.bannerMonths.isNotEmpty ?? false
+            ? header.maxExtent +
+                  Spacing.xxl * 2 +
+                  ReviewBannerCarousel.heightFor(context)
+            : header.minExtent;
+        final scrollbarBottom = _selectionMode
+            ? _selectionBarHeight
+            : padding.bottom;
+        final canShowScrollbar =
+            (_overview?.months.length ?? 0) > 40 &&
+            constraints.maxHeight - scrollbarTop - scrollbarBottom >
+                _minScrollbarLength;
         final child = buildChild(
           context,
           constraints.maxWidth - padding.horizontal - _horizontalPadding * 2,
@@ -137,15 +150,15 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
             builder: (context, showThumb, child) => ScrollbarWithUseNotifer(
               controller: _scrollController,
               inUseNotifier: _scrollThumbInUse,
-              interactive: showThumb,
-              showThumb: showThumb,
-              thumbVisibility: showThumb,
-              minScrollbarLength: 36,
+              interactive: showThumb && canShowScrollbar,
+              showThumb: showThumb && canShowScrollbar,
+              thumbVisibility: showThumb && canShowScrollbar,
+              minScrollbarLength: _minScrollbarLength,
               thickness: 8,
               radius: const Radius.circular(4),
               scrollbarPadding: EdgeInsets.only(
-                top: header.minExtent,
-                bottom: _selectionMode ? _selectionBarHeight : padding.bottom,
+                top: scrollbarTop,
+                bottom: scrollbarBottom,
                 right: 3,
               ),
               child: child!,
