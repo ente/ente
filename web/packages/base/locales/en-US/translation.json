@@ -539,7 +539,7 @@
     "photos_count": "{{count, number}} memories",
     "terms_and_conditions": "I agree to the <a>terms</a> and <b>privacy policy</b>",
     "people": "People",
-    "filter_by_people": "Filter by people",
+    "add_more_people": "Add more people",
     "only_them": "Only them",
     "people_count_one": "1 person",
     "people_count_other": "{{count, number}} people",
