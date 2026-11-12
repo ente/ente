@@ -1,6 +1,6 @@
 name: ente_auth
 description: ente two-factor authenticator
-version: 4.4.27+1157
+version: 4.4.27+1158
 publish_to: none
 
 resolution: workspace
