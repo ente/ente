@@ -141,7 +141,6 @@ export const PeopleSection = ({
                             {...{ library, operations, navigation }}
                             source={{
                                 mode: "people",
-                                modePlus: "people",
                                 files,
                                 activeCollectionID: undefined,
                                 activePersonIDs,

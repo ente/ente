@@ -2,6 +2,7 @@
 import type { SelectionContext } from "@/components/gallery";
 import type { GalleryBarMode } from "@/components/gallery/reducer";
 import type { SelectedState, SetSelectedState } from "@/utils/file";
+import { emptySelection } from "../../components/gallery/media/file-selection";
 
 // TODO: All this is unnecessarily complex, and needs reworking.
 export const handleSelectCreator =
@@ -123,91 +124,12 @@ const createSelectedAndContext = (
     selected: SelectedState,
     peopleOnlyThem: boolean,
 ) => {
-    if (mode == "links") {
-        return {
-            selected: {
-                count: 0,
-                ownCount: 0,
-                collectionID: 0,
-                context: undefined,
-            },
-            newContext: undefined,
-        };
-    }
-    if (!mode) {
-        // Retain older behavior for non-gallery call sites.
-        if (selected.collectionID !== activeCollectionID) {
-            selected = {
-                ownCount: 0,
-                count: 0,
-                collectionID: 0,
-                context: undefined,
-            };
-        }
-    } else if (!selected.context) {
-        selected = {
-            ...selected,
-            context:
-                mode == "people"
-                    ? {
-                          mode,
-                          personIDs: activePersonIDs ?? [],
-                          onlyThem: peopleOnlyThem || undefined,
-                      }
-                    : { mode, collectionID: activeCollectionID },
-        };
-    } else {
-        if (selected.context.mode != mode) {
-            selected = {
-                ownCount: 0,
-                count: 0,
-                collectionID: 0,
-                context:
-                    mode == "people"
-                        ? {
-                              mode,
-                              personIDs: activePersonIDs ?? [],
-                              onlyThem: peopleOnlyThem || undefined,
-                          }
-                        : { mode, collectionID: activeCollectionID },
-            };
-        } else {
-            if (selected.context.mode == "people") {
-                if (
-                    JSON.stringify(selected.context.personIDs) !==
-                        JSON.stringify(activePersonIDs ?? []) ||
-                    !!selected.context.onlyThem !== peopleOnlyThem
-                ) {
-                    selected = {
-                        ownCount: 0,
-                        count: 0,
-                        collectionID: 0,
-                        context: {
-                            mode: selected.context.mode,
-                            personIDs: activePersonIDs ?? [],
-                            onlyThem: peopleOnlyThem || undefined,
-                        },
-                    };
-                }
-            } else {
-                if (selected.context.collectionID != activeCollectionID) {
-                    selected = {
-                        ownCount: 0,
-                        count: 0,
-                        collectionID: 0,
-                        context: {
-                            mode: selected.context.mode,
-                            collectionID: activeCollectionID,
-                        },
-                    };
-                }
-            }
-        }
-    }
+    if (mode === "links")
+        return { selected: emptySelection, newContext: undefined };
 
     const newContext: SelectionContext | undefined = !mode
         ? undefined
-        : mode == "people"
+        : mode === "people"
           ? {
                 mode,
                 personIDs: activePersonIDs ?? [],
@@ -215,5 +137,24 @@ const createSelectedAndContext = (
             }
           : { mode, collectionID: activeCollectionID };
 
-    return { selected, newContext };
+    const previousContext = selected.context;
+    let reset = false;
+    if (!newContext) {
+        reset = selected.collectionID !== activeCollectionID;
+    } else if (previousContext) {
+        if (previousContext.mode !== newContext.mode) {
+            reset = true;
+        } else if (
+            previousContext.mode === "people" &&
+            newContext.mode === "people"
+        ) {
+            reset =
+                JSON.stringify(previousContext.personIDs) !==
+                    JSON.stringify(newContext.personIDs) ||
+                !!previousContext.onlyThem !== peopleOnlyThem;
+        } else if (previousContext.mode !== "people") {
+            reset = previousContext.collectionID !== activeCollectionID;
+        }
+    }
+    return { selected: reset ? emptySelection : selected, newContext };
 };

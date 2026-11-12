@@ -362,7 +362,6 @@ export const AlbumsSection = ({
                         activeCollectionID: activeCollectionID!,
                         activeCollectionSummary,
                         activeCollection,
-                        activePersonIDs: undefined,
                         disableGrouping:
                             activeCollection?.pubMagicMetadata?.data.sortBy ==
                             "fileName",

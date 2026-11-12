@@ -38,7 +38,6 @@ import {
     useTheme,
 } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
-import { assertionFailed } from "ente-base/assert";
 import { Overlay } from "ente-base/components/containers";
 import { formattedDateRelative } from "ente-base/i18n-date";
 import log from "ente-base/log";
@@ -919,19 +918,7 @@ export const FileList: React.FC<FileListProps> = ({
         return <></>;
     }
 
-    // A new key resets virtualization state when the view changes.
-    let key = `${activeCollectionID}`;
-    if (modePlus) {
-        if (modePlus == "search") {
-            key = "search";
-        } else if (modePlus == "people") {
-            if (!activePersonIDs) {
-                assertionFailed();
-            } else {
-                key = JSON.stringify([activePersonIDs, !!peopleOnlyThem]);
-            }
-        }
-    }
+    const key = modePlus === "search" ? "search" : `${activeCollectionID}`;
 
     return (
         <Box

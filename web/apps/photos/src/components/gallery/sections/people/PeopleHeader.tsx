@@ -102,7 +102,7 @@ import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 interface PeopleHeaderProps {
     people: Person[];
     person: Person;
-    fileCount?: number;
+    fileCount: number;
 }
 
 export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
@@ -157,9 +157,9 @@ export const PeopleHeader: React.FC<PeopleHeaderProps> = ({
 
 const PersonHeaderSummary = ({
     person,
-    fileCount = person.fileIDs.length,
+    fileCount,
     ...summaryProps
-}: { person: Person; fileCount?: number } & Pick<
+}: { person: Person; fileCount: number } & Pick<
     React.ComponentProps<typeof GalleryItemsSummary>,
     "name" | "nameProps" | "onNameClick"
 >) => {
@@ -196,7 +196,7 @@ const PersonHeaderSummary = ({
 
 interface CGroupPersonHeaderProps {
     person: CGroupPerson;
-    fileCount?: number;
+    fileCount: number;
 }
 
 const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({
@@ -294,7 +294,7 @@ const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({
 
 interface IgnoredPersonHeaderProps {
     person: CGroupPerson;
-    fileCount?: number;
+    fileCount: number;
 }
 
 const IgnoredPersonHeader: React.FC<IgnoredPersonHeaderProps> = ({
