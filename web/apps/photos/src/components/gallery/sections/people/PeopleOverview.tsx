@@ -4,6 +4,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
     Box,
     Button,
+    Skeleton,
     Stack,
     Typography,
     styled,
@@ -25,10 +26,12 @@ export const PeopleOverview = ({
     people,
     allPeople,
     peopleSortBy,
+    isFirstLoad,
 }: {
     people: Person[];
     allPeople: Person[];
     peopleSortBy: PeopleSortBy;
+    isFirstLoad: boolean;
 }) => {
     const { selectPerson: onSelectPerson } = usePhotosNavigation();
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
@@ -61,6 +64,10 @@ export const PeopleOverview = ({
                 overflow: "hidden",
                 px: `${thumbnailGridPadding}px`,
                 gap: "24px",
+                "--people-tile-size": { xs: "96px", md: "140px" },
+                "--people-portrait-size": { xs: "80px", md: "120px" },
+                "--people-column-gap": { xs: "12px", md: "22px" },
+                "--people-row-height": { xs: "150px", md: "190px" },
             }}
         >
             <Stack
@@ -86,6 +93,7 @@ export const PeopleOverview = ({
                         {t("people")}
                     </Typography>
                     <Typography
+                        role={isFirstLoad ? "status" : undefined}
                         sx={{
                             color: "text.muted",
                             fontSize: 14,
@@ -93,20 +101,18 @@ export const PeopleOverview = ({
                             lineHeight: "18px",
                         }}
                     >
-                        {t("people_count", { count: primaryPeople.length })}
+                        {isFirstLoad
+                            ? t("initial_load_delay_warning")
+                            : t("people_count", {
+                                  count: primaryPeople.length,
+                              })}
                     </Typography>
                 </Stack>
             </Stack>
-            {primaryPeople.length ? (
-                <Box
-                    sx={{
-                        flex: 1,
-                        minHeight: 0,
-                        "--people-tile-size": { xs: "96px", md: "140px" },
-                        "--people-portrait-size": { xs: "80px", md: "120px" },
-                        "--people-column-gap": { xs: "12px", md: "22px" },
-                    }}
-                >
+            {isFirstLoad ? (
+                <PeopleLoadingGrid />
+            ) : primaryPeople.length ? (
+                <Box sx={{ flex: 1, minHeight: 0 }}>
                     <AutoSizer>
                         {({ width, height }) => {
                             const tileWidth = mobile ? 96 : 140;
@@ -192,6 +198,36 @@ export const PeopleOverview = ({
         </Stack>
     );
 };
+
+const PeopleLoadingGrid = () => (
+    <Box
+        aria-hidden
+        sx={{
+            display: "grid",
+            gridTemplateColumns:
+                "repeat(auto-fill, minmax(var(--people-tile-size), 1fr))",
+            gridAutoRows: "var(--people-row-height)",
+            columnGap: "var(--people-column-gap)",
+            justifyItems: "center",
+            overflow: "hidden",
+            "@media (prefers-reduced-motion: reduce)": {
+                "& .MuiSkeleton-root": { animation: "none" },
+            },
+        }}
+    >
+        {Array.from({ length: 12 }, (_, index) => (
+            <Stack key={index} sx={{ alignItems: "center", gap: 1 }}>
+                <Skeleton
+                    variant="circular"
+                    width="var(--people-portrait-size)"
+                    height="var(--people-portrait-size)"
+                />
+                <Skeleton variant="rounded" width={56} height={12} />
+                <Skeleton variant="rounded" width={36} height={8} />
+            </Stack>
+        ))}
+    </Box>
+);
 
 type PeopleListItem =
     | { type: "people"; people: Person[] }

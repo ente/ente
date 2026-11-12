@@ -20,11 +20,13 @@ export const GallerySectionLayout = ({
     presentation,
     navigation,
     fullBleed = false,
+    showFirstLoadStatus = true,
     children,
 }: {
     presentation: GallerySectionPresentation;
     navigation?: ReactNode;
     fullBleed?: boolean;
+    showFirstLoadStatus?: boolean;
     children: ReactNode;
 }) => {
     const { collapsed, mobile, reduceMotion, isFirstLoad, isOffline } =
@@ -78,7 +80,7 @@ export const GallerySectionLayout = ({
                 >
                     {children}
                 </Stack>
-                {isFirstLoad && (
+                {isFirstLoad && showFirstLoadStatus && (
                     <GalleryStatusMessage
                         icon={
                             <CircularProgress
