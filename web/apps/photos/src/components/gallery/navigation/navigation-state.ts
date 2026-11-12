@@ -10,8 +10,9 @@ export interface GalleryDestination {
     albumMode?: "albums" | "hidden-albums" | "archive-albums";
     collectionID?: number;
     albumFilter?: AlbumFilter;
-    personID?: string;
-    extraVisiblePersonID?: string;
+    personIDs?: string[];
+    extraVisiblePersonIDs?: string[];
+    peopleSelectionMode?: boolean;
     collectionMap?: boolean;
 }
 
@@ -54,10 +55,13 @@ export type NavigationAction =
       }
     | { type: "showPeople" }
     | { type: "showPerson"; personID: string }
+    | { type: "beginPeopleSelection"; personID: string }
+    | { type: "togglePerson"; personID: string }
+    | { type: "exitPeopleSelection" }
     | {
-          type: "retainPerson";
-          personID: string | undefined;
-          extraVisiblePersonID: string | undefined;
+          type: "retainPeople";
+          personIDs: string[];
+          extraVisiblePersonIDs: string[];
       }
     | { type: "enterSearchMode"; searchSuggestion?: SearchSuggestion }
     | { type: "exitSearch"; shouldExitSearchMode?: boolean }
@@ -131,21 +135,55 @@ export const navigationReducer = (
         case "showPerson":
             return navigate({
                 section: "people",
-                personID: action.personID,
-                extraVisiblePersonID: destination.extraVisiblePersonID,
+                personIDs: [action.personID],
+                extraVisiblePersonIDs: destination.extraVisiblePersonIDs,
             });
-        case "retainPerson":
+        case "beginPeopleSelection":
+            return navigate({
+                ...destination,
+                section: "people",
+                personIDs: [
+                    ...new Set([
+                        ...(destination.personIDs ?? []),
+                        action.personID,
+                    ]),
+                ],
+                peopleSelectionMode: true,
+            });
+        case "togglePerson": {
+            const previous = destination.personIDs ?? [];
+            const personIDs = previous.includes(action.personID)
+                ? previous.filter((id) => id !== action.personID)
+                : [...previous, action.personID];
+            return navigate({
+                ...destination,
+                personIDs,
+                peopleSelectionMode: personIDs.length > 1,
+            });
+        }
+        case "exitPeopleSelection":
+            return {
+                ...state,
+                destination: { ...destination, peopleSelectionMode: false },
+            };
+        case "retainPeople":
             return destination.section !== "people" ||
-                (destination.personID === action.personID &&
-                    destination.extraVisiblePersonID ===
-                        action.extraVisiblePersonID)
+                (JSON.stringify(destination.personIDs ?? []) ===
+                    JSON.stringify(action.personIDs) &&
+                    JSON.stringify(destination.extraVisiblePersonIDs ?? []) ===
+                        JSON.stringify(action.extraVisiblePersonIDs))
                 ? state
                 : {
                       ...state,
                       destination: {
                           ...destination,
-                          personID: action.personID,
-                          extraVisiblePersonID: action.extraVisiblePersonID,
+                          personIDs: action.personIDs,
+                          extraVisiblePersonIDs: action.extraVisiblePersonIDs,
+                          peopleSelectionMode:
+                              destination.peopleSelectionMode &&
+                              (action.personIDs.length > 1 ||
+                                  JSON.stringify(destination.personIDs) ===
+                                      JSON.stringify(action.personIDs)),
                       },
                   };
         case "enterSearchMode":

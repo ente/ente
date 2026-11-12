@@ -99,7 +99,7 @@ test.each<GalleryDestination>([
 
 test.each<GalleryDestination>([
     { section: "albums", albumFilter: "ente" },
-    { section: "people", personID: "person" },
+    { section: "people", personIDs: ["person"] },
     { section: "places", collectionID: -1 },
 ])(
     "a destination without an album requires album selection: %j",

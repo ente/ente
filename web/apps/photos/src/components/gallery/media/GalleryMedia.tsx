@@ -45,7 +45,7 @@ export const GalleryMedia = (props: GalleryMediaProps) => {
         source.mode,
         source.modePlus,
         source.activeCollectionID,
-        source.activePersonID,
+        source.activePersonIDs,
         navigation.overlay?.suggestion?.type,
         navigation.overlay?.suggestion?.label,
         navigation.overlay?.searchRevision,

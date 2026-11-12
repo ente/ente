@@ -1,78 +1,66 @@
 import { uniqueFilesByID } from "ente-gallery/utils/file";
-import type { Person } from "ente-new/photos/services/ml/people";
 import { suppressSharedFilesSavedByUser } from "../../media/media-files";
 import type { GalleryDestination } from "../../navigation/navigation-state";
 import type { GalleryState } from "../../reducer";
 import type { GalleryView } from "../view-types";
+
 export const derivePeopleView = (
     peopleState: GalleryState["peopleState"],
     tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
     tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    selectedPersonID: string | undefined,
-    extraVisiblePerson: Person | undefined,
+    selectedPersonIDs: string[] = [],
+    retainedPersonIDs: string[] = [],
 ): {
     view: Extract<GalleryView, { type: "people" }>;
-    extraVisiblePerson: Person | undefined;
+    extraVisiblePersonIDs: string[];
 } => {
-    let people = peopleState?.people ?? [];
-    let visiblePeople = peopleState?.visiblePeople ?? [];
-    if (tempDeletedFileIDs.size + tempHiddenFileIDs.size > 0) {
-        const filterTemp = (ps: Person[]) =>
-            ps
-                .map((p) => ({
-                    ...p,
-                    fileIDs: p.fileIDs.filter(
-                        (id) =>
-                            !tempDeletedFileIDs.has(id) &&
-                            !tempHiddenFileIDs.has(id),
-                    ),
-                }))
-                .filter((p) => p.fileIDs.length > 0);
-        people = filterTemp(people);
-        visiblePeople = filterTemp(visiblePeople);
-    }
-
-    // Keep a selected small cluster visible until the user leaves this view.
-    if (extraVisiblePerson) {
-        if (!people.find((p) => p.id == extraVisiblePerson?.id))
-            extraVisiblePerson = undefined;
-    }
-
-    const findByIDIn = (ps: Person[]) =>
-        ps.find((p) => p.id == selectedPersonID);
-    let activePerson = findByIDIn(visiblePeople);
-    if (!activePerson) {
-        activePerson = findByIDIn(people);
-        if (activePerson) {
-            extraVisiblePerson = activePerson;
-        }
-    }
-
+    const people = (peopleState?.people ?? [])
+        .map((person) => ({
+            ...person,
+            fileIDs: person.fileIDs.filter(
+                (id) =>
+                    !tempDeletedFileIDs.has(id) && !tempHiddenFileIDs.has(id),
+            ),
+        }))
+        .filter((person) => person.fileIDs.length > 0);
+    const byID = new Map(people.map((person) => [person.id, person]));
+    const visibleIDs = new Set(
+        peopleState?.visiblePeople.map((person) => person.id),
+    );
+    const extraVisiblePersonIDs = [
+        ...new Set([...retainedPersonIDs, ...selectedPersonIDs]),
+    ].filter((id) => byID.has(id) && !visibleIDs.has(id));
+    const activePeople = [...new Set(selectedPersonIDs)].flatMap((id) => {
+        const person = byID.get(id);
+        return person ? [person] : [];
+    });
     const view = {
         type: "people" as const,
         people,
-        visiblePeople: extraVisiblePerson
-            ? visiblePeople.concat([extraVisiblePerson])
-            : visiblePeople,
-        activePerson,
+        visiblePeople: [
+            ...people.filter((person) => visibleIDs.has(person.id)),
+            ...extraVisiblePersonIDs.map((id) => byID.get(id)!),
+        ],
+        activePeople,
     };
-
-    return { view, extraVisiblePerson };
+    return { view, extraVisiblePersonIDs };
 };
+
 export const derivePeopleFilteredFiles = (
     collectionFiles: GalleryState["collectionFiles"],
     hiddenFileIDs: GalleryState["hiddenFileIDs"],
     view: Extract<GalleryView, { type: "people" }>,
     currentUserID: number | undefined,
 ) => {
-    const pfSet = new Set(view.activePerson?.fileIDs ?? []);
+    const sets = view.activePeople.map((person) => new Set(person.fileIDs));
     return uniqueFilesByID(
         suppressSharedFilesSavedByUser(
-            collectionFiles.filter((f) => {
-                if (!pfSet.has(f.id)) return false;
-                if (hiddenFileIDs.has(f.id)) return false;
-                return true;
-            }),
+            collectionFiles.filter(
+                (file) =>
+                    sets.length > 0 &&
+                    !hiddenFileIDs.has(file.id) &&
+                    sets.every((ids) => ids.has(file.id)),
+            ),
             currentUserID,
             undefined,
         ),
@@ -83,25 +71,36 @@ export const resolvePeopleDestination = (
     library: GalleryState,
     destination: GalleryDestination,
 ): GalleryDestination => {
-    const exists = (id: string | undefined) =>
-        id !== undefined &&
-        library.peopleState?.people.some(
-            (person) =>
-                person.id === id &&
+    // Absence of a snapshot means loading, not that selected people disappeared.
+    if (!library.peopleState) return destination;
+    const existingIDs = new Set(
+        library.peopleState.people
+            .filter((person) =>
                 person.fileIDs.some(
-                    (fileID) =>
-                        !library.tempDeletedFileIDs.has(fileID) &&
-                        !library.tempHiddenFileIDs.has(fileID),
+                    (id) =>
+                        !library.tempDeletedFileIDs.has(id) &&
+                        !library.tempHiddenFileIDs.has(id),
                 ),
-        );
-    const personID = exists(destination.personID)
-        ? destination.personID
-        : undefined;
-    const extraVisiblePersonID = exists(destination.extraVisiblePersonID)
-        ? destination.extraVisiblePersonID
-        : undefined;
-    return personID === destination.personID &&
-        extraVisiblePersonID === destination.extraVisiblePersonID
-        ? destination
-        : { ...destination, personID, extraVisiblePersonID };
+            )
+            .map((person) => person.id),
+    );
+    const personIDs = destination.personIDs?.filter((id) =>
+        existingIDs.has(id),
+    );
+    const extraVisiblePersonIDs = destination.extraVisiblePersonIDs?.filter(
+        (id) => existingIDs.has(id),
+    );
+    if (
+        personIDs?.length === destination.personIDs?.length &&
+        extraVisiblePersonIDs?.length ===
+            destination.extraVisiblePersonIDs?.length
+    )
+        return destination;
+    return {
+        ...destination,
+        personIDs,
+        extraVisiblePersonIDs,
+        peopleSelectionMode:
+            !!destination.peopleSelectionMode && (personIDs?.length ?? 0) > 1,
+    };
 };

@@ -33,7 +33,7 @@ export const SearchSection = ({
         collectionView && collectionView.type !== "album-overview"
             ? collectionView.activeCollection
             : undefined;
-    const activePersonID = destination.personID;
+    const activePersonIDs = destination.personIDs;
     const suggestion = navigation.overlay?.suggestion;
     const results = useSearchResults(suggestion, library.searchIndexRevision);
     const [initialFiles] = useState(() => {
@@ -43,10 +43,8 @@ export const SearchSection = ({
                 library.peopleState,
                 library.tempDeletedFileIDs,
                 library.tempHiddenFileIDs,
-                destination.personID,
-                library.peopleState?.people.find(
-                    (person) => person.id === destination.extraVisiblePersonID,
-                ),
+                destination.personIDs,
+                destination.extraVisiblePersonIDs,
             );
             return derivePeopleFilteredFiles(
                 library.collectionFiles,
@@ -107,7 +105,7 @@ export const SearchSection = ({
                         collectionView.type !== "album-overview"
                             ? collectionView.activeCollectionSummary
                             : undefined,
-                    activePersonID,
+                    activePersonIDs,
                     disableGrouping: suggestion?.type == "clip",
                 }}
             />

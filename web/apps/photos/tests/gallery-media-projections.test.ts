@@ -99,7 +99,7 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
         people,
         new Set(),
         new Set(),
-        "small",
+        ["small"],
         undefined,
     );
     expect(selected.view.visiblePeople.map((person) => person.id)).toEqual([
@@ -119,8 +119,8 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
         people,
         new Set(),
         new Set(),
-        "named",
-        selected.extraVisiblePerson,
+        ["named"],
+        selected.extraVisiblePersonIDs,
     );
     expect(next.view.visiblePeople.map((person) => person.id)).toContain(
         "small",
@@ -129,11 +129,11 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
         people,
         new Set([1, 2]),
         new Set(),
-        "small",
-        selected.extraVisiblePerson,
+        ["small"],
+        selected.extraVisiblePersonIDs,
     );
-    expect(removed.view.activePerson).toBeUndefined();
-    expect(removed.extraVisiblePerson).toBeUndefined();
+    expect(removed.view.activePeople).toEqual([]);
+    expect(removed.extraVisiblePersonIDs).toEqual([]);
     expect(
         resolvePeopleDestination(
             {
@@ -143,13 +143,14 @@ test("People keeps a selected small cluster and filters hidden and duplicate fil
             },
             {
                 section: "people",
-                personID: "small",
-                extraVisiblePersonID: "small",
+                personIDs: ["small"],
+                extraVisiblePersonIDs: ["small"],
             },
         ),
     ).toEqual({
         section: "people",
-        personID: undefined,
-        extraVisiblePersonID: undefined,
+        personIDs: [],
+        extraVisiblePersonIDs: [],
+        peopleSelectionMode: false,
     });
 });

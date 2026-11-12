@@ -15,5 +15,5 @@ export type GalleryView =
           type: "people";
           visiblePeople: Person[];
           people: Person[];
-          activePerson: Person | undefined;
+          activePeople: Person[];
       };

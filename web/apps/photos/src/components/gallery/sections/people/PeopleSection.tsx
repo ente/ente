@@ -1,8 +1,12 @@
 import { sortPeople } from "@/utils/people-sort";
+import { Box, Typography } from "@mui/material";
+import { t } from "i18next";
 import { useEffect, useMemo } from "react";
 import { GalleryMedia } from "../../media/GalleryMedia";
 import { GallerySectionLayout } from "../../navigation/GallerySectionLayout";
+import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 import type { GallerySectionProps } from "../types";
+import { CombinedPeopleHeader } from "./CombinedPeopleHeader";
 import { derivePeopleFilteredFiles, derivePeopleView } from "./people-files";
 import { PeopleHeader } from "./PeopleHeader";
 import { PeopleNavigation } from "./PeopleNavigation";
@@ -15,26 +19,43 @@ export const PeopleSection = ({
     preferences,
     presentation,
 }: GallerySectionProps) => {
-    const { personID, extraVisiblePersonID } = navigation.destination;
-    const { view, extraVisiblePerson } = useMemo(
+    const {
+        personIDs,
+        extraVisiblePersonIDs: retainedPersonIDs,
+        peopleSelectionMode = false,
+    } = navigation.destination;
+    const { view, extraVisiblePersonIDs } = useMemo(
         () =>
             derivePeopleView(
                 library.peopleState,
                 library.tempDeletedFileIDs,
                 library.tempHiddenFileIDs,
-                personID,
-                library.peopleState?.people.find(
-                    (p) => p.id === extraVisiblePersonID,
-                ),
+                personIDs,
+                retainedPersonIDs,
             ),
         [
             library.peopleState,
             library.tempDeletedFileIDs,
             library.tempHiddenFileIDs,
-            personID,
-            extraVisiblePersonID,
+            personIDs,
+            retainedPersonIDs,
         ],
     );
+    const { exitPeopleSelection } = usePhotosNavigation();
+    useEffect(() => {
+        if (!peopleSelectionMode) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape" || event.defaultPrevented) return;
+            if (
+                event.target instanceof Element &&
+                event.target.closest('[role="dialog"], [role="menu"]')
+            )
+                return;
+            exitPeopleSelection();
+        };
+        document.addEventListener("keydown", onKeyDown);
+        return () => document.removeEventListener("keydown", onKeyDown);
+    }, [peopleSelectionMode, exitPeopleSelection]);
     const files = useMemo(
         () =>
             derivePeopleFilteredFiles(
@@ -50,26 +71,49 @@ export const PeopleSection = ({
             library.user?.id,
         ],
     );
-    const { retainPerson } = navigation;
+    const { retainPeople } = navigation;
+    const activePersonIDs = useMemo(
+        () => view.activePeople.map((person) => person.id),
+        [view.activePeople],
+    );
     useEffect(() => {
-        retainPerson(view.activePerson?.id, extraVisiblePerson?.id);
-    }, [view.activePerson?.id, extraVisiblePerson?.id, retainPerson]);
+        if (library.peopleState)
+            retainPeople(activePersonIDs, extraVisiblePersonIDs);
+    }, [
+        library.peopleState,
+        activePersonIDs,
+        extraVisiblePersonIDs,
+        retainPeople,
+    ]);
     const people = useMemo(
         () => sortPeople(view.visiblePeople, preferences.peopleSortBy),
         [view.visiblePeople, preferences.peopleSortBy],
     );
-    const activePerson = view.activePerson;
+    const activePerson =
+        view.activePeople.length === 1 ? view.activePeople[0] : undefined;
+    const combined = view.activePeople.length > 1;
     const visiblePeople = view.visiblePeople;
     const header = useMemo(
         () => ({
-            component: activePerson ? (
+            component: combined ? (
+                <CombinedPeopleHeader
+                    people={view.activePeople}
+                    fileCount={files.length}
+                />
+            ) : activePerson ? (
                 <PeopleHeader person={activePerson} people={visiblePeople} />
             ) : (
                 <></>
             ),
             height: 72,
         }),
-        [activePerson, visiblePeople],
+        [
+            activePerson,
+            visiblePeople,
+            combined,
+            view.activePeople,
+            files.length,
+        ],
     );
     return (
         <GallerySectionLayout
@@ -78,18 +122,29 @@ export const PeopleSection = ({
                 <PeopleNavigation
                     {...presentation}
                     people={people}
-                    activePerson={activePerson}
+                    selectedPersonIDs={activePersonIDs}
+                    selectionMode={peopleSelectionMode}
                     peopleSortBy={preferences.peopleSortBy}
                     onChangePeopleSortBy={preferences.setPeopleSortBy}
                 />
             }
         >
-            {!library.isFirstLoad && !activePerson ? (
+            {!library.isFirstLoad && !view.activePeople.length ? (
                 <PeopleOverview
                     people={view.visiblePeople}
                     allPeople={view.people}
                     peopleSortBy={preferences.peopleSortBy}
                 />
+            ) : combined && !files.length ? (
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    {header.component}
+                    <Typography
+                        role="status"
+                        sx={{ p: 4, textAlign: "center", color: "text.muted" }}
+                    >
+                        {t("people_all_empty")}
+                    </Typography>
+                </Box>
             ) : (
                 <GalleryMedia
                     {...{ library, operations, navigation }}
@@ -99,7 +154,7 @@ export const PeopleSection = ({
                         modePlus: "people",
                         files,
                         activeCollectionID: undefined,
-                        activePersonID: activePerson?.id,
+                        activePersonIDs,
                         activeCollectionSummary: undefined,
                         disableGrouping: false,
                     }}

@@ -18,7 +18,7 @@ export type GalleryMediaSource = Pick<
     | "files"
     | "activeCollectionID"
     | "activeCollectionSummary"
-    | "activePersonID"
+    | "activePersonIDs"
     | "disableGrouping"
 > & { activeCollection?: Collection | undefined };
 
@@ -57,9 +57,9 @@ export interface GallerySectionProps {
     };
     operations: GallerySectionOperations;
     navigation: GalleryNavigationState & {
-        retainPerson: (
-            personID: string | undefined,
-            extraVisiblePersonID: string | undefined,
+        retainPeople: (
+            personIDs: string[],
+            extraVisiblePersonIDs: string[],
         ) => void;
     };
     preferences: ReturnType<typeof useGalleryPreferences>;

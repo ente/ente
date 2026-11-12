@@ -68,7 +68,7 @@ const Page: React.FC = () => {
                             operations={operations}
                             navigation={{
                                 ...navigation.state,
-                                retainPerson: navigation.retainPerson,
+                                retainPeople: navigation.retainPeople,
                             }}
                             preferences={navigation.preferences}
                             presentation={presentation}

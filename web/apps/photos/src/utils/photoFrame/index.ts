@@ -10,7 +10,7 @@ export const handleSelectCreator =
         mode: GalleryBarMode | undefined,
         userID: number | undefined,
         activeCollectionID: number | undefined,
-        activePersonID: string | undefined,
+        activePersonIDs: string[] | undefined,
         setRangeStartIndex: (index: number | undefined) => void,
     ) =>
     ({ id, ownerID }: { id: number; ownerID: number }, index?: number) =>
@@ -26,7 +26,7 @@ export const handleSelectCreator =
             const { selected, newContext } = createSelectedAndContext(
                 mode,
                 activeCollectionID,
-                activePersonID,
+                activePersonIDs,
                 _selected,
             );
 
@@ -67,7 +67,7 @@ export const handleSelectCreatorMulti =
         mode: GalleryBarMode | undefined,
         userID: number | undefined,
         activeCollectionID: number | undefined,
-        activePersonID: string | undefined,
+        activePersonIDs: string[] | undefined,
     ) =>
     (files: { id: number; ownerID: number }[]) =>
     (checked: boolean) => {
@@ -75,7 +75,7 @@ export const handleSelectCreatorMulti =
             const { selected, newContext } = createSelectedAndContext(
                 mode,
                 activeCollectionID,
-                activePersonID,
+                activePersonIDs,
                 _selected,
             );
 
@@ -115,7 +115,7 @@ const createSelectedAndContext = (
     mode: GalleryBarMode | undefined,
 
     activeCollectionID: number | undefined,
-    activePersonID: string | undefined,
+    activePersonIDs: string[] | undefined,
     selected: SelectedState,
 ) => {
     if (mode == "links") {
@@ -144,7 +144,7 @@ const createSelectedAndContext = (
             ...selected,
             context:
                 mode == "people"
-                    ? { mode, personID: activePersonID! }
+                    ? { mode, personIDs: activePersonIDs ?? [] }
                     : { mode, collectionID: activeCollectionID },
         };
     } else {
@@ -155,19 +155,22 @@ const createSelectedAndContext = (
                 collectionID: 0,
                 context:
                     mode == "people"
-                        ? { mode, personID: activePersonID! }
+                        ? { mode, personIDs: activePersonIDs ?? [] }
                         : { mode, collectionID: activeCollectionID },
             };
         } else {
             if (selected.context.mode == "people") {
-                if (selected.context.personID != activePersonID) {
+                if (
+                    JSON.stringify(selected.context.personIDs) !==
+                    JSON.stringify(activePersonIDs ?? [])
+                ) {
                     selected = {
                         ownCount: 0,
                         count: 0,
                         collectionID: 0,
                         context: {
                             mode: selected.context.mode,
-                            personID: activePersonID!,
+                            personIDs: activePersonIDs ?? [],
                         },
                     };
                 }
@@ -190,7 +193,7 @@ const createSelectedAndContext = (
     const newContext: SelectionContext | undefined = !mode
         ? undefined
         : mode == "people"
-          ? { mode, personID: activePersonID! }
+          ? { mode, personIDs: activePersonIDs ?? [] }
           : { mode, collectionID: activeCollectionID };
 
     return { selected, newContext };

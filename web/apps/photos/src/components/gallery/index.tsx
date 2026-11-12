@@ -47,7 +47,7 @@ export type SelectionContext =
           mode: "albums" | "hidden-albums" | "archive-albums";
           collectionID: number | undefined;
       }
-    | { mode: "people"; personID: string };
+    | { mode: "people"; personIDs: string[] };
 
 interface SearchResultsHeaderProps {
     searchSuggestion: SearchSuggestion;

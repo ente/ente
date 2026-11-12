@@ -159,7 +159,7 @@ const headerSummary = (
                       ? "archive-albums"
                       : "albums",
             },
-            retainPerson: vi.fn(),
+            retainPeople: vi.fn(),
             selectedPlace: undefined,
             placeSelectionRevision: 0,
         },
