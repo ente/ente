@@ -843,7 +843,7 @@ impl VecDb {
     pub fn build_pending_graph(&self, max_vectors: usize) -> Result<usize, VecDbError> {
         self.shared.ensure_open()?;
         let processed = build_pending_graph(&self.shared, max_vectors);
-        if processed < max_vectors && !self.read_only {
+        if self.shared.pending_graph_slots() == 0 && !self.read_only {
             self.flush()?;
         }
         Ok(processed)
@@ -4392,7 +4392,7 @@ mod tests {
         assert_eq!(db.build_pending_graph(150).unwrap(), 150);
         assert_eq!(db.shared.graph_read().node_count(), 250);
         assert!(!snapshot_exists(&path));
-        assert_eq!(db.build_pending_graph(100).unwrap(), 50);
+        assert_eq!(db.build_pending_graph(50).unwrap(), 50);
         let loaded = load_snapshot(&path, generation_of(&path)).unwrap();
         assert_eq!(loaded.parts.len(), 300);
         assert_eq!(db.stats().unwrap().records_since_snapshot, 0);
