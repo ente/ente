@@ -74,14 +74,11 @@ const rewriteHMRSocket = (devOrigin: string) => {
     globalThis.WebSocket = new Proxy(globalThis.WebSocket, {
         construct(target, args: unknown[], newTarget) {
             const [url] = args;
-            if (typeof url == "string") {
-                const endpoint = url.split("?")[0];
-                if (
-                    endpoint == "wss://app/_next/hmr" ||
-                    endpoint == "wss://app/_next/webpack-hmr"
-                ) {
-                    args[0] = url.replace("wss://app", devOrigin);
-                }
+            if (
+                typeof url == "string" &&
+                url.split("?")[0] == "wss://app/_next/hmr"
+            ) {
+                args[0] = url.replace("wss://app", devOrigin);
             }
             return Reflect.construct(target, args, newTarget) as WebSocket;
         },
@@ -112,16 +109,12 @@ const serveExport = async (request: Request, url: URL, directory: string) => {
         return new Response(null, { status: 404 });
     }
 
-    const fileInfo = await statIfPresent(file);
-    let resolvedFile: string | undefined;
-    if (fileInfo?.isFile()) {
-        resolvedFile = file;
-    } else if (fileInfo?.isDirectory()) {
-        const index = path.join(file, "index.html");
-        if ((await statIfPresent(index))?.isFile()) resolvedFile = index;
-    }
-    if (!resolvedFile && relative && !path.extname(file)) {
-        const html = file + ".html";
+    const asset = relative ? file : path.join(directory, "index.html");
+    let resolvedFile = (await statIfPresent(asset))?.isFile()
+        ? asset
+        : undefined;
+    if (!resolvedFile && !path.extname(asset)) {
+        const html = asset + ".html";
         if ((await statIfPresent(html))?.isFile()) resolvedFile = html;
     }
 
