@@ -30,7 +30,6 @@ const proxyToNextDevServer = async (request: Request, url: URL) => {
     target.pathname = url.pathname;
     target.search = url.search;
 
-    // Electron and Next.js start concurrently. Retry while Next is starting.
     const deadline = Date.now() + 60_000;
     let response: Response;
     for (;;) {
@@ -61,8 +60,6 @@ const proxyToNextDevServer = async (request: Request, url: URL) => {
         return response;
     }
 
-    // Next derives the HMR socket host from the document's ente://app URL.
-    // Install the rewrite before the dev runtime opens the WebSocket.
     const hmrOrigin = devServerURL.replace("http:", "ws:");
     const script = `(${rewriteHMRSocket.toString()})(${JSON.stringify(hmrOrigin)});\n`;
     return new Response(script + (await response.text()), {
