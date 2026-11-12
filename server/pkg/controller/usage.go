@@ -92,7 +92,7 @@ func (c *UsageController) checkAndUpdateCache(ctx context.Context, userID int64,
 		}
 		c.uploadURLResultCache[userID] = err == nil
 	}
-	if !checkPhotoFileLimit || err == nil {
+	if !checkPhotoFileLimit || !errors.Is(err, &ente.ErrFileLimitReached) {
 		c.UploadResultCache[userID] = err == nil
 	}
 	c.mu.Unlock()

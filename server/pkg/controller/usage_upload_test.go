@@ -183,6 +183,7 @@ func TestPhotoUploadFileLimitAllowsCachedOverflow(t *testing.T) {
 		return !controller.UsageCtrl.uploadURLResultCache[userID]
 	}, 5*time.Second, 10*time.Millisecond)
 	require.ErrorIs(t, controller.ValidateUploadEligibility(t.Context(), userID, ente.Photos), &ente.ErrFileLimitReached)
+	require.True(t, controller.UsageCtrl.UploadResultCache[userID])
 	size := int64(hundredMBInBytes)
 	require.NoError(t, controller.UsageCtrl.CanUploadFile(t.Context(), userID, &size, ente.Photos))
 	require.ErrorIs(t, controller.ValidateUploadEligibility(t.Context(), userID, ente.Photos), &ente.ErrFileLimitReached)
@@ -190,6 +191,33 @@ func TestPhotoUploadFileLimitAllowsCachedOverflow(t *testing.T) {
 	_, err = db.Exec(`UPDATE usage SET photos_file_count = 49999 WHERE user_id = $1`, userID)
 	require.NoError(t, err)
 	require.NoError(t, controller.ValidateUploadEligibility(t.Context(), userID, ente.Photos))
+}
+
+func TestPhotoUploadQuotaFailureClearsRegistrationCache(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		query   string
+		value   int64
+		wantErr error
+	}{
+		{"storage quota", `UPDATE usage SET storage_consumed = $2 WHERE user_id = $1`, 11 << 30, ente.ErrStorageLimitExceeded},
+		{"expired subscription", `UPDATE subscriptions SET expiry_time = $2 WHERE user_id = $1`, time.Now().Add(-30 * 24 * time.Hour).UnixMicro(), ente.ErrNoActiveSubscription},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			controller, db, userID := setupPhotoUploadLimitTest(t)
+			require.NoError(t, controller.ValidateUploadEligibility(t.Context(), userID, ente.Photos))
+			require.True(t, controller.UsageCtrl.UploadResultCache[userID])
+
+			_, err := db.Exec(tc.query, userID, tc.value)
+			require.NoError(t, err)
+			size := int64(hundredMBInBytes)
+			require.ErrorIs(t, controller.UsageCtrl.CanIssueUploadURLs(t.Context(), userID, &size, ente.Photos), tc.wantErr)
+			require.False(t, controller.UsageCtrl.UploadResultCache[userID])
+
+			size = 1
+			require.ErrorIs(t, controller.UsageCtrl.CanUploadFile(t.Context(), userID, &size, ente.Photos), tc.wantErr)
+		})
+	}
 }
 
 func TestPhotoUploadEligibilityStorageLimits(t *testing.T) {
