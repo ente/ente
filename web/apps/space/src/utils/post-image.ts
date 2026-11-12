@@ -157,6 +157,11 @@ export const prepareSpacePostImageFromEdit = async (
     };
 };
 
+export const copySpacePostImageFile = async (file: File) => {
+    assertSupportedSpaceImageFile(file);
+    return new File([await file.arrayBuffer()], file.name, file);
+};
+
 export const canPreviewSpaceImageFile = (file: File) => {
     try {
         assertSupportedSpaceImageFile(file);
@@ -269,10 +274,17 @@ export const prepareSpaceCoverImageFromCrop = async (
     };
 };
 
-export const spacePostImageErrorMessage = (error: unknown) =>
-    error instanceof SpaceImageSizeError || error instanceof SpaceImageTypeError
+export const spacePostImageErrorMessage = (error: unknown) => {
+    if (
+        error instanceof DOMException &&
+        (error.name == "NotReadableError" || error.name == "NotFoundError")
+    )
+        return "Couldn't read this photo. Save a copy to your device and choose it again.";
+    return error instanceof SpaceImageSizeError ||
+        error instanceof SpaceImageTypeError
         ? error.message
         : "Choose a JPEG, PNG, WebP, HEIC, or HEIF image.";
+};
 
 export const spaceAvatarImageErrorMessage = (error: unknown) =>
     error instanceof SpaceImageSizeError || error instanceof SpaceImageTypeError
