@@ -17,6 +17,7 @@ import { useSpaceAppState } from "state/app-state";
 import { createLoadedLocalPostPhoto } from "utils/local-post-photo";
 import {
     canPreviewSpaceImageFile,
+    copySpacePostImageFile,
     spacePostImageErrorMessage,
     spacePostPreviewImageForFile,
     type SpaceDraftPostImage,
@@ -143,16 +144,21 @@ const SpacePostComposer: React.FC<{
                     let photo: SpaceViewerPhoto;
                     let videoEdit: SpacePostVideoEdit | undefined;
                     let videoStartTime: number | undefined;
-                    if (isSpaceVideoFile(draft.file)) {
-                        const info = await spaceVideoInfo(draft.file, signal);
+                    const isVideo = isSpaceVideoFile(draft.file);
+                    const file = isVideo
+                        ? draft.file
+                        : await copySpacePostImageFile(draft.file);
+                    signal.throwIfAborted();
+                    if (isVideo) {
+                        const info = await spaceVideoInfo(file, signal);
                         videoStartTime = info.startTime;
                         videoEdit = initialSpaceVideoEdit(info.duration);
                         const cover = await spaceVideoCover(
-                            draft.file,
+                            file,
                             videoEdit.coverTime,
                             signal,
                         );
-                        const url = URL.createObjectURL(draft.file);
+                        const url = URL.createObjectURL(file);
                         previewURLsRef.current.add(url);
                         photo = {
                             ...placeholder,
@@ -167,18 +173,17 @@ const SpacePostComposer: React.FC<{
                                 muted: videoEdit.muted,
                             },
                         };
-                    } else if (canPreviewSpaceImageFile(draft.file)) {
+                    } else if (canPreviewSpaceImageFile(file)) {
                         photo = (
                             await createLoadedLocalPostPhoto({
                                 avatarUrl: profile.avatarUrl,
-                                file: draft.file,
+                                file,
                                 name: displayName,
                             })
                         ).photo;
                     } else {
-                        const preview = await spacePostPreviewImageForFile(
-                            draft.file,
-                        );
+                        const preview =
+                            await spacePostPreviewImageForFile(file);
                         photo = {
                             ...placeholder,
                             imageUrl: preview.url,
@@ -198,6 +203,7 @@ const SpacePostComposer: React.FC<{
                             item.id == draft.id
                                 ? {
                                       ...item,
+                                      file,
                                       photo,
                                       originalPhoto: photo,
                                       videoEdit,

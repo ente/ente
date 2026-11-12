@@ -90,11 +90,11 @@ class SearchService {
         .on<LocalPhotosUpdatedEvent>()
         .listen((event) {
           // Invalidate only; reload on demand.
-          _invalidateFileCaches();
+          invalidateFileCaches();
         });
   }
 
-  void _invalidateFileCaches() {
+  void invalidateFileCaches() {
     _cachedFilesFuture = null;
     _cachedFilesForSearch = null;
     _cachedFilesForHierarchicalSearch = null;
@@ -515,7 +515,7 @@ class SearchService {
   }
 
   void clearCache() {
-    _invalidateFileCaches();
+    invalidateFileCaches();
     unawaited(memoriesCacheService.clearMemoriesCache());
   }
 
