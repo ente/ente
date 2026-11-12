@@ -88,10 +88,11 @@ test("keeps selected small clusters visible without duplicating them after promo
     ).toHaveLength(1);
 });
 
-test("selection survives loading and rename, prunes missing people after refresh", () => {
+test("refresh keeps filters through loading and renames, then clears Only them if a person disappears", () => {
     const destination = {
         section: "people" as const,
         personIDs: ["john", "alice"],
+        peopleOnlyThem: true,
     };
     expect(
         resolvePeopleDestination(
@@ -115,7 +116,10 @@ test("selection survives loading and rename, prunes missing people after refresh
         { ...library, peopleState: { ...peopleState, people: [people[0]!] } },
         destination,
     );
-    expect(removed).toMatchObject({ personIDs: ["john"] });
+    expect(removed).toMatchObject({
+        personIDs: ["john"],
+        peopleOnlyThem: undefined,
+    });
     expect(
         resolvePeopleDestination(
             { ...library, peopleState: { ...peopleState, people: [] } },
@@ -202,7 +206,7 @@ test("removing the base person returns to the overview instead of opening an add
     ).toEqual([]);
 });
 
-test("photo selection is scoped to the whole combination, including date/range selection", () => {
+test("changing the people combination clears prior photo selections", () => {
     let selected: SelectedState = emptySelection;
     const setSelected: SetSelectedState = (update) => {
         selected = typeof update === "function" ? update(selected) : update;

@@ -9,11 +9,9 @@ import {
     initialNavigationState,
     navigationReducer,
 } from "../src/components/gallery/navigation/navigation-state";
-import { initialGalleryState } from "../src/components/gallery/reducer";
 import {
     derivePeopleFilteredFiles,
     derivePeopleView,
-    resolvePeopleDestination,
 } from "../src/components/gallery/sections/people/people-files";
 import type { SelectedState, SetSelectedState } from "../src/utils/file";
 import {
@@ -197,45 +195,6 @@ test("Only them keeps the combination on toggle, resets on new people, and suppo
     expect(navigationReducer(state, { type: "togglePeopleOnlyThem" })).toBe(
         state,
     );
-});
-
-test("refresh retains Only them through renames and resets it when a selected person disappears", () => {
-    const library = { ...initialGalleryState, peopleState };
-    const destination = {
-        section: "people" as const,
-        personIDs: ["john", "alice"],
-        peopleOnlyThem: true,
-    };
-    expect(
-        resolvePeopleDestination(
-            { ...library, peopleState: undefined },
-            destination,
-        ),
-    ).toBe(destination);
-    expect(
-        resolvePeopleDestination(
-            {
-                ...library,
-                peopleState: {
-                    ...peopleState,
-                    people: people.map((person) => ({
-                        ...person,
-                        name: "Renamed",
-                    })),
-                },
-            },
-            destination,
-        ),
-    ).toBe(destination);
-    expect(
-        resolvePeopleDestination(
-            {
-                ...library,
-                peopleState: { ...peopleState, people: [people[0]!] },
-            },
-            destination,
-        ),
-    ).toMatchObject({ personIDs: ["john"], peopleOnlyThem: undefined });
 });
 
 test("photo selection cannot carry over between AND and Only them results", () => {
