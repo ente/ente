@@ -985,7 +985,7 @@ impl VecDb {
     fn search_view(&self, approximate: bool) -> Result<SearchView<'_>, VecDbError> {
         self.shared.ensure_open()?;
         if approximate {
-            build_pending_graph(&self.shared, self.shared.pending_graph_slots());
+            build_pending_graph(&self.shared, usize::MAX);
         }
         let state = self.open_state()?;
         let graph = approximate.then(|| self.shared.graph_read());
