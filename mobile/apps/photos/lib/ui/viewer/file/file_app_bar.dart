@@ -460,9 +460,11 @@ class FileAppBarState extends State<FileAppBar> {
             child: const SizedBox.square(
               dimension: kMinInteractiveDimension,
               child: Center(
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedMoreVertical,
-                  color: Colors.white,
+                child: ExcludeSemantics(
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedMoreVertical,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

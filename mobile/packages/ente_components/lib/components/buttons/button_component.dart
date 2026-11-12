@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ente_components/models/component_execution_state.dart';
+import 'package:ente_components/src/components/decorative_icon_semantics.dart';
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/motion.dart';
@@ -122,7 +123,7 @@ class _ButtonComponentState extends State<ButtonComponent>
     final enabled = _canHandleGestures;
     final verticalPadding = isInlineLink ? Spacing.xs : _buttonVerticalPadding;
 
-    return MouseRegion(
+    final button = MouseRegion(
       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.forbidden,
       onEnter: (_) => _setHovered(true),
       onExit: (_) => _setHovered(false),
@@ -169,6 +170,12 @@ class _ButtonComponentState extends State<ButtonComponent>
           ),
         ),
       ),
+    );
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: widget.label,
+      child: button,
     );
   }
 
@@ -227,10 +234,12 @@ class _ButtonComponentState extends State<ButtonComponent>
     if (_showSuccess) {
       return _executionContent(
         key: const ValueKey('success'),
-        child: HugeIcon(
-          icon: HugeIcons.strokeRoundedTick02,
-          size: _executionIconSize,
-          color: foreground,
+        child: ExcludeSemantics(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            size: _executionIconSize,
+            color: foreground,
+          ),
         ),
       );
     }
@@ -247,14 +256,16 @@ class _ButtonComponentState extends State<ButtonComponent>
         (widget.density == ButtonComponentDensity.compact
             ? TextStyles.body
             : TextStyles.bodyBold);
-    final label = Text(
-      widget.label,
-      overflow: TextOverflow.ellipsis,
-      maxLines: 2,
-      style: labelStyle.copyWith(
-        color: foreground,
-        decoration: underlined ? TextDecoration.underline : null,
-        decorationColor: underlined ? foreground : null,
+    final label = ExcludeSemantics(
+      child: Text(
+        widget.label,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 2,
+        style: labelStyle.copyWith(
+          color: foreground,
+          decoration: underlined ? TextDecoration.underline : null,
+          decorationColor: underlined ? foreground : null,
+        ),
       ),
     );
     return Row(
@@ -267,7 +278,10 @@ class _ButtonComponentState extends State<ButtonComponent>
         if (widget.leading != null) ...[
           IconTheme.merge(
             data: IconThemeData(color: foreground, size: IconSizes.small),
-            child: widget.leading!,
+            child: ExcludeSemantics(
+              excluding: isDecorativeIcon(widget.leading!),
+              child: widget.leading!,
+            ),
           ),
           const SizedBox(width: Spacing.sm),
         ],
@@ -333,10 +347,12 @@ class _ButtonComponentState extends State<ButtonComponent>
           child: Center(
             child: RotationTransition(
               turns: _loadingController,
-              child: HugeIcon(
-                icon: HugeIcons.strokeRoundedLoading03,
-                color: foreground,
-                size: _executionIconSize,
+              child: ExcludeSemantics(
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedLoading03,
+                  color: foreground,
+                  size: _executionIconSize,
+                ),
               ),
             ),
           ),

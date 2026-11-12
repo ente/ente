@@ -68,7 +68,6 @@ class CoachMarkWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: Spacing.xl),
                         Semantics(
-                          button: true,
                           identifier: 'auth_code_coach_mark_dismiss',
                           child: ButtonComponent(
                             label: l10n.ok,

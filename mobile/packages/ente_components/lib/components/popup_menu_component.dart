@@ -66,17 +66,19 @@ class EntePopupMenuButton<T> extends StatelessWidget {
     if (child == null) {
       return IconButtonComponent(
         variant: IconButtonComponentVariant.primary,
+        tooltip: MaterialLocalizations.of(context).moreButtonTooltip,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
         onTap: () => _showMenu(context),
       );
     }
 
-    return GestureDetector(
+    final button = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _showMenu(context),
       child: child,
     );
+    return Semantics(button: true, enabled: true, child: button);
   }
 
   Future<void> _showMenu(BuildContext context) async {

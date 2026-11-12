@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ente_components/models/component_execution_state.dart';
+import 'package:ente_components/src/components/decorative_icon_semantics.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
 import 'package:ente_components/theme/motion.dart';
 import 'package:ente_components/theme/radii.dart';
@@ -139,7 +140,7 @@ class _IconButtonComponentState extends State<IconButtonComponent>
       button = Tooltip(message: widget.tooltip!, child: button);
     }
 
-    return button;
+    return Semantics(button: true, enabled: enabled, child: button);
   }
 
   void _setHovered(bool value) {
@@ -161,25 +162,32 @@ class _IconButtonComponentState extends State<IconButtonComponent>
       return RotationTransition(
         key: const ValueKey('loading'),
         turns: _loadingController,
+        child: ExcludeSemantics(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedLoading03,
+            size: widget.iconSize,
+            color: foreground,
+          ),
+        ),
+      );
+    }
+    if (_showSuccess) {
+      return ExcludeSemantics(
+        key: const ValueKey('success'),
         child: HugeIcon(
-          icon: HugeIcons.strokeRoundedLoading03,
+          icon: HugeIcons.strokeRoundedTick02,
           size: widget.iconSize,
           color: foreground,
         ),
       );
     }
-    if (_showSuccess) {
-      return HugeIcon(
-        key: const ValueKey('success'),
-        icon: HugeIcons.strokeRoundedTick02,
-        size: widget.iconSize,
-        color: foreground,
-      );
-    }
     return IconTheme.merge(
       key: const ValueKey('icon'),
       data: IconThemeData(size: widget.iconSize, color: foreground),
-      child: widget.icon,
+      child: ExcludeSemantics(
+        excluding: isDecorativeIcon(widget.icon),
+        child: widget.icon,
+      ),
     );
   }
 

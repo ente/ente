@@ -70,7 +70,6 @@ class _CustomIconPageState extends State<CustomIconPage> {
               Padding(
                 padding: const EdgeInsets.only(right: Spacing.sm),
                 child: Semantics(
-                  button: true,
                   identifier: 'auth_icon_search_toggle',
                   child: IconButtonComponent(
                     variant: IconButtonComponentVariant.unfilled,

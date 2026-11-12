@@ -25,7 +25,6 @@ class SortCodeMenuWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.strings;
     return Semantics(
-      button: true,
       label: l10n.editOrder,
       identifier: 'auth_sort_codes',
       child: IconButtonComponent(

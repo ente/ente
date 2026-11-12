@@ -16,7 +16,6 @@ class SocialIconsRow extends StatelessWidget {
           .map(
             (link) => Semantics(
               label: link.label,
-              button: true,
               child: IconButtonComponent(
                 tooltip: link.label,
                 shouldSurfaceExecutionStates: false,
