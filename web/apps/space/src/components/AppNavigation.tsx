@@ -170,7 +170,7 @@ export const SpaceAppLayout = ({ children }: { children: React.ReactNode }) => {
         ],
         [
             {
-                label: "Space",
+                label: "Home",
                 href: spaceRoutes.home,
                 icon: Home01Icon,
                 size: 23,

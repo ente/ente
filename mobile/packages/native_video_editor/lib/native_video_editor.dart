@@ -253,6 +253,107 @@ class VideoTimelineRequest {
   };
 }
 
+enum SlideshowItemType { photo, video }
+
+class SlideshowMotion {
+  const SlideshowMotion({
+    required this.startScale,
+    required this.endScale,
+    required this.startOffset,
+    required this.endOffset,
+  });
+
+  final double startScale;
+  final double endScale;
+  final Offset startOffset;
+  final Offset endOffset;
+
+  Map<String, dynamic> toMap() => {
+    'startScale': startScale,
+    'endScale': endScale,
+    'startX': startOffset.dx,
+    'startY': startOffset.dy,
+    'endX': endOffset.dx,
+    'endY': endOffset.dy,
+  };
+}
+
+class SlideshowItem {
+  const SlideshowItem.photo({
+    required this.path,
+    required Duration this.duration,
+    required SlideshowMotion this.motion,
+  }) : type = SlideshowItemType.photo,
+       isMuted = false;
+
+  const SlideshowItem.video({required this.path, this.isMuted = false})
+    : type = SlideshowItemType.video,
+      duration = null,
+      motion = null;
+
+  final SlideshowItemType type;
+  final String path;
+  final Duration? duration;
+  final SlideshowMotion? motion;
+  final bool isMuted;
+
+  Map<String, dynamic> toMap() => {
+    'type': type.name,
+    'path': path,
+    'durationMs': ?duration?.inMilliseconds,
+    ...?motion?.toMap(),
+    'isMuted': isMuted,
+  };
+}
+
+class SlideshowMusic {
+  const SlideshowMusic({
+    required this.path,
+    required this.fadeIn,
+    required this.fadeOut,
+  });
+
+  final String path;
+  final Duration fadeIn;
+  final Duration fadeOut;
+
+  Map<String, dynamic> toMap() => {
+    'path': path,
+    'fadeInMs': fadeIn.inMilliseconds,
+    'fadeOutMs': fadeOut.inMilliseconds,
+  };
+}
+
+class SlideshowExportRequest {
+  const SlideshowExportRequest({
+    required this.outputPath,
+    required this.width,
+    required this.height,
+    required this.frameRate,
+    required this.crossfade,
+    required this.items,
+    this.music,
+  });
+
+  final String outputPath;
+  final int width;
+  final int height;
+  final int frameRate;
+  final Duration crossfade;
+  final List<SlideshowItem> items;
+  final SlideshowMusic? music;
+
+  Map<String, dynamic> toMap() => {
+    'outputPath': outputPath,
+    'width': width,
+    'height': height,
+    'frameRate': frameRate,
+    'crossfadeMs': crossfade.inMilliseconds,
+    'items': items.map((item) => item.toMap()).toList(),
+    'music': ?music?.toMap(),
+  };
+}
+
 class NativeVideoEditor {
   static const MethodChannel _channel = MethodChannel('native_video_editor');
   static const EventChannel _progressChannel = EventChannel(
@@ -342,6 +443,35 @@ class NativeVideoEditor {
         outputPath: resultOutputPath,
         isReEncoded: isReEncoded,
       );
+    } finally {
+      await progressSubscription?.cancel();
+    }
+  }
+
+  static Future<String> exportSlideshow(
+    SlideshowExportRequest request, {
+    void Function(double progress)? onProgress,
+  }) async {
+    _validateSlideshowRequest(request);
+    final progressSubscription = onProgress == null
+        ? null
+        : _progressChannel.receiveBroadcastStream().listen((dynamic event) {
+            if (event is num) onProgress(event.toDouble());
+          }, onError: (_) {});
+    try {
+      final result = await _invokeMap(
+        'exportSlideshow',
+        request.toMap(),
+        operation: 'export slideshow',
+      );
+      final outputPath = result['outputPath'];
+      if (outputPath is! String ||
+          _normalizedPath(outputPath) != _normalizedPath(request.outputPath)) {
+        throw const FormatException(
+          'Slideshow export returned an invalid result',
+        );
+      }
+      return outputPath;
     } finally {
       await progressSubscription?.cancel();
     }
@@ -528,6 +658,60 @@ class NativeVideoEditor {
   }) {
     if (_normalizedPath(inputPath) == _normalizedPath(outputPath)) {
       throw ArgumentError('Output path must differ from the input path');
+    }
+  }
+
+  static void _validateSlideshowRequest(SlideshowExportRequest request) {
+    if (request.items.isEmpty) {
+      throw ArgumentError.value(request.items, 'items', 'is empty');
+    }
+    if (request.width <= 0 ||
+        request.height <= 0 ||
+        request.width.isOdd ||
+        request.height.isOdd) {
+      throw ArgumentError('width and height must be positive even numbers');
+    }
+    if (request.frameRate < 1 || request.frameRate > 60) {
+      throw RangeError.range(request.frameRate, 1, 60, 'frameRate');
+    }
+    if (request.crossfade.isNegative) {
+      throw ArgumentError.value(request.crossfade, 'crossfade', 'is negative');
+    }
+    _ensureOutputDirectoryExists(request.outputPath);
+    for (final item in request.items) {
+      _ensureInputPathExists(item.path);
+      _validateOutputPath(inputPath: item.path, outputPath: request.outputPath);
+      if (item.type == SlideshowItemType.photo) {
+        final duration = item.duration!;
+        final motion = item.motion!;
+        if (duration <= Duration.zero || request.crossfade > duration) {
+          throw ArgumentError('Photo durations must exceed the crossfade');
+        }
+        final values = [
+          motion.startScale,
+          motion.endScale,
+          motion.startOffset.dx,
+          motion.startOffset.dy,
+          motion.endOffset.dx,
+          motion.endOffset.dy,
+        ];
+        if (values.any((value) => !value.isFinite) ||
+            motion.startScale <= 0 ||
+            motion.endScale <= 0) {
+          throw ArgumentError('Photo motion must use finite positive scales');
+        }
+      }
+    }
+    final music = request.music;
+    if (music != null) {
+      _ensureInputPathExists(music.path);
+      _validateOutputPath(
+        inputPath: music.path,
+        outputPath: request.outputPath,
+      );
+      if (music.fadeIn.isNegative || music.fadeOut.isNegative) {
+        throw ArgumentError('Music fades must not be negative');
+      }
     }
   }
 

@@ -21,6 +21,7 @@ import "package:photos/ui/rewind/pages/weekly_habit_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/story/rewind_media.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 
 class RewindChapter {
   const RewindChapter(this.keys, this.compose);
@@ -37,10 +38,6 @@ class RewindChapter {
   final List<String> keys;
   final Future<List<RewindPage>> Function(RewindMedia media) compose;
 }
-
-List<String> rewindOutline(rust.RewindReport report) => [
-  for (final chapter in rewindChapters(report)) ...chapter.keys,
-];
 
 List<RewindChapter> rewindChapters(rust.RewindReport report) => [
   RewindChapter([const CoverPage().key], (_) async => const [CoverPage()]),
@@ -60,8 +57,9 @@ List<RewindChapter> rewindChapters(rust.RewindReport report) => [
 
 const _quizCities = 6;
 const _minimumPolaroids = 3;
-const _boothPhotos = 4;
+const _boothStrips = 3;
 const _newFaceBubbles = 6;
+const _newFacePhotos = 9;
 const _minimumNewFaces = 3;
 
 RewindChapter _totals(rust.Totals? totals) {
@@ -126,8 +124,11 @@ RewindChapter _peopleRace(rust.PeopleRace? race) {
       ];
       if (runners.length < 3) return const [];
       final winner = runners.first;
-      final booth = media.photos(winner.person.fileIds, _boothPhotos);
-      final hasBooth = booth.length >= _boothPhotos;
+      final booth = media.photos(
+        winner.person.fileIds,
+        _boothStrips * RewindBoothStrip.frames,
+      );
+      final hasBooth = booth.length >= RewindBoothStrip.frames;
       return [
         peopleSetupPage,
         PeopleRacePage(runners),
@@ -154,21 +155,29 @@ RewindChapter _busiestDay(rust.BusiestDay? day) {
 RewindChapter _newFaces(rust.NewFaces? newFaces) {
   return RewindChapter.revealed(newFacesSetupPage, "new_faces", (media) async {
     if (newFaces == null) return null;
-    final resolved = await Future.wait([
-      for (final face in newFaces.faces)
-        if (face.personId case final personId?)
-          media.person(personId, face.faceIds)
-        else if (face.clusterId case final clusterId?)
-          media.cluster(clusterId, face.faceIds),
-    ]);
-    final faces = [
-      for (final face in resolved)
-        if (face?.crop != null) face!,
-    ].take(_newFaceBubbles).toList();
+    final faces = <NewFaceBubble>[];
+    for (final face in newFaces.faces) {
+      if (faces.length == _newFaceBubbles) break;
+      final resolved = await _newFace(media, face);
+      if (resolved != null) faces.add(resolved);
+    }
     return faces.length < _minimumNewFaces
         ? null
         : NewFacesPage(newFaces, faces);
   });
+}
+
+Future<NewFaceBubble?> _newFace(RewindMedia media, rust.NewFace newFace) async {
+  final face = switch ((newFace.personId, newFace.clusterId)) {
+    (final personId?, _) => await media.person(personId, newFace.faceIds),
+    (_, final clusterId?) => await media.cluster(clusterId, newFace.faceIds),
+    _ => null,
+  };
+  if (face?.crop == null) return null;
+  return (
+    face: face!,
+    photos: media.extraPhotos(newFace.fileIds, _newFacePhotos),
+  );
 }
 
 RewindChapter _favourites(rust.Favourites? favourites) {

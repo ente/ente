@@ -8,6 +8,7 @@ import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import "package:photos/models/ml/face/face_with_embedding.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
@@ -93,6 +94,10 @@ class RewindMedia {
   List<EnteFile> photos(Int64List ids, int slots) => _pick(ids.inner, slots);
 
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
+
+  List<EnteFile> extraPhotos(Int64List ids, int slots) => [
+    for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
+  ].take(slots).toList();
 
   List<EnteFile> _pick(Iterable<int> ids, int slots) {
     final fresh = <int>[];
@@ -223,19 +228,29 @@ class RewindMedia {
         final faces = await _ml.getFacesForGivenFileID(fileId);
         final face = faces?.firstWhereOrNull((face) => face.faceID == faceId);
         if (face == null) continue;
-        final crops = await getCachedFaceCrops(
-          file,
-          [face],
-          useFullFile: false,
-          useTempCache: false,
-        );
-        final crop = crops?[faceId];
+        final crop =
+            await _cropFrom(file, face, useFullFile: true) ??
+            await _cropFrom(file, face, useFullFile: false);
         if (crop != null) return crop;
       } catch (error, stackTrace) {
         _logger.warning("No crop for face $faceId", error, stackTrace);
       }
     }
     return null;
+  }
+
+  static Future<Uint8List?> _cropFrom(
+    EnteFile file,
+    FaceWithoutEmbedding face, {
+    required bool useFullFile,
+  }) async {
+    final crops = await getCachedFaceCrops(
+      file,
+      [face],
+      useFullFile: useFullFile,
+      useTempCache: false,
+    );
+    return crops?[face.faceID];
   }
 }
 

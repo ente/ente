@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart" as components;
@@ -5,6 +6,7 @@ import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photos/models/collection/collection.dart';
+import "package:photos/models/file/file.dart";
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
@@ -13,6 +15,7 @@ import "package:photos/models/search/hierarchical/only_them_filter.dart";
 import 'package:photos/models/selected_files.dart';
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/viewer/actions/file_selection_actions_widget.dart";
+import "package:photos/ui/viewer/actions/large_selection_confirmation.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
@@ -279,18 +282,33 @@ class SelectAllButton extends StatelessWidget {
           ),
           onTap: allGalleryFiles.isEmpty
               ? null
-              : () {
-                  HapticFeedback.selectionClick();
-                  if (allSelected) {
-                    selectionState.selectedFiles.clearAll();
-                  } else {
-                    selectionState.selectedFiles.selectAll(
-                      allGalleryFiles.toSet(),
-                    );
-                  }
-                },
+              : () => _toggleSelectAll(
+                  context,
+                  selectionState.selectedFiles,
+                  allGalleryFiles,
+                  allSelected,
+                ),
         );
       },
     );
+  }
+
+  Future<void> _toggleSelectAll(
+    BuildContext context,
+    SelectedFiles selectedFiles,
+    List<EnteFile> allGalleryFiles,
+    bool allSelected,
+  ) async {
+    unawaited(HapticFeedback.selectionClick());
+    if (allSelected) {
+      selectedFiles.clearAll();
+      return;
+    }
+    final confirmed = await confirmIfLargeSelection(
+      context,
+      allGalleryFiles.length,
+    );
+    if (!confirmed || !context.mounted) return;
+    selectedFiles.selectAll(allGalleryFiles.toSet());
   }
 }

@@ -21,6 +21,10 @@ Ente does not currently support dragging photos and videos into a custom order w
 2. Open the three-dot menu.
 3. Select **Sort by** and choose an option.
 
+### Can I sort my home timeline oldest first? {#timeline-sort}
+
+No. The home timeline always shows your newest photos first, by the date each photo was taken. To see photos oldest first, open an album, open the three-dot menu, select **Sort by** and choose **Oldest first**.
+
 ### Can Ente albums be nested? {#nested-albums}
 
 No, Ente albums cannot be nested currently. When you upload a nested folder structure using the "Separate albums" option, Ente will create a separate album for each nested folder, but these albums themselves will not be nested - they will all appear as top-level albums.
