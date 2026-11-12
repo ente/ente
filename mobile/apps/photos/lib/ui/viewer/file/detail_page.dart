@@ -875,7 +875,7 @@ class _BodyState extends State<_Body> {
     await dialog.show();
 
     try {
-      final ioFile = await getFile(file);
+      final ioFile = await getFileForEditing(file);
       if (ioFile == null) {
         if (!mounted) return;
         showShortToast(context, context.strings.failedToFetchOriginalForEdit);
