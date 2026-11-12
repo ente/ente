@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/controller/discord"
 	"github.com/ente/museum/pkg/repo"
@@ -44,6 +45,7 @@ func TestReplicationHotCopies(t *testing.T) {
 		interrupted  bool
 		deleted      bool
 		deletedUser  bool
+		prunedSource string
 		wantError    bool
 		wantCopies   []string
 		wantRequests []string
@@ -54,6 +56,14 @@ func TestReplicationHotCopies(t *testing.T) {
 			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2"}},
 		{name: "b2 file", primary: "b2", copies: []string{"b2"}, wantCopies: []string{"b2", "wasabi", "scw"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi", "PUT scw", "HEAD scw"}},
+		{name: "recover pruned b2 file", primary: "wasabi", prunedSource: "b2", copies: []string{"b2", "wasabi", "scw"}, wantCopies: []string{"b2", "wasabi", "scw"},
+			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi", "PUT scw", "HEAD scw"}},
+		{name: "recover pruned wasabi file", primary: "b2", prunedSource: "wasabi", copies: []string{"wasabi", "b2", "scw"}, wantCopies: []string{"b2", "wasabi", "scw"},
+			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2", "PUT scw", "HEAD scw"}},
+		{name: "recover pruned b2 thumbnail", primary: "wasabi", prunedSource: "b2", copies: []string{"b2", "wasabi"}, thumbnail: true, wantCopies: []string{"b2", "wasabi"},
+			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi"}},
+		{name: "recover pruned wasabi thumbnail", primary: "b2", prunedSource: "wasabi", copies: []string{"wasabi", "b2"}, thumbnail: true, wantCopies: []string{"b2", "wasabi"},
+			wantRequests: []string{"GET wasabi", "PUT b2", "HEAD b2"}},
 		{name: "primary missing", primary: "wasabi", copies: []string{"b2"}, thumbnail: true, wantCopies: []string{"b2", "wasabi"},
 			wantRequests: []string{"GET b2", "PUT wasabi", "HEAD wasabi"}},
 		{name: "backfill after switching to b2", primary: "b2", copies: []string{"wasabi", "scw"}, wantCopies: []string{"b2", "wasabi", "scw"},
@@ -184,6 +194,12 @@ func TestReplicationHotCopies(t *testing.T) {
 				VALUES ($1, CASE WHEN $2 THEN 1 END, CASE WHEN $3 THEN 1 END, CASE WHEN $4 THEN 1 END, true, true, $5)`,
 				objectKey, slices.Contains(tc.copies, "b2"), slices.Contains(tc.copies, "wasabi"), slices.Contains(tc.copies, "scw"), !tc.thumbnail)
 			require.NoError(t, err)
+			if tc.prunedSource != "" {
+				_, err = db.Exec(`DELETE FROM object_copies WHERE object_key = $1`, objectKey)
+				require.NoError(t, err)
+				fileRepo := &repo.FileRepository{S3Config: c.S3Config, ObjectCopiesRepo: c.ObjectCopiesRepo}
+				require.NoError(t, fileRepo.ResetObjectReplication(objectKey, replicationTestDCs[tc.prunedSource], ente.ObjectType(objectType)))
+			}
 			if tc.deletedUser {
 				_, err = db.Exec(`UPDATE users SET encrypted_email = NULL WHERE user_id = $1`, ownerID)
 				require.NoError(t, err)

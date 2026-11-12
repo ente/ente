@@ -76,6 +76,20 @@ Future<bool> doesLocalFileExist(EnteFile file) async {
   return await _getLocalDiskFile(file) != null;
 }
 
+Future<File?> getFileForEditing(EnteFile file) async {
+  final localFile = await getFile(file);
+  if (localFile != null && await localFile.exists()) {
+    return localFile;
+  }
+  if (!file.isUploaded || file.isRemoteOnlyFile) return null;
+  try {
+    return await getFileFromServer(file);
+  } catch (e, s) {
+    _logger.warning("Failed to fetch original for editing", e, s);
+    return null;
+  }
+}
+
 Future<File?> _getLocalDiskFile(
   EnteFile file, {
   bool liveVideo = false,

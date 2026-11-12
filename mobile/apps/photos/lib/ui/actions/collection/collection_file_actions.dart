@@ -158,6 +158,9 @@ extension CollectionFileActions on CollectionActions {
             for (final file in filesPendingUpload) {
               file.collectionID = collection.id;
             }
+            await RemoteSyncService.instance.whiteListVideosForUpload(
+              filesPendingUpload,
+            );
             // filesPendingUpload might be getting ignored during auto-upload
             // because the user deleted these files from ente in the past.
             await IgnoredFilesService.instance.removeIgnoredMappings(
@@ -279,6 +282,9 @@ extension CollectionFileActions on CollectionActions {
           for (final file in filesPendingUpload) {
             file.collectionID = collectionID;
           }
+          await RemoteSyncService.instance.whiteListVideosForUpload(
+            filesPendingUpload,
+          );
           // filesPendingUpload might be getting ignored during auto-upload
           // because the user deleted these files from ente in the past.
           await IgnoredFilesService.instance.removeIgnoredMappings(
