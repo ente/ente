@@ -808,6 +808,14 @@ fn search_from(
     }
 }
 
+pub(crate) fn uses_graph(params: &SearchParams) -> bool {
+    !params.exact
+        && params
+            .allowed_keys
+            .as_ref()
+            .is_none_or(|keys| keys.len() > small_filter_cap(params.limit))
+}
+
 fn small_filter_cap(limit: Option<usize>) -> usize {
     limit.map_or(SMALL_FILTER_FLOOR, |limit| {
         limit

@@ -10,7 +10,7 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use super::arena::{UpsertOutcome, VectorArena};
-use super::graph::{Graph, search as graph_search, search_stored};
+use super::graph::{Graph, search as graph_search, search_stored, uses_graph};
 use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
@@ -723,7 +723,7 @@ impl VecDb {
         if degenerate_distance_cut(params)? {
             return Ok(Vec::new());
         }
-        let view = self.search_view(!params.exact)?;
+        let view = self.search_view(uses_graph(params))?;
         let allowed_slots = resolve_allowed_slots(&view, params.allowed_keys.as_deref());
         search_in_state(&view, view.graph(), query, params, allowed_slots.as_ref())
     }
@@ -737,7 +737,7 @@ impl VecDb {
         if degenerate_distance_cut(params)? {
             return Ok(queries.iter().map(|_| Vec::new()).collect());
         }
-        let view = self.search_view(!params.exact)?;
+        let view = self.search_view(uses_graph(params))?;
         let allowed_slots = resolve_allowed_slots(&view, params.allowed_keys.as_deref());
         queries
             .iter()
@@ -758,7 +758,7 @@ impl VecDb {
                 vectors: params.len(),
             });
         }
-        let view = self.search_view(params.iter().any(|entry| !entry.exact))?;
+        let view = self.search_view(params.iter().any(uses_graph))?;
         queries
             .iter()
             .zip(params)
@@ -4430,6 +4430,35 @@ mod tests {
         let reopened = open_writer(&path);
         assert_eq!(reopened.shared.pending_graph_slots(), 0);
         assert_own_nearest(&reopened, &entries[9].0, &entries[9].1);
+    }
+
+    #[test]
+    fn small_filter_searches_scan_without_building_the_graph() {
+        let dir = TempDir::new().unwrap();
+        let db = open_writer(&dir.path().join("db"));
+        let entries = bulk_entries(0, 300, 9700);
+        bulk_add(&db, &entries).unwrap();
+        let filtered = SearchParams {
+            allowed_keys: Some(vec![entries[5].0.clone(), entries[6].0.clone()]),
+            ..limit_params(2)
+        };
+        let matches = db.search(&entries[5].1, &filtered).unwrap();
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0].key, entries[5].0);
+        let queries = vec![entries[6].1.clone()];
+        assert_eq!(
+            db.bulk_search(&queries, &filtered).unwrap()[0][0].key,
+            entries[6].0
+        );
+        assert_eq!(
+            db.bulk_search_varied(&queries, std::slice::from_ref(&filtered))
+                .unwrap()[0][0]
+                .key,
+            entries[6].0
+        );
+        assert_eq!(db.shared.pending_graph_slots(), 300);
+        assert_own_nearest(&db, &entries[7].0, &entries[7].1);
+        assert_eq!(db.shared.pending_graph_slots(), 0);
     }
 
     #[test]
