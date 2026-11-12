@@ -208,7 +208,7 @@ const FaceFilter = ({
     </PeopleFilterChip>
 );
 
-// Match mobile's FilterChipComponent, including the labeled Only them badge.
+// Keep mobile's face controls and use sidebar styling for the Only them badge.
 const PeopleFilterChip = ({
     name,
     label,
@@ -238,14 +238,8 @@ const PeopleFilterChip = ({
             p: "4px",
             pr: selected ? "8px" : label ? "18px" : "4px",
             borderRadius: `${(avatarSize + 8) / 2}px`,
-            bgcolor: label
-                ? selected
-                    ? "#555555"
-                    : "#666666"
-                : selected
-                  ? "#161616"
-                  : "#fff",
-            color: label ? "#fff" : selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
+            bgcolor: label ? "#f4f4f4" : selected ? "#161616" : "#fff",
+            color: label ? "#161616" : selected ? "#fff" : "rgba(0, 0, 0, 0.7)",
             transition: "background-color 120ms ease-in-out",
             "&.Mui-focusVisible": {
                 outline: "2px solid",
@@ -254,13 +248,7 @@ const PeopleFilterChip = ({
             },
             "@media (prefers-reduced-motion: reduce)": { transition: "none" },
             ...theme.applyStyles("dark", {
-                bgcolor: label
-                    ? selected
-                        ? "#555555"
-                        : "#666666"
-                    : selected
-                      ? "#f4f4f4"
-                      : "#212121",
+                bgcolor: label ? "#161616" : selected ? "#f4f4f4" : "#212121",
                 color: label
                     ? "#fff"
                     : selected
@@ -273,7 +261,13 @@ const PeopleFilterChip = ({
         {label && (
             <Typography
                 component="span"
-                sx={{ fontSize: 12, lineHeight: "16px", whiteSpace: "nowrap" }}
+                sx={{
+                    fontFamily: '"Inter Variable", Inter, sans-serif',
+                    fontSize: { xs: 13, md: 14 },
+                    fontWeight: 500,
+                    lineHeight: "20px",
+                    whiteSpace: "nowrap",
+                }}
             >
                 {label}
             </Typography>
