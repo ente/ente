@@ -39,6 +39,7 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
   bool isUploadedNow = false;
   bool isBeingUploaded = false;
   bool _isHiddenForSync = false;
+  bool _hasFinishedUploadAnimation = false;
 
   @override
   void initState() {
@@ -81,7 +82,7 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
       return const SizedBox.shrink();
     }
     if (widget.file.isUploaded || isUploadedNow) {
-      if (isUploadedNow) {
+      if (isUploadedNow && !_hasFinishedUploadAnimation) {
         return SizedBox.square(
           dimension: kMinInteractiveDimension,
           child: Center(
@@ -90,7 +91,15 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
                       icon: HugeIcons.strokeRoundedCloudSavingDone01,
                       color: Colors.white,
                     )
-                    .animate()
+                    .animate(
+                      onComplete: (_) {
+                        if (mounted) {
+                          setState(() {
+                            _hasFinishedUploadAnimation = true;
+                          });
+                        }
+                      },
+                    )
                     .fadeIn(duration: 500.ms, curve: Curves.easeInOutCubic)
                     .fadeOut(
                       delay: const Duration(seconds: 3),

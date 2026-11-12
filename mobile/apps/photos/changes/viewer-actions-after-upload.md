@@ -1,0 +1,1 @@
+- Fixed the photo viewer's top bar actions not updating when the open file finishes uploading.
