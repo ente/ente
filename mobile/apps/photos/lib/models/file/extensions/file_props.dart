@@ -16,6 +16,21 @@ extension FilePropsExtn on EnteFile {
 
   bool get isVideo => fileType == FileType.video;
 
+  DateTime? get captureDate {
+    final editedTime = pubMagicMetadata?.editedTime;
+    final timestamp = editedTime != null && editedTime != 0
+        ? editedTime
+        : creationTime;
+    if (timestamp == null || timestamp == 0) {
+      return null;
+    }
+    try {
+      return DateTime.fromMicrosecondsSinceEpoch(timestamp);
+    } on ArgumentError {
+      return null;
+    }
+  }
+
   bool get hasDims => height > 0 && width > 0;
 
   bool? isPanorama() {

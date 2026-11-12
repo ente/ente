@@ -1,0 +1,1 @@
+- Preserved video capture dates in Apple Photos and prevented duplicate copies from overlapping downloads.

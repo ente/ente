@@ -13,6 +13,7 @@ import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/local_photos_updated_event.dart";
+import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/module/metadata/local_file.dart";
@@ -435,6 +436,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         final AssetEntity newAsset = await (PhotoManager.editor.saveVideo(
           result,
           title: galleryTitle,
+          creationDate: Platform.isIOS ? widget.file.captureDate : null,
         ));
 
         final newFile = fileFromAsset(widget.file.deviceFolder ?? '', newAsset);

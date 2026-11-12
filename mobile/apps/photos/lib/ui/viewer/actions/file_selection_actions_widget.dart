@@ -1192,6 +1192,7 @@ class _FileSelectionActionsWidgetState
     if (!mounted) return;
 
     final filesToDownload = <EnteFile>[];
+    final queuedFileIDs = <int>{};
     final skippedFiles = <EnteFile>[];
     String? skippedSingleFolderName;
     for (int i = 0; i < files.length; i++) {
@@ -1200,6 +1201,10 @@ class _FileSelectionActionsWidgetState
       if (existingLocalFolderName != null) {
         skippedFiles.add(file);
         skippedSingleFolderName = existingLocalFolderName;
+        continue;
+      }
+      final uploadedFileID = file.uploadedFileID;
+      if (uploadedFileID != null && !queuedFileIDs.add(uploadedFileID)) {
         continue;
       }
       filesToDownload.add(

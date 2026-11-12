@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import "package:flutter/foundation.dart";
@@ -8,6 +9,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/device_files_db.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/local_photos_updated_event.dart";
+import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import 'package:photos/models/ignored_file.dart';
@@ -21,6 +23,11 @@ import "package:photos/utils/device_storage_error.dart";
 import "package:photos/utils/gallery_save_title.dart";
 
 final _logger = Logger("file_download_util");
+final _galleryDownloadsInProgress =
+    <
+      ({int fileID, bool forceResumableDownload, bool persistToFilesDB}),
+      Future<void>
+    >{};
 
 String getDownloadSkipToastFileName(EnteFile file) {
   final title = (file.title ?? "").trim();
@@ -81,72 +88,35 @@ Future<void> downloadToGallery(
   bool persistToFilesDB = true,
 }) async {
   try {
-    final FileType type = file.fileType;
-    final bool downloadLivePhotoOnDroid =
-        type == FileType.livePhoto && Platform.isAndroid;
-    AssetEntity? savedAsset;
-    final File? fileToSave = await getFile(
-      file,
-      forGalleryDownload: forceResumableDownload,
-    );
-    if (fileToSave == null) {
-      throw DownloadFailedError("Unable to fetch file for gallery download");
+    final fileID = file.uploadedFileID;
+    final key = fileID == null
+        ? null
+        : (
+            fileID: fileID,
+            forceResumableDownload: forceResumableDownload,
+            persistToFilesDB: persistToFilesDB,
+          );
+    final existing = _galleryDownloadsInProgress[key];
+    if (existing != null) {
+      await existing;
+      return;
     }
-    final galleryTitle = _getGallerySaveTitle(file, fileToSave.path);
-    final mediaStoreTitle = await getMediaStoreCompatibleTitle(galleryTitle);
-    // Keep sync from seeing the saved asset before it is inserted into FilesDB.
-    // https://github.com/ente/ente/issues/4296
-    await LocalSyncService.instance.getLock().synchronized(() async {
-      await PhotoManager.stopChangeNotify();
-      if (type == FileType.image) {
-        savedAsset = await PhotoManager.editor.saveImageWithPath(
-          fileToSave.path,
-          title: mediaStoreTitle,
-        );
-      } else if (type == FileType.video) {
-        savedAsset = await PhotoManager.editor.saveVideo(
-          fileToSave,
-          title: mediaStoreTitle,
-        );
-      } else if (type == FileType.livePhoto) {
-        final File? liveVideoFile = await getFileFromServer(
-          file,
-          liveVideo: true,
-          forGalleryDownload: forceResumableDownload,
-        );
-        if (liveVideoFile == null) {
-          throw AssertionError("Live video can not be null");
-        }
-        if (downloadLivePhotoOnDroid) {
-          await _saveLivePhotoOnDroid(
-            fileToSave,
-            liveVideoFile,
-            mediaStoreTitle,
-          );
-        } else {
-          savedAsset = await PhotoManager.editor.darwin.saveLivePhoto(
-            imageFile: fileToSave,
-            videoFile: liveVideoFile,
-            title: galleryTitle,
-          );
-        }
+    final download = _downloadToGallery(
+      file,
+      forceResumableDownload: forceResumableDownload,
+      persistToFilesDB: persistToFilesDB,
+    );
+    if (key != null) {
+      _galleryDownloadsInProgress[key] = download;
+    }
+    try {
+      await download;
+    } finally {
+      if (key != null &&
+          identical(_galleryDownloadsInProgress[key], download)) {
+        unawaited(_galleryDownloadsInProgress.remove(key));
       }
-
-      if (savedAsset != null) {
-        // Public-link downloads should be discovered by local sync so they are
-        // materialized as true on-device files instead of remote/shared
-        // entries in FilesDB.
-        if (persistToFilesDB) {
-          file.localID = savedAsset!.id;
-          await FilesDB.instance.insert(file);
-          Bus.instance.fire(
-            LocalPhotosUpdatedEvent([file], source: "download"),
-          );
-        }
-      } else if (!downloadLivePhotoOnDroid && savedAsset == null) {
-        _logger.severe('Failed to save assert of type $type');
-      }
-    });
+    }
   } catch (e, s) {
     if (forceResumableDownload && isDeviceStorageFullError(e)) {
       _logger.severe("Failed to save file due to storage limit", e, s);
@@ -164,8 +134,103 @@ Future<void> downloadToGallery(
     }
     _logger.severe("Failed to save file", e, s);
     rethrow;
+  }
+}
+
+Future<void> _downloadToGallery(
+  EnteFile file, {
+  required bool forceResumableDownload,
+  required bool persistToFilesDB,
+}) async {
+  try {
+    final FileType type = file.fileType;
+    final bool downloadLivePhotoOnDroid =
+        type == FileType.livePhoto && Platform.isAndroid;
+    AssetEntity? savedAsset;
+    final File? fileToSave = await getFile(
+      file,
+      forGalleryDownload: forceResumableDownload,
+    );
+    if (fileToSave == null) {
+      throw DownloadFailedError("Unable to fetch file for gallery download");
+    }
+    final galleryTitle = _getGallerySaveTitle(file, fileToSave.path);
+    final mediaStoreTitle = await getMediaStoreCompatibleTitle(galleryTitle);
+    // Keep sync from seeing the saved asset before it is inserted into FilesDB.
+    // https://github.com/ente/ente/issues/4296
+    await LocalSyncService.instance.getLock().synchronized(() async {
+      final fileID = file.uploadedFileID;
+      if (persistToFilesDB && fileID != null) {
+        final existingFiles = await FilesDB.instance.getFilesFromIDs([fileID]);
+        for (final existingFile in existingFiles) {
+          if (existingFile.localID == null) {
+            continue;
+          }
+          final asset = await existingFile.getAsset;
+          if (asset != null && await asset.exists) {
+            savedAsset = asset;
+            break;
+          }
+        }
+      }
+      try {
+        await PhotoManager.stopChangeNotify();
+        if (savedAsset == null) {
+          if (type == FileType.image) {
+            savedAsset = await PhotoManager.editor.saveImageWithPath(
+              fileToSave.path,
+              title: mediaStoreTitle,
+            );
+          } else if (type == FileType.video) {
+            savedAsset = await PhotoManager.editor.saveVideo(
+              fileToSave,
+              title: mediaStoreTitle,
+              creationDate: Platform.isIOS ? file.captureDate : null,
+            );
+          } else if (type == FileType.livePhoto) {
+            final File? liveVideoFile = await getFileFromServer(
+              file,
+              liveVideo: true,
+              forGalleryDownload: forceResumableDownload,
+            );
+            if (liveVideoFile == null) {
+              throw AssertionError("Live video can not be null");
+            }
+            if (downloadLivePhotoOnDroid) {
+              await _saveLivePhotoOnDroid(
+                fileToSave,
+                liveVideoFile,
+                mediaStoreTitle,
+              );
+            } else {
+              savedAsset = await PhotoManager.editor.darwin.saveLivePhoto(
+                imageFile: fileToSave,
+                videoFile: liveVideoFile,
+                title: galleryTitle,
+              );
+            }
+          }
+        }
+
+        if (savedAsset != null) {
+          // Public-link downloads should be discovered by local sync so they are
+          // materialized as true on-device files instead of remote/shared
+          // entries in FilesDB.
+          if (persistToFilesDB) {
+            file.localID = savedAsset!.id;
+            await FilesDB.instance.insert(file);
+            Bus.instance.fire(
+              LocalPhotosUpdatedEvent([file], source: "download"),
+            );
+          }
+        } else if (!downloadLivePhotoOnDroid && savedAsset == null) {
+          _logger.severe('Failed to save assert of type $type');
+        }
+      } finally {
+        await PhotoManager.startChangeNotify();
+      }
+    });
   } finally {
-    await PhotoManager.startChangeNotify();
     LocalSyncService.instance.checkAndSync().ignore();
   }
 }
