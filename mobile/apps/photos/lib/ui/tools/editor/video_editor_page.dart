@@ -38,6 +38,7 @@ import 'package:photos/ui/tools/editor/video_speed_page.dart';
 import "package:photos/ui/tools/editor/video_trim_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/gallery_save_title.dart";
+import "package:photos/utils/gallery_save_video.dart";
 
 class VideoEditorPage extends StatefulWidget {
   const VideoEditorPage({
@@ -433,10 +434,10 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
       notificationsStopped = true;
 
       try {
-        final AssetEntity newAsset = await (PhotoManager.editor.saveVideo(
+        final AssetEntity newAsset = await (saveVideoToGallery(
           result,
           title: galleryTitle,
-          creationDate: Platform.isIOS ? widget.file.captureDate : null,
+          creationDate: widget.file.captureDate,
         ));
 
         final newFile = fileFromAsset(widget.file.deviceFolder ?? '', newAsset);

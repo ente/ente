@@ -1,1 +1,1 @@
-- Preserved video capture dates in Apple Photos and prevented duplicate copies from overlapping downloads.
+- Preserved video capture dates in Apple Photos and Android galleries and prevented duplicate copies from overlapping downloads.

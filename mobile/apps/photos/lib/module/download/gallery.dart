@@ -21,6 +21,7 @@ import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/utils/apple_photos_errors.dart";
 import "package:photos/utils/device_storage_error.dart";
 import "package:photos/utils/gallery_save_title.dart";
+import "package:photos/utils/gallery_save_video.dart";
 
 final _logger = Logger("file_download_util");
 final _galleryDownloadsInProgress =
@@ -28,6 +29,7 @@ final _galleryDownloadsInProgress =
       ({int fileID, bool forceResumableDownload, bool persistToFilesDB}),
       Future<void>
     >{};
+final _gallerySaveResultsInProgress = <int, ({AssetEntity? asset})>{};
 
 String getDownloadSkipToastFileName(EnteFile file) {
   final title = (file.title ?? "").trim();
@@ -115,6 +117,11 @@ Future<void> downloadToGallery(
       if (key != null &&
           identical(_galleryDownloadsInProgress[key], download)) {
         unawaited(_galleryDownloadsInProgress.remove(key));
+        if (!_galleryDownloadsInProgress.keys.any(
+          (activeKey) => activeKey.fileID == key.fileID,
+        )) {
+          _gallerySaveResultsInProgress.remove(key.fileID);
+        }
       }
     }
   } catch (e, s) {
@@ -160,7 +167,15 @@ Future<void> _downloadToGallery(
     // https://github.com/ente/ente/issues/4296
     await LocalSyncService.instance.getLock().synchronized(() async {
       final fileID = file.uploadedFileID;
-      if (persistToFilesDB && fileID != null) {
+      var savedResult = fileID == null
+          ? null
+          : _gallerySaveResultsInProgress[fileID];
+      final cachedAsset = savedResult?.asset;
+      if (cachedAsset != null && !(await cachedAsset.exists)) {
+        savedResult = null;
+      }
+      savedAsset = savedResult?.asset;
+      if (savedResult == null && persistToFilesDB && fileID != null) {
         final existingFiles = await FilesDB.instance.getFilesFromIDs([fileID]);
         for (final existingFile in existingFiles) {
           if (existingFile.localID == null) {
@@ -175,17 +190,17 @@ Future<void> _downloadToGallery(
       }
       try {
         await PhotoManager.stopChangeNotify();
-        if (savedAsset == null) {
+        if (savedResult == null && savedAsset == null) {
           if (type == FileType.image) {
             savedAsset = await PhotoManager.editor.saveImageWithPath(
               fileToSave.path,
               title: mediaStoreTitle,
             );
           } else if (type == FileType.video) {
-            savedAsset = await PhotoManager.editor.saveVideo(
+            savedAsset = await saveVideoToGallery(
               fileToSave,
               title: mediaStoreTitle,
-              creationDate: Platform.isIOS ? file.captureDate : null,
+              creationDate: file.captureDate,
             );
           } else if (type == FileType.livePhoto) {
             final File? liveVideoFile = await getFileFromServer(
@@ -212,6 +227,10 @@ Future<void> _downloadToGallery(
           }
         }
 
+        if (fileID != null &&
+            (savedAsset != null || downloadLivePhotoOnDroid)) {
+          _gallerySaveResultsInProgress[fileID] = (asset: savedAsset);
+        }
         if (savedAsset != null) {
           // Public-link downloads should be discovered by local sync so they are
           // materialized as true on-device files instead of remote/shared
