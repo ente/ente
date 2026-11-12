@@ -585,7 +585,7 @@ Watch folders upload every new file that appears in a watched folder, including 
 
 To save your photos to your computer without this:
 
-1. Open `Watch folders` in the desktop app. If the folder you're saving into is inside a watched folder, click **Stop watching** for that folder. This only stops automatic uploads from that folder. It doesn't delete anything from your computer or from Ente.
+1. Open `Watch folders` in the desktop app to see which folders Ente is watching.
 2. Use **Export data** and choose a destination outside every watched folder and its subfolders.
 
 Keep the folders you watch for uploads and the folders you export or download into separate. See [Can I do a 2-way sync with exports?](/photos/faq/advanced-features#export-two-way-sync) and [Export your data](/photos/migration/export/).
