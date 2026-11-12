@@ -230,7 +230,6 @@ export const reconstructPeopleState = async (): Promise<PeopleState> => {
         }
     }
 
-    // Faces left in the index have no accepted assignment to a person.
     const filesWithUnassignedFaces = new Set<number>();
     for (const { file } of personFaceByID.values()) {
         filesWithUnassignedFaces.add(file.id);
