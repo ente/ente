@@ -424,8 +424,6 @@ func (c *ReplicationController3) replicateFile(in *UploadInput, dest *UploadDest
 	}
 
 	// Record each successful upload in object_keys before updating object_copies.
-	// The object_copies transaction can span all replica uploads; a restart in
-	// that window must not leave an uploaded replica absent from deletion records.
 	rowsAffected, err := c.ObjectRepo.MarkObjectReplicated(in.ObjectKey, dest.DC)
 	if err != nil {
 		return failure(stacktrace.Propagate(err, "Failed to update object_keys to mark replication as completed"))

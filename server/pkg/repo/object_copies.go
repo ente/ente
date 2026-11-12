@@ -148,7 +148,13 @@ func (repo *ObjectCopiesRepository) MarkObjectReplicatedScaleway(objectKey strin
 }
 
 func (repo *ObjectCopiesRepository) markObjectReplicated(query string, objectKey string) error {
-	result, err := repo.DB.Exec(query, objectKey)
+	tx, err := repo.DB.Begin()
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(query, objectKey)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -159,5 +165,14 @@ func (repo *ObjectCopiesRepository) markObjectReplicated(query string, objectKey
 	if c != 1 {
 		return stacktrace.Propagate(fmt.Errorf("expected 1 row to be updated, but got %d", c), "")
 	}
-	return nil
+	_, err = tx.Exec(`DELETE FROM object_copies
+	WHERE object_key = $1
+		AND (want_b2 = false OR b2 IS NOT NULL)
+		AND (want_wasabi = false OR wasabi IS NOT NULL)
+		AND (want_scw = false OR scw IS NOT NULL)
+	`, objectKey)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	return stacktrace.Propagate(tx.Commit(), "")
 }
