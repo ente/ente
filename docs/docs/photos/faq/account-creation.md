@@ -228,6 +228,18 @@ Warning: if you use the same account in Ente Auth, enabling 2FA in Ente Photos a
 
 Learn more in our [Security and Privacy FAQ](/photos/faq/security-and-privacy).
 
+### Why does Ente reject my codes when I set up two-factor authentication? {#2fa-setup-code-rejected}
+
+You can use any authenticator app that supports time-based codes (TOTP), such as Ente Auth, KeePassDX or Aegis. If Ente keeps saying the code is wrong while you set up 2FA, check these:
+
+- **The setup has expired.** Each 2FA setup is valid for 10 minutes, even if the setup screen is still open. After that, codes from the QR code or secret you added are rejected. Close the setup screen, open `Settings > Security > Two-factor` again, add the new QR code or secret to your authenticator as a new entry, and enter a code from that entry within 10 minutes.
+- **The code changed.** Each code is valid for about 30 seconds. Enter the code currently shown, not one that has just changed.
+- **Your device's clock is off.** Codes depend on the time. Turn on automatic date and time on the device that runs your authenticator app.
+
+Two-factor authentication is turned on only once Ente accepts a code, so restarting the setup does not change your password or sign you out. Once setup works, delete the old, unused entries for your Ente account from your authenticator app.
+
+If you use the same Ente account in Ente Auth, read [Enteception](/auth/faq/enteception/) before storing your Ente 2FA code inside Ente Auth.
+
 ### Can I use passkeys instead of passwords? {#use-passkeys}
 
 Passkeys serve as a second factor (2FA) for your Ente account, not as a replacement for your password. When you add a passkey to your account, it will be used instead of TOTP codes for two-factor authentication.
