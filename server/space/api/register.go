@@ -50,6 +50,8 @@ func Register(privateAPI, publicAPI gin.IRouter, handlers *Handlers) {
 	spaceAPI.DELETE("/friends/requests/:requestID", selected(handlers.DeleteFriendRequest))
 	spaceAPI.POST("/friends/unfriend", selected(handlers.Unfriend))
 	spaceAPI.GET("/friends", selected(handlers.ListSpaceFriends))
+	spaceAPI.GET("/friends/suggestions", selected(handlers.ListFriendSuggestions))
+	spaceAPI.DELETE("/friends/suggestions/:suggestedSpaceID", selected(handlers.HideFriendSuggestion))
 	spaceAPI.GET("/friends/relationship", selected(handlers.FriendRelationship))
 	spaceAPI.POST("/friends/shares/refresh", selected(handlers.RefreshFriendShares))
 	spaceAPI.GET("/friends/shares", selected(handlers.ListFriendShares))

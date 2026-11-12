@@ -4,14 +4,17 @@ import { Box, Skeleton } from "@mui/material";
 import { SpaceAddFriendDialog } from "components/AddFriendDialog";
 import { SpaceAvatarImage } from "components/AvatarImage";
 import { FriendOrbit } from "components/FriendOrbit";
-import { FriendRequestSheet } from "components/FriendRequestSheet";
+import {
+    FriendRequestSheet,
+    type FriendRequestSheetActions,
+} from "components/FriendRequestSheet";
 import { FriendStarField } from "components/FriendStarField";
 import { SpaceLoadingSpinner } from "components/RouteFallback";
 import { SpaceSkipLink } from "components/SkipLink";
 import type { FriendProfile } from "data/friends";
 import log from "ente-base/log";
 import React, { useState } from "react";
-import type { SpaceFriendRequest } from "services/space";
+import type { SpaceFriendRequest, SpaceFriendSuggestion } from "services/space";
 import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceAppBackground,
@@ -63,13 +66,17 @@ const friendAvatarCacheKey = (friend: FriendProfile) =>
 
 interface FriendsScreenProps {
     friendRequests: SpaceFriendRequest[];
+    suggestions: SpaceFriendSuggestion[];
     friends: FriendProfile[];
     isLoading: boolean;
     onBack: () => void;
     onAcceptFriendRequest: (requestID: number) => Promise<boolean>;
     onDeleteFriendRequest: (requestID: number) => Promise<void>;
     onLoadFriendAvatar?: (friend: FriendProfile) => Promise<string | null>;
-    onAddFriend: (username: string) => Promise<"friend" | "requested">;
+    onAddFriend: (
+        target: string | SpaceFriendSuggestion,
+    ) => Promise<"friend" | "requested">;
+    onHideSuggestion: (spaceId: string) => Promise<void>;
     onOpenFriend: (friendID: string) => void;
     profileLink?: string;
     username: string;
@@ -213,57 +220,78 @@ const orbitCircleSx = {
     "&:focus-visible": { outline: `2px solid ${green}`, outlineOffset: 4 },
 } as const;
 
+const friendCircleAppearance = {
+    received: { border: green, pill: green, label: "Friend request from" },
+    sent: {
+        border: "#FFFFFF",
+        pill: "#FFFFFF",
+        label: "Pending friend request to",
+    },
+    suggested: {
+        border: "#737373",
+        pill: "#303030",
+        label: "Suggested friend",
+    },
+};
+
 interface FriendRequestCircleProps {
     onOpen: () => void;
-    request: SpaceFriendRequest;
+    direction: FriendRequestSheetActions["direction"];
+    username: string;
 }
 
 const FriendRequestCircle: React.FC<FriendRequestCircleProps> = ({
     onOpen,
-    request,
-}) => (
-    <Box
-        component="button"
-        type="button"
-        aria-label={`${request.direction == "received" ? "Friend request from" : "Pending friend request to"} @${request.friend.username}`}
-        aria-haspopup="dialog"
-        onClick={onOpen}
-        sx={{
-            ...orbitCircleSx,
-            borderColor: request.direction == "received" ? green : "#737373",
-        }}
-    >
+    direction,
+    username,
+}) => {
+    const appearance = friendCircleAppearance[direction];
+    return (
         <Box
-            component="span"
-            title={`@${request.friend.username}`}
-            sx={{
-                bgcolor: request.direction == "received" ? green : "#303030",
-                borderRadius: "999px",
-                color: "rgba(255, 255, 255, 0.9)",
-                fontSize: 12,
-                fontWeight: 500,
-                lineHeight: "18px",
-                maxWidth: "100%",
-                overflow: "hidden",
-                px: "8px",
-                py: "4px",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-            }}
+            component="button"
+            type="button"
+            aria-label={`${appearance.label} @${username}`}
+            aria-haspopup="dialog"
+            onClick={onOpen}
+            sx={{ ...orbitCircleSx, borderColor: appearance.border }}
         >
-            @{request.friend.username}
+            <Box
+                component="span"
+                title={`@${username}`}
+                sx={{
+                    bgcolor: appearance.pill,
+                    borderRadius: "999px",
+                    color:
+                        direction == "sent"
+                            ? "#000000"
+                            : "rgba(255, 255, 255, 0.9)",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    lineHeight: "18px",
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    px: "8px",
+                    py: "4px",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                }}
+            >
+                @{username}
+            </Box>
         </Box>
-    </Box>
-);
+    );
+};
 
 export const FriendsScreen: React.FC<FriendsScreenProps> = ({
     friendRequests,
+    suggestions,
     friends,
     isLoading,
     onAcceptFriendRequest,
     onAddFriend,
     onBack,
     onDeleteFriendRequest,
+    onHideSuggestion,
     onLoadFriendAvatar,
     onOpenFriend,
     profileLink,
@@ -271,7 +299,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
 }) => {
     const [isAddFriendOpen, setIsAddFriendOpen] = React.useState(false);
     const [selectedRequest, setSelectedRequest] =
-        React.useState<SpaceFriendRequest | null>(null);
+        React.useState<FriendRequestSheetActions | null>(null);
     const [loadedAvatarURLsByKey, setLoadedAvatarURLsByKey] = React.useState<
         Record<string, string>
     >({});
@@ -320,6 +348,33 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
         },
         [loadedAvatarURLFor, onLoadFriendAvatar],
     );
+
+    const knownSpaceIDs = new Set([
+        ...friends.map((friend) => friend.id),
+        ...friendRequests.map((request) => request.friend.id),
+    ]);
+    const contacts: (FriendRequestSheetActions & { id: string })[] = [
+        ...friendRequests.map((request) => ({
+            id: request.friend.id,
+            username: request.friend.username,
+            direction: request.direction,
+            onPrimary:
+                request.direction == "received"
+                    ? () => onAcceptFriendRequest(request.requestId)
+                    : undefined,
+            onSecondary: () => onDeleteFriendRequest(request.requestId),
+        })),
+        ...suggestions
+            .filter((suggestion) => !knownSpaceIDs.has(suggestion.spaceId))
+            .map((suggestion) => ({
+                id: suggestion.spaceId,
+                username: suggestion.spaceSlug,
+                direction: "suggested" as const,
+                onPrimary: async () =>
+                    (await onAddFriend(suggestion)) == "requested",
+                onSecondary: () => onHideSuggestion(suggestion.spaceId),
+            })),
+    ];
 
     return (
         <Box
@@ -470,7 +525,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                         >
                             <SpaceLoadingSpinner ariaLabel="Loading friends" />
                         </Box>
-                    ) : friends.length > 0 || friendRequests.length > 0 ? (
+                    ) : friends.length > 0 || contacts.length > 0 ? (
                         <FriendOrbit
                             items={[
                                 ...friends.map((friend) => ({
@@ -490,14 +545,15 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                                         />
                                     ),
                                 })),
-                                ...friendRequests.map((request) => ({
-                                    id: request.friend.id,
+                                ...contacts.map((contact) => ({
+                                    id: contact.id,
                                     fixedSize: 120,
                                     content: (
                                         <FriendRequestCircle
-                                            request={request}
+                                            direction={contact.direction}
+                                            username={contact.username}
                                             onOpen={() =>
-                                                setSelectedRequest(request)
+                                                setSelectedRequest(contact)
                                             }
                                         />
                                     ),
@@ -552,9 +608,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
             </Box>
             {selectedRequest && (
                 <FriendRequestSheet
-                    request={selectedRequest}
-                    onAccept={onAcceptFriendRequest}
-                    onDelete={onDeleteFriendRequest}
+                    {...selectedRequest}
                     onClose={() => setSelectedRequest(null)}
                 />
             )}

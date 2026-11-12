@@ -1729,6 +1729,55 @@ impl SpaceAccountCtxHandle {
             .collect()
     }
 
+    #[wasm_bindgen(js_name = listFriendSuggestions)]
+    pub async fn list_friend_suggestions(
+        &self,
+        space_id: String,
+    ) -> Result<Vec<<SpaceLookupResponse as Tsify>::JsType>, Error> {
+        self.inner
+            .list_friend_suggestions(&space_id)
+            .await?
+            .into_iter()
+            .map(|candidate| {
+                SpaceLookupResponse::from(candidate)
+                    .into_js()
+                    .map_err(Into::into)
+            })
+            .collect()
+    }
+
+    #[wasm_bindgen(js_name = hideFriendSuggestion)]
+    pub async fn hide_friend_suggestion(
+        &self,
+        space_id: String,
+        suggested_space_id: String,
+    ) -> Result<(), Error> {
+        Ok(self
+            .inner
+            .hide_friend_suggestion(&space_id, &suggested_space_id)
+            .await?)
+    }
+
+    #[wasm_bindgen(js_name = requestFriend)]
+    pub async fn request_friend(
+        &self,
+        space_id: String,
+        target_space_id: String,
+        target_public_key: String,
+    ) -> Result<<FriendStatusResponse as Tsify>::JsType, Error> {
+        FriendStatusResponse::from(
+            self.inner
+                .request_friend(
+                    &space_id,
+                    &target_space_id,
+                    &decode_b64_field(&target_public_key)?,
+                )
+                .await?,
+        )
+        .into_js()
+        .map_err(Into::into)
+    }
+
     #[wasm_bindgen(js_name = listSentFriendRequests)]
     pub async fn list_sent_friend_requests(
         &self,

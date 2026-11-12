@@ -200,6 +200,22 @@ func (c *FriendsController) ListFriends(ctx context.Context, space *repo.SpaceRe
 	return resp, nil
 }
 
+func (c *FriendsController) ListSuggestions(ctx context.Context, viewer *repo.SpaceRecord) ([]models.SpaceLookupResponse, error) {
+	candidates, err := c.FriendsRepo.ListFriendSuggestions(ctx, viewer)
+	if err != nil {
+		return nil, err
+	}
+	suggestions := make([]models.SpaceLookupResponse, 0, len(candidates))
+	for i := range candidates {
+		suggestions = append(suggestions, spaceLookupResponse(&candidates[i]))
+	}
+	return suggestions, nil
+}
+
+func (c *FriendsController) HideSuggestion(ctx context.Context, viewer *repo.SpaceRecord, suggestedSpaceID string) error {
+	return c.FriendsRepo.HideFriendSuggestion(ctx, viewer.SpaceID, suggestedSpaceID)
+}
+
 func (c *FriendsController) Relationship(ctx context.Context, viewerSpace *repo.SpaceRecord, req models.FriendRelationshipRequest) (*models.FriendRelationshipResponse, error) {
 	targetSpaceID := strings.TrimSpace(req.TargetSpaceID)
 	if targetSpaceID == "" {

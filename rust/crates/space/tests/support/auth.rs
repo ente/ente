@@ -13,9 +13,24 @@ use super::{CLIENT_PACKAGE, USER_AGENT};
 const SRP_A_LEN: usize = 512;
 
 pub struct TestAccount {
+    email: String,
     pub user_id: i64,
     pub auth_token: String,
     pub master_key: Vec<u8>,
+}
+
+impl TestAccount {
+    pub async fn sign_in(&mut self, endpoint: &str) -> ente_test_support::TestResult {
+        let client =
+            AccountsClient::new(AccountsClientConfig::new(CLIENT_PACKAGE).with_origin(endpoint))?;
+        client.send_otp(&self.email, "login", false).await?;
+        let response = client
+            .verify_email(&self.email, HARDCODED_OTT, None)
+            .await?;
+        let account = client.unlock_with_master_key(&response, &self.master_key)?;
+        self.auth_token = b64::encode_url_safe(&account.secrets.token);
+        Ok(())
+    }
 }
 
 pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestAccount {
@@ -106,6 +121,7 @@ pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestAccount {
         .unwrap();
 
     TestAccount {
+        email,
         user_id: verification.id,
         auth_token,
         master_key: master_key.as_bytes().to_vec(),

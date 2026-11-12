@@ -5,7 +5,7 @@ use crate::models::{SpaceActor, SpaceFriend, SpaceFriendRequest, SpaceSentFriend
 use crate::transport::{
     AddFriendPayload, ConfirmFriendRequestPayload, FriendRelationshipResponse,
     FriendStatusResponse, FriendTargetPayload, RefreshFriendSharesRequest, ShareUpdatePayload,
-    SpaceActorResponse, SpaceFriendRequestResponse, SpaceFriendResponse,
+    SpaceActorResponse, SpaceFriendRequestResponse, SpaceFriendResponse, SpaceLookupResponse,
     SpaceSentFriendRequestResponse,
 };
 use ente_core::b64;
@@ -25,7 +25,7 @@ fn map_friend_mutation_error(error: http::Error) -> Error {
 }
 
 impl AccountSpaceCtx {
-    async fn request_friend_with_target(
+    pub async fn request_friend(
         &self,
         requester_space_id: &str,
         target_space_id: &str,
@@ -71,8 +71,33 @@ impl AccountSpaceCtx {
     ) -> Result<FriendStatusResponse> {
         let target = self.lookup_space_by_slug(username).await?;
         let target_public_key = b64::decode(&target.public_key)?;
-        self.request_friend_with_target(space_id, &target.space_id, &target_public_key)
+        self.request_friend(space_id, &target.space_id, &target_public_key)
             .await
+    }
+
+    pub async fn list_friend_suggestions(
+        &self,
+        space_id: &str,
+    ) -> Result<Vec<SpaceLookupResponse>> {
+        let path = format!("/spaces/{space_id}/friends/suggestions");
+        Ok(self
+            .api()
+            .get(&path)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
+    }
+
+    pub async fn hide_friend_suggestion(
+        &self,
+        space_id: &str,
+        suggested_space_id: &str,
+    ) -> Result<()> {
+        let path = format!("/spaces/{space_id}/friends/suggestions/{suggested_space_id}");
+        self.api().delete(&path).send().await?.error_for_status()?;
+        Ok(())
     }
 
     pub async fn list_friend_requests(&self, space_id: &str) -> Result<Vec<SpaceFriendRequest>> {

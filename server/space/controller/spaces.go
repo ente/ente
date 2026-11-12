@@ -221,7 +221,8 @@ func (c *SpacesController) UpdateSlug(ctx context.Context, selected *repo.SpaceR
 	if err != nil {
 		return nil, err
 	}
-	return &models.SpaceLookupResponse{SpaceID: space.SpaceID, SpaceSlug: space.SpaceSlug, Owner: space.SpaceSlug, PublicKey: encodeSpaceField(space.PublicKey)}, nil
+	response := spaceLookupResponse(space)
+	return &response, nil
 }
 
 func (c *SpacesController) LookupBySlug(ctx *gin.Context, spaceSlug string) (*models.SpaceLookupResponse, error) {
@@ -229,12 +230,17 @@ func (c *SpacesController) LookupBySlug(ctx *gin.Context, spaceSlug string) (*mo
 	if err != nil {
 		return nil, err
 	}
-	return &models.SpaceLookupResponse{
+	response := spaceLookupResponse(space)
+	return &response, nil
+}
+
+func spaceLookupResponse(space *repo.SpaceRecord) models.SpaceLookupResponse {
+	return models.SpaceLookupResponse{
 		SpaceID:   space.SpaceID,
 		SpaceSlug: space.SpaceSlug,
 		Owner:     space.SpaceSlug,
 		PublicKey: encodeSpaceField(space.PublicKey),
-	}, nil
+	}
 }
 
 func (c *SpacesController) SlugAvailability(ctx *gin.Context, spaceSlug string) (*models.SpaceSlugAvailabilityResponse, error) {

@@ -22,6 +22,7 @@ export type {
     SpaceActorResponse,
     SpaceKeyResponse,
     SpaceLinkCtxHandle,
+    SpaceLookupResponse,
     UpdateSpaceProfileResponse,
     UploadedPostAsset,
 } from "./pkg/ente_space_wasm";
