@@ -221,13 +221,16 @@ fn friend_suggestions() -> TestResult {
         let after_unfriend = second_device.list_friend_suggestions(&me.space_id).await?;
         assert_eq!(after_unfriend.len(), 1);
         assert_eq!(after_unfriend[0].space_id, people["drew"].2.space_id);
-        assert!(
-            alex_ctx
-                .list_friend_suggestions(&alex.space_id)
-                .await?
-                .iter()
-                .all(|suggestion| suggestion.space_id != me.space_id)
-        );
+        let alex_suggestions = alex_ctx.list_friend_suggestions(&alex.space_id).await?;
+        assert_eq!(alex_suggestions.len(), 2);
+        for name in ["robin", "drew"] {
+            assert!(
+                alex_suggestions
+                    .iter()
+                    .any(|s| s.space_id == people[name].2.space_id),
+                "expected Alex to still see {name} after unfriending"
+            );
+        }
         Ok(())
     })
 }
