@@ -1,4 +1,4 @@
-import { Cancel01Icon, Menu08Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, FilterIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
@@ -101,12 +101,12 @@ export const PeopleFilterRow = ({
                 {people.length > 0 && (
                     <FilterButton
                         disableRipple
-                        aria-label={t("filters")}
+                        aria-label={t("filter_by_people")}
                         aria-haspopup="dialog"
                         aria-expanded={showFilters}
                         onClick={() => setShowFilters(true)}
                     >
-                        <HugeiconsIcon icon={Menu08Icon} size={16} />
+                        <HugeiconsIcon icon={FilterIcon} size={16} />
                     </FilterButton>
                 )}
                 {rowFilters}
@@ -154,7 +154,7 @@ export const PeopleFilterRow = ({
                             fontWeight: 600,
                         }}
                     >
-                        {t("filters")}
+                        {t("filter_by_people")}
                     </Typography>
                     <FilterButton
                         disableRipple
@@ -166,9 +166,6 @@ export const PeopleFilterRow = ({
                     </FilterButton>
                 </Stack>
                 <Box sx={{ mt: 2, maxHeight: "68dvh", overflowY: "auto" }}>
-                    <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 1 }}>
-                        {t("people")}
-                    </Typography>
                     <Stack
                         direction="row"
                         sx={{ flexWrap: "wrap", gap: "12px 8px" }}
@@ -178,7 +175,7 @@ export const PeopleFilterRow = ({
                                 key={person.id}
                                 person={person}
                                 selected={selectedPersonIDs.includes(person.id)}
-                                avatarSize={48}
+                                avatarSize={52}
                                 onClick={() => {
                                     togglePerson(person.id);
                                     setShowFilters(false);
