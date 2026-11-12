@@ -136,6 +136,7 @@ class _AllCollectionsPageState extends State<AllCollectionsPage> {
             actions: hasCollections
                 ? [
                     IconButtonComponent(
+                      tooltip: context.strings.createCollection,
                       icon: const HugeIcon(icon: HugeIcons.strokeRoundedAdd01),
                       variant: IconButtonComponentVariant.primary,
                       shouldSurfaceExecutionStates: false,

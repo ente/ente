@@ -81,6 +81,7 @@ class DrawerPage extends StatelessWidget {
 
   Widget _buildSearchAction(BuildContext context) {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       onTap: () => _openSearch(context),

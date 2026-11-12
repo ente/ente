@@ -239,6 +239,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
     if (canShare) {
       actions.add(
         IconButtonComponent(
+          tooltip: context.strings.shareCollection,
           icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
           variant: IconButtonComponentVariant.primary,
           shouldSurfaceExecutionStates: false,

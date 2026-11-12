@@ -122,6 +122,7 @@ class _TrashPageState extends State<TrashPage> {
             actions: hasTrashFiles
                 ? [
                     IconButtonComponent(
+                      tooltip: context.strings.emptyTrash,
                       icon: HugeIcon(
                         icon: HugeIcons.strokeRoundedDelete02,
                         color: colors.warning,
