@@ -941,14 +941,9 @@ mod tests {
 
     #[test]
     fn trips_mostly_abroad_are_named_after_the_part_abroad() {
-        let mut italy = stay(1000, "2024-02-10T07:00:00", 9, 10, ROTTERDAM);
-        italy.extend(stay(
-            1100,
-            "2024-02-10T15:00:00",
-            12,
-            480,
-            ROMAN_COUNTRYSIDE,
-        ));
+        let mut italy = stay(1000, "2024-02-10T15:00:00", 6, 480, ROMAN_COUNTRYSIDE);
+        italy.extend(stay(1100, "2024-02-12T12:00:00", 9, 10, ROTTERDAM));
+        italy.extend(stay(1200, "2024-02-13T09:00:00", 6, 480, ROMAN_COUNTRYSIDE));
         let mut france = stay(2000, "2024-06-01T10:00:00", 3, 60, FRENCH_TOWNS[0]);
         france.extend(stay(2100, "2024-06-02T10:00:00", 3, 60, FRENCH_TOWNS[1]));
         france.extend(stay(2200, "2024-06-03T10:00:00", 14, 240, ARDECHE));
