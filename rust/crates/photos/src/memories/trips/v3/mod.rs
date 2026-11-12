@@ -2,7 +2,7 @@ mod homes;
 mod naming;
 
 use std::collections::HashMap;
-use std::mem;
+use std::{iter, mem};
 
 use ente_location::{Coordinate, CountryCode};
 
@@ -130,6 +130,7 @@ fn trips<'p>(own: &[Placed<'p>], shared: &[Placed<'p>], homes: &Homes) -> Vec<Ve
         .filter(|(_, frequent)| !frequent)
         .flat_map(|(visit, _)| country_legs(visit))
         .filter(|leg| is_trip(leg))
+        .flat_map(|leg| without_home_ends(leg, homes))
         .collect()
 }
 
@@ -287,6 +288,46 @@ fn country_legs(visit: Vec<Placed>) -> Vec<Vec<Placed>> {
     merged.into_iter().map(|(_, leg)| leg).collect()
 }
 
+fn without_home_ends<'p>(leg: Vec<Placed<'p>>, homes: &Homes) -> Vec<Vec<Placed<'p>>> {
+    let in_home_country: Vec<Option<bool>> = leg
+        .iter()
+        .map(|point| {
+            point.country.map(|country| {
+                homes
+                    .countries_on(point.member.photo.date.days_since_epoch())
+                    .contains(&country)
+            })
+        })
+        .collect();
+    let abroad: Vec<usize> = (0..leg.len())
+        .filter(|&index| in_home_country[index] == Some(false))
+        .collect();
+    let (Some(&first), Some(&last)) = (abroad.first(), abroad.last()) else {
+        return vec![leg];
+    };
+    if abroad.len() * 2 <= in_home_country.iter().flatten().count() {
+        return vec![leg];
+    }
+    let start = in_home_country[..first]
+        .iter()
+        .rposition(|&home| home == Some(true))
+        .map_or(0, |index| index + 1);
+    let end = in_home_country[last..]
+        .iter()
+        .position(|&home| home == Some(true))
+        .map_or(leg.len(), |index| last + index);
+    let mut before = leg;
+    let after = before.split_off(end);
+    let away = before.split_off(start);
+    let before = is_trip(&before).then_some(before);
+    let after = is_trip(&after).then_some(after);
+    before
+        .into_iter()
+        .chain(iter::once(away))
+        .chain(after)
+        .collect()
+}
+
 fn is_trip(points: &[Placed]) -> bool {
     let (Some(first), Some(last)) = (points.first(), points.last()) else {
         return false;
@@ -342,6 +383,21 @@ mod tests {
     const ROMAN_COUNTRYSIDE: (f64, f64) = (42.25, 12.95);
     const ARDECHE: (f64, f64) = (44.6, 4.4);
     const TRIER: (f64, f64) = (49.7499, 6.6371);
+    const FLORENCE: (f64, f64) = (43.7696, 11.2558);
+    const TIVOLI: (f64, f64) = (41.9634, 12.7983);
+    const COAST_TOWN: (f64, f64) = (11.9416, 76.8083);
+    const COAST_TOWN_NORTH: (f64, f64) = (11.95, 76.8);
+    const BEACH_VILLAGE: (f64, f64) = (11.87, 76.82);
+    const BEACH_VILLAGE_SOUTH: (f64, f64) = (11.865, 76.82);
+    const HILL_VILLAGE: (f64, f64) = (12.006, 76.81);
+    const TEMPLE_VILLAGE: (f64, f64) = (15.335, 73.46);
+    const RIVER_VILLAGE: (f64, f64) = (15.3485, 73.46);
+    const MARKET_TOWN: (f64, f64) = (15.3, 73.475);
+    const DISTRICT_TOWN: (f64, f64) = (15.2689, 73.3909);
+    const HARBOUR_TOWN: (f64, f64) = (22.2783, 111.1747);
+    const HARBOUR_TOWN_WEST: (f64, f64) = (22.29, 111.16);
+    const SAN_MARCO_NORTH: (f64, f64) = (45.0, 10.0);
+    const SAN_MARCO_SOUTH: (f64, f64) = (40.5, 16.0);
     const FRENCH_TOWNS: [(f64, f64); 6] = [
         (45.764, 4.8357),
         (45.1885, 5.7245),
@@ -373,7 +429,7 @@ mod tests {
 
     struct Atlas;
 
-    const CITIES: [(&str, [u8; 2], (f64, f64)); 24] = [
+    const CITIES: [(&str, [u8; 2], (f64, f64)); 39] = [
         ("Amsterdam", *b"NL", AMSTERDAM),
         ("Berlin", *b"DE", BERLIN),
         ("Los Angeles", *b"US", DOWNTOWN_LOS_ANGELES),
@@ -398,6 +454,21 @@ mod tests {
         ("Toulouse", *b"FR", FRENCH_TOWNS[5]),
         ("Nijmegen", *b"NL", NIJMEGEN),
         ("Trier", *b"DE", TRIER),
+        ("Florence", *b"IT", FLORENCE),
+        ("Tivoli", *b"IT", TIVOLI),
+        ("Coast Town", *b"IN", COAST_TOWN),
+        ("Coast Town", *b"IN", COAST_TOWN_NORTH),
+        ("Beach Village", *b"IN", BEACH_VILLAGE),
+        ("Beach Village", *b"IN", BEACH_VILLAGE_SOUTH),
+        ("Hill Village", *b"IN", HILL_VILLAGE),
+        ("Temple Village", *b"IN", TEMPLE_VILLAGE),
+        ("River Village", *b"IN", RIVER_VILLAGE),
+        ("Market Town", *b"IN", MARKET_TOWN),
+        ("District Town", *b"IN", DISTRICT_TOWN),
+        ("Porto Belém", *b"IN", HARBOUR_TOWN),
+        ("Porto Belem", *b"IN", HARBOUR_TOWN_WEST),
+        ("San Marco", *b"IT", SAN_MARCO_NORTH),
+        ("San Marco", *b"IT", SAN_MARCO_SOUTH),
     ];
 
     fn nearest_city(coordinate: Coordinate) -> usize {
@@ -427,7 +498,12 @@ mod tests {
                             country_code: CountryCode::from_bytes(country).unwrap(),
                             latitude,
                             longitude,
-                            rank: 0,
+                            rank: match name {
+                                "Coast Town" => 4,
+                                "District Town" => 3,
+                                "Market Town" => 1,
+                                _ => 0,
+                            },
                         },
                         coordinate_indices: coordinates
                             .iter()
@@ -863,14 +939,9 @@ mod tests {
 
     #[test]
     fn trips_mostly_abroad_are_named_after_the_part_abroad() {
-        let mut italy = stay(1000, "2024-02-10T07:00:00", 9, 10, ROTTERDAM);
-        italy.extend(stay(
-            1100,
-            "2024-02-10T15:00:00",
-            12,
-            480,
-            ROMAN_COUNTRYSIDE,
-        ));
+        let mut italy = stay(1000, "2024-02-10T15:00:00", 6, 480, ROMAN_COUNTRYSIDE);
+        italy.extend(stay(1100, "2024-02-12T12:00:00", 9, 10, ROTTERDAM));
+        italy.extend(stay(1200, "2024-02-13T09:00:00", 6, 480, ROMAN_COUNTRYSIDE));
         let mut france = stay(2000, "2024-06-01T10:00:00", 3, 60, FRENCH_TOWNS[0]);
         france.extend(stay(2100, "2024-06-02T10:00:00", 3, 60, FRENCH_TOWNS[1]));
         france.extend(stay(2200, "2024-06-03T10:00:00", 14, 240, ARDECHE));
@@ -1215,5 +1286,124 @@ mod tests {
         let files = library(vec![road_trip], &AMSTERDAM_HOME);
 
         assert_eq!(trips(files), named(&[(1, "Bruges & Groningen")]));
+    }
+
+    #[test]
+    fn a_village_next_to_a_town_is_named_after_the_town_only_when_you_photographed_the_town_too() {
+        let mut first = stay(1000, "2024-01-10T09:00:00", 20, 240, BEACH_VILLAGE);
+        first.extend(stay(1100, "2024-01-11T10:00:00", 8, 60, COAST_TOWN));
+        let mut second = stay(2000, "2025-01-10T09:00:00", 20, 240, BEACH_VILLAGE);
+        second.extend(stay(2100, "2025-01-11T10:00:00", 2, 60, COAST_TOWN));
+        let files = library(vec![first, second], &AMSTERDAM_HOME);
+
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Coast Town"), (2, "Beach Village")])
+        );
+    }
+
+    #[test]
+    fn entries_for_one_place_count_together_but_namesakes_and_neighbours_stay_apart() {
+        let mut harbour = stay(1000, "2024-08-10T09:00:00", 5, 240, HARBOUR_TOWN);
+        harbour.extend(stay(1100, "2024-08-11T09:00:00", 4, 240, HARBOUR_TOWN_WEST));
+        harbour.extend(stay(1200, "2024-08-12T09:00:00", 3, 240, HILL_VILLAGE));
+        let mut villages = stay(2000, "2025-02-10T09:00:00", 10, 240, TEMPLE_VILLAGE);
+        villages.extend(stay(2100, "2025-02-12T09:00:00", 10, 240, RIVER_VILLAGE));
+        let mut namesakes = stay(3000, "2025-09-10T09:00:00", 8, 240, SAN_MARCO_NORTH);
+        namesakes.extend(stay(3100, "2025-09-12T09:00:00", 8, 240, SAN_MARCO_SOUTH));
+        namesakes.extend(stay(3200, "2025-09-14T09:00:00", 4, 240, ROME));
+        let files = library(vec![harbour, villages, namesakes], &AMSTERDAM_HOME);
+
+        assert_eq!(
+            trips(files),
+            named(&[
+                (1, "Porto Belém"),
+                (2, "River Village & Temple Village"),
+                (3, "Italy")
+            ])
+        );
+    }
+
+    #[test]
+    fn a_trip_across_a_foreign_country_is_named_after_the_country_unless_one_city_has_most_photos()
+    {
+        let mut tour = stay(1000, "2023-04-10T09:00:00", 14, 240, ROME);
+        tour.extend(stay(1100, "2023-04-14T09:00:00", 8, 240, FLORENCE));
+        let mut city_break = stay(2000, "2024-10-10T09:00:00", 18, 240, ROME);
+        city_break.extend(stay(2100, "2024-10-14T09:00:00", 4, 240, FLORENCE));
+        let mut around_rome = stay(3000, "2026-04-10T09:00:00", 14, 240, ROME);
+        around_rome.extend(stay(3100, "2026-04-14T09:00:00", 8, 240, TIVOLI));
+        let files = library(vec![tour, city_break, around_rome], &AMSTERDAM_HOME);
+
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Italy"), (2, "Rome"), (3, "Rome")])
+        );
+    }
+
+    #[test]
+    fn a_trip_abroad_leaves_out_photos_from_home_before_and_after_it() {
+        let mut holiday = stay(2000, "2024-06-09T18:00:00", 3, 60, ROTTERDAM);
+        holiday.extend(stay(2003, "2024-06-10T06:00:00", 2, 30, ROTTERDAM));
+        holiday.extend(stay(1100, "2024-06-10T10:00:00", 1, 0, MATTERHORN_BORDER));
+        holiday.extend(stay(1000, "2024-06-10T15:00:00", 7, 480, ROME));
+        holiday.extend(stay(1101, "2024-06-13T03:00:00", 1, 0, MATTERHORN_BORDER));
+        holiday.extend(stay(2005, "2024-06-13T12:00:00", 1, 0, ROTTERDAM));
+        let mut road_trip = stay(3000, "2025-05-01T09:00:00", 10, 180, GRONINGEN);
+        road_trip.extend(stay(4000, "2025-05-02T20:00:00", 14, 360, ROME));
+        let files = library(vec![holiday, road_trip], &AMSTERDAM_HOME);
+        let rome = memories(files.clone())
+            .into_iter()
+            .find(|memory| memory.file_ids.contains(&1000))
+            .unwrap();
+        let newest_first: Vec<i64> = memories(files.clone())
+            .iter()
+            .filter(|memory| matches!(memory.kind, MemoryKind::Trip(_)))
+            .map(|memory| memory.file_ids[0] / 1000)
+            .collect();
+
+        assert!(rome.file_ids.contains(&1100) && rome.file_ids.contains(&1101));
+        assert_eq!(newest_first, [4, 3, 1]);
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Rome"), (3, "Groningen"), (4, "Rome")])
+        );
+    }
+
+    #[test]
+    fn towns_and_villages_split_across_entries_are_measured_as_whole_places() {
+        let mut split_village = stay(1000, "2024-03-10T09:00:00", 10, 120, BEACH_VILLAGE);
+        split_village.extend(stay(
+            1100,
+            "2024-03-11T09:00:00",
+            10,
+            120,
+            BEACH_VILLAGE_SOUTH,
+        ));
+        split_village.extend(stay(1200, "2024-03-12T09:00:00", 4, 60, COAST_TOWN));
+        let mut chain = stay(2000, "2025-03-10T09:00:00", 30, 120, TEMPLE_VILLAGE);
+        chain.extend(stay(2100, "2025-03-13T09:00:00", 10, 60, MARKET_TOWN));
+        chain.extend(stay(2200, "2025-03-14T09:00:00", 4, 60, DISTRICT_TOWN));
+        let mut split_town = stay(3000, "2026-03-10T09:00:00", 15, 120, BEACH_VILLAGE);
+        split_town.extend(stay(3100, "2026-03-12T09:00:00", 3, 60, COAST_TOWN));
+        split_town.extend(stay(3200, "2026-03-12T14:00:00", 3, 60, COAST_TOWN_NORTH));
+        let files = library(vec![split_village, chain, split_town], &AMSTERDAM_HOME);
+
+        assert_eq!(
+            trips(files),
+            named(&[(1, "Beach Village"), (2, "Market Town"), (3, "Coast Town")])
+        );
+    }
+
+    #[test]
+    fn a_town_takes_in_a_village_only_with_photos_of_its_own() {
+        let mut trip = stay(1000, "2024-05-10T09:00:00", 12, 120, BEACH_VILLAGE);
+        trip.extend(stay(1100, "2024-05-12T09:00:00", 6, 120, HILL_VILLAGE));
+        trip.extend(stay(1200, "2024-05-13T09:00:00", 3, 60, COAST_TOWN));
+
+        assert_eq!(
+            trips(library(vec![trip], &AMSTERDAM_HOME)),
+            named(&[(1, "Beach Village")])
+        );
     }
 }
