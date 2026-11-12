@@ -61,6 +61,7 @@ export interface PeopleState {
     people: Person[];
     visiblePeople: Person[];
     personByFaceID: Map<string, Person>;
+    filesWithUnassignedFaces: Set<number>;
 }
 
 export const reconstructPeopleState = async (): Promise<PeopleState> => {
@@ -215,16 +216,26 @@ export const reconstructPeopleState = async (): Promise<PeopleState> => {
 
     const personByFaceID = new Map<string, Person>();
     for (const person of people) {
+        const rejectedFaceIDs =
+            person.type === "cgroup"
+                ? new Set(person.cgroup.data.rejectedFaceIDs)
+                : undefined;
         const faceIDs =
             person.type == "cgroup"
                 ? person.cgroup.data.assigned.map((c) => c.faces).flat()
                 : person.cluster.faces;
         for (const faceID of faceIDs) {
             personByFaceID.set(faceID, person);
+            if (!rejectedFaceIDs?.has(faceID)) personFaceByID.delete(faceID);
         }
     }
 
-    return { people, visiblePeople, personByFaceID };
+    const filesWithUnassignedFaces = new Set<number>();
+    for (const { file } of personFaceByID.values()) {
+        filesWithUnassignedFaces.add(file.id);
+    }
+
+    return { people, visiblePeople, personByFaceID, filesWithUnassignedFaces };
 };
 
 // Older mobile clients stored avatarFileID in this field.
