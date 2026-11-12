@@ -7,6 +7,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
+import "package:photos/ui/viewer/file/pip/pip_action.dart";
 import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/video_widget.dart";
@@ -26,6 +27,7 @@ class FileWidget extends StatelessWidget {
   final bool? isAudioMutedOverride;
   final ValueNotifier<double>? playbackSpeed;
   final VideoStreamChangeController? streamChangeController;
+  final VideoPipController? pipController;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
   final FileViewerImagePageReadinessRegistration?
@@ -47,6 +49,7 @@ class FileWidget extends StatelessWidget {
     this.isAudioMutedOverride,
     this.playbackSpeed,
     this.streamChangeController,
+    this.pipController,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
     this.onImagePageReadinessRegistration,
@@ -88,6 +91,7 @@ class FileWidget extends StatelessWidget {
         isAudioMutedOverride: isAudioMutedOverride,
         playbackSpeed: playbackSpeed,
         streamChangeController: streamChangeController,
+        pipController: pipController,
         key: key ?? ValueKey(fileKey),
       );
     } else {

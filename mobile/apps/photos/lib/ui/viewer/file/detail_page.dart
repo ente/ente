@@ -46,6 +46,7 @@ import 'package:photos/ui/viewer/file/file_widget.dart';
 import "package:photos/ui/viewer/file/gallery_file_viewer_filmstrip.dart";
 import "package:photos/ui/viewer/file/ocr/inline_text_detection.dart";
 import "package:photos/ui/viewer/file/panorama_viewer_screen.dart";
+import "package:photos/ui/viewer/file/pip/pip_action.dart";
 import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import "package:photos/ui/viewer/file/qr_code_highlight_overlay.dart";
 import "package:photos/ui/viewer/file/video_control/gallery_video_controls.dart";
@@ -216,6 +217,7 @@ class _BodyState extends State<_Body> {
   final Map<EnteFile, int> _fileIndexByIdentity = Map.identity();
   final Map<EnteFile, VideoStreamChangeController>
   _videoStreamChangeControllers = Map.identity();
+  final Map<EnteFile, VideoPipController> _videoPipControllers = Map.identity();
   ValueNotifier<double>? _bottomControlsAdditionalInsetNotifier;
   GalleryFileViewerFilmstripLayout _filmstripLayout =
       GalleryFileViewerFilmstripLayout.compact;
@@ -308,6 +310,9 @@ class _BodyState extends State<_Body> {
     _captionUpdatedSubscription.cancel();
     _filmstripCoordinator.dispose();
     for (final controller in _videoStreamChangeControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _videoPipControllers.values) {
       controller.dispose();
     }
     _pageController.dispose();
@@ -423,6 +428,7 @@ class _BodyState extends State<_Body> {
                   streamChangeController: _videoStreamChangeControllerFor(
                     _files![selectedIndex],
                   ),
+                  pipController: _videoPipControllerFor(_files![selectedIndex]),
                 );
               },
               valueListenable: _selectedIndexNotifier,
@@ -671,6 +677,7 @@ class _BodyState extends State<_Body> {
           qrDetectionsNotifier: _qrHelper?.qrDetectionsNotifier,
           playbackSpeed: _playbackSpeed,
           streamChangeController: _videoStreamChangeControllerFor(file),
+          pipController: _videoPipControllerFor(file),
           onTextSelectionStart:
               flagService.ocrOverlayEnabled &&
                   widget.config.mode == DetailPageMode.full &&
@@ -801,11 +808,13 @@ class _BodyState extends State<_Body> {
       final removedController = _videoStreamChangeControllers.remove(
         removedFile,
       );
-      if (removedController != null) {
+      final removedPipController = _videoPipControllers.remove(removedFile);
+      if (removedController != null || removedPipController != null) {
         // The outgoing page and app bar detach from this controller while the
         // removal frame is built. Dispose it only after those widgets unmount.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          removedController.dispose();
+          removedController?.dispose();
+          removedPipController?.dispose();
         });
       }
       _rebuildFileIndex();
@@ -999,6 +1008,11 @@ class _BodyState extends State<_Body> {
     if (key is! ObjectKey) return null;
     final value = key.value;
     return value is EnteFile ? _fileIndexByIdentity[value] : null;
+  }
+
+  VideoPipController? _videoPipControllerFor(EnteFile file) {
+    if (file.fileType != FileType.video) return null;
+    return _videoPipControllers.putIfAbsent(file, VideoPipController.new);
   }
 
   VideoStreamChangeController? _videoStreamChangeControllerFor(EnteFile file) {
