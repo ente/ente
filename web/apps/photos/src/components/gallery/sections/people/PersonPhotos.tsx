@@ -45,7 +45,7 @@ export const PersonPhotos = ({
     activePerson: Person;
 }) => {
     const [selectedIDs, setSelectedIDs] = useState<string[]>([]);
-    const [onlyThem, setOnlyThem] = useState(false);
+    const [onlyThemSelected, setOnlyThemSelected] = useState(false);
     const [showPeopleFilter, setShowPeopleFilter] = useState(false);
     const dialogTitleID = useId();
     const isFullScreen = useMediaQuery(collectionDialogFullScreenQuery);
@@ -71,6 +71,8 @@ export const PersonPhotos = ({
         () => suggestions.filter(({ id }) => selectedIDs.includes(id)),
         [suggestions, selectedIDs],
     );
+    const hasSuggestions = suggestions.length > 0;
+    const onlyThem = hasSuggestions && onlyThemSelected;
     const unassignedFaces = library.peopleState?.filesWithUnassignedFaces;
     const files = useMemo(
         () =>
@@ -119,13 +121,13 @@ export const PersonPhotos = ({
                     person={activePerson}
                     people={view.visiblePeople}
                 />
-                <Stack
-                    direction="row"
-                    role="group"
-                    aria-label={t("people")}
-                    sx={{ alignItems: "center", gap: 1 }}
-                >
-                    {suggestions.length > 0 && (
+                {hasSuggestions && (
+                    <Stack
+                        direction="row"
+                        role="group"
+                        aria-label={t("people")}
+                        sx={{ alignItems: "center", gap: 1 }}
+                    >
                         <Tooltip title={t("add_more_people")}>
                             <IconButton
                                 aria-label={t("add_more_people")}
@@ -136,54 +138,56 @@ export const PersonPhotos = ({
                                 <TuneIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
-                    )}
-                    <Stack
-                        direction="row"
-                        sx={{
-                            alignItems: "center",
-                            gap: 1,
-                            minWidth: 0,
-                            overflowX: "auto",
-                            scrollbarWidth: "none",
-                            p: "4px",
-                        }}
-                    >
-                        <Chip
-                            label={
-                                <>
-                                    <FaceStrip
-                                        people={[
-                                            activePerson,
-                                            ...selected,
-                                        ].slice(0, 4)}
-                                    />
-                                    {t("only_them")}
-                                </>
-                            }
-                            aria-pressed={onlyThem}
-                            onClick={() => setOnlyThem((value) => !value)}
-                            color={onlyThem ? "primary" : "default"}
+                        <Stack
+                            direction="row"
                             sx={{
-                                flexShrink: 0,
-                                height: 38,
-                                "& .MuiChip-label": {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 0.75,
-                                    pl: "4px",
-                                },
+                                alignItems: "center",
+                                gap: 1,
+                                minWidth: 0,
+                                overflowX: "auto",
+                                scrollbarWidth: "none",
+                                p: "4px",
                             }}
-                        />
-                        {rowPeople.map((person) => (
-                            <PersonFilterButton
-                                key={person.id}
-                                person={person}
-                                selected={selectedIDs.includes(person.id)}
-                                onClick={() => togglePerson(person.id)}
+                        >
+                            <Chip
+                                label={
+                                    <>
+                                        <FaceStrip
+                                            people={[
+                                                activePerson,
+                                                ...selected,
+                                            ].slice(0, 4)}
+                                        />
+                                        {t("only_them")}
+                                    </>
+                                }
+                                aria-pressed={onlyThem}
+                                onClick={() =>
+                                    setOnlyThemSelected((value) => !value)
+                                }
+                                color={onlyThem ? "primary" : "default"}
+                                sx={{
+                                    flexShrink: 0,
+                                    height: 38,
+                                    "& .MuiChip-label": {
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0.75,
+                                        pl: "4px",
+                                    },
+                                }}
                             />
-                        ))}
+                            {rowPeople.map((person) => (
+                                <PersonFilterButton
+                                    key={person.id}
+                                    person={person}
+                                    selected={selectedIDs.includes(person.id)}
+                                    onClick={() => togglePerson(person.id)}
+                                />
+                            ))}
+                        </Stack>
                     </Stack>
-                </Stack>
+                )}
             </Box>
             <Dialog
                 open={showPeopleFilter}
