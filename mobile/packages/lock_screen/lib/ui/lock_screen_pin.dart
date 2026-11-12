@@ -147,6 +147,8 @@ class _LockScreenPinState extends State<LockScreenPin> {
               : context.strings.setNewPin,
           controller: _pinController,
           useNativeKeyboard: isPlatformDesktop,
+          allowNonNumeric:
+              isPlatformDesktop && widget.isChangingLockScreenSettings,
           forceErrorState: isPinValid,
           onCompleted: (_) async {
             await _confirmPin(_pinController.text);
