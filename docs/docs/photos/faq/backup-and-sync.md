@@ -813,7 +813,7 @@ Yes! On desktop, you have two options:
 
 To resume, simply turn connectivity back on or re-enable the albums.
 
-To stop a backup you started by mistake, for example your whole library on the free plan, open `Settings > Backup > Backed up folders` and turn off the folders you don't want. Photos that already uploaded stay in Ente.
+To stop backing up more photos from a folder you selected by mistake, open `Settings > Backup > Backed up folders` and turn it off. An upload already in progress may still finish. Photos already uploaded stay in Ente.
 
 **On desktop:**
 
