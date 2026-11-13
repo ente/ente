@@ -16,9 +16,12 @@ import (
 	"time"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/cache"
 	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/controller/usercache"
 	"github.com/ente/museum/pkg/repo"
 	"github.com/ente/museum/pkg/repo/public"
+	storagebonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -410,6 +413,9 @@ func newFileBucketTest(t *testing.T) *fileBucketTest {
 			UsageCtrl: &UsageController{
 				UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db}, UploadResultCache: make(map[int64]bool),
 				BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
+				UserCacheCtrl: &usercache.Controller{
+					UserCache: cache.NewUserCache(), StoreBonusRepo: &storagebonusrepo.Repository{DB: db},
+				},
 			},
 		},
 	}

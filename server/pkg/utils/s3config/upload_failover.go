@@ -20,13 +20,6 @@ var hotStorageFailovers = promauto.NewCounterVec(prometheus.CounterOpts{
 	Help: "Hot storage switches after upload activity continues without registration progress in the primary bucket.",
 }, []string{"from", "to"})
 
-type MultipartInitiationError struct {
-	Err error
-}
-
-func (e *MultipartInitiationError) Error() string { return e.Err.Error() }
-func (e *MultipartInitiationError) Unwrap() error { return e.Err }
-
 type uploadFailover struct {
 	mu             sync.Mutex
 	startedAt      time.Time

@@ -141,7 +141,7 @@ func (h *PublicCollectionHandler) GetUploadURLV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	url, err := h.FileCtrl.GetUploadURLWithMetadata(c, collection.Owner.ID, req, enteApp, network.GetClientInfo(c))
+	url, err := h.FileCtrl.GetUploadURLWithMetadata(c.Request.Context(), collection.Owner.ID, req, enteApp, network.GetClientInfo(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -166,7 +166,7 @@ func (h *PublicCollectionHandler) GetMultipartUploadURLV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	upload, err := h.FileCtrl.GetMultipartUploadURLWithMetadata(c, collection.Owner.ID, req, enteApp, network.GetClientInfo(c))
+	upload, err := h.FileCtrl.GetMultipartUploadURLWithMetadata(c.Request.Context(), collection.Owner.ID, req, enteApp, network.GetClientInfo(c))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

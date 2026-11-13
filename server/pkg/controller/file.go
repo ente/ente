@@ -418,7 +418,14 @@ func (c *FileController) GetUploadURLWithMetadata(ctx context.Context, userID in
 	if err != nil {
 		return ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
+	c.recordUploadActivity(ctx)
 	return url, nil
+}
+
+func (c *FileController) recordUploadActivity(ctx context.Context) {
+	if ctx.Err() == nil && c.S3Config.CanFailoverHotStorage() {
+		c.S3Config.RecordUploadActivity(gTime.Now())
+	}
 }
 
 func (c *FileController) GetFileURL(ctx *gin.Context, userID int64, fileID int64) (string, error) {
@@ -1204,7 +1211,8 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		Key:    &objectKey,
 	})
 	if err != nil {
-		return ente.MultipartUploadURLs{}, stacktrace.Propagate(&s3config.MultipartInitiationError{Err: err}, "")
+		c.recordUploadActivity(ctx)
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	if err := c.ObjectCleanupCtrl.AddTempObject(ente.TempObject{
 		ObjectKey:     objectKey,
@@ -1245,6 +1253,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		return multipartUploadURLs, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs.CompleteURL = url
+	c.recordUploadActivity(ctx)
 	return multipartUploadURLs, nil
 }
 

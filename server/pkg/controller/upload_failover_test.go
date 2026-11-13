@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -200,22 +199,86 @@ func TestMultipartUploadFailureClassification(t *testing.T) {
 			if tc.invalid {
 				input.ContentLength = 0
 			}
+			test.switchBucket(fileBucketB2)
+			config := test.controller.S3Config
+			primeUploadStall(config)
 			_, err := test.controller.GetMultipartUploadURLWithMetadata(ctx, 1, input, ente.Photos, "test")
 			require.Error(t, err)
-			var initiationError *s3config.MultipartInitiationError
+			require.Equal(t, !tc.invalid && !tc.cancelled, config.HasHotStorageFailedOver())
 			if tc.invalid {
-				require.False(t, errors.As(err, &initiationError))
+				require.ErrorIs(t, err, ente.ErrBadRequest)
 			} else if tc.cancelled {
-				require.ErrorAs(t, err, &initiationError)
 				var storageErr awserr.Error
 				require.ErrorAs(t, err, &storageErr)
 				require.Equal(t, request.CanceledErrorCode, storageErr.Code())
 			} else {
-				require.ErrorAs(t, err, &initiationError)
 				var storageErr awserr.RequestFailure
 				require.ErrorAs(t, err, &storageErr)
 				require.Equal(t, http.StatusServiceUnavailable, storageErr.StatusCode())
 			}
 		})
+	}
+}
+
+func TestUploadFailoverURLIssuance(t *testing.T) {
+	for _, primary := range []string{fileBucketB2, fileBucketWasabi} {
+		for _, tc := range []struct {
+			name                                  string
+			multipart, legacy, missingCredentials bool
+		}{
+			{name: "single"},
+			{name: "multipart", multipart: true},
+			{name: "legacy single", legacy: true},
+			{name: "legacy multipart", legacy: true, multipart: true},
+			{name: "missing secondary credentials", missingCredentials: true},
+		} {
+			t.Run(primary+"/"+tc.name, func(t *testing.T) {
+				test := newFileBucketTest(t)
+				storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method != http.MethodPost || !r.URL.Query().Has("uploads") {
+						t.Errorf("unexpected storage request: %s %s", r.Method, r.URL)
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+					_, _ = w.Write([]byte(`<InitiateMultipartUploadResult><UploadId>upload-id</UploadId></InitiateMultipartUploadResult>`))
+				}))
+				t.Cleanup(storage.Close)
+				viper.Set("s3."+primary+".endpoint", storage.URL)
+				if tc.missingCredentials {
+					secondary := fileBucketWasabi
+					if primary == secondary {
+						secondary = fileBucketB2
+					}
+					viper.Set("s3."+secondary+".secret", "")
+				}
+				test.switchBucket(primary)
+				config := test.controller.S3Config
+				primeUploadStall(config)
+				var err error
+				switch {
+				case tc.multipart && tc.legacy:
+					_, err = test.controller.GetMultipartUploadURLs(t.Context(), 1, 1, ente.Photos, "test")
+				case tc.multipart:
+					_, err = test.controller.GetMultipartUploadURLWithMetadata(t.Context(), 1, ente.MultipartUploadURLRequest{
+						ContentLength: 5, PartLength: 5,
+					}, ente.Photos, "test")
+				case tc.legacy:
+					_, err = test.controller.GetUploadURLs(t.Context(), 1, 1, ente.Photos, false, "test")
+				default:
+					_, err = test.controller.GetUploadURLWithMetadata(t.Context(), 1, ente.UploadURLRequest{
+						ContentLength: 5, ContentMD5: "XUFAKrxLKna5cZ2REBfFkg==",
+					}, ente.Photos, "test")
+				}
+				require.NoError(t, err)
+				require.Equal(t, !tc.legacy && !tc.missingCredentials, config.HasHotStorageFailedOver())
+			})
+		}
+	}
+}
+
+func primeUploadStall(config *s3config.S3Config) {
+	start := time.Now().Add(-2 * time.Minute)
+	for i := range 20 {
+		config.RecordUploadActivity(start.Add(time.Duration(i) * 6 * time.Second))
 	}
 }
