@@ -925,9 +925,6 @@ func (c *FileController) getUploadedObject(ctx context.Context, objectKey string
 		return object, stacktrace.NewError("upload bucket %q is not configured", bucketID)
 	}
 	object.bucket = bucketID
-	if staged {
-		c.S3Config.RecordUploadProgress(bucketID)
-	}
 	s3Client := c.S3Config.GetS3Client(bucketID)
 	bucket := c.S3Config.GetBucket(bucketID)
 	var head *s3.HeadObjectOutput
@@ -937,6 +934,9 @@ func (c *FileController) getUploadedObject(ctx context.Context, objectKey string
 			Bucket: bucket,
 		})
 		if err == nil {
+			if staged {
+				c.S3Config.RecordUploadProgress(bucketID)
+			}
 			object.size = *head.ContentLength
 			return object, nil
 		}

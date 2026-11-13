@@ -151,6 +151,21 @@ func TestUploadFailoverRegistrationProgress(t *testing.T) {
 	}
 }
 
+func TestFailedUploadVerificationDoesNotReportProgress(t *testing.T) {
+	test := newFileBucketTest(t)
+	key := test.upload(t, fileBucketB2, 5)
+	storage := httptest.NewServer(http.NotFoundHandler())
+	t.Cleanup(storage.Close)
+	viper.Set("s3."+fileBucketB2+".endpoint", storage.URL)
+	test.switchBucket(fileBucketB2)
+	config := test.controller.S3Config
+	primeUploadStall(config)
+	_, err := test.controller.getUploadedObject(t.Context(), key, 1, ente.Photos)
+	require.ErrorIs(t, err, ente.ErrObjSizeFetchFailed)
+	config.RecordUploadActivity(time.Now())
+	require.True(t, config.HasHotStorageFailedOver())
+}
+
 func TestMultipartUploadFailureClassification(t *testing.T) {
 	test := newFileBucketTest(t)
 	var cancelDuringInitiation atomic.Bool

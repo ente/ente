@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -191,6 +192,20 @@ func TestPhotoUploadFileLimitAllowsCachedOverflow(t *testing.T) {
 	_, err = db.Exec(`UPDATE usage SET photos_file_count = 49999 WHERE user_id = $1`, userID)
 	require.NoError(t, err)
 	require.NoError(t, controller.ValidateUploadEligibility(t.Context(), userID, ente.Photos))
+}
+
+func TestUploadUsageRefreshSurvivesRequestCancellation(t *testing.T) {
+	controller, _, userID := setupPhotoUploadLimitTest(t)
+	usage := controller.UsageCtrl
+	usage.uploadURLResultCache = map[int64]bool{userID: true}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	require.NoError(t, usage.CanIssueUploadURLs(ctx, userID, nil, ente.Photos))
+	require.Eventually(t, func() bool {
+		usage.mu.Lock()
+		defer usage.mu.Unlock()
+		return usage.UploadResultCache[userID] && usage.uploadURLResultCache[userID]
+	}, 5*time.Second, 10*time.Millisecond)
 }
 
 func TestPhotoUploadQuotaFailureClearsRegistrationCache(t *testing.T) {
