@@ -107,7 +107,7 @@ class CoverPage extends RewindPage {
                     width: _tagline.width,
                     alignment: Alignment.center,
                     child: Text(
-                      "YOUR YEAR. FULL VOLUME.",
+                      "YOUR YEAR IN PHOTOS",
                       style: RewindTextStyles.display(
                         23.96,
                         color: RewindColors.white,

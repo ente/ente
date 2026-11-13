@@ -52,6 +52,7 @@ class SpotsPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final from = "From ${rewindCounted(spots.spotCount, "spot", "spots")}";
     final filled = {
       for (final (i, slot)
           in _fillOrder.take(max(0, photos.length - 1)).indexed)
@@ -145,10 +146,13 @@ class SpotsPage extends RewindPage {
                   preset: RewindPreset.line,
                   active: isActive,
                   delayMs: 220,
-                  child: Text(
-                    "From ${rewindCounted(spots.spotCount, "spot", "spots")} "
-                    "you keep going back to.",
-                    style: RewindTextStyles.body(17, color: RewindColors.ink),
+                  child: RewindVoice(
+                    you: "$from you keep going back to.",
+                    me: "$from I keep going back to.",
+                    builder: (text) => Text(
+                      text,
+                      style: RewindTextStyles.body(17, color: RewindColors.ink),
+                    ),
                   ),
                 ),
               ),

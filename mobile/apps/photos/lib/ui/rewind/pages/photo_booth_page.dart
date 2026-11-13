@@ -87,9 +87,13 @@ class PhotoBoothPage extends RewindPage {
                   preset: RewindPreset.line,
                   active: isActive,
                   delayMs: 150,
-                  child: Text(
-                    "YOUR NO. 1",
-                    style: RewindTextStyles.display(20, letterSpacing: 0.3),
+                  child: RewindVoice(
+                    you: "YOUR NO. 1",
+                    me: "MY NO. 1",
+                    builder: (text) => Text(
+                      text,
+                      style: RewindTextStyles.display(20, letterSpacing: 0.3),
+                    ),
                   ),
                 ),
               ),
@@ -157,8 +161,7 @@ class PhotoBoothPage extends RewindPage {
                   active: isActive,
                   delayMs: 450,
                   child: Text(
-                    "${rewindCounted(count, "photo", "photos")} together this "
-                    "year. Here are a few.",
+                    "${rewindCounted(count, "photo", "photos")} this year!",
                     style: RewindTextStyles.body(18),
                   ),
                 ),

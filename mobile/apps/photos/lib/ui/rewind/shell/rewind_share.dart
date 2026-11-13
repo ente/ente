@@ -67,8 +67,55 @@ class _RewindShareableState extends State<RewindShareable> {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(key: _card.boundary, child: widget.child);
+    return ValueListenableBuilder(
+      valueListenable: _card.stillFrame,
+      builder: (context, stillFrame, child) => Stack(
+        fit: StackFit.passthrough,
+        children: [
+          RepaintBoundary(
+            key: _card.boundary,
+            child: _FirstPerson(enabled: stillFrame != null, child: child!),
+          ),
+          if (stillFrame != null)
+            Positioned.fill(
+              child: RawImage(image: stillFrame, fit: BoxFit.fill),
+            ),
+        ],
+      ),
+      child: widget.child,
+    );
   }
+}
+
+class RewindVoice extends StatelessWidget {
+  const RewindVoice({
+    required this.you,
+    required this.me,
+    required this.builder,
+    super.key,
+  });
+
+  final String you;
+  final String me;
+  final Widget Function(String text) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final shared =
+        context.dependOnInheritedWidgetOfExactType<_FirstPerson>()?.enabled ??
+        false;
+    return builder(shared ? me : you);
+  }
+}
+
+class _FirstPerson extends InheritedWidget {
+  const _FirstPerson({required this.enabled, required super.child});
+
+  final bool enabled;
+
+  @override
+  bool updateShouldNotify(_FirstPerson oldWidget) =>
+      enabled != oldWidget.enabled;
 }
 
 Future<void> shareRewindCard(
@@ -80,7 +127,7 @@ Future<void> shareRewindCard(
 }) async {
   final boundary = card.boundary.currentContext?.findRenderObject();
   if (boundary is! RenderRepaintBoundary) return;
-  var image = await boundary.toImage(pixelRatio: pixelRatio);
+  var image = await _captureInFirstPerson(card, boundary, pixelRatio);
   if (card.branded) {
     final topLeft = boundary.globalToLocal(wordmark.topLeft);
     image = await _brand(
@@ -104,6 +151,22 @@ Future<void> shareRewindCard(
       sharePositionOrigin: origin,
     ),
   );
+}
+
+Future<ui.Image> _captureInFirstPerson(
+  RewindShareCard card,
+  RenderRepaintBoundary boundary,
+  double pixelRatio,
+) async {
+  final stillFrame = await boundary.toImage(pixelRatio: pixelRatio);
+  card.stillFrame.value = stillFrame;
+  try {
+    await WidgetsBinding.instance.endOfFrame;
+    return await boundary.toImage(pixelRatio: pixelRatio);
+  } finally {
+    card.stillFrame.value = null;
+    stillFrame.dispose();
+  }
 }
 
 Future<ui.Image> _brand(

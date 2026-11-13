@@ -59,8 +59,9 @@ class WeeklyHabitPage extends RewindPage {
     final day = (habit.weekday - 1).clamp(0, 6);
     final hour = _clockHour(habit.hour);
     final title = "${_weekdays[day]}s, $hour";
-    final line =
-        "${habit.percent}% of your photos were taken on ${_weekdays[day]}s.";
+    final share = "${habit.percent}%";
+    final weekdays = "${_weekdays[day]}s";
+    final line = "$share of your photos were taken on $weekdays.";
     final dayLeft = 37.0 + 46 * day;
     return RewindShareable(
       child: Stack(
@@ -119,12 +120,16 @@ class WeeklyHabitPage extends RewindPage {
                     position: position,
                     active: isActive,
                     delayMs: 3300,
-                    child: Text(
-                      "YOUR WEEKLY RITUAL",
-                      style: RewindTextStyles.display(
-                        17,
-                        color: RewindColors.ink,
-                        height: 1.05,
+                    child: RewindVoice(
+                      you: "YOUR WEEKLY RITUAL",
+                      me: "MY WEEKLY RITUAL",
+                      builder: (text) => Text(
+                        text,
+                        style: RewindTextStyles.display(
+                          17,
+                          color: RewindColors.ink,
+                          height: 1.05,
+                        ),
                       ),
                     ),
                   ),
@@ -157,9 +162,16 @@ class WeeklyHabitPage extends RewindPage {
                     position: position,
                     active: isActive,
                     delayMs: 3800,
-                    child: Text(
-                      line,
-                      style: RewindTextStyles.body(17, color: RewindColors.ink),
+                    child: RewindVoice(
+                      you: line,
+                      me: "$share of my photos were taken on $weekdays.",
+                      builder: (text) => Text(
+                        text,
+                        style: RewindTextStyles.body(
+                          17,
+                          color: RewindColors.ink,
+                        ),
+                      ),
                     ),
                   ),
                 ],
