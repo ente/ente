@@ -47,18 +47,41 @@ String _getGallerySaveTitle(EnteFile file, String fallbackPath) {
   return title;
 }
 
-Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
-  EnteFile file,
-) async {
-  if (file.localID == null) {
+Future<AssetEntity?> _findAssetOnDevice(EnteFile file) async {
+  final ownAsset = await _getExistingAsset(file);
+  if (ownAsset != null) {
+    return ownAsset;
+  }
+  final fileID = file.uploadedFileID;
+  if (fileID == null) {
     return null;
   }
+  for (final existingFile in await FilesDB.instance.getFilesFromIDs([fileID])) {
+    final asset = await _getExistingAsset(existingFile);
+    if (asset != null) {
+      return asset;
+    }
+  }
+  return null;
+}
+
+Future<AssetEntity?> _getExistingAsset(EnteFile file) async {
   final asset = await file.getAsset;
   if (asset == null || !(await asset.exists)) {
     return null;
   }
+  return asset;
+}
+
+Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
+  EnteFile file,
+) async {
+  final asset = await _findAssetOnDevice(file);
+  if (asset == null) {
+    return null;
+  }
   final folderNames = await FilesDB.instance.getDeviceCollectionNamesForLocalID(
-    file.localID!,
+    asset.id,
   );
   if (folderNames.isNotEmpty) {
     return folderNames.last;
@@ -68,7 +91,7 @@ Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
   // skippable" rather than crashing; a duplicate save is preferable to an
   // unhandled StateError surfacing in the download flow.
   _logger.severe(
-    "No device collection name found for localID=${file.localID} "
+    "No device collection name found for localID=${asset.id} "
     "despite asset existing on device.",
   );
   return null;
@@ -163,18 +186,8 @@ Future<void> _downloadToGallery(
         savedResult = null;
       }
       savedAsset = savedResult?.asset;
-      if (savedResult == null && persistToFilesDB && fileID != null) {
-        final existingFiles = await FilesDB.instance.getFilesFromIDs([fileID]);
-        for (final existingFile in existingFiles) {
-          if (existingFile.localID == null) {
-            continue;
-          }
-          final asset = await existingFile.getAsset;
-          if (asset != null && await asset.exists) {
-            savedAsset = asset;
-            break;
-          }
-        }
+      if (savedResult == null && persistToFilesDB) {
+        savedAsset = await _findAssetOnDevice(file);
       }
       try {
         await PhotoManager.stopChangeNotify();
