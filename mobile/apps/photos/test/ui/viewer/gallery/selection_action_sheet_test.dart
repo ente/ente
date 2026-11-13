@@ -64,17 +64,12 @@ void main() {
     );
     await gesture.moveBy(const Offset(0, -20));
     await gesture.moveBy(const Offset(0, -40));
-    await tester.pump();
-    final fades = tester
-        .widgetList<Opacity>(
-          find.ancestor(
-            of: find.text("Download"),
-            matching: find.byType(Opacity),
-          ),
-        )
-        .map((widget) => widget.opacity);
-    expect(fades, isNotEmpty);
-    expect(fades, everyElement(lessThan(1)));
+    await tester.pumpAndSettle();
+    expect(find.text("Delete"), findsNWidgets(2));
+    expect(
+      tester.getCenter(find.text("Delete").first).dx,
+      closeTo(tester.getCenter(find.text("Delete").last).dx, 0.5),
+    );
     await gesture.moveBy(const Offset(0, -320));
     await gesture.up();
     await tester.pumpAndSettle();

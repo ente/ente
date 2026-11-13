@@ -51,6 +51,7 @@ class SelectionActionSheet extends StatefulWidget {
 
 class _SelectionActionSheetState extends State<SelectionActionSheet> {
   final _sheetController = DraggableScrollableController();
+  final _railController = ScrollController();
   InheritedGalleryBoundaries? _boundaries;
   ScrollController? _galleryController;
   ValueNotifier<bool>? _galleryScrolling;
@@ -161,6 +162,21 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
     }
   }
 
+  void _rewindRail() {
+    if (!mounted || !_railController.hasClients) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _railController.jumpTo(0);
+    } else {
+      unawaited(
+        _railController.animateTo(
+          0,
+          duration: _duration,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
+  }
+
   void _reportMinHeight(double? height) {
     _minHeight = height;
     final boundaries = _boundaries;
@@ -182,6 +198,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
     _galleryScrolling?.removeListener(_onGalleryActivityChanged);
     _gallerySwipeActive?.removeListener(_onGalleryActivityChanged);
     _sheetController.dispose();
+    _railController.dispose();
     super.dispose();
   }
 
@@ -314,25 +331,14 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
         _minExtent = minHeight / availableHeight;
         _maxExtent = maxHeight / availableHeight;
         final peekExtent = peekHeight / availableHeight;
-        Widget rail({required bool withKeys}) => SizedBox(
-          height: tileHeight,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-            itemCount: grid.length,
-            separatorBuilder: (_, _) => const SizedBox(width: Spacing.xs),
-            itemBuilder: (context, index) => SizedBox(
-              width: railTileWidth,
-              child: _SheetAction(
-                key: withKeys ? grid[index].key : null,
-                action: grid[index],
-                height: tileHeight,
-              ),
-            ),
-          ),
-        );
-        final collapsedRail = rail(withKeys: true);
-        final fadingRail = rail(withKeys: false);
+        final railTiles = [
+          for (final action in grid)
+            _SheetAction(action: action, height: tileHeight),
+        ];
+        final keyedRailTiles = [
+          for (final action in grid)
+            _SheetAction(key: action.key, action: action, height: tileHeight),
+        ];
 
         return SafeArea(
           top: false,
@@ -424,27 +430,62 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                       final progress = collapsed
                                           ? 0.0
                                           : (_expansion / 0.3).clamp(0.0, 1.0);
-                                      final railOpacity =
-                                          1 -
-                                          const Interval(
-                                            0,
-                                            0.35,
-                                          ).transform(progress);
+                                      final tileWidth =
+                                          railTileWidth +
+                                          (gridLabelWidth - railTileWidth) *
+                                              const Interval(
+                                                0,
+                                                0.35,
+                                                curve: Curves.easeOutCubic,
+                                              ).transform(progress);
+                                      if (!collapsed &&
+                                          _railController.hasClients &&
+                                          _railController.offset > 0 &&
+                                          !_railController
+                                              .position
+                                              .isScrollingNotifier
+                                              .value) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback(
+                                              (_) => _rewindRail(),
+                                            );
+                                      }
                                       return Stack(
                                         children: [
-                                          if (railOpacity > 0)
+                                          if (progress < 1)
                                             IgnorePointer(
                                               ignoring: !collapsed,
-                                              child: Opacity(
-                                                opacity: railOpacity,
-                                                child: collapsed
-                                                    ? collapsedRail
-                                                    : fadingRail,
+                                              child: SizedBox(
+                                                height: tileHeight,
+                                                child: ListView.separated(
+                                                  controller: _railController,
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: Spacing.md,
+                                                      ),
+                                                  itemCount: grid.length,
+                                                  separatorBuilder: (_, _) =>
+                                                      const SizedBox(
+                                                        width: Spacing.xs,
+                                                      ),
+                                                  itemBuilder:
+                                                      (
+                                                        context,
+                                                        index,
+                                                      ) => SizedBox(
+                                                        width: tileWidth,
+                                                        child: (collapsed
+                                                            ? keyedRailTiles
+                                                            : railTiles)[index],
+                                                      ),
+                                                ),
                                               ),
                                             ),
                                           if (!collapsed)
                                             IgnorePointer(
-                                              ignoring: railOpacity > 0,
+                                              ignoring: progress < 1,
                                               child: Opacity(
                                                 opacity: const Interval(
                                                   0.35,
