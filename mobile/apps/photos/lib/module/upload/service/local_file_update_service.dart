@@ -30,6 +30,7 @@ class LocalFileUpdateService {
 
   final FileUpdationDB _fileUpdationDB = FileUpdationDB.instance;
   final Logger _logger = Logger("LocalFileUpdateService");
+  final Set<String> _failedLocalIDs = {};
   late SharedPreferences _prefs;
 
   Completer<void>? _existingMigration;
@@ -85,11 +86,15 @@ class LocalFileUpdateService {
     final sTime = DateTime.now().microsecondsSinceEpoch;
     // Limit each run to bound resource use.
     const int singleRunLimit = 10;
-    final localIDsToProcess = await _fileUpdationDB
+    final queuedLocalIDs = await _fileUpdationDB
         .getLocalIDsForPotentialReUpload(
-          singleRunLimit,
+          singleRunLimit + _failedLocalIDs.length,
           FileUpdationDB.modificationTimeUpdated,
         );
+    final localIDsToProcess = queuedLocalIDs
+        .where((localID) => !_failedLocalIDs.contains(localID))
+        .take(singleRunLimit)
+        .toList();
     if (localIDsToProcess.isNotEmpty) {
       await _checkAndMarkFilesWithDifferentHashForFileUpdate(localIDsToProcess);
       final eTime = DateTime.now().microsecondsSinceEpoch;
@@ -131,7 +136,8 @@ class LocalFileUpdateService {
     );
 
     for (EnteFile file in localFilesForUser) {
-      if (processedIDs.contains(file.localID)) {
+      if (processedIDs.contains(file.localID) ||
+          _failedLocalIDs.contains(file.localID)) {
         continue;
       }
       if (!file.isUploaded) {
@@ -184,7 +190,7 @@ class LocalFileUpdateService {
         processedIDs.add(file.localID!);
       } catch (e, s) {
         _logger.severe("Failed to check hash for ${file.tag}", e, s);
-        processedIDs.add(file.localID!);
+        _failedLocalIDs.add(file.localID!);
       }
     }
     await _fileUpdationDB.deleteByLocalIDs(
