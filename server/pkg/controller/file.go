@@ -1129,7 +1129,7 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
-	validity := ente.MultipartUploadURLValidity(nil)
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0)
 	for i := 0; i < count; i++ {
 		url, err := c.getPartURL(*s3Client, objectKey, int64(i+1), r.UploadId, nil, nil, validity)
@@ -1217,7 +1217,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
-	validity := ente.MultipartUploadURLValidity(&req.ContentLength)
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0, partCount)
 	for i := 0; i < partCount; i++ {
 		partNumber := int64(i + 1)

@@ -16,15 +16,13 @@ const (
 )
 
 const (
-	tinyUploadMaxSize      = int64(1 << 10)
-	smallUploadMaxSize     = int64(100 << 10)
-	mediumMultipartMaxSize = int64(100 << 20)
+	tinyUploadMaxSize  = int64(1 << 10)
+	smallUploadMaxSize = int64(100 << 10)
 
-	tinyUploadURLValidity            = 5 * time.Minute
-	smallUploadURLValidity           = 15 * time.Minute
-	defaultUploadURLValidity         = 24 * time.Hour
-	mediumMultipartUploadURLValidity = 24 * time.Hour
-	multipartUploadURLValidity       = 7 * 24 * time.Hour
+	tinyUploadURLValidity      = 5 * time.Minute
+	smallUploadURLValidity     = 15 * time.Minute
+	defaultUploadURLValidity   = 24 * time.Hour
+	MultipartUploadURLValidity = 7 * 24 * time.Hour
 )
 
 func UploadURLValidity(contentLength *int64) time.Duration {
@@ -39,13 +37,6 @@ func UploadURLValidity(contentLength *int64) time.Duration {
 	default:
 		return defaultUploadURLValidity
 	}
-}
-
-func MultipartUploadURLValidity(contentLength *int64) time.Duration {
-	if contentLength != nil && *contentLength <= mediumMultipartMaxSize {
-		return mediumMultipartUploadURLValidity
-	}
-	return multipartUploadURLValidity
 }
 
 func NormalizeMD5(value string) (string, error) {

@@ -56,7 +56,7 @@ func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, 
 		return nil, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: object.ObjectKey}
-	validity := ente.MultipartUploadURLValidity(object.ContentLength)
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0)
 	for i := int64(1); i <= count; i++ {
 		input := &s3.UploadPartInput{
