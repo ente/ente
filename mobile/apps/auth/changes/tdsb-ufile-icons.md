@@ -1,0 +1,1 @@
+- Added icons for Toronto District School Board (TDSB) and UFile.
