@@ -72,7 +72,12 @@ void main() {
     expect(find.text("Delete"), findsNWidgets(2));
     expect(_paintOpacity(tester, find.text("Delete").first), 1);
     expect(_paintOpacity(tester, find.text("Delete").last), 0);
-    expect(find.text("Add to album"), findsOneWidget);
+    expect(
+      tester
+          .getRect(find.text("Add to album"))
+          .overlaps(tester.getRect(find.byType(CustomScrollView))),
+      isTrue,
+    );
     expect(_paintOpacity(tester, find.text("Add to album")), greaterThan(0));
     await gesture.moveBy(const Offset(0, -320));
     await gesture.up();
