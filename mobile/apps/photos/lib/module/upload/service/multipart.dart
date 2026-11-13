@@ -151,6 +151,30 @@ class MultiPartUploader {
     );
   }
 
+  Future<void> _throwIfURLsExpired(
+    MultipartInfo multipartInfo,
+    String localId,
+  ) async {
+    if (multipartInfo.status == MultipartStatus.completed) {
+      return;
+    }
+    final validity = presignedURLValidity(multipartInfo.urls.completeURL);
+    if (validity == null) {
+      return;
+    }
+    final age = DateTime.now().toUtc().difference(validity.issuedAt);
+    if (age < validity.validFor) {
+      return;
+    }
+    await _db.deleteMultipartTrack(localId);
+    throw MultiPartUrlExpiredError(
+      "size=${multipartInfo.encFileSize} "
+      "ageHours=${age.inHours} "
+      "validHours=${validity.validFor.inHours} "
+      "status=${multipartInfo.status.name}",
+    );
+  }
+
   Future<String> putExistingMultipartFile(
     File encryptedFile,
     String localId,
@@ -165,6 +189,7 @@ class MultiPartUploader {
       collectionID,
       encryptedFileName,
     );
+    await _throwIfURLsExpired(multipartInfo, localId);
     await _db.updateLastAttempted(localId, fileHash, collectionID);
 
     Map<int, String> etags = multipartInfo.partETags ?? {};
@@ -186,6 +211,12 @@ class MultiPartUploader {
         if (e.response?.statusCode == 401) {
           _logger.severe(
             "Multipart upload not authorized ${multipartInfo.urls.objectKey}",
+          );
+          await _db.deleteMultipartTrack(localId);
+        }
+        if (e.response?.statusCode == 403) {
+          _logger.severe(
+            "Multipart upload forbidden or expired ${multipartInfo.urls.objectKey}",
           );
           await _db.deleteMultipartTrack(localId);
         }
@@ -215,6 +246,12 @@ class MultiPartUploader {
         if (e.response?.statusCode == 401) {
           _logger.severe(
             "Multipart upload not authorized ${multipartInfo.urls.objectKey}",
+          );
+          await _db.deleteMultipartTrack(localId);
+        }
+        if (e.response?.statusCode == 403) {
+          _logger.severe(
+            "Multipart upload forbidden or expired ${multipartInfo.urls.objectKey}",
           );
           await _db.deleteMultipartTrack(localId);
         }

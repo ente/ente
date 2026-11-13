@@ -113,6 +113,13 @@ class MultiPartError implements Exception {
   String toString() => "MultiPartError: $message";
 }
 
+class MultiPartUrlExpiredError extends MultiPartError {
+  MultiPartUrlExpiredError(super.message);
+
+  @override
+  String toString() => "MultiPartUrlExpiredError: $message";
+}
+
 class EncSizeMismatchError implements Exception {
   final String message;
   EncSizeMismatchError(this.message);

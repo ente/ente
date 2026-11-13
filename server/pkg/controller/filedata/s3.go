@@ -29,7 +29,7 @@ func (c *Controller) getUploadURL(object ente.TempObject) (string, error) {
 		ContentLength: object.ContentLength,
 		ContentMD5:    object.ContentMD5,
 	})
-	url, err := r.Presign(PreSignedRequestValidityDuration)
+	url, err := r.Presign(ente.UploadURLValidity(object.ContentLength))
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -56,6 +56,7 @@ func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, 
 		return nil, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: object.ObjectKey}
+	validity := ente.MultipartUploadURLValidity(object.ContentLength)
 	urls := make([]string, 0)
 	for i := int64(1); i <= count; i++ {
 		input := &s3.UploadPartInput{
@@ -69,7 +70,7 @@ func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, 
 			input.ContentMD5 = &partMD5s[i-1]
 		}
 		partReq, _ := s3Client.UploadPartRequest(input)
-		partUrl, partUrlErr := partReq.Presign(PreSignedRequestValidityDuration)
+		partUrl, partUrlErr := partReq.Presign(validity)
 		if partUrlErr != nil {
 			return nil, stacktrace.Propagate(partUrlErr, "")
 		}
@@ -81,7 +82,7 @@ func (c *Controller) getMultiPartUploadURL(object ente.TempObject, count int64, 
 		Key:      &object.ObjectKey,
 		UploadId: r.UploadId,
 	})
-	url, err := r2.Presign(PreSignedRequestValidityDuration)
+	url, err := r2.Presign(validity)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
