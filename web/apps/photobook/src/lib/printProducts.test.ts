@@ -16,26 +16,24 @@ import {
 const pages = (count: number) =>
     Array.from({ length: count }, () => makeBlankPage());
 
-test("the cover selection uses 210 mm and the shared 24–300 page limits", () => {
-    assert.equal(getPrintBinding(), "Hardcover");
-    for (const binding of ["Hardcover", "Softcover"] as const) {
+test("the cover selection uses 210 mm and a 100-page limit", () => {
+    assert.equal(getPrintBinding(), undefined);
+    for (const binding of ["Layflat", "Softcover"] as const) {
         const selection = getBindingPrintSelection(binding);
         assert.equal(getPrintBinding(selection), binding);
         assert.equal(selection.sizeMm, 210);
         assert.equal(getPrintExportError(selection, 24), null);
-        assert.equal(getPrintExportError(selection, 300), null);
-        assert.ok(getPrintExportError(selection, 22));
-        assert.ok(getPrintExportError(selection, 302));
+        assert.equal(getPrintExportError(selection, 100), null);
+        assert.ok(getPrintExportError(selection, 16));
+        assert.ok(getPrintExportError(selection, 102));
         assert.equal(preparePrintExport(pages(24), selection).length, 24);
     }
 });
 
 for (const [productId, min, max] of [
-    ["hardcover-gloss-200", 24, 300],
-    ["hardcover-gloss-150", 24, 500],
-    ["hardcover-mohawk-120", 24, 300],
-    ["softcover-gloss-150", 24, 300],
-    ["softcover-mohawk-120", 24, 300],
+    ["layflat-gloss-190", 24, 100],
+    ["softcover-gloss-150", 24, 100],
+    ["softcover-mohawk-120", 24, 100],
 ] as const) {
     test(`${productId} enforces its ${min}–${max} page range at both boundaries`, () => {
         const selection = { productId, sizeMm: 210 };
@@ -66,12 +64,12 @@ test("limits use the normalized export count, including blank interior pages and
         24,
     );
     assert.equal(
-        preparePrintExport(pages(299), DEFAULT_PRINT_SELECTION).length,
-        300,
+        preparePrintExport(pages(99), DEFAULT_PRINT_SELECTION).length,
+        100,
     );
     assert.throws(
-        () => preparePrintExport(pages(301), DEFAULT_PRINT_SELECTION),
-        /Remove 2 pages to stay within 300/,
+        () => preparePrintExport(pages(101), DEFAULT_PRINT_SELECTION),
+        /Remove 2 pages to stay within 100/,
     );
     const softcover: PrintSelection = {
         productId: "softcover-gloss-150",
@@ -85,12 +83,12 @@ test("limits use the normalized export count, including blank interior pages and
 });
 
 test("moving an old back-cover photo inside is included before checking the maximum", () => {
-    const book = pages(300);
-    book[299]!.slots = applyVariant("1-full", ["old-back-photo"]);
+    const book = pages(100);
+    book[99]!.slots = applyVariant("1-full", ["old-back-photo"]);
     const original = structuredClone(book);
     assert.throws(
         () => preparePrintExport(book, DEFAULT_PRINT_SELECTION),
-        /Remove 2 pages to stay within 300/,
+        /Remove 2 pages to stay within 100/,
     );
     assert.deepEqual(book, original);
 });

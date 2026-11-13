@@ -1,12 +1,22 @@
 import { useBook } from "@/context/book";
+import { useSpineTitlePrompt } from "@/hooks/useSpineTitlePrompt";
 import { useSpreads } from "@/hooks/useSpreads";
 import { normalizeBookPages } from "@/lib/bookPages";
+import {
+    createCheckout,
+    uploadBook,
+    UploadSessionExpiredError,
+    type DeliveryDestination,
+    type UploadedBook,
+} from "@/lib/checkout";
 import { exportPdfX4Pages } from "@/lib/export";
 import {
     getBindingPrintSelection,
     getPrintBinding,
     getPrintExportError,
     PrintExportValidationError,
+    type PrintBinding,
+    type PrintSelection,
 } from "@/lib/printProducts";
 import { getSpreadLabel } from "@/lib/spreads";
 import { editorButtonSx, headerButtonSx } from "@/theme/buttons";
@@ -22,6 +32,7 @@ import {
     Typography,
     useMediaQuery,
 } from "@mui/material";
+import { isDevBuild } from "ente-base/env";
 import { saveAsFileAndRevokeObjectURL } from "ente-base/utils/web";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BookBindingSelect from "./BookBindingSelect";
@@ -29,6 +40,9 @@ import BookHeader from "./BookHeader";
 import BookSidebar from "./BookSidebar";
 import BookTitleInput from "./BookTitleInput";
 import BookViewer, { type BookViewerHandle } from "./BookViewer";
+import CheckoutDialog from "./CheckoutDialog";
+import type { CheckoutProgress } from "./CheckoutProgressContent";
+import CoverTypeDialog from "./CoverTypeDialog";
 import DesktopEditingDialog from "./DesktopEditingDialog";
 import {
     EDITOR_HEADER_HEIGHT,
@@ -37,7 +51,7 @@ import {
     EDITOR_PANEL_SX,
     MOBILE_QUERY,
 } from "./editorLayout";
-import { DownloadIcon, EditIcon } from "./icons";
+import { ArrowRightIcon, DownloadIcon, EditIcon } from "./icons";
 import PrintValidationDialog, {
     type PrintValidation,
 } from "./PrintValidationDialog";
@@ -51,36 +65,45 @@ function ResultsPage({
     onToggleSidebar: () => void;
 }) {
     const mobile = useMediaQuery(MOBILE_QUERY, { noSsr: true });
-    const { book, photos, setAppView, waitForEnteOriginals } = useBook(
+    const { book, photos, setBook, setAppView, waitForEnteOriginals } = useBook(
         "book",
         "photos",
+        "setBook",
         "setAppView",
         "waitForEnteOriginals",
     );
     const viewerRef = useRef<BookViewerHandle>(null);
     const [spreadIndex, setSpreadIndex] = useState(0);
     const [desktopEditingOpen, setDesktopEditingOpen] = useState(false);
-    const [downloadPhase, setDownloadPhase] = useState<
-        "idle" | "originals" | "exporting"
-    >("idle");
-    const downloadInProgress = useRef(false);
-    const [exportProgress, setExportProgress] = useState(0);
+    const [checkoutProgress, setCheckoutProgress] =
+        useState<CheckoutProgress>();
+    const checkoutAttempt = useRef<{
+        pages: typeof book.pages;
+        cover: PrintBinding;
+        title: string;
+        pdf?: Blob;
+        uploaded?: UploadedBook;
+    } | null>(null);
+    const [choosingCover, setChoosingCover] = useState(false);
+    const [deliveryBook, setDeliveryBook] = useState<{
+        cover: PrintBinding;
+        title: string;
+    }>();
+    const actionInProgress = useRef(false);
+    const [exportProgress, setExportProgress] = useState<number | null>(null);
     const [exportError, setExportError] = useState<string | null>(null);
-    const [printValidation, setPrintValidation] =
-        useState<PrintValidation | null>(null);
-    const waitingForOriginals = downloadPhase === "originals";
     const [originalsProgress, setOriginalsProgress] = useState({
         done: 0,
         total: 0,
     });
+    const busy = exportProgress !== null || !!checkoutProgress;
+    const waitingForOriginals = originalsProgress.total > 0;
+    const { withSpineTitle, spineTitleDialog } = useSpineTitlePrompt();
+    const [printValidation, setPrintValidation] =
+        useState<PrintValidation | null>(null);
     const pages = book.pages;
     const binding = getPrintBinding(book.printSelection);
-    const printSelection = useMemo(
-        () => getBindingPrintSelection(binding),
-        [binding],
-    );
     const exportPages = useMemo(() => normalizeBookPages(pages), [pages]);
-    const busy = downloadPhase !== "idle";
     const totalPages = pages.length;
     const spreads = useSpreads(totalPages);
     const photosRef = useRef(photos);
@@ -105,6 +128,17 @@ function ResultsPage({
     const handleSpreadChange = useCallback((idx: number) => {
         setSpreadIndex(idx);
     }, []);
+
+    useEffect(() => {
+        const onPageShow = (event: PageTransitionEvent) => {
+            if (event.persisted && checkoutProgress?.stage === "opening") {
+                setDeliveryBook(undefined);
+                setCheckoutProgress(undefined);
+            }
+        };
+        window.addEventListener("pageshow", onPageShow);
+        return () => window.removeEventListener("pageshow", onPageShow);
+    }, [checkoutProgress?.stage]);
 
     const getBlockedEntePhotos = useCallback(() => {
         return photosRef.current.filter(
@@ -142,8 +176,8 @@ function ResultsPage({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isAtStart, isAtEnd]);
 
-    const handleExport = useCallback(async () => {
-        if (downloadInProgress.current) return;
+    const continueWithCover = (cover: PrintBinding, title: string) => {
+        const printSelection = getBindingPrintSelection(cover);
         const validationError = getPrintExportError(
             printSelection,
             exportPages.length,
@@ -156,180 +190,282 @@ function ResultsPage({
             });
             return;
         }
+        if (isDevBuild) setDeliveryBook({ cover, title });
+        else void downloadPdf(printSelection);
+    };
 
+    const requestBook = () => {
+        if (binding)
+            withSpineTitle((title) => continueWithCover(binding, title));
+        else setChoosingCover(true);
+    };
+
+    const preparePdf = async (
+        printSelection: PrintSelection,
+        onProgress: (progress: number) => void,
+        onOriginalsProgress?: (progress: {
+            done: number;
+            total: number;
+        }) => void,
+    ) => {
         const pendingIds = getBlockedEntePhotos().map((photo) => photo.id);
 
-        downloadInProgress.current = true;
-        setExportError(null);
-        setExportProgress(0);
-        setDownloadPhase(pendingIds.length > 0 ? "originals" : "exporting");
-        const preparationShare = pendingIds.length > 0 ? 10 : 0;
+        const downloadShare = Math.min(
+            75,
+            Math.round(
+                (100 * pendingIds.length) /
+                    (pendingIds.length + exportPages.length),
+            ),
+        );
 
-        try {
-            if (pendingIds.length > 0) {
-                setOriginalsProgress({ done: 0, total: pendingIds.length });
-                const ready = await waitForEnteOriginals(
-                    pendingIds,
-                    (done, total) => {
-                        setOriginalsProgress({ done, total });
-                        setExportProgress(
-                            total
-                                ? Math.round((done / total) * preparationShare)
-                                : 0,
-                        );
-                    },
-                );
-                if (!ready) {
-                    setExportError(
-                        "Some photos couldn't download. Click Download to try again. Your edits are unchanged.",
-                    );
-                    return;
-                }
-            }
-
-            setDownloadPhase("exporting");
-            await new Promise<void>((resolve) =>
-                requestAnimationFrame(() => setTimeout(resolve, 0)),
-            );
-            const blob = await exportPdfX4Pages(
-                exportPages,
-                printSelection,
-                (progress) => {
-                    setExportProgress(
-                        preparationShare +
-                            Math.round(
-                                (progress * (100 - preparationShare)) / 100,
-                            ),
+        if (pendingIds.length > 0) {
+            onOriginalsProgress?.({ done: 0, total: pendingIds.length });
+            const ready = await waitForEnteOriginals(
+                pendingIds,
+                (done, total) => {
+                    onOriginalsProgress?.({ done, total });
+                    onProgress(
+                        total ? Math.round((done / total) * downloadShare) : 0,
                     );
                 },
             );
-            const filename = `photobook-${printSelection.sizeMm}mm.pdf`;
+            onOriginalsProgress?.({ done: 0, total: 0 });
+            if (!ready) return null;
+        }
 
-            saveAsFileAndRevokeObjectURL(URL.createObjectURL(blob), filename);
-        } catch (e) {
-            console.error("Export failed:", e);
-            if (e instanceof PrintExportValidationError) {
+        await new Promise<void>((resolve) =>
+            requestAnimationFrame(() => setTimeout(resolve, 0)),
+        );
+        return exportPdfX4Pages(exportPages, printSelection, (progress) => {
+            onProgress(
+                downloadShare +
+                    Math.round((progress * (100 - downloadShare)) / 100),
+            );
+        });
+    };
+
+    const startCheckout = async (
+        cover: PrintBinding,
+        title: string,
+        destination: DeliveryDestination,
+    ) => {
+        if (actionInProgress.current) return;
+        actionInProgress.current = true;
+        setExportError(null);
+        let attempt = checkoutAttempt.current;
+        if (
+            attempt?.pages !== pages ||
+            attempt.cover !== cover ||
+            attempt.title !== title
+        ) {
+            attempt = { pages, cover, title };
+            checkoutAttempt.current = attempt;
+        }
+        try {
+            if (!attempt.uploaded) {
+                if (!attempt.pdf) {
+                    setCheckoutProgress({ stage: "preparing", percent: 0 });
+                    const pdf = await preparePdf(
+                        getBindingPrintSelection(cover),
+                        (percent) =>
+                            setCheckoutProgress({
+                                stage: "preparing",
+                                percent,
+                            }),
+                    );
+                    if (!pdf)
+                        throw new Error(
+                            "Some photos couldn’t download. Please try again.",
+                        );
+                    attempt.pdf = pdf;
+                }
+                setCheckoutProgress({ stage: "uploading", percent: 0 });
+                attempt.uploaded = await uploadBook(
+                    attempt.pdf,
+                    { binding: cover, pages: exportPages.length, title },
+                    (percent) =>
+                        setCheckoutProgress({ stage: "uploading", percent }),
+                );
+                delete attempt.pdf;
+            }
+            setCheckoutProgress({ stage: "opening" });
+            window.location.assign(
+                await createCheckout(attempt.uploaded, destination),
+            );
+        } catch (error) {
+            if (error instanceof UploadSessionExpiredError)
+                delete attempt.uploaded;
+            setCheckoutProgress(undefined);
+            setDeliveryBook(undefined);
+            setExportError(
+                error instanceof Error
+                    ? error.message
+                    : "Checkout failed. Please try again.",
+            );
+        } finally {
+            actionInProgress.current = false;
+        }
+    };
+
+    const downloadPdf = async (selection: PrintSelection) => {
+        if (actionInProgress.current) return;
+        actionInProgress.current = true;
+        setExportProgress(0);
+        setExportError(null);
+        try {
+            const pdf = await preparePdf(
+                selection,
+                setExportProgress,
+                setOriginalsProgress,
+            );
+            if (!pdf) {
+                setExportError(
+                    "Some photos couldn't download. Click Download to try again. Your edits are unchanged.",
+                );
+                return;
+            }
+            saveAsFileAndRevokeObjectURL(
+                URL.createObjectURL(pdf),
+                `photobook-${selection.sizeMm}mm.pdf`,
+            );
+        } catch (error) {
+            if (error instanceof PrintExportValidationError) {
                 setPrintValidation({
-                    selection: printSelection,
+                    selection,
                     pageCount: exportPages.length,
-                    error: e.message,
+                    error: error.message,
                 });
             } else {
+                console.error("Export failed:", error);
                 setExportError("Export failed. Please try again.");
             }
         } finally {
-            downloadInProgress.current = false;
-            setDownloadPhase("idle");
+            actionInProgress.current = false;
+            setExportProgress(null);
+            setOriginalsProgress({ done: 0, total: 0 });
         }
-    }, [
-        getBlockedEntePhotos,
-        exportPages,
-        printSelection,
-        waitForEnteOriginals,
-    ]);
+    };
 
-    const actions = (
-        <>
+    const coverControls = (
+        <Box
+            sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: { xs: "16px", md: "24px" },
+            }}
+        >
             <Button
-                aria-label="Edit"
+                variant="text"
+                disableRipple
                 startIcon={<EditIcon />}
+                disabled={busy}
                 onClick={() =>
                     mobile ? setDesktopEditingOpen(true) : setAppView("edit")
                 }
-                disabled={busy}
                 sx={{
-                    ...(mobile ? editorButtonSx : headerButtonSx),
+                    ...editorButtonSx,
+                    px: 1,
                     color: toolbarColors.text,
-                    bgcolor: toolbarColors.control,
-                    "&:hover": { bgcolor: toolbarColors.hover },
-                    "&:active": { bgcolor: toolbarColors.active },
-                    "&.Mui-disabled": {
-                        color: toolbarColors.disabled,
-                        bgcolor: toolbarColors.control,
-                        opacity: 1,
-                    },
+                    "&, &:hover": { bgcolor: "transparent" },
+                    "& .MuiButton-startIcon": { ml: 0, mr: "8px" },
                 }}
             >
                 Edit
             </Button>
-            {mobile && <ResetBookButton disabled={busy} />}
-            <Button
-                id="download-button"
-                variant="contained"
-                aria-label={
-                    busy ? `Downloading, ${exportProgress}%` : "Download"
-                }
-                aria-busy={busy}
-                startIcon={
-                    <Box
-                        component="span"
-                        sx={{
-                            display: "grid",
-                            placeItems: "center",
-                            width: 20,
-                            height: 20,
-                            flexShrink: 0,
-                        }}
-                    >
-                        <DownloadIcon
-                            sx={{
-                                gridArea: "1 / 1",
-                                fontSize: 20,
-                                visibility: busy ? "hidden" : "visible",
-                            }}
-                        />
-                        <CircularProgress
-                            disableShrink
-                            size={mobile ? 16 : 20}
-                            thickness={4}
-                            color="inherit"
-                            aria-hidden="true"
-                            sx={{
-                                gridArea: "1 / 1",
-                                visibility: busy ? "visible" : "hidden",
-                                willChange: "transform",
-                                "& circle": { strokeLinecap: "round" },
-                            }}
-                        />
-                    </Box>
-                }
-                disabled={busy || pages.length === 0}
-                onClick={handleExport}
-                sx={{
-                    ...(mobile ? editorButtonSx : headerButtonSx),
-                    ...(mobile && { ml: "auto", gap: busy ? 0.5 : 0 }),
-                    ...(busy && { "&.Mui-disabled": { opacity: 1 } }),
-                }}
-            >
+            <BookBindingSelect disabled={busy} />
+        </Box>
+    );
+
+    const primaryAction = isDevBuild ? (
+        <Button
+            variant="contained"
+            endIcon={busy ? undefined : <ArrowRightIcon />}
+            aria-busy={busy}
+            disabled={busy || pages.length === 0}
+            sx={{
+                ...(mobile ? editorButtonSx : headerButtonSx),
+                "& .MuiButton-endIcon": { ml: mobile ? "6px" : 0, mr: 0 },
+                ...(busy && { "&.Mui-disabled": { opacity: 1 } }),
+            }}
+            onClick={requestBook}
+        >
+            Continue
+        </Button>
+    ) : (
+        <Button
+            id="download-button"
+            variant="contained"
+            aria-label={busy ? `Downloading, ${exportProgress}%` : "Download"}
+            aria-busy={busy}
+            startIcon={
                 <Box
                     component="span"
-                    sx={{ display: mobile && busy ? "none" : "inline" }}
+                    sx={{
+                        display: "grid",
+                        placeItems: "center",
+                        width: 20,
+                        height: 20,
+                        flexShrink: 0,
+                    }}
                 >
-                    {busy ? "Downloading" : "Download"}
-                </Box>
-                {busy && (
-                    <Box
-                        component="span"
+                    <DownloadIcon
                         sx={{
-                            display: "inline-flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            flexShrink: 0,
-                            width: "4.5ch",
-                            py: 0.5,
-                            borderRadius: "7px",
-                            bgcolor: "rgba(0,0,0,0.12)",
-                            fontSize: 12,
-                            lineHeight: "16px",
-                            fontWeight: 600,
-                            fontVariantNumeric: "tabular-nums",
+                            gridArea: "1 / 1",
+                            fontSize: 20,
+                            visibility: busy ? "hidden" : "visible",
                         }}
-                    >
-                        {exportProgress}%
-                    </Box>
-                )}
-            </Button>
-        </>
+                    />
+                    <CircularProgress
+                        disableShrink
+                        size={mobile ? 16 : 20}
+                        thickness={4}
+                        color="inherit"
+                        aria-hidden="true"
+                        sx={{
+                            gridArea: "1 / 1",
+                            visibility: busy ? "visible" : "hidden",
+                            willChange: "transform",
+                            "& circle": { strokeLinecap: "round" },
+                        }}
+                    />
+                </Box>
+            }
+            disabled={busy || pages.length === 0}
+            onClick={requestBook}
+            sx={{
+                ...(mobile ? editorButtonSx : headerButtonSx),
+                ...(mobile && { ml: "auto", gap: busy ? 0.5 : 0 }),
+                ...(busy && { "&.Mui-disabled": { opacity: 1 } }),
+            }}
+        >
+            <Box
+                component="span"
+                sx={{ display: mobile && busy ? "none" : "inline" }}
+            >
+                {busy ? "Downloading" : "Download"}
+            </Box>
+            {busy && (
+                <Box
+                    component="span"
+                    sx={{
+                        display: "inline-flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        flexShrink: 0,
+                        width: "4.5ch",
+                        py: 0.5,
+                        borderRadius: "7px",
+                        bgcolor: "rgba(0,0,0,0.12)",
+                        fontSize: 12,
+                        lineHeight: "16px",
+                        fontWeight: 600,
+                        fontVariantNumeric: "tabular-nums",
+                    }}
+                >
+                    {exportProgress}%
+                </Box>
+            )}
+        </Button>
     );
 
     return (
@@ -356,16 +492,16 @@ function ResultsPage({
                     }}
                 >
                     <BookTitleInput disabled={busy} />
-                    <BookBindingSelect disabled={busy} />
+                    {coverControls}
                 </Box>
             ) : (
                 <BookHeader
-                    showBindingSelect
                     titleDisabled={busy}
                     sidebarOpen={sidebarOpen}
                     onToggleSidebar={onToggleSidebar}
                 >
-                    {actions}
+                    {coverControls}
+                    {primaryAction}
                 </BookHeader>
             )}
 
@@ -415,6 +551,7 @@ function ResultsPage({
                     aria-label="Photobook actions"
                     sx={{
                         display: "flex",
+                        justifyContent: "space-between",
                         alignItems: "center",
                         gap: 0.5,
                         px: 1,
@@ -423,7 +560,8 @@ function ResultsPage({
                         flexShrink: 0,
                     }}
                 >
-                    {actions}
+                    <ResetBookButton disabled={busy} />
+                    {primaryAction}
                 </Box>
             )}
 
@@ -432,13 +570,44 @@ function ResultsPage({
                 onClose={() => setDesktopEditingOpen(false)}
             />
 
+            {spineTitleDialog}
+            {deliveryBook && (
+                <CheckoutDialog
+                    cover={deliveryBook.cover}
+                    pages={exportPages.length}
+                    progress={checkoutProgress}
+                    onClose={() => setDeliveryBook(undefined)}
+                    onContinue={(destination) => {
+                        void startCheckout(
+                            deliveryBook.cover,
+                            deliveryBook.title,
+                            destination,
+                        );
+                    }}
+                />
+            )}
+            {choosingCover && (
+                <CoverTypeDialog
+                    onClose={() => setChoosingCover(false)}
+                    onContinue={(cover) => {
+                        setBook((previous) => ({
+                            ...previous,
+                            printSelection: getBindingPrintSelection(cover),
+                        }));
+                        setChoosingCover(false);
+                        withSpineTitle((title) =>
+                            continueWithCover(cover, title),
+                        );
+                    }}
+                />
+            )}
+
             {printValidation && (
                 <PrintValidationDialog
                     validation={printValidation}
                     onClose={() => setPrintValidation(null)}
                 />
             )}
-
             <Dialog
                 open={waitingForOriginals}
                 slotProps={{

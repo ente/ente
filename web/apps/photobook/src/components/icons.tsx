@@ -4,14 +4,18 @@ import {
     ArrowDown01Icon,
     ArrowLeft01Icon,
     ArrowRight01Icon,
+    ArrowRight02Icon,
+    BookOpen01Icon,
     Cancel01Icon,
     CheckmarkCircle02Icon,
+    CloudUploadIcon,
     Delete02Icon,
     Download04Icon,
     Edit02Icon,
     FileAddIcon,
     ImageAdd02Icon,
     InformationCircleIcon,
+    Location01Icon,
     MoreHorizontalIcon,
     PanelLeftCloseIcon,
     PanelLeftOpenIcon,
@@ -45,6 +49,9 @@ const AppIcon = forwardRef<
 export const AddPhotosIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={ImageAdd02Icon} />,
 );
+export const BookIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={BookOpen01Icon} />,
+);
 export const EditPhotoIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => (
         <SvgIcon {...props} ref={ref}>
@@ -70,6 +77,19 @@ export const AddPageIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 export const PreviewIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={PlayIcon} />,
 );
+export const DownloadIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Download04Icon} />,
+);
+export const UploadIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={CloudUploadIcon} />,
+);
+
+export const ArrowRightIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={ArrowRight02Icon} />,
+);
+export const LocationIcon = forwardRef<SVGSVGElement, SvgIconProps>(
+    (props, ref) => <AppIcon {...props} ref={ref} icon={Location01Icon} />,
+);
 export const CloseIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={Cancel01Icon} />,
 );
@@ -93,9 +113,6 @@ export const EditIcon = forwardRef<SVGSVGElement, SvgIconProps>(
 );
 export const TitleIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={TextFontIcon} />,
-);
-export const DownloadIcon = forwardRef<SVGSVGElement, SvgIconProps>(
-    (props, ref) => <AppIcon {...props} ref={ref} icon={Download04Icon} />,
 );
 export const MoreIcon = forwardRef<SVGSVGElement, SvgIconProps>(
     (props, ref) => <AppIcon {...props} ref={ref} icon={MoreHorizontalIcon} />,
