@@ -108,7 +108,6 @@ test("folder watch rechecks the uploader after reading the watches", async () =>
     let isUploadInProgress = false;
     const { upload } = await initWatcher(() => isUploadInProgress);
 
-    // A user upload starts while the watcher reads the watches.
     state.onGetWatches = () => {
         isUploadInProgress = true;
         state.onGetWatches = undefined;

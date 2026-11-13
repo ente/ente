@@ -76,7 +76,6 @@ class FolderWatcher {
         return this.isPaused;
     }
 
-    // Uploads share one uploader, so wait for the current one to finish.
     private isUploaderBusy() {
         return this.isUploadInProgress!() || uploadManager.isUploadRunning();
     }
@@ -243,7 +242,6 @@ class FolderWatcher {
                 return;
             }
 
-            // A user upload can start while the watches are being read.
             if (this.isUploaderBusy()) {
                 this.triggerSyncWithDisk();
                 return;
