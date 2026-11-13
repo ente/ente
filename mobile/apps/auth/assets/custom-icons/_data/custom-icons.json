@@ -2655,6 +2655,14 @@
       "title": "TorGuard"
     },
     {
+      "title": "Toronto District School Board",
+      "slug": "tdsb",
+      "hex": "009D57",
+      "altNames": [
+        "TDSB"
+      ]
+    },
+    {
       "title": "Toshl Finance",
       "slug": "toshl_finance",
       "altNames": [
@@ -2760,6 +2768,9 @@
     {
       "title": "UCF",
       "slug": "ucf"
+    },
+    {
+      "title": "UFile"
     },
     {
       "title": "unitedhealthgroup",
