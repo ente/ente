@@ -417,7 +417,7 @@ mod tests {
         assert_eq!(rome_memory.first_date_to_show, micros(NOW).into());
         assert_eq!(
             rome_memory.last_date_to_show,
-            (micros(NOW) + 10 * MICROS_PER_DAY).into()
+            (micros(NOW) + 12 * MICROS_PER_DAY).into()
         );
         assert_eq!(rome_memory.file_ids.len(), 10);
 
@@ -488,7 +488,7 @@ mod tests {
     fn the_next_period_counts_trips_shown_in_the_current_one() {
         let result = compute(
             &three_trips(),
-            &[NOW, "2026-11-01T09:00:00", "2026-11-08T09:00:00"],
+            &[NOW, "2026-11-01T09:00:00", "2026-11-10T09:00:00"],
             None,
         );
 
