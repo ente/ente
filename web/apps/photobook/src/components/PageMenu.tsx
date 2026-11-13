@@ -1,4 +1,3 @@
-import { MAX_PAGE_PHOTOS } from "@/lib/photoPlacement";
 import { pageMenuColors, uiColors } from "@/theme/colors";
 import { pageMenuItemSx, pageMenuPaperSx } from "@/theme/menus";
 import { IconButton, Menu, MenuItem } from "@mui/material";
@@ -19,7 +18,6 @@ interface PageMenuProps {
     pageIndex: number;
     totalPages: number;
     side: "left" | "right";
-    photoCount: number;
     requiredBlank: boolean;
     onAddPhotos: () => void;
     onInsert: (position: PageInsertPosition) => void;
@@ -31,7 +29,6 @@ export default function PageMenu({
     pageIndex,
     totalPages,
     side,
-    photoCount,
     requiredBlank,
     onAddPhotos,
     onInsert,
@@ -118,7 +115,7 @@ export default function PageMenu({
                         Change cover image
                     </MenuItem>
                 )}
-                {isInterior && photoCount < MAX_PAGE_PHOTOS && (
+                {isInterior && (
                     <MenuItem
                         dense
                         disableRipple
