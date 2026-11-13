@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import "package:flutter/foundation.dart";
@@ -24,11 +23,7 @@ import "package:photos/utils/gallery_save_title.dart";
 import "package:photos/utils/gallery_save_video.dart";
 
 final _logger = Logger("file_download_util");
-final _galleryDownloadsInProgress =
-    <
-      ({int fileID, bool forceResumableDownload, bool persistToFilesDB}),
-      Future<void>
-    >{};
+final _galleryDownloadCountsInProgress = <int, int>{};
 final _gallerySaveResultsInProgress = <int, ({AssetEntity? asset})>{};
 
 String getDownloadSkipToastFileName(EnteFile file) {
@@ -89,41 +84,20 @@ Future<void> downloadToGallery(
   bool forceResumableDownload = false,
   bool persistToFilesDB = true,
 }) async {
+  final fileID = file.uploadedFileID;
+  if (fileID != null) {
+    _galleryDownloadCountsInProgress.update(
+      fileID,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+  }
   try {
-    final fileID = file.uploadedFileID;
-    final key = fileID == null
-        ? null
-        : (
-            fileID: fileID,
-            forceResumableDownload: forceResumableDownload,
-            persistToFilesDB: persistToFilesDB,
-          );
-    final existing = _galleryDownloadsInProgress[key];
-    if (existing != null) {
-      await existing;
-      return;
-    }
-    final download = _downloadToGallery(
+    await _downloadToGallery(
       file,
       forceResumableDownload: forceResumableDownload,
       persistToFilesDB: persistToFilesDB,
     );
-    if (key != null) {
-      _galleryDownloadsInProgress[key] = download;
-    }
-    try {
-      await download;
-    } finally {
-      if (key != null &&
-          identical(_galleryDownloadsInProgress[key], download)) {
-        unawaited(_galleryDownloadsInProgress.remove(key));
-        if (!_galleryDownloadsInProgress.keys.any(
-          (activeKey) => activeKey.fileID == key.fileID,
-        )) {
-          _gallerySaveResultsInProgress.remove(key.fileID);
-        }
-      }
-    }
   } catch (e, s) {
     if (forceResumableDownload && isDeviceStorageFullError(e)) {
       _logger.severe("Failed to save file due to storage limit", e, s);
@@ -141,7 +115,21 @@ Future<void> downloadToGallery(
     }
     _logger.severe("Failed to save file", e, s);
     rethrow;
+  } finally {
+    if (fileID != null) {
+      _endGalleryDownload(fileID);
+    }
   }
+}
+
+void _endGalleryDownload(int fileID) {
+  final remaining = _galleryDownloadCountsInProgress[fileID]! - 1;
+  if (remaining > 0) {
+    _galleryDownloadCountsInProgress[fileID] = remaining;
+    return;
+  }
+  _galleryDownloadCountsInProgress.remove(fileID);
+  _gallerySaveResultsInProgress.remove(fileID);
 }
 
 Future<void> _downloadToGallery(
