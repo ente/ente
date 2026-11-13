@@ -1,6 +1,69 @@
 import "package:flutter/widgets.dart";
+import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
+import "package:photos/ui/rewind/widgets/rewind_text.dart";
+
+List<Widget> rewindCaption({
+  required String label,
+  required String title,
+  required String body,
+  required double position,
+  required bool active,
+  int delayMs = 0,
+  double top = 597,
+  Color ink = RewindColors.cream,
+  Color titleColor = RewindColors.white,
+  double titleSize = 46,
+}) => [
+  RewindRevealLayer(
+    left: 28,
+    top: top,
+    maxWidth: 316,
+    height: 18,
+    position: position,
+    active: active,
+    delayMs: delayMs,
+    child: Text(
+      label,
+      style: RewindTextStyles.display(17, color: ink, height: 1.05),
+    ),
+  ),
+  RewindRevealLayer(
+    left: 28,
+    top: top + 30,
+    height: 40,
+    position: position,
+    active: active,
+    preset: RewindPreset.slap,
+    delayMs: delayMs + 200,
+    origin: Alignment.centerLeft,
+    child: RewindFitWidth(
+      width: 322,
+      child: RewindOutlinedText(
+        title,
+        style: RewindTextStyles.display(
+          titleSize,
+          color: titleColor,
+          height: 0.84,
+          letterSpacing: -0.012 * titleSize,
+        ).copyWith(wordSpacing: 0.1 * titleSize),
+        shadow: Offset(0.037 * titleSize, 0.044 * titleSize),
+      ),
+    ),
+  ),
+  RewindRevealLayer(
+    left: 28,
+    top: top + 91,
+    width: 334,
+    height: 44,
+    position: position,
+    active: active,
+    delayMs: delayMs + 500,
+    child: Text(body, style: RewindTextStyles.body(17, color: ink)),
+  ),
+];
 
 class RewindRevealLayer extends StatelessWidget {
   const RewindRevealLayer({

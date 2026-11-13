@@ -10,12 +10,13 @@ use crate::ml_store::MlStore;
 
 const MICROS_PER_SECOND: i64 = 1_000_000;
 const MICROS_PER_HOUR: i64 = 3600 * MICROS_PER_SECOND;
-const MICROS_PER_DAY: i64 = 24 * MICROS_PER_HOUR;
+pub(super) const MICROS_PER_DAY: i64 = 24 * MICROS_PER_HOUR;
 
 pub(super) struct Library<'r> {
     files: Vec<YearFile<'r>>,
     positions: HashMap<i64, usize>,
     start: i64,
+    elapsed_days: usize,
     year_has_ended: bool,
 }
 
@@ -52,6 +53,7 @@ impl<'r> Library<'r> {
             files,
             positions,
             start,
+            elapsed_days: ((local_now.clamp(start, end - 1) - start) / MICROS_PER_DAY) as usize + 1,
             year_has_ended: local_now >= end,
         })
     }
@@ -76,6 +78,10 @@ impl<'r> Library<'r> {
 
     pub(super) fn start(&self) -> i64 {
         self.start
+    }
+
+    pub(super) fn elapsed_days(&self) -> usize {
+        self.elapsed_days
     }
 
     pub(super) fn year_has_ended(&self) -> bool {

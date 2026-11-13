@@ -7,6 +7,7 @@ import "package:photos/ui/rewind/pages/colour_page.dart";
 import "package:photos/ui/rewind/pages/cover_page.dart";
 import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/pages/top_percent_page.dart";
+import "package:photos/ui/rewind/pages/tour_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_viewer.dart";
 import "package:photos/ui/rewind/story/rewind_composer.dart";
@@ -36,6 +37,10 @@ final rewindColourChapters = [
         ]),
       ),
     ),
+];
+
+List<RewindPage> rewindTourPages(rust.RewindReport report) => [
+  if (report.tour case final tour?) TourPage(tour),
 ];
 
 RewindChapter _colourChapter(rust.ColourOfTheYear colour) => RewindChapter([
@@ -101,6 +106,36 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
             ),
           ),
         ),
+        for (final sample in rewindSampleReports.entries)
+          if (rewindTourPages(sample.value).isNotEmpty)
+            ListTile(
+              title: Text("Tour tee: ${sample.key}"),
+              trailing: const Icon(Icons.chevron_right_outlined),
+              onTap: () => open(rewindTourPages(sample.value)),
+            ),
+        if (rewindService.state.value?.status case rust.RewindStatus_Ready(
+          :final report,
+        ))
+          ListTile(
+            title: const Text("Tour tee: your library"),
+            subtitle: const Text("From the computed Rewind"),
+            trailing: const Icon(Icons.chevron_right_outlined),
+            onTap: () => open(rewindTourPages(report)),
+          ),
+        if (rewindService.state.value?.status case rust.RewindStatus_Ready(
+          :final report,
+        ))
+          ListTile(
+            title: const Text("Photo cards: your library"),
+            subtitle: const Text("Tunnel, tower, globe, timelapse, mosaic"),
+            trailing: const Icon(Icons.chevron_right_outlined),
+            onTap: () => openStory(
+              RewindMedia.load().then(
+                (media) =>
+                    RewindStory.compose(rewindPhotoCardChapters(report), media),
+              ),
+            ),
+          ),
         ListTile(
           title: const Text("Badge"),
           subtitle: const Text("Fire each Rive badge trigger"),

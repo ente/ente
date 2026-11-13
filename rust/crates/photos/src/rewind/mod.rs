@@ -16,9 +16,10 @@ pub use input::{
     RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest, RewindVisibility,
 };
 pub use report::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, LikedPhoto, NewFace, NewFaces,
-    PeopleRace, Places, RacePerson, RewindBadge, RewindCity, RewindColour, RewindReport, Scrapbook,
-    Spots, Totals, WeeklyHabit,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Globe, GlobePlace, LikedPhoto,
+    Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    RewindColour, RewindReport, Scrapbook, Spots, Timelapse, TimelapseFrame, Totals, Tour,
+    TourStop, Warp, WeeklyHabit,
 };
 pub use state::{REWIND_VERSION, RewindState, RewindStatus};
 

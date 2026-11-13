@@ -37,5 +37,11 @@ abstract class RewindPage {
 
   void resetAnswer() {}
 
+  int get warmAhead => 2;
+
+  void warmUp() {}
+
+  void release() {}
+
   Widget build(BuildContext context, double position, {required bool isActive});
 }

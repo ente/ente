@@ -24,6 +24,11 @@ pub struct RewindReport {
     pub crowd_favourite: Option<CrowdFavourite>,
     pub badge: Option<Badge>,
     pub scrapbook: Option<Scrapbook>,
+    pub tour: Option<Tour>,
+    pub globe: Option<Globe>,
+    pub mosaic: Option<Mosaic>,
+    pub timelapse: Option<Timelapse>,
+    pub warp: Option<Warp>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -177,6 +182,73 @@ pub struct Scrapbook {
     pub file_ids: Vec<i64>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Tour {
+    pub stops: Vec<TourStop>,
+    pub city_count: u32,
+    pub country_count: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TourStop {
+    pub city: String,
+    pub country_code: String,
+    pub month: u32,
+    pub day: u32,
+    pub photo_count: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Globe {
+    pub rows: Vec<u32>,
+    pub land: Vec<u8>,
+    pub visited: Vec<u8>,
+    pub places: Vec<GlobePlace>,
+    pub route: Vec<u32>,
+    pub distance_km: u32,
+    pub country_count: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GlobePlace {
+    pub name: String,
+    pub country_code: String,
+    pub latitude_microdegrees: i32,
+    pub longitude_microdegrees: i32,
+    pub photo_count: u32,
+    pub file_ids: Vec<i64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Mosaic {
+    pub file_ids: Vec<i64>,
+    pub me_person_id: Option<String>,
+    pub me_face_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Timelapse {
+    pub person_id: String,
+    pub photo_count: u32,
+    pub frames: Vec<TimelapseFrame>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Warp {
+    pub file_ids: Vec<i64>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimelapseFrame {
+    pub file_id: i64,
+    pub month: u32,
+    pub day: u32,
+    pub left_eye_x: u32,
+    pub left_eye_y: u32,
+    pub right_eye_x: u32,
+    pub right_eye_y: u32,
+}
+
 impl RewindReport {
     pub(super) fn of(
         request: &RewindRequest,
@@ -202,12 +274,16 @@ impl RewindReport {
             vectors.map(|store| store as &dyn ClipVectors),
         );
         let ml_people = people.as_ref().filter(|_| ml_chapters);
+        let located_cities = cities.and_then(|cities| chapters::cities(library, cities));
+        let year_photos = chapters::year_photos(library, &ranking);
         Ok(Self {
             totals: chapters::totals(library, &ranking),
             colour: clip
                 .as_ref()
                 .and_then(|clip| chapters::colour(library, clip, &ranking)),
-            places: cities.and_then(|cities| chapters::places(library, cities, &ranking)),
+            places: located_cities
+                .as_deref()
+                .and_then(|cities| chapters::places(cities, &ranking)),
             spots: chapters::spots(library, &ranking),
             people_race: ml_people
                 .and_then(|people| chapters::people_race(request, library, people, &ranking)),
@@ -219,6 +295,15 @@ impl RewindReport {
             crowd_favourite: chapters::crowd_favourite(library, &ranking),
             badge: chapters::badge(request, library, ml_people, clip.as_ref()),
             scrapbook: chapters::scrapbook(library, &ranking),
+            tour: located_cities.as_deref().and_then(chapters::tour),
+            globe: located_cities
+                .as_deref()
+                .zip(cities)
+                .and_then(|(located, lookup)| chapters::globe(located, lookup, &ranking)),
+            mosaic: chapters::mosaic(request, library, ml_people, &ranking, &year_photos),
+            timelapse: ml_people
+                .and_then(|people| chapters::timelapse(request, library, people, &ranking)),
+            warp: chapters::warp(library, &ranking, &year_photos),
         })
     }
 

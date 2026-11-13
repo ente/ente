@@ -23,6 +23,14 @@ pub(super) struct Face {
     pub(super) score: f64,
     pub(super) blur: f64,
     pub(super) area: f64,
+    pub(super) eyes: Option<Eyes>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct Eyes {
+    pub(super) left: (f64, f64),
+    pub(super) right: (f64, f64),
+    pub(super) nose: (f64, f64),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -36,12 +44,20 @@ pub(super) struct Entity {
 struct Detection {
     #[serde(rename = "box")]
     face_box: FaceBox,
+    #[serde(default)]
+    landmarks: Vec<Landmark>,
 }
 
 #[derive(Deserialize)]
 struct FaceBox {
     width: f64,
     height: f64,
+}
+
+#[derive(Deserialize)]
+struct Landmark {
+    x: f64,
+    y: f64,
 }
 
 impl People {
@@ -56,13 +72,15 @@ impl People {
         db.for_each_face_without_embedding(|face| {
             if library.get(face.file_id).is_some_and(YearFile::is_eligible) {
                 *face_counts.entry(face.file_id).or_insert(0) += 1;
+                let (area, eyes) = shape(&face.detection_json);
                 faces.insert(
                     face.face_id,
                     Face {
                         file_id: face.file_id,
                         score: face.score,
                         blur: face.blur,
-                        area: area(&face.detection_json),
+                        area,
+                        eyes,
                     },
                 );
             }
@@ -185,8 +203,17 @@ fn in_year(entities: HashMap<String, Entity>) -> Vec<Entity> {
     entities
 }
 
-fn area(detection_json: &str) -> f64 {
-    serde_json::from_str::<Detection>(detection_json)
-        .map(|detection| detection.face_box.width * detection.face_box.height)
-        .unwrap_or(0.0)
+fn shape(detection_json: &str) -> (f64, Option<Eyes>) {
+    let Ok(detection) = serde_json::from_str::<Detection>(detection_json) else {
+        return (0.0, None);
+    };
+    let eyes = match detection.landmarks.as_slice() {
+        [left, right, nose, ..] => Some(Eyes {
+            left: (left.x, left.y),
+            right: (right.x, right.y),
+            nose: (nose.x, nose.y),
+        }),
+        _ => None,
+    };
+    (detection.face_box.width * detection.face_box.height, eyes)
 }

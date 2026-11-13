@@ -3,12 +3,17 @@ mod busiest_day;
 mod colour;
 mod crowd_favourite;
 mod favourites;
+mod globe;
+mod mosaic;
 mod new_faces;
 mod people_race;
 mod places;
 mod scrapbook;
 mod spots;
+mod timelapse;
 mod totals;
+mod tour;
+mod warp;
 mod weekly_habit;
 
 pub(super) use badge::{badge, badge_uses_ml};
@@ -16,12 +21,17 @@ pub(super) use busiest_day::busiest_day;
 pub(super) use colour::colour;
 pub(super) use crowd_favourite::crowd_favourite;
 pub(super) use favourites::favourites;
+pub(super) use globe::globe;
+pub(super) use mosaic::{mosaic, year_photos};
 pub(super) use new_faces::new_faces;
 pub(super) use people_race::people_race;
-pub(super) use places::places;
+pub(super) use places::{cities, places};
 pub(super) use scrapbook::scrapbook;
 pub(super) use spots::spots;
+pub(super) use timelapse::timelapse;
 pub(super) use totals::totals;
+pub(super) use tour::tour;
+pub(super) use warp::warp;
 pub(super) use weekly_habit::weekly_habit;
 
 fn percent(part: usize, whole: usize) -> u32 {
