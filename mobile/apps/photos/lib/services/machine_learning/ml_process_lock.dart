@@ -9,7 +9,6 @@ enum MlOperation {
   indexing,
   clustering,
   startupRemoteHydration,
-  faceDataHydration,
   clipVectorMigration,
   clusterCentroidVectorMigration,
   clearData,

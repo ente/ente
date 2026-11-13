@@ -262,7 +262,6 @@ class MLService {
           }
         }
       },
-      lockWait: const Duration(seconds: 15),
     );
     if (attempt != MlLockAttempt.ran) {
       _logger.info(

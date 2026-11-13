@@ -5,12 +5,10 @@ import "package:dio/dio.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/services.dart" show PlatformException;
 import "package:logging/logging.dart";
-import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/db.dart";
-import "package:photos/db/ml/ml_exclusive_operation.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
@@ -32,7 +30,6 @@ import "package:photos/services/machine_learning/face_ml/face_alignment/alignmen
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_file_retrieval.dart";
-import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/search_service.dart";
@@ -42,75 +39,6 @@ import "package:photos/utils/network_util.dart";
 
 final _logger = Logger("MlUtil");
 const _kMlStaleCleanupMaxIds = 5;
-
-final _faceDataHydrationQueue = TaskQueue<String>(maxConcurrentTasks: 2);
-final _pendingFaceDataHydrations = <int, Future<void>>{};
-String? _faceDataHydrationToken;
-int _faceDataHydrationSession = 0;
-
-Future<void> hydrateFaceDataForFile(int fileID) {
-  final token = Configuration.instance.getToken();
-  if (token == null ||
-      isLocalGalleryMode ||
-      !hasGrantedMLConsent ||
-      !localSettings.remoteFetchEnabled) {
-    return Future.value();
-  }
-  if (_faceDataHydrationToken != token) {
-    _faceDataHydrationToken = token;
-    _faceDataHydrationSession++;
-    _pendingFaceDataHydrations.clear();
-  }
-  final existing = _pendingFaceDataHydrations[fileID];
-  if (existing != null) return existing;
-  late final Future<void> future;
-  future = _faceDataHydrationQueue
-      .addTask("$_faceDataHydrationSession:$fileID", () async {
-        bool canContinue() =>
-            Configuration.instance.getToken() == token &&
-            !isLocalGalleryMode &&
-            hasGrantedMLConsent &&
-            localSettings.remoteFetchEnabled;
-        if (!canContinue()) return;
-        final db = MLDataDB.instance;
-        final response = await fileDataService.getFilesData({fileID});
-        if (response.fetchErrorFileIDs.contains(fileID)) {
-          throw StateError("Failed to fetch face data for file $fileID");
-        }
-        final remoteData = response.data[fileID];
-        final faces = remoteData == null
-            ? null
-            : _getFacesFromRemoteEmbedding(remoteData);
-        if (faces == null || !canContinue()) return;
-        await runMlOperationExclusive(MlOperation.faceDataHydration, () async {
-          if (!canContinue()) return;
-          final currentFaces = await db.getFacesForGivenFileID(fileID);
-          final availableFaceIDs =
-              currentFaces
-                  ?.where((face) => face.score >= 0)
-                  .map((face) => face.faceID)
-                  .toSet() ??
-              <String>{};
-          final missingFaces = faces
-              .where(
-                (face) =>
-                    face.fileID == fileID &&
-                    !availableFaceIDs.contains(face.faceID),
-              )
-              .toList();
-          if (missingFaces.isEmpty) return;
-          if (!canContinue()) return;
-          await db.bulkInsertFaces(missingFaces);
-        }, waitDeadline: const Duration(seconds: 15));
-      })
-      .whenComplete(() {
-        if (identical(_pendingFaceDataHydrations[fileID], future)) {
-          _pendingFaceDataHydrations.remove(fileID);
-        }
-      });
-  _pendingFaceDataHydrations[fileID] = future;
-  return future;
-}
 
 enum FileDataForML { thumbnailData, fileData }
 

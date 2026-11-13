@@ -6,7 +6,6 @@ import "package:flutter/foundation.dart";
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' show join;
 import 'package:path_provider/path_provider.dart';
-import "package:photos/core/event_bus.dart";
 import "package:photos/db/common/base.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
@@ -15,7 +14,6 @@ import "package:photos/db/ml/ml_data_db_orchestration.dart";
 import 'package:photos/db/ml/schema.dart';
 import "package:photos/db/ml/usearch_clip_vector_db.dart";
 import "package:photos/db/ml/usearch_cluster_centroid_vector_db.dart";
-import "package:photos/events/face_data_updated_event.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
@@ -165,18 +163,6 @@ class DartMLDataDB
       }).toList();
 
       await db.executeBatch(sql, parameterSets);
-    }
-    final fileIDs = faces
-        .where((face) => face.score > 0)
-        .map((face) => face.fileID)
-        .toSet();
-    if (fileIDs.isNotEmpty) {
-      Bus.instance.fire(
-        FaceDataUpdatedEvent(
-          fileIDs,
-          localGallery: identical(this, localGalleryInstance),
-        ),
-      );
     }
   }
 

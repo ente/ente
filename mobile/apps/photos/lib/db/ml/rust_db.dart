@@ -13,7 +13,6 @@ import "package:photos/db/ml/rust_db_model_mappers.dart" as mappers;
 import "package:photos/db/ml/usearch_clip_vector_db.dart";
 import "package:photos/db/ml/usearch_cluster_centroid_vector_db.dart";
 import "package:photos/events/embedding_updated_event.dart";
-import "package:photos/events/face_data_updated_event.dart";
 import "package:photos/models/ml/clip.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/face_with_embedding.dart";
@@ -160,23 +159,8 @@ class RustMLDataDB implements IMLDataDB<int> {
   }
 
   @override
-  Future<void> bulkInsertFaces(List<Face> faces) async {
-    await (await store).bulkInsertFaces(
-      faces: faces.map(mappers.toFaceRow).toList(),
-    );
-    final fileIDs = faces
-        .where((face) => face.score > 0)
-        .map((face) => face.fileID)
-        .toSet();
-    if (fileIDs.isNotEmpty) {
-      Bus.instance.fire(
-        FaceDataUpdatedEvent(
-          fileIDs,
-          localGallery: identical(this, localGalleryInstance),
-        ),
-      );
-    }
-  }
+  Future<void> bulkInsertFaces(List<Face> faces) async => (await store)
+      .bulkInsertFaces(faces: faces.map(mappers.toFaceRow).toList());
 
   @override
   Future<void> updateFaceIdToClusterId(

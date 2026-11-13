@@ -140,7 +140,6 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
   Iterable<FaceWithoutEmbedding> faces, {
   int fetchAttempt = 1,
   bool useFullFile = true,
-  bool allowGeneration = true,
   String? personOrClusterID,
   required bool useTempCache,
 }) async {
@@ -206,10 +205,6 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
       }
     }
 
-    if (!allowGeneration) {
-      return faceIdToCrop.isEmpty ? null : faceIdToCrop;
-    }
-
     final result = await _getFaceCropsUsingHeapPriorityQueue(
       enteFile,
       facesWithoutCrops,
@@ -264,7 +259,6 @@ Future<Map<String, Uint8List>?> getCachedFaceCrops(
           faces,
           fetchAttempt: fetchAttempt + 1,
           useFullFile: useFullFile,
-          allowGeneration: allowGeneration,
           useTempCache: useTempCache,
         );
       }
