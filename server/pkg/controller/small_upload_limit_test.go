@@ -53,6 +53,33 @@ func TestSmallUploadLimiterRollingWindow(t *testing.T) {
 	require.Len(t, value.([]time.Time), 1000)
 }
 
+func TestSmallUploadLimiterCountsOverLimitAttempts(t *testing.T) {
+	var limiter smallUploadLimiter
+	fillSmallUploadLimit(t, &limiter, 1)
+	value, _ := limiter.requests.Get("1")
+	requests := value.([]time.Time)
+	for i := range requests {
+		requests[i] = time.Now().Add(-9 * time.Minute)
+	}
+	limiter.requests.Set("1", requests, cache.DefaultExpiration)
+	require.False(t, limiter.allow(1))
+	value, _ = limiter.requests.Get("1")
+	requests = value.([]time.Time)
+	for i := range requests {
+		if requests[i].Before(time.Now().Add(-8 * time.Minute)) {
+			requests[i] = time.Now().Add(-11 * time.Minute)
+		}
+	}
+	limiter.requests.Set("1", requests, cache.DefaultExpiration)
+	accepted := 0
+	for range 1000 {
+		if limiter.allow(1) {
+			accepted++
+		}
+	}
+	require.Equal(t, 999, accepted)
+}
+
 func TestSmallUploadLimitEntitlements(t *testing.T) {
 	for _, tc := range []struct {
 		name           string

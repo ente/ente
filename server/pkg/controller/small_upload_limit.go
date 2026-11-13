@@ -34,11 +34,12 @@ func (l *smallUploadLimiter) allow(userID int64) bool {
 	for len(requests) > 0 && !requests[0].After(cutoff) {
 		requests = requests[1:]
 	}
-	if len(requests) >= smallUploadLimit {
-		return false
+	allowed := len(requests) < smallUploadLimit
+	if !allowed {
+		requests = requests[1:]
 	}
 	l.requests.Set(key, append(requests, now), cache.DefaultExpiration)
-	return true
+	return allowed
 }
 
 func (c *UsageController) CheckUploadURLRateLimit(userID int64, size *int64) error {
