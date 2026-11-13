@@ -303,3 +303,7 @@ Check whether you may have signed up using:
 If you have a paid account, also check how the payment was made. App Store and Stripe payments can help identify which account was used.
 
 An App Store purchase may already be linked to a different Ente account. Making another purchase does not transfer that subscription or its storage to the account you are currently using. If the purchase appears on the wrong account, contact [support@ente.com](mailto:support@ente.com) so we can check the association before you buy again.
+
+### Why does Ente say "Account setup incomplete"? {#account-setup-incomplete}
+
+You started creating an account with this email but didn't finish, for example before you set a password and saved your recovery key. Tap **Sign up**, enter the same email and complete the steps.

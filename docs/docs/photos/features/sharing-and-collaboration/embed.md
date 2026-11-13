@@ -120,6 +120,8 @@ The embedded album viewer includes:
 - Password protection (if enabled on the album)
 - Automatic updates when you add new photos to the album
 
+Embedded albums always show a square thumbnail grid. The album layout you choose for the public link, such as Masonry, applies only when someone opens the link itself.
+
 ## Privacy and security
 
 - The embed uses the same encryption and security as regular Ente albums

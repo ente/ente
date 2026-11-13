@@ -321,6 +321,10 @@ Live Photos behave differently depending on how you share them:
 - **Using "Download"**: Downloads the complete Live Photo (image + video)
 - **Using "Share" button to save/download**: Only saves the still image
 
+### Why do my Live Photos show up as a separate photo and video? {#live-photo-not-paired}
+
+When you upload from a computer, Ente uses the photo and video's file names and dates to pair them as one Live Photo. Both parts must be uploaded to the same Ente album. When folder paths are available, they must also match. Ente can recognise some filename suffixes and Google Takeout metadata. Downloads from other services, such as a Google Photos shared album, may rename one of the parts or leave out the video. If Ente cannot pair the files, they appear as a separate photo and video. To keep Live Photos intact, back them up from your iPhone with the Ente app.
+
 ### Can I save just the still image from a Live Photo or remove its motion clip? {#live-photo-still-only}
 
 Ente's **Download** option saves both parts of a Live Photo. To save only the still image, open the photo in Ente and use **Share** instead.
